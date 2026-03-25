@@ -2,7 +2,7 @@ import { App as AntdApp, Alert, Button, Descriptions, Empty, Modal, Select, Spin
 import classNames from "classnames";
 import { useMemo } from "react";
 
-import type { AdminAiEmployeeListItem } from "@/apis/AdminAiEmployeeApi";
+import type { AdminAiEmployeeListItem } from "@/types/prdPrototype";
 import { resolveSkillInstallLifecycle } from "@/feature/skill/installStatus";
 import type { SkillInstallModalProps } from "@/feature/skill/types";
 

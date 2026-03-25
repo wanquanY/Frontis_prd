@@ -51,7 +51,6 @@ import type {
   ArtifactImage,
 } from "@/types/block";
 import { decodeMention, MENTION_DISPLAY_REGEX } from "@/utils/mention";
-import { submitFeedback } from "@/apis/DynamicsWorkflowApi";
 import { formatFileSize, getFileExtension } from "@/utils/file";
 import { resolveFileLogo } from "@/utils/fileLogo";
 import { ChatMarkdown } from "./ChatMarkdown";
@@ -163,6 +162,13 @@ const buildCopyActionItems = (copyText: string) => [
     },
   },
 ];
+
+const submitPrototypeFeedback = async (): Promise<{ success: boolean; error?: string }> => {
+  await new Promise(resolve => {
+    window.setTimeout(resolve, 240);
+  });
+  return { success: true };
+};
 
 const TOOL_CONTAINER_KINDS = new Set(["tool_use", "tool", "subagent", "sub_agent"]);
 const MESSAGE_TOOL_SEQUENCE_KINDS = new Set([
@@ -1655,15 +1661,7 @@ function DynamicsWorkflowBlock({ block }: { block: Block }) {
     if (!feedbackInfo || submitted || rating === 0) return;
     try {
       setSubmitting(true);
-      const resp = await submitFeedback({
-        feedback_type: feedbackInfo.feedback_type,
-        params: {
-          tool_id: feedbackInfo.tool_id,
-          message_id: feedbackInfo.message_id,
-          rating,
-          human_comment: feedbackComment?.trim() || undefined,
-        },
-      });
+      const resp = await submitPrototypeFeedback();
       if (resp.success) {
         setSubmitted(true);
         setSubmittedRating(rating);

@@ -5,8 +5,8 @@ import type {
   CoworkerSkillVisibility,
   SkillCategoryInfo,
   SkillPublisherType,
-} from "@/apis/SkillApi";
-import type { AdminAiEmployeeListItem } from "@/apis/AdminAiEmployeeApi";
+} from "@/types/prdPrototype";
+import type { AdminAiEmployeeListItem } from "@/types/prdPrototype";
 
 export type SkillCategoryFilter = number | "all" | "my_skills";
 export type SkillSummaryMap = Record<number, { name: string }>;

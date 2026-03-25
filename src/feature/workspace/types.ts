@@ -1,7 +1,7 @@
 import type { ChangeEvent, DragEvent, KeyboardEvent, RefObject } from "react";
 import type { Block, HITLRespondPayload } from "@/types/block";
-import type { SpaceItem } from "@/apis/WorkSpaceApi";
-import type { AnalysisStatus } from "@/apis/enums";
+import type { SpaceItem } from "@/types/prdPrototype";
+import type { AnalysisStatus } from "@/types/prdPrototype";
 import type { PlanItem, PlanStatus } from "@/types/block";
 
 export type UploadStatus = "idle" | "uploading" | "success" | "error";

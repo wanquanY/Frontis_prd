@@ -9,7 +9,7 @@ import type {
   CoworkerSkillItem,
   SkillCategoryInfo,
   SkillPublisherType,
-} from "@/apis/SkillApi";
+} from "@/types/prdPrototype";
 import { resolveSkillInstallLifecycle } from "@/feature/skill/installStatus";
 import type { SkillCategoryFilter } from "@/feature/skill/types";
 

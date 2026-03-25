@@ -1,4 +1,4 @@
-import type { CoworkerAgentSkillInstallStatusResponse } from "@/apis/SkillApi";
+import type { CoworkerAgentSkillInstallStatusResponse } from "@/types/prdPrototype";
 
 const INSTALL_STATUS_PROGRESS_MAP: Record<string, number> = {
   queued: 0,

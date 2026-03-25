@@ -1,8 +1,6 @@
 import { Component } from "react";
 import type { ErrorInfo, ReactNode } from "react";
 import { Button, Result } from "antd";
-import { reportErrorToFeishu } from "@/utils/feishuReport";
-import { logger } from "@/utils/logger";
 
 interface ErrorBoundaryProps {
   children: ReactNode;
@@ -40,19 +38,8 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
-    try {
-      logger.error("[ErrorBoundary]", error, errorInfo);
-      // chunk 加载失败是发版的预期行为，不上报飞书
-      if (isChunkLoadError(error)) return;
-      reportErrorToFeishu({
-        type: "React ErrorBoundary",
-        message: error.message,
-        stack: error.stack,
-        extra: errorInfo.componentStack ?? undefined,
-      });
-    } catch {
-      // 上报过程出错静默忽略，绝不影响降级 UI 的展示
-    }
+    void error;
+    void errorInfo;
   }
 
   private handleReload = () => {

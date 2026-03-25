@@ -5,11 +5,9 @@ import { ConfigProvider, App as AntdApp, theme } from "antd";
 import App from "./App";
 import "@/styles/base.css";
 import { installScrollBarRuntime } from "./utils/scroll";
-import { initGlobalErrorHandler } from "@/utils/globalErrorHandler";
 import "@/styles/scroll.less";
 
 installScrollBarRuntime();
-initGlobalErrorHandler();
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>

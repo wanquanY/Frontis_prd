@@ -3,8 +3,8 @@ import { Alert, Button, Empty, Skeleton } from "antd";
 import classNames from "classnames";
 import { useMemo } from "react";
 
-import type { AdminAiEmployeeListItem } from "@/apis/AdminAiEmployeeApi";
-import type { CoworkerAgentSkillItem } from "@/apis/SkillApi";
+import type { AdminAiEmployeeListItem } from "@/types/prdPrototype";
+import type { CoworkerAgentSkillItem } from "@/types/prdPrototype";
 import type { SkillSummaryMap } from "@/feature/skill/types";
 import ArrowDownIcon from "@/assets/images/arrow-down.png";
 import { buildNameAvatarMeta } from "@/utils/nameAvatar";
