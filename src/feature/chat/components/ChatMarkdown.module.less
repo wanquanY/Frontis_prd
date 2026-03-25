@@ -1,0 +1,79 @@
+@import "@/styles/markdown.less";
+
+.chatMarkdown {
+  width: 100%;
+  min-width: 0;
+}
+
+.markdownContent {
+  width: 100%;
+  min-width: 0;
+
+  :global(.wmde-markdown),
+  :global(.wmde-markdown-var) {
+    background: transparent;
+    color: var(--text);
+    font-family: inherit;
+  }
+
+  :global(.wmde-markdown) {
+    .markdown-content();
+    padding: 0;
+    background: transparent;
+    color: var(--text);
+    font-size: 14px;
+    line-height: 1.72;
+  }
+
+  :global(.wmde-markdown h1) {
+    font-size: 18px;
+    line-height: 1.5;
+    margin: 20px 0 10px;
+    padding-bottom: 6px;
+  }
+
+  :global(.wmde-markdown h2) {
+    font-size: 16px;
+    line-height: 1.5;
+    margin: 18px 0 8px;
+    padding-bottom: 4px;
+  }
+
+  :global(.wmde-markdown h3) {
+    font-size: 15px;
+    line-height: 1.5;
+    margin: 16px 0 8px;
+  }
+
+  :global(.wmde-markdown pre) {
+    margin: 12px 0;
+  }
+
+  :global(.wmde-markdown pre code) {
+    white-space: pre;
+  }
+
+  :global(.wmde-markdown hr) {
+    height: 0;
+    margin: 16px 0;
+    border: none;
+    border-top: 1px solid color-mix(in srgb, var(--text) 12%, transparent);
+    background: transparent;
+  }
+
+  :global(.wmde-markdown table) {
+    display: table;
+  }
+
+  :global(.wmde-markdown img) {
+    max-width: 320px;
+  }
+
+  :global(.wmde-markdown > *:first-child) {
+    margin-top: 0;
+  }
+
+  :global(.wmde-markdown > *:last-child) {
+    margin-bottom: 0;
+  }
+}

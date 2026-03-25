@@ -1,0 +1,189 @@
+/* @tailwind base;
+@tailwind components;
+@tailwind utilities; */
+
+:root {
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  background-color: #f4f6fb;
+  color: #0f172a;
+
+  --app-bg: #f4f6fb;
+  --surface: #ffffff;
+  --muted: #64748b;
+  --border: #e8e8e8;
+  --shadow-sm: 0 10px 30px rgba(15, 23, 42, 0.06);
+  --primary: #00c1d4;
+  --primary-weak: rgba(0, 193, 212, 0.12);
+  --danger: #ff4d4f;
+  --danger-weak: rgba(255, 77, 79, 0.15);
+  --radius-lg: 16px;
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 4px 12px -2px rgba(0, 0, 0, 0.08);
+  --shadow-lg: 0 12px 24px -4px rgba(0, 0, 0, 0.1);
+  --shadow-xl: 0 24px 48px -8px rgba(0, 0, 0, 0.12);
+  --text: #041133;
+  --text-strong: #0b1220;
+  --text-secondary: rgba(4, 17, 51, 0.75);
+  --text-muted: rgba(4, 17, 51, 0.7);
+  --text-ope-icon: #86909c;
+  --tag-color: rgb(140, 140, 140);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+button {
+  cursor: pointer;
+}
+
+*,
+::after,
+::before,
+::backdrop,
+::file-selector-button {
+  margin: 0;
+  padding: 0;
+}
+
+*,
+::after,
+::before,
+::backdrop,
+::file-selector-button {
+  box-sizing: border-box;
+  border: 0 solid;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-size: inherit;
+  font-weight: inherit;
+}
+
+ol,
+ul,
+menu {
+  list-style: none;
+}
+
+img,
+svg,
+video,
+canvas,
+audio,
+iframe,
+embed,
+object {
+  display: block;
+  vertical-align: middle;
+}
+
+img,
+video {
+  max-width: 100%;
+  height: auto;
+}
+
+[hidden]:where(:not([hidden="until-found"])) {
+  display: none !important;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background-color: var(--app-bg);
+  color: var(--text);
+  overflow-x: hidden;
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  overflow-y: hidden;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+*::-webkit-scrollbar {
+  /* display: none; */
+  width: 6px;
+  height: 6px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 3px;
+  transition: background 0.2s ease;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.15);
+}
+
+*::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* 为 X-Markdown 表格添加完整边框 */
+/* 选中 markdown 渲染后的表格容器（不同工具可能前缀不同，如 .x-markdown、.markdown-body 等，可按需调整） */
+.x-markdown table {
+  /* 表格整体边框合并（避免单元格边框重叠出现双线条） */
+  border-collapse: collapse;
+  /* 可选：让表格占满容器宽度，更美观 */
+  width: 100% !important;
+  margin: 16px 0;
+}
+
+/* 表格表头单元格（th）和内容单元格（td）统一添加边框 */
+.x-markdown th,
+.x-markdown td {
+  /* 边框样式：1px 实线 灰色（可修改颜色、粗细、样式） */
+  border: 1px solid #dcdcdc;
+  /* 可选：单元格内边距，让内容不贴边 */
+  padding: 8px 12px;
+  /* 可选：文字居中对齐（按需调整，也可设为 left 左对齐） */
+  text-align: center;
+}
+
+/* 可选：为表头添加背景色，区分表头和内容 */
+.x-markdown th {
+  background-color: #f5f5f5;
+  font-weight: bold;
+}
+
+/* 可选：奇偶行交替背景色，提升可读性 */
+.x-markdown tr:nth-child(even) {
+  background-color: #fafafa;
+}
+
+/* 去掉 Modal 遮罩层的背景模糊/半透明效果 */
+.ant-modal-mask {
+  /* 移除模糊效果（如果有的话） */
+  backdrop-filter: none !important;
+  /* 可选：如果想完全隐藏遮罩层，设置透明度为 0 */
+  /* opacity: 0 !important; */
+  /* 可选：如果只想保留纯色背景，去掉模糊，比如设置白色背景 */
+  /* background: #fff !important; */
+}
+
+/* 可选：如果同时想去掉弹窗内容的阴影/边框 */
+.ant-modal-content {
+  box-shadow: none !important;
+  border: none !important;
+}

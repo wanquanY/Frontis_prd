@@ -1,0 +1,3229 @@
+.page {
+  --panelBorder: color-mix(in srgb, var(--text) 8%, transparent);
+  --panelBorderStrong: color-mix(in srgb, var(--text) 12%, transparent);
+  --subtleBg: color-mix(in srgb, var(--text) 3%, var(--surface));
+  --subtleBgStrong: color-mix(in srgb, var(--primary) 8%, var(--surface));
+  --subtleBgHover: color-mix(in srgb, var(--text) 5%, var(--surface));
+  --mutedText: var(--text-secondary);
+  --softText: var(--text-muted);
+
+  display: flex;
+  height: 100vh;
+  padding: 8px;
+  gap: 6px;
+  background: var(--app-bg);
+  color: var(--text);
+}
+
+.sidebar {
+  flex-shrink: 0;
+  width: 280px;
+  height: calc(100vh - 16px);
+  padding: 24px 10px 22px;
+  border: 1px solid var(--panelBorder);
+  border-radius: 20px;
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  transition:
+    width 180ms ease,
+    padding 180ms ease,
+    background 180ms ease,
+    border-color 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.sidebarCollapsed {
+  width: 76px;
+  padding: 12px 4px;
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+  align-items: center;
+}
+
+.sidebarTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 6px;
+}
+
+.sidebarTopCollapsed {
+  width: 100%;
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: 14px;
+  padding: 0;
+}
+
+.brandCard {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  flex: 1;
+  padding: 4px 6px;
+}
+
+.brandCardCollapsed {
+  flex: none;
+  width: 40px;
+  justify-content: center;
+  padding: 0;
+}
+
+.brandLogo {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--primary) 12%, transparent);
+  color: var(--primary);
+  font-size: 16px;
+}
+
+.brandTitle {
+  margin: 0;
+  font-family:
+    "PingFang SC",
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    Arial,
+    sans-serif;
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 28px;
+  color: var(--text);
+}
+
+.sidebarToggle {
+  width: 36px;
+  height: 36px;
+  flex: 0 0 auto;
+  border: 0;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition:
+    background 160ms ease,
+    color 160ms ease,
+    transform 160ms ease;
+}
+
+.sidebarToggle:hover {
+  background: color-mix(in srgb, var(--text) 5%, transparent);
+  color: var(--text);
+}
+
+.sidebarSection {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  gap: 10px;
+}
+
+.sidebarSectionCollapsed {
+  width: 100%;
+  align-items: center;
+  gap: 8px;
+}
+
+.tabButton {
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--text-secondary);
+  text-align: left;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  transition:
+    background 160ms ease,
+    color 160ms ease,
+    transform 160ms ease;
+}
+
+.tabButton:hover {
+  background: color-mix(in srgb, var(--text) 4%, transparent);
+  color: var(--text);
+}
+
+.isActiveTab {
+  background: color-mix(in srgb, var(--primary) 10%, var(--surface));
+  color: var(--primary);
+}
+
+.tabButtonCollapsed {
+  width: 56px;
+  min-width: 56px;
+  min-height: 68px;
+  padding: 8px 4px 7px;
+  border-radius: 18px;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  text-align: center;
+}
+
+.tabIcon {
+  width: 20px;
+  height: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+}
+
+.tabLabel {
+  font-family:
+    "PingFang SC",
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    Arial,
+    sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 20px;
+}
+
+.tabButtonCollapsed .tabLabel {
+  font-size: 11px;
+  line-height: 14px;
+  text-align: center;
+  white-space: normal;
+  word-break: break-all;
+}
+
+.main {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  height: calc(100vh - 16px);
+  display: flex;
+}
+
+.mainPanel {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border: 1px solid var(--panelBorder);
+  border-radius: 20px;
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+
+.header {
+  height: 64px;
+  padding: 0 24px;
+  border-bottom: 1px solid var(--panelBorder);
+  background: var(--surface);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+}
+
+.headerLeft,
+.headerRight,
+.sectionHeader,
+.chatHeader,
+.listCardHeader,
+.composerFooter,
+.actionRow,
+.messageMeta,
+.mentionRow,
+.desktopToolbar,
+.inlineEditor {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.headerLeft,
+.headerRight {
+  min-width: 0;
+}
+
+.headerTitle {
+  font-family:
+    "PingFang SC",
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    Arial,
+    sans-serif;
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 28px;
+  color: var(--text);
+}
+
+.content {
+  flex: 1;
+  min-height: 0;
+  padding: 8px;
+  overflow: hidden;
+  background: var(--surface);
+  display: flex;
+}
+
+.content > * {
+  flex: 1;
+  min-height: 0;
+}
+
+.featureContent {
+  padding: 0;
+  background: var(--surface);
+  overflow: auto;
+  display: block;
+}
+
+.dialogueShell {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 252px minmax(0, 1fr) 422px;
+  gap: 8px;
+}
+
+.dialogueShellSidebarCollapsed {
+  grid-template-columns: minmax(0, 1fr) 422px;
+}
+
+.dialogueShellArtifactsHidden {
+  grid-template-columns: 252px minmax(0, 1fr);
+}
+
+.dialogueShellSidebarCollapsed.dialogueShellArtifactsHidden {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.dialogueShellRuntimeVisible {
+  grid-template-columns: 252px minmax(0, 1fr) 10px auto 422px;
+}
+
+.dialogueShellRuntimeArtifactsHidden {
+  grid-template-columns: 252px minmax(0, 1fr) 10px auto;
+}
+
+.dialogueShellRuntimeSidebarCollapsed {
+  grid-template-columns: minmax(0, 1fr) 10px auto 422px;
+}
+
+.dialogueShellRuntimeSidebarCollapsedArtifactsHidden {
+  grid-template-columns: minmax(0, 1fr) 10px auto;
+}
+
+.groupShell {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 320px minmax(0, 1fr) 422px;
+  gap: 8px;
+
+  &[data-artifacts-open="false"] {
+    grid-template-columns: 320px minmax(0, 1fr);
+  }
+}
+
+.expertsShell {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 296px minmax(0, 1fr);
+  gap: 8px;
+}
+
+.dialogueSidebarCard,
+.dialogueMainCard,
+.dialogueArtifactsCard,
+.groupSidebarCard,
+.groupMainCard,
+.groupArtifactsCard,
+.expertsSidebarCard,
+.expertsMainCard {
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--panelBorder);
+  border-radius: 16px;
+  background: var(--surface);
+  box-shadow: none;
+  overflow: hidden;
+}
+
+.dialogueMainCard {
+  position: relative;
+}
+
+.dialogueArtifactsCard {
+  padding: 0;
+}
+
+.dialogueMainCardSidebarCollapsed {
+  overflow: hidden;
+}
+
+.dialogueSidebarCard {
+  padding: 16px;
+}
+
+.groupSidebarCard {
+  padding: 0;
+}
+
+.groupArtifactsCard {
+  padding: 0;
+}
+
+.expertsSidebarCard {
+  padding: 16px;
+}
+
+.expertsMainCard {
+  gap: 12px;
+  padding: 14px;
+  overflow-y: auto;
+}
+
+.cardHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.cardTitle {
+  color: var(--text);
+  font-size: 22px;
+  line-height: 32px;
+  font-weight: 600;
+}
+
+.cardSubtitle {
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.dialogueSidebarCard {
+  padding: 16px 14px;
+  position: relative;
+}
+
+.dialogueSidebarTopBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.dialogueSidebarAction,
+.dialogueSidebarIconButton,
+.dialogueNewSessionButton,
+.dialogueSwitcherItem,
+.dialogueSessionItem {
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.dialogueSidebarAction,
+.dialogueSidebarIconButton {
+  min-height: 40px;
+  border-radius: 12px;
+  color: var(--text);
+  transition:
+    background 160ms ease,
+    color 160ms ease;
+}
+
+.dialogueSidebarAction:hover,
+.dialogueSidebarIconButton:hover,
+.dialogueNewSessionButton:hover,
+.dialogueSwitcherItem:hover,
+.dialogueSessionItem:hover {
+  background: color-mix(in srgb, var(--text) 4%, transparent);
+}
+
+.dialogueSidebarAction {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 6px;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 22px;
+}
+
+.dialogueSidebarIconButton {
+  width: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+}
+
+.dialogueCollapsedAvatarButton {
+  position: absolute;
+  top: 14px;
+  left: 16px;
+  z-index: 5;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.dialogueCollapsedAvatarWrap {
+  width: 40px;
+  height: 40px;
+  position: relative;
+  display: inline-flex;
+}
+
+.dialogueCollapsedAvatar {
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--primary) 12%, var(--surface));
+  color: var(--primary);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+
+.dialogueCollapsedAvatarDot {
+  right: 0;
+  bottom: 0;
+}
+
+.dialogueHeroCard,
+.dialogueSessionSection {
+  margin-top: 20px;
+}
+
+.dialogueFloatingSwitcher {
+  position: absolute;
+  top: 64px;
+  left: 14px;
+  right: 14px;
+  z-index: 8;
+}
+
+.dialogueHeroCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 8px 2px;
+}
+
+.dialogueHeroAvatarWrap {
+  width: 88px;
+  height: 88px;
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.dialogueHeroAvatar {
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--primary) 12%, var(--surface));
+  color: var(--primary);
+  overflow: hidden;
+}
+
+.dialogueHeroStatusDot {
+  width: 16px;
+  height: 16px;
+  right: 2px;
+  bottom: 2px;
+}
+
+.dialogueHeroName {
+  color: var(--text);
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 600;
+  text-align: center;
+}
+
+.dialogueHeroBadge {
+  min-height: 36px;
+  padding: 0 12px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--panelBorder);
+  color: var(--text);
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 500;
+}
+
+.dialogueNewSessionButton {
+  width: 100%;
+  min-height: 56px;
+  margin-top: 26px;
+  padding: 0 18px;
+  border-radius: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: color-mix(in srgb, var(--text) 4%, var(--surface));
+  color: var(--text);
+  font-size: 15px;
+  line-height: 22px;
+  font-weight: 600;
+  transition:
+    background 160ms ease,
+    transform 160ms ease;
+}
+
+.dialogueNewSessionButton:hover {
+  transform: translateY(-1px);
+}
+
+.dialogueSwitcherList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 6px;
+  border-radius: 22px;
+  background: var(--surface);
+  border: 1px solid var(--panelBorder);
+  box-shadow: var(--shadow-lg);
+}
+
+.dialogueSwitcherItem {
+  width: 100%;
+  padding: 14px 12px;
+  border-radius: 18px;
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr);
+  gap: 14px;
+  align-items: center;
+  text-align: left;
+  transition:
+    background 160ms ease,
+    transform 160ms ease;
+}
+
+.dialogueSwitcherItem:hover {
+  transform: translateY(-1px);
+}
+
+.dialogueSwitcherItemActive {
+  background: color-mix(in srgb, var(--primary) 10%, var(--surface));
+}
+
+.dialogueSwitcherItemBody {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.dialogueSwitcherItemName,
+.dialogueSessionTitle {
+  color: var(--text);
+  font-size: 15px;
+  line-height: 22px;
+  font-weight: 600;
+}
+
+.dialogueSwitcherItemMeta,
+.dialogueSessionPreview,
+.dialogueSessionTime,
+.dialogueSessionHeading,
+.dialogueSessionEmpty {
+  color: var(--text-secondary);
+}
+
+.dialogueSwitcherItemMeta,
+.dialogueSessionTime {
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.dialogueSessionHeading {
+  margin-bottom: 12px;
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 600;
+}
+
+.dialogueSessionList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.dialogueSessionItem {
+  width: 100%;
+  min-height: 60px;
+  padding: 8px;
+  border-radius: 18px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: color-mix(in srgb, var(--text) 4%, var(--surface));
+  transition:
+    background 160ms ease,
+    transform 160ms ease;
+}
+
+.dialogueSessionItem:hover {
+  transform: translateY(-1px);
+}
+
+.dialogueSessionItemActive {
+  background: color-mix(in srgb, var(--primary) 12%, var(--surface));
+}
+
+.dialogueSessionMainButton,
+.dialogueSessionMenuButton,
+.dialogueSessionEditorButton {
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.dialogueSessionMainButton {
+  flex: 1;
+  min-width: 0;
+  min-height: 44px;
+  padding: 6px 8px;
+  border-radius: 14px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  text-align: left;
+}
+
+.dialogueSessionMainButton:hover {
+  background: color-mix(in srgb, var(--text) 4%, transparent);
+}
+
+.dialogueSessionMenuButton {
+  width: 32px;
+  height: 32px;
+  flex: 0 0 auto;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    opacity 160ms ease,
+    background 160ms ease,
+    color 160ms ease;
+}
+
+.dialogueSessionItem:hover .dialogueSessionMenuButton,
+.dialogueSessionItem:focus-within .dialogueSessionMenuButton {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.dialogueSessionMenuButton:hover {
+  background: color-mix(in srgb, var(--text) 5%, transparent);
+  color: var(--text);
+}
+
+.dialogueSessionEditor {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 6px;
+}
+
+.dialogueSessionEditorActions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.dialogueSessionEditorButton {
+  width: 30px;
+  height: 30px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  transition:
+    background 160ms ease,
+    color 160ms ease;
+}
+
+.dialogueSessionEditorButton:hover {
+  background: color-mix(in srgb, var(--text) 5%, transparent);
+  color: var(--text);
+}
+
+.dialogueSessionEmpty {
+  padding: 14px 16px;
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--text) 4%, var(--surface));
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.dialogueViewToolbar {
+  padding: 14px 16px 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.dialogueMainCardSidebarCollapsed .dialogueViewToolbar {
+  padding-left: 72px;
+}
+
+.dialogueViewToolbarGroup {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.dialogueRuntimePanelToolbarSpacer {
+  flex: 1;
+  min-width: 0;
+}
+
+.dialogueViewDivider {
+  width: 1px;
+  height: 20px;
+  flex: 0 0 auto;
+  background: color-mix(in srgb, var(--text) 12%, transparent);
+}
+
+.dialogueViewButton,
+.dialogueRuntimeAction {
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.dialogueViewButton {
+  min-height: 34px;
+  padding: 0 12px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 20px;
+  transition:
+    background 160ms ease,
+    color 160ms ease;
+}
+
+.dialogueViewButton:hover {
+  background: color-mix(in srgb, var(--text) 4%, transparent);
+  color: var(--text);
+}
+
+.dialogueViewButtonActive {
+  background: color-mix(in srgb, var(--primary) 10%, var(--surface));
+  color: var(--text);
+}
+
+.dialogueStage {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+
+.dialogueStageSplit,
+.dialogueStageCloudspace {
+  padding: 14px 16px 0;
+}
+
+.dialogueStageSplit {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(360px, 42%);
+  gap: 16px;
+}
+
+.dialogueStageCloudspace {
+  display: flex;
+}
+
+.dialogueRuntimePanel {
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--panelBorder);
+  border-radius: 24px;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--text) 2%, var(--surface)),
+    color-mix(in srgb, var(--text) 4%, var(--surface))
+  );
+  overflow: hidden;
+}
+
+.dialogueRuntimePanelMini {
+  width: 300px;
+  height: 170px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.dialogueRuntimePanelFull {
+  flex: 1;
+}
+
+.dialogueRuntimeResizeHandle {
+  position: relative;
+  width: 10px;
+  min-height: 0;
+  cursor: col-resize;
+  border-radius: 999px;
+  background: transparent;
+  transition: background 160ms ease;
+}
+
+.dialogueRuntimeResizeHandle::before {
+  content: "";
+  position: absolute;
+  top: 20px;
+  bottom: 20px;
+  left: 50%;
+  width: 2px;
+  border-radius: 999px;
+  transform: translateX(-50%);
+  background: color-mix(in srgb, var(--text) 10%, transparent);
+  transition: background 160ms ease;
+}
+
+.dialogueRuntimeResizeHandle:hover,
+.dialogueRuntimeResizeHandle:active {
+  background: color-mix(in srgb, var(--text) 4%, transparent);
+}
+
+.dialogueRuntimeResizeHandle:hover::before,
+.dialogueRuntimeResizeHandle:active::before {
+  background: color-mix(in srgb, var(--primary) 40%, transparent);
+}
+
+.dialogueRuntimeColumn {
+  min-width: 320px;
+  min-height: 0;
+  display: flex;
+  flex: none;
+}
+
+.dialogueRuntimeColumn .dialogueRuntimePanel {
+  flex: 1;
+}
+
+.dialogueRuntimeStage {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.dialogueRuntimeTopBar {
+  height: 54px;
+  padding: 0 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.dialogueRuntimeTopBarSpacer {
+  width: 1px;
+  height: 1px;
+}
+
+.dialogueRuntimeActions {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.groupRuntimePanelHeader {
+  padding: 12px 16px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.14);
+  background: rgba(226, 232, 240, 0.04);
+  display: flex;
+  align-items: center;
+}
+
+.groupRuntimeColumn {
+  width: 420px;
+  min-width: 420px;
+  flex: none;
+  min-height: 0;
+  display: flex;
+}
+
+.groupRuntimeColumn .dialogueRuntimePanel {
+  flex: 1;
+}
+
+.groupRuntimePanelToolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  min-width: 0;
+}
+
+.groupRuntimeAgentSelectWrap {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  align-items: center;
+}
+
+.groupRuntimeAgentSelect {
+  min-width: 0;
+  max-width: 240px;
+  flex: 1;
+
+  :global(.ant-select-selector) {
+    border: 1px solid rgba(255, 255, 255, 0.12) !important;
+    border-radius: 12px !important;
+    background: rgba(15, 23, 42, 0.42) !important;
+    box-shadow: none !important;
+  }
+
+  :global(.ant-select-selection-item),
+  :global(.ant-select-selection-placeholder) {
+    color: rgba(248, 250, 252, 0.92) !important;
+    font-size: 13px;
+    line-height: 20px;
+  }
+
+  :global(.ant-select-arrow) {
+    color: rgba(226, 232, 240, 0.72);
+  }
+}
+
+.groupRuntimeAgentSelectPopup {
+  :global(.ant-select-item-option-content) {
+    font-size: 13px;
+    line-height: 20px;
+  }
+
+  :global(.ant-select-item-option-state) {
+    color: rgba(148, 163, 184, 0.88);
+  }
+}
+
+.groupRuntimeViewControls {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.groupRuntimePanelBody {
+  flex: 1;
+  min-height: 0;
+  padding: 14px 16px 16px;
+  display: flex;
+}
+
+.groupRuntimeDeviceTitle {
+  color: rgba(248, 250, 252, 0.96);
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.groupRuntimeDeviceMeta {
+  color: rgba(226, 232, 240, 0.72);
+  font-size: 13px;
+  line-height: 20px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.groupRuntimeAgentTabs {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.groupRuntimeAgentTab {
+  min-width: 96px;
+  max-width: 148px;
+  padding: 8px 12px;
+  border: 0;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  background: rgba(15, 23, 42, 0.42);
+  color: rgba(226, 232, 240, 0.8);
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  backdrop-filter: blur(6px);
+  cursor: pointer;
+  flex: 0 0 auto;
+  transition:
+    border-color 160ms ease,
+    background 160ms ease,
+    color 160ms ease,
+    transform 160ms ease;
+}
+
+.groupRuntimeAgentTab:hover {
+  border-color: rgba(255, 255, 255, 0.22);
+  background: rgba(30, 41, 59, 0.66);
+  color: #f8fafc;
+  transform: translateY(-1px);
+}
+
+.groupRuntimeAgentTabActive {
+  border-color: rgba(125, 211, 252, 0.46);
+  background: rgba(14, 116, 144, 0.34);
+  color: #f8fafc;
+}
+
+.groupRuntimeAgentTabName,
+.groupRuntimeAgentTabMeta,
+.groupRuntimeDesktopLabel,
+.groupRuntimeDesktopValue,
+.groupRuntimeDesktopText,
+.groupRuntimeToolbarSummary {
+  display: block;
+}
+
+.groupRuntimeAgentTabName {
+  width: 100%;
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.groupRuntimeAgentTabMeta {
+  font-size: 11px;
+  line-height: 16px;
+  color: rgba(191, 219, 254, 0.78);
+}
+
+.groupRuntimeDesktopWindow {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  border-radius: 20px;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 50% 72%, rgba(34, 139, 230, 0.36), transparent 32%),
+    radial-gradient(circle at 54% 78%, rgba(236, 72, 153, 0.2), transparent 18%), #08111f;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  display: flex;
+  flex-direction: column;
+}
+
+.groupRuntimeDesktopHeader {
+  height: 38px;
+  padding: 0 14px;
+  background: rgba(15, 23, 42, 0.82);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.groupRuntimeDesktopDots {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.groupRuntimeDesktopDots span {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(226, 232, 240, 0.5);
+}
+
+.groupRuntimeDesktopHeaderTitle {
+  min-width: 0;
+  color: rgba(226, 232, 240, 0.72);
+  font-size: 12px;
+  line-height: 18px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.groupRuntimeDesktopBody {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 92px minmax(0, 1fr);
+}
+
+.groupRuntimeDesktopSidebar {
+  padding: 16px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: rgba(15, 23, 42, 0.44);
+  color: rgba(226, 232, 240, 0.7);
+  font-size: 11px;
+  line-height: 16px;
+}
+
+.groupRuntimeDesktopCanvas {
+  min-width: 0;
+  min-height: 0;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.groupRuntimeDesktopStatusRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.groupRuntimeDesktopBadge {
+  min-height: 30px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(248, 250, 252, 0.9);
+  display: inline-flex;
+  align-items: center;
+  font-size: 12px;
+  line-height: 18px;
+  backdrop-filter: blur(4px);
+}
+
+.groupRuntimeDesktopMainWindow {
+  flex: 1;
+  min-height: 0;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.groupRuntimeDesktopWindowBar {
+  min-height: 42px;
+  padding: 0 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.groupRuntimeDesktopWindowTitle {
+  color: #f8fafc;
+  font-size: 13px;
+  line-height: 20px;
+  font-weight: 600;
+}
+
+.groupRuntimeDesktopWindowMeta {
+  color: rgba(226, 232, 240, 0.68);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.groupRuntimeDesktopScene {
+  flex: 1;
+  min-height: 0;
+  padding: 18px;
+  display: grid;
+  grid-template-columns: minmax(220px, 1.2fr) minmax(180px, 1fr);
+  gap: 14px;
+}
+
+.groupRuntimeDesktopHeroCard {
+  padding: 18px;
+  border-radius: 18px;
+  background:
+    linear-gradient(180deg, rgba(15, 23, 42, 0.7), rgba(15, 23, 42, 0.38)),
+    rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(125, 211, 252, 0.16);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.groupRuntimeDesktopGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.groupRuntimeDesktopCard {
+  min-height: 92px;
+  padding: 14px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(248, 250, 252, 0.92);
+  font-size: 13px;
+  line-height: 20px;
+  display: flex;
+  align-items: flex-end;
+}
+
+.groupRuntimeDesktopDock {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  align-self: center;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.44);
+  backdrop-filter: blur(8px);
+}
+
+.groupRuntimeDesktopDockItem {
+  min-height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(248, 250, 252, 0.82);
+  display: inline-flex;
+  align-items: center;
+  font-size: 11px;
+  line-height: 16px;
+}
+
+.dialogueRuntimeAction {
+  width: 44px;
+  height: 44px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--surface) 86%, var(--text) 14%);
+  color: var(--text);
+  box-shadow: var(--shadow-sm);
+}
+
+.dialogueMiniRuntimeDock {
+  padding: 0 16px 10px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.dialogueMiniRuntimeButton {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  cursor: pointer;
+  border-radius: 20px;
+  transition:
+    transform 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.dialogueMiniRuntimeButton:hover {
+  transform: translateY(-1px);
+}
+
+.dialogueMiniRuntimeButton:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--primary) 35%, transparent);
+  outline-offset: 2px;
+}
+
+.dialogueRuntimePanelMini .dialogueRuntimeTopBar {
+  display: none;
+}
+
+.dialogueRuntimePanelMini .dialogueRuntimeDesktop {
+  padding: 0;
+}
+
+.dialogueRuntimeDesktop {
+  flex: 1;
+  min-height: 0;
+  padding: 0 18px 18px;
+}
+
+.dialogueRuntimeDesktopWindow {
+  position: relative;
+  height: 100%;
+  border-radius: 22px;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 50% 70%, rgba(34, 139, 230, 0.45), transparent 34%),
+    radial-gradient(circle at 52% 78%, rgba(236, 72, 153, 0.4), transparent 20%), #08111f;
+  display: flex;
+  flex-direction: column;
+}
+
+.groupRuntimeOverlaySection {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.groupRuntimeOverlayLabel {
+  color: rgba(226, 232, 240, 0.66);
+  font-size: 11px;
+  line-height: 16px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.groupRuntimeOverlayControls {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.groupRuntimeOverlayButton,
+.groupRuntimeOverlayIconButton {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(30, 41, 59, 0.58);
+  color: rgba(226, 232, 240, 0.82);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition:
+    border-color 160ms ease,
+    background 160ms ease,
+    color 160ms ease,
+    transform 160ms ease;
+}
+
+.groupRuntimeOverlayButton {
+  min-height: 34px;
+  padding: 0 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.groupRuntimeOverlayIconButton {
+  width: 34px;
+  height: 34px;
+  justify-content: center;
+  border-radius: 999px;
+}
+
+.groupRuntimeOverlayButton:hover,
+.groupRuntimeOverlayIconButton:hover {
+  border-color: rgba(255, 255, 255, 0.24);
+  background: rgba(51, 65, 85, 0.82);
+  color: #f8fafc;
+  transform: translateY(-1px);
+}
+
+.groupRuntimeOverlayButtonActive {
+  border-color: rgba(125, 211, 252, 0.42);
+  background: rgba(8, 47, 73, 0.9);
+  color: #f8fafc;
+}
+
+.dialogueRuntimeDesktopHeader {
+  height: 30px;
+  background: rgba(15, 23, 42, 0.72);
+}
+
+.dialogueRuntimeDesktopBody {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 110px minmax(0, 1fr);
+}
+
+.dialogueRuntimeDesktopSidebar {
+  padding: 18px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: rgba(15, 23, 42, 0.4);
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.dialogueRuntimeDesktopCanvas {
+  padding: 26px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  align-content: start;
+}
+
+.dialogueRuntimeDesktopCard {
+  min-height: 88px;
+  padding: 16px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #f8fafc;
+  font-size: 14px;
+  line-height: 22px;
+  backdrop-filter: blur(3px);
+}
+
+.groupRuntimeDesktopLabel {
+  color: rgba(191, 219, 254, 0.78);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.groupRuntimeDesktopValue {
+  margin-top: 6px;
+  color: #f8fafc;
+  font-size: 18px;
+  line-height: 26px;
+  font-weight: 600;
+}
+
+.groupRuntimeDesktopText {
+  margin-top: 8px;
+  color: rgba(226, 232, 240, 0.74);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.groupRuntimeToolbarSummary {
+  min-height: 34px;
+  padding: 0 12px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: color-mix(in srgb, var(--primary) 10%, var(--surface));
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.dialogueRuntimePanelMini .groupRuntimeShell {
+  padding: 8px;
+  border-radius: 18px;
+}
+
+.dialogueRuntimePanelMini .groupRuntimePanelHeader {
+  padding: 10px;
+}
+
+.dialogueRuntimePanelMini .groupRuntimePanelToolbar {
+  gap: 8px;
+  align-items: center;
+}
+
+.dialogueRuntimePanelMini .groupRuntimeAgentSelectWrap {
+  flex: 1;
+}
+
+.dialogueRuntimePanelMini .groupRuntimeAgentSelect {
+  max-width: 160px;
+
+  :global(.ant-select-selector) {
+    min-height: 30px;
+    padding-inline: 10px !important;
+  }
+
+  :global(.ant-select-selection-item),
+  :global(.ant-select-selection-placeholder) {
+    font-size: 11px;
+    line-height: 16px;
+  }
+}
+
+.dialogueRuntimePanelMini .groupRuntimePanelBody {
+  padding: 0 10px 10px;
+}
+
+.dialogueRuntimePanelMini .groupRuntimeOverlayButton {
+  min-height: 28px;
+  padding: 0 10px;
+  font-size: 11px;
+}
+
+.dialogueRuntimePanelMini .groupRuntimeOverlayIconButton {
+  width: 28px;
+  height: 28px;
+}
+
+.dialogueRuntimePanelMini .groupRuntimeAgentTab {
+  min-width: 82px;
+  max-width: 108px;
+  padding: 6px 10px;
+  border-radius: 12px;
+}
+
+.dialogueRuntimePanelMini .groupRuntimeDeviceTitle {
+  font-size: 13px;
+  line-height: 18px;
+}
+
+.dialogueRuntimePanelMini .groupRuntimeDeviceMeta {
+  font-size: 11px;
+  line-height: 16px;
+}
+
+.dialogueRuntimePanelMini .groupRuntimeAgentTabName {
+  font-size: 11px;
+  line-height: 15px;
+}
+
+.dialogueRuntimePanelMini .groupRuntimeDesktopBody {
+  grid-template-columns: 60px minmax(0, 1fr);
+}
+
+.dialogueRuntimePanelMini .groupRuntimeDesktopSidebar {
+  padding: 10px 8px;
+  gap: 8px;
+  font-size: 9px;
+  line-height: 13px;
+}
+
+.dialogueRuntimePanelMini .groupRuntimeDesktopCanvas {
+  padding: 10px;
+  gap: 8px;
+}
+
+.dialogueRuntimePanelMini .groupRuntimeDesktopBadge {
+  min-height: 24px;
+  padding: 0 8px;
+  font-size: 10px;
+  line-height: 14px;
+}
+
+.dialogueRuntimePanelMini .groupRuntimeDesktopWindowBar {
+  min-height: 30px;
+  padding: 0 10px;
+}
+
+.dialogueRuntimePanelMini .groupRuntimeDesktopWindowTitle,
+.dialogueRuntimePanelMini .groupRuntimeDesktopWindowMeta {
+  font-size: 10px;
+  line-height: 14px;
+}
+
+.dialogueRuntimePanelMini .groupRuntimeDesktopScene {
+  padding: 10px;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
+}
+
+.dialogueRuntimePanelMini .groupRuntimeDesktopHeroCard {
+  padding: 12px;
+  border-radius: 14px;
+}
+
+.dialogueRuntimePanelMini .groupRuntimeDesktopGrid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.dialogueRuntimePanelMini .groupRuntimeDesktopCard {
+  min-height: 48px;
+  padding: 10px;
+  border-radius: 12px;
+  font-size: 10px;
+  line-height: 14px;
+}
+
+.dialogueRuntimePanelMini .groupRuntimeDesktopDock {
+  gap: 6px;
+  padding: 6px 8px;
+}
+
+.dialogueRuntimePanelMini .groupRuntimeDesktopDockItem {
+  min-height: 20px;
+  padding: 0 8px;
+  font-size: 9px;
+  line-height: 12px;
+}
+
+.dialogueRuntimePanelMini .groupRuntimeAgentTabMeta,
+.dialogueRuntimePanelMini .groupRuntimeOverlayLabel,
+.dialogueRuntimePanelMini .groupRuntimeDesktopLabel,
+.dialogueRuntimePanelMini .groupRuntimeDesktopText {
+  font-size: 10px;
+  line-height: 14px;
+}
+
+.dialogueRuntimePanelMini .groupRuntimeDesktopValue {
+  margin-top: 4px;
+  font-size: 13px;
+  line-height: 18px;
+}
+
+.employeeList {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.employeeCardButton {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--panelBorder);
+  border-radius: 14px;
+  background: var(--surface);
+  text-align: left;
+  display: flex;
+  align-items: center;
+  transition:
+    border-color 160ms ease,
+    background 160ms ease,
+    box-shadow 160ms ease,
+    transform 160ms ease;
+}
+
+.employeeCardButton:hover {
+  background: var(--subtleBgHover);
+  border-color: var(--panelBorderStrong);
+  transform: translateY(-1px);
+}
+
+.employeeCardButtonActive {
+  background: color-mix(in srgb, var(--primary) 10%, var(--surface));
+  border-color: color-mix(in srgb, var(--primary) 24%, var(--panelBorder));
+  box-shadow: var(--shadow-sm);
+}
+
+.employeeIdentity {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.employeeAvatarWrap {
+  width: 40px;
+  height: 40px;
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.employeeAvatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--primary) 12%, var(--surface));
+  color: var(--primary);
+  font-size: 14px;
+  font-weight: 600;
+  overflow: hidden;
+}
+
+.employeeStatusDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  position: absolute;
+  right: 1px;
+  bottom: 1px;
+  background: color-mix(in srgb, var(--primary) 88%, #22c55e);
+  border: 2px solid var(--surface);
+}
+
+.employeeStatusDotBusy {
+  background: #fb7185;
+}
+
+.employeeStatusDotIdle {
+  background: #94a3b8;
+}
+
+.employeeStatusDotPending {
+  background: #f59e0b;
+}
+
+.employeeCardHeader,
+.chatPanelHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.employeeName,
+.chatPanelTitle {
+  color: var(--text);
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 600;
+}
+
+.employeeTag {
+  min-height: 26px;
+  padding: 0 10px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--text) 4%, var(--surface));
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.employeeRole,
+.chatPanelSubtitle,
+.employeeHint,
+.workspaceSummaryText {
+  color: var(--text-secondary);
+  font-size: 14px;
+  line-height: 22px;
+}
+
+.chatPanelTitleGroup,
+.chatPanelMeta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.chatPanelTitleGroup {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+
+.chatPanelHeader {
+  min-height: 72px;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--panelBorder);
+}
+
+.chatPanelBody {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.composerWrap {
+  width: 100%;
+  max-width: 700px;
+  min-height: 100px;
+  margin: 0 auto;
+  padding: 7px 16px 9px;
+  flex: 0 0 auto;
+}
+
+.synclawComposer {
+  width: 100%;
+  --workspace-composer-chat-box-padding-bottom: 6px;
+  --workspace-composer-chat-footer-min-height: 36px;
+  --workspace-composer-chat-footer-padding-top: 2px;
+  --workspace-composer-chat-textarea-min-height: 52px;
+  --workspace-composer-chat-textarea-padding-top: 2px;
+  --workspace-composer-chat-input-min-height: 44px;
+}
+
+.workspaceSummaryCard,
+.runtimePreviewCard,
+.workspaceNoteCard {
+  margin-top: 12px;
+  padding: 14px;
+  border: 1px solid var(--panelBorder);
+  border-radius: 14px;
+  background: var(--surface);
+}
+
+.expertsSidebarHeader,
+.expertsSectionHeader,
+.expertsWorkspaceButtonHeader,
+.expertsEmployeeHeader,
+.expertsHeroTitleRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.expertsWorkspaceList {
+  flex: 1;
+  min-height: 0;
+  margin-top: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  overflow-y: auto;
+}
+
+.expertsWorkspaceButton {
+  width: 100%;
+  min-height: 92px;
+  padding: 14px;
+  border: 1px solid var(--panelBorder);
+  border-radius: 18px;
+  background: var(--surface);
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  transition:
+    border-color 160ms ease,
+    background 160ms ease,
+    box-shadow 160ms ease,
+    transform 160ms ease;
+}
+
+.expertsWorkspaceButton:hover {
+  background: var(--subtleBgHover);
+  border-color: var(--panelBorderStrong);
+  transform: translateY(-1px);
+}
+
+.expertsWorkspaceCreateButton {
+  flex-direction: row;
+  align-items: center;
+  gap: 14px;
+  border-style: dashed;
+}
+
+.expertsWorkspaceLead {
+  display: grid;
+  grid-template-columns: 46px minmax(0, 1fr);
+  gap: 14px;
+  align-items: flex-start;
+}
+
+.expertsWorkspaceIcon {
+  width: 46px;
+  height: 46px;
+  border-radius: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--primary) 10%, var(--surface));
+  color: var(--primary);
+  font-size: 20px;
+}
+
+.expertsWorkspaceMain {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cardActionButton {
+  width: 32px;
+  height: 32px;
+  flex: 0 0 auto;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--text) 4%, transparent);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition:
+    background 160ms ease,
+    color 160ms ease,
+    transform 160ms ease;
+}
+
+.cardActionButton:hover {
+  background: color-mix(in srgb, var(--text) 8%, transparent);
+  color: var(--text);
+  transform: translateY(-1px);
+}
+
+.expertsWorkspaceMetaRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  row-gap: 10px;
+}
+
+.edgeWorkspaceActivationTrigger {
+  min-height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--primary) 16%, var(--panelBorder));
+  background: color-mix(in srgb, var(--primary) 8%, var(--surface));
+  color: var(--primary);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  line-height: 18px;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    transform 160ms ease,
+    background 160ms ease,
+    border-color 160ms ease,
+    color 160ms ease;
+}
+
+.edgeWorkspaceActivationTrigger:hover {
+  transform: translateY(-1px);
+  background: color-mix(in srgb, var(--primary) 12%, var(--surface));
+  border-color: color-mix(in srgb, var(--primary) 24%, var(--panelBorder));
+}
+
+.edgeWorkspaceActivationTrigger:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 16%, transparent);
+}
+
+.edgeWorkspaceActivationHint {
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.edgeWorkspaceActivationPopover {
+  :global(.ant-popover-inner) {
+    padding: 0;
+    border-radius: 16px;
+    overflow: hidden;
+  }
+}
+
+.edgeWorkspaceActivationCard {
+  min-width: 320px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: var(--surface);
+}
+
+.edgeWorkspaceActivationCardTitle {
+  color: var(--text);
+  font-size: 14px;
+  line-height: 22px;
+  font-weight: 600;
+}
+
+.edgeWorkspaceActivationCodeRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.edgeWorkspaceActivationCode {
+  flex: 1;
+  min-width: 0;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--text) 4%, var(--surface));
+  color: var(--text);
+  font-size: 13px;
+  line-height: 20px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  word-break: break-all;
+}
+
+.edgeWorkspaceActivationExpire {
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.edgeWorkspaceActivationPrimaryButton {
+  width: fit-content;
+}
+
+.expertsWorkspaceCreateIcon,
+.expertsEmployeeCreateIcon {
+  width: 40px;
+  height: 40px;
+  flex: 0 0 auto;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--primary) 10%, var(--surface));
+  color: var(--primary);
+  font-size: 16px;
+}
+
+.expertsWorkspaceCreateContent {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.expertsWorkspaceButtonActive {
+  background: color-mix(in srgb, var(--primary) 10%, var(--surface));
+  border-color: color-mix(in srgb, var(--primary) 24%, var(--panelBorder));
+  box-shadow: var(--shadow-sm);
+}
+
+.expertsWorkspaceName,
+.expertsSectionTitle,
+.expertsEmployeeName {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.expertsWorkspaceName,
+.expertsEmployeeName {
+  font-size: 16px;
+  line-height: 24px;
+}
+
+.expertsSectionTitle {
+  font-size: 16px;
+  line-height: 24px;
+}
+
+.expertsWorkspaceHint,
+.expertsEmployeeSkillCount,
+.expertsEmployeeCreateText {
+  color: var(--text-secondary);
+}
+
+.expertsEmployeeSkillCount,
+.expertsEmployeeCreateText {
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.expertsWorkspaceHint {
+  font-size: 14px;
+  line-height: 22px;
+}
+
+.expertsWorkspaceHint {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+}
+
+.expertsWorkspaceHint {
+  -webkit-line-clamp: 2;
+}
+
+.expertsToolbar,
+.expertsEmployeeMetaRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.expertsEmployeeList {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 10px;
+  overflow-y: auto;
+  align-content: start;
+}
+
+.expertsEmployeeCard {
+  min-height: 156px;
+  padding: 14px;
+  border: 1px solid var(--panelBorder);
+  border-radius: 18px;
+  background: var(--surface);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.expertsEmployeeCreateCard {
+  align-items: flex-start;
+  justify-content: center;
+  border-style: dashed;
+  cursor: pointer;
+  text-align: left;
+  transition:
+    border-color 160ms ease,
+    background 160ms ease,
+    transform 160ms ease;
+}
+
+.expertsEmployeeCreateCard:hover {
+  background: var(--subtleBgHover);
+  border-color: var(--panelBorderStrong);
+  transform: translateY(-1px);
+}
+
+.expertsEmployeeCreateTitle {
+  color: var(--text);
+  font-size: 15px;
+  line-height: 22px;
+  font-weight: 600;
+}
+
+.expertsEmployeeIdentity {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  min-width: 0;
+}
+
+.expertsEmployeeIdentityBody {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.expertsEmployeeAvatar {
+  width: 52px;
+  height: 52px;
+  min-width: 52px;
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--primary) 14%, var(--surface));
+  color: var(--primary);
+  font-size: 14px;
+  font-weight: 700;
+  overflow: hidden;
+}
+
+.expertsEmployeeModelField {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.expertsEmployeeModelLabel {
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.expertsEmployeeModelSelect {
+  width: 100%;
+}
+
+.expertsEmptyState {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.expertsEmptyBlock,
+.expertsModalBody {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  align-items: center;
+}
+
+.expertsModalBody {
+  align-items: stretch;
+  gap: 12px;
+}
+
+.expertsWorkspaceModal {
+  :global(.ant-modal-content) {
+    height: 760px;
+    padding: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  :global(.ant-modal-header) {
+    margin-bottom: 0;
+    padding: 24px 24px 0;
+    flex: 0 0 auto;
+  }
+
+  :global(.ant-modal-title) {
+    font-size: 18px;
+    line-height: 28px;
+    font-weight: 700;
+  }
+
+  :global(.ant-modal-body) {
+    flex: 1;
+    min-height: 0;
+    padding: 20px 24px 24px;
+  }
+}
+
+.expertsWorkspaceModalBody {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.expertsModalActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.expertsWorkspaceModalLayout {
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.expertsWorkspaceModalActions {
+  flex: 0 0 auto;
+  padding-top: 16px;
+  justify-content: flex-end;
+}
+
+.employeeAvatarField {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.employeeAvatarCurrentSection {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.employeeAvatarPreviewButton {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.employeeAvatarPreview {
+  width: 88px;
+  height: 88px;
+  border-radius: 24px;
+  background: color-mix(in srgb, var(--primary) 12%, var(--surface));
+  color: var(--primary);
+  font-size: 18px;
+  font-weight: 700;
+  overflow: hidden;
+}
+
+.employeeAvatarUploadText {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--primary);
+  font-size: 13px;
+  line-height: 20px;
+  font-weight: 600;
+}
+
+.employeeAvatarMeta {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.employeeAvatarMetaTitle {
+  color: var(--text);
+  font-size: 14px;
+  line-height: 22px;
+  font-weight: 600;
+}
+
+.employeeAvatarMetaHint {
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.employeeAvatarPresetGrid {
+  display: grid;
+  grid-template-columns: repeat(6, 56px);
+  gap: 10px;
+}
+
+.employeeAvatarPreset {
+  width: 56px;
+  height: 56px;
+  padding: 0;
+  border: 1px solid var(--panelBorder);
+  border-radius: 18px;
+  background: var(--surface);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition:
+    border-color 160ms ease,
+    background 160ms ease,
+    transform 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.employeeAvatarPreset:hover {
+  border-color: color-mix(in srgb, var(--primary) 22%, var(--panelBorder));
+  background: color-mix(in srgb, var(--primary) 6%, var(--surface));
+  transform: translateY(-1px);
+}
+
+.employeeAvatarPresetActive {
+  border-color: color-mix(in srgb, var(--primary) 28%, var(--panelBorder));
+  background: color-mix(in srgb, var(--primary) 8%, var(--surface));
+  box-shadow: var(--shadow-sm);
+}
+
+.employeeAvatarPresetInner {
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.workspaceTypeGuideCard {
+  padding: 14px;
+  border: 1px solid var(--panelBorder);
+  border-radius: 18px;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--primary) 6%, var(--surface)),
+    color-mix(in srgb, var(--text) 3%, var(--surface))
+  );
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.workspaceTypeGuideHeader {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr);
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.workspaceTypeGuideIcon {
+  width: 40px;
+  height: 40px;
+  border-radius: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--primary) 14%, var(--surface));
+  color: var(--primary);
+  font-size: 18px;
+}
+
+.workspaceTypeGuideTitleBlock {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.workspaceTypeGuideTitle {
+  color: var(--text);
+  font-size: 15px;
+  line-height: 22px;
+  font-weight: 600;
+}
+
+.workspaceTypeGuideDesc,
+.workspaceTypeGuideHint {
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.workspaceTypeGuidePanel {
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--surface) 88%, var(--app-bg));
+  border: 1px solid color-mix(in srgb, var(--primary) 14%, var(--panelBorder));
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.workspaceTypeGuideLabel {
+  color: var(--text-muted);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.workspaceTypeGuideValue {
+  color: var(--text);
+  font-size: 14px;
+  line-height: 22px;
+  font-weight: 600;
+  word-break: break-all;
+}
+
+.workspaceTypeGuideLinkRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.workspaceTypeGuideLink {
+  min-height: 36px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--primary) 18%, var(--panelBorder));
+  background: color-mix(in srgb, var(--primary) 8%, var(--surface));
+  color: var(--primary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  line-height: 20px;
+  font-weight: 600;
+  text-decoration: none;
+  transition:
+    transform 160ms ease,
+    background 160ms ease,
+    border-color 160ms ease;
+}
+
+.workspaceTypeGuideLink:hover {
+  transform: translateY(-1px);
+  background: color-mix(in srgb, var(--primary) 12%, var(--surface));
+  border-color: color-mix(in srgb, var(--primary) 28%, var(--panelBorder));
+}
+
+.workspaceTypeGuideMetaBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.workspaceTypeGuidePreviewBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.workspaceTypeGuidePreviewFrame {
+  overflow: hidden;
+  border-radius: 14px;
+  border: 1px solid color-mix(in srgb, var(--primary) 14%, var(--panelBorder));
+  background: color-mix(in srgb, var(--text) 2%, var(--surface));
+}
+
+.workspaceTypeGuidePreviewImage {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.workspaceTypeGuideSecondaryLink {
+  color: var(--primary);
+  font-size: 13px;
+  line-height: 20px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.workspaceTypeGuideSecondaryLink:hover {
+  text-decoration: underline;
+}
+
+.workspaceSummaryTitle {
+  color: var(--text);
+  font-size: 15px;
+  line-height: 22px;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.runtimePreviewWindow {
+  padding: 14px;
+  border: 1px solid var(--panelBorder);
+  border-radius: 14px;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--text) 2%, var(--surface)),
+    color-mix(in srgb, var(--text) 6%, var(--app-bg))
+  );
+}
+
+.runtimePreviewDots {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.runtimePreviewDots span {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--text) 22%, var(--surface));
+}
+
+.runtimePreviewStage {
+  display: grid;
+  gap: 10px;
+}
+
+.runtimePreviewTile {
+  padding: 16px 14px;
+  border: 1px solid var(--panelBorder);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--text) 2%, var(--surface));
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.syncList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.syncList span {
+  min-height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--primary) 8%, var(--surface));
+  color: var(--text);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.viewGrid {
+  display: grid;
+  grid-template-columns: 288px minmax(0, 1fr) 288px;
+  gap: 16px;
+  min-height: 100%;
+}
+
+.singleColumnView {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.surfaceCard,
+.runtimeCard,
+.miniPanel,
+.desktopCard,
+.localOnlyCard,
+.taskCard,
+.skillCard,
+.employeeCard {
+  border: 1px solid var(--panelBorder);
+  border-radius: 16px;
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.surfaceCard {
+  padding: 20px;
+}
+
+.sideRail,
+.chatSurface,
+.cardStack,
+.formStack {
+  display: flex;
+  flex-direction: column;
+}
+
+.sideRail,
+.chatSurface {
+  gap: 16px;
+}
+
+.cardStack,
+.formStack {
+  gap: 12px;
+}
+
+.employeeGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.sectionEyebrow {
+  margin: 0 0 4px;
+  color: var(--softText);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.sectionTitle,
+.runtimeTitle,
+.miniPanelTitle {
+  margin: 0;
+  color: var(--text);
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 24px;
+}
+
+.runtimeTitle,
+.miniPanelTitle {
+  font-size: 14px;
+  line-height: 22px;
+}
+
+.heroTags,
+.composerActions,
+.attachmentRow,
+.mentionRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.infoTag,
+.statusPill,
+.attachmentBadge,
+.attachmentBadgeButton,
+.mentionButton {
+  min-height: 30px;
+  padding: 0 12px;
+  border: 1px solid var(--panelBorder);
+  border-radius: 999px;
+  background: var(--subtleBg);
+  color: var(--text-secondary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.statusOnline {
+  background: color-mix(in srgb, #16a34a 14%, var(--surface));
+  color: #15803d;
+}
+
+.statusBusy {
+  background: color-mix(in srgb, #ef4444 12%, var(--surface));
+  color: #dc2626;
+}
+
+.statusIdle {
+  background: color-mix(in srgb, var(--text) 6%, var(--surface));
+  color: var(--text-secondary);
+}
+
+.statusPending {
+  background: color-mix(in srgb, #f59e0b 12%, var(--surface));
+  color: #d97706;
+}
+
+.statusPaused {
+  background: color-mix(in srgb, #6366f1 10%, var(--surface));
+  color: #4f46e5;
+}
+
+.statusDraft {
+  background: color-mix(in srgb, var(--text) 4%, var(--surface));
+  color: var(--text-secondary);
+}
+
+.listCardButton {
+  width: 100%;
+  padding: 14px 16px;
+  border: 1px solid var(--panelBorder);
+  border-radius: 14px;
+  background: var(--surface);
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color 160ms ease,
+    background 160ms ease,
+    transform 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.listCardButton:hover {
+  border-color: var(--panelBorderStrong);
+  background: var(--subtleBgHover);
+  transform: translateY(-1px);
+}
+
+.isActiveCard {
+  border-color: color-mix(in srgb, var(--primary) 24%, var(--panelBorder));
+  background: var(--subtleBgStrong);
+  box-shadow: var(--shadow-sm);
+}
+
+.listCardMeta,
+.listCardHint,
+.runtimeText,
+.inputHint,
+.fieldLabel {
+  color: var(--mutedText);
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.listCardText {
+  margin: 8px 0 4px;
+  color: var(--text);
+  font-size: 14px;
+  line-height: 22px;
+}
+
+.listCardHint,
+.runtimeText {
+  margin: 0;
+}
+
+.messageList {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-right: 4px;
+  overflow-y: auto;
+}
+
+.messageBubble {
+  padding: 14px 16px;
+  border: 1px solid var(--panelBorder);
+  border-radius: 16px;
+  background: var(--surface);
+}
+
+.messageUser {
+  background: color-mix(in srgb, var(--primary) 6%, var(--surface));
+}
+
+.messageAssistant {
+  background: color-mix(in srgb, var(--text) 2%, var(--surface));
+}
+
+.messageSystem {
+  background: color-mix(in srgb, var(--text) 4%, var(--surface));
+}
+
+.messageMeta {
+  margin-bottom: 8px;
+  color: var(--mutedText);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.messageContent {
+  margin: 0;
+  color: var(--text);
+  font-size: 14px;
+  line-height: 22px;
+}
+
+.composerPanel {
+  padding: 16px;
+  border: 1px solid var(--panelBorder);
+  border-radius: 16px;
+  background: var(--surface);
+}
+
+.attachmentRow {
+  margin-top: 12px;
+}
+
+.attachmentBadgeButton,
+.mentionButton {
+  cursor: pointer;
+  transition:
+    background 160ms ease,
+    transform 160ms ease,
+    border-color 160ms ease;
+}
+
+.attachmentBadgeButton {
+  background: color-mix(in srgb, var(--primary) 6%, var(--surface));
+}
+
+.attachmentBadgeButton:hover,
+.mentionButton:hover {
+  transform: translateY(-1px);
+  border-color: var(--panelBorderStrong);
+  background: var(--subtleBgHover);
+}
+
+.composerInput,
+.textField,
+.selectField {
+  width: 100%;
+  border: 1px solid var(--panelBorder);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 14px;
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.composerInput:focus,
+.textField:focus,
+.selectField:focus {
+  border-color: color-mix(in srgb, var(--primary) 40%, var(--panelBorder));
+  outline: none;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 12%, transparent);
+}
+
+.composerInput {
+  min-height: 120px;
+  margin-top: 14px;
+  padding: 14px 16px;
+  resize: vertical;
+}
+
+.textField,
+.selectField {
+  min-height: 44px;
+  padding: 0 14px;
+}
+
+.fieldLabel {
+  display: block;
+  margin-bottom: -4px;
+}
+
+.primaryButton,
+.secondaryButton,
+.ghostButton {
+  min-height: 40px;
+  padding: 0 16px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background 160ms ease,
+    border-color 160ms ease,
+    color 160ms ease,
+    transform 160ms ease;
+}
+
+.primaryButton {
+  border: 1px solid transparent;
+  background: var(--primary);
+  color: var(--surface);
+}
+
+.secondaryButton {
+  border: 1px solid var(--panelBorder);
+  background: color-mix(in srgb, var(--primary) 8%, var(--surface));
+  color: var(--text);
+}
+
+.ghostButton {
+  border: 1px solid var(--panelBorder);
+  background: transparent;
+  color: var(--text);
+}
+
+.primaryButton:hover,
+.secondaryButton:hover,
+.ghostButton:hover {
+  transform: translateY(-1px);
+}
+
+.ghostButton:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.runtimeCard,
+.miniPanel,
+.desktopCard,
+.localOnlyCard,
+.taskCard,
+.skillCard,
+.employeeCard {
+  padding: 16px;
+}
+
+.desktopPreview {
+  padding: 14px;
+  border: 1px solid var(--panelBorder);
+  border-radius: 14px;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--text) 2%, var(--surface)),
+    color-mix(in srgb, var(--text) 6%, var(--app-bg))
+  );
+}
+
+.desktopToolbar {
+  justify-content: flex-start;
+  margin-bottom: 12px;
+}
+
+.desktopToolbar span {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--text) 22%, var(--surface));
+}
+
+.desktopCanvas {
+  display: grid;
+  gap: 10px;
+}
+
+.desktopWindow {
+  padding: 18px 14px;
+  border: 1px solid var(--panelBorder);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--text) 2%, var(--surface));
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.miniPanel {
+  background: color-mix(in srgb, var(--text) 2%, var(--surface));
+}
+
+.featureList {
+  margin: 0;
+  padding-left: 18px;
+  color: var(--mutedText);
+  font-size: 13px;
+  line-height: 22px;
+}
+
+.taskCard,
+.skillCard,
+.employeeCard {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.inlineEditor {
+  margin-top: 6px;
+}
+
+.emptyHint {
+  padding: 20px;
+  border: 1px dashed var(--panelBorderStrong);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--text) 2%, var(--surface));
+  color: var(--mutedText);
+  font-size: 14px;
+  line-height: 22px;
+}
+
+.hiddenInput {
+  display: none;
+}
+
+@media (max-width: 1400px) {
+  .viewGrid {
+    grid-template-columns: 260px minmax(0, 1fr);
+  }
+
+  .viewGrid > :last-child {
+    grid-column: 1 / -1;
+  }
+
+  .dialogueShell {
+    grid-template-columns: 260px minmax(0, 1fr);
+  }
+
+  .dialogueShellRuntimeVisible,
+  .dialogueShellRuntimeArtifactsHidden {
+    grid-template-columns: 252px minmax(0, 1fr) 10px auto;
+  }
+
+  .dialogueShellRuntimeSidebarCollapsed,
+  .dialogueShellRuntimeSidebarCollapsedArtifactsHidden {
+    grid-template-columns: minmax(0, 1fr) 10px auto;
+  }
+
+  .dialogueShellRuntimeVisible .dialogueArtifactsCard,
+  .dialogueShellRuntimeSidebarCollapsed .dialogueArtifactsCard {
+    grid-column: 1 / -1;
+  }
+
+  .dialogueInspectorCard {
+    grid-column: 1 / -1;
+  }
+
+  .expertsShell {
+    grid-template-columns: 280px minmax(0, 1fr);
+  }
+
+  .expertsStatsGrid,
+  .expertsEmployeeList {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 1100px) {
+  .page {
+    flex-direction: column;
+    height: auto;
+    min-height: 100vh;
+  }
+
+  .sidebar {
+    width: auto;
+    height: auto;
+    padding: 18px 10px 14px;
+    border-color: var(--panelBorder);
+    border-radius: 20px;
+    background: var(--surface);
+    box-shadow: var(--shadow-sm);
+    align-items: stretch;
+  }
+
+  .sidebarCollapsed {
+    width: auto;
+    padding: 18px 10px 14px;
+    border-color: var(--panelBorder);
+    background: var(--surface);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .sidebarTop,
+  .sidebarTopCollapsed {
+    flex-direction: row;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 0 6px;
+  }
+
+  .brandCardCollapsed {
+    width: auto;
+    justify-content: flex-start;
+  }
+
+  .sidebarSection,
+  .sidebarSectionCollapsed {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: stretch;
+  }
+
+  .main {
+    height: auto;
+  }
+
+  .mainPanel {
+    min-height: 0;
+  }
+
+  .header {
+    padding: 0 16px;
+  }
+
+  .content {
+    padding: 6px;
+    overflow: auto;
+  }
+
+  .dialogueShell,
+  .groupShell,
+  .expertsShell,
+  .viewGrid,
+  .employeeGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .dialogueShellRuntimeVisible,
+  .dialogueShellRuntimeArtifactsHidden {
+    grid-template-columns: 220px minmax(0, 1fr) 10px minmax(280px, 34vw);
+  }
+
+  .dialogueShellRuntimeSidebarCollapsed,
+  .dialogueShellRuntimeSidebarCollapsedArtifactsHidden {
+    grid-template-columns: minmax(0, 1fr) 10px minmax(280px, 34vw);
+  }
+
+  .dialogueShellRuntimeVisible .dialogueArtifactsCard,
+  .dialogueShellRuntimeSidebarCollapsed .dialogueArtifactsCard {
+    grid-column: 1 / -1;
+  }
+
+  .dialogueRuntimeResizeHandle {
+    display: none;
+  }
+
+  .dialogueRuntimeColumn {
+    width: auto !important;
+    min-width: 0 !important;
+  }
+}

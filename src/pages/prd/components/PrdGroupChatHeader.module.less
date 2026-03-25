@@ -1,0 +1,182 @@
+.header {
+  height: 52px;
+  padding: 8px 20px;
+  display: flex;
+  align-items: center;
+  background: rgba(249, 250, 251, 0.5);
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.inner {
+  width: 100%;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-width: 0;
+}
+
+.left {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+}
+
+.title {
+  min-width: 0;
+  color: #000000;
+  font-family:
+    "PingFang SC",
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    Arial,
+    sans-serif;
+  font-size: 16px;
+  line-height: 16px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.right {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.pill {
+  height: 32px;
+  padding: 4px;
+  display: inline-flex;
+  align-items: center;
+  border-radius: 99px;
+  background: #f3f4f6;
+}
+
+.pillRow {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.pillItem {
+  width: 24px;
+  height: 24px;
+  flex: 0 0 auto;
+  border-radius: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.pillBadge {
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.pillBadgeIcon {
+  width: 16px;
+  height: 16px;
+}
+
+.pillName {
+  background: linear-gradient(135deg, #7c3feb, #a5c4fe);
+  border: 1px solid #ffffff;
+  color: #ffffff;
+  font-family:
+    "PingFang SC",
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    Arial,
+    sans-serif;
+  font-size: 10px;
+  line-height: 18px;
+  font-weight: 600;
+}
+
+.pillAvatar {
+  background: linear-gradient(135deg, #f97316, #fb923c);
+  border: 1px solid #ffffff;
+}
+
+.pillAvatarImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.pillEllipsis {
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  color: #86909c;
+}
+
+.pillLoading {
+  min-width: 32px;
+  padding: 0 8px;
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  color: #86909c;
+  font-size: 10px;
+  letter-spacing: 0.5px;
+}
+
+.pillEllipsisButton {
+  border: 0;
+  padding: 0;
+  font: inherit;
+  cursor: pointer;
+
+  &:hover {
+    background: color-mix(in srgb, var(--text) 4%, var(--surface));
+    color: var(--text-muted);
+  }
+
+  &:focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--primary) 35%, transparent);
+    outline-offset: 2px;
+  }
+}
+
+.pillEllipsisIcon {
+  width: 12px;
+  height: 12px;
+}
+
+.headerActions {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.actionButton {
+  width: 20px;
+  height: 20px;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: #86909c;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: color 160ms ease;
+}
+
+.actionButton:hover {
+  color: #6a7282;
+}
+
+.actionButtonActive {
+  color: var(--primary);
+}
+
+.actionIcon {
+  width: 20px;
+  height: 20px;
+}

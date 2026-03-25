@@ -1,0 +1,242 @@
+.wrapper {
+  padding-top: min(73px, calc(73 / 1082 * 100%));
+  flex: 1;
+  display: flex;
+  // align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.desc(@rules) {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 4px 12px;
+  border-radius: 16px;
+  background: #00c1d4;
+  gap: 10px;
+  color: #ffffff;
+  z-index: 10;
+  @rules();
+}
+
+.arrow_top {
+  position: absolute;
+  top: 25px;
+  left: 68px;
+  z-index: 10;
+
+  .arrow_top_desc {
+    .desc({
+      margin: 10px 0 0 48px;
+    });
+  }
+}
+
+.arrow_left {
+  position: absolute;
+  top: 258px;
+  left: 16px;
+  z-index: 10;
+
+  .arrow_left_desc {
+    .desc({
+      margin: 10px 0 0 22px;
+    });
+  }
+}
+
+.actionGroup {
+  position: absolute;
+  top: 311px;
+  left: 15px;
+  width: 154px;
+  height: 134px;
+  z-index: 20;
+}
+
+.actionArrow {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 110px;
+  height: auto;
+  max-height: 118px;
+  pointer-events: none;
+}
+
+.actionButton {
+  position: absolute;
+  top: 96px;
+  left: 22px;
+  height: 38px;
+  padding: 4px 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  border-radius: 16px;
+  background: #00c1d4;
+  color: #ffffff;
+  font-family:
+    "PingFang SC",
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    Arial,
+    sans-serif;
+  font-weight: 600;
+  font-size: 18px;
+  line-height: 30px;
+}
+
+.actionButton:hover {
+  filter: brightness(0.98);
+}
+
+.navGuide {
+  position: absolute;
+  top: 84px;
+  left: 48px;
+  width: 340px;
+  z-index: 20;
+  pointer-events: none;
+}
+
+.navGuideArrow {
+  width: 128px;
+  height: auto;
+}
+
+.navGuideDesc {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 46px;
+  margin: 8px 0 0 64px;
+  padding: 0 20px;
+  border-radius: 18px;
+  background: var(--primary);
+  color: var(--surface);
+  font-family:
+    "PingFang SC",
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    Arial,
+    sans-serif;
+  font-weight: 500;
+  font-size: 18px;
+  line-height: 30px;
+  white-space: nowrap;
+}
+
+.content {
+  width: 100%;
+  max-width: 1052px;
+  max-height: 587px;
+  position: relative;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  aspect-ratio: 138/77;
+}
+
+.con_img {
+  position: absolute;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  // height: 587px;
+  top: 0;
+  text-align: center;
+  background: url(../../../assets/images/workspace/workspace-create-empty.jpg) 50% / contain
+    no-repeat;
+}
+
+.con_mask {
+  position: absolute;
+  bottom: 0;
+  z-index: 2;
+  width: 100%;
+  height: 240px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0) 0%, #fff 100%);
+}
+
+.title {
+  margin: 0;
+  font-family:
+    "PingFang SC",
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    Arial,
+    sans-serif;
+  font-weight: 600;
+  font-size: 28px;
+  line-height: 36px;
+  color: #000000;
+  position: relative;
+  z-index: 10;
+}
+
+.subtitle {
+  margin: 12px 0 0;
+  font-family:
+    "PingFang SC",
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    Arial,
+    sans-serif;
+  font-weight: 400;
+  font-size: 16px;
+  line-height: 26px;
+  color: #6a7282;
+  position: relative;
+  z-index: 10;
+}
+
+.upload {
+  margin-top: 40px;
+  display: flex;
+  justify-content: center;
+}
+
+.steps {
+  margin-top: 32px;
+  display: flex;
+  justify-content: center;
+}
+
+@media (max-width: 1536px) {
+  .wrapper {
+    // padding: 16px 16px 0;
+  }
+}
+
+@media (max-height: 740px) {
+  .wrapper {
+    // padding: 16px 16px 0;
+  }
+
+  .title {
+    font-size: 24px;
+    line-height: 32px;
+  }
+
+  .subtitle {
+    margin-top: 8px;
+    font-size: 14px;
+    line-height: 22px;
+  }
+
+  .upload {
+    margin-top: 24px;
+  }
+
+  .steps {
+    margin-top: 20px;
+  }
+}

@@ -1,0 +1,64 @@
+/**
+ * ===============================
+ * 全局滚动条视觉控制
+ * ===============================
+ *
+ * 1. 默认不显示滚动条
+ * 2. 只有在“滚动发生时”才显示
+ * 3. 停止滚动后隐藏
+ */
+
+/* 给所有元素定义滚动条相关 CSS 变量 */
+* {
+  --sb-alpha: 0;
+  /* 滚动条透明度开关：0=隐藏，1=显示 */
+  --sb-thumb: 0, 0, 0;
+  /* 滚动条颜色（rgb），方便主题定制 */
+  --sb-size: 8px;
+  /* 滚动条宽度 */
+  --sb-radius: 6px;
+  /* 滚动条圆角 */
+}
+
+/* ===============================
+ * WebKit 内核滚动条样式
+ * =============================== */
+
+/* 滚动条整体尺寸 */
+*::-webkit-scrollbar {
+  width: var(--sb-size);
+  height: var(--sb-size);
+}
+
+/* 滚动条轨道（背景） */
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* 滚动条拖拽块（thumb） */
+*::-webkit-scrollbar-thumb {
+  /**
+   * 使用 rgba + CSS 变量控制透明度
+   * --sb-alpha 由 JS 在“滚动中 / 停止后”动态控制
+   */
+  background-color: rgba(var(--sb-thumb), calc(var(--sb-alpha) * 0.42));
+  border-radius: var(--sb-radius);
+}
+
+/* ===============================
+ * Firefox 兜底方案
+ * ===============================
+ */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+
+/**
+ * 当 JS 给元素打上 data-scrolling="true" 时：
+ * - WebKit：--sb-alpha = 1 （显示滚动条）
+ */
+[data-scrolling="true"] {
+  --sb-alpha: 1;
+  scrollbar-color: rgba(0, 0, 0, 0.42) transparent;
+}

@@ -1,0 +1,902 @@
+@font-family-base:
+  "PingFang SC",
+  system-ui,
+  -apple-system,
+  "Segoe UI",
+  Arial,
+  sans-serif;
+
+.composer {
+  width: 100%;
+  // max-width: 700px;
+  align-self: center;
+  // padding-top: 12px;
+  // padding-bottom: 12px;
+  position: relative;
+
+  // 顶部轻微朦胧过渡，柔化与对话内容的衔接
+  &::before {
+    content: "";
+    position: absolute;
+    left: -15px;
+    right: 0;
+    top: -20px;
+    height: 20px;
+    background: linear-gradient(to bottom, rgba(255, 255, 255, 0) 0%, #ffffff 100%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .planBanner {
+    position: absolute;
+    bottom: 107%;
+    left: 0;
+    right: 0;
+    display: flex;
+    // justify-content: center;
+    pointer-events: auto;
+    z-index: 2;
+  }
+
+  .box {
+    width: 100%;
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 16px;
+    padding: 8px 24px 0;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    z-index: 1;
+
+    &.boxChatPage {
+      padding-bottom: var(--workspace-composer-chat-box-padding-bottom, 10px);
+      padding-left: 10px;
+      padding-right: 10px;
+
+      .footer {
+        height: auto;
+        min-height: var(--workspace-composer-chat-footer-min-height, 40px);
+        padding-top: var(--workspace-composer-chat-footer-padding-top, 4px);
+        align-items: flex-end;
+      }
+
+      .left {
+        .iconButton {
+          width: 36px;
+          height: 36px;
+          border-radius: 18px;
+        }
+
+        .attachIcon {
+          width: 18px;
+          height: 18px;
+        }
+      }
+    }
+
+    .attachmentListWrapper {
+      position: relative;
+      padding: 4px 0;
+
+      .attachmentScrollBtn {
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 28px;
+        height: 28px;
+        border-radius: 14px;
+        border: 1px solid #dcdfe6;
+        background: #fff;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        z-index: 2;
+
+        &:hover:not(.attachmentScrollDisabled) {
+          border-color: #c0c4cc;
+        }
+
+        &:disabled,
+        &.attachmentScrollDisabled {
+          opacity: 0.4;
+          cursor: not-allowed;
+        }
+
+        &.attachmentScrollLeft {
+          left: 8px;
+        }
+
+        &.attachmentScrollRight {
+          right: 8px;
+        }
+      }
+
+      .attachmentScrollIcon {
+        width: 14px;
+        height: 14px;
+        object-fit: contain;
+      }
+
+      .attachmentList {
+        display: flex;
+        flex-wrap: nowrap;
+        align-items: center;
+        gap: 10px;
+        overflow-x: hidden;
+        overflow-y: hidden;
+        scroll-behavior: smooth;
+        position: relative;
+        mask-image: none;
+
+        &.attachmentMaskLeft {
+          mask-image: linear-gradient(to right, transparent 0%, black 20%, black 100%);
+        }
+
+        &.attachmentMaskRight {
+          mask-image: linear-gradient(to right, black 0%, black 80%, transparent 100%);
+        }
+
+        &.attachmentMaskLeft.attachmentMaskRight {
+          mask-image: linear-gradient(
+            to right,
+            transparent 0%,
+            black 18%,
+            black 82%,
+            transparent 100%
+          );
+        }
+
+        .attachmentRemove {
+          position: absolute;
+          border: none;
+          cursor: pointer;
+          padding: 0;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          opacity: 0;
+          transition:
+            opacity 0.15s ease,
+            background-color 0.15s ease;
+
+          &:disabled {
+            cursor: default;
+          }
+        }
+
+        .attachmentRemoveIcon {
+          display: none;
+        }
+
+        .attachmentRemoveIconImg {
+          width: 14px;
+          height: 14px;
+          position: absolute;
+          top: 2px;
+          right: 2px;
+          cursor: pointer;
+          opacity: 0;
+          transition: opacity 0.15s ease;
+        }
+
+        .attachmentThumb {
+          width: 44px;
+          height: 44px;
+          border-radius: 12px;
+          border: 0.5px solid #c4c4c4;
+          background: #ffffff;
+          position: relative;
+          flex: none;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+
+          .attachmentThumbImage {
+            width: 100%;
+            height: 100%;
+            border-radius: 8px;
+            object-fit: cover;
+            display: block;
+          }
+
+          .attachmentThumbPlaceholder {
+            width: 100%;
+            height: 100%;
+            border-radius: 8px;
+            border: 0.5px solid #f2f3f5;
+            background: #f7f8fa;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+          }
+
+          .attachmentThumbExt {
+            font-family:
+              "PingFang SC",
+              system-ui,
+              -apple-system,
+              "Segoe UI",
+              Arial,
+              sans-serif;
+            font-weight: 600;
+            font-size: 10px;
+            line-height: 14px;
+            color: #667eea;
+            max-width: 28px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+          }
+
+          .attachmentThumbOverlay {
+            position: absolute;
+            inset: 0;
+            border-radius: 8px;
+            background: rgba(0, 0, 0, 0.3);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 2px;
+            pointer-events: none;
+
+            .attachmentErrorIcon {
+              width: 16px;
+              height: 16px;
+            }
+
+            .attachmentErrorText {
+              font-size: 8px;
+              color: #fff;
+            }
+          }
+
+          .attachmentRemove {
+            right: 4px;
+            top: 4px;
+            width: 16px;
+            height: 16px;
+            border-radius: 999px;
+            background: rgba(0, 0, 0, 0.35);
+            color: #ffffff;
+
+            &:hover {
+              background: rgba(0, 0, 0, 0.5);
+            }
+          }
+        }
+
+        .attachmentItem {
+          width: 180px;
+          height: 50px;
+          padding: 9px;
+          border-radius: 8px;
+          border: 0.5px solid #c4c4c4;
+          background: #ffffff;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          flex: none;
+          position: relative;
+
+          &[data-status="error"] {
+            .attachmentMeta {
+              color: #f22e2e;
+            }
+          }
+
+          .attachmentIcon {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            background: rgba(102, 126, 234, 0.08);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex: none;
+            position: relative;
+
+            .attachmentIconImage {
+              width: 24px;
+              height: 24px;
+              object-fit: contain;
+            }
+
+            .attachmentIconOverlay {
+              position: absolute;
+              inset: 0;
+              border-radius: 8px;
+              background: rgba(0, 0, 0, 0.3);
+              display: flex;
+              align-items: center;
+              justify-content: center;
+            }
+          }
+
+          .attachmentInfo {
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+
+            .attachmentName {
+              font-family:
+                "PingFang SC",
+                system-ui,
+                -apple-system,
+                "Segoe UI",
+                Arial,
+                sans-serif;
+              font-weight: 500;
+              font-size: 12px;
+              line-height: 16px;
+              color: #000000;
+              overflow: hidden;
+              text-overflow: ellipsis;
+              white-space: nowrap;
+            }
+
+            .attachmentMeta {
+              font-family:
+                "PingFang SC",
+                system-ui,
+                -apple-system,
+                "Segoe UI",
+                Arial,
+                sans-serif;
+              font-weight: 400;
+              font-size: 11px;
+              line-height: 16px;
+              color: #99a1af;
+            }
+          }
+
+          .attachmentRemove {
+            right: 6px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 20px;
+            height: 20px;
+            border-radius: 999px;
+            background: transparent;
+            color: #99a1af;
+
+            &:hover {
+              background: rgba(15, 23, 42, 0.06);
+            }
+          }
+        }
+
+        .attachmentItem:hover .attachmentRemove,
+        .attachmentItem:focus-within .attachmentRemove,
+        .attachmentThumb:hover .attachmentRemove,
+        .attachmentThumb:focus-within .attachmentRemove {
+          opacity: 1;
+        }
+
+        .attachmentItem:hover .attachmentRemove:disabled,
+        .attachmentItem:focus-within .attachmentRemove:disabled,
+        .attachmentThumb:hover .attachmentRemove:disabled,
+        .attachmentThumb:focus-within .attachmentRemove:disabled {
+          opacity: 0.35;
+        }
+
+        .attachmentItem:hover .attachmentRemoveIconImg,
+        .attachmentItem:focus-within .attachmentRemoveIconImg,
+        .attachmentThumb:hover .attachmentRemoveIconImg,
+        .attachmentThumb:focus-within .attachmentRemoveIconImg {
+          opacity: 1;
+        }
+      }
+    }
+
+    .attachmentSpinner {
+      width: 20px;
+      height: 20px;
+      border-radius: 999px;
+      border: 2px solid rgba(255, 255, 255, 0.35);
+      border-top-color: #ffffff;
+      animation: attachmentSpin 0.9s linear infinite;
+    }
+
+    .textarea {
+      flex: 1;
+      width: 100%;
+      min-height: 84px;
+      padding: 8px 0 0;
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      cursor: text;
+      background: transparent;
+
+      &.textareaChatPage {
+        min-height: var(--workspace-composer-chat-textarea-min-height, 56px);
+        padding-top: var(--workspace-composer-chat-textarea-padding-top, 4px);
+
+        .textareaInner {
+          .textareaInput {
+            min-height: var(--workspace-composer-chat-input-min-height, 48px);
+          }
+        }
+      }
+
+      &.textareaChatPage + .footer {
+        height: 40px;
+      }
+
+      .textareaInner {
+        position: relative;
+        flex: 1;
+        width: 100%;
+
+        .textareaInput {
+          position: relative;
+          z-index: 1;
+          width: 100%;
+          min-height: 72px;
+          max-height: 180px;
+          padding: 0;
+          margin: 0;
+          border: none;
+          outline: none;
+          resize: none;
+          background: transparent;
+          box-sizing: border-box;
+          overflow-y: auto;
+          font-family:
+            "PingFang SC",
+            system-ui,
+            -apple-system,
+            "Segoe UI",
+            Arial,
+            sans-serif;
+          font-weight: 400;
+          font-size: 14px;
+          line-height: 24px;
+          color: #000000;
+          text-indent: var(--mention-offset, 0px);
+
+          &::placeholder {
+            color: #99a1af;
+          }
+
+          &:disabled {
+            color: #99a1af;
+            cursor: not-allowed;
+          }
+        }
+
+        .textareaHint {
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          z-index: 0;
+          font-family: @font-family-base;
+          font-weight: 400;
+          font-size: 16px;
+          line-height: 24px;
+          color: var(--text-muted);
+          pointer-events: none;
+          white-space: pre-wrap;
+          word-break: break-word;
+        }
+
+        .textareaHighlight {
+          position: absolute;
+          inset: 0;
+          z-index: 0;
+          overflow: hidden;
+          pointer-events: none;
+          white-space: pre-wrap;
+          word-break: break-word;
+          font-family: @font-family-base;
+          font-weight: 400;
+          font-size: 16px;
+          line-height: 24px;
+          color: var(--text);
+          transform: translateY(calc(var(--textarea-scroll-top, 0px) * -1));
+          text-indent: var(--mention-offset, 0px);
+        }
+
+        .textareaHighlightPlain {
+          color: var(--text);
+        }
+
+        .textareaHighlightMention {
+          color: var(--primary);
+          background: transparent;
+        }
+
+        .textareaMention {
+          position: absolute;
+          top: 0;
+          left: 0;
+          z-index: 2;
+          display: inline-flex;
+          align-items: center;
+          flex: none;
+          white-space: nowrap;
+          font-family: @font-family-base;
+          font-weight: 600;
+          font-size: 16px;
+          line-height: 24px;
+          color: var(--primary);
+          padding-right: 6px;
+          pointer-events: none;
+          transform: translateY(calc(var(--textarea-scroll-top, 0px) * -1));
+        }
+
+        .mentionMenu {
+          position: absolute;
+          left: 0;
+          bottom: calc(100% + 8px);
+          width: min(320px, 100%);
+          padding: 6px;
+          border: 1px solid var(--border);
+          border-radius: 12px;
+          background: var(--surface);
+          box-shadow: var(--shadow-md);
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+          z-index: 4;
+        }
+
+        .mentionOption {
+          width: 100%;
+          padding: 10px 12px;
+          border: none;
+          border-radius: 10px;
+          background: transparent;
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          cursor: pointer;
+          text-align: left;
+
+          &:hover,
+          &.mentionOptionActive {
+            background: color-mix(in srgb, var(--text) 5%, transparent);
+          }
+
+          .mentionOptionAvatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex: none;
+            overflow: hidden;
+            background: color-mix(in srgb, var(--text) 6%, transparent);
+          }
+
+          .mentionOptionAvatarImage {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+          }
+
+          .mentionOptionAvatarFallback {
+            font-family: @font-family-base;
+            font-weight: 600;
+            font-size: 13px;
+            line-height: 1;
+            color: var(--text);
+          }
+
+          .mentionOptionMain {
+            min-width: 0;
+            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+          }
+
+          .mentionOptionLabel {
+            font-family: @font-family-base;
+            font-weight: 500;
+            font-size: 14px;
+            line-height: 20px;
+            color: var(--text);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+          }
+
+          .mentionOptionMeta {
+            flex: none;
+            font-family: @font-family-base;
+            font-weight: 400;
+            font-size: 12px;
+            line-height: 18px;
+            color: var(--text-secondary);
+          }
+
+          .mentionOptionTag {
+            display: inline-flex;
+            align-items: center;
+            flex: none;
+            padding: 2px 8px;
+            border-radius: 999px;
+            background: var(--primary-weak);
+            font-family: @font-family-base;
+            font-weight: 500;
+            font-size: 12px;
+            line-height: 18px;
+            color: var(--primary);
+          }
+        }
+      }
+    }
+
+    .footer {
+      height: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+
+      .left {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+
+        .iconButton {
+          width: 16px;
+          height: 16px;
+          padding: 0;
+          border: none;
+          background: transparent;
+          cursor: pointer;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .attachIcon {
+          width: 16px;
+          height: 16px;
+        }
+
+        .modelWrap {
+          position: relative;
+
+          .modelButton {
+            height: 32px;
+            padding: 0 12px;
+            border-radius: 26px;
+            border: 0.5px solid #c4c4c4;
+            background: transparent;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+          }
+
+          .modelText {
+            font-family:
+              "PingFang SC",
+              system-ui,
+              -apple-system,
+              "Segoe UI",
+              Arial,
+              sans-serif;
+            font-weight: 400;
+            font-size: 12px;
+            line-height: 16.8px;
+            color: #000000;
+            white-space: nowrap;
+          }
+
+          .modelSelect {
+            width: auto;
+            min-width: 160px;
+            height: 32px;
+            border-radius: 26px;
+            border: 0.5px solid #c4c4c4;
+
+            :global(.ant-select-selector) {
+              border-radius: 26px !important;
+              border: none !important;
+              background: transparent !important;
+              height: 32px !important;
+              display: flex !important;
+              align-items: center !important;
+            }
+
+            :global(.ant-select-selection-item) {
+              font-family:
+                "PingFang SC",
+                system-ui,
+                -apple-system,
+                "Segoe UI",
+                Arial,
+                sans-serif;
+              font-weight: 400;
+              font-size: 12px;
+              line-height: 16.8px;
+              color: #000000;
+            }
+
+            :global(.ant-select-arrow) {
+              color: #99a1af !important;
+            }
+
+            :global(.ant-select-dropdown) {
+              min-width: 200px;
+              padding: 6px;
+              border-radius: 12px;
+              border: 1px solid #e5e7eb;
+              background: #ffffff;
+              box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+            }
+
+            :global(.ant-select-item-option) {
+              padding: 8px 10px;
+              border-radius: 8px;
+              font-family:
+                "PingFang SC",
+                system-ui,
+                -apple-system,
+                "Segoe UI",
+                Arial,
+                sans-serif;
+              font-weight: 400;
+              font-size: 12px;
+              line-height: 16px;
+              color: #111827;
+            }
+
+            :global(.ant-select-item-option-selected:not(.ant-select-item-option-disabled)) {
+              background-color: rgba(0, 193, 212, 0.1) !important;
+              color: #000000 !important;
+            }
+
+            :global(.ant-select-item-option:hover:not(.ant-select-item-option-disabled)) {
+              background-color: rgba(0, 193, 212, 0.05) !important;
+            }
+          }
+        }
+      }
+
+      .iconMuted {
+        color: #99a1af;
+      }
+
+      .modelMenu {
+        :global(.ant-dropdown-menu) {
+          min-width: 200px;
+          padding: 6px;
+          border-radius: 12px;
+          border: 1px solid #e5e7eb;
+          background: #ffffff;
+          box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+        }
+
+        :global(.ant-dropdown-menu-item) {
+          padding: 0;
+        }
+
+        :global(.ant-dropdown-menu-item:hover) {
+          background: transparent;
+        }
+      }
+
+      .modelOption {
+        width: 100%;
+        padding: 8px 10px;
+        border: none;
+        background: transparent;
+        cursor: pointer;
+        border-radius: 8px;
+        font-family:
+          "PingFang SC",
+          system-ui,
+          -apple-system,
+          "Segoe UI",
+          Arial,
+          sans-serif;
+        font-weight: 400;
+        font-size: 12px;
+        line-height: 16px;
+        color: #111827;
+        text-align: left;
+        display: block;
+      }
+
+      .sendButton {
+        width: 36px;
+        height: 36px;
+        border-radius: 18px;
+        border: none;
+        background: #e5e7eb;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition:
+          background-color 0.15s ease,
+          color 0.15s ease,
+          opacity 0.15s ease;
+
+        &:disabled {
+          cursor: default;
+        }
+      }
+
+      .sendButtonActive {
+        background: #000000;
+
+        svg {
+          color: #ffffff;
+        }
+      }
+
+      .sendButtonStop {
+        background: none;
+      }
+
+      .sendButtonReconnecting {
+        background: #f3f4f6;
+        width: auto;
+        min-width: 80px;
+        padding: 0 12px;
+      }
+
+      .reconnectingIcon {
+        font-size: 12px;
+        color: #6b7280;
+        white-space: nowrap;
+      }
+
+      .stopIcon {
+        font-size: 14px;
+        line-height: 1;
+        color: inherit;
+      }
+    }
+  }
+
+  @media (max-height: 740px) {
+    .box {
+      .footer {
+        .left {
+          gap: 16px;
+        }
+
+        .modelWrap {
+          .modelButton {
+            height: 28px;
+          }
+
+          .modelSelect {
+            height: 28px;
+
+            :global(.ant-select-selector) {
+              height: 28px !important;
+            }
+          }
+        }
+
+        .sendButton {
+          width: 32px;
+          height: 32px;
+          border-radius: 16px;
+        }
+      }
+    }
+  }
+}
+
+@keyframes attachmentSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}

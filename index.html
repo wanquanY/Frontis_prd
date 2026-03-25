@@ -1,0 +1,245 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" href="/src/assets/images/logo.png" />
+    <title>Syngents AI 工作助手</title>
+    <style>
+      :root {
+        --preload-bg: #ffffff;
+        --preload-teal: #1fb3c6;
+        --preload-teal-light: #8fe7e0;
+        --preload-dot: #cfd8dc;
+      }
+
+      .preload-root {
+        margin: 0;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--preload-bg);
+        font-family: "Helvetica Neue", Arial, sans-serif;
+      }
+
+      .preload-stage {
+        position: relative;
+        width: 200px;
+        height: 200px;
+        background: var(--preload-bg);
+      }
+
+      .preload-loader {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        width: 64.8px;
+        height: 64.8px;
+        transform: translate(-50%, -50%);
+        display: grid;
+        place-items: center;
+      }
+
+      .preload-spinner {
+        width: 64.8px;
+        height: 64.8px;
+        display: grid;
+        place-items: center;
+      }
+
+      .preload-spinner svg {
+        width: 100%;
+        height: 100%;
+        display: block;
+      }
+
+      .preload-ring-scale {
+        transform: translateY(2px) scale(0.8);
+        transform-origin: 50% 50%;
+        transform-box: fill-box;
+      }
+
+      .preload-ring-group {
+        transform-origin: 50% 50%;
+        transform-box: fill-box;
+      }
+
+      .preload-arc-1,
+      .preload-arc-2 {
+        animation-duration: 2s;
+        animation-iteration-count: infinite;
+        animation-timing-function: cubic-bezier(0.65, 0, 0.35, 1);
+        transform-box: fill-box;
+        transform-origin: center;
+      }
+
+      .preload-arc-1 {
+        animation-name: preload-arc-right-move, preload-arc-fade;
+      }
+
+      .preload-arc-2 {
+        animation-name: preload-arc-left-move, preload-arc-fade;
+      }
+
+      .preload-dots {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        width: 43.2px;
+        height: 12.6px;
+        transform: translate(-50%, 21.6px);
+      }
+
+      .preload-dot {
+        position: absolute;
+        width: 5.4px;
+        height: 5.4px;
+        border-radius: 999px;
+        background: #000000;
+        animation: preload-pulse 1.2s ease-in-out infinite;
+        opacity: 0.15;
+      }
+
+      .preload-dot:nth-child(2) {
+        animation-delay: 0.15s;
+        left: 14.4px;
+      }
+
+      .preload-dot:nth-child(3) {
+        animation-delay: 0.3s;
+        left: 28.8px;
+      }
+
+      @keyframes preload-arc-left-move {
+        0% {
+          transform: translateX(0);
+        }
+        50% {
+          transform: translateX(5px);
+        }
+        100% {
+          transform: translateX(0);
+        }
+      }
+
+      @keyframes preload-arc-right-move {
+        0% {
+          transform: translateX(0);
+        }
+        50% {
+          transform: translateX(-5px);
+        }
+        100% {
+          transform: translateX(0);
+        }
+      }
+
+      @keyframes preload-arc-fade {
+        0% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.3;
+        }
+        100% {
+          opacity: 1;
+        }
+      }
+
+      @keyframes preload-pulse {
+        0%,
+        100% {
+          transform: translateY(0);
+          opacity: 0.15;
+        }
+        50% {
+          transform: translateY(-2px);
+          opacity: 0.35;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root">
+      <!-- 预加载动画：React 挂载后自动替换 -->
+      <div class="preload-root">
+        <div class="preload-stage" aria-label="加载中">
+          <div class="preload-loader">
+            <div class="preload-spinner" aria-hidden="true">
+              <svg viewBox="0 0 34 42" role="img" aria-hidden="true">
+                <defs>
+                  <linearGradient
+                    id="preload_paint0_linear"
+                    x1="4.96088"
+                    y1="22.139"
+                    x2="21.2805"
+                    y2="4.62445"
+                    gradientUnits="userSpaceOnUse"
+                  >
+                    <stop stop-color="#1A8CC3" />
+                    <stop offset="0.811953" stop-color="#2BF0D7" />
+                  </linearGradient>
+                  <linearGradient
+                    id="preload_paint1_linear"
+                    x1="28.3978"
+                    y1="1.86096"
+                    x2="12.0781"
+                    y2="19.3755"
+                    gradientUnits="userSpaceOnUse"
+                  >
+                    <stop offset="0.188047" stop-color="#2BF0D7" />
+                    <stop offset="1" stop-color="#1A8CC3" />
+                  </linearGradient>
+                </defs>
+                <g class="preload-ring-scale">
+                  <g class="preload-ring-group" id="preload-ring-group">
+                    <path
+                      class="preload-arc-1"
+                      d="M14.6914 24C21.4964 24 27.0129 19.5274 27.0129 14.0101C27.0129 12.0247 26.2986 10.1745 25.0668 8.61939C24.9457 8.46644 24.8195 8.31635 24.6886 8.16926C24.5824 8.05007 24.4732 7.93286 24.3608 7.81771L20.3644 11.8131C20.4699 11.94 20.5666 12.0708 20.6539 12.2051C20.6889 12.259 20.7224 12.3135 20.7544 12.3685C21.0495 12.8765 21.2117 13.4304 21.2117 14.0101C21.2117 16.4697 18.2924 18.4636 14.6914 18.4636C12.2451 18.4636 10.1134 17.5434 8.99785 16.1822L5.0001 20.1801C7.25607 22.5061 10.7586 24 14.6914 24Z"
+                      fill="url(#preload_paint0_linear)"
+                    />
+                    <path
+                      class="preload-arc-2"
+                      d="M18.6673 0C11.8622 0 6.3457 4.47262 6.3457 9.98988C6.3457 11.9753 7.06009 13.8255 8.29182 15.3806C8.41297 15.5336 8.53911 15.6837 8.67008 15.8307C8.7762 15.9499 8.88548 16.0671 8.99782 16.1823L12.9943 12.1869C12.8887 12.06 12.792 11.9292 12.7047 11.7949C12.6697 11.741 12.6362 11.6865 12.6043 11.6315C12.3092 11.1235 12.147 10.5696 12.147 9.98988C12.147 7.5303 15.0662 5.53642 18.6673 5.53642C21.1136 5.53642 23.2452 6.45657 24.3608 7.81778L28.3585 3.81994C26.1026 1.49388 22.6001 0 18.6673 0Z"
+                      fill="url(#preload_paint1_linear)"
+                    />
+                  </g>
+                </g>
+              </svg>
+            </div>
+          </div>
+          <div class="preload-dots" aria-hidden="true">
+            <span class="preload-dot" style="left: 0; top: 0;"></span>
+            <span class="preload-dot" style="left: 14.4px; top: 0;"></span>
+            <span class="preload-dot" style="left: 28.8px; top: 0;"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <script>
+      (() => {
+        const ring = document.getElementById("preload-ring-group");
+        if (!ring || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+        let angle = 0;
+        let timer = null
+        const tick = () => {
+          if (!ring) {
+            clearInterval(timer);
+            return;
+          };
+          setTimeout(() => {
+            angle -= 180;
+            ring.style.transition = "transform 1s cubic-bezier(0.25, 0.1, 0.25, 1)";
+            ring.style.transform = `rotate(${angle}deg)`;
+          }, 1000);
+        };
+
+        tick();
+        timer = setInterval(tick, 2000);
+      })();
+    </script>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

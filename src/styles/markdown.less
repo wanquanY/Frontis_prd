@@ -1,0 +1,579 @@
+/**
+ * Markdown 统一样式 Mixin
+ * 供预览模式 (XMarkdown) 和编辑模式 (BlockNote) 共用
+ */
+
+// 颜色变量
+@md-color-text: #1a1a1a;
+@md-color-heading: #111827;
+@md-color-heading-secondary: #1f2937;
+@md-color-heading-tertiary: #374151;
+@md-color-muted: #4b5563;
+@md-color-link: #00a8b8;
+@md-color-accent: #00c1d4;
+@md-color-code: #d63384;
+@md-color-border: #e5e7eb;
+@md-color-bg-light: #f3f4f6;
+@md-color-bg-quote: #f8fafb;
+@md-color-bg-table-header: #f9fafb;
+@md-color-bg-table-even: #fafafa;
+
+// 字体变量
+@md-font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+@md-font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+@md-font-size: 15px;
+@md-line-height: 1.8;
+@md-code-font-size: 13px;
+
+// Markdown 内容样式 Mixin
+.markdown-content() {
+  color: @md-color-text;
+  font-family: @md-font-family;
+  font-size: @md-font-size;
+  line-height: @md-line-height;
+  word-break: break-word;
+
+  // 标题
+  h1 {
+    font-size: 24px;
+    font-weight: 700;
+    line-height: 1.4;
+    margin: 32px 0 16px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid @md-color-border;
+    color: @md-color-heading;
+  }
+
+  h2 {
+    font-size: 20px;
+    font-weight: 700;
+    line-height: 1.4;
+    margin: 28px 0 12px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid #f0f2f5;
+    color: @md-color-heading;
+  }
+
+  h3 {
+    font-size: 17px;
+    font-weight: 600;
+    line-height: 1.5;
+    margin: 24px 0 10px;
+    color: @md-color-heading;
+  }
+
+  h4 {
+    font-size: 15px;
+    font-weight: 600;
+    line-height: 1.5;
+    margin: 20px 0 8px;
+    color: @md-color-heading-secondary;
+  }
+
+  h5,
+  h6 {
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.5;
+    margin: 16px 0 8px;
+    color: @md-color-heading-tertiary;
+  }
+
+  // 第一个标题不需要上边距
+  h1:first-child,
+  h2:first-child,
+  h3:first-child,
+  h4:first-child,
+  h5:first-child,
+  h6:first-child {
+    margin-top: 0;
+  }
+
+  // 段落
+  p {
+    margin: 0 0 12px;
+    color: @md-color-text;
+  }
+
+  // 列表
+  ul,
+  ol {
+    margin: 8px 0 12px;
+    padding-left: 24px;
+  }
+
+  ul {
+    list-style: disc;
+  }
+
+  ol {
+    list-style: decimal;
+  }
+
+  li {
+    margin: 4px 0;
+    line-height: 1.7;
+  }
+
+  li ul,
+  li ol {
+    margin: 4px 0 4px;
+  }
+
+  // 引用块
+  blockquote {
+    margin: 12px 0;
+    padding: 12px 16px;
+    border-left: 3px solid @md-color-accent;
+    background: @md-color-bg-quote;
+    border-radius: 0 6px 6px 0;
+    color: @md-color-muted;
+    font-style: normal;
+
+    p {
+      margin: 0;
+    }
+
+    blockquote {
+      margin: 8px 0 0;
+    }
+  }
+
+  // 行内代码
+  code {
+    font-family: @md-font-mono;
+    font-size: @md-code-font-size;
+    background: @md-color-bg-light;
+    border-radius: 4px;
+    padding: 2px 6px;
+    color: @md-color-code;
+  }
+
+  // 代码块
+  pre {
+    margin: 12px 0;
+    border-radius: 8px;
+    overflow-x: auto;
+
+    code {
+      background: transparent;
+      padding: 0;
+      color: inherit;
+      font-size: @md-code-font-size;
+      line-height: 1.6;
+    }
+  }
+
+  // 表格
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 12px 0;
+    font-size: 14px;
+  }
+
+  th,
+  td {
+    border: 1px solid @md-color-border;
+    padding: 8px 12px;
+    text-align: left;
+  }
+
+  th {
+    background: @md-color-bg-table-header;
+    font-weight: 600;
+    color: @md-color-heading-tertiary;
+  }
+
+  tr:nth-child(even) {
+    background: @md-color-bg-table-even;
+  }
+
+  // 分割线
+  hr {
+    margin: 20px 0;
+    border: none;
+    border-top: 1px solid @md-color-border;
+  }
+
+  // 链接
+  a {
+    color: @md-color-link;
+    text-decoration: none;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+
+  // 图片
+  img {
+    max-width: 100%;
+    border-radius: 6px;
+    margin: 8px 0;
+  }
+
+  // 加粗/斜体
+  strong {
+    font-weight: 600;
+    color: @md-color-heading;
+  }
+
+  em {
+    font-style: italic;
+  }
+}
+
+// BlockNote 编辑器专用样式覆盖
+.blocknote-editor-styles() {
+  // 移除所有边框和阴影
+  :global {
+    .bn-container,
+    .bn-mantine,
+    [data-blocknote-editor] {
+      border: none !important;
+      box-shadow: none !important;
+      background: transparent !important;
+    }
+
+    [class*="mantine-BlockNoteView"],
+    [class*="BlockNoteView"] {
+      border: none !important;
+      box-shadow: none !important;
+      outline: none !important;
+    }
+
+    // 编辑器主体
+    .bn-editor,
+    .ProseMirror {
+      padding: 0 !important;
+      background: transparent !important;
+      outline: none !important;
+      border: none !important;
+
+      &:focus,
+      &:focus-visible {
+        outline: none !important;
+        border: none !important;
+        box-shadow: none !important;
+      }
+    }
+
+    // 应用统一样式
+    .bn-editor,
+    .ProseMirror {
+      color: @md-color-text !important;
+      font-family: @md-font-family !important;
+      font-size: @md-font-size !important;
+      line-height: @md-line-height !important;
+
+      // 标题
+      h1,
+      [data-level="1"] {
+        font-size: 24px !important;
+        font-weight: 700 !important;
+        line-height: 1.4 !important;
+        margin: 32px 0 16px !important;
+        padding-bottom: 8px !important;
+        border-bottom: 1px solid @md-color-border !important;
+        color: @md-color-heading !important;
+
+        &:first-child {
+          margin-top: 0 !important;
+        }
+      }
+
+      h2,
+      [data-level="2"] {
+        font-size: 20px !important;
+        font-weight: 700 !important;
+        line-height: 1.4 !important;
+        margin: 28px 0 12px !important;
+        padding-bottom: 6px !important;
+        border-bottom: 1px solid #f0f2f5 !important;
+        color: @md-color-heading !important;
+
+        &:first-child {
+          margin-top: 0 !important;
+        }
+      }
+
+      h3,
+      [data-level="3"] {
+        font-size: 17px !important;
+        font-weight: 600 !important;
+        line-height: 1.5 !important;
+        margin: 24px 0 10px !important;
+        color: @md-color-heading !important;
+
+        &:first-child {
+          margin-top: 0 !important;
+        }
+      }
+
+      // 段落
+      p,
+      [data-content-type="paragraph"] {
+        margin: 0 0 12px !important;
+        color: @md-color-text !important;
+        font-size: @md-font-size !important;
+        line-height: @md-line-height !important;
+      }
+
+      // 列表
+      ul,
+      ol {
+        margin: 8px 0 12px !important;
+        padding-left: 24px !important;
+      }
+
+      li {
+        margin: 4px 0 !important;
+        line-height: 1.7 !important;
+      }
+
+      // 引用块 - 样式在 .bn-block-content[data-content-type="quote"] 中定义
+      // 避免双层样式
+
+      // 代码
+      code {
+        font-family: @md-font-mono !important;
+        font-size: @md-code-font-size !important;
+        background: @md-color-bg-light !important;
+        border-radius: 4px !important;
+        padding: 2px 6px !important;
+        color: @md-color-code !important;
+      }
+
+      pre,
+      [data-content-type="codeBlock"] {
+        margin: 12px 0 !important;
+        border-radius: 8px !important;
+        overflow-x: auto !important;
+        background: @md-color-bg-light !important;
+        padding: 12px 16px !important;
+
+        code {
+          background: transparent !important;
+          padding: 0 !important;
+          color: inherit !important;
+        }
+      }
+
+      // 表格
+      table {
+        border-collapse: collapse !important;
+        width: 100% !important;
+        margin: 12px 0 !important;
+        font-size: 14px !important;
+      }
+
+      th,
+      td {
+        border: 1px solid @md-color-border !important;
+        padding: 8px 12px !important;
+        text-align: left !important;
+      }
+
+      th {
+        background: @md-color-bg-table-header !important;
+        font-weight: 600 !important;
+        color: @md-color-heading-tertiary !important;
+      }
+
+      // 分割线
+      hr {
+        margin: 20px 0 !important;
+        border: none !important;
+        border-top: 1px solid @md-color-border !important;
+      }
+
+      // 图片
+      img {
+        max-width: 100% !important;
+        border-radius: 6px !important;
+        margin: 8px 0 !important;
+      }
+
+      // 加粗
+      strong {
+        font-weight: 600 !important;
+        color: @md-color-heading !important;
+      }
+    }
+
+    // 块级元素容器 - 保持BlockNote原有布局
+    .bn-block-outer {
+      // 保持默认布局
+    }
+
+    .bn-block {
+      // 保持默认布局
+    }
+
+    .bn-block-content {
+      // 内容块样式
+      &[data-content-type="quote"] {
+        // 重置外层容器样式，避免双层
+        border-left: none !important;
+        background: transparent !important;
+        padding: 0 !important;
+        margin: 0 !important;
+
+        blockquote {
+          margin: 0 !important;
+          padding: 12px 16px !important;
+          border-left: 3px solid @md-color-accent !important;
+          background: @md-color-bg-quote !important;
+          border-radius: 0 6px 6px 0 !important;
+          color: @md-color-muted !important;
+          font-style: normal !important;
+        }
+      }
+
+      &[data-content-type="heading"] {
+        h1 {
+          font-size: 24px !important;
+          font-weight: 700 !important;
+          line-height: 1.4 !important;
+          margin: 0 !important;
+          padding-bottom: 8px !important;
+          border-bottom: 1px solid @md-color-border !important;
+          color: @md-color-heading !important;
+        }
+
+        h2 {
+          font-size: 20px !important;
+          font-weight: 700 !important;
+          line-height: 1.4 !important;
+          margin: 0 !important;
+          padding-bottom: 6px !important;
+          border-bottom: 1px solid #f0f2f5 !important;
+          color: @md-color-heading !important;
+        }
+
+        h3 {
+          font-size: 17px !important;
+          font-weight: 600 !important;
+          line-height: 1.5 !important;
+          margin: 0 !important;
+          color: @md-color-heading !important;
+        }
+      }
+
+      &[data-content-type="paragraph"] {
+        p {
+          margin: 0 !important;
+          color: @md-color-text !important;
+          font-size: @md-font-size !important;
+          line-height: @md-line-height !important;
+        }
+      }
+
+      &[data-content-type="codeBlock"] {
+        color: @md-color-text !important;
+        pre {
+          margin: 0 !important;
+          border-radius: 8px !important;
+          overflow-x: auto !important;
+          background: @md-color-bg-light !important;
+          padding: 12px 16px !important;
+
+          code {
+            background: transparent !important;
+            padding: 0 !important;
+            color: inherit !important;
+            font-family: @md-font-mono !important;
+            font-size: @md-code-font-size !important;
+          }
+        }
+      }
+
+      &[data-content-type="divider"] {
+        hr {
+          margin: 8px 0 !important;
+          border: none !important;
+          border-top: 1px solid @md-color-border !important;
+        }
+      }
+
+      &[data-content-type="table"] {
+        table {
+          border-collapse: collapse !important;
+          width: 100% !important;
+          margin: 0 !important;
+          font-size: 14px !important;
+        }
+
+        th,
+        td {
+          border: 1px solid @md-color-border !important;
+          padding: 8px 12px !important;
+          text-align: left !important;
+        }
+
+        th {
+          background: @md-color-bg-table-header !important;
+          font-weight: 600 !important;
+          color: @md-color-heading-tertiary !important;
+        }
+      }
+
+      &[data-content-type="image"] {
+        img {
+          max-width: 100% !important;
+          border-radius: 6px !important;
+        }
+      }
+
+      &[data-content-type="checkListItem"] {
+        display: flex !important;
+        align-items: flex-start !important;
+        gap: 8px !important;
+
+        input[type="checkbox"] {
+          margin-top: 4px !important;
+        }
+
+        p {
+          margin: 0 !important;
+        }
+      }
+    }
+
+    // 行内元素样式
+    .bn-inline-content {
+      color: @md-color-text !important;
+      font-family: @md-font-family !important;
+      font-size: @md-font-size !important;
+      line-height: @md-line-height !important;
+
+      strong {
+        font-weight: 600 !important;
+        color: @md-color-heading !important;
+      }
+
+      em {
+        font-style: italic !important;
+      }
+
+      code {
+        font-family: @md-font-mono !important;
+        font-size: @md-code-font-size !important;
+        background: @md-color-bg-light !important;
+        border-radius: 4px !important;
+        padding: 2px 6px !important;
+        color: @md-color-code !important;
+      }
+
+      a {
+        color: @md-color-link !important;
+        text-decoration: none !important;
+
+        &:hover {
+          text-decoration: underline !important;
+        }
+      }
+    }
+  }
+}

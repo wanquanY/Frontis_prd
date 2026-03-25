@@ -1,0 +1,516 @@
+.wrapper {
+  flex: 1;
+  width: 100%;
+  padding: 0;
+  display: flex;
+  justify-content: center;
+  overflow: hidden;
+  position: relative;
+}
+
+.loadingOverlay {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: rgba(255, 255, 255, 0.82);
+  color: #111827;
+  font-size: 13px;
+  pointer-events: none;
+}
+
+.loadingOverlayPlaceholder {
+  width: 100%;
+  min-width: 240px;
+  min-height: 120px;
+}
+
+.scrollToBottom {
+  position: absolute;
+  bottom: 22px;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.06);
+  cursor: pointer;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    opacity 0.2s ease,
+    background 0.3s ease;
+  opacity: 0.96;
+  z-index: 1000;
+  overflow: hidden;
+
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at 50% 50%, rgba(0, 0, 0, 0.04), transparent 65%);
+    opacity: 0;
+    transition: opacity 0.35s ease;
+  }
+
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+  }
+
+  &:active .scrollToBottomIcon {
+    animation: scrollPulse 0.5s ease;
+  }
+
+  &:active::after {
+    opacity: 1;
+  }
+
+  &:focus-visible {
+    outline: 2px solid rgba(0, 193, 212, 0.35);
+    outline-offset: 2px;
+  }
+}
+
+.scrollToBottomIcon {
+  width: 18px;
+  height: 18px;
+  color: #111827;
+}
+
+@keyframes scrollPulse {
+  0% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+
+  30% {
+    transform: translateY(4px);
+    opacity: 0.85;
+  }
+
+  60% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.scroll {
+  width: 100%;
+  height: 100%;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 0 0 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  position: relative;
+}
+
+.summaryRow {
+  display: flex;
+  flex-direction: column;
+  align-self: flex-start;
+  padding: 0 16px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: #000000;
+  // position: absolute;
+  top: 32px;
+}
+
+.summaryAvatar {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+}
+
+.summaryCard {
+  width: 100%;
+  max-width: 566px;
+  padding: 20px;
+  border-radius: 16px;
+  background: linear-gradient(180deg, rgba(238, 254, 255, 1) 0%, rgba(255, 250, 239, 0.45) 83.24%);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  overflow: hidden;
+}
+
+.summaryTitle {
+  font-family:
+    "PingFang SC",
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    Arial,
+    sans-serif;
+  font-weight: 600;
+  font-size: 18px;
+  line-height: 27px;
+  color: #000000;
+}
+
+.summaryMarkdown {
+  font-family:
+    "PingFang SC",
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    Arial,
+    sans-serif;
+  font-weight: 400;
+  color: #000000;
+  text-align: justify;
+  --font-size: 14px;
+  --margin-block: 0 0 4px 0;
+  --margin-ul-ol: 0 0 4px 20px;
+  --padding-ul-ol: 0;
+  --margin-li: 4px 0;
+}
+
+.assistantRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  color: #111827;
+}
+
+.assistantAvatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  background: rgba(15, 23, 42, 0.04);
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+}
+
+.assistantAvatarIcon {
+  width: 18px;
+  height: 18px;
+  color: rgba(15, 23, 42, 0.65);
+}
+
+.assistantText {
+  max-width: 640px;
+  padding-top: 4px;
+  font-family:
+    "PingFang SC",
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    Arial,
+    sans-serif;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 20px;
+  color: #111827;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.defaultRow {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.defaultText {
+  font-family:
+    "PingFang SC",
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    Arial,
+    sans-serif;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 22px;
+  color: #111827;
+}
+
+.defaultAvatar {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+}
+
+.userRow {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.userBubble {
+  max-width: 640px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: #f3f4f6;
+  font-family:
+    "PingFang SC",
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    Arial,
+    sans-serif;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 20px;
+  color: #111827;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.loadingRow {
+  display: flex;
+  padding: 4px 0 4px 42px;
+}
+
+.loadingDots {
+  font-size: 24px;
+  color: #666;
+  font-weight: bold;
+  display: flex;
+  gap: 4px;
+}
+
+.loadingDots span {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #00c1d4;
+  animation: dotBlink 1.2s ease-in-out infinite;
+}
+
+.loadingDots span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.loadingDots span:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes dotBlink {
+  0%,
+  100% {
+    opacity: 0.3;
+    transform: scale(0.8);
+  }
+
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.blockList {
+  width: min(100%, 800px);
+  max-width: 800px;
+  align-self: center;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  position: relative;
+
+  // 让最后一条消息与底部输入区保持一点呼吸空间
+  &::after {
+    content: "";
+    display: block;
+    height: 12px;
+    flex-shrink: 0;
+  }
+}
+
+.assistantBlockRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+
+  &.toolBlockLower {
+    margin: 0;
+  }
+}
+
+.focusedRow {
+  outline: 2px solid rgba(0, 193, 212, 0.45);
+  outline-offset: 4px;
+  border-radius: 12px;
+  scroll-margin-top: 96px;
+  scroll-margin-bottom: 96px;
+}
+
+.assistantBlockAvatarSlot {
+  width: 40px;
+  flex: none;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+}
+
+.assistantBlockAvatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: var(--surface);
+  border: 1px solid var(--border);
+}
+
+.assistantBlockAvatarPlaceholder {
+  width: 40px;
+  visibility: hidden;
+  flex: none;
+}
+
+.assistantBlockContent {
+  flex: 1;
+  min-width: 0;
+  max-width: calc(100% - 52px);
+}
+
+.userBlockRow {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+.messageMeta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: auto;
+  padding: 0 0 6px;
+}
+
+.userMessageMeta {
+  justify-content: flex-end;
+}
+
+.messageMetaName {
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  transition:
+    color 0.2s ease,
+    opacity 0.2s ease;
+}
+
+.messageMetaNameButton {
+  padding: 0;
+  border: none;
+  background: transparent;
+  font: inherit;
+}
+
+.messageMetaNameClickable {
+  cursor: pointer;
+
+  &:hover {
+    color: var(--text);
+  }
+
+  &:focus-visible {
+    outline: none;
+    color: var(--text);
+  }
+}
+
+.messageMetaTime {
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--text-secondary);
+}
+
+.messageMetaAutomation {
+  display: inline-flex;
+  align-items: center;
+  max-width: min(46vw, 320px);
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: rgba(0, 193, 212, 0.1);
+  color: #0f6f7d;
+  font-size: 12px;
+  line-height: 18px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@media (max-width: 1536px) {
+  .wrapper {
+    padding: 24px 16px 0;
+
+    .scroll {
+      padding: 0 0 12px;
+
+      .blockList {
+        width: 100%;
+      }
+    }
+  }
+
+  .scroll {
+    padding-bottom: 16px;
+  }
+}
+
+@media (max-height: 740px) {
+  .wrapper {
+    padding: 20px 0 0;
+  }
+
+  .scroll {
+    padding-bottom: 12px;
+    gap: 12px;
+  }
+
+  .summaryCard {
+    padding: 16px;
+    gap: 12px;
+  }
+
+  .summaryTitle {
+    font-size: 16px;
+    line-height: 24px;
+  }
+
+  .summaryMarkdown {
+    --font-size: 13px;
+  }
+
+  .assistantText {
+    font-size: 13px;
+    line-height: 18px;
+  }
+
+  .userBubble {
+    padding: 8px 12px;
+    font-size: 13px;
+    line-height: 18px;
+  }
+}
