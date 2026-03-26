@@ -12,6 +12,13 @@ import type {
 } from "@/pages/types";
 import { createWorkspaceActivationInfo, getAvatarUrl } from "@/pages/utils";
 
+const SKILL_AGENT_AVATAR_URLS: Record<string, string> = {
+  "201": getAvatarUrl("employee-pm"),
+  "202": getAvatarUrl("employee-designer"),
+  "203": getAvatarUrl("employee-research"),
+  "204": getAvatarUrl("employee-writer"),
+};
+
 const createAssistantMessageBlock = (id: string, children: Block[]): Block => ({
   id,
   kind: "message",
@@ -154,6 +161,14 @@ export const INITIAL_EMPLOYEES: EmployeeItem[] = [
     model: "gpt-5.2",
     summary: "负责 PRD 梳理、页面结构和版本边界收敛。",
     lastAction: "正在整理 SynClaw 独立窗口的五 Tab 方案",
+    source: "coworker",
+    visibility: "all",
+    subAgentModel: "gpt-5.2-mini",
+    agentId: "cw-agent-pm-01",
+    runtimeAgentId: "rt-agent-pm-01",
+    boundMembers: ["杨万泉", "产品组", "交互组"],
+    welcomeMessage: "我会先帮你拆需求、归纳范围，再输出功能清单和交互建议。",
+    systemPrompt: "你是一名产品策略官，负责将模糊需求收敛为结构化方案、功能边界与排期建议。",
   },
   {
     id: "employee-designer",
@@ -166,6 +181,14 @@ export const INITIAL_EMPLOYEES: EmployeeItem[] = [
     model: "gpt-5.2-mini",
     summary: "负责将需求转成低保真结构和视觉方向。",
     lastAction: "等待确认 AI 专家团页的结构命名",
+    source: "coworker",
+    visibility: "bound",
+    subAgentModel: "gpt-5.2-mini",
+    agentId: "cw-agent-designer-01",
+    runtimeAgentId: "rt-agent-designer-01",
+    boundMembers: ["杨万泉", "设计组"],
+    welcomeMessage: "我会根据目标场景给出页面结构、关键动线和组件布局建议。",
+    systemPrompt: "你是一名交互设计师，负责把功能目标拆成清晰的信息层级、页面流程和界面布局。",
   },
   {
     id: "employee-research",
@@ -178,6 +201,14 @@ export const INITIAL_EMPLOYEES: EmployeeItem[] = [
     model: "gpt-5.2-mini",
     summary: "用于快速补充背景信息和行业案例。",
     lastAction: "已同步竞品页面资料，随时可发起新任务",
+    source: "coworker",
+    visibility: "bound",
+    subAgentModel: "gpt-5.2-mini",
+    agentId: "cw-agent-research-01",
+    runtimeAgentId: "rt-agent-research-01",
+    boundMembers: ["杨万泉", "研究组"],
+    welcomeMessage: "我会优先补背景资料、竞品案例和可复用做法，再输出整理结果。",
+    systemPrompt: "你是一名资料研究员，负责检索事实信息、竞品案例、资料引用和背景材料整理。",
   },
   {
     id: "employee-ops",
@@ -190,6 +221,14 @@ export const INITIAL_EMPLOYEES: EmployeeItem[] = [
     model: "gpt-5.2",
     summary: "用于发布前串联排期、检查项和回归节奏。",
     lastAction: "等待你确认本轮原型收口后恢复协作",
+    source: "coworker",
+    visibility: "bound",
+    subAgentModel: "gpt-5.2-mini",
+    agentId: "cw-agent-ops-01",
+    runtimeAgentId: "rt-agent-ops-01",
+    boundMembers: ["杨万泉", "前端组", "测试组"],
+    welcomeMessage: "我会帮你串发布前检查项、提测计划和回归节奏。",
+    systemPrompt: "你是一名上线协调员，负责项目排期、提测检查、风险提醒与上线协同。",
   },
   {
     id: "employee-writer",
@@ -202,6 +241,14 @@ export const INITIAL_EMPLOYEES: EmployeeItem[] = [
     model: "gpt-5.2",
     summary: "适合本机文档处理和轻量写作，不展示虚拟机桌面。",
     lastAction: "已完成昨日会议纪要摘要，等待继续拆功能点",
+    source: "coworker",
+    visibility: "all",
+    subAgentModel: "gpt-5.2-mini",
+    agentId: "cw-agent-writer-01",
+    runtimeAgentId: "rt-agent-writer-01",
+    boundMembers: ["杨万泉", "内容组"],
+    welcomeMessage: "我会优先整理纪要、摘要和附件内容，输出结构化文档。",
+    systemPrompt: "你是一名本地内容助理，负责会议纪要整理、文档摘要、附件归档和文字润色。",
   },
   {
     id: "employee-sales",
@@ -214,8 +261,76 @@ export const INITIAL_EMPLOYEES: EmployeeItem[] = [
     model: "gpt-5.2-mini",
     summary: "部署到企业侧边缘设备，当前处于待激活状态。",
     lastAction: "待输入激活码后才可进入可用状态",
+    source: "openclaw",
+    visibility: "bound",
+    subAgentModel: "gpt-5.2-mini",
+    agentId: "oc-agent-sales-01",
+    runtimeAgentId: "rt-agent-sales-01",
+    boundMembers: ["销售一部", "杨万泉"],
+    welcomeMessage: "我会汇总销售线索、生成战报，并跟进重点客户动态。",
+    systemPrompt: "你是一名销售战报助手，负责客户线索跟进、日报生成、机会梳理和状态汇总。",
   },
 ];
+
+export const INITIAL_EMPLOYEE_DOCUMENTS: Record<string, string[]> = {
+  "employee-pm": ["AGENTS.md", "PRD.md", "需求边界.md"],
+  "employee-designer": ["交互规范.md", "布局原则.md", "组件清单.md"],
+  "employee-research": ["竞品调研.md", "行业资料.md", "参考案例.md"],
+  "employee-ops": ["上线检查表.md", "回归清单.md", "发布说明.md"],
+  "employee-writer": ["写作规范.md", "会议纪要模板.md", "归档说明.md"],
+  "employee-sales": ["销售日报模板.md", "客户跟进规范.md", "战报汇总.md"],
+};
+
+export const INITIAL_EMPLOYEE_DOCUMENT_CONTENTS: Record<string, Record<string, string>> = {
+  "employee-pm": {
+    "AGENTS.md":
+      "# 产品策略官 AGENTS\n\n## 职责范围\n- 拆解需求背景\n- 收敛功能范围\n- 输出结构化方案\n\n## 输出要求\n- 先给结论\n- 再给功能清单\n- 最后补业务规则与风险说明\n",
+    "PRD.md":
+      "# SynClaw 原型需求\n\n## 目标\n- 优化客户端体验\n- 统一对话、群聊、技能、自动化、AI 专家团入口\n\n## 当前重点\n1. AI 专家团要支持广场态和详情态切换\n2. 详情态需展示核心配置与文档\n3. 交互上保留轻量过渡动画\n",
+    "需求边界.md":
+      "# 需求边界\n\n- 当前只做原型演示，不接真实接口\n- 所有数据均由 mock 驱动\n- 详情区重点表达配置结构，不做真实保存\n",
+  },
+  "employee-designer": {
+    "交互规范.md":
+      "# 交互规范\n\n- 广场态采用多列卡片\n- 详情态采用左侧缩略列 + 右侧主详情\n- 关键切换使用轻量位移动画，不做复杂共享元素动画\n",
+    "布局原则.md":
+      "# 布局原则\n\n## 广场态\n- 卡片尽量铺满主区域\n- 维持统一卡片宽度与节奏\n\n## 详情态\n- 左侧列负责切换\n- 右侧主区负责详细配置\n",
+    "组件清单.md":
+      "# 组件清单\n\n- AI 专家卡片\n- 新建 AI 专家卡片\n- 左侧缩略切换列\n- 配置详情卡\n- 文档 Tabs 预览区\n",
+  },
+  "employee-research": {
+    "竞品调研.md":
+      "# 竞品调研\n\n- 竞品多数把 Agent 广场和详情页拆开\n- 当前原型更适合同页切换，减少跳转成本\n",
+    "行业资料.md":
+      "# 行业资料\n\n- 企业普遍会在 Agent 详情中展示模型、提示词、工作站、权限与文档\n- 文档区通常采用 tab 或左树右内容结构\n",
+    "参考案例.md":
+      "# 参考案例\n\n1. 广场态用于快速浏览和选择\n2. 详情态用于精细查看配置\n3. 动画只需承担“进入详情”的上下文切换提示\n",
+  },
+  "employee-ops": {
+    "上线检查表.md":
+      "# 上线检查表\n\n- 卡片切换是否稳定\n- 详情区字段是否完整\n- markdown 文档切换是否正常\n",
+    "回归清单.md":
+      "# 回归清单\n\n- AI 专家广场\n- AI 专家详情\n- 新建/编辑弹窗\n- 技能广场头像\n",
+    "发布说明.md":
+      "# 发布说明\n\n当前原型以演示效果为主，允许 mock 数据覆盖业务态，但不能破坏布局一致性。\n",
+  },
+  "employee-writer": {
+    "写作规范.md":
+      "# 写作规范\n\n- 输出先结论后展开\n- 用词尽量简洁直接\n- 结构优先于修辞\n",
+    "会议纪要模板.md":
+      "# 会议纪要模板\n\n## 结论\n## 待办\n## 风险\n## 下次同步事项\n",
+    "归档说明.md":
+      "# 归档说明\n\n文档命名建议按“模块 + 类型 + 日期”统一，便于后续检索和回看。\n",
+  },
+  "employee-sales": {
+    "销售日报模板.md":
+      "# 销售日报模板\n\n- 今日新增线索\n- 重点客户进展\n- 风险跟进项\n- 次日计划\n",
+    "客户跟进规范.md":
+      "# 客户跟进规范\n\n- 跟进结论必须明确\n- 重要节点需要时间戳\n- 风险客户需要单独标记\n",
+    "战报汇总.md":
+      "# 战报汇总\n\n当前边缘销售工作站仍待激活，正式接入后再承接实时销售战报生成任务。\n",
+  },
+};
 
 /**
  * 原型页默认单聊会话列表。
@@ -1285,6 +1400,7 @@ export const INITIAL_SKILL_INSTALL_AGENTS = [
     visible_to_all: true,
     coworker_agent_id: 201,
     name: "产品策略官",
+    avatar_url: SKILL_AGENT_AVATAR_URLS["201"],
     remote_status: "online",
     primary_model: "gpt-5.2",
     runtime_id: "云端产品工作站",
@@ -1297,6 +1413,7 @@ export const INITIAL_SKILL_INSTALL_AGENTS = [
     visible_to_all: true,
     coworker_agent_id: 202,
     name: "交互设计师",
+    avatar_url: SKILL_AGENT_AVATAR_URLS["202"],
     remote_status: "executing",
     primary_model: "gpt-5.2-mini",
     runtime_id: "云端产品工作站",
@@ -1309,6 +1426,7 @@ export const INITIAL_SKILL_INSTALL_AGENTS = [
     visible_to_all: true,
     coworker_agent_id: 203,
     name: "资料研究员",
+    avatar_url: SKILL_AGENT_AVATAR_URLS["203"],
     remote_status: "online",
     primary_model: "gpt-5.2-mini",
     runtime_id: "云端研究工作站",
@@ -1321,6 +1439,7 @@ export const INITIAL_SKILL_INSTALL_AGENTS = [
     visible_to_all: true,
     coworker_agent_id: 204,
     name: "本地内容助理",
+    avatar_url: SKILL_AGENT_AVATAR_URLS["204"],
     remote_status: "offline",
     primary_model: "gpt-5.2",
     runtime_id: "本地创作工作站",

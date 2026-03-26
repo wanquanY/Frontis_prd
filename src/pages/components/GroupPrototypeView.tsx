@@ -7,13 +7,7 @@ import {
   type KeyboardEvent as ReactKeyboardEvent,
 } from "react";
 
-import {
-  CloseOutlined,
-  ColumnWidthOutlined,
-  DesktopOutlined,
-  ReloadOutlined,
-} from "@ant-design/icons";
-import { Input, Modal, Select, message } from "antd";
+import { Input, Modal, message } from "antd";
 import classNames from "classnames";
 
 import { CommonButton } from "@/components/CommonButton/CommonButton";
@@ -65,12 +59,10 @@ import {
 import type { ChatMessage } from "../types";
 import styles from "../FrontisPage.module.less";
 
-type GroupViewMode = "split" | "cloudspace";
 type SpaceModalMode = "create" | "rename";
 type ChannelModalMode = "create" | "rename";
 
 const DEFAULT_SIDEBAR_WIDTH = 320;
-const DEFAULT_RUNTIME_PANEL_WIDTH = 420;
 
 const toMemberAvatarText = (name: string): string => Array.from(name.trim())[0] ?? "?";
 
@@ -211,10 +203,6 @@ export const GroupPrototypeView = (): JSX.Element => {
   );
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(false);
   const [sidebarWidth] = useState<number>(DEFAULT_SIDEBAR_WIDTH);
-  const [runtimePanelWidth] = useState<number>(DEFAULT_RUNTIME_PANEL_WIDTH);
-  const [groupViewMode, setGroupViewMode] = useState<GroupViewMode>("split");
-  const [isRuntimePanelOpen, setIsRuntimePanelOpen] = useState<boolean>(true);
-  const [runtimeRefreshKey, setRuntimeRefreshKey] = useState<number>(0);
   const [isArtifactsPanelOpen, setIsArtifactsPanelOpen] = useState<boolean>(true);
   const [selectedModelId, setSelectedModelId] = useState<number>(WORKSPACE_MODEL_OPTIONS[0]?.id ?? 1);
   const [isModelMenuOpen, setIsModelMenuOpen] = useState<boolean>(false);
@@ -230,7 +218,6 @@ export const GroupPrototypeView = (): JSX.Element => {
   const [editingChannelId, setEditingChannelId] = useState<string>();
   const [editingChannelSpaceId, setEditingChannelSpaceId] = useState<string>();
   const [isManageAgentsModalOpen, setIsManageAgentsModalOpen] = useState<boolean>(false);
-  const [activeRuntimeAgentId, setActiveRuntimeAgentId] = useState<string>("");
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const responseTimerRef = useRef<number | null>(null);
 
@@ -279,28 +266,10 @@ export const GroupPrototypeView = (): JSX.Element => {
     () => buildRuntimeStatusMap(spaces, INITIAL_GROUP_AI_EMPLOYEES, channelAgentIds, activeChannelId),
     [activeChannelId, channelAgentIds, spaces],
   );
-  const cloudRuntimeAgents = useMemo(
-    () =>
-      (channelAgentIds[activeChannelId ?? ""] ?? [])
-        .map(agentId => INITIAL_GROUP_AI_EMPLOYEES.find(item => item.id === agentId))
-        .filter(
-          (item): item is SynClawAiEmployee => Boolean(item && item.runtimeId?.startsWith("runtime-cloud")),
-        ),
-    [activeChannelId, channelAgentIds],
-  );
-  const activeRuntimeAgent = useMemo(
-    () => cloudRuntimeAgents.find(item => item.id === activeRuntimeAgentId) ?? cloudRuntimeAgents[0],
-    [activeRuntimeAgentId, cloudRuntimeAgents],
-  );
   const modelLabel = useMemo(
     () => WORKSPACE_MODEL_OPTIONS.find(option => option.id === selectedModelId)?.label ?? WORKSPACE_MODEL_OPTIONS[0]?.label ?? "",
     [selectedModelId],
   );
-
-  useEffect(() => {
-    if (cloudRuntimeAgents.some(item => item.id === activeRuntimeAgentId)) return;
-    setActiveRuntimeAgentId(cloudRuntimeAgents[0]?.id ?? "");
-  }, [activeRuntimeAgentId, cloudRuntimeAgents]);
 
   useEffect(() => {
     return () => {
@@ -595,132 +564,7 @@ export const GroupPrototypeView = (): JSX.Element => {
     message.success("频道成员已更新");
   }, [activeChannelId]);
 
-  const showArtifactsColumn = Boolean(activeChannelId && isArtifactsPanelOpen && groupViewMode !== "cloudspace");
-  const showRuntimeSplitColumn = Boolean(activeChannelId && cloudRuntimeAgents.length > 0 && isRuntimePanelOpen && groupViewMode === "split");
-  const isRuntimeFullscreen = Boolean(activeChannelId && cloudRuntimeAgents.length > 0 && groupViewMode === "cloudspace");
-
-  const renderRuntimePanel = (): JSX.Element | null => {
-    if (!activeRuntimeAgent) return null;
-    const sameRuntimeAgents = cloudRuntimeAgents.filter(item => item.runtimeId === activeRuntimeAgent.runtimeId);
-
-    return (
-      <div className={classNames(styles.dialogueRuntimePanel, { [styles.dialogueRuntimePanelFull]: groupViewMode === "cloudspace" })}>
-        <div className={styles.groupRuntimePanelHeader}>
-          <div className={styles.groupRuntimePanelToolbar}>
-            <div className={styles.groupRuntimeAgentSelectWrap}>
-              <Select<string>
-                value={activeRuntimeAgent.id}
-                className={styles.groupRuntimeAgentSelect}
-                popupClassName={styles.groupRuntimeAgentSelectPopup}
-                options={cloudRuntimeAgents.map(item => ({ value: item.id, label: item.name }))}
-                onChange={setActiveRuntimeAgentId}
-              />
-            </div>
-            <div className={styles.groupRuntimeViewControls}>
-              <button
-                type="button"
-                className={classNames(styles.groupRuntimeOverlayButton, {
-                  [styles.groupRuntimeOverlayButtonActive]: groupViewMode === "split",
-                })}
-                onClick={() => setGroupViewMode("split")}
-              >
-                <ColumnWidthOutlined />
-                <span>分屏</span>
-              </button>
-              <button
-                type="button"
-                className={classNames(styles.groupRuntimeOverlayButton, {
-                  [styles.groupRuntimeOverlayButtonActive]: groupViewMode === "cloudspace",
-                })}
-                onClick={() => setGroupViewMode("cloudspace")}
-              >
-                <DesktopOutlined />
-                <span>全屏</span>
-              </button>
-              <button
-                type="button"
-                className={styles.groupRuntimeOverlayIconButton}
-                onClick={() => setRuntimeRefreshKey(prev => prev + 1)}
-                aria-label="刷新设备面板"
-              >
-                <ReloadOutlined />
-              </button>
-              {groupViewMode === "split" ? (
-                <button
-                  type="button"
-                  className={styles.groupRuntimeOverlayIconButton}
-                  onClick={() => setIsRuntimePanelOpen(false)}
-                  aria-label="关闭设备面板"
-                >
-                  <CloseOutlined />
-                </button>
-              ) : null}
-            </div>
-          </div>
-        </div>
-
-        <div className={styles.groupRuntimePanelBody}>
-          <div key={`${activeRuntimeAgent.id}-${runtimeRefreshKey}`} className={styles.groupRuntimeDesktopWindow}>
-            <div className={styles.groupRuntimeDesktopHeader}>
-              <div className={styles.groupRuntimeDesktopDots} aria-hidden="true">
-                <span />
-                <span />
-                <span />
-              </div>
-              <span className={styles.groupRuntimeDesktopHeaderTitle}>
-                {activeChannelTitle || "当前频道"} · {activeRuntimeAgent.runtimeName}
-              </span>
-            </div>
-            <div className={styles.groupRuntimeDesktopBody}>
-              <div className={styles.groupRuntimeDesktopSidebar}>
-                <span>Home</span>
-                <span>Workspace</span>
-                <span>Browser</span>
-                <span>Artifacts</span>
-              </div>
-              <div className={styles.groupRuntimeDesktopCanvas}>
-                <div className={styles.groupRuntimeDesktopStatusRow}>
-                  <span className={styles.groupRuntimeDesktopBadge}>当前查看：{activeRuntimeAgent.name}</span>
-                  <span className={styles.groupRuntimeDesktopBadge}>
-                    {sameRuntimeAgents.length > 1 ? `共享设备 · ${sameRuntimeAgents.length} 个 Agent` : "独立设备"}
-                  </span>
-                </div>
-                <div className={styles.groupRuntimeDesktopMainWindow}>
-                  <div className={styles.groupRuntimeDesktopWindowBar}>
-                    <span className={styles.groupRuntimeDesktopWindowTitle}>浏览器任务面板</span>
-                    <span className={styles.groupRuntimeDesktopWindowMeta}>设备与频道上下文持续同步</span>
-                  </div>
-                  <div className={styles.groupRuntimeDesktopScene}>
-                    <div className={styles.groupRuntimeDesktopHeroCard}>
-                      <span className={styles.groupRuntimeDesktopLabel}>当前设备</span>
-                      <span className={styles.groupRuntimeDesktopValue}>{activeRuntimeAgent.runtimeName}</span>
-                      <span className={styles.groupRuntimeDesktopText}>当前展示为纯原型桌面，用于承载云端设备视图与频道协作关系。</span>
-                    </div>
-                    <div className={styles.groupRuntimeDesktopGrid}>
-                      <div className={styles.groupRuntimeDesktopCard}>网页检索</div>
-                      <div className={styles.groupRuntimeDesktopCard}>资料整理</div>
-                      <div className={styles.groupRuntimeDesktopCard}>文件回传</div>
-                      <div className={styles.groupRuntimeDesktopCard}>
-                        {sameRuntimeAgents.length > 1
-                          ? `协作 Agent：${sameRuntimeAgents.map(item => item.name).join(" / ")}`
-                          : "当前无其他协作 Agent"}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <div className={styles.groupRuntimeDesktopDock}>
-                  <span className={styles.groupRuntimeDesktopDockItem}>Browser</span>
-                  <span className={styles.groupRuntimeDesktopDockItem}>Docs</span>
-                  <span className={styles.groupRuntimeDesktopDockItem}>Files</span>
-                  <span className={styles.groupRuntimeDesktopDockItem}>Sync</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  };
+  const showArtifactsColumn = Boolean(activeChannelId && isArtifactsPanelOpen);
 
   return (
     <div className={workspaceStyles.workspaceLayout} aria-label="PRD 群聊工作区">
@@ -786,79 +630,66 @@ export const GroupPrototypeView = (): JSX.Element => {
       <section className={workspaceStyles.rightPanel} aria-label="工作空间">
         {activeChannelId ? (
           <div className={workspaceStyles.chatMainColumn}>
-            {isRuntimeFullscreen ? (
-              renderRuntimePanel()
-            ) : (
-              <>
-                <GroupChatHeader
-                  title={activeChannelTitle}
-                  members={spaceMembers}
-                  onManageMembers={() => setIsManageAgentsModalOpen(true)}
-                  onOpenFolder={() => setIsArtifactsPanelOpen(true)}
-                  onOpenDevice={
-                    cloudRuntimeAgents.length > 0
-                      ? () => {
-                          setGroupViewMode("split");
-                          setIsRuntimePanelOpen(true);
-                        }
-                      : undefined
-                  }
-                  isDeviceActive={showRuntimeSplitColumn}
-                />
+            <>
+              <GroupChatHeader
+                title={activeChannelTitle}
+                members={spaceMembers}
+                onManageMembers={() => setIsManageAgentsModalOpen(true)}
+                onOpenFolder={() => setIsArtifactsPanelOpen(true)}
+              />
 
-                <div className={styles.dialogueStage}>
-                  <div className={workspaceStyles.chatPanelWrap} aria-label="对话区">
-                    <WorkspaceChatPanel
-                      blocks={renderedChatBlocks}
-                      messages={renderedChatMessages}
-                      currentSessionId={activeChannelId}
-                      actorAvatars={actorAvatars}
-                      mentionableActorLabels={mentionableActorLabels}
-                      isStreaming={isSendingChat}
-                      isHistoryLoading={false}
-                      showMessageMeta={true}
-                      showStreamingPlaceholder={false}
-                      onActorNameClick={handleInsertActorMention}
-                    />
-                  </div>
-                </div>
-
-                <div className={workspaceStyles.composerWrap} aria-label="输入区">
-                  <WorkspaceComposer
-                    rootClassName={workspaceStyles.synclawComposer}
-                    value={chatInputValue}
-                    placeholder="输入消息或上传附件"
-                    mentionOptions={composerMentionOptions}
-                    attachments={composerAttachments}
-                    allowAttachmentOnlySend={true}
-                    sending={isSendingChat}
-                    showModelSelector={false}
-                    sendDisabled={false}
-                    modelLabel={modelLabel}
-                    selectedModelId={selectedModelId}
-                    modelMenuOpen={isModelMenuOpen}
-                    modelOptions={WORKSPACE_MODEL_OPTIONS}
-                    isChatPage={true}
-                    onValueChange={setChatInputValue}
-                    onKeyDown={handleComposerKeyDown}
-                    onAttach={() => fileInputRef.current?.click()}
-                    onRemoveAttachment={handleRemoveComposerAttachment}
-                    onAttachmentsSelected={handleComposerAttachmentsSelected}
-                    onToggleModelMenu={() => setIsModelMenuOpen(open => !open)}
-                    onCloseModelMenu={() => setIsModelMenuOpen(false)}
-                    onSelectModel={setSelectedModelId}
-                    onSend={handleSendChat}
-                    onAbort={async () => {
-                      if (responseTimerRef.current !== null) {
-                        window.clearTimeout(responseTimerRef.current);
-                        responseTimerRef.current = null;
-                      }
-                      setIsSendingChat(false);
-                    }}
+              <div className={styles.dialogueStage}>
+                <div className={workspaceStyles.chatPanelWrap} aria-label="对话区">
+                  <WorkspaceChatPanel
+                    blocks={renderedChatBlocks}
+                    messages={renderedChatMessages}
+                    currentSessionId={activeChannelId}
+                    actorAvatars={actorAvatars}
+                    mentionableActorLabels={mentionableActorLabels}
+                    isStreaming={isSendingChat}
+                    isHistoryLoading={false}
+                    showMessageMeta={true}
+                    showStreamingPlaceholder={false}
+                    onActorNameClick={handleInsertActorMention}
                   />
                 </div>
-              </>
-            )}
+              </div>
+
+              <div className={workspaceStyles.composerWrap} aria-label="输入区">
+                <WorkspaceComposer
+                  rootClassName={workspaceStyles.synclawComposer}
+                  value={chatInputValue}
+                  placeholder="输入消息或上传附件"
+                  mentionOptions={composerMentionOptions}
+                  attachments={composerAttachments}
+                  allowAttachmentOnlySend={true}
+                  sending={isSendingChat}
+                  showModelSelector={false}
+                  sendDisabled={false}
+                  modelLabel={modelLabel}
+                  selectedModelId={selectedModelId}
+                  modelMenuOpen={isModelMenuOpen}
+                  modelOptions={WORKSPACE_MODEL_OPTIONS}
+                  isChatPage={true}
+                  onValueChange={setChatInputValue}
+                  onKeyDown={handleComposerKeyDown}
+                  onAttach={() => fileInputRef.current?.click()}
+                  onRemoveAttachment={handleRemoveComposerAttachment}
+                  onAttachmentsSelected={handleComposerAttachmentsSelected}
+                  onToggleModelMenu={() => setIsModelMenuOpen(open => !open)}
+                  onCloseModelMenu={() => setIsModelMenuOpen(false)}
+                  onSelectModel={setSelectedModelId}
+                  onSend={handleSendChat}
+                  onAbort={async () => {
+                    if (responseTimerRef.current !== null) {
+                      window.clearTimeout(responseTimerRef.current);
+                      responseTimerRef.current = null;
+                    }
+                    setIsSendingChat(false);
+                  }}
+                />
+              </div>
+            </>
           </div>
         ) : (
           <div className={workspaceStyles.rightContent}>
@@ -884,15 +715,6 @@ export const GroupPrototypeView = (): JSX.Element => {
           }}
         />
       </section>
-
-      {showRuntimeSplitColumn ? (
-        <aside
-          className={styles.groupRuntimeColumn}
-          style={{ width: `${runtimePanelWidth}px`, minWidth: `${runtimePanelWidth}px` }}
-        >
-          {renderRuntimePanel()}
-        </aside>
-      ) : null}
 
       {showArtifactsColumn ? (
         <aside className={workspaceStyles.artifactsColumn} style={{ width: "360px", minWidth: "360px" }}>

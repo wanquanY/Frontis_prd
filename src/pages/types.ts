@@ -20,6 +20,8 @@ export type StatusTone = "online" | "busy" | "idle" | "pending" | "paused" | "dr
  * AI 员工连接模式。
  */
 export type ConnectionMode = "cloud" | "local";
+export type EmployeeSource = "coworker" | "openclaw";
+export type EmployeeVisibility = "all" | "bound";
 
 /**
  * 对话消息角色。
@@ -72,6 +74,14 @@ export interface EmployeeItem {
   model: string;
   summary: string;
   lastAction: string;
+  source: EmployeeSource;
+  visibility: EmployeeVisibility;
+  subAgentModel?: string;
+  agentId: string;
+  runtimeAgentId: string;
+  boundMembers: string[];
+  welcomeMessage: string;
+  systemPrompt: string;
 }
 
 /**

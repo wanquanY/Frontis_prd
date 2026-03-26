@@ -15,10 +15,6 @@ interface GroupChatHeaderProps {
   membersLoading?: boolean;
   /** 点击管理成员 */
   onManageMembers?: () => void;
-  /** 点击设备按钮 */
-  onOpenDevice?: () => void;
-  /** 设备按钮激活态 */
-  isDeviceActive?: boolean;
   /** 点击成果按钮 */
   onOpenFolder?: () => void;
 }
@@ -88,40 +84,16 @@ const FolderIcon = ({ className }: { className?: string }): JSX.Element => (
   </svg>
 );
 
-const DeviceIcon = ({ className }: { className?: string }): JSX.Element => (
-  <svg
-    viewBox="0 0 20 20"
-    width="20"
-    height="20"
-    fill="none"
-    xmlns="http://www.w3.org/2000/svg"
-    aria-hidden="true"
-    focusable="false"
-    className={className}
-  >
-    <path
-      d="M3.5 4.5H16.5V12.5H3.5V4.5Z"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinejoin="round"
-    />
-    <path d="M7 15.5H13" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-    <path d="M10 12.5V15.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-  </svg>
-);
-
 /**
  * 群聊频道顶部栏。
  *
- * 仅在 PRD 原型内使用，保留成员与成果入口，并补充可控的设备按钮。
+ * 仅在原型内使用，保留成员与成果入口。
  */
 export const GroupChatHeader = ({
   title,
   members,
   membersLoading = false,
   onManageMembers,
-  onOpenDevice,
-  isDeviceActive = false,
   onOpenFolder,
 }: GroupChatHeaderProps): JSX.Element => {
   const visibleMembers = useMemo(() => (members ?? []).slice(0, 4), [members]);
@@ -205,19 +177,6 @@ export const GroupChatHeader = ({
           </div>
 
           <div className={styles.headerActions}>
-            {onOpenDevice ? (
-              <button
-                type="button"
-                className={classNames(styles.actionButton, {
-                  [styles.actionButtonActive]: isDeviceActive,
-                })}
-                aria-label="打开设备桌面"
-                onClick={onOpenDevice}
-              >
-                <DeviceIcon className={styles.actionIcon} />
-              </button>
-            ) : null}
-
             {onOpenFolder ? (
               <button
                 type="button"

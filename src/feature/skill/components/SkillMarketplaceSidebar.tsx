@@ -14,6 +14,7 @@ import styles from "./SkillMarketplaceSidebar.module.less";
 interface SkillMarketplaceAgentCardItem {
   id: string;
   name: string;
+  avatarUrl?: string;
   avatarLines: string[];
   avatarBackground: string;
   avatarTextColor: string;
@@ -64,6 +65,7 @@ export const SkillMarketplaceSidebar = ({
         return {
           id: agent.id,
           name: agent.name,
+          avatarUrl: agent.avatarUrl ?? agent.avatar_url ?? undefined,
           avatarLines: avatarMeta.lines,
           avatarBackground: avatarMeta.background,
           avatarTextColor: avatarMeta.textColor,
@@ -126,21 +128,31 @@ export const SkillMarketplaceSidebar = ({
             >
               <div className={styles.agentCardHead}>
                 <div className={styles.agentProfile}>
-                  <span
-                    className={classNames(styles.agentAvatar, {
-                      [styles.agentAvatarMultiLine]: agent.avatarLines.length > 1,
-                    })}
-                    style={{
-                      background: agent.avatarBackground,
-                      color: agent.avatarTextColor,
-                    }}
-                  >
-                    {agent.avatarLines.map(line => (
-                      <span key={`${agent.id}-${line}`} className={styles.agentAvatarLine}>
-                        {line}
-                      </span>
-                    ))}
-                  </span>
+                  {agent.avatarUrl ? (
+                    <span className={styles.agentAvatar}>
+                      <img
+                        src={agent.avatarUrl}
+                        alt={agent.name}
+                        className={styles.agentAvatarImage}
+                      />
+                    </span>
+                  ) : (
+                    <span
+                      className={classNames(styles.agentAvatar, {
+                        [styles.agentAvatarMultiLine]: agent.avatarLines.length > 1,
+                      })}
+                      style={{
+                        background: agent.avatarBackground,
+                        color: agent.avatarTextColor,
+                      }}
+                    >
+                      {agent.avatarLines.map(line => (
+                        <span key={`${agent.id}-${line}`} className={styles.agentAvatarLine}>
+                          {line}
+                        </span>
+                      ))}
+                    </span>
+                  )}
                   <span className={styles.agentNameBlock}>
                     <span className={styles.agentName}>{agent.name}</span>
                     <span className={styles.agentSkillCount}>{agent.skillCount} 个技能</span>

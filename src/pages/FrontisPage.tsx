@@ -23,6 +23,8 @@ import { GroupPrototypeView } from "./components/GroupPrototypeView";
 import { SkillMarketplaceView } from "./components/SkillMarketplaceView";
 import {
   INITIAL_DIALOGUE_ARTIFACTS,
+  INITIAL_EMPLOYEE_DOCUMENT_CONTENTS,
+  INITIAL_EMPLOYEE_DOCUMENTS,
   INITIAL_DIALOGUE_SESSIONS,
   INITIAL_EMPLOYEES,
   INITIAL_SKILLS,
@@ -198,6 +200,20 @@ const FrontisPage = (): JSX.Element => {
       INITIAL_SKILLS.reduce<Record<string, number>>((result, skill) => {
         skill.installedFor.forEach(employeeId => {
           result[employeeId] = (result[employeeId] ?? 0) + 1;
+        });
+        return result;
+      }, {}),
+    [],
+  );
+
+  const skillNamesByEmployeeId = useMemo(
+    () =>
+      INITIAL_SKILLS.reduce<Record<string, string[]>>((result, skill) => {
+        skill.installedFor.forEach(employeeId => {
+          if (!result[employeeId]) {
+            result[employeeId] = [];
+          }
+          result[employeeId].push(skill.name);
         });
         return result;
       }, {}),
@@ -760,8 +776,84 @@ const FrontisPage = (): JSX.Element => {
   );
 
   const handleUpdateEmployeeModel = useCallback((employeeId: string, model: string): void => {
-    setEmployees(prev => prev.map(item => (item.id === employeeId ? { ...item, model } : item)));
+    setEmployees(prev =>
+      prev.map(item =>
+        item.id === employeeId
+          ? {
+              ...item,
+              model,
+              lastAction: "刚刚更新了执行模型",
+            }
+          : item,
+      ),
+    );
   }, []);
+
+  const handleStartDialogueWithEmployee = useCallback(
+    (employeeId: string): void => {
+      handleSelectEmployee(employeeId);
+      setActiveTabKey("dialogue");
+    },
+    [handleSelectEmployee],
+  );
+
+  const handleUpdateEmployee = useCallback(
+    (
+      employeeId: string,
+      patch: Partial<
+        Pick<
+          EmployeeItem,
+          | "avatarUrl"
+          | "name"
+          | "role"
+          | "summary"
+          | "visibility"
+          | "workspaceId"
+          | "connectionMode"
+          | "model"
+          | "subAgentModel"
+          | "boundMembers"
+        >
+      >,
+    ): void => {
+      setEmployees(prev =>
+        prev.map(item =>
+          item.id === employeeId
+            ? {
+                ...item,
+                ...patch,
+                lastAction: "刚刚更新了专家配置",
+              }
+            : item,
+        ),
+      );
+    },
+    [],
+  );
+
+  const handleUpdateEmployeeAvatarFileSelect = useCallback(
+    (employeeId: string, file: File | null): void => {
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        const result = typeof reader.result === "string" ? reader.result : "";
+        if (!result) return;
+        setEmployees(prev =>
+          prev.map(item =>
+            item.id === employeeId
+              ? {
+                  ...item,
+                  avatarUrl: result,
+                  lastAction: "刚刚更新了头像",
+                }
+              : item,
+          ),
+        );
+      };
+      reader.readAsDataURL(file);
+    },
+    [],
+  );
 
   const renderContent = (): JSX.Element => {
     if (activeTabKey === "dialogue") {
@@ -770,9 +862,7 @@ const FrontisPage = (): JSX.Element => {
           activeEmployee={activeEmployee}
           activeDialogueArtifacts={activeDialogueArtifacts}
           activeDialogueSession={activeDialogueSession}
-          activeWorkspace={activeWorkspace}
           allEmployees={employees}
-          allWorkspaces={workspaces}
           dialogueAttachments={dialogueAttachments}
           dialogueInputValue={dialogueInputValue}
           dialogueMessages={dialogueMessages}
@@ -788,7 +878,6 @@ const FrontisPage = (): JSX.Element => {
           onRemoveAttachment={handleRemoveDialogueAttachment}
           onSendDialogue={handleSendDialogue}
           onStopDialogue={handleStopDialogue}
-          workspaceEmployees={workspaceEmployees}
         />
       );
     }
@@ -803,43 +892,33 @@ const FrontisPage = (): JSX.Element => {
     }
     return (
       <ExpertsPrototypeView
-        activeWorkspace={activeWorkspace}
+        employees={employees}
         isCreateEmployeeModalOpen={isCreateEmployeeModalOpen}
-        isCreateWorkspaceModalOpen={isCreateWorkspaceModalOpen}
         employeeModalMode={employeeModalMode}
         newEmployeeName={newEmployeeName}
         newEmployeeRole={newEmployeeRole}
         newEmployeeAvatarUrl={newEmployeeAvatarUrl}
         newEmployeeModel={newEmployeeModel}
-        newWorkspaceName={newWorkspaceName}
-        newWorkspaceType={newWorkspaceType}
         onEditEmployee={handleEditEmployee}
-        onEditWorkspace={handleEditWorkspace}
         onEmployeeAvatarChange={setNewEmployeeAvatarUrl}
         onEmployeeAvatarFileSelect={handleEmployeeAvatarFileSelect}
         onCloseCreateEmployeeModal={handleCloseCreateEmployeeModal}
-        onCloseCreateWorkspaceModal={handleCloseCreateWorkspaceModal}
         onCreateEmployee={handleCreateEmployee}
-        onCreateWorkspace={handleCreateWorkspace}
         onEmployeeModelChange={setNewEmployeeModel}
         onEmployeeNameChange={setNewEmployeeName}
         onEmployeeRoleChange={setNewEmployeeRole}
         onOpenCreateEmployeeModal={handleOpenCreateEmployeeModal}
-        onOpenCreateWorkspaceModal={handleOpenCreateWorkspaceModal}
         onRemoveEmployee={handleRemoveEmployee}
-        onRemoveWorkspace={handleRemoveWorkspace}
-        onCopyWorkspaceActivationCode={handleCopyWorkspaceActivationCode}
-        onRegenerateWorkspaceActivationCode={handleRegenerateWorkspaceActivationCode}
+        onStartDialogue={handleStartDialogueWithEmployee}
+        onUpdateEmployee={handleUpdateEmployee}
+        onUpdateEmployeeAvatarFileSelect={handleUpdateEmployeeAvatarFileSelect}
         onUpdateEmployeeModel={handleUpdateEmployeeModel}
-        onWorkspaceNameChange={setNewWorkspaceName}
-        onWorkspaceSelect={setActiveWorkspaceId}
-        onWorkspaceTypeChange={setNewWorkspaceType}
         skillCountByEmployeeId={skillCountByEmployeeId}
-        canRemoveEmployee={employees.length > 1}
-        canRemoveWorkspace={workspaces.length > 1}
-        workspaceModalMode={workspaceModalMode}
-        workspaceEmployees={workspaceEmployees}
+        skillNamesByEmployeeId={skillNamesByEmployeeId}
         workspaces={workspaces}
+        employeeDocumentsById={INITIAL_EMPLOYEE_DOCUMENTS}
+        employeeDocumentContentsById={INITIAL_EMPLOYEE_DOCUMENT_CONTENTS}
+        canRemoveEmployee={employees.length > 1}
       />
     );
   };
