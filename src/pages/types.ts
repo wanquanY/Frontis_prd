@@ -10,13 +10,15 @@ export type FrontisWebRole = "employee" | "admin";
  * FrontisAI Web 端一级导航标识。
  */
 export type FrontisWebTabKey =
-  | "dialogue"
-  | "automation"
   | "dashboard"
+  | "dialogue"
+  | "group"
+  | "automation"
   | "store"
   | "devices"
   | "models"
-  | "users";
+  | "organization"
+  | "notifications";
 
 /**
  * 工作站类型。
@@ -51,6 +53,7 @@ export type AutomationStatus = "active" | "paused" | "draft";
 export interface FrontisWebTabItem {
   key: FrontisWebTabKey;
   label: string;
+  labels?: Partial<Record<FrontisWebRole, string>>;
   icon: ReactNode;
   roles: FrontisWebRole[];
 }

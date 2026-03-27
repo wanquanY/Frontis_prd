@@ -51,6 +51,12 @@ export const createMarketingContactPath = (agentNames?: string[]): string => {
 };
 
 /**
+ * 构建 AI 专家团场景详情路径。
+ */
+export const createMarketingSceneDetailPath = (sceneId: string): string =>
+  `/portal/agents/scenes/${sceneId}`;
+
+/**
  * 从查询参数中解析感兴趣的 Agent。
  */
 export const parseMarketingLeadTargets = (searchParams: URLSearchParams): string[] => {

@@ -157,6 +157,26 @@
   gap: 8px;
 }
 
+.headerActions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.sessionHint {
+  display: inline-flex;
+  align-items: center;
+  color: var(--portalHeaderTextMuted);
+  font-size: 13px;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+
+.sessionHintDivider {
+  margin: 0 6px;
+}
+
 .navLink,
 .footerLink {
   padding: 10px 14px;
@@ -181,6 +201,7 @@
   background: var(--portalHeaderHover);
 }
 
+.headerLogin,
 .headerCta,
 .primaryButton,
 .secondaryButton,
@@ -213,6 +234,12 @@
   background: linear-gradient(135deg, #7de2f1, #1eb5c7);
   color: #07111f;
   box-shadow: 0 14px 32px rgba(30, 181, 199, 0.2);
+}
+
+.headerLogin {
+  border-color: var(--portalHeaderBorder);
+  background: var(--portalHeaderHover);
+  color: var(--portalHeaderText);
 }
 
 .secondaryButton,
@@ -380,6 +407,15 @@
     align-items: stretch;
   }
 
+  .headerActions {
+    flex-direction: column;
+  }
+
+  .sessionHint {
+    justify-content: center;
+  }
+
+  .headerLogin,
   .headerCta {
     width: 100%;
   }

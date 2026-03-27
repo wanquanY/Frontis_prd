@@ -1,7 +1,7 @@
 import classNames from "classnames";
-import { ArrowRightOutlined } from "@ant-design/icons";
 import { NavLink, Outlet } from "react-router-dom";
 
+import { useMockAuth } from "@/feature/auth/hooks/useMockAuth";
 import { PORTAL_NAV_ITEMS } from "@/feature/marketingPortal/portalData";
 
 import styles from "./MarketingPortalLayout.module.less";
@@ -10,6 +10,9 @@ import styles from "./MarketingPortalLayout.module.less";
  * 营销门户站点级布局。
  */
 export const MarketingPortalLayout = (): JSX.Element => {
+  const { getDefaultPathByRole, session } = useMockAuth();
+  const workspacePath = session ? getDefaultPathByRole(session.role) : "/login";
+
   return (
     <div className={styles.siteRoot} data-portal-root="true" data-portal-header-tone="dark">
       <div className={styles.backgroundAuraTop} />
@@ -40,10 +43,19 @@ export const MarketingPortalLayout = (): JSX.Element => {
               ))}
             </nav>
 
-            <NavLink className={styles.headerCta} to="/portal/contact">
-              预约产品演示
-              <ArrowRightOutlined />
-            </NavLink>
+            <div className={styles.headerActions}>
+              {session ? (
+                <span className={styles.sessionHint}>
+                  {session.name}
+                  <span className={styles.sessionHintDivider}>·</span>
+                  {session.role === "admin" ? "企业老板" : "普通用户"}
+                </span>
+              ) : null}
+
+              <NavLink className={styles.headerLogin} to={workspacePath}>
+                {session ? "进入工作台" : "登录"}
+              </NavLink>
+            </div>
           </header>
         </div>
       </div>

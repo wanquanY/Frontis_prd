@@ -75,6 +75,8 @@ export interface MarketingMindsetComparisonItem {
 export interface MarketingLogoWallItem {
   id: string;
   name: string;
+  logoUrl: string;
+  tileSize: "regular" | "wide";
 }
 
 /**
@@ -151,6 +153,36 @@ export type MarketingAgentCategory = "HR" | "销售" | "财务" | "内容" | "�
 export type MarketingExpertSceneTone = "aqua" | "cobalt" | "emerald" | "amber" | "violet";
 
 /**
+ * 场景协作对话角色。
+ */
+export interface MarketingExpertConversationActorItem {
+  name: string;
+  role: string;
+  avatarSeed: string;
+}
+
+/**
+ * 场景协作对话消息。
+ */
+export interface MarketingExpertConversationMessageItem {
+  id: string;
+  speakerName: string;
+  speakerRole: string;
+  avatarSeed: string;
+  content: string;
+}
+
+/**
+ * 场景协作任务演示。
+ */
+export interface MarketingExpertSceneTaskDemoItem {
+  user: MarketingExpertConversationActorItem;
+  userPrompt: string;
+  completionNote: string;
+  messages: MarketingExpertConversationMessageItem[];
+}
+
+/**
  * AI 专家团场景。
  */
 export interface MarketingExpertSceneItem {
@@ -162,7 +194,34 @@ export interface MarketingExpertSceneItem {
   coverImageUrl: string;
   tone: MarketingExpertSceneTone;
   agentSlugs: string[];
+  taskDemo?: MarketingExpertSceneTaskDemoItem;
 }
+
+/**
+ * AI 专家团场景筛选分类。
+ */
+export type MarketingSceneCatalogCategory =
+  | "全部"
+  | "经营管理"
+  | "电商运营"
+  | "内容创作"
+  | "人力资源"
+  | "零售";
+
+/**
+ * AI 专家团场景图标键。
+ */
+export type MarketingSceneCatalogIconKey =
+  | "shop"
+  | "growth"
+  | "content"
+  | "service"
+  | "organization"
+  | "finance"
+  | "store"
+  | "campaign"
+  | "training"
+  | "dashboard";
 
 /**
  * Agent 分类筛选项。
@@ -223,6 +282,16 @@ export interface MarketingAgentItem {
 }
 
 /**
+ * AI 专家团场景目录项。
+ */
+export interface MarketingSceneCatalogItem {
+  scene: MarketingExpertSceneItem;
+  categories: MarketingSceneCatalogCategory[];
+  iconKey: MarketingSceneCatalogIconKey;
+  agents: MarketingAgentItem[];
+}
+
+/**
  * 客户案例。
  */
 export interface MarketingCaseStudyItem {
@@ -264,6 +333,17 @@ export interface MarketingLeadFormState {
   phone: string;
   wechat: string;
   industry: string;
+  interestedAgents: string[];
+  remark: string;
+}
+
+/**
+ * AI 专家团咨询抽屉表单。
+ */
+export interface MarketingSceneConsultFormState {
+  name: string;
+  company: string;
+  phone: string;
   interestedAgents: string[];
   remark: string;
 }

@@ -2,10 +2,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import classNames from "classnames";
 import {
-  BarChartOutlined,
+  ApartmentOutlined,
+  BellOutlined,
   ClockCircleOutlined,
   CloudServerOutlined,
   ControlOutlined,
+  DashboardOutlined,
   LogoutOutlined,
   MessageOutlined,
   MenuFoldOutlined,
@@ -15,16 +17,20 @@ import {
 } from "@ant-design/icons";
 import type { MenuProps } from "antd";
 import { Avatar, Dropdown, Empty, message } from "antd";
+import { useNavigate } from "react-router-dom";
 import type { WorkspaceComposerAttachmentItem } from "@/feature/workspace/types";
+import { useMockAuth } from "@/feature/auth/hooks/useMockAuth";
 import { isChatAttachmentFileAllowed } from "@/utils/chatAttachmentFileTypes";
 
 import { AutomationTaskView } from "./components/AutomationTaskView";
-import { AdminDashboardView } from "./components/AdminDashboardView";
+import { BossDashboardView } from "./components/BossDashboardView";
 import { DeviceManagementView } from "./components/DeviceManagementView";
 import { DialoguePrototypeView } from "./components/DialoguePrototypeView";
 import { AgentStoreView } from "./components/agentStore/AgentStoreView";
+import { GroupPrototypeView } from "./components/GroupPrototypeView";
 import { ModelConfigurationView } from "./components/ModelConfigurationView";
-import { UserManagementView } from "./components/UserManagementView";
+import { NotificationCenterView } from "./components/NotificationCenterView";
+import { OrganizationManagementView } from "./components/OrganizationManagementView";
 import {
   INITIAL_DIALOGUE_ARTIFACTS,
   INITIAL_DIALOGUE_SESSIONS,
@@ -51,26 +57,38 @@ import styles from "./FrontisPage.module.less";
 
 const FRONTIS_WEB_TABS: FrontisWebTabItem[] = [
   {
+    key: "dashboard",
+    label: "驾驶舱",
+    icon: <DashboardOutlined />,
+    roles: ["admin"],
+  },
+  {
     key: "dialogue",
     label: "对话",
+    labels: {
+      admin: "AI对话",
+    },
     icon: <MessageOutlined />,
+    roles: ["employee", "admin"],
+  },
+  {
+    key: "group",
+    label: "群聊",
+    icon: <TeamOutlined />,
     roles: ["employee", "admin"],
   },
   {
     key: "automation",
     label: "自动化",
     icon: <ClockCircleOutlined />,
-    roles: ["employee", "admin"],
-  },
-  {
-    key: "dashboard",
-    label: "数据看板",
-    icon: <BarChartOutlined />,
-    roles: ["admin"],
+    roles: ["employee"],
   },
   {
     key: "store",
     label: "AI专家团",
+    labels: {
+      admin: "我的AI专家团",
+    },
     icon: <RobotOutlined />,
     roles: ["admin"],
   },
@@ -87,9 +105,15 @@ const FRONTIS_WEB_TABS: FrontisWebTabItem[] = [
     roles: ["admin"],
   },
   {
-    key: "users",
-    label: "用户管理",
-    icon: <TeamOutlined />,
+    key: "organization",
+    label: "组织管理",
+    icon: <ApartmentOutlined />,
+    roles: ["admin"],
+  },
+  {
+    key: "notifications",
+    label: "通知中心",
+    icon: <BellOutlined />,
     roles: ["admin"],
   },
 ];
@@ -101,10 +125,14 @@ interface FrontisPageProps {
 /**
  * FrontisAI Web 原型主页面
  *
- * 当前页面通过路由区分普通用户与企业管理员视图。
+ * 当前页面通过路由区分普通用户与企业老板视图。
  */
 const FrontisPage = ({ viewRole }: FrontisPageProps): JSX.Element => {
-  const [activeTabKey, setActiveTabKey] = useState<FrontisWebTabKey>("dialogue");
+  const navigate = useNavigate();
+  const { logout, session } = useMockAuth();
+  const [activeTabKey, setActiveTabKey] = useState<FrontisWebTabKey>(
+    viewRole === "admin" ? "dashboard" : "dialogue",
+  );
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(false);
   const [employees, setEmployees] = useState<EmployeeItem[]>(INITIAL_EMPLOYEES);
   const [dialogueSessions, setDialogueSessions] =
@@ -125,6 +153,7 @@ const FrontisPage = ({ viewRole }: FrontisPageProps): JSX.Element => {
   const workspaces: WorkspaceItem[] = INITIAL_WORKSPACES;
   const currentUser = useMemo(
     () =>
+      INITIAL_FRONTIS_WEB_USERS.find(item => item.id === session?.userId) ??
       INITIAL_FRONTIS_WEB_USERS.find(
         item =>
           item.role === (viewRole === "admin" ? "admin" : "member") && item.status === "active",
@@ -133,7 +162,7 @@ const FrontisPage = ({ viewRole }: FrontisPageProps): JSX.Element => {
         item => item.role === (viewRole === "admin" ? "admin" : "member"),
       ) ??
       null,
-    [viewRole],
+    [session?.userId, viewRole],
   );
   const conversationEmployees = useMemo(
     () =>
@@ -189,6 +218,10 @@ const FrontisPage = ({ viewRole }: FrontisPageProps): JSX.Element => {
       activeDialogueSession ? (INITIAL_DIALOGUE_ARTIFACTS[activeDialogueSession.id] ?? []) : [],
     [activeDialogueSession],
   );
+  const activeWorkspace = useMemo(
+    () => workspaces.find(item => item.id === activeEmployee?.workspaceId) ?? workspaces[0] ?? null,
+    [activeEmployee?.workspaceId, workspaces],
+  );
   const isDialogueResponding = activeDialogueSession?.id === respondingDialogueSessionId;
 
   useEffect(() => {
@@ -204,7 +237,7 @@ const FrontisPage = ({ viewRole }: FrontisPageProps): JSX.Element => {
 
   useEffect(() => {
     if (!visibleTabs.some(item => item.key === activeTabKey)) {
-      setActiveTabKey("dialogue");
+      setActiveTabKey(visibleTabs[0]?.key ?? "dialogue");
     }
   }, [activeTabKey, visibleTabs]);
 
@@ -474,8 +507,10 @@ const FrontisPage = ({ viewRole }: FrontisPageProps): JSX.Element => {
   );
 
   const handleLogout = useCallback((): void => {
-    message.success("原型暂未接入真实登录，已完成退出交互展示。");
-  }, []);
+    logout();
+    message.success("已退出模拟登录。");
+    navigate("/portal", { replace: true });
+  }, [logout, navigate]);
 
   const accountMenuItems: MenuProps["items"] = [
     {
@@ -487,13 +522,15 @@ const FrontisPage = ({ viewRole }: FrontisPageProps): JSX.Element => {
   ];
 
   const renderContent = (): JSX.Element => {
-    if (activeTabKey === "dialogue" && activeEmployee) {
+    if (activeTabKey === "dialogue" && activeEmployee && activeWorkspace) {
       return (
         <DialoguePrototypeView
           activeEmployee={activeEmployee}
           activeDialogueArtifacts={activeDialogueArtifacts}
           activeDialogueSession={activeDialogueSession}
+          activeWorkspace={activeWorkspace}
           allEmployees={conversationEmployees}
+          allWorkspaces={workspaces}
           dialogueAttachments={dialogueAttachments}
           dialogueInputValue={dialogueInputValue}
           dialogueMessages={dialogueMessages}
@@ -530,13 +567,18 @@ const FrontisPage = ({ viewRole }: FrontisPageProps): JSX.Element => {
       );
     }
 
+    if (activeTabKey === "group") {
+      return <GroupPrototypeView currentUserName={currentUser?.name} />;
+    }
+
     if (activeTabKey === "dashboard") {
       return (
-        <AdminDashboardView
-          artifactsBySession={INITIAL_DIALOGUE_ARTIFACTS}
+        <BossDashboardView
+          currentUserName={currentUser?.name}
           dialogueSessions={dialogueSessions}
           employees={employees}
           users={INITIAL_FRONTIS_WEB_USERS}
+          workspaces={workspaces}
         />
       );
     }
@@ -559,10 +601,20 @@ const FrontisPage = ({ viewRole }: FrontisPageProps): JSX.Element => {
     }
 
     if (activeTabKey === "models") {
-      return <ModelConfigurationView />;
+      return <ModelConfigurationView employees={employees} />;
     }
 
-    return <UserManagementView employees={employees} users={INITIAL_FRONTIS_WEB_USERS} />;
+    if (activeTabKey === "organization") {
+      return (
+        <OrganizationManagementView
+          currentUserName={currentUser?.name}
+          employees={employees}
+          users={INITIAL_FRONTIS_WEB_USERS}
+        />
+      );
+    }
+
+    return <NotificationCenterView />;
   };
 
   return (
@@ -588,7 +640,9 @@ const FrontisPage = ({ viewRole }: FrontisPageProps): JSX.Element => {
             {isSidebarCollapsed ? null : (
               <div className={styles.brandCopy}>
                 <h1 className={styles.brandTitle}>Frontis AI</h1>
-                <p className={styles.brandSubtitle}>企业工作台</p>
+                <p className={styles.brandSubtitle}>
+                  {viewRole === "admin" ? "企业老板端" : "企业工作台"}
+                </p>
               </div>
             )}
           </div>
@@ -618,7 +672,7 @@ const FrontisPage = ({ viewRole }: FrontisPageProps): JSX.Element => {
               onClick={() => setActiveTabKey(item.key)}
             >
               <span className={styles.tabIcon}>{item.icon}</span>
-              <span className={styles.tabLabel}>{item.label}</span>
+              <span className={styles.tabLabel}>{item.labels?.[viewRole] ?? item.label}</span>
             </button>
           ))}
         </div>
@@ -644,7 +698,7 @@ const FrontisPage = ({ viewRole }: FrontisPageProps): JSX.Element => {
         <div className={styles.mainPanel}>
           <div
             className={classNames(styles.content, {
-              [styles.featureContent]: activeTabKey !== "dialogue",
+              [styles.featureContent]: activeTabKey !== "dialogue" && activeTabKey !== "group",
             })}
           >
             {renderContent()}

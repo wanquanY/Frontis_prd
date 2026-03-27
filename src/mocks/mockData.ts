@@ -1,5 +1,10 @@
 import type { Block } from "@/types/block";
-import type { SynClawArtifactItem } from "@/pages/synclaw/types";
+import type { SynClawArtifactItem, SynClawSpaceItem } from "@/pages/synclaw/types";
+import type {
+  SynClawAiEmployee,
+  SynClawTenantMemberOption,
+  SynClawTenantMemberSelection,
+} from "@/types/prdPrototype";
 
 import type {
   AutomationTaskItem,
@@ -1253,7 +1258,7 @@ export const INITIAL_AUTOMATION_TASK_EXAMPLES = [
   },
 ];
 
-export const INITIAL_GROUP_SPACES = [
+export const INITIAL_GROUP_SPACES: SynClawSpaceItem[] = [
   {
     id: "space-rd",
     name: "SynClaw 研发室",
@@ -1269,7 +1274,7 @@ export const INITIAL_GROUP_SPACES = [
   },
 ];
 
-export const INITIAL_GROUP_AI_EMPLOYEES = [
+export const INITIAL_GROUP_AI_EMPLOYEES: SynClawAiEmployee[] = [
   {
     id: "201",
     name: "产品策略官",
@@ -1320,7 +1325,7 @@ export const INITIAL_GROUP_AI_EMPLOYEES = [
   },
 ];
 
-export const INITIAL_GROUP_TENANT_MEMBER_OPTIONS = [
+export const INITIAL_GROUP_TENANT_MEMBER_OPTIONS: SynClawTenantMemberOption[] = [
   { id: "member-you", name: "本地测试用户", subtitle: "当前登录用户" },
   { id: "member-fe", name: "前端研发", subtitle: "负责页面与交互联调" },
   { id: "member-design", name: "视觉设计", subtitle: "负责样式与图标" },
@@ -1328,29 +1333,30 @@ export const INITIAL_GROUP_TENANT_MEMBER_OPTIONS = [
   { id: "member-growth", name: "增长负责人", subtitle: "负责增长实验室协作" },
 ];
 
-export const INITIAL_GROUP_CHANNEL_AGENT_IDS = {
+export const INITIAL_GROUP_CHANNEL_AGENT_IDS: Record<string, string[]> = {
   "channel-prd": ["201", "202", "203"],
   "channel-launch": ["201", "204"],
   "channel-growth": ["203"],
 };
 
-export const INITIAL_GROUP_CHANNEL_TENANT_MEMBERS = {
-  "channel-prd": [
-    { identityId: "member-you", accessRole: "owner" },
-    { identityId: "member-fe", accessRole: "speaker" },
-    { identityId: "member-design", accessRole: "speaker" },
-  ],
-  "channel-launch": [
-    { identityId: "member-you", accessRole: "owner" },
-    { identityId: "member-op", accessRole: "manager" },
-  ],
-  "channel-growth": [
-    { identityId: "member-you", accessRole: "owner" },
-    { identityId: "member-growth", accessRole: "manager" },
-  ],
-};
+export const INITIAL_GROUP_CHANNEL_TENANT_MEMBERS: Record<string, SynClawTenantMemberSelection[]> =
+  {
+    "channel-prd": [
+      { identityId: "member-you", accessRole: "owner" },
+      { identityId: "member-fe", accessRole: "speaker" },
+      { identityId: "member-design", accessRole: "speaker" },
+    ],
+    "channel-launch": [
+      { identityId: "member-you", accessRole: "owner" },
+      { identityId: "member-op", accessRole: "manager" },
+    ],
+    "channel-growth": [
+      { identityId: "member-you", accessRole: "owner" },
+      { identityId: "member-growth", accessRole: "manager" },
+    ],
+  };
 
-export const INITIAL_GROUP_CHANNEL_MESSAGES = {
+export const INITIAL_GROUP_CHANNEL_MESSAGES: Record<string, ChatMessage[]> = {
   ...INITIAL_CHANNEL_MESSAGES,
   "channel-growth": [
     {
@@ -1370,7 +1376,7 @@ export const INITIAL_GROUP_CHANNEL_MESSAGES = {
   ],
 };
 
-export const INITIAL_GROUP_CHANNEL_ARTIFACTS = {
+export const INITIAL_GROUP_CHANNEL_ARTIFACTS: Record<string, SynClawArtifactItem[]> = {
   ...INITIAL_CHANNEL_ARTIFACTS,
   "channel-growth": [
     {

@@ -1,14 +1,17 @@
 import classNames from "classnames";
 import {
-  CheckOutlined,
   ApiOutlined,
+  CheckOutlined,
   CloseOutlined,
   CloudOutlined,
+  ColumnWidthOutlined,
+  DesktopOutlined,
   FolderOutlined,
   LaptopOutlined,
   MenuFoldOutlined,
   MoreOutlined,
   PlusOutlined,
+  ReloadOutlined,
   SwapOutlined,
 } from "@ant-design/icons";
 import {
@@ -19,6 +22,7 @@ import {
   useState,
   type ChangeEvent,
   type KeyboardEvent,
+  type MouseEvent as ReactMouseEvent,
 } from "react";
 import type { InputRef, MenuProps } from "antd";
 import { Avatar, Dropdown, Input } from "antd";
@@ -27,11 +31,13 @@ import { SynClawArtifactsPanel } from "@/pages/synclaw/components/SynClawArtifac
 import type { SynClawArtifactItem } from "@/pages/synclaw/types";
 import { WorkspaceChatPanel } from "@/feature/workspace/components/WorkspaceChatPanel";
 import { WorkspaceComposer } from "@/feature/workspace/components/WorkspaceComposer";
-import type { WorkspaceComposerAttachmentItem } from "@/feature/workspace/types";
-import { WORKSPACE_MODEL_OPTIONS } from "@/feature/workspace/types";
+import {
+  WORKSPACE_MODEL_OPTIONS,
+  type WorkspaceComposerAttachmentItem,
+} from "@/feature/workspace/types";
 import { CHAT_ATTACHMENT_ACCEPT_ATTR } from "@/utils/chatAttachmentFileTypes";
 
-import type { ChatMessage, DialogueSessionItem, EmployeeItem } from "../types";
+import type { ChatMessage, DialogueSessionItem, EmployeeItem, WorkspaceItem } from "../types";
 import {
   buildWorkspaceChatBlocks,
   buildWorkspaceChatMessages,
@@ -45,7 +51,9 @@ interface DialoguePrototypeViewProps {
   activeEmployee: EmployeeItem;
   activeDialogueArtifacts: SynClawArtifactItem[];
   activeDialogueSession: DialogueSessionItem | null;
+  activeWorkspace: WorkspaceItem;
   allEmployees: EmployeeItem[];
+  allWorkspaces: WorkspaceItem[];
   dialogueAttachments: WorkspaceComposerAttachmentItem[];
   dialogueInputValue: string;
   dialogueMessages: ChatMessage[];
@@ -63,6 +71,13 @@ interface DialoguePrototypeViewProps {
   onStopDialogue: () => void;
 }
 
+const DIALOGUE_RUNTIME_PANEL_WIDTH_KEY = "frontis-dialogue-runtime-panel-width";
+const DIALOGUE_RUNTIME_PANEL_DEFAULT_WIDTH = 420;
+const DIALOGUE_RUNTIME_PANEL_MIN_WIDTH = 320;
+const DIALOGUE_RUNTIME_PANEL_MAX_WIDTH = 680;
+
+type DialogueViewMode = "split" | "cloudspace";
+
 /**
  * 对话视图。
  */
@@ -70,7 +85,9 @@ export const DialoguePrototypeView = ({
   activeEmployee,
   activeDialogueArtifacts,
   activeDialogueSession,
+  activeWorkspace,
   allEmployees,
+  allWorkspaces,
   dialogueAttachments,
   dialogueInputValue,
   dialogueMessages,
@@ -90,12 +107,30 @@ export const DialoguePrototypeView = ({
   const attachmentInputRef = useRef<HTMLInputElement | null>(null);
   const sessionTitleInputRef = useRef<InputRef | null>(null);
   const switcherPanelRef = useRef<HTMLDivElement | null>(null);
+  const runtimeColumnRef = useRef<HTMLElement | null>(null);
+  const runtimeResizeStateRef = useRef<{ startX: number; startWidth: number } | null>(null);
+  const runtimePendingWidthRef = useRef<number>(DIALOGUE_RUNTIME_PANEL_DEFAULT_WIDTH);
   const [isEmployeeSwitcherOpen, setIsEmployeeSwitcherOpen] = useState<boolean>(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(false);
   const [isArtifactsPanelOpen, setIsArtifactsPanelOpen] = useState<boolean>(false);
+  const [dialogueViewMode, setDialogueViewMode] = useState<DialogueViewMode>("split");
   const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
   const [editingSessionTitle, setEditingSessionTitle] = useState<string>("");
-  const isArtifactsVisible = isArtifactsPanelOpen;
+  const [isRuntimePanelOpen, setIsRuntimePanelOpen] = useState<boolean>(false);
+  const [runtimePanelWidth, setRuntimePanelWidth] = useState<number>(
+    DIALOGUE_RUNTIME_PANEL_DEFAULT_WIDTH,
+  );
+  const [runtimeRefreshKey, setRuntimeRefreshKey] = useState<number>(0);
+  const isCloudRuntime =
+    activeWorkspace.type === "cloud" && activeEmployee.connectionMode === "cloud";
+  const isArtifactsVisible = isArtifactsPanelOpen && dialogueViewMode !== "cloudspace";
+  const showRuntimeSplitColumn =
+    isCloudRuntime && dialogueViewMode === "split" && isRuntimePanelOpen;
+  const isRuntimeFullscreen = isCloudRuntime && dialogueViewMode === "cloudspace";
+  const workspaceById = useMemo(
+    () => new Map(allWorkspaces.map(item => [item.id, item])),
+    [allWorkspaces],
+  );
 
   const chatMessages = useMemo(
     () => buildWorkspaceChatMessages(dialogueMessages),
@@ -129,6 +164,109 @@ export const DialoguePrototypeView = ({
     if (!editingSessionId) return;
     sessionTitleInputRef.current?.focus({ cursor: "all" });
   }, [editingSessionId]);
+
+  useEffect(() => {
+    if (!isCloudRuntime) {
+      setDialogueViewMode("split");
+      setIsRuntimePanelOpen(false);
+    }
+  }, [isCloudRuntime]);
+
+  useEffect(() => {
+    if (!isCloudRuntime) return;
+    setIsRuntimePanelOpen(true);
+  }, [activeDialogueSession?.id, activeEmployee.id, isCloudRuntime]);
+
+  const clampRuntimePanelWidth = useCallback(
+    (width: number): number => {
+      if (!Number.isFinite(width)) return DIALOGUE_RUNTIME_PANEL_DEFAULT_WIDTH;
+      if (typeof window === "undefined") {
+        return Math.min(
+          DIALOGUE_RUNTIME_PANEL_MAX_WIDTH,
+          Math.max(DIALOGUE_RUNTIME_PANEL_MIN_WIDTH, width),
+        );
+      }
+      const sidebarReservedWidth = isSidebarCollapsed ? 0 : 252;
+      const artifactsReservedWidth = isArtifactsVisible ? 422 : 0;
+      const viewportLimitedMax = Math.min(
+        DIALOGUE_RUNTIME_PANEL_MAX_WIDTH,
+        Math.max(
+          DIALOGUE_RUNTIME_PANEL_MIN_WIDTH,
+          window.innerWidth - sidebarReservedWidth - artifactsReservedWidth - 420,
+        ),
+      );
+      return Math.min(viewportLimitedMax, Math.max(DIALOGUE_RUNTIME_PANEL_MIN_WIDTH, width));
+    },
+    [isArtifactsVisible, isSidebarCollapsed],
+  );
+
+  const resolvedRuntimePanelWidth = useMemo(
+    () => clampRuntimePanelWidth(runtimePanelWidth),
+    [clampRuntimePanelWidth, runtimePanelWidth],
+  );
+
+  const handleRuntimeResizeStart = useCallback(
+    (event: ReactMouseEvent<HTMLDivElement>): void => {
+      event.preventDefault();
+      runtimeResizeStateRef.current = {
+        startX: event.clientX,
+        startWidth: resolvedRuntimePanelWidth,
+      };
+      runtimePendingWidthRef.current = resolvedRuntimePanelWidth;
+      document.body.style.cursor = "col-resize";
+      document.body.style.userSelect = "none";
+    },
+    [resolvedRuntimePanelWidth],
+  );
+
+  useEffect(() => {
+    const handlePointerMove = (event: MouseEvent): void => {
+      const current = runtimeResizeStateRef.current;
+      if (!current) return;
+      const deltaX = event.clientX - current.startX;
+      const nextWidth = clampRuntimePanelWidth(current.startWidth - deltaX);
+      runtimePendingWidthRef.current = nextWidth;
+      if (runtimeColumnRef.current) {
+        runtimeColumnRef.current.style.width = `${nextWidth}px`;
+        runtimeColumnRef.current.style.minWidth = `${nextWidth}px`;
+      }
+    };
+
+    const handlePointerUp = (): void => {
+      if (!runtimeResizeStateRef.current) return;
+      setRuntimePanelWidth(runtimePendingWidthRef.current);
+      runtimeResizeStateRef.current = null;
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+    };
+
+    window.addEventListener("mousemove", handlePointerMove);
+    window.addEventListener("mouseup", handlePointerUp);
+    return () => {
+      window.removeEventListener("mousemove", handlePointerMove);
+      window.removeEventListener("mouseup", handlePointerUp);
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+    };
+  }, [clampRuntimePanelWidth]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const savedWidth = window.localStorage.getItem(DIALOGUE_RUNTIME_PANEL_WIDTH_KEY);
+    const nextWidth = clampRuntimePanelWidth(
+      savedWidth ? Number.parseFloat(savedWidth) : DIALOGUE_RUNTIME_PANEL_DEFAULT_WIDTH,
+    );
+    setRuntimePanelWidth(nextWidth);
+    runtimePendingWidthRef.current = nextWidth;
+  }, [clampRuntimePanelWidth]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem(
+      DIALOGUE_RUNTIME_PANEL_WIDTH_KEY,
+      String(resolvedRuntimePanelWidth),
+    );
+  }, [resolvedRuntimePanelWidth]);
 
   useEffect(() => {
     if (!isEmployeeSwitcherOpen) {
@@ -201,23 +339,151 @@ export const DialoguePrototypeView = ({
     },
   ];
 
+  const resolveEmployeeWorkspace = (employee: EmployeeItem): WorkspaceItem | undefined =>
+    workspaceById.get(employee.workspaceId);
+
   const resolveRuntimeLabel = (employee: EmployeeItem): string => {
-    if (employee.connectionMode === "cloud") return "云端";
-    if (employee.connectionMode === "edge") return "边缘";
+    const workspace = resolveEmployeeWorkspace(employee);
+    if (workspace?.type === "cloud") return "云端";
+    if (workspace?.type === "edge") return "边缘";
     return "本地";
   };
 
   const renderRuntimeIcon = (employee: EmployeeItem): JSX.Element => {
-    if (employee.connectionMode === "cloud") return <CloudOutlined />;
-    if (employee.connectionMode === "edge") return <ApiOutlined />;
+    const workspace = resolveEmployeeWorkspace(employee);
+    if (workspace?.type === "cloud") return <CloudOutlined />;
+    if (workspace?.type === "edge") return <ApiOutlined />;
     return <LaptopOutlined />;
   };
+
+  const renderCloudRuntimePanel = (): JSX.Element => (
+    <div
+      className={classNames(styles.dialogueRuntimePanel, {
+        [styles.dialogueRuntimePanelFull]: dialogueViewMode === "cloudspace",
+      })}
+    >
+      <div className={styles.groupRuntimePanelHeader}>
+        <div className={styles.dialogueRuntimePanelToolbarSpacer} />
+        <div className={styles.groupRuntimeViewControls}>
+          <button
+            type="button"
+            className={classNames(styles.groupRuntimeOverlayButton, {
+              [styles.groupRuntimeOverlayButtonActive]: dialogueViewMode === "split",
+            })}
+            onClick={() => {
+              setDialogueViewMode("split");
+              setIsRuntimePanelOpen(true);
+            }}
+          >
+            <ColumnWidthOutlined />
+            <span>分屏</span>
+          </button>
+          <button
+            type="button"
+            className={classNames(styles.groupRuntimeOverlayButton, {
+              [styles.groupRuntimeOverlayButtonActive]: dialogueViewMode === "cloudspace",
+            })}
+            onClick={() => setDialogueViewMode("cloudspace")}
+          >
+            <DesktopOutlined />
+            <span>全屏</span>
+          </button>
+          <button
+            type="button"
+            className={styles.groupRuntimeOverlayIconButton}
+            aria-label="刷新远端桌面"
+            onClick={() => setRuntimeRefreshKey(prev => prev + 1)}
+          >
+            <ReloadOutlined />
+          </button>
+          {dialogueViewMode === "split" ? (
+            <button
+              type="button"
+              className={styles.groupRuntimeOverlayIconButton}
+              aria-label="关闭桌面面板"
+              onClick={() => setIsRuntimePanelOpen(false)}
+            >
+              <CloseOutlined />
+            </button>
+          ) : null}
+        </div>
+      </div>
+      <div className={styles.groupRuntimePanelBody}>
+        <div key={runtimeRefreshKey} className={styles.groupRuntimeDesktopWindow}>
+          <div className={styles.groupRuntimeDesktopHeader}>
+            <div className={styles.groupRuntimeDesktopDots} aria-hidden="true">
+              <span />
+              <span />
+              <span />
+            </div>
+            <span className={styles.groupRuntimeDesktopHeaderTitle}>
+              {activeEmployee.name} · {activeWorkspace.name}
+            </span>
+          </div>
+          <div className={styles.groupRuntimeDesktopBody}>
+            <div className={styles.groupRuntimeDesktopSidebar}>
+              <span>Home</span>
+              <span>Workspace</span>
+              <span>Browser</span>
+              <span>Artifacts</span>
+            </div>
+            <div className={styles.groupRuntimeDesktopCanvas}>
+              <div className={styles.groupRuntimeDesktopStatusRow}>
+                <span className={styles.groupRuntimeDesktopBadge}>
+                  当前查看：{activeEmployee.name}
+                </span>
+                <span className={styles.groupRuntimeDesktopBadge}>{activeWorkspace.name}</span>
+              </div>
+              <div className={styles.groupRuntimeDesktopMainWindow}>
+                <div className={styles.groupRuntimeDesktopWindowBar}>
+                  <span className={styles.groupRuntimeDesktopWindowTitle}>浏览器任务面板</span>
+                  <span className={styles.groupRuntimeDesktopWindowMeta}>
+                    工作站：{activeWorkspace.runtimeHint}
+                  </span>
+                </div>
+                <div className={styles.groupRuntimeDesktopScene}>
+                  <div className={styles.groupRuntimeDesktopHeroCard}>
+                    <span className={styles.groupRuntimeDesktopLabel}>当前设备</span>
+                    <span className={styles.groupRuntimeDesktopValue}>{activeWorkspace.name}</span>
+                    <span className={styles.groupRuntimeDesktopText}>
+                      桌面窗口与当前对话上下文保持同步，资料检索与文件整理都会回写到本轮会话。
+                    </span>
+                  </div>
+
+                  <div className={styles.groupRuntimeDesktopGrid}>
+                    <div className={styles.groupRuntimeDesktopCard}>网页检索</div>
+                    <div className={styles.groupRuntimeDesktopCard}>资料整理</div>
+                    <div className={styles.groupRuntimeDesktopCard}>文件回传</div>
+                    <div className={styles.groupRuntimeDesktopCard}>
+                      {activeEmployee.lastAction}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className={styles.groupRuntimeDesktopDock}>
+                <span className={styles.groupRuntimeDesktopDockItem}>Browser</span>
+                <span className={styles.groupRuntimeDesktopDockItem}>Docs</span>
+                <span className={styles.groupRuntimeDesktopDockItem}>Files</span>
+                <span className={styles.groupRuntimeDesktopDockItem}>Sync</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <div
       className={classNames(styles.dialogueShell, {
-        [styles.dialogueShellSidebarCollapsed]: isSidebarCollapsed,
-        [styles.dialogueShellArtifactsHidden]: !isArtifactsVisible,
+        [styles.dialogueShellSidebarCollapsed]: isSidebarCollapsed && !showRuntimeSplitColumn,
+        [styles.dialogueShellArtifactsHidden]: !isArtifactsVisible && !showRuntimeSplitColumn,
+        [styles.dialogueShellRuntimeVisible]: showRuntimeSplitColumn,
+        [styles.dialogueShellRuntimeArtifactsHidden]: showRuntimeSplitColumn && !isArtifactsVisible,
+        [styles.dialogueShellRuntimeSidebarCollapsed]: showRuntimeSplitColumn && isSidebarCollapsed,
+        [styles.dialogueShellRuntimeSidebarCollapsedArtifactsHidden]:
+          showRuntimeSplitColumn && isSidebarCollapsed && !isArtifactsVisible,
       })}
     >
       {!isSidebarCollapsed ? (
@@ -241,7 +507,7 @@ export const DialoguePrototypeView = ({
             </button>
           </div>
 
-          {isEmployeeSwitcherOpen && (
+          {isEmployeeSwitcherOpen ? (
             <div ref={switcherPanelRef} className={styles.dialogueFloatingSwitcher}>
               <div className={styles.dialogueSwitcherList}>
                 {allEmployees.map(item => (
@@ -278,7 +544,7 @@ export const DialoguePrototypeView = ({
                 ))}
               </div>
             </div>
-          )}
+          ) : null}
 
           <div className={styles.dialogueHeroCard}>
             <span className={styles.dialogueHeroAvatarWrap}>
@@ -427,68 +693,110 @@ export const DialoguePrototypeView = ({
           </button>
         ) : null}
 
-        <>
-          <div className={styles.dialogueViewToolbar}>
-            <div className={styles.dialogueViewToolbarGroup}>
-              <button
-                type="button"
-                className={classNames(styles.dialogueViewButton, {
-                  [styles.dialogueViewButtonActive]: isArtifactsVisible,
-                })}
-                onClick={() => setIsArtifactsPanelOpen(open => !open)}
-              >
-                <FolderOutlined />
-                <span>成果</span>
-              </button>
+        {isRuntimeFullscreen ? (
+          renderCloudRuntimePanel()
+        ) : (
+          <>
+            <div className={styles.dialogueViewToolbar}>
+              <div className={styles.dialogueViewToolbarGroup}>
+                {isCloudRuntime ? (
+                  <button
+                    type="button"
+                    className={classNames(styles.dialogueViewButton, {
+                      [styles.dialogueViewButtonActive]: showRuntimeSplitColumn,
+                    })}
+                    onClick={() => {
+                      setDialogueViewMode("split");
+                      setIsRuntimePanelOpen(true);
+                    }}
+                  >
+                    <DesktopOutlined />
+                    <span>设备</span>
+                  </button>
+                ) : null}
+                <button
+                  type="button"
+                  className={classNames(styles.dialogueViewButton, {
+                    [styles.dialogueViewButtonActive]: isArtifactsVisible,
+                  })}
+                  onClick={() => setIsArtifactsPanelOpen(open => !open)}
+                >
+                  <FolderOutlined />
+                  <span>成果</span>
+                </button>
+              </div>
             </div>
-          </div>
 
-          <div className={styles.dialogueStage}>
-            <div className={styles.chatPanelBody}>
-              <WorkspaceChatPanel
-                blocks={chatBlocks}
-                messages={chatMessages}
-                currentSessionId={activeDialogueSession?.id ?? activeEmployee.id}
-                isStreaming={isDialogueResponding}
-                assistantAvatarAlt={activeEmployee.name}
-                workspaceSummary={activeEmployee.summary}
-                greeting="输入消息或上传文件，开始协作"
+            <div className={styles.dialogueStage}>
+              <div className={styles.chatPanelBody}>
+                <WorkspaceChatPanel
+                  blocks={chatBlocks}
+                  messages={chatMessages}
+                  currentSessionId={activeDialogueSession?.id ?? activeEmployee.id}
+                  isStreaming={isDialogueResponding}
+                  assistantAvatarAlt={activeEmployee.name}
+                  workspaceSummary={activeEmployee.summary}
+                  greeting="输入消息或上传文件，开始协作"
+                />
+              </div>
+            </div>
+
+            <div className={styles.composerWrap}>
+              <WorkspaceComposer
+                rootClassName={styles.synclawComposer}
+                value={dialogueInputValue}
+                placeholder="输入消息或上传附件"
+                attachments={dialogueAttachments}
+                onRemoveAttachment={onRemoveAttachment}
+                onAttachmentsSelected={onDialogueAttachmentsSelected}
+                allowAttachmentOnlySend={true}
+                sending={isDialogueResponding}
+                showModelSelector={false}
+                modelLabel={activeEmployee.model}
+                selectedModelId={WORKSPACE_MODEL_OPTIONS[0]?.id ?? 1}
+                modelMenuOpen={false}
+                modelOptions={WORKSPACE_MODEL_OPTIONS}
+                onValueChange={onDialogueInputChange}
+                onAttach={() => attachmentInputRef.current?.click()}
+                onSend={onSendDialogue}
+                onAbort={onStopDialogue}
+                isChatPage={true}
+              />
+              <input
+                ref={attachmentInputRef}
+                className={styles.hiddenInput}
+                type="file"
+                multiple={true}
+                accept={CHAT_ATTACHMENT_ACCEPT_ATTR}
+                onChange={handleFileInputChange}
               />
             </div>
-          </div>
-
-          <div className={styles.composerWrap}>
-            <WorkspaceComposer
-              rootClassName={styles.synclawComposer}
-              value={dialogueInputValue}
-              placeholder="输入消息或上传附件"
-              attachments={dialogueAttachments}
-              onRemoveAttachment={onRemoveAttachment}
-              onAttachmentsSelected={onDialogueAttachmentsSelected}
-              allowAttachmentOnlySend={true}
-              sending={isDialogueResponding}
-              showModelSelector={false}
-              modelLabel={activeEmployee.model}
-              selectedModelId={WORKSPACE_MODEL_OPTIONS[0]?.id ?? 1}
-              modelMenuOpen={false}
-              modelOptions={WORKSPACE_MODEL_OPTIONS}
-              onValueChange={onDialogueInputChange}
-              onAttach={() => attachmentInputRef.current?.click()}
-              onSend={onSendDialogue}
-              onAbort={onStopDialogue}
-              isChatPage={true}
-            />
-            <input
-              ref={attachmentInputRef}
-              className={styles.hiddenInput}
-              type="file"
-              multiple
-              accept={CHAT_ATTACHMENT_ACCEPT_ATTR}
-              onChange={handleFileInputChange}
-            />
-          </div>
-        </>
+          </>
+        )}
       </section>
+
+      {showRuntimeSplitColumn ? (
+        <>
+          <div
+            className={styles.dialogueRuntimeResizeHandle}
+            role="separator"
+            aria-label="调整桌面面板宽度"
+            aria-orientation="vertical"
+            onMouseDown={handleRuntimeResizeStart}
+          />
+          <aside
+            className={styles.dialogueRuntimeColumn}
+            aria-label="云端桌面"
+            ref={runtimeColumnRef}
+            style={{
+              width: `${resolvedRuntimePanelWidth}px`,
+              minWidth: `${resolvedRuntimePanelWidth}px`,
+            }}
+          >
+            {renderCloudRuntimePanel()}
+          </aside>
+        </>
+      ) : null}
 
       {isArtifactsVisible ? (
         <aside className={styles.dialogueArtifactsCard}>

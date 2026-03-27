@@ -41,7 +41,7 @@ export const PORTAL_NAV_ITEMS: MarketingPortalNavItem[] = [
   },
   {
     id: "contact",
-    label: "预约演示",
+    label: "免费咨询",
     to: "/portal/contact",
   },
 ];
@@ -344,18 +344,78 @@ export const PORTAL_HOME_MINDSET_COMPARISONS: MarketingMindsetComparisonItem[] =
  * 首页 Logo 墙。
  */
 export const PORTAL_HOME_LOGO_WALL_ITEMS: MarketingLogoWallItem[] = [
-  { id: "logo-xianyuan", name: "衔远科技" },
-  { id: "logo-commerce", name: "电商品牌 A" },
-  { id: "logo-manufacturing", name: "制造企业 B" },
-  { id: "logo-education", name: "教育机构 C" },
-  { id: "logo-retail", name: "连锁服务 D" },
-  { id: "logo-professional", name: "专业服务 E" },
-  { id: "logo-beauty", name: "品牌商 F" },
-  { id: "logo-industrial", name: "工厂 G" },
-  { id: "logo-health", name: "健康企业 H" },
-  { id: "logo-food", name: "消费品牌 I" },
-  { id: "logo-store", name: "门店集团 J" },
-  { id: "logo-cloud", name: "软件公司 K" },
+  {
+    id: "logo-shopify",
+    name: "Shopify",
+    logoUrl: "https://cdn.simpleicons.org/shopify/ffffff",
+    tileSize: "wide",
+  },
+  {
+    id: "logo-stripe",
+    name: "Stripe",
+    logoUrl: "https://cdn.simpleicons.org/stripe/ffffff",
+    tileSize: "regular",
+  },
+  {
+    id: "logo-slack",
+    name: "Slack",
+    logoUrl: "https://cdn.simpleicons.org/slack/ffffff",
+    tileSize: "regular",
+  },
+  {
+    id: "logo-notion",
+    name: "Notion",
+    logoUrl: "https://cdn.simpleicons.org/notion/ffffff",
+    tileSize: "regular",
+  },
+  {
+    id: "logo-figma",
+    name: "Figma",
+    logoUrl: "https://cdn.simpleicons.org/figma/ffffff",
+    tileSize: "wide",
+  },
+  {
+    id: "logo-salesforce",
+    name: "Salesforce",
+    logoUrl: "https://cdn.simpleicons.org/salesforce/ffffff",
+    tileSize: "wide",
+  },
+  {
+    id: "logo-hubspot",
+    name: "HubSpot",
+    logoUrl: "https://cdn.simpleicons.org/hubspot/ffffff",
+    tileSize: "regular",
+  },
+  {
+    id: "logo-dropbox",
+    name: "Dropbox",
+    logoUrl: "https://cdn.simpleicons.org/dropbox/ffffff",
+    tileSize: "regular",
+  },
+  {
+    id: "logo-atlassian",
+    name: "Atlassian",
+    logoUrl: "https://cdn.simpleicons.org/atlassian/ffffff",
+    tileSize: "wide",
+  },
+  {
+    id: "logo-adobe",
+    name: "Adobe",
+    logoUrl: "https://cdn.simpleicons.org/adobe/ffffff",
+    tileSize: "regular",
+  },
+  {
+    id: "logo-zoom",
+    name: "Zoom",
+    logoUrl: "https://cdn.simpleicons.org/zoom/ffffff",
+    tileSize: "regular",
+  },
+  {
+    id: "logo-amazon",
+    name: "Amazon",
+    logoUrl: "https://cdn.simpleicons.org/amazon/ffffff",
+    tileSize: "wide",
+  },
 ];
 
 /**
@@ -372,7 +432,7 @@ export const PORTAL_HOME_PACKAGE: MarketingHomePackageItem = {
     "AI 员工持续迭代升级",
   ],
   primaryActionLabel: "立即了解详情",
-  secondaryActionLabel: "预约演示",
+  secondaryActionLabel: "免费咨询",
 };
 
 /**
@@ -986,6 +1046,49 @@ export const PORTAL_EXPERT_SCENES: MarketingExpertSceneItem[] = [
       "operations-dashboard-officer",
       "recruiting-assistant",
     ],
+    taskDemo: {
+      user: {
+        name: "刘总",
+        role: "连锁品牌负责人",
+        avatarSeed: "scene-commerce-management-owner",
+      },
+      userPrompt:
+        "把昨天 28 家门店的流水、退款、缺货和招聘进度整理成一份我今天 9 点早会就能看的经营简报。",
+      completionNote: "一条任务发出后，经营、财务和组织动作会在同一条链路里同步推进。",
+      messages: [
+        {
+          id: "commerce-triage",
+          speakerName: "经营收口师",
+          speakerRole: "经营总览",
+          avatarSeed: "commerce-triage",
+          content:
+            "已汇总 28 家门店昨日日报、巡店记录和待办任务，先按营收、退货和缺货三个口径做总览。",
+        },
+        {
+          id: "commerce-finance",
+          speakerName: "对账核验师",
+          speakerRole: "财务复核",
+          avatarSeed: "commerce-finance",
+          content: "已核对流水、退款和异常差额，3 家门店退款率高于周均值，原因已补到明细里。",
+        },
+        {
+          id: "commerce-staffing",
+          speakerName: "补位协同师",
+          speakerRole: "组织节奏",
+          avatarSeed: "commerce-staffing",
+          content:
+            "同步拉取门店缺编岗位和招聘进度，华南两店的晚班人手风险已标红，给出今天的补位建议。",
+        },
+        {
+          id: "commerce-brief",
+          speakerName: "晨报生成师",
+          speakerRole: "老板摘要",
+          avatarSeed: "commerce-brief",
+          content:
+            "早会简报已生成：营收波动、退款异常、缺货门店和招聘风险已合并到一页晨报，可直接投屏。",
+        },
+      ],
+    },
   },
   {
     id: "scene-sales-growth",
@@ -1002,6 +1105,48 @@ export const PORTAL_EXPERT_SCENES: MarketingExpertSceneItem[] = [
       "content-production-officer",
       "operations-dashboard-officer",
     ],
+    taskDemo: {
+      user: {
+        name: "陈总",
+        role: "增长负责人",
+        avatarSeed: "scene-sales-growth-owner",
+      },
+      userPrompt:
+        "今天把 45 条新线索按优先级分层，给销售一个清晰的跟进顺序，同时告诉我哪些客户最值得马上追。",
+      completionNote: "从线索分层到跟进建议，再到老板看板，销售节奏不会丢在中间。",
+      messages: [
+        {
+          id: "sales-triage",
+          speakerName: "线索分诊师",
+          speakerRole: "机会判断",
+          avatarSeed: "sales-triage",
+          content:
+            "已按行业、预算、决策期和历史互动强度把 45 条线索分成 A/B/C 三层，A 层共有 12 条。",
+        },
+        {
+          id: "sales-follow-up",
+          speakerName: "跟进策略师",
+          speakerRole: "动作建议",
+          avatarSeed: "sales-follow-up",
+          content: "已为 A 层客户生成首轮沟通话术和下一步动作，其中 4 条需要今天 6 点前电话跟进。",
+        },
+        {
+          id: "sales-content",
+          speakerName: "销售助攻师",
+          speakerRole: "内容配合",
+          avatarSeed: "sales-content",
+          content:
+            "针对 SaaS 和制造两类客户补了两套跟进材料包，销售点开就能直接发，不用再临时找素材。",
+        },
+        {
+          id: "sales-report",
+          speakerName: "战报播报师",
+          speakerRole: "管理同步",
+          avatarSeed: "sales-report",
+          content: "今日销售战报已推送：高优机会、卡点客户和每位销售的跟进节奏都已同步到老板看板。",
+        },
+      ],
+    },
   },
   {
     id: "scene-content-creation",
@@ -1014,6 +1159,50 @@ export const PORTAL_EXPERT_SCENES: MarketingExpertSceneItem[] = [
       "https://images.unsplash.com/photo-1520607162513-77705c0f0d4a?auto=format&fit=crop&w=1200&q=80",
     tone: "emerald",
     agentSlugs: ["content-production-officer", "service-quality-officer"],
+    taskDemo: {
+      user: {
+        name: "林岚",
+        role: "品牌负责人",
+        avatarSeed: "scene-content-creation-owner",
+      },
+      userPrompt:
+        "给春季上新系列做 12 张主视觉，保留现有品牌调性，并把这次能跑通的方法沉淀成以后都能复用的模板。",
+      completionNote: "内容不只是出图，更是在把品牌能力沉淀成一套可复用的方法。",
+      messages: [
+        {
+          id: "content-assets",
+          speakerName: "资产沉淀师",
+          speakerRole: "方法归档",
+          avatarSeed: "content-assets",
+          content:
+            "已读取近 6 个月高转化素材、提示词和版式模板，正在整理这次可直接复用的品牌风格词表。",
+        },
+        {
+          id: "content-generate",
+          speakerName: "批量生成师",
+          speakerRole: "内容生产",
+          avatarSeed: "content-generate",
+          content:
+            "基于统一风格词表开始生成 4 套方向、12 张主视觉，已锁定产品特写和场景叙事两条主线。",
+        },
+        {
+          id: "content-qc",
+          speakerName: "质检师",
+          speakerRole: "品牌校验",
+          avatarSeed: "content-qc",
+          content:
+            "已完成首轮品牌一致性比对，3 张色彩偏离品牌调性的版本已退回重生，并补充禁用元素说明。",
+        },
+        {
+          id: "content-analysis",
+          speakerName: "能力分析师",
+          speakerRole: "复盘沉淀",
+          avatarSeed: "content-analysis",
+          content:
+            "本次最佳模板为“春季轻透陈列”，已写入团队模板库，并生成后续新品复用建议和贡献度分析。",
+        },
+      ],
+    },
   },
   {
     id: "scene-customer-service",
@@ -1026,6 +1215,47 @@ export const PORTAL_EXPERT_SCENES: MarketingExpertSceneItem[] = [
       "https://images.unsplash.com/photo-1516321497487-e288fb19713f?auto=format&fit=crop&w=1200&q=80",
     tone: "amber",
     agentSlugs: ["service-quality-officer", "sales-lead-officer"],
+    taskDemo: {
+      user: {
+        name: "沈楠",
+        role: "客服主管",
+        avatarSeed: "scene-customer-service-owner",
+      },
+      userPrompt:
+        "把今天上午的 86 条咨询先分流，帮我找出最容易流失的客户和最需要培训的客服话术问题。",
+      completionNote: "客户咨询、服务质检和商机回捞可以在同一个对话里被拆解执行。",
+      messages: [
+        {
+          id: "service-routing",
+          speakerName: "接待分流师",
+          speakerRole: "咨询归类",
+          avatarSeed: "service-routing",
+          content:
+            "86 条咨询已按售前、售后和投诉三类完成分流，其中 11 条高情绪客户已单独拉出优先处理。",
+        },
+        {
+          id: "service-qc",
+          speakerName: "服务质检师",
+          speakerRole: "流程检查",
+          avatarSeed: "service-qc",
+          content: "已抽检上午全部对话，发现 3 组客服在退换货说明上口径不一致，质检摘要已生成。",
+        },
+        {
+          id: "service-recovery",
+          speakerName: "回捞提醒师",
+          speakerRole: "商机回捞",
+          avatarSeed: "service-recovery",
+          content: "筛出 7 条即将流失但仍有购买意向的咨询，已生成回访话术和二次跟进提醒。",
+        },
+        {
+          id: "service-training",
+          speakerName: "培训整理师",
+          speakerRole: "知识沉淀",
+          avatarSeed: "service-training",
+          content: "今天的高频问题、错误话术和培训建议已归档成客服晨会可直接使用的复盘卡片。",
+        },
+      ],
+    },
   },
   {
     id: "scene-organization",
@@ -1038,6 +1268,50 @@ export const PORTAL_EXPERT_SCENES: MarketingExpertSceneItem[] = [
       "https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&w=1200&q=80",
     tone: "violet",
     agentSlugs: ["recruiting-assistant", "operations-dashboard-officer"],
+    taskDemo: {
+      user: {
+        name: "吴宁",
+        role: "企业老板",
+        avatarSeed: "scene-organization-owner",
+      },
+      userPrompt:
+        "这个月要同时招 8 个岗位，帮我先拆 JD、筛简历、准备面试重点，再告诉我哪些岗位最影响业务。",
+      completionNote: "招聘节拍、候选人判断和组织风险可以被一组专家同时接住。",
+      messages: [
+        {
+          id: "organization-jd",
+          speakerName: "JD 拆解师",
+          speakerRole: "岗位理解",
+          avatarSeed: "organization-jd",
+          content:
+            "8 个岗位的核心职责、淘汰项和加分项已拆好，销售经理和门店督导两个岗位优先级最高。",
+        },
+        {
+          id: "organization-screen",
+          speakerName: "简历筛选师",
+          speakerRole: "候选判断",
+          avatarSeed: "organization-screen",
+          content:
+            "已批量筛完 126 份简历，推荐进入面试的候选人共有 19 位，并标出了 6 个明显风险点。",
+        },
+        {
+          id: "organization-interview",
+          speakerName: "面试设计师",
+          speakerRole: "提问准备",
+          avatarSeed: "organization-interview",
+          content:
+            "每个岗位的面试问题和追问建议已生成，门店督导岗位额外补充了多门店复制能力判断维度。",
+        },
+        {
+          id: "organization-dashboard",
+          speakerName: "组织看板师",
+          speakerRole: "管理同步",
+          avatarSeed: "organization-dashboard",
+          content:
+            "招聘进度、优先岗位风险和候选人池健康度已同步到管理看板，方便你直接判断本周补位节奏。",
+        },
+      ],
+    },
   },
   {
     id: "scene-finance-operations",

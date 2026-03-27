@@ -1,0 +1,368 @@
+.dashboard {
+  min-height: 100%;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: var(--surface);
+
+  .heroCard,
+  .metricCard,
+  .progressCard,
+  .crewSection,
+  .noticePanel,
+  .crewCard,
+  .noticeItem,
+  .signalCard {
+    border: 1px solid color-mix(in srgb, var(--text) 8%, transparent);
+    border-radius: 20px;
+    background: color-mix(in srgb, var(--surface) 94%, var(--app-bg));
+    box-shadow: var(--shadow-sm);
+  }
+
+  .heroCard {
+    padding: 16px;
+    display: grid;
+    grid-template-columns: minmax(0, 1.35fr) minmax(320px, 1fr);
+    gap: 12px;
+    background: linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--primary) 6%, var(--surface)) 0%,
+      color-mix(in srgb, var(--surface) 96%, var(--app-bg)) 100%
+    );
+  }
+
+  .heroMain,
+  .heroAside,
+  .signalCard,
+  .progressCard,
+  .crewSection,
+  .noticePanel,
+  .noticeItem,
+  .crewCard {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .heroMain,
+  .signalCard,
+  .progressCard,
+  .crewSection,
+  .noticePanel {
+    gap: 12px;
+  }
+
+  .heroEyebrow,
+  .signalLabel,
+  .crewTaskLabel {
+    color: var(--primary);
+    font-size: 12px;
+    line-height: 18px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .heroTitle,
+  .signalValue,
+  .progressValue,
+  .sectionTitle,
+  .upgradeTitle,
+  .metricValue,
+  .crewTaskCount,
+  .progressTitle,
+  .crewName,
+  .noticeTitle {
+    margin: 0;
+    color: var(--text);
+    font-weight: 600;
+  }
+
+  .heroTitle {
+    font-size: 30px;
+    line-height: 40px;
+  }
+
+  .heroDescription,
+  .signalDescription,
+  .sectionDescription,
+  .noticeDescription,
+  .upgradeDescription,
+  .progressHint,
+  .progressMeta,
+  .metricHint,
+  .crewSummary {
+    color: var(--text-secondary);
+    font-size: 14px;
+    line-height: 22px;
+  }
+
+  .heroTagRow,
+  .metricGrid,
+  .progressGrid,
+  .crewGrid,
+  .noticeList {
+    display: grid;
+    gap: 12px;
+  }
+
+  .heroTagRow {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .heroTag,
+  .crewStatus {
+    min-height: 34px;
+    padding: 0 12px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--primary) 8%, var(--surface));
+    color: var(--text);
+    font-size: 13px;
+    line-height: 20px;
+    font-weight: 600;
+  }
+
+  .heroAside {
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .signalCard {
+    flex: 1;
+    padding: 18px;
+    background: linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--primary) 10%, var(--surface)) 0%,
+      color-mix(in srgb, var(--surface) 98%, var(--app-bg)) 100%
+    );
+  }
+
+  .signalValue {
+    font-size: 22px;
+    line-height: 32px;
+  }
+
+  .noticeButton {
+    min-height: 48px;
+    padding: 0 16px;
+    border: 1px solid color-mix(in srgb, var(--primary) 18%, var(--border));
+    border-radius: 16px;
+    background: color-mix(in srgb, var(--primary) 6%, var(--surface));
+    color: var(--text);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    font-size: 14px;
+    line-height: 20px;
+    font-weight: 600;
+    cursor: pointer;
+    transition:
+      transform 160ms ease,
+      background 160ms ease,
+      border-color 160ms ease;
+
+    &:hover {
+      transform: translateY(-1px);
+      background: color-mix(in srgb, var(--primary) 10%, var(--surface));
+      border-color: color-mix(in srgb, var(--primary) 28%, var(--border));
+    }
+  }
+
+  .metricGrid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .metricCard {
+    padding: 18px;
+    gap: 10px;
+    display: flex;
+    flex-direction: column;
+    transition:
+      border-color 160ms ease,
+      background 160ms ease,
+      transform 160ms ease;
+
+    &:hover {
+      transform: translateY(-1px);
+    }
+
+    &[data-tone="primary"] {
+      border-color: color-mix(in srgb, var(--primary) 18%, var(--border));
+      background: color-mix(in srgb, var(--primary) 6%, var(--surface));
+    }
+
+    &[data-tone="accent"] {
+      background: color-mix(in srgb, var(--text) 2%, var(--surface));
+    }
+
+    &[data-tone="success"] {
+      border-color: color-mix(in srgb, var(--primary) 22%, var(--border));
+      background: color-mix(in srgb, var(--primary) 5%, var(--surface));
+    }
+
+    &[data-tone="warning"] {
+      background: color-mix(in srgb, var(--text) 4%, var(--surface));
+    }
+  }
+
+  .metricIcon {
+    width: 42px;
+    height: 42px;
+    border-radius: 14px;
+    background: color-mix(in srgb, var(--primary) 10%, var(--surface));
+    color: var(--primary);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+  }
+
+  .metricTitle {
+    color: var(--text-muted);
+    font-size: 13px;
+    line-height: 20px;
+  }
+
+  .metricValue {
+    font-size: 34px;
+    line-height: 40px;
+  }
+
+  .crewTaskCount {
+    font-size: 28px;
+    line-height: 34px;
+  }
+
+  .progressGrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .progressCard,
+  .crewSection,
+  .noticePanel {
+    padding: 18px;
+  }
+
+  .progressHeader,
+  .sectionHeader,
+  .crewHeader,
+  .upgradeBanner {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .progressTitle,
+  .crewName,
+  .noticeTitle {
+    font-size: 18px;
+    line-height: 28px;
+  }
+
+  .progressValue {
+    font-size: 32px;
+    line-height: 40px;
+    white-space: nowrap;
+  }
+
+  .progressBarTrack {
+    width: 100%;
+    height: 10px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--text) 6%, var(--surface));
+    overflow: hidden;
+  }
+
+  .progressBarFill {
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--primary) 72%, var(--surface)),
+      color-mix(in srgb, var(--primary) 38%, var(--surface))
+    );
+  }
+
+  .sectionTitle {
+    font-size: 22px;
+    line-height: 32px;
+  }
+
+  .crewGrid {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+
+  .crewCard {
+    padding: 16px;
+    gap: 10px;
+    background: color-mix(in srgb, var(--surface) 96%, var(--app-bg));
+  }
+
+  .noticeList {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .noticeItem {
+    min-height: 144px;
+    padding: 16px;
+    gap: 10px;
+    background: color-mix(in srgb, var(--surface) 96%, var(--app-bg));
+  }
+
+  .upgradeBanner {
+    padding: 18px;
+    border-radius: 18px;
+    border: 1px solid color-mix(in srgb, var(--primary) 18%, var(--border));
+    background: linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--primary) 10%, var(--surface)) 0%,
+      color-mix(in srgb, var(--surface) 98%, var(--app-bg)) 100%
+    );
+  }
+
+  .upgradeTitle {
+    font-size: 18px;
+    line-height: 28px;
+  }
+
+  @media (max-width: 1280px) {
+    .heroCard,
+    .metricGrid,
+    .progressGrid,
+    .crewGrid,
+    .noticeList {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+
+  @media (max-width: 960px) {
+    padding: 8px;
+
+    .heroCard,
+    .heroTagRow,
+    .metricGrid,
+    .progressGrid,
+    .crewGrid,
+    .noticeList {
+      grid-template-columns: 1fr;
+    }
+
+    .progressHeader,
+    .sectionHeader,
+    .crewHeader,
+    .upgradeBanner {
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    .heroTitle {
+      font-size: 26px;
+      line-height: 36px;
+    }
+  }
+}

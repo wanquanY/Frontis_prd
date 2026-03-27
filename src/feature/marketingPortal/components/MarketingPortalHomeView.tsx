@@ -1,7 +1,12 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
 import classNames from "classnames";
-import { ArrowDownOutlined, ArrowRightOutlined } from "@ant-design/icons";
+import {
+  ArrowDownOutlined,
+  ArrowRightOutlined,
+  CheckCircleFilled,
+  CloseCircleFilled,
+} from "@ant-design/icons";
 import { Avatar } from "antd";
 import { Link } from "react-router-dom";
 
@@ -121,10 +126,6 @@ export const MarketingPortalHomeView = (): JSX.Element => {
       {},
     );
   }, []);
-  const repeatedLogoItems = useMemo(
-    () => [...PORTAL_HOME_LOGO_WALL_ITEMS, ...PORTAL_HOME_LOGO_WALL_ITEMS],
-    [],
-  );
   const anxietyVoiceRows = useMemo(() => {
     const rows: Array<Array<(typeof PORTAL_HOME_ANXIETY_MOMENTS)[number]>> = [[], []];
 
@@ -273,19 +274,18 @@ export const MarketingPortalHomeView = (): JSX.Element => {
             <div className={styles.heroCopy}>
               <p className={layoutStyles.sectionLabel}>fAI Public Cloud</p>
               <h1 className={styles.heroTitle}>
-                你每年花多少钱
-                <br />
-                让人做 AI 三秒能完成的事？
+                <span className={styles.heroLeadLine}>为你的企业配备一支</span>
+                <span className={styles.heroAccentLine}>AI 专家团队</span>
               </h1>
               <p className={classNames(layoutStyles.darkTextMuted, styles.heroDescription)}>
                 销售跟进、内容产出、市场洞察、经营决策
                 <br />
-                这些事，fAI 的 AI 员工团队，今天就能接管。
+                这些事，Frontis 的 AI 专家团队，今天就能接管。
               </p>
 
               <div className={styles.heroActions}>
                 <Link className={layoutStyles.primaryButton} to="/portal/agents">
-                  看看 AI 员工能替你做什么
+                  看看 AI 专家能替你做什么
                   <ArrowRightOutlined />
                 </Link>
                 <Link className={layoutStyles.secondaryButton} to="/portal/contact">
@@ -294,28 +294,6 @@ export const MarketingPortalHomeView = (): JSX.Element => {
               </div>
 
               <p className={styles.heroTrustLine}>{PORTAL_HOME_TRUST_LINE}</p>
-            </div>
-
-            <div className={styles.heroPoster}>
-              <div className={styles.posterGlow} />
-              <div className={styles.posterGrid} />
-              <div className={styles.posterNodeBox}>
-                <p className={styles.posterLabel}>内容产出</p>
-                <p className={styles.posterTitle}>AI 已接管</p>
-                <p className={styles.posterCopy}>脚本、分镜、标题、BGM 建议同时推进。</p>
-              </div>
-              <div className={styles.posterNodeCloud}>
-                <p className={styles.posterLabel}>销售管理</p>
-                <p className={styles.posterTitle}>持续跟进</p>
-                <p className={styles.posterCopy}>商机建档、话术建议、超时提醒同步运转。</p>
-              </div>
-              <div className={styles.posterNodeWeb}>
-                <p className={styles.posterLabel}>经营决策</p>
-                <p className={styles.posterTitle}>早报推送</p>
-                <p className={styles.posterCopy}>每天 8 点推送公司实时状态和异常提醒。</p>
-              </div>
-              <div className={styles.posterRingPrimary} />
-              <div className={styles.posterRingSecondary} />
             </div>
           </div>
           {nextSectionMap["portal-hero"] ? (
@@ -387,10 +365,7 @@ export const MarketingPortalHomeView = (): JSX.Element => {
                 </div>
 
                 <div
-                  className={classNames(
-                    styles.transitionBubble,
-                    styles.isAccentTransitionBubble,
-                  )}
+                  className={classNames(styles.transitionBubble, styles.isAccentTransitionBubble)}
                 >
                   <span className={styles.transitionBubbleLabel}>fAI</span>
                   <p className={styles.transitionBubbleText}>
@@ -420,14 +395,14 @@ export const MarketingPortalHomeView = (): JSX.Element => {
         >
           <div className={styles.sectionInner}>
             <div className={styles.sectionHeading}>
-              <p className={layoutStyles.sectionLabel}>AI 员工接管</p>
+              <p className={layoutStyles.sectionLabel}>AI 专家接管</p>
               <h2 className={styles.archTitle}>
                 老板说一句话
                 <br />
-                AI 员工团队，把整件事从头交付
+                AI 专家团队，把整件事从头交付
               </h2>
               <p className={classNames(layoutStyles.darkTextMuted, styles.archDescription)}>
-                不是工具。不是软件。是一批真正懂业务的数字员工，分工协作，随时待命。
+                不是工具。不是软件。是一组真正懂业务的 AI 专家，分工协作，随时待命。
               </p>
             </div>
 
@@ -461,18 +436,48 @@ export const MarketingPortalHomeView = (): JSX.Element => {
               <h2 className={layoutStyles.sectionTitle}>
                 你以为你在买软件
                 <br />
-                但你买到的是一批不会离职的 AI 员工
+                但你买到的是一组不会离岗的 AI 专家团
               </h2>
             </div>
 
-            <div className={styles.mindsetPanel}>
-              {PORTAL_HOME_MINDSET_COMPARISONS.map(item => (
-                <article key={item.id} className={styles.mindsetRow}>
-                  <div className={styles.mindsetLegacy}>{item.legacyLabel}</div>
-                  <div className={styles.mindsetArrow}>→</div>
-                  <div className={styles.mindsetNext}>{item.nextLabel}</div>
-                </article>
-              ))}
+            <div className={styles.mindsetBoard}>
+              <article className={styles.mindsetColumn}>
+                <div className={styles.mindsetColumnHeader}>
+                  <CloseCircleFilled className={styles.mindsetColumnIcon} />
+                  <div>
+                    <p className={styles.mindsetColumnEyebrow}>传统方式</p>
+                    <h3 className={styles.mindsetColumnTitle}>传统软件 / 传统人力</h3>
+                  </div>
+                </div>
+
+                <div className={styles.mindsetColumnList}>
+                  {PORTAL_HOME_MINDSET_COMPARISONS.map(item => (
+                    <article key={item.id} className={styles.mindsetColumnItem}>
+                      <span className={styles.mindsetBullet} />
+                      <p className={styles.mindsetLegacy}>{item.legacyLabel}</p>
+                    </article>
+                  ))}
+                </div>
+              </article>
+
+              <article className={classNames(styles.mindsetColumn, styles.isAccentMindsetColumn)}>
+                <div className={styles.mindsetColumnHeader}>
+                  <CheckCircleFilled className={styles.mindsetColumnIcon} />
+                  <div>
+                    <p className={styles.mindsetColumnEyebrow}>AI 专家团</p>
+                    <h3 className={styles.mindsetColumnTitle}>Frontis AI 专家团</h3>
+                  </div>
+                </div>
+
+                <div className={styles.mindsetColumnList}>
+                  {PORTAL_HOME_MINDSET_COMPARISONS.map(item => (
+                    <article key={item.id} className={styles.mindsetColumnItem}>
+                      <span className={styles.mindsetBullet} />
+                      <p className={styles.mindsetNext}>{item.nextLabel}</p>
+                    </article>
+                  ))}
+                </div>
+              </article>
             </div>
 
             <div className={styles.mindsetHighlights}>
@@ -523,16 +528,23 @@ export const MarketingPortalHomeView = (): JSX.Element => {
             </div>
 
             <div className={styles.logoWall}>
-              <div className={styles.logoTrack}>
-                {repeatedLogoItems.map((item, index) => (
-                  <span key={`${item.id}-${index}`} className={styles.logoItem}>
-                    {item.name}
-                  </span>
-                ))}
-              </div>
+              {PORTAL_HOME_LOGO_WALL_ITEMS.map(item => (
+                <article
+                  key={item.id}
+                  className={classNames(
+                    styles.logoItem,
+                    item.tileSize === "wide" && styles.isWideLogoItem,
+                  )}
+                >
+                  <img className={styles.logoImage} src={item.logoUrl} alt={item.name} />
+                  <span className={styles.logoName}>{item.name}</span>
+                </article>
+              ))}
             </div>
 
-            <p className={styles.logoFootnote}>覆盖电商、品牌、服务、制造等多个行业 · 持续增长中</p>
+            <p className={styles.logoFootnote}>
+              以下品牌 Logo 仅作版式占位示意 · 可替换为正式客户 Logo 墙
+            </p>
           </div>
           {nextSectionMap["portal-logo"] ? (
             <SectionCue

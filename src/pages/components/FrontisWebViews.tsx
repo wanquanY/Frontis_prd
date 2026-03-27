@@ -450,7 +450,7 @@ const resolveResultTypeLabel = (artifact: ResultRecord): string => {
 };
 
 export const getRoleLabel = (role: FrontisUserRole): string =>
-  role === "admin" ? "企业管理员" : "普通员工";
+  role === "admin" ? "企业老板" : "普通员工";
 
 export const getUserStatusLabel = (status: FrontisUserStatus): string =>
   status === "active" ? "已启用" : "已禁用";

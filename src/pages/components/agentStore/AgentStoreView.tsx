@@ -27,7 +27,7 @@ import type {
 } from "./types";
 
 /**
- * 企业管理员侧 AI 专家团视图。
+ * 企业老板侧 AI 专家团视图。
  */
 export const AgentStoreView = ({
   employees,
@@ -262,9 +262,10 @@ export const AgentStoreView = ({
         <div className={prototypeStyles.expertsToolbar}>
           <div className={prototypeStyles.expertsToolbarLead}>
             <div>
-              <div className={prototypeStyles.expertsSectionTitle}>AI 专家团</div>
+              <div className={prototypeStyles.expertsSectionTitle}>我的 AI 专家团</div>
               <div className={prototypeStyles.cardSubtitle}>
-                按场景查看已启用与待采购的 AI 专家组合，管理员可以先看场景，再决定采购和配置方式。
+                这里同时展示你已经购买的 AI 专家团和系统推荐的 AI
+                专家团，并支持直接做权限配置与采购决策。
               </div>
             </div>
           </div>

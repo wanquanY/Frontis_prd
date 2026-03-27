@@ -2,8 +2,10 @@ import { Suspense, lazy } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { AuthRoute } from "@/feature/auth/components/AuthRoute";
 
 const FrontisPage = lazy(() => import("@/pages/FrontisPage"));
+const LoginPage = lazy(() => import("@/pages/login/LoginPage"));
 const MarketingPortalShellPage = lazy(
   () => import("@/pages/marketingPortal/MarketingPortalShellPage"),
 );
@@ -12,6 +14,9 @@ const MarketingPortalHomePage = lazy(
 );
 const MarketingPortalAgentsPage = lazy(
   () => import("@/pages/marketingPortal/MarketingPortalAgentsPage"),
+);
+const MarketingPortalSceneDetailPage = lazy(
+  () => import("@/pages/marketingPortal/MarketingPortalSceneDetailPage"),
 );
 const MarketingPortalAgentDetailPage = lazy(
   () => import("@/pages/marketingPortal/MarketingPortalAgentDetailPage"),
@@ -36,19 +41,35 @@ const App = (): JSX.Element => {
     <ErrorBoundary>
       <Suspense fallback={<div />}>
         <Routes>
-          <Route path="/" element={<Navigate replace to="/web/employee" />} />
+          <Route path="/" element={<Navigate replace to="/portal" />} />
+          <Route path="/login" element={<LoginPage />} />
           <Route path="/portal" element={<MarketingPortalShellPage />}>
             <Route index element={<MarketingPortalHomePage />} />
             <Route path="agents" element={<MarketingPortalAgentsPage />} />
+            <Route path="agents/scenes/:sceneId" element={<MarketingPortalSceneDetailPage />} />
             <Route path="agents/:agentSlug" element={<MarketingPortalAgentDetailPage />} />
             <Route path="cases" element={<MarketingPortalCasesPage />} />
             <Route path="cases/:caseSlug" element={<MarketingPortalCaseDetailPage />} />
             <Route path="contact" element={<MarketingPortalContactPage />} />
             <Route path="*" element={<Navigate replace to="/portal" />} />
           </Route>
-          <Route path="/web/employee" element={<FrontisPage viewRole="employee" />} />
-          <Route path="/web/admin" element={<FrontisPage viewRole="admin" />} />
-          <Route path="*" element={<Navigate replace to="/web/employee" />} />
+          <Route
+            path="/web/employee"
+            element={
+              <AuthRoute allowedRole="employee">
+                <FrontisPage viewRole="employee" />
+              </AuthRoute>
+            }
+          />
+          <Route
+            path="/web/admin"
+            element={
+              <AuthRoute allowedRole="admin">
+                <FrontisPage viewRole="admin" />
+              </AuthRoute>
+            }
+          />
+          <Route path="*" element={<Navigate replace to="/portal" />} />
         </Routes>
       </Suspense>
     </ErrorBoundary>

@@ -2,7 +2,9 @@ import { useCallback, useDeferredValue, useMemo, useState } from "react";
 
 import classNames from "classnames";
 import { ReloadOutlined, SearchOutlined, SettingOutlined } from "@ant-design/icons";
-import { Avatar, Button, Empty, Input, Modal, message } from "antd";
+import { Avatar, Button, Empty, Input, Modal, Select, message } from "antd";
+
+import type { EmployeeItem } from "../types";
 
 import adminStyles from "./FrontisAdminViews.module.less";
 import styles from "./FrontisWebViews.module.less";
@@ -20,10 +22,45 @@ import {
 } from "./FrontisWebViews";
 import type { ModelProviderConfigState } from "./FrontisWebViews";
 
+interface ModelConfigurationViewProps {
+  employees: EmployeeItem[];
+}
+
+interface EmployeeModelOverrideState {
+  providerKey: string;
+  model: string;
+}
+
+const resolveProviderKeyByModel = (model: string): string =>
+  PROVIDER_OPTIONS.find(item => (PROVIDER_MODEL_CATALOG[item.key] ?? []).includes(model))?.key ??
+  "openai";
+
+const getProviderModelOptions = (
+  providerKey: string,
+  providerConfigs: Record<string, ModelProviderConfigState>,
+): string[] =>
+  providerConfigs[providerKey]?.fetchedModels.length
+    ? providerConfigs[providerKey].fetchedModels
+    : (PROVIDER_MODEL_CATALOG[providerKey] ?? []);
+
+const createInitialEmployeeModelOverrides = (
+  employees: EmployeeItem[],
+): Record<string, EmployeeModelOverrideState> =>
+  employees.reduce<Record<string, EmployeeModelOverrideState>>((result, employee) => {
+    const providerKey = resolveProviderKeyByModel(employee.model);
+
+    result[employee.id] = {
+      model: employee.model,
+      providerKey,
+    };
+
+    return result;
+  }, {});
+
 /**
  * 模型配置视图。
  */
-export const ModelConfigurationView = (): JSX.Element => {
+export const ModelConfigurationView = ({ employees }: ModelConfigurationViewProps): JSX.Element => {
   const [keyword, setKeyword] = useState<string>("");
   const [providerConfigs, setProviderConfigs] =
     useState<Record<string, ModelProviderConfigState>>(INITIAL_PROVIDER_CONFIGS);
@@ -34,6 +71,9 @@ export const ModelConfigurationView = (): JSX.Element => {
   const [providerDraft, setProviderDraft] = useState<ModelProviderConfigState | null>(null);
   const [isTestingProvider, setIsTestingProvider] = useState<boolean>(false);
   const [isFetchingProviderModels, setIsFetchingProviderModels] = useState<boolean>(false);
+  const [employeeModelOverrides, setEmployeeModelOverrides] = useState<
+    Record<string, EmployeeModelOverrideState>
+  >(() => createInitialEmployeeModelOverrides(employees));
   const deferredKeyword = useDeferredValue(keyword);
 
   const selectedProvider = useMemo(
@@ -58,6 +98,19 @@ export const ModelConfigurationView = (): JSX.Element => {
         0,
       ),
     [providerConfigs],
+  );
+  const customizedExpertCount = useMemo(
+    () =>
+      employees.filter(item => {
+        const currentOverride = employeeModelOverrides[item.id];
+
+        if (!currentOverride) {
+          return false;
+        }
+
+        return currentOverride.model !== item.model;
+      }).length,
+    [employeeModelOverrides, employees],
   );
 
   const filteredProviders = useMemo(() => {
@@ -236,15 +289,57 @@ export const ModelConfigurationView = (): JSX.Element => {
     }));
   }, []);
 
+  const handleSelectEmployeeProvider = useCallback(
+    (employeeId: string, providerKey: string): void => {
+      const providerModels = getProviderModelOptions(providerKey, providerConfigs);
+
+      setEmployeeModelOverrides(current => ({
+        ...current,
+        [employeeId]: {
+          model: providerModels[0] ?? "",
+          providerKey,
+        },
+      }));
+    },
+    [providerConfigs],
+  );
+
+  const handleSelectEmployeeModel = useCallback((employeeId: string, model: string): void => {
+    setEmployeeModelOverrides(current => ({
+      ...current,
+      [employeeId]: {
+        ...(current[employeeId] ?? {
+          model,
+          providerKey: resolveProviderKeyByModel(model),
+        }),
+        model,
+      },
+    }));
+    message.success("专家默认模型已更新");
+  }, []);
+
+  const handleResetEmployeeModel = useCallback((employee: EmployeeItem): void => {
+    const providerKey = resolveProviderKeyByModel(employee.model);
+
+    setEmployeeModelOverrides(current => ({
+      ...current,
+      [employee.id]: {
+        model: employee.model,
+        providerKey,
+      },
+    }));
+    message.success(`${employee.name} 已恢复到默认模型`);
+  }, []);
+
   return (
     <div className={styles.view}>
       <section className={styles.heroCard}>
         <div className={styles.heroContent}>
           <span className={styles.heroEyebrow}>模型配置</span>
-          <h2 className={styles.heroTitle}>统一管理模型供应商，不再做 Agent 单独覆盖</h2>
+          <h2 className={styles.heroTitle}>统一接入模型供应商，并给不同专家配置不同的大模型</h2>
           <p className={styles.heroDescription}>
-            按供应商维护 API Key 和 Base
-            URL，在弹窗内测试连通性、拉取模型列表，再统一回写到模型供应商卡片。
+            老板端同时管理两层能力：一层是供应商接入与连通性，另一层是不同 AI
+            专家的默认模型路由，方便按岗位做最优配置。
           </p>
         </div>
         <div className={styles.summaryGrid}>
@@ -259,9 +354,11 @@ export const ModelConfigurationView = (): JSX.Element => {
             <span className={styles.summaryHint}>建议保存前先完成连通性测试</span>
           </article>
           <article className={styles.summaryCard}>
-            <span className={styles.summaryLabel}>已拉取模型</span>
-            <strong className={styles.summaryValue}>{fetchedModelCount}</strong>
-            <span className={styles.summaryHint}>模型列表来源于弹窗内的拉取动作</span>
+            <span className={styles.summaryLabel}>专家定制策略</span>
+            <strong className={styles.summaryValue}>{customizedExpertCount}</strong>
+            <span className={styles.summaryHint}>
+              已拉取 {fetchedModelCount} 个模型，已有 {customizedExpertCount} 个专家使用专属配置
+            </span>
           </article>
         </div>
       </section>
@@ -386,6 +483,89 @@ export const ModelConfigurationView = (): JSX.Element => {
           ) : (
             <Empty description="未找到匹配的模型供应商" />
           )}
+        </div>
+      </section>
+
+      <section className={styles.sectionCard}>
+        <div className={styles.sectionHeader}>
+          <div>
+            <div className={styles.sectionTitle}>专家模型分配</div>
+            <div className={styles.sectionDescription}>
+              可为不同 AI 专家指定不同模型，老板在这里直接控制各岗位的推理成本与能力上限。
+            </div>
+          </div>
+        </div>
+
+        <div className={adminStyles.overrideGrid}>
+          {employees.map(employee => {
+            const currentOverride = employeeModelOverrides[employee.id] ?? {
+              model: employee.model,
+              providerKey: resolveProviderKeyByModel(employee.model),
+            };
+            const providerModelOptions = getProviderModelOptions(
+              currentOverride.providerKey,
+              providerConfigs,
+            ).map(item => ({
+              label: item,
+              value: item,
+            }));
+
+            return (
+              <article key={employee.id} className={styles.overrideCard}>
+                <div className={styles.overrideHeader}>
+                  <div>
+                    <div className={styles.overrideTitle}>{employee.name}</div>
+                    <div className={styles.overrideMeta}>
+                      {employee.role} · 当前默认 {employee.model}
+                    </div>
+                  </div>
+                  <span className={styles.primaryTag}>
+                    {employee.connectionMode === "cloud" ? "云端专家" : "本地专家"}
+                  </span>
+                </div>
+
+                <div className={adminStyles.overrideCardBody}>
+                  <div className={adminStyles.overrideFieldGroup}>
+                    <div className={adminStyles.overrideField}>
+                      <span className={adminStyles.overrideFieldLabel}>模型供应商</span>
+                      <Select
+                        className={adminStyles.fieldSelect}
+                        options={PROVIDER_OPTIONS.map(item => ({
+                          label: item.label,
+                          value: item.key,
+                        }))}
+                        value={currentOverride.providerKey}
+                        onChange={value => handleSelectEmployeeProvider(employee.id, value)}
+                      />
+                    </div>
+
+                    <div className={adminStyles.overrideField}>
+                      <span className={adminStyles.overrideFieldLabel}>默认模型</span>
+                      <Select
+                        className={adminStyles.fieldSelect}
+                        options={providerModelOptions}
+                        value={currentOverride.model}
+                        onChange={value => handleSelectEmployeeModel(employee.id, value)}
+                      />
+                    </div>
+                  </div>
+
+                  <div className={adminStyles.overrideHint}>
+                    当前工作模式：
+                    {employee.connectionMode === "cloud" ? "云端工作站" : "本地 / 边缘工作站"}
+                    ，推荐按岗位能力与成本目标选择不同模型。
+                  </div>
+                </div>
+
+                <div className={adminStyles.overrideFooter}>
+                  <span className={adminStyles.overrideFooterMeta}>
+                    子专家模型 {employee.subAgentModel ?? "未单独配置"}
+                  </span>
+                  <Button onClick={() => handleResetEmployeeModel(employee)}>恢复默认</Button>
+                </div>
+              </article>
+            );
+          })}
         </div>
       </section>
 

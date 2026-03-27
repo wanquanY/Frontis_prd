@@ -1,0 +1,203 @@
+.filterRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.filterButton {
+  min-height: 46px;
+  padding: 0 20px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+  background: rgba(7, 17, 31, 0.04);
+  color: rgba(248, 250, 252, 0.72);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+  transition:
+    transform 180ms ease,
+    border-color 180ms ease,
+    background 180ms ease,
+    color 180ms ease;
+
+  &:hover {
+    transform: translateY(-1px);
+    border-color: rgba(30, 181, 199, 0.22);
+    color: #ffffff;
+  }
+}
+
+.isActiveFilterButton {
+  border-color: rgba(30, 181, 199, 0.28);
+  background: linear-gradient(135deg, rgba(125, 226, 241, 0.16), rgba(30, 181, 199, 0.16));
+  color: #ffffff;
+}
+
+.sceneGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 22px;
+}
+
+.sceneCard {
+  padding: 28px;
+}
+
+.cardHeader {
+  display: grid;
+  grid-template-columns: 86px minmax(0, 1fr);
+  gap: 18px;
+  align-items: flex-start;
+}
+
+.iconBadge {
+  width: 86px;
+  height: 86px;
+  border-radius: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(145deg, rgba(125, 226, 241, 0.16), rgba(84, 110, 255, 0.18));
+  color: #7de2f1;
+  font-size: 34px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.cardHeading {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.titleRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.cardTitle {
+  font-size: 30px;
+  line-height: 1.08;
+  font-weight: 700;
+  letter-spacing: -0.04em;
+}
+
+.categoryList {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.categoryChip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(248, 250, 252, 0.82);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.cardDescription {
+  color: rgba(248, 250, 252, 0.72);
+  font-size: 16px;
+  line-height: 1.85;
+}
+
+.expertGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 24px;
+}
+
+.expertCard {
+  min-height: 142px;
+  padding: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.expertName {
+  font-size: 18px;
+  line-height: 1.25;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.skillList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.skillChip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: rgba(125, 226, 241, 0.12);
+  color: #7de2f1;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.cardActions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 24px;
+}
+
+.detailButton,
+.consultButton {
+  width: 100%;
+}
+
+@media (max-width: 1180px) {
+  .sceneGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 840px) {
+  .sceneCard {
+    padding: 22px;
+  }
+
+  .cardHeader {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .iconBadge {
+    width: 72px;
+    height: 72px;
+    border-radius: 20px;
+    font-size: 28px;
+  }
+
+  .titleRow {
+    flex-direction: column;
+  }
+
+  .cardTitle {
+    font-size: 28px;
+  }
+
+  .expertGrid,
+  .cardActions {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

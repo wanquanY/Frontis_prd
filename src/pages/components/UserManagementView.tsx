@@ -107,7 +107,7 @@ export const UserManagementView = ({ employees, users }: UserManagementViewProps
               className={styles.filterSelect}
               options={[
                 { label: "全部角色", value: "all" },
-                { label: "企业管理员", value: "admin" },
+                { label: "企业老板", value: "admin" },
                 { label: "普通员工", value: "member" },
               ]}
               value={roleFilter}

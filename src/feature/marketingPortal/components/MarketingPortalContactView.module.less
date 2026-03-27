@@ -1,260 +1,305 @@
 .page {
   display: flex;
   flex-direction: column;
-  gap: 22px;
-}
-
-.heroSection,
-.formCard {
-  padding: 32px;
-}
-
-.heroSection,
-.formSection,
-.timelineList,
-.grid,
-.asideColumn {
-  display: grid;
-  gap: 18px;
+  gap: 24px;
+  width: min(1000px, calc(100% - 32px));
+  margin: 0 auto;
+  padding-top: calc(var(--portalHeaderDockSpace) + 34px);
+  padding-bottom: 42px;
 }
 
 .heroSection {
-  grid-template-columns: minmax(0, 1.02fr) minmax(320px, 0.98fr);
-  padding-top: calc(var(--portalHeaderDockSpace) + 24px);
+  display: flex;
+  justify-content: center;
+  text-align: center;
+}
+
+.heroCopy {
+  max-width: 760px;
 }
 
 .heroTitle {
-  margin-top: 12px;
-  font-size: clamp(38px, 5vw, 64px);
-  line-height: 1;
+  margin-top: 14px;
+  font-size: clamp(42px, 5vw, 64px);
+  line-height: 1.02;
   font-weight: 700;
   letter-spacing: -0.05em;
 }
 
-.heroDescription,
-.expectationCopy,
-.timelineCopy,
-.bundleDescription,
-.formHint {
-  margin-top: 18px;
-  font-size: 17px;
+.introCard,
+.problemPanel {
+  padding: 28px 30px;
+}
+
+.cardEyebrow,
+.problemPanelEyebrow,
+.problemExampleLabel {
+  color: var(--portalAccent);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.cardCopy,
+.stepCopy,
+.problemPanelCopy,
+.problemExampleCopy,
+.problemSolutionItem {
+  color: var(--portalTextMuted);
+  font-size: 15px;
   line-height: 1.85;
 }
 
-.expectationList {
-  display: grid;
-  gap: 12px;
-  margin-top: 26px;
-}
-
-.expectationCard,
-.timelineItem,
-.bundleMeta,
-.formActions {
+.processSection,
+.problemSection,
+.ctaSection {
   display: flex;
-  gap: 12px;
+  flex-direction: column;
 }
 
-.expectationCard {
-  padding: 16px 18px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 24px;
-  background: rgba(255, 255, 255, 0.05);
-
-  svg {
-    color: rgba(125, 226, 241, 0.92);
-    margin-top: 4px;
-  }
-}
-
-.expectationTitle,
-.timelineTitle,
-.bundleTitle {
-  font-size: 18px;
-  font-weight: 600;
-  line-height: 1.5;
-}
-
-.expectationCopy,
-.timelineCopy {
-  margin-top: 4px;
-  color: rgba(248, 250, 252, 0.72);
-  font-size: 14px;
-}
-
-.timelineCard {
-  padding: 26px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 32px;
-  background: rgba(255, 255, 255, 0.06);
-}
-
-.timelineLabel,
-.bundlePrice,
-.fieldLabel {
-  color: rgba(125, 226, 241, 0.86);
-  font-size: 12px;
+.sectionHeading {
+  color: var(--portalTextPrimary);
+  font-size: 28px;
+  line-height: 1.2;
   font-weight: 700;
-  line-height: 1.4;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  text-align: center;
 }
 
-.timelineList {
-  margin-top: 20px;
+.stepRail {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 24px;
 }
 
-.timelineItem {
-  align-items: flex-start;
+.stepCard {
+  position: relative;
+  min-height: 190px;
+  padding: 24px 22px;
+  border: 1px solid var(--portalBorderDark);
+  border-radius: var(--portalRadiusLg);
+  background:
+    radial-gradient(circle at top, rgba(125, 226, 241, 0.14), transparent 42%),
+    rgba(255, 255, 255, 0.92);
+  box-shadow: var(--portalShadowSoft);
 }
 
-.timelineIndex {
-  width: 40px;
-  height: 40px;
+.stepIndex {
+  width: 44px;
+  height: 44px;
   border-radius: 999px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: rgba(125, 226, 241, 0.14);
-  color: #f8fafc;
+  background: rgba(125, 226, 241, 0.18);
+  color: var(--portalTextOnLight);
   font-size: 13px;
   font-weight: 700;
   line-height: 1;
-  flex-shrink: 0;
 }
 
-.timelineCopy {
-  margin-top: 4px;
-}
-
-.formSection {
-  grid-template-columns: minmax(0, 1.08fr) minmax(320px, 0.92fr);
-}
-
-.grid {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+.stepTitle {
   margin-top: 20px;
+  color: var(--portalTextOnLight);
+  font-size: 18px;
+  line-height: 1.35;
+  font-weight: 700;
 }
 
-.field {
+.stepCopy {
+  margin-top: 12px;
+  color: var(--portalTextMutedDark);
+}
+
+.stepConnector {
+  position: absolute;
+  top: 46px;
+  left: calc(100% - 8px);
+  width: 24px;
+  height: 2px;
+  background: linear-gradient(90deg, rgba(125, 226, 241, 0.5), rgba(125, 226, 241, 0));
+}
+
+.problemTabs {
   display: flex;
-  flex-direction: column;
+  justify-content: center;
   gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 24px;
 }
 
-.input,
-.textarea {
-  width: 100%;
-  min-height: 52px;
-  padding: 0 16px;
-  border: 1px solid rgba(15, 23, 42, 0.08);
-  border-radius: 18px;
-  background: rgba(255, 255, 255, 0.72);
-  color: #0f172a;
-  font-size: 15px;
-  line-height: 1.6;
+.problemTab {
+  min-height: 40px;
+  padding: 0 18px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--portalTextMuted);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1;
   transition:
     border-color 180ms ease,
-    box-shadow 180ms ease,
-    background 180ms ease;
+    background 180ms ease,
+    color 180ms ease,
+    transform 180ms ease;
 
-  &:focus {
-    outline: none;
-    border-color: rgba(30, 181, 199, 0.22);
-    box-shadow: 0 0 0 4px rgba(125, 226, 241, 0.12);
+  &:hover {
+    transform: translateY(-1px);
+    border-color: rgba(125, 226, 241, 0.24);
+    color: var(--portalTextPrimary);
   }
 }
 
-.textarea {
-  min-height: 140px;
-  padding: 16px;
-  resize: vertical;
+.isActiveProblemTab {
+  border-color: rgba(125, 226, 241, 0.32);
+  background: rgba(125, 226, 241, 0.14);
+  color: var(--portalTextPrimary);
 }
 
-.agentChoiceGrid,
-.bundleAgentList {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-
-.agentChoiceButton,
-.bundleAgent {
-  min-height: 40px;
-  padding: 0 14px;
-  border: 1px solid rgba(15, 23, 42, 0.08);
-  border-radius: 999px;
-  background: rgba(15, 23, 42, 0.03);
-  color: rgba(15, 23, 42, 0.68);
-  font-size: 14px;
-  line-height: 1;
-}
-
-.isActiveAgentChoiceButton {
-  border-color: rgba(30, 181, 199, 0.2);
-  background: rgba(125, 226, 241, 0.12);
-  color: #127b89;
-}
-
-.formActions {
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  margin-top: 22px;
-}
-
-.formHint {
-  margin-top: 0;
-  color: rgba(15, 23, 42, 0.62);
-  font-size: 13px;
-}
-
-.asideColumn {
-  align-content: start;
-}
-
-.bundleCard {
-  padding: 24px;
-}
-
-.bundleMeta {
-  justify-content: space-between;
-}
-
-.bundleTitle {
-  margin-top: 16px;
-  color: #0f172a;
-  line-height: 1.3;
-}
-
-.bundleDescription {
-  margin-top: 10px;
-  color: rgba(15, 23, 42, 0.68);
-  font-size: 15px;
-}
-
-.bundleAgentList {
+.problemPanel {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(280px, 0.85fr);
+  gap: 28px;
   margin-top: 18px;
 }
 
-@media (max-width: 1120px) {
-  .heroSection,
-  .formSection {
+.problemPanelTitle {
+  margin-top: 10px;
+  color: var(--portalTextPrimary);
+  font-size: 30px;
+  line-height: 1.15;
+  font-weight: 700;
+  letter-spacing: -0.04em;
+}
+
+.problemPanelCopy {
+  margin-top: 16px;
+}
+
+.problemExampleCard {
+  margin-top: 20px;
+  padding: 22px 24px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.problemExampleCopy {
+  margin-top: 10px;
+}
+
+.problemSolutionList {
+  display: grid;
+  gap: 14px;
+}
+
+.problemSolutionItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.problemSolutionDot {
+  width: 10px;
+  height: 10px;
+  margin-top: 10px;
+  border-radius: 999px;
+  background: var(--portalAccentStrong);
+  flex-shrink: 0;
+}
+
+.ctaSection {
+  align-items: center;
+}
+
+.ctaButton {
+  min-width: 328px;
+}
+
+@media (max-width: 1180px) {
+  .page {
+    width: min(100%, calc(100% - 24px));
+  }
+
+  .stepRail {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .stepConnector {
+    display: none;
+  }
+}
+
+@media (max-width: 980px) {
+  .page {
+    padding-top: calc(var(--portalHeaderDockSpace) + 28px);
+  }
+
+  .heroTitle {
+    font-size: clamp(36px, 6vw, 52px);
+  }
+
+  .problemPanel {
     grid-template-columns: minmax(0, 1fr);
   }
 }
 
-@media (max-width: 840px) {
-  .heroSection,
-  .formCard {
-    padding: 22px;
+@media (max-width: 760px) {
+  .page {
+    gap: 18px;
+    padding-top: calc(var(--portalHeaderDockSpace) + 22px);
   }
 
-  .heroSection {
-    padding-top: calc(var(--portalHeaderDockSpace) + 18px);
+  .introCard,
+  .problemPanel {
+    padding: 22px 20px;
   }
 
-  .grid {
+  .stepRail {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    margin-top: 18px;
+  }
+
+  .stepCard {
+    min-height: 0;
+    padding: 18px 16px;
+  }
+
+  .problemPanelTitle {
+    font-size: 24px;
+  }
+
+  .ctaButton {
+    min-width: 100%;
+    width: 100%;
+  }
+}
+
+@media (max-width: 560px) {
+  .heroTitle {
+    font-size: 32px;
+  }
+
+  .sectionHeading {
+    font-size: 24px;
+  }
+
+  .stepRail {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .problemTab {
+    width: 100%;
+  }
+
+  .cardCopy,
+  .stepCopy,
+  .problemPanelCopy,
+  .problemExampleCopy,
+  .problemSolutionItem {
+    font-size: 14px;
+    line-height: 1.75;
   }
 }
