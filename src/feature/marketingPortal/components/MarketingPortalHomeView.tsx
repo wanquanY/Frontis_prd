@@ -2,20 +2,20 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
 import classNames from "classnames";
 import { ArrowDownOutlined, ArrowRightOutlined } from "@ant-design/icons";
+import { Avatar } from "antd";
 import { Link } from "react-router-dom";
 
 import {
-  PORTAL_ARCHITECTURE_STEPS,
+  PORTAL_HOME_ANXIETY_MOMENTS,
   PORTAL_FEATURED_EXPERT_SCENES,
-  PORTAL_INDUSTRY_SIGNALS,
-  PORTAL_SCENARIOS,
-  PORTAL_TECH_FEATURES,
-  PORTAL_VALUE_PILLARS,
+  PORTAL_HOME_LOGO_WALL_ITEMS,
+  PORTAL_HOME_MINDSET_COMPARISONS,
+  PORTAL_HOME_PACKAGE,
+  PORTAL_HOME_PROBLEM_OPTIONS,
+  PORTAL_HOME_TRUST_BADGES,
+  PORTAL_HOME_TRUST_LINE,
 } from "@/feature/marketingPortal/portalData";
-import {
-  createMarketingContactPath,
-  getFeaturedMarketingCaseStudies,
-} from "@/feature/marketingPortal/utils";
+import { getAvatarText, getAvatarUrl } from "@/pages/utils";
 
 import { MarketingExpertCrewExplorer } from "./MarketingExpertCrewExplorer";
 import layoutStyles from "./MarketingPortalLayout.module.less";
@@ -23,8 +23,8 @@ import styles from "./MarketingPortalHomeView.module.less";
 
 interface HomeSectionItem {
   id: string;
-  label: string;
   indexLabel: string;
+  label: string;
   navLabel: string;
 }
 
@@ -33,53 +33,49 @@ type HomeHeaderTone = "dark" | "light";
 const HOME_SECTIONS: HomeSectionItem[] = [
   {
     id: "portal-hero",
-    label: "封面",
     indexLabel: "01",
+    label: "封面",
     navLabel: "Cover",
   },
   {
-    id: "portal-value",
-    label: "价值",
+    id: "portal-anxiety",
     indexLabel: "02",
-    navLabel: "Value",
+    label: "焦虑",
+    navLabel: "Anxiety",
   },
   {
-    id: "portal-architecture",
-    label: "架构",
+    id: "portal-handoff",
     indexLabel: "03",
-    navLabel: "System",
+    label: "接管",
+    navLabel: "Handoff",
   },
   {
-    id: "portal-scenarios",
-    label: "场景",
+    id: "portal-mindset",
     indexLabel: "04",
-    navLabel: "Scenarios",
+    label: "认知",
+    navLabel: "Mindset",
   },
   {
-    id: "portal-case",
-    label: "案例",
+    id: "portal-logo",
     indexLabel: "05",
-    navLabel: "Case",
+    label: "背书",
+    navLabel: "Logos",
   },
   {
-    id: "portal-agents",
-    label: "AI 专家团",
+    id: "portal-plan",
     indexLabel: "06",
-    navLabel: "Agents",
+    label: "套餐",
+    navLabel: "Plan",
   },
   {
     id: "portal-cta",
-    label: "收口",
     indexLabel: "07",
+    label: "收口",
     navLabel: "CTA",
   },
 ];
 
-const LIGHT_HOME_SECTION_IDS = new Set<string>([
-  "portal-value",
-  "portal-scenarios",
-  "portal-agents",
-]);
+const LIGHT_HOME_SECTION_IDS = new Set<string>(["portal-anxiety", "portal-mindset", "portal-plan"]);
 
 interface SectionCueProps {
   nextSection: HomeSectionItem;
@@ -111,20 +107,56 @@ const SectionCue = ({ nextSection, tone, onJump }: SectionCueProps): JSX.Element
 export const MarketingPortalHomeView = (): JSX.Element => {
   const pageRef = useRef<HTMLDivElement | null>(null);
   const [activeSectionId, setActiveSectionId] = useState<string>(HOME_SECTIONS[0]?.id ?? "");
+  const [leadName, setLeadName] = useState<string>("");
+  const [leadPhone, setLeadPhone] = useState<string>("");
+  const [problemFocus, setProblemFocus] = useState<string>(PORTAL_HOME_PROBLEM_OPTIONS[0] ?? "");
 
-  const featuredCases = useMemo(() => getFeaturedMarketingCaseStudies(), []);
-  const leadCase = featuredCases[0] ?? null;
   const headerTone: HomeHeaderTone = LIGHT_HOME_SECTION_IDS.has(activeSectionId) ? "light" : "dark";
   const nextSectionMap = useMemo(() => {
     return HOME_SECTIONS.reduce<Record<string, HomeSectionItem | null>>(
       (accumulator, section, index) => {
         accumulator[section.id] = HOME_SECTIONS[index + 1] ?? null;
-
         return accumulator;
       },
       {},
     );
   }, []);
+  const repeatedLogoItems = useMemo(
+    () => [...PORTAL_HOME_LOGO_WALL_ITEMS, ...PORTAL_HOME_LOGO_WALL_ITEMS],
+    [],
+  );
+  const anxietyVoiceRows = useMemo(() => {
+    const rows: Array<Array<(typeof PORTAL_HOME_ANXIETY_MOMENTS)[number]>> = [[], []];
+
+    PORTAL_HOME_ANXIETY_MOMENTS.forEach((item, index) => {
+      rows[index % rows.length]?.push(item);
+    });
+
+    return rows
+      .filter(items => items.length > 0)
+      .map((items, index) => ({
+        id: `voice-row-${index + 1}`,
+        isReverse: index % 2 === 1,
+        items: [...items, ...items],
+      }));
+  }, []);
+  const ctaContactPath = useMemo(() => {
+    const params = new URLSearchParams();
+
+    if (leadName.trim()) {
+      params.set("name", leadName.trim());
+    }
+    if (leadPhone.trim()) {
+      params.set("phone", leadPhone.trim());
+    }
+    if (problemFocus) {
+      params.set("focus", problemFocus);
+    }
+
+    const query = params.toString();
+
+    return query ? `/portal/contact?${query}` : "/portal/contact";
+  }, [leadName, leadPhone, problemFocus]);
 
   useEffect(() => {
     const sectionHostElement = pageRef.current;
@@ -239,53 +271,48 @@ export const MarketingPortalHomeView = (): JSX.Element => {
         >
           <div className={styles.sectionInner}>
             <div className={styles.heroCopy}>
-              <p className={layoutStyles.sectionLabel}>Enterprise AI Employee Delivery</p>
-              <h1 className={styles.heroTitle}>让 AI 员工真正进入你的企业</h1>
+              <p className={layoutStyles.sectionLabel}>fAI Public Cloud</p>
+              <h1 className={styles.heroTitle}>
+                你每年花多少钱
+                <br />
+                让人做 AI 三秒能完成的事？
+              </h1>
               <p className={classNames(layoutStyles.darkTextMuted, styles.heroDescription)}>
-                FrontisAI 把岗位能力封装成可交付的 AI
-                员工，在企业本地盒子运行，在云端统一协作与管理。
-                它不是一个聊天工具，而是一套能被采购、部署、扩容和持续运营的企业能力。
+                销售跟进、内容产出、市场洞察、经营决策
+                <br />
+                这些事，fAI 的 AI 员工团队，今天就能接管。
               </p>
 
               <div className={styles.heroActions}>
-                <Link className={layoutStyles.primaryButton} to="/portal/contact">
-                  预约产品演示
+                <Link className={layoutStyles.primaryButton} to="/portal/agents">
+                  看看 AI 员工能替你做什么
                   <ArrowRightOutlined />
                 </Link>
-                <Link className={layoutStyles.secondaryButton} to="/portal/cases">
-                  查看客户案例
+                <Link className={layoutStyles.secondaryButton} to="/portal/contact">
+                  预约一次 15 分钟演示
                 </Link>
               </div>
 
-              <div className={styles.signalRow}>
-                {PORTAL_INDUSTRY_SIGNALS.map(item => (
-                  <span
-                    key={item.id}
-                    className={classNames(layoutStyles.chip, layoutStyles.chipDark)}
-                  >
-                    {item.label}
-                  </span>
-                ))}
-              </div>
+              <p className={styles.heroTrustLine}>{PORTAL_HOME_TRUST_LINE}</p>
             </div>
 
             <div className={styles.heroPoster}>
               <div className={styles.posterGlow} />
               <div className={styles.posterGrid} />
               <div className={styles.posterNodeBox}>
-                <p className={styles.posterLabel}>现场盒子</p>
-                <p className={styles.posterTitle}>本地运行</p>
-                <p className={styles.posterCopy}>文件、记录与执行过程留在企业现场。</p>
+                <p className={styles.posterLabel}>内容产出</p>
+                <p className={styles.posterTitle}>AI 已接管</p>
+                <p className={styles.posterCopy}>脚本、分镜、标题、BGM 建议同时推进。</p>
               </div>
               <div className={styles.posterNodeCloud}>
-                <p className={styles.posterLabel}>云端控制平面</p>
-                <p className={styles.posterTitle}>统一管理</p>
-                <p className={styles.posterCopy}>账号、权限、线索与运营统计全部上云。</p>
+                <p className={styles.posterLabel}>销售管理</p>
+                <p className={styles.posterTitle}>持续跟进</p>
+                <p className={styles.posterCopy}>商机建档、话术建议、超时提醒同步运转。</p>
               </div>
               <div className={styles.posterNodeWeb}>
-                <p className={styles.posterLabel}>浏览器使用端</p>
-                <p className={styles.posterTitle}>多人协作</p>
-                <p className={styles.posterCopy}>员工和管理员都通过 Web 直接使用。</p>
+                <p className={styles.posterLabel}>经营决策</p>
+                <p className={styles.posterTitle}>早报推送</p>
+                <p className={styles.posterCopy}>每天 8 点推送公司实时状态和异常提醒。</p>
               </div>
               <div className={styles.posterRingPrimary} />
               <div className={styles.posterRingSecondary} />
@@ -301,32 +328,85 @@ export const MarketingPortalHomeView = (): JSX.Element => {
         </section>
 
         <section
-          id="portal-value"
+          id="portal-anxiety"
           data-home-section="true"
           className={classNames(layoutStyles.glassSection, styles.pageSection, styles.valueSection)}
         >
           <div className={styles.sectionInner}>
             <div className={styles.sectionHeading}>
-              <p className={layoutStyles.sectionLabel}>Why FrontisAI</p>
-              <h2 className={layoutStyles.sectionTitle}>先讲价值，不讲功能表</h2>
-              <p className={layoutStyles.sectionDescription}>
-                对外官网应该像品牌册，而不是原型说明书。这里一屏只保留三条最有杀伤力的价值表达。
-              </p>
+              <p className={layoutStyles.sectionLabel}>说的就是你</p>
+              <h2 className={layoutStyles.sectionTitle}>你是不是也有这些时刻</h2>
             </div>
 
-            <div className={styles.valueGrid}>
-              {PORTAL_VALUE_PILLARS.map(item => (
-                <article key={item.id} className={styles.valueCard}>
-                  <span className={styles.valueIndex}>{item.eyebrow}</span>
-                  <h3 className={styles.valueTitle}>{item.title}</h3>
-                  <p className={styles.valueDescription}>{item.description}</p>
-                </article>
-              ))}
+            <div className={styles.anxietyStage}>
+              <div className={styles.voiceWall} aria-label="用户之声">
+                {anxietyVoiceRows.map(row => (
+                  <div key={row.id} className={styles.voiceRowViewport}>
+                    <div
+                      className={classNames(
+                        styles.voiceRowTrack,
+                        row.isReverse && styles.isReverseVoiceRowTrack,
+                      )}
+                    >
+                      {row.items.map((item, index) => (
+                        <article key={`${item.id}-${index}`} className={styles.voiceCard}>
+                          <div className={styles.voiceCardHeader}>
+                            <div className={styles.voiceIdentity}>
+                              <Avatar
+                                src={getAvatarUrl(`portal-voice-${item.avatarSeed}`)}
+                                className={styles.voiceAvatar}
+                              >
+                                {getAvatarText(item.authorName)}
+                              </Avatar>
+
+                              <div className={styles.voiceIdentityBody}>
+                                <div className={styles.voiceAuthorRow}>
+                                  <span className={styles.voiceAuthorName}>{item.authorName}</span>
+                                  <span className={styles.voiceAuthorRole}>{item.authorRole}</span>
+                                </div>
+                                <p className={styles.voiceAuthorCompany}>{item.authorCompany}</p>
+                              </div>
+                            </div>
+
+                            <span className={styles.voiceIndex}>{item.indexLabel}</span>
+                          </div>
+
+                          <p className={styles.voiceQuote}>“{item.quote}”</p>
+                          <p className={styles.voiceContext}>{item.context}</p>
+                        </article>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className={styles.transitionDialogue} aria-label="承接对话">
+                <div className={styles.transitionBubble}>
+                  <span className={styles.transitionBubbleLabel}>老板</span>
+                  <p className={styles.transitionBubbleText}>这些不是你一个人的问题。</p>
+                </div>
+
+                <div
+                  className={classNames(
+                    styles.transitionBubble,
+                    styles.isAccentTransitionBubble,
+                  )}
+                >
+                  <span className={styles.transitionBubbleLabel}>fAI</span>
+                  <p className={styles.transitionBubbleText}>
+                    这是所有还在靠“人”撑着的公司，眼下都在经历的事。
+                  </p>
+                </div>
+
+                <div className={classNames(styles.transitionBubble, styles.isSoftTransitionBubble)}>
+                  <p className={styles.transitionBubbleText}>但现在，有另一种选项。</p>
+                </div>
+              </div>
             </div>
           </div>
-          {nextSectionMap["portal-value"] ? (
+          {nextSectionMap["portal-anxiety"] ? (
             <SectionCue
-              nextSection={nextSectionMap["portal-value"]}
+              nextSection={nextSectionMap["portal-anxiety"]}
               tone="light"
               onJump={handleSectionJump}
             />
@@ -334,163 +414,20 @@ export const MarketingPortalHomeView = (): JSX.Element => {
         </section>
 
         <section
-          id="portal-architecture"
+          id="portal-handoff"
           data-home-section="true"
           className={classNames(layoutStyles.darkSection, styles.pageSection, styles.archSection)}
         >
           <div className={styles.sectionInner}>
-            <div className={styles.archCopy}>
-              <p className={layoutStyles.sectionLabel}>System Design</p>
-              <h2 className={styles.archTitle}>盒子负责运行，云端负责管理，团队只管使用。</h2>
+            <div className={styles.sectionHeading}>
+              <p className={layoutStyles.sectionLabel}>AI 员工接管</p>
+              <h2 className={styles.archTitle}>
+                老板说一句话
+                <br />
+                AI 员工团队，把整件事从头交付
+              </h2>
               <p className={classNames(layoutStyles.darkTextMuted, styles.archDescription)}>
-                FrontisAI
-                的核心差异在于云边端架构。它同时解决老板的采购心智、管理员的安全顾虑，以及员工的真实使用体验。
-              </p>
-            </div>
-
-            <div className={styles.archFlow}>
-              {PORTAL_ARCHITECTURE_STEPS.map((item, index) => (
-                <article key={item.id} className={styles.archFlowCard}>
-                  <span className={styles.archFlowIndex}>0{index + 1}</span>
-                  <h3 className={styles.archFlowTitle}>{item.title}</h3>
-                  <p className={styles.archFlowDescription}>{item.description}</p>
-                </article>
-              ))}
-            </div>
-
-            <div className={styles.archFeatureRail}>
-              {PORTAL_TECH_FEATURES.map(item => (
-                <article key={item.id} className={styles.archFeatureCard}>
-                  <h3 className={styles.archFeatureTitle}>{item.title}</h3>
-                  <p className={styles.archFeatureDescription}>{item.description}</p>
-                </article>
-              ))}
-            </div>
-          </div>
-          {nextSectionMap["portal-architecture"] ? (
-            <SectionCue
-              nextSection={nextSectionMap["portal-architecture"]}
-              tone="dark"
-              onJump={handleSectionJump}
-            />
-          ) : null}
-        </section>
-
-        <section
-          id="portal-scenarios"
-          data-home-section="true"
-          className={classNames(
-            layoutStyles.lightSection,
-            styles.pageSection,
-            styles.scenarioSection,
-          )}
-        >
-          <div className={styles.sectionInner}>
-            <div className={styles.sectionHeading}>
-              <p className={layoutStyles.sectionLabel}>Use Cases</p>
-              <h2 className={layoutStyles.sectionTitle}>三个最容易成交的切入点</h2>
-              <p className={layoutStyles.sectionDescription}>
-                一屏只留三个场景，不再铺满列表。让访客先对号入座，再决定是否深入看 Agent 商店。
-              </p>
-            </div>
-
-            <div className={styles.scenarioGrid}>
-              {PORTAL_SCENARIOS.map(item => (
-                <article key={item.id} className={styles.scenarioCard}>
-                  <div className={styles.scenarioMedia}>
-                    <img className={styles.scenarioImage} src={item.imageUrl} alt={item.title} />
-                  </div>
-                  <div className={styles.scenarioBody}>
-                    <p className={styles.scenarioResult}>{item.result}</p>
-                    <h3 className={styles.scenarioTitle}>{item.title}</h3>
-                    <p className={styles.scenarioDescription}>{item.description}</p>
-                  </div>
-                </article>
-              ))}
-            </div>
-          </div>
-          {nextSectionMap["portal-scenarios"] ? (
-            <SectionCue
-              nextSection={nextSectionMap["portal-scenarios"]}
-              tone="light"
-              onJump={handleSectionJump}
-            />
-          ) : null}
-        </section>
-
-        <section
-          id="portal-case"
-          data-home-section="true"
-          className={classNames(layoutStyles.darkSection, styles.pageSection, styles.caseSection)}
-        >
-          <div className={styles.sectionInner}>
-            {leadCase ? (
-              <article className={styles.caseSpotlight}>
-                <div className={styles.caseCopy}>
-                  <p className={layoutStyles.sectionLabel}>Featured Case</p>
-                  <h2 className={styles.caseTitle}>{leadCase.title}</h2>
-                  <p className={classNames(layoutStyles.darkTextMuted, styles.caseDescription)}>
-                    {leadCase.summary}
-                  </p>
-
-                  <div className={styles.caseMetricRow}>
-                    {leadCase.metrics.map(metric => (
-                      <article key={metric.label} className={styles.caseMetricCard}>
-                        <p className={styles.caseMetricValue}>{metric.value}</p>
-                        <p className={styles.caseMetricLabel}>{metric.label}</p>
-                      </article>
-                    ))}
-                  </div>
-
-                  <div className={styles.caseActions}>
-                    <Link
-                      className={layoutStyles.primaryButton}
-                      to={`/portal/cases/${leadCase.slug}`}
-                    >
-                      阅读完整案例
-                      <ArrowRightOutlined />
-                    </Link>
-                    <Link
-                      className={layoutStyles.secondaryButton}
-                      to={createMarketingContactPath(leadCase.agentNames)}
-                    >
-                      复制这套方案
-                    </Link>
-                  </div>
-                </div>
-
-                <div className={styles.caseVisual}>
-                  <img
-                    className={styles.caseImage}
-                    src={leadCase.coverImageUrl}
-                    alt={leadCase.title}
-                  />
-                  <div className={styles.caseOverlay} />
-                </div>
-              </article>
-            ) : null}
-          </div>
-          {nextSectionMap["portal-case"] ? (
-            <SectionCue
-              nextSection={nextSectionMap["portal-case"]}
-              tone="dark"
-              onJump={handleSectionJump}
-            />
-          ) : null}
-        </section>
-
-        <section
-          id="portal-agents"
-          data-home-section="true"
-          className={classNames(layoutStyles.lightSection, styles.pageSection, styles.agentSection)}
-        >
-          <div className={styles.sectionInner}>
-            <div className={styles.sectionHeading}>
-              <p className={layoutStyles.sectionLabel}>AI Expert Crews</p>
-              <h2 className={layoutStyles.sectionTitle}>沿着场景入口横向展开 AI 专家团</h2>
-              <p className={layoutStyles.sectionDescription}>
-                每个斜切矩形都是一个业务场景入口。点击之后，卡片会直接展开这一组 AI
-                专家，让访客先理解场景，再理解组合。
+                不是工具。不是软件。是一批真正懂业务的数字员工，分工协作，随时待命。
               </p>
             </div>
 
@@ -500,9 +437,163 @@ export const MarketingPortalHomeView = (): JSX.Element => {
               browseCardTo="/portal/agents"
             />
           </div>
-          {nextSectionMap["portal-agents"] ? (
+          {nextSectionMap["portal-handoff"] ? (
             <SectionCue
-              nextSection={nextSectionMap["portal-agents"]}
+              nextSection={nextSectionMap["portal-handoff"]}
+              tone="dark"
+              onJump={handleSectionJump}
+            />
+          ) : null}
+        </section>
+
+        <section
+          id="portal-mindset"
+          data-home-section="true"
+          className={classNames(
+            layoutStyles.lightSection,
+            styles.pageSection,
+            styles.scenarioSection,
+          )}
+        >
+          <div className={styles.sectionInner}>
+            <div className={styles.sectionHeading}>
+              <p className={layoutStyles.sectionLabel}>重新认识这件事</p>
+              <h2 className={layoutStyles.sectionTitle}>
+                你以为你在买软件
+                <br />
+                但你买到的是一批不会离职的 AI 员工
+              </h2>
+            </div>
+
+            <div className={styles.mindsetPanel}>
+              {PORTAL_HOME_MINDSET_COMPARISONS.map(item => (
+                <article key={item.id} className={styles.mindsetRow}>
+                  <div className={styles.mindsetLegacy}>{item.legacyLabel}</div>
+                  <div className={styles.mindsetArrow}>→</div>
+                  <div className={styles.mindsetNext}>{item.nextLabel}</div>
+                </article>
+              ))}
+            </div>
+
+            <div className={styles.mindsetHighlights}>
+              <article className={styles.valueCard}>
+                <span className={styles.valueIndex}>数字员工</span>
+                <h3 className={styles.valueTitle}>不是工具，是数字员工</h3>
+                <p className={styles.valueDescription}>
+                  有分工、有协作，能独立完成整件事的 AI 员工团队。
+                </p>
+              </article>
+              <article className={styles.valueCard}>
+                <span className={styles.valueIndex}>开箱即用</span>
+                <h3 className={styles.valueTitle}>不用配置，开箱即用</h3>
+                <p className={styles.valueDescription}>
+                  FDE 工程师全程配置，你的业务场景直接跑通。
+                </p>
+              </article>
+              <article className={styles.valueCard}>
+                <span className={styles.valueIndex}>越用越懂</span>
+                <h3 className={styles.valueTitle}>越用越懂你</h3>
+                <p className={styles.valueDescription}>
+                  在你的业务里跑得越久，越知道你真正想要什么。
+                </p>
+              </article>
+            </div>
+          </div>
+          {nextSectionMap["portal-mindset"] ? (
+            <SectionCue
+              nextSection={nextSectionMap["portal-mindset"]}
+              tone="light"
+              onJump={handleSectionJump}
+            />
+          ) : null}
+        </section>
+
+        <section
+          id="portal-logo"
+          data-home-section="true"
+          className={classNames(layoutStyles.darkSection, styles.pageSection, styles.caseSection)}
+        >
+          <div className={styles.sectionInner}>
+            <div className={classNames(styles.sectionHeading, styles.logoHeading)}>
+              <p className={layoutStyles.sectionLabel}>客户 Logo 墙</p>
+              <h2 className={styles.caseTitle}>他们已经把这些事，交出去了</h2>
+              <p className={classNames(layoutStyles.darkTextMuted, styles.caseDescription)}>
+                来自不同行业的企业主，正在用 fAI 的 AI 员工团队跑业务。
+              </p>
+            </div>
+
+            <div className={styles.logoWall}>
+              <div className={styles.logoTrack}>
+                {repeatedLogoItems.map((item, index) => (
+                  <span key={`${item.id}-${index}`} className={styles.logoItem}>
+                    {item.name}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            <p className={styles.logoFootnote}>覆盖电商、品牌、服务、制造等多个行业 · 持续增长中</p>
+          </div>
+          {nextSectionMap["portal-logo"] ? (
+            <SectionCue
+              nextSection={nextSectionMap["portal-logo"]}
+              tone="dark"
+              onJump={handleSectionJump}
+            />
+          ) : null}
+        </section>
+
+        <section
+          id="portal-plan"
+          data-home-section="true"
+          className={classNames(layoutStyles.lightSection, styles.pageSection, styles.agentSection)}
+        >
+          <div className={styles.sectionInner}>
+            <div className={styles.sectionHeading}>
+              <p className={layoutStyles.sectionLabel}>套餐与信任</p>
+              <h2 className={layoutStyles.sectionTitle}>一次投入，换一支永不离职的 AI 员工团队</h2>
+            </div>
+
+            <div className={styles.planLayout}>
+              <article className={styles.planCard}>
+                <span className={styles.planBadge}>企业标准版</span>
+                <h3 className={styles.planPrice}>{PORTAL_HOME_PACKAGE.price}</h3>
+                <p className={styles.planDescription}>{PORTAL_HOME_PACKAGE.description}</p>
+
+                <div className={styles.planFeatureList}>
+                  {PORTAL_HOME_PACKAGE.features.map(feature => (
+                    <div key={feature} className={styles.planFeatureItem}>
+                      <span className={styles.planFeatureDot}>✓</span>
+                      <span>{feature}</span>
+                    </div>
+                  ))}
+                </div>
+
+                <div className={styles.heroActions}>
+                  <Link className={layoutStyles.primaryButton} to="/portal/contact">
+                    {PORTAL_HOME_PACKAGE.primaryActionLabel}
+                    <ArrowRightOutlined />
+                  </Link>
+                  <Link className={layoutStyles.secondaryButton} to="/portal/contact">
+                    {PORTAL_HOME_PACKAGE.secondaryActionLabel}
+                  </Link>
+                </div>
+              </article>
+
+              <div className={styles.trustGrid}>
+                {PORTAL_HOME_TRUST_BADGES.map(item => (
+                  <article key={item.id} className={styles.trustCard}>
+                    <span className={styles.trustIcon}>{item.icon}</span>
+                    <h3 className={styles.trustTitle}>{item.title}</h3>
+                    <p className={styles.trustDescription}>{item.description}</p>
+                  </article>
+                ))}
+              </div>
+            </div>
+          </div>
+          {nextSectionMap["portal-plan"] ? (
+            <SectionCue
+              nextSection={nextSectionMap["portal-plan"]}
               tone="light"
               onJump={handleSectionJump}
             />
@@ -516,24 +607,57 @@ export const MarketingPortalHomeView = (): JSX.Element => {
         >
           <div className={styles.sectionInner}>
             <div className={styles.ctaPanel}>
-              <p className={layoutStyles.sectionLabel}>Start Now</p>
+              <p className={layoutStyles.sectionLabel}>最终 CTA</p>
               <h2 className={styles.ctaTitle}>
-                如果你正在考虑给团队配备第一批 AI 员工，现在可以开始。
+                你不需要现在就决定
+                <br />
+                先看看，AI 员工能替你做什么
               </h2>
               <p className={classNames(layoutStyles.darkTextMuted, styles.ctaDescription)}>
-                从一个高频岗位开始试点，再根据设备、角色和业务流程逐步扩容。FrontisAI
-                的设计目标不是展示一次，而是持续交付。
+                留下你的联系方式，我们的 FDE 顾问会在 24 小时内联系你。
+                <br />
+                给你 15 分钟，演示一个你最头疼的业务场景。
               </p>
 
-              <div className={styles.ctaActions}>
-                <Link className={layoutStyles.primaryButton} to="/portal/contact">
-                  预约产品演示
-                  <ArrowRightOutlined />
-                </Link>
-                <Link className={layoutStyles.secondaryButton} to="/portal/agents">
-                  浏览 AI 专家团
-                </Link>
+              <div className={styles.ctaFormCard}>
+                <div className={styles.ctaFieldGrid}>
+                  <input
+                    className={styles.ctaInput}
+                    placeholder="姓名"
+                    value={leadName}
+                    onChange={event => setLeadName(event.target.value)}
+                  />
+                  <input
+                    className={styles.ctaInput}
+                    placeholder="手机"
+                    value={leadPhone}
+                    onChange={event => setLeadPhone(event.target.value)}
+                  />
+                  <select
+                    className={styles.ctaSelect}
+                    value={problemFocus}
+                    onChange={event => setProblemFocus(event.target.value)}
+                  >
+                    {PORTAL_HOME_PROBLEM_OPTIONS.map(option => (
+                      <option key={option} value={option}>
+                        {option}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className={styles.ctaActions}>
+                  <Link className={layoutStyles.primaryButton} to={ctaContactPath}>
+                    预约 15 分钟演示
+                    <ArrowRightOutlined />
+                  </Link>
+                </div>
               </div>
+
+              <p className={styles.ctaClosing}>
+                你的同行，已经不靠人解决这些问题了。
+                <span>你呢？</span>
+              </p>
             </div>
           </div>
         </section>

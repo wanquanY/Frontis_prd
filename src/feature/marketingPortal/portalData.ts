@@ -2,15 +2,21 @@ import type {
   MarketingAgentCategoryFilter,
   MarketingAgentItem,
   MarketingAgentSort,
+  MarketingAnxietyMomentItem,
   MarketingArchitectureStepItem,
   MarketingBundleItem,
   MarketingCaseStudyItem,
   MarketingExpertSceneItem,
+  MarketingHandoffSceneItem,
   MarketingIndustrySignalItem,
+  MarketingHomePackageItem,
+  MarketingLogoWallItem,
+  MarketingMindsetComparisonItem,
   MarketingPortalNavItem,
   MarketingProofStatItem,
   MarketingScenarioItem,
   MarketingTechFeatureItem,
+  MarketingTrustBadgeItem,
   MarketingValuePillarItem,
 } from "@/feature/marketingPortal/types";
 
@@ -38,6 +44,376 @@ export const PORTAL_NAV_ITEMS: MarketingPortalNavItem[] = [
     label: "预约演示",
     to: "/portal/contact",
   },
+];
+
+/**
+ * 首页首屏信任锚点。
+ */
+export const PORTAL_HOME_TRUST_LINE =
+  "已有多家企业的老板，把这些事交出去了 · 内测名额有限 · 4月15日开放";
+
+/**
+ * 首页焦虑命名卡片。
+ */
+export const PORTAL_HOME_ANXIETY_MOMENTS: MarketingAnxietyMomentItem[] = [
+  {
+    id: "anxiety-policy",
+    indexLabel: "01",
+    authorName: "周越",
+    authorRole: "创始人",
+    authorCompany: "区域制造集团",
+    avatarSeed: "zhou-yue",
+    quote: "我下了政策，但我不知道有没有人执行。",
+    context: "文件发出去了，会也开了。下面到底按没按，我不知道。等我发现，已经偏了三个月。",
+  },
+  {
+    id: "anxiety-middle",
+    indexLabel: "02",
+    authorName: "李静",
+    authorRole: "总经理",
+    authorCompany: "华东连锁零售品牌",
+    avatarSeed: "li-jing",
+    quote: "战略到了中层，就消失了。",
+    context: "我在上面讲得很清楚。但基层的人从没听说过这件事。不知道是传错了还是没传。",
+  },
+  {
+    id: "anxiety-rival",
+    indexLabel: "03",
+    authorName: "陈锋",
+    authorRole: "品牌负责人",
+    authorCompany: "跨境家居企业",
+    avatarSeed: "chen-feng",
+    quote: "对手在动，我完全看不见。",
+    context: "我知道他们在跑，但跑哪了、跑多快、在赌什么方向，我没有任何信息。",
+  },
+  {
+    id: "anxiety-platform",
+    indexLabel: "04",
+    authorName: "何敏",
+    authorRole: "增长负责人",
+    authorCompany: "新消费品牌",
+    avatarSeed: "he-min",
+    quote: "平台一直在变，我永远在追。",
+    context: "算法改了、达人变了、规则又调了。我像在追一辆跑走的车，永远追不上。",
+  },
+  {
+    id: "anxiety-cost",
+    indexLabel: "05",
+    authorName: "赵岩",
+    authorRole: "运营总监",
+    authorCompany: "本地生活服务公司",
+    avatarSeed: "zhao-yan",
+    quote: "想扩张，但人力成本先把利润吃掉。",
+    context: "每次想多做一块业务，第一反应是要招多少人。招完了，利润就没了。",
+  },
+  {
+    id: "anxiety-lead",
+    indexLabel: "06",
+    authorName: "孙珂",
+    authorRole: "销售总监",
+    authorCompany: "工业设备供应商",
+    avatarSeed: "sun-ke",
+    quote: "线索来了，我不知道有没有被认真跟。",
+    context: "这个客户上周问过，后来怎么样了？销售说跟了，但没有下文。钱就这么漏掉了。",
+  },
+  {
+    id: "anxiety-key-person",
+    indexLabel: "07",
+    authorName: "许航",
+    authorRole: "联合创始人",
+    authorCompany: "教育服务机构",
+    avatarSeed: "xu-hang",
+    quote: "那个最重要的员工，随时可能走。",
+    context: "她在，公司运转正常。她要走，我能感觉到某块业务要垮。这个依赖很不健康。",
+  },
+  {
+    id: "anxiety-judgement",
+    indexLabel: "08",
+    authorName: "王璐",
+    authorRole: "CEO",
+    authorCompany: "消费医疗公司",
+    avatarSeed: "wang-lu",
+    quote: "我做决定靠的是感觉，不是数据。",
+    context: "数据来的时候已经是上周的了。等报告出来，窗口已经关了。我只能拍脑袋。",
+  },
+];
+
+/**
+ * 首页 AI 员工接管场景。
+ */
+export const PORTAL_HOME_HANDOFF_SCENES: MarketingHandoffSceneItem[] = [
+  {
+    id: "handoff-video",
+    title: "视频内容创作团队",
+    hook: "这款新品下周上架，给我出一条能在抖音跑出来的短视频。",
+    summary: "不是工具，不是软件，是一组能把内容从研究到发布整包交付的 AI 员工团队。",
+    beforeText: "以前：开会、对稿、改三版，等发出去热点已经过了。",
+    afterText: "现在：说完那句话，24 小时内全套创作包就绪。",
+    members: [
+      {
+        id: "video-research",
+        title: "🔍 爆款研究员",
+        task: "扫描近 30 天同类目爆款，拆钩子结构、BGM 风格和评论区高频词。",
+      },
+      {
+        id: "video-script",
+        title: "✍️ 脚本编剧",
+        task: "生成完整视频脚本，包含画面、旁白、字幕和情绪节奏。",
+      },
+      {
+        id: "video-storyboard",
+        title: "🎨 分镜设计师",
+        task: "输出拍摄分镜参考图，标注景别、运镜和道具。",
+      },
+      {
+        id: "video-assets",
+        title: "🖼️ 素材生成师",
+        task: "批量生成产品场景图和氛围图，部分镜头直接可用。",
+      },
+      {
+        id: "video-publish",
+        title: "📊 发布策略师",
+        task: "给出最佳发布时间和前 3 小时互动建议。",
+      },
+    ],
+  },
+  {
+    id: "handoff-image",
+    title: "AI 生图系统 · 能力留存",
+    hook: "小陈要走了，她三年积累的东西，能不能留下来？",
+    summary: "每一次创作都在沉淀成公司资产，人走了，方法和产能还留在系统里。",
+    beforeText: "以前：核心员工离职，能力几乎清零，新人得重新摸索半年。",
+    afterText: "现在：每次创作都在给公司积累东西，人走了，方法还在。",
+    members: [
+      {
+        id: "image-assets",
+        title: "📚 资产沉淀师",
+        task: "把风格、提示词和模板自动归档为公司资产，永久留存。",
+      },
+      {
+        id: "image-batch",
+        title: "🖼️ 批量生成师",
+        task: "换一张产品图时，30 秒生成同等水平的新图。",
+      },
+      {
+        id: "image-qc",
+        title: "🔍 质检师",
+        task: "对比品牌调性库，自动标注不符合风格的图片。",
+      },
+      {
+        id: "image-analysis",
+        title: "📊 能力分析师",
+        task: "生成团队设计能力分布和模板贡献度分析。",
+      },
+    ],
+  },
+  {
+    id: "handoff-ceo",
+    title: "AI CEO · 经营感知",
+    hook: "我周边的人告诉我的，和三楼真实发生的事，从来都不是同一件事。",
+    summary: "老板不用等周报和汇报，AI 员工 24 小时盯着组织、风险和经营异动。",
+    beforeText: "以前：靠开会、靠汇报、靠感觉，老板永远是最后知道真相的人。",
+    afterText: "现在：5 个 AI 员工 24 小时在各层盯着，每天早上叫你一次。",
+    members: [
+      {
+        id: "ceo-sense",
+        title: "🎙️ 收音师",
+        task: "整理会议纪要、日报和沟通记录，提炼关键事实，去掉水分。",
+      },
+      {
+        id: "ceo-analysis",
+        title: "🧠 分析师",
+        task: "识别团队情绪变化和士气波动，生成本周预警信号。",
+      },
+      {
+        id: "ceo-risk",
+        title: "🚨 风控师",
+        task: "监控异常关键词，财务和合规风险第一时间标红提醒。",
+      },
+      {
+        id: "ceo-talent",
+        title: "👤 人才雷达",
+        task: "追踪中层表现，给出具体的人才评估。",
+      },
+      {
+        id: "ceo-brief",
+        title: "📋 简报师",
+        task: "每天早上 8 点推送公司实时状态面板。",
+      },
+    ],
+  },
+  {
+    id: "handoff-opportunity",
+    title: "商机洞察团队",
+    hook: "我感觉主营品类快到天花板了，帮我看还有什么机会。",
+    summary: "市场不是两周后才看见，AI 员工 24 小时在线扫机会，发现了就主动叫你。",
+    beforeText: "以前：一份市场报告做 2 到 3 周，出来时机会已经过时。",
+    afterText: "现在：AI 员工全天在线扫市场，发现窗口就立刻提醒。",
+    members: [
+      {
+        id: "opportunity-radar",
+        title: "📡 市场雷达员",
+        task: "扫描多平台信号，识别正在崛起但尚未饱和的机会窗口。",
+      },
+      {
+        id: "opportunity-competitor",
+        title: "🔬 竞品解剖师",
+        task: "追踪竞品最新动作，推断他们押注的下一个方向。",
+      },
+      {
+        id: "opportunity-demand",
+        title: "👥 需求挖掘师",
+        task: "从评论区和问答平台找出用户抱怨却没人满足的空白。",
+      },
+      {
+        id: "opportunity-feasibility",
+        title: "💰 可行性测算师",
+        task: "快速评估市场规模、竞争密度和进入门槛，给出跟进建议。",
+      },
+      {
+        id: "opportunity-report",
+        title: "📋 洞察报告师",
+        task: "每周推送结构化商机简报，20 分钟看清本周 3 个重点机会。",
+      },
+    ],
+  },
+  {
+    id: "handoff-sales",
+    title: "销售助理团队",
+    hook: "我们销售团队，好的一个月签 5 单，差的签 1 单，我不知道怎么拉平。",
+    summary: "把最强销售脑子里的方法变成系统，留在团队里，而不是跟着人走。",
+    beforeText: "以前：最强销售的方法在她脑子里，人走了，方法也带走了。",
+    afterText: "现在：方法变成系统，每个销售都在用，人走了方法还在。",
+    members: [
+      {
+        id: "sales-profile",
+        title: "📋 客户建档师",
+        task: "线索进来自动建档，完成意向评分，销售接手时已有完整背景。",
+      },
+      {
+        id: "sales-strategy",
+        title: "🧠 跟进策略师",
+        task: "根据沟通记录生成个性化下一步建议，提示联系时机和说法。",
+      },
+      {
+        id: "sales-script",
+        title: "✍️ 话术生成师",
+        task: "针对价格和异议实时推送应对话术。",
+      },
+      {
+        id: "sales-reminder",
+        title: "⏰ 跟进提醒员",
+        task: "自动追踪跟进节奏，超时未行动时主动提醒。",
+      },
+      {
+        id: "sales-replay",
+        title: "🏆 经验复制师",
+        task: "分析最强销售的行为规律，沉淀成话术库并推送给所有人。",
+      },
+    ],
+  },
+];
+
+/**
+ * 首页认知重建对比。
+ */
+export const PORTAL_HOME_MINDSET_COMPARISONS: MarketingMindsetComparisonItem[] = [
+  {
+    id: "mindset-learn",
+    legacyLabel: "你要学怎么用",
+    nextLabel: "你只需要说你要什么",
+  },
+  {
+    id: "mindset-runtime",
+    legacyLabel: "用完关掉，明天再说",
+    nextLabel: "24 小时在运转，随时叫随时来",
+  },
+  {
+    id: "mindset-flexibility",
+    legacyLabel: "功能固定，需求变了再买包",
+    nextLabel: "用得越久越懂你的业务",
+  },
+  {
+    id: "mindset-delivery",
+    legacyLabel: "出问题了，等客服",
+    nextLabel: "FDE 工程师全程配置交付，开箱即用",
+  },
+];
+
+/**
+ * 首页 Logo 墙。
+ */
+export const PORTAL_HOME_LOGO_WALL_ITEMS: MarketingLogoWallItem[] = [
+  { id: "logo-xianyuan", name: "衔远科技" },
+  { id: "logo-commerce", name: "电商品牌 A" },
+  { id: "logo-manufacturing", name: "制造企业 B" },
+  { id: "logo-education", name: "教育机构 C" },
+  { id: "logo-retail", name: "连锁服务 D" },
+  { id: "logo-professional", name: "专业服务 E" },
+  { id: "logo-beauty", name: "品牌商 F" },
+  { id: "logo-industrial", name: "工厂 G" },
+  { id: "logo-health", name: "健康企业 H" },
+  { id: "logo-food", name: "消费品牌 I" },
+  { id: "logo-store", name: "门店集团 J" },
+  { id: "logo-cloud", name: "软件公司 K" },
+];
+
+/**
+ * 首页套餐信息。
+ */
+export const PORTAL_HOME_PACKAGE: MarketingHomePackageItem = {
+  name: "企业标准版",
+  price: "¥98,000 / 年",
+  description: "一次投入，换一支永不离职、能持续交付的 AI 员工团队。",
+  features: [
+    "若干企业级 AI 员工名额",
+    "FDE 工程师全程配置交付",
+    "可选 LeDeep 硬件盒子",
+    "AI 员工持续迭代升级",
+  ],
+  primaryActionLabel: "立即了解详情",
+  secondaryActionLabel: "预约演示",
+};
+
+/**
+ * 首页信任背书项。
+ */
+export const PORTAL_HOME_TRUST_BADGES: MarketingTrustBadgeItem[] = [
+  {
+    id: "trust-security",
+    icon: "🔒",
+    title: "企业数据安全隔离",
+    description: "核心文件与运行过程留在企业侧，安全边界表达直接。",
+  },
+  {
+    id: "trust-fde",
+    icon: "📞",
+    title: "FDE 专属交付服务",
+    description: "不是买了自己折腾，配置、上线和试点有人带着跑。",
+  },
+  {
+    id: "trust-iteration",
+    icon: "🔄",
+    title: "AI 员工持续迭代",
+    description: "不是一次性交付，用起来之后还会继续优化。",
+  },
+  {
+    id: "trust-proof",
+    icon: "🏆",
+    title: "多家企业已在使用",
+    description: "覆盖电商、品牌、服务、制造等多个行业。",
+  },
+];
+
+/**
+ * 首页最终留资问题选项。
+ */
+export const PORTAL_HOME_PROBLEM_OPTIONS: string[] = [
+  "内容生产",
+  "销售管理",
+  "市场洞察",
+  "经营决策",
+  "其他",
 ];
 
 /**

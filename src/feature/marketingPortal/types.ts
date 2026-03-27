@@ -25,6 +25,81 @@ export interface MarketingIndustrySignalItem {
 }
 
 /**
+ * 首页用户之声卡片。
+ */
+export interface MarketingAnxietyMomentItem {
+  id: string;
+  indexLabel: string;
+  authorName: string;
+  authorRole: string;
+  authorCompany: string;
+  avatarSeed: string;
+  quote: string;
+  context: string;
+}
+
+/**
+ * 首页 AI 员工团队成员。
+ */
+export interface MarketingHandoffMemberItem {
+  id: string;
+  title: string;
+  task: string;
+}
+
+/**
+ * 首页 AI 员工接管场景。
+ */
+export interface MarketingHandoffSceneItem {
+  id: string;
+  title: string;
+  hook: string;
+  summary: string;
+  beforeText: string;
+  afterText: string;
+  members: MarketingHandoffMemberItem[];
+}
+
+/**
+ * 首页认知重建对比项。
+ */
+export interface MarketingMindsetComparisonItem {
+  id: string;
+  legacyLabel: string;
+  nextLabel: string;
+}
+
+/**
+ * 首页 Logo 墙项。
+ */
+export interface MarketingLogoWallItem {
+  id: string;
+  name: string;
+}
+
+/**
+ * 首页信任背书项。
+ */
+export interface MarketingTrustBadgeItem {
+  id: string;
+  icon: string;
+  title: string;
+  description: string;
+}
+
+/**
+ * 首页套餐信息。
+ */
+export interface MarketingHomePackageItem {
+  name: string;
+  price: string;
+  description: string;
+  features: string[];
+  primaryActionLabel: string;
+  secondaryActionLabel: string;
+}
+
+/**
  * 门户价值支柱。
  */
 export interface MarketingValuePillarItem {
