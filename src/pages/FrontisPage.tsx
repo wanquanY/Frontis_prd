@@ -2,135 +2,116 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import classNames from "classnames";
 import {
+  BarChartOutlined,
   ClockCircleOutlined,
   CloudServerOutlined,
+  ControlOutlined,
+  LogoutOutlined,
   MessageOutlined,
+  MenuFoldOutlined,
+  MenuUnfoldOutlined,
   RobotOutlined,
   TeamOutlined,
-  ThunderboltOutlined,
 } from "@ant-design/icons";
-import {
-  WORKSPACE_MODEL_OPTIONS,
-  type WorkspaceComposerAttachmentItem,
-} from "@/feature/workspace/types";
-import { message } from "antd";
+import type { MenuProps } from "antd";
+import { Avatar, Dropdown, Empty, message } from "antd";
+import type { WorkspaceComposerAttachmentItem } from "@/feature/workspace/types";
 import { isChatAttachmentFileAllowed } from "@/utils/chatAttachmentFileTypes";
 
 import { AutomationTaskView } from "./components/AutomationTaskView";
+import { AdminDashboardView } from "./components/AdminDashboardView";
+import { DeviceManagementView } from "./components/DeviceManagementView";
 import { DialoguePrototypeView } from "./components/DialoguePrototypeView";
-import { ExpertsPrototypeView } from "./components/ExpertsPrototypeView";
-import { GroupPrototypeView } from "./components/GroupPrototypeView";
-import { SkillMarketplaceView } from "./components/SkillMarketplaceView";
+import { AgentStoreView } from "./components/agentStore/AgentStoreView";
+import { ModelConfigurationView } from "./components/ModelConfigurationView";
+import { UserManagementView } from "./components/UserManagementView";
 import {
   INITIAL_DIALOGUE_ARTIFACTS,
-  INITIAL_EMPLOYEE_DOCUMENT_CONTENTS,
-  INITIAL_EMPLOYEE_DOCUMENTS,
   INITIAL_DIALOGUE_SESSIONS,
   INITIAL_EMPLOYEES,
+  INITIAL_FRONTIS_WEB_USERS,
   INITIAL_SKILLS,
   INITIAL_WORKSPACES,
 } from "@/mocks/mockData";
 import type {
   DialogueSessionItem,
   EmployeeItem,
-  SynClawTabItem,
-  SynClawTabKey,
+  FrontisWebRole,
+  FrontisWebTabItem,
+  FrontisWebTabKey,
   WorkspaceItem,
-  WorkspaceType,
 } from "./types";
 import {
   buildAttachmentItem,
   createComposerAttachment,
   createId,
-  createWorkspaceActivationInfo,
-  getAvatarUrl,
-  EMPLOYEE_AVATAR_PRESETS,
   revokeComposerAttachmentPreview,
 } from "./utils";
 import styles from "./FrontisPage.module.less";
 
-type ExpertsModalMode = "create" | "edit" | null;
-
-interface WorkspacePresetInfo {
-  region: string;
-  summary: string;
-  runtimeHint: string;
-  status: WorkspaceItem["status"];
-}
-
-const getWorkspacePresetInfo = (type: WorkspaceType): WorkspacePresetInfo => {
-  if (type === "cloud") {
-    return {
-      status: "online",
-      region: "云设备已直连",
-      summary: "已创建云设备并直接连接，可继续承载云桌面与远端执行。",
-      runtimeHint: "后续可直接扩展桌面预览、扫码和远端文件处理。",
-    };
-  }
-  if (type === "local") {
-    return {
-      status: "online",
-      region: "待客户端下载并登录",
-      summary: "需先下载客户端并在目标设备登录，随后接入为本地工作站。",
-      runtimeHint: "主要承载本机对话、附件和技能工作流，虚拟桌面能力不默认开启。",
-    };
-  }
-  return {
-    status: "pending",
-    region: "待边缘设备激活",
-    summary: "需先下载安装包，并在客户端内输入云端 API 与激活码后完成接入。",
-    runtimeHint: "云端 API：https://syngents-api.frontis.cn，激活完成后再开放 AI 专家和任务能力。",
-  };
-};
-
-const SYNCLAW_TABS: SynClawTabItem[] = [
+const FRONTIS_WEB_TABS: FrontisWebTabItem[] = [
   {
     key: "dialogue",
     label: "对话",
-    description: "",
     icon: <MessageOutlined />,
-  },
-  {
-    key: "group",
-    label: "群聊",
-    description: "",
-    icon: <TeamOutlined />,
-  },
-  {
-    key: "skills",
-    label: "技能广场",
-    description: "",
-    icon: <ThunderboltOutlined />,
+    roles: ["employee", "admin"],
   },
   {
     key: "automation",
     label: "自动化",
-    description: "",
     icon: <ClockCircleOutlined />,
+    roles: ["employee", "admin"],
   },
   {
-    key: "experts",
-    label: "AI 专家团",
-    description: "",
+    key: "dashboard",
+    label: "数据看板",
+    icon: <BarChartOutlined />,
+    roles: ["admin"],
+  },
+  {
+    key: "store",
+    label: "AI专家团",
     icon: <RobotOutlined />,
+    roles: ["admin"],
+  },
+  {
+    key: "devices",
+    label: "设备管理",
+    icon: <CloudServerOutlined />,
+    roles: ["admin"],
+  },
+  {
+    key: "models",
+    label: "模型配置",
+    icon: <ControlOutlined />,
+    roles: ["admin"],
+  },
+  {
+    key: "users",
+    label: "用户管理",
+    icon: <TeamOutlined />,
+    roles: ["admin"],
   },
 ];
 
+interface FrontisPageProps {
+  viewRole: FrontisWebRole;
+}
+
 /**
- * Frontis 原型主页面
+ * FrontisAI Web 原型主页面
  *
- * 当前页面用于承载原型主视图与各模块切换。
+ * 当前页面通过路由区分普通用户与企业管理员视图。
  */
-const FrontisPage = (): JSX.Element => {
-  const [activeTabKey, setActiveTabKey] = useState<SynClawTabKey>("dialogue");
-  const [workspaces, setWorkspaces] = useState<WorkspaceItem[]>(INITIAL_WORKSPACES);
+const FrontisPage = ({ viewRole }: FrontisPageProps): JSX.Element => {
+  const [activeTabKey, setActiveTabKey] = useState<FrontisWebTabKey>("dialogue");
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(false);
   const [employees, setEmployees] = useState<EmployeeItem[]>(INITIAL_EMPLOYEES);
-  const [activeWorkspaceId, setActiveWorkspaceId] = useState<string>(INITIAL_WORKSPACES[0].id);
-  const [activeEmployeeId, setActiveEmployeeId] = useState<string>("employee-pm");
   const [dialogueSessions, setDialogueSessions] =
     useState<DialogueSessionItem[]>(INITIAL_DIALOGUE_SESSIONS);
+  const [activeEmployeeId, setActiveEmployeeId] = useState<string>(INITIAL_EMPLOYEES[0]?.id ?? "");
   const [activeDialogueSessionId, setActiveDialogueSessionId] = useState<string>(
-    INITIAL_DIALOGUE_SESSIONS.find(item => item.employeeId === "employee-pm")?.id ?? "",
+    INITIAL_DIALOGUE_SESSIONS.find(item => item.employeeId === INITIAL_EMPLOYEES[0]?.id)?.id ?? "",
   );
   const [dialogueInputValue, setDialogueInputValue] = useState<string>("");
   const [dialogueAttachments, setDialogueAttachments] = useState<WorkspaceComposerAttachmentItem[]>(
@@ -139,44 +120,52 @@ const FrontisPage = (): JSX.Element => {
   const [respondingDialogueSessionId, setRespondingDialogueSessionId] = useState<string | null>(
     null,
   );
-  const [newWorkspaceName, setNewWorkspaceName] = useState<string>("");
-  const [newWorkspaceType, setNewWorkspaceType] = useState<WorkspaceType>("cloud");
-  const [newEmployeeName, setNewEmployeeName] = useState<string>("");
-  const [newEmployeeRole, setNewEmployeeRole] = useState<string>("");
-  const [newEmployeeModel, setNewEmployeeModel] = useState<string>(
-    WORKSPACE_MODEL_OPTIONS[0].label,
-  );
-  const [newEmployeeAvatarUrl, setNewEmployeeAvatarUrl] = useState<string>(
-    EMPLOYEE_AVATAR_PRESETS[0],
-  );
-  const [isCreateWorkspaceModalOpen, setIsCreateWorkspaceModalOpen] = useState<boolean>(false);
-  const [isCreateEmployeeModalOpen, setIsCreateEmployeeModalOpen] = useState<boolean>(false);
-  const [workspaceModalMode, setWorkspaceModalMode] = useState<ExpertsModalMode>(null);
-  const [employeeModalMode, setEmployeeModalMode] = useState<ExpertsModalMode>(null);
-  const [editingWorkspaceId, setEditingWorkspaceId] = useState<string | null>(null);
-  const [editingEmployeeId, setEditingEmployeeId] = useState<string | null>(null);
   const dialogueTimerRef = useRef<number | null>(null);
   const latestDialogueAttachmentsRef = useRef<WorkspaceComposerAttachmentItem[]>([]);
-
-  const activeWorkspace = useMemo(
-    () => workspaces.find(item => item.id === activeWorkspaceId) ?? workspaces[0],
-    [activeWorkspaceId, workspaces],
+  const workspaces: WorkspaceItem[] = INITIAL_WORKSPACES;
+  const currentUser = useMemo(
+    () =>
+      INITIAL_FRONTIS_WEB_USERS.find(
+        item =>
+          item.role === (viewRole === "admin" ? "admin" : "member") && item.status === "active",
+      ) ??
+      INITIAL_FRONTIS_WEB_USERS.find(
+        item => item.role === (viewRole === "admin" ? "admin" : "member"),
+      ) ??
+      null,
+    [viewRole],
+  );
+  const conversationEmployees = useMemo(
+    () =>
+      viewRole === "admin"
+        ? employees
+        : employees.filter(item => {
+            const isAssigned = currentUser?.assignedAgentIds.includes(item.id) ?? false;
+            if (!isAssigned) {
+              return false;
+            }
+            return item.visibility === "all" || item.boundMembers.includes(currentUser?.name ?? "");
+          }),
+    [currentUser?.assignedAgentIds, currentUser?.name, employees, viewRole],
   );
 
-  const workspaceEmployees = useMemo(
-    () => employees.filter(item => item.workspaceId === activeWorkspaceId),
-    [activeWorkspaceId, employees],
+  const visibleTabs = useMemo(
+    () => FRONTIS_WEB_TABS.filter(item => item.roles.includes(viewRole)),
+    [viewRole],
   );
 
   const activeEmployee = useMemo(
     () =>
-      employees.find(item => item.id === activeEmployeeId) ?? workspaceEmployees[0] ?? employees[0],
-    [activeEmployeeId, employees, workspaceEmployees],
+      conversationEmployees.find(item => item.id === activeEmployeeId) ??
+      conversationEmployees[0] ??
+      null,
+    [activeEmployeeId, conversationEmployees],
   );
 
   const employeeDialogueSessions = useMemo(
-    () => dialogueSessions.filter(item => item.employeeId === activeEmployee.id),
-    [activeEmployee.id, dialogueSessions],
+    () =>
+      activeEmployee ? dialogueSessions.filter(item => item.employeeId === activeEmployee.id) : [],
+    [activeEmployee, dialogueSessions],
   );
 
   const activeDialogueSession = useMemo(
@@ -188,6 +177,13 @@ const FrontisPage = (): JSX.Element => {
   );
 
   const dialogueMessages = activeDialogueSession?.messages ?? [];
+  const visibleDialogueSessions = useMemo(
+    () =>
+      dialogueSessions.filter(item =>
+        conversationEmployees.some(employee => employee.id === item.employeeId),
+      ),
+    [conversationEmployees, dialogueSessions],
+  );
   const activeDialogueArtifacts = useMemo(
     () =>
       activeDialogueSession ? (INITIAL_DIALOGUE_ARTIFACTS[activeDialogueSession.id] ?? []) : [],
@@ -195,37 +191,22 @@ const FrontisPage = (): JSX.Element => {
   );
   const isDialogueResponding = activeDialogueSession?.id === respondingDialogueSessionId;
 
-  const skillCountByEmployeeId = useMemo(
-    () =>
-      INITIAL_SKILLS.reduce<Record<string, number>>((result, skill) => {
-        skill.installedFor.forEach(employeeId => {
-          result[employeeId] = (result[employeeId] ?? 0) + 1;
-        });
-        return result;
-      }, {}),
-    [],
-  );
-
-  const skillNamesByEmployeeId = useMemo(
-    () =>
-      INITIAL_SKILLS.reduce<Record<string, string[]>>((result, skill) => {
-        skill.installedFor.forEach(employeeId => {
-          if (!result[employeeId]) {
-            result[employeeId] = [];
-          }
-          result[employeeId].push(skill.name);
-        });
-        return result;
-      }, {}),
-    [],
-  );
+  useEffect(() => {
+    if (!conversationEmployees.length) {
+      setActiveEmployeeId("");
+      return;
+    }
+    if (conversationEmployees.some(item => item.id === activeEmployeeId)) {
+      return;
+    }
+    setActiveEmployeeId(conversationEmployees[0].id);
+  }, [activeEmployeeId, conversationEmployees]);
 
   useEffect(() => {
-    if (workspaceEmployees.some(item => item.id === activeEmployeeId)) return;
-    if (workspaceEmployees[0]) {
-      setActiveEmployeeId(workspaceEmployees[0].id);
+    if (!visibleTabs.some(item => item.key === activeTabKey)) {
+      setActiveTabKey("dialogue");
     }
-  }, [activeEmployeeId, workspaceEmployees]);
+  }, [activeTabKey, visibleTabs]);
 
   useEffect(() => {
     if (!employeeDialogueSessions.length) {
@@ -234,7 +215,9 @@ const FrontisPage = (): JSX.Element => {
       }
       return;
     }
-    if (employeeDialogueSessions.some(item => item.id === activeDialogueSessionId)) return;
+    if (employeeDialogueSessions.some(item => item.id === activeDialogueSessionId)) {
+      return;
+    }
     setActiveDialogueSessionId(employeeDialogueSessions[0].id);
   }, [activeDialogueSessionId, employeeDialogueSessions]);
 
@@ -284,10 +267,6 @@ const FrontisPage = (): JSX.Element => {
 
   const handleSelectEmployee = useCallback(
     (employeeId: string): void => {
-      const nextEmployee = employees.find(item => item.id === employeeId);
-      if (nextEmployee) {
-        setActiveWorkspaceId(nextEmployee.workspaceId);
-      }
       setActiveEmployeeId(employeeId);
       const nextEmployeeSessions = dialogueSessions.filter(item => item.employeeId === employeeId);
       setActiveDialogueSessionId(nextEmployeeSessions[0]?.id ?? "");
@@ -295,7 +274,7 @@ const FrontisPage = (): JSX.Element => {
       setDialogueAttachments([]);
       setDialogueInputValue("");
     },
-    [dialogueAttachments, dialogueSessions, employees],
+    [dialogueAttachments, dialogueSessions],
   );
 
   const handleSelectDialogueSession = useCallback(
@@ -309,6 +288,7 @@ const FrontisPage = (): JSX.Element => {
   );
 
   const handleCreateDialogueSession = useCallback((): void => {
+    if (!activeEmployee) return;
     const nextSessionId = createId("dialogue-session");
     const nextSession: DialogueSessionItem = {
       id: nextSessionId,
@@ -323,7 +303,7 @@ const FrontisPage = (): JSX.Element => {
     dialogueAttachments.forEach(revokeComposerAttachmentPreview);
     setDialogueAttachments([]);
     setDialogueInputValue("");
-  }, [activeEmployee.id, dialogueAttachments]);
+  }, [activeEmployee, dialogueAttachments]);
 
   const handleRenameDialogueSession = useCallback((sessionId: string, title: string): void => {
     const nextTitle = title.trim();
@@ -354,12 +334,13 @@ const FrontisPage = (): JSX.Element => {
   );
 
   const handleSendDialogue = useCallback((): void => {
+    if (!activeEmployee) return;
     const content = dialogueInputValue.trim();
     if (!content && dialogueAttachments.length === 0) return;
+
     const targetSessionId = activeDialogueSession?.id ?? createId("dialogue-session");
     const nextSessionTitle =
       content.length > 0 ? content.slice(0, 18) : (dialogueAttachments[0]?.name ?? "新对话");
-
     const messageAttachments =
       dialogueAttachments.length > 0 ? dialogueAttachments.map(buildAttachmentItem) : undefined;
 
@@ -392,6 +373,7 @@ const FrontisPage = (): JSX.Element => {
       if (!currentSession) {
         return prev;
       }
+
       const nextSession: DialogueSessionItem = {
         ...currentSession,
         title: currentSession.messages.length === 0 ? nextSessionTitle : currentSession.title,
@@ -414,15 +396,15 @@ const FrontisPage = (): JSX.Element => {
 
     const responseText =
       activeEmployee.connectionMode === "cloud"
-        ? "已继续在云端工作站中执行，我会同步整理结果，并在需要扫码或查看桌面时提醒你。"
-        : "已在本地工作模式下继续处理，本轮不展示虚拟机桌面，结果会直接回流到对话和成果面板。";
+        ? "已继续在云端工作站中执行，我会同步整理结果，并在需要管理员介入或排查设备时提醒你。"
+        : "已在本地工作模式下继续处理，本轮不展示远端桌面，结果会直接回流到当前对话右侧成果面板。";
 
     dialogueTimerRef.current = window.setTimeout(() => {
       const nextAssistantMessage = {
         id: createId("dialogue"),
         role: "assistant" as const,
         author: activeEmployee.name,
-        content: `${responseText} 同时我会把相关事项同步到自动化任务和 AI 专家团页，方便继续追踪。`,
+        content: `${responseText} 同时我会把相关事项同步到当前会话和定时任务页，方便继续追踪。`,
         timeLabel: "刚刚",
       };
       setDialogueSessions(prev => {
@@ -441,14 +423,7 @@ const FrontisPage = (): JSX.Element => {
       setRespondingDialogueSessionId(null);
       dialogueTimerRef.current = null;
     }, 1200);
-  }, [
-    activeDialogueSession,
-    activeEmployee.connectionMode,
-    activeEmployee.id,
-    activeEmployee.name,
-    dialogueAttachments,
-    dialogueInputValue,
-  ]);
+  }, [activeDialogueSession, activeEmployee, dialogueAttachments, dialogueInputValue]);
 
   const handleStopDialogue = useCallback((): void => {
     if (!isDialogueResponding || !activeDialogueSession) return;
@@ -481,348 +456,15 @@ const FrontisPage = (): JSX.Element => {
     });
   }, [activeDialogueSession, isDialogueResponding]);
 
-  const handleCreateWorkspace = useCallback((): void => {
-    const name = newWorkspaceName.trim();
-    if (!name) return;
-    const presetInfo = getWorkspacePresetInfo(newWorkspaceType);
-    const editingWorkspace = editingWorkspaceId
-      ? (workspaces.find(item => item.id === editingWorkspaceId) ?? null)
-      : null;
-    const activationInfo =
-      newWorkspaceType === "edge"
-        ? editingWorkspace?.type === "edge" && editingWorkspace.activationCode
-          ? {
-              activationCode: editingWorkspace.activationCode,
-              activationExpiresAt: editingWorkspace.activationExpiresAt,
-              activationValidDays: editingWorkspace.activationValidDays,
-              activationHint: editingWorkspace.activationHint,
-            }
-          : createWorkspaceActivationInfo()
-        : {
-            activationCode: undefined,
-            activationExpiresAt: undefined,
-            activationValidDays: undefined,
-            activationHint: undefined,
-          };
-
-    if (workspaceModalMode === "edit" && editingWorkspaceId) {
-      setWorkspaces(prev =>
-        prev.map(item =>
-          item.id === editingWorkspaceId
-            ? {
-                ...item,
-                name,
-                type: newWorkspaceType,
-                ...presetInfo,
-                ...activationInfo,
-              }
-            : item,
-        ),
-      );
-      setEmployees(prev =>
-        prev.map(item =>
-          item.workspaceId === editingWorkspaceId
-            ? {
-                ...item,
-                connectionMode: newWorkspaceType === "cloud" ? "cloud" : "local",
-                status: newWorkspaceType === "edge" ? "paused" : item.status,
-              }
-            : item,
-        ),
-      );
-    } else {
-      const nextWorkspaceId = createId("workspace");
-      const nextWorkspace: WorkspaceItem = {
-        id: nextWorkspaceId,
-        name,
-        type: newWorkspaceType,
-        ...presetInfo,
-        ...activationInfo,
-      };
-      setWorkspaces(prev => [nextWorkspace, ...prev]);
-      setActiveWorkspaceId(nextWorkspaceId);
-    }
-    setNewWorkspaceName("");
-    setNewWorkspaceType("cloud");
-    setWorkspaceModalMode(null);
-    setEditingWorkspaceId(null);
-    setIsCreateWorkspaceModalOpen(false);
-  }, [editingWorkspaceId, newWorkspaceType, newWorkspaceName, workspaceModalMode, workspaces]);
-
-  const handleCopyWorkspaceActivationCode = useCallback(
-    async (workspaceId: string): Promise<void> => {
-      const targetWorkspace = workspaces.find(item => item.id === workspaceId);
-      const activationCode = targetWorkspace?.activationCode?.trim();
-      if (!activationCode) return;
-
-      try {
-        await navigator.clipboard.writeText(activationCode);
-        message.success("激活码已复制");
-      } catch {
-        message.error("复制激活码失败");
-      }
-    },
-    [workspaces],
-  );
-
-  const handleRegenerateWorkspaceActivationCode = useCallback((workspaceId: string): void => {
-    setWorkspaces(prev =>
-      prev.map(item =>
-        item.id === workspaceId
-          ? {
-              ...item,
-              ...createWorkspaceActivationInfo(),
-              activationHint: "已重新生成激活码，旧码已失效，请改用新的激活码完成接入。",
-            }
-          : item,
-      ),
-    );
-    message.success("已重新生成激活码");
-  }, []);
-
-  const handleCreateEmployee = useCallback((): void => {
-    const name = newEmployeeName.trim();
-    const role = newEmployeeRole.trim();
-    if (!name || !role) return;
-    if (employeeModalMode === "edit" && editingEmployeeId) {
-      setEmployees(prev =>
-        prev.map(item =>
-          item.id === editingEmployeeId
-            ? {
-                ...item,
-                name,
-                role,
-                lastAction: "刚刚编辑了专家信息",
-              }
-            : item,
-        ),
-      );
-    } else {
-      const nextEmployeeId = createId("employee");
-      const nextEmployee: EmployeeItem = {
-        id: nextEmployeeId,
-        name,
-        avatarUrl: newEmployeeAvatarUrl || getAvatarUrl(nextEmployeeId),
-        role,
-        status: activeWorkspace.type === "edge" ? "paused" : "idle",
-        workspaceId: activeWorkspace.id,
-        connectionMode: activeWorkspace.type === "cloud" ? "cloud" : "local",
-        model: newEmployeeModel,
-        summary: "可继续补充人设、技能和自动化任务。",
-        lastAction: "刚刚创建，等待开始接收任务",
-      };
-      setEmployees(prev => [nextEmployee, ...prev]);
-      setActiveEmployeeId(nextEmployeeId);
-    }
-    setNewEmployeeName("");
-    setNewEmployeeRole("");
-    setNewEmployeeModel(WORKSPACE_MODEL_OPTIONS[0].label);
-    setNewEmployeeAvatarUrl(EMPLOYEE_AVATAR_PRESETS[0]);
-    setEmployeeModalMode(null);
-    setEditingEmployeeId(null);
-    setIsCreateEmployeeModalOpen(false);
-  }, [
-    activeWorkspace.id,
-    activeWorkspace.type,
-    editingEmployeeId,
-    employeeModalMode,
-    newEmployeeAvatarUrl,
-    newEmployeeName,
-    newEmployeeModel,
-    newEmployeeRole,
-  ]);
-
-  const handleOpenCreateWorkspaceModal = useCallback((): void => {
-    setWorkspaceModalMode("create");
-    setEditingWorkspaceId(null);
-    setNewWorkspaceName("");
-    setNewWorkspaceType("cloud");
-    setIsCreateWorkspaceModalOpen(true);
-  }, []);
-
-  const handleCloseCreateWorkspaceModal = useCallback((): void => {
-    setWorkspaceModalMode(null);
-    setEditingWorkspaceId(null);
-    setNewWorkspaceName("");
-    setNewWorkspaceType("cloud");
-    setIsCreateWorkspaceModalOpen(false);
-  }, []);
-
-  const handleOpenCreateEmployeeModal = useCallback((): void => {
-    setEmployeeModalMode("create");
-    setEditingEmployeeId(null);
-    setNewEmployeeName("");
-    setNewEmployeeRole("");
-    setNewEmployeeModel(WORKSPACE_MODEL_OPTIONS[0].label);
-    setNewEmployeeAvatarUrl(EMPLOYEE_AVATAR_PRESETS[0]);
-    setIsCreateEmployeeModalOpen(true);
-  }, []);
-
-  const handleCloseCreateEmployeeModal = useCallback((): void => {
-    setEmployeeModalMode(null);
-    setEditingEmployeeId(null);
-    setNewEmployeeName("");
-    setNewEmployeeRole("");
-    setNewEmployeeModel(WORKSPACE_MODEL_OPTIONS[0].label);
-    setNewEmployeeAvatarUrl(EMPLOYEE_AVATAR_PRESETS[0]);
-    setIsCreateEmployeeModalOpen(false);
-  }, []);
-
-  const handleEditWorkspace = useCallback(
-    (workspaceId: string): void => {
-      const targetWorkspace = workspaces.find(item => item.id === workspaceId);
-      if (!targetWorkspace) return;
-      setWorkspaceModalMode("edit");
-      setEditingWorkspaceId(workspaceId);
-      setNewWorkspaceName(targetWorkspace.name);
-      setNewWorkspaceType(targetWorkspace.type);
-      setIsCreateWorkspaceModalOpen(true);
-    },
-    [workspaces],
-  );
-
-  const handleRemoveWorkspace = useCallback(
-    (workspaceId: string): void => {
-      const hasRemainingWorkspace = workspaces.length > 1;
-      const hasRemainingEmployee = employees.some(item => item.workspaceId !== workspaceId);
-      if (!hasRemainingWorkspace || !hasRemainingEmployee) return;
-
-      const nextWorkspaces = workspaces.filter(item => item.id !== workspaceId);
-      const removedEmployeeIds = employees
-        .filter(item => item.workspaceId === workspaceId)
-        .map(item => item.id);
-      const removedEmployeeIdSet = new Set(removedEmployeeIds);
-      const nextEmployees = employees.filter(item => item.workspaceId !== workspaceId);
-      const nextSessions = dialogueSessions.filter(
-        item => !removedEmployeeIdSet.has(item.employeeId),
-      );
-
-      setWorkspaces(nextWorkspaces);
-      setEmployees(nextEmployees);
-      setDialogueSessions(nextSessions);
-
-      if (activeWorkspaceId === workspaceId && nextWorkspaces[0]) {
-        setActiveWorkspaceId(nextWorkspaces[0].id);
-      }
-
-      if (removedEmployeeIdSet.has(activeEmployeeId) && nextEmployees[0]) {
-        setActiveEmployeeId(nextEmployees[0].id);
-      }
-
-      if (
-        activeDialogueSessionId &&
-        !nextSessions.some(item => item.id === activeDialogueSessionId)
-      ) {
-        setActiveDialogueSessionId(nextSessions[0]?.id ?? "");
-      }
-    },
-    [
-      activeDialogueSessionId,
-      activeEmployeeId,
-      activeWorkspaceId,
-      dialogueSessions,
-      employees,
-      workspaces,
-    ],
-  );
-
-  const handleEditEmployee = useCallback(
-    (employeeId: string): void => {
-      const targetEmployee = employees.find(item => item.id === employeeId);
-      if (!targetEmployee) return;
-      setEmployeeModalMode("edit");
-      setEditingEmployeeId(employeeId);
-      setNewEmployeeName(targetEmployee.name);
-      setNewEmployeeRole(targetEmployee.role);
-      setNewEmployeeModel(targetEmployee.model);
-      setNewEmployeeAvatarUrl(targetEmployee.avatarUrl || EMPLOYEE_AVATAR_PRESETS[0]);
-      setIsCreateEmployeeModalOpen(true);
-    },
-    [employees],
-  );
-
-  const handleEmployeeAvatarFileSelect = useCallback((file: File | null): void => {
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      const result = typeof reader.result === "string" ? reader.result : "";
-      if (result) {
-        setNewEmployeeAvatarUrl(result);
-      }
-    };
-    reader.readAsDataURL(file);
-  }, []);
-
-  const handleRemoveEmployee = useCallback(
-    (employeeId: string): void => {
-      if (employees.length <= 1) return;
-      const nextEmployees = employees.filter(item => item.id !== employeeId);
-      const nextSessions = dialogueSessions.filter(item => item.employeeId !== employeeId);
-      setEmployees(nextEmployees);
-      setDialogueSessions(nextSessions);
-
-      if (activeEmployeeId === employeeId && nextEmployees[0]) {
-        setActiveEmployeeId(nextEmployees[0].id);
-      }
-
-      if (
-        activeDialogueSessionId &&
-        !nextSessions.some(item => item.id === activeDialogueSessionId)
-      ) {
-        setActiveDialogueSessionId(nextSessions[0]?.id ?? "");
-      }
-    },
-    [activeDialogueSessionId, activeEmployeeId, dialogueSessions, employees],
-  );
-
-  const handleUpdateEmployeeModel = useCallback((employeeId: string, model: string): void => {
-    setEmployees(prev =>
-      prev.map(item =>
-        item.id === employeeId
-          ? {
-              ...item,
-              model,
-              lastAction: "刚刚更新了执行模型",
-            }
-          : item,
-      ),
-    );
-  }, []);
-
-  const handleStartDialogueWithEmployee = useCallback(
-    (employeeId: string): void => {
-      handleSelectEmployee(employeeId);
-      setActiveTabKey("dialogue");
-    },
-    [handleSelectEmployee],
-  );
-
-  const handleUpdateEmployee = useCallback(
-    (
-      employeeId: string,
-      patch: Partial<
-        Pick<
-          EmployeeItem,
-          | "avatarUrl"
-          | "name"
-          | "role"
-          | "summary"
-          | "visibility"
-          | "workspaceId"
-          | "connectionMode"
-          | "model"
-          | "subAgentModel"
-          | "boundMembers"
-        >
-      >,
-    ): void => {
+  const handleUpdateEmployeeAccess = useCallback(
+    (employeeId: string, visibility: EmployeeItem["visibility"], boundMembers: string[]): void => {
       setEmployees(prev =>
         prev.map(item =>
           item.id === employeeId
             ? {
                 ...item,
-                ...patch,
-                lastAction: "刚刚更新了专家配置",
+                visibility,
+                boundMembers,
               }
             : item,
         ),
@@ -831,38 +473,27 @@ const FrontisPage = (): JSX.Element => {
     [],
   );
 
-  const handleUpdateEmployeeAvatarFileSelect = useCallback(
-    (employeeId: string, file: File | null): void => {
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = () => {
-        const result = typeof reader.result === "string" ? reader.result : "";
-        if (!result) return;
-        setEmployees(prev =>
-          prev.map(item =>
-            item.id === employeeId
-              ? {
-                  ...item,
-                  avatarUrl: result,
-                  lastAction: "刚刚更新了头像",
-                }
-              : item,
-          ),
-        );
-      };
-      reader.readAsDataURL(file);
+  const handleLogout = useCallback((): void => {
+    message.success("原型暂未接入真实登录，已完成退出交互展示。");
+  }, []);
+
+  const accountMenuItems: MenuProps["items"] = [
+    {
+      key: "logout",
+      icon: <LogoutOutlined />,
+      label: "退出登录",
+      onClick: handleLogout,
     },
-    [],
-  );
+  ];
 
   const renderContent = (): JSX.Element => {
-    if (activeTabKey === "dialogue") {
+    if (activeTabKey === "dialogue" && activeEmployee) {
       return (
         <DialoguePrototypeView
           activeEmployee={activeEmployee}
           activeDialogueArtifacts={activeDialogueArtifacts}
           activeDialogueSession={activeDialogueSession}
-          allEmployees={employees}
+          allEmployees={conversationEmployees}
           dialogueAttachments={dialogueAttachments}
           dialogueInputValue={dialogueInputValue}
           dialogueMessages={dialogueMessages}
@@ -881,67 +512,108 @@ const FrontisPage = (): JSX.Element => {
         />
       );
     }
-    if (activeTabKey === "group") {
-      return <GroupPrototypeView />;
+
+    if (activeTabKey === "dialogue") {
+      return (
+        <div className={styles.emptyPageState}>
+          <Empty description="当前账号暂未分配 Agent，请联系管理员分配后再开始对话。" />
+        </div>
+      );
     }
-    if (activeTabKey === "skills") {
-      return <SkillMarketplaceView />;
-    }
+
     if (activeTabKey === "automation") {
-      return <AutomationTaskView />;
+      return (
+        <AutomationTaskView
+          dialogueSessions={visibleDialogueSessions}
+          employees={conversationEmployees}
+        />
+      );
     }
-    return (
-      <ExpertsPrototypeView
-        employees={employees}
-        isCreateEmployeeModalOpen={isCreateEmployeeModalOpen}
-        employeeModalMode={employeeModalMode}
-        newEmployeeName={newEmployeeName}
-        newEmployeeRole={newEmployeeRole}
-        newEmployeeAvatarUrl={newEmployeeAvatarUrl}
-        newEmployeeModel={newEmployeeModel}
-        onEditEmployee={handleEditEmployee}
-        onEmployeeAvatarChange={setNewEmployeeAvatarUrl}
-        onEmployeeAvatarFileSelect={handleEmployeeAvatarFileSelect}
-        onCloseCreateEmployeeModal={handleCloseCreateEmployeeModal}
-        onCreateEmployee={handleCreateEmployee}
-        onEmployeeModelChange={setNewEmployeeModel}
-        onEmployeeNameChange={setNewEmployeeName}
-        onEmployeeRoleChange={setNewEmployeeRole}
-        onOpenCreateEmployeeModal={handleOpenCreateEmployeeModal}
-        onRemoveEmployee={handleRemoveEmployee}
-        onStartDialogue={handleStartDialogueWithEmployee}
-        onUpdateEmployee={handleUpdateEmployee}
-        onUpdateEmployeeAvatarFileSelect={handleUpdateEmployeeAvatarFileSelect}
-        onUpdateEmployeeModel={handleUpdateEmployeeModel}
-        skillCountByEmployeeId={skillCountByEmployeeId}
-        skillNamesByEmployeeId={skillNamesByEmployeeId}
-        workspaces={workspaces}
-        employeeDocumentsById={INITIAL_EMPLOYEE_DOCUMENTS}
-        employeeDocumentContentsById={INITIAL_EMPLOYEE_DOCUMENT_CONTENTS}
-        canRemoveEmployee={employees.length > 1}
-      />
-    );
+
+    if (activeTabKey === "dashboard") {
+      return (
+        <AdminDashboardView
+          artifactsBySession={INITIAL_DIALOGUE_ARTIFACTS}
+          dialogueSessions={dialogueSessions}
+          employees={employees}
+          users={INITIAL_FRONTIS_WEB_USERS}
+        />
+      );
+    }
+
+    if (activeTabKey === "store") {
+      return (
+        <AgentStoreView
+          employees={employees}
+          memberNames={INITIAL_FRONTIS_WEB_USERS.filter(item => item.status === "active").map(
+            item => item.name,
+          )}
+          onUpdateEmployeeAccess={handleUpdateEmployeeAccess}
+          skills={INITIAL_SKILLS}
+        />
+      );
+    }
+
+    if (activeTabKey === "devices") {
+      return <DeviceManagementView employees={employees} workspaces={workspaces} />;
+    }
+
+    if (activeTabKey === "models") {
+      return <ModelConfigurationView />;
+    }
+
+    return <UserManagementView employees={employees} users={INITIAL_FRONTIS_WEB_USERS} />;
   };
 
   return (
     <div className={styles.page}>
-      <aside className={classNames(styles.sidebar, styles.sidebarCollapsed)}>
-        <div className={classNames(styles.sidebarTop, styles.sidebarTopCollapsed)}>
-          <div className={classNames(styles.brandCard, styles.brandCardCollapsed)}>
+      <aside
+        className={classNames(styles.sidebar, {
+          [styles.sidebarCollapsed]: isSidebarCollapsed,
+        })}
+      >
+        <div
+          className={classNames(styles.sidebarTop, {
+            [styles.sidebarTopCollapsed]: isSidebarCollapsed,
+          })}
+        >
+          <div
+            className={classNames(styles.brandCard, {
+              [styles.brandCardCollapsed]: isSidebarCollapsed,
+            })}
+          >
             <div className={styles.brandLogo}>
               <CloudServerOutlined />
             </div>
+            {isSidebarCollapsed ? null : (
+              <div className={styles.brandCopy}>
+                <h1 className={styles.brandTitle}>Frontis AI</h1>
+                <p className={styles.brandSubtitle}>企业工作台</p>
+              </div>
+            )}
           </div>
+          <button
+            type="button"
+            className={styles.sidebarToggle}
+            aria-label={isSidebarCollapsed ? "展开菜单栏" : "收起菜单栏"}
+            onClick={() => setIsSidebarCollapsed(current => !current)}
+          >
+            {isSidebarCollapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
+          </button>
         </div>
 
-        <div className={classNames(styles.sidebarSection, styles.sidebarSectionCollapsed)}>
-          {SYNCLAW_TABS.map(item => (
+        <div
+          className={classNames(styles.sidebarSection, {
+            [styles.sidebarSectionCollapsed]: isSidebarCollapsed,
+          })}
+        >
+          {visibleTabs.map(item => (
             <button
               key={item.key}
               type="button"
               className={classNames(styles.tabButton, {
                 [styles.isActiveTab]: item.key === activeTabKey,
-                [styles.tabButtonCollapsed]: true,
+                [styles.tabButtonCollapsed]: isSidebarCollapsed,
               })}
               onClick={() => setActiveTabKey(item.key)}
             >
@@ -950,13 +622,29 @@ const FrontisPage = (): JSX.Element => {
             </button>
           ))}
         </div>
+
+        <div className={styles.sidebarBottom}>
+          <Dropdown menu={{ items: accountMenuItems }} placement="topLeft" trigger={["click"]}>
+            <button
+              type="button"
+              className={classNames(styles.accountTrigger, {
+                [styles.accountTriggerExpanded]: !isSidebarCollapsed,
+              })}
+            >
+              <Avatar className={styles.accountAvatar} size={40}>
+                {currentUser ? currentUser.name.slice(0, 1) : "U"}
+              </Avatar>
+              <span className={styles.accountName}>{currentUser?.name ?? "未登录"}</span>
+            </button>
+          </Dropdown>
+        </div>
       </aside>
 
       <main className={styles.main}>
         <div className={styles.mainPanel}>
           <div
             className={classNames(styles.content, {
-              [styles.featureContent]: activeTabKey === "skills" || activeTabKey === "automation",
+              [styles.featureContent]: activeTabKey !== "dialogue",
             })}
           >
             {renderContent()}

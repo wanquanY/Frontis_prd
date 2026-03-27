@@ -1,0 +1,609 @@
+.explorer {
+  width: 100dvw;
+  max-width: 100dvw;
+  margin-left: calc(50% - 50dvw);
+  padding-left: clamp(20px, 2vw, 28px);
+  padding-right: clamp(28px, 6vw, 120px);
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.isCompactExplorer,
+.isPageExplorer {
+  width: 100dvw;
+  max-width: 100dvw;
+}
+
+.isCompactExplorer {
+  --sceneEntryWidth: clamp(180px, 14vw, 220px);
+  --sceneStageHeight: clamp(420px, 48vh, 500px);
+}
+
+.isPageExplorer {
+  --sceneEntryWidth: clamp(180px, 14vw, 220px);
+  --sceneStageHeight: clamp(420px, 48vh, 500px);
+}
+
+.collapsedStrip,
+.expandedStage,
+.expertRail {
+  display: flex;
+  gap: 18px;
+  align-items: stretch;
+  width: 100%;
+  min-width: 0;
+}
+
+.collapsedStrip {
+  justify-content: center;
+}
+
+.expandedStage,
+.expertRail {
+  justify-content: flex-start;
+}
+
+.collapsedStrip,
+.expertRail {
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+.isCompactCollapsedStrip,
+.isCompactExpandedStage {
+  height: var(--sceneStageHeight);
+}
+
+.isPageCollapsedStrip,
+.isPageExpandedStage {
+  height: var(--sceneStageHeight);
+}
+
+.isPageCollapsedStrip {
+  display: grid;
+  grid-template-columns: repeat(5, var(--sceneEntryWidth));
+  grid-auto-rows: var(--sceneStageHeight);
+  height: auto;
+  justify-content: center;
+  overflow: visible;
+}
+
+.isPageCollapsedStrip .sceneEntry,
+.isPageCollapsedStrip .browseEntry {
+  flex: none;
+  width: 100%;
+  min-width: 0;
+}
+
+.sceneEntry,
+.expandedSceneCard {
+  --scenePrimary: rgba(125, 226, 241, 0.18);
+  --sceneSecondary: rgba(8, 18, 34, 0.88);
+  --sceneBorder: rgba(125, 226, 241, 0.18);
+  --sceneShadow: rgba(15, 23, 42, 0.18);
+
+  position: relative;
+  height: 100%;
+  overflow: hidden;
+  border: 0;
+  background: transparent;
+  clip-path: polygon(14% 0, 100% 0, 86% 100%, 0 100%);
+  box-shadow:
+    inset 0 0 0 1px var(--sceneBorder),
+    0 28px 80px var(--sceneShadow);
+}
+
+.sceneEntry {
+  flex: 0 0 var(--sceneEntryWidth);
+  width: var(--sceneEntryWidth);
+  min-width: var(--sceneEntryWidth);
+  padding: 0;
+  cursor: pointer;
+  transition: none;
+}
+
+.browseEntry {
+  background:
+    radial-gradient(circle at 22% 18%, rgba(125, 226, 241, 0.22), transparent 22%),
+    radial-gradient(circle at 78% 78%, rgba(84, 110, 255, 0.18), transparent 22%),
+    linear-gradient(180deg, rgba(8, 18, 34, 0.92), rgba(12, 24, 42, 0.96));
+  color: rgba(248, 250, 252, 0.98);
+}
+
+.browseEntryContent {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  height: 100%;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 22px 18px 24px;
+}
+
+.browseEntryLabel {
+  color: rgba(125, 226, 241, 0.96);
+  font-size: 12px;
+  line-height: 1.4;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.browseEntryTitle {
+  display: block;
+  font-size: clamp(34px, 2.6vw, 40px);
+  line-height: 1.02;
+  font-weight: 700;
+  letter-spacing: -0.06em;
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+}
+
+.expandedSceneCard {
+  flex: 0 0 var(--sceneEntryWidth);
+  width: var(--sceneEntryWidth);
+  min-width: var(--sceneEntryWidth);
+}
+
+.expandedRailPanel {
+  flex: 1 1 auto;
+  display: flex;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  flex-direction: column;
+  gap: 0;
+  padding: 0;
+  animation: railReveal 260ms ease;
+  overflow: hidden;
+}
+
+.expandedRailHeader {
+  display: block;
+}
+
+.expandedRailCopy {
+  position: relative;
+  max-width: 520px;
+  padding-top: 0;
+}
+
+.expandedRailEyebrow,
+.skillLabel,
+.sceneIndex {
+  font-size: 12px;
+  line-height: 1.4;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.expandedRailEyebrow,
+.sceneIndex {
+  color: rgba(125, 226, 241, 0.98);
+}
+
+.expandedRailEyebrow {
+  position: absolute;
+  top: -30px;
+  left: 0;
+}
+
+.expandedRailTitle,
+.expertName,
+.expandedSceneTitle {
+  font-size: clamp(24px, 2vw, 32px);
+  line-height: 1.02;
+  font-weight: 700;
+  letter-spacing: -0.05em;
+}
+
+.expandedRailDescription,
+.expertDescription,
+.expandedSceneSummary {
+  font-size: 15px;
+  line-height: 1.72;
+}
+
+.expandedRailDescription {
+  margin-top: 12px;
+  color: rgba(15, 23, 42, 0.68);
+}
+
+.sceneCoverImage,
+.sceneCoverShade,
+.sceneCoverGrid {
+  position: absolute;
+  inset: 0;
+}
+
+.sceneCoverImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.sceneCoverShade {
+  background:
+    linear-gradient(180deg, rgba(6, 10, 18, 0.1), rgba(6, 10, 18, 0.72)),
+    linear-gradient(145deg, var(--scenePrimary), var(--sceneSecondary));
+  mix-blend-mode: multiply;
+}
+
+.sceneCoverGrid {
+  background:
+    linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+  background-size: 36px 36px;
+  opacity: 0.22;
+}
+
+.sceneEntryContent,
+.expandedSceneContent {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  height: 100%;
+  flex-direction: column;
+  justify-content: space-between;
+  color: rgba(248, 250, 252, 0.98);
+}
+
+.sceneEntryContent {
+  padding: 22px 18px 24px;
+  text-align: left;
+}
+
+.expandedSceneContent {
+  padding: 22px 20px 24px;
+}
+
+.sceneMeta {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sceneSubtitle {
+  color: rgba(248, 250, 252, 0.62);
+  font-size: 11px;
+  line-height: 1.45;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.sceneEntryTitle {
+  display: block;
+  font-size: clamp(34px, 2.8vw, 42px);
+  line-height: 0.96;
+  font-weight: 700;
+  letter-spacing: -0.08em;
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+}
+
+.expandedSceneCopy {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.sceneCardActions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.sceneConsultButton {
+  min-width: 0;
+  padding-inline: 16px;
+  box-shadow: 0 16px 32px rgba(30, 181, 199, 0.2);
+}
+
+.sceneActionButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  align-self: flex-start;
+  min-height: 38px;
+  padding: 0 14px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 999px;
+  background: rgba(7, 17, 31, 0.24);
+  color: rgba(248, 250, 252, 0.92);
+  font-size: 13px;
+  line-height: 1;
+  font-weight: 600;
+  backdrop-filter: blur(10px);
+}
+
+button.sceneActionButton {
+  cursor: pointer;
+}
+
+.expertRail {
+  flex-wrap: nowrap;
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  margin-top: auto;
+  padding-bottom: 0;
+  align-items: stretch;
+  overscroll-behavior-x: contain;
+}
+
+.expertCard {
+  flex: 0 0 clamp(260px, 22vw, 310px);
+  position: relative;
+  display: flex;
+  height: 100%;
+  align-self: stretch;
+  min-width: 0;
+  flex-direction: column;
+  gap: 16px;
+  padding: 22px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 26px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(247, 250, 252, 0.82)),
+    rgba(255, 255, 255, 0.78);
+  box-shadow: 0 22px 54px rgba(148, 163, 184, 0.14);
+  overflow: hidden;
+
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background:
+      linear-gradient(180deg, rgba(248, 250, 252, 0.72), rgba(241, 245, 249, 0.82)),
+      rgba(255, 255, 255, 0.72);
+    backdrop-filter: blur(10px);
+    opacity: 0;
+    transition: opacity 180ms ease;
+    pointer-events: none;
+    z-index: 1;
+  }
+}
+
+.expertHeader {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 12px;
+}
+
+.expertIdentity {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+
+.expertAvatar {
+  width: 52px;
+  height: 52px;
+  min-width: 52px;
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--primary) 14%, var(--surface));
+  color: var(--primary);
+  font-size: 14px;
+  font-weight: 700;
+  overflow: hidden;
+}
+
+.expertIdentityBody {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.expertPrice {
+  color: rgba(15, 23, 42, 0.54);
+  font-size: 12px;
+  line-height: 1.4;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.expertCopy {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.expertDescription {
+  color: rgba(15, 23, 42, 0.7);
+}
+
+.skillSection {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.skillLabel {
+  color: rgba(15, 23, 42, 0.42);
+}
+
+.skillList {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.skillChip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.05);
+  color: rgba(15, 23, 42, 0.76);
+  font-size: 13px;
+  line-height: 1;
+}
+
+.detailLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: 2;
+  min-height: 42px;
+  padding: 0 18px;
+  border-radius: 999px;
+  background: rgba(7, 17, 31, 0.88);
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.16);
+  color: #f8fafc;
+  font-size: 14px;
+  line-height: 1.4;
+  font-weight: 600;
+  opacity: 0;
+  transform: translate(-50%, calc(-50% + 12px));
+  transition:
+    opacity 180ms ease,
+    transform 180ms ease;
+  pointer-events: none;
+}
+
+.expertCard:hover::after,
+.expertCard:focus-within::after {
+  opacity: 1;
+}
+
+.expertCard:hover .detailLink,
+.expertCard:focus-within .detailLink {
+  opacity: 1;
+  transform: translate(-50%, -50%);
+  pointer-events: auto;
+}
+
+.emptyState {
+  display: none;
+}
+
+.isAquaScene {
+  --scenePrimary: rgba(125, 226, 241, 0.22);
+  --sceneSecondary: rgba(8, 20, 40, 0.92);
+  --sceneBorder: rgba(125, 226, 241, 0.22);
+  --sceneShadow: rgba(15, 23, 42, 0.18);
+}
+
+.isCobaltScene {
+  --scenePrimary: rgba(92, 121, 255, 0.22);
+  --sceneSecondary: rgba(8, 16, 44, 0.92);
+  --sceneBorder: rgba(92, 121, 255, 0.2);
+  --sceneShadow: rgba(23, 33, 82, 0.2);
+}
+
+.isEmeraldScene {
+  --scenePrimary: rgba(74, 195, 152, 0.2);
+  --sceneSecondary: rgba(8, 28, 28, 0.92);
+  --sceneBorder: rgba(74, 195, 152, 0.18);
+  --sceneShadow: rgba(10, 40, 36, 0.2);
+}
+
+.isAmberScene {
+  --scenePrimary: rgba(232, 163, 67, 0.22);
+  --sceneSecondary: rgba(38, 24, 12, 0.92);
+  --sceneBorder: rgba(232, 163, 67, 0.18);
+  --sceneShadow: rgba(50, 28, 8, 0.22);
+}
+
+.isVioletScene {
+  --scenePrimary: rgba(154, 125, 241, 0.22);
+  --sceneSecondary: rgba(22, 16, 38, 0.92);
+  --sceneBorder: rgba(154, 125, 241, 0.18);
+  --sceneShadow: rgba(28, 22, 48, 0.22);
+}
+
+@media (max-width: 1280px) {
+  .isCompactExplorer {
+    --sceneEntryWidth: clamp(170px, 13vw, 210px);
+  }
+
+  .isPageExplorer {
+    --sceneEntryWidth: clamp(170px, 13vw, 210px);
+  }
+
+  .collapsedStrip,
+  .expandedStage,
+  .expertRail {
+    gap: 14px;
+  }
+
+  .expertCard {
+    flex-basis: 280px;
+    padding: 20px;
+  }
+
+  .isPageCollapsedStrip {
+    grid-template-columns: repeat(4, var(--sceneEntryWidth));
+  }
+}
+
+@media (max-width: 960px) {
+  .isCompactExplorer {
+    --sceneEntryWidth: clamp(154px, 18vw, 188px);
+  }
+
+  .isPageExplorer {
+    --sceneEntryWidth: clamp(154px, 18vw, 188px);
+  }
+
+  .isCompactCollapsedStrip,
+  .isCompactExpandedStage,
+  .isPageCollapsedStrip,
+  .isPageExpandedStage {
+    height: 360px;
+  }
+
+  .sceneEntryTitle {
+    font-size: 30px;
+  }
+
+  .expandedRailHeader {
+    display: block;
+  }
+
+  .expandedRailCopy {
+    padding-top: 0;
+  }
+
+  .expertCard {
+    flex-basis: 250px;
+    padding: 18px;
+  }
+
+  .isPageCollapsedStrip {
+    grid-template-columns: repeat(3, var(--sceneEntryWidth));
+  }
+}
+
+@media (max-width: 720px) {
+  .isPageCollapsedStrip {
+    grid-template-columns: repeat(2, var(--sceneEntryWidth));
+  }
+}
+
+@keyframes railReveal {
+  from {
+    opacity: 0;
+    transform: translateX(26px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}

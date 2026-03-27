@@ -21,8 +21,7 @@ import {
   CloseOutlined,
   DownOutlined,
   ExclamationCircleOutlined,
-  FolderOutlined,
-  NumberOutlined,
+  MessageOutlined,
   PlusOutlined,
   RobotOutlined,
   SearchOutlined,
@@ -40,25 +39,29 @@ import { isChatAttachmentFileAllowed } from "@/utils/chatAttachmentFileTypes";
 import { formatFileSize } from "@/utils/file";
 import { resolveFileLogo } from "@/utils/fileLogo";
 
-import {
-  INITIAL_AUTOMATION_CHANNEL_OPTIONS,
-  INITIAL_AUTOMATION_SPACES,
-  INITIAL_AUTOMATION_TASK_EXAMPLES,
-  INITIAL_DIALOGUE_SESSIONS,
-  INITIAL_EMPLOYEES,
-  INITIAL_WORKSPACES,
-} from "@/mocks/mockData";
+import { INITIAL_AUTOMATION_TASK_EXAMPLES } from "@/mocks/mockData";
 import {
   createComposerAttachment,
   getAvatarText,
   revokeComposerAttachmentPreview,
 } from "../utils";
+import type { DialogueSessionItem, EmployeeItem } from "../types";
 import automationStyles from "@/feature/automation-task/components/AutomationTaskView.module.less";
 import localStyles from "./AutomationTaskView.module.less";
 
 type TaskStatus = "active" | "paused" | "draft";
 type ScheduleKind = "at" | "every" | "cron";
-type BindingMode = "agent" | "channel" | "session";
+type ScheduleKindFilter = "all" | ScheduleKind;
+type BindingMode = "newSession" | "session";
+type BindingModeFilter = "all" | BindingMode;
+
+/**
+ * 自动化任务页参数。
+ */
+interface AutomationTaskViewProps {
+  employees: EmployeeItem[];
+  dialogueSessions: DialogueSessionItem[];
+}
 
 interface TaskAttachmentItem {
   id: string;
@@ -82,8 +85,6 @@ interface TaskItem {
   description: string;
   executorAgentId: string;
   bindingMode: BindingMode;
-  spaceId?: string;
-  channelId?: string;
   sessionId?: string;
   scheduleKind: ScheduleKind;
   scheduleSummary: string;
@@ -102,8 +103,6 @@ interface TaskDraftState {
   description: string;
   agentId: string;
   bindingMode: BindingMode;
-  spaceId: string;
-  channelId: string;
   sessionId: string;
   scheduleKind: ScheduleKind;
   everyMinutes: number;
@@ -137,17 +136,13 @@ const CONTEXT_MODE_META: Record<
     description: string;
   }
 > = {
-  agent: {
-    title: "只选 AI 专家",
-    description: "不挂空间、频道或会话，任务独立执行。",
-  },
-  channel: {
-    title: "绑定空间 / 频道",
-    description: "任务结果会回到指定频道，适合协同场景。",
+  newSession: {
+    title: "新会话",
+    description: "任务执行时会在所选 Agent 下自动创建一个新会话并沉淀成果。",
   },
   session: {
-    title: "绑定专家会话",
-    description: "直接延续该专家已有会话的上下文与记忆。",
+    title: "绑定已有会话",
+    description: "直接延续所选 Agent 的历史会话上下文和成果面板。",
   },
 };
 
@@ -155,9 +150,7 @@ const DEFAULT_DRAFT = (): TaskDraftState => ({
   title: "",
   description: "",
   agentId: "",
-  bindingMode: "agent",
-  spaceId: "",
-  channelId: "",
+  bindingMode: "newSession",
   sessionId: "",
   scheduleKind: "at",
   everyMinutes: 120,
@@ -188,8 +181,8 @@ const resolveScheduleSummary = (
 };
 
 const resolveBindingMode = (value: string): BindingMode => {
-  if (value === "channel" || value === "session") return value;
-  return "agent";
+  if (value === "session") return "session";
+  return "newSession";
 };
 
 const resolveScheduleKind = (value: string): ScheduleKind => {
@@ -215,8 +208,6 @@ const normalizeExampleTask = (
   description: example.description,
   executorAgentId: example.executorAgentId,
   bindingMode: resolveBindingMode(example.bindingMode),
-  spaceId: example.spaceId,
-  channelId: example.channelId,
   sessionId: example.sessionId,
   scheduleKind: resolveScheduleKind(example.scheduleKind),
   scheduleSummary: example.scheduleSummary,
@@ -255,18 +246,21 @@ const cloneAttachmentAsComposerItem = (
 });
 
 /**
- * PRD 原型专用自动化任务视图。
+ * FrontisAI Web 自动化任务视图。
  */
-export const AutomationTaskView = (): JSX.Element => {
+export const AutomationTaskView = ({
+  employees,
+  dialogueSessions,
+}: AutomationTaskViewProps): JSX.Element => {
   const attachmentInputRef = useRef<HTMLInputElement | null>(null);
   const latestDraftAttachmentsRef = useRef<WorkspaceComposerAttachmentItem[]>([]);
   const [tasks, setTasks] = useState<TaskItem[]>(() =>
     INITIAL_AUTOMATION_TASK_EXAMPLES.map(normalizeExampleTask),
   );
   const [keyword, setKeyword] = useState<string>("");
-  const [selectedSpaceId, setSelectedSpaceId] = useState<string>("");
-  const [selectedChannelId, setSelectedChannelId] = useState<string>("");
   const [selectedAgentId, setSelectedAgentId] = useState<string>("all");
+  const [selectedBindingMode, setSelectedBindingMode] = useState<BindingModeFilter>("all");
+  const [selectedScheduleKind, setSelectedScheduleKind] = useState<ScheduleKindFilter>("all");
   const [selectedQuickFilter, setSelectedQuickFilter] =
     useState<AutomationTaskQuickFilterKey>("all");
   const [currentPage, setCurrentPage] = useState<number>(1);
@@ -286,105 +280,83 @@ export const AutomationTaskView = (): JSX.Element => {
     };
   }, []);
 
-  const workspaceById = useMemo(() => new Map(INITIAL_WORKSPACES.map(item => [item.id, item])), []);
-  const employeeById = useMemo(() => new Map(INITIAL_EMPLOYEES.map(item => [item.id, item])), []);
-  const spaceById = useMemo(
-    () => new Map(INITIAL_AUTOMATION_SPACES.map(item => [item.id, item])),
-    [],
-  );
-  const channelById = useMemo(
-    () => new Map(INITIAL_AUTOMATION_CHANNEL_OPTIONS.map(item => [item.id, item])),
-    [],
-  );
+  const employeeById = useMemo(() => new Map(employees.map(item => [item.id, item])), [employees]);
   const sessionById = useMemo(
-    () => new Map(INITIAL_DIALOGUE_SESSIONS.map(item => [item.id, item])),
-    [],
+    () => new Map(dialogueSessions.map(item => [item.id, item])),
+    [dialogueSessions],
   );
-
-  const spaceOptions = useMemo(
-    () =>
-      INITIAL_AUTOMATION_SPACES.map(item => ({
-        label: item.name,
-        value: item.id,
-      })),
-    [],
-  );
-
-  const channelOptions = useMemo(
-    () =>
-      INITIAL_AUTOMATION_CHANNEL_OPTIONS.filter(item =>
-        selectedSpaceId ? item.spaceId === selectedSpaceId : true,
-      ).map(item => ({
-        label: item.name,
-        value: item.id,
-      })),
-    [selectedSpaceId],
-  );
+  const visibleEmployeeIdSet = useMemo(() => new Set(employees.map(item => item.id)), [employees]);
 
   const agentOptions = useMemo(
     () =>
-      INITIAL_EMPLOYEES.map(item => {
-        const workspace = workspaceById.get(item.workspaceId);
-        return {
-          label: `${item.name} · ${workspace?.name ?? "未分配工作站"}`,
-          value: item.id,
-        };
-      }),
-    [workspaceById],
-  );
-
-  const draftChannelOptions = useMemo(
-    () =>
-      INITIAL_AUTOMATION_CHANNEL_OPTIONS.filter(item =>
-        draft.spaceId ? item.spaceId === draft.spaceId : true,
-      ).map(item => ({
+      employees.map(item => ({
         label: item.name,
         value: item.id,
       })),
-    [draft.spaceId],
+    [employees],
   );
 
   const draftSessionOptions = useMemo(
     () =>
-      INITIAL_DIALOGUE_SESSIONS.filter(item => item.employeeId === draft.agentId).map(item => ({
+      dialogueSessions.filter(item => item.employeeId === draft.agentId).map(item => ({
         label: `${item.title} · ${item.updatedAt}`,
         value: item.id,
       })),
-    [draft.agentId],
+    [dialogueSessions, draft.agentId],
   );
 
   const selectedDraftAgent = draft.agentId ? employeeById.get(draft.agentId) : undefined;
-  const selectedDraftWorkspace = selectedDraftAgent
-    ? workspaceById.get(selectedDraftAgent.workspaceId)
-    : undefined;
+  const visibleTasks = useMemo(
+    () => tasks.filter(task => visibleEmployeeIdSet.has(task.executorAgentId)),
+    [tasks, visibleEmployeeIdSet],
+  );
+  const newSessionPreviewTitle = draft.title.trim() || "自动化任务新会话";
+
+  useEffect(() => {
+    if (selectedAgentId !== "all" && !visibleEmployeeIdSet.has(selectedAgentId)) {
+      setSelectedAgentId("all");
+    }
+  }, [selectedAgentId, visibleEmployeeIdSet]);
+
+  useEffect(() => {
+    if (draft.agentId && !visibleEmployeeIdSet.has(draft.agentId)) {
+      setDraft(prev => ({
+        ...prev,
+        agentId: "",
+        sessionId: "",
+        bindingMode: "newSession",
+      }));
+    }
+  }, [draft.agentId, visibleEmployeeIdSet]);
 
   const filteredTasks = useMemo(() => {
     const normalizedKeyword = keyword.trim().toLowerCase();
-    return tasks.filter(task => {
+    return visibleTasks.filter(task => {
       if (selectedQuickFilter !== "all" && task.displayStatus !== selectedQuickFilter) return false;
-      if (selectedSpaceId && task.spaceId !== selectedSpaceId) return false;
-      if (selectedChannelId && task.channelId !== selectedChannelId) return false;
       if (selectedAgentId !== "all" && task.executorAgentId !== selectedAgentId) return false;
+      if (selectedBindingMode !== "all" && task.bindingMode !== selectedBindingMode) return false;
+      if (selectedScheduleKind !== "all" && task.scheduleKind !== selectedScheduleKind) {
+        return false;
+      }
       if (!normalizedKeyword) return true;
 
       const agentName = employeeById.get(task.executorAgentId)?.name ?? "";
-      const channelName = task.channelId ? (channelById.get(task.channelId)?.name ?? "") : "";
       const sessionTitle = task.sessionId ? (sessionById.get(task.sessionId)?.title ?? "") : "";
-      return [task.title, task.description, agentName, channelName, sessionTitle]
+      const bindingLabel = task.bindingMode === "session" ? "已有会话" : "新会话";
+      return [task.title, task.description, agentName, sessionTitle, bindingLabel]
         .join(" ")
         .toLowerCase()
         .includes(normalizedKeyword);
     });
   }, [
-    channelById,
     employeeById,
     keyword,
     selectedAgentId,
-    selectedChannelId,
+    selectedBindingMode,
     selectedQuickFilter,
-    selectedSpaceId,
+    selectedScheduleKind,
     sessionById,
-    tasks,
+    visibleTasks,
   ]);
 
   const pagedTasks = useMemo(() => {
@@ -394,13 +366,13 @@ export const AutomationTaskView = (): JSX.Element => {
 
   const stats = useMemo(
     () => ({
-      all: tasks.length,
-      running: tasks.filter(item => item.displayStatus === "running").length,
-      completed: tasks.filter(item => item.displayStatus === "completed").length,
-      pending: tasks.filter(item => item.displayStatus === "pending").length,
-      failed: tasks.filter(item => item.displayStatus === "failed").length,
+      all: visibleTasks.length,
+      running: visibleTasks.filter(item => item.displayStatus === "running").length,
+      completed: visibleTasks.filter(item => item.displayStatus === "completed").length,
+      pending: visibleTasks.filter(item => item.displayStatus === "pending").length,
+      failed: visibleTasks.filter(item => item.displayStatus === "failed").length,
     }),
-    [tasks],
+    [visibleTasks],
   );
 
   const successRateText = useMemo(() => {
@@ -421,7 +393,6 @@ export const AutomationTaskView = (): JSX.Element => {
 
   const createDisabled = useMemo(() => {
     if (!draft.agentId || !draft.title.trim()) return true;
-    if (draft.bindingMode === "channel" && (!draft.spaceId || !draft.channelId)) return true;
     if (draft.bindingMode === "session" && !draft.sessionId) return true;
     if (draft.scheduleKind === "at" && !draft.startTime) return true;
     if (draft.scheduleKind === "every" && draft.everyMinutes < 1) return true;
@@ -465,34 +436,18 @@ export const AutomationTaskView = (): JSX.Element => {
       agentId: value,
       sessionId:
         prev.bindingMode === "session" &&
-        INITIAL_DIALOGUE_SESSIONS.some(
+        dialogueSessions.some(
           item => item.id === prev.sessionId && item.employeeId === value,
         )
           ? prev.sessionId
           : "",
     }));
-  }, []);
-
-  const handleDraftSpaceChange = useCallback((value: string): void => {
-    setDraft(prev => ({
-      ...prev,
-      spaceId: value,
-      channelId:
-        prev.channelId &&
-        INITIAL_AUTOMATION_CHANNEL_OPTIONS.some(
-          item => item.id === prev.channelId && item.spaceId === value,
-        )
-          ? prev.channelId
-          : "",
-    }));
-  }, []);
+  }, [dialogueSessions]);
 
   const handleDraftBindingModeChange = useCallback((mode: BindingMode): void => {
     setDraft(prev => ({
       ...prev,
       bindingMode: mode,
-      spaceId: mode === "channel" ? prev.spaceId : "",
-      channelId: mode === "channel" ? prev.channelId : "",
       sessionId: mode === "session" ? prev.sessionId : "",
     }));
   }, []);
@@ -571,24 +526,15 @@ export const AutomationTaskView = (): JSX.Element => {
 
   const resolveTaskContextSummary = useCallback(
     (task: TaskItem): string => {
-      if (task.bindingMode === "channel") {
-        const spaceName = task.spaceId
-          ? (spaceById.get(task.spaceId)?.name ?? "未命名空间")
-          : "未绑定空间";
-        const channelName = task.channelId
-          ? (channelById.get(task.channelId)?.name ?? "未命名频道")
-          : "未绑定频道";
-        return `${spaceName} / ${channelName}`;
-      }
       if (task.bindingMode === "session") {
         const sessionTitle = task.sessionId
           ? (sessionById.get(task.sessionId)?.title ?? "指定会话")
           : "指定会话";
         return `绑定会话 · ${sessionTitle}`;
       }
-      return "仅绑定 AI 专家";
+      return "执行时创建新会话";
     },
-    [channelById, sessionById, spaceById],
+    [sessionById],
   );
 
   const buildTaskFromDraft = useCallback(
@@ -614,8 +560,6 @@ export const AutomationTaskView = (): JSX.Element => {
         description: draft.description.trim(),
         executorAgentId: draft.agentId,
         bindingMode: draft.bindingMode,
-        spaceId: draft.bindingMode === "channel" ? draft.spaceId : undefined,
-        channelId: draft.bindingMode === "channel" ? draft.channelId : undefined,
         sessionId: draft.bindingMode === "session" ? draft.sessionId : undefined,
         scheduleKind: draft.scheduleKind,
         scheduleSummary,
@@ -642,7 +586,7 @@ export const AutomationTaskView = (): JSX.Element => {
     setTasks(prev => [nextTask, ...prev]);
     setCurrentPage(1);
     closeTaskModal();
-    message.success("已创建 PRD 示例任务");
+    message.success("已创建自动化任务");
   }, [buildTaskFromDraft, closeTaskModal, createDisabled]);
 
   const handleOpenEditModal = useCallback(
@@ -653,8 +597,6 @@ export const AutomationTaskView = (): JSX.Element => {
         description: task.description,
         agentId: task.executorAgentId,
         bindingMode: task.bindingMode,
-        spaceId: task.spaceId ?? "",
-        channelId: task.channelId ?? "",
         sessionId: task.sessionId ?? "",
         scheduleKind: task.scheduleKind,
         everyMinutes:
@@ -682,7 +624,7 @@ export const AutomationTaskView = (): JSX.Element => {
       ),
     );
     closeTaskModal();
-    message.success("已更新 PRD 示例任务");
+    message.success("已更新自动化任务");
   }, [buildTaskFromDraft, closeTaskModal, createDisabled, editingTaskId]);
 
   const handlePauseResumeTask = useCallback((taskId: number): void => {
@@ -720,7 +662,7 @@ export const AutomationTaskView = (): JSX.Element => {
                 sequence: nextSequence,
                 taskTime: runAt,
                 status: "completed",
-                result: `${employeeById.get(item.executorAgentId)?.name ?? "AI 专家"} 已完成这次模拟执行。`,
+                result: `${employeeById.get(item.executorAgentId)?.name ?? "Agent"} 已完成这次模拟执行。`,
               },
               ...item.runs,
             ],
@@ -735,14 +677,14 @@ export const AutomationTaskView = (): JSX.Element => {
   const handleDeleteTask = useCallback((taskId: number): void => {
     setTasks(prev => prev.filter(item => item.taskId !== taskId));
     setExpandedTaskId(prev => (prev === taskId ? undefined : prev));
-    message.success("已删除 PRD 示例任务");
+    message.success("已删除自动化任务");
   }, []);
 
   const handleDeleteTaskConfirm = useCallback(
     (taskId: number): void => {
       Modal.confirm({
         title: "删除任务",
-        content: "确认删除该 PRD 示例任务吗？",
+        content: "确认删除该自动化任务吗？",
         okText: "删除",
         okButtonProps: { danger: true },
         cancelText: "取消",
@@ -756,7 +698,7 @@ export const AutomationTaskView = (): JSX.Element => {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [keyword, selectedAgentId, selectedChannelId, selectedQuickFilter, selectedSpaceId]);
+  }, [keyword, selectedAgentId, selectedBindingMode, selectedQuickFilter, selectedScheduleKind]);
 
   const renderTaskAttachmentList = (attachments: TaskAttachmentItem[]): JSX.Element => {
     if (!attachments.length) {
@@ -795,43 +737,48 @@ export const AutomationTaskView = (): JSX.Element => {
             <div className={automationStyles.filtersRow}>
               <div className={automationStyles.filterGroup}>
                 <Select<string>
-                  value={selectedSpaceId || undefined}
-                  className={automationStyles.filterSelect}
-                  suffixIcon={<DownOutlined className={automationStyles.filterArrow} />}
-                  options={spaceOptions}
-                  onChange={value => setSelectedSpaceId(value)}
-                  allowClear={true}
-                  popupMatchSelectWidth={false}
-                  optionFilterProp="label"
-                  showSearch={true}
-                  prefix={<FolderOutlined className={automationStyles.filterPrefixIcon} />}
-                  placeholder="空间"
-                />
-
-                <Select<string>
-                  value={selectedChannelId || undefined}
-                  className={automationStyles.filterSelect}
-                  suffixIcon={<DownOutlined className={automationStyles.filterArrow} />}
-                  options={channelOptions}
-                  onChange={value => setSelectedChannelId(value)}
-                  allowClear={true}
-                  popupMatchSelectWidth={false}
-                  optionFilterProp="label"
-                  showSearch={true}
-                  prefix={<NumberOutlined className={automationStyles.filterPrefixIcon} />}
-                  placeholder="频道"
-                />
-
-                <Select<string>
                   value={selectedAgentId}
                   className={automationStyles.filterSelect}
                   suffixIcon={<DownOutlined className={automationStyles.filterArrow} />}
-                  options={[{ label: "全部", value: "all" }, ...agentOptions]}
+                  options={[{ label: "全部 Agent", value: "all" }, ...agentOptions]}
                   onChange={value => setSelectedAgentId(value)}
                   popupMatchSelectWidth={false}
                   optionFilterProp="label"
                   showSearch={true}
                   prefix={<RobotOutlined className={automationStyles.filterPrefixIcon} />}
+                />
+
+                <Select<string>
+                  value={selectedBindingMode}
+                  className={automationStyles.filterSelect}
+                  suffixIcon={<DownOutlined className={automationStyles.filterArrow} />}
+                  options={[
+                    { label: "全部会话", value: "all" },
+                    { label: "新会话", value: "newSession" },
+                    { label: "已有会话", value: "session" },
+                  ]}
+                  onChange={value => setSelectedBindingMode(value as BindingModeFilter)}
+                  popupMatchSelectWidth={false}
+                  optionFilterProp="label"
+                  showSearch={true}
+                  prefix={<MessageOutlined className={automationStyles.filterPrefixIcon} />}
+                />
+
+                <Select<string>
+                  value={selectedScheduleKind}
+                  className={automationStyles.filterSelect}
+                  suffixIcon={<DownOutlined className={automationStyles.filterArrow} />}
+                  options={[
+                    { label: "全部周期", value: "all" },
+                    { label: "单次", value: "at" },
+                    { label: "间隔", value: "every" },
+                    { label: "Cron", value: "cron" },
+                  ]}
+                  onChange={value => setSelectedScheduleKind(value as ScheduleKindFilter)}
+                  popupMatchSelectWidth={false}
+                  optionFilterProp="label"
+                  showSearch={true}
+                  prefix={<ClockCircleOutlined className={automationStyles.filterPrefixIcon} />}
                 />
               </div>
 
@@ -845,7 +792,7 @@ export const AutomationTaskView = (): JSX.Element => {
               />
             </div>
 
-            <section className={automationStyles.tableWrap} aria-label="PRD 自动化任务列表">
+            <section className={automationStyles.tableWrap} aria-label="FrontisAI 自动化任务列表">
               <div className={automationStyles.tableHeader}>
                 <div className={automationStyles.taskColHeader}>任务</div>
                 <div>执行者</div>
@@ -860,7 +807,7 @@ export const AutomationTaskView = (): JSX.Element => {
                   pagedTasks.map(task => {
                     const isExpanded = expandedTaskId === task.taskId;
                     const executorName =
-                      employeeById.get(task.executorAgentId)?.name ?? "未命名专家";
+                      employeeById.get(task.executorAgentId)?.name ?? "未命名 Agent";
 
                     return (
                       <div
@@ -946,15 +893,11 @@ export const AutomationTaskView = (): JSX.Element => {
                               <div className={localStyles.bindingMetaCard}>
                                 <span className={localStyles.bindingMetaLabel}>绑定方式</span>
                                 <span className={localStyles.bindingMetaValue}>
-                                  {task.bindingMode === "agent"
-                                    ? "仅 AI 专家"
-                                    : task.bindingMode === "channel"
-                                      ? "空间 / 频道"
-                                      : "专家会话"}
+                                  {task.bindingMode === "session" ? "已有会话" : "新会话"}
                                 </span>
                               </div>
                               <div className={localStyles.bindingMetaCard}>
-                                <span className={localStyles.bindingMetaLabel}>执行专家</span>
+                                <span className={localStyles.bindingMetaLabel}>执行 Agent</span>
                                 <span className={localStyles.bindingMetaValue}>{executorName}</span>
                               </div>
                               <div className={localStyles.bindingMetaCard}>
@@ -1062,7 +1005,10 @@ export const AutomationTaskView = (): JSX.Element => {
                   })
                 ) : (
                   <div className={automationStyles.emptyWrap}>
-                    <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="暂无任务" />
+                    <Empty
+                      image={Empty.PRESENTED_IMAGE_SIMPLE}
+                      description={employees.length ? "暂无任务" : "当前账号暂未分配 Agent"}
+                    />
                   </div>
                 )}
               </div>
@@ -1084,6 +1030,7 @@ export const AutomationTaskView = (): JSX.Element => {
             <button
               type="button"
               className={automationStyles.createButton}
+              disabled={!employees.length}
               onClick={openCreateModal}
             >
               <PlusOutlined className={automationStyles.createButtonIcon} />
@@ -1179,7 +1126,7 @@ export const AutomationTaskView = (): JSX.Element => {
 
           <div className={automationStyles.modalBody}>
             <div className={automationStyles.formBlock}>
-              <div className={automationStyles.formLabel}>AI 专家</div>
+              <div className={automationStyles.formLabel}>Agent</div>
               <Select<string>
                 value={draft.agentId || undefined}
                 className={automationStyles.modalSelect}
@@ -1187,7 +1134,7 @@ export const AutomationTaskView = (): JSX.Element => {
                 suffixIcon={<DownOutlined className={automationStyles.filterArrow} />}
                 optionFilterProp="label"
                 showSearch={true}
-                placeholder="先选择一个 AI 专家"
+                placeholder="先选择一个 Agent"
                 prefix={<RobotOutlined className={automationStyles.filterPrefixIcon} />}
                 onChange={handleDraftAgentChange}
               />
@@ -1196,14 +1143,12 @@ export const AutomationTaskView = (): JSX.Element => {
                   <span className={localStyles.agentSummaryTitle}>
                     {selectedDraftAgent.name} · {getAvatarText(selectedDraftAgent.name)}
                   </span>
-                  <span className={localStyles.agentSummaryMeta}>
-                    {selectedDraftAgent.role} · {selectedDraftWorkspace?.name ?? "未分配工作站"}
-                  </span>
+                  <span className={localStyles.agentSummaryMeta}>{selectedDraftAgent.role}</span>
                   <span className={localStyles.agentSummaryMeta}>{selectedDraftAgent.summary}</span>
                 </div>
               ) : (
                 <div className={automationStyles.formHint}>
-                  先选专家，再决定是否绑定频道上下文或某个历史会话。
+                  先选 Agent，再决定绑定已有会话，还是为任务创建一个新会话。
                 </div>
               )}
             </div>
@@ -1295,33 +1240,22 @@ export const AutomationTaskView = (): JSX.Element => {
             ) : null}
 
             <div className={automationStyles.formBlock}>
-              <div className={automationStyles.formLabel}>上下文绑定</div>
+              <div className={automationStyles.formLabel}>会话绑定</div>
               <div
                 className={localStyles.contextModeTabs}
                 role="tablist"
-                aria-label="上下文绑定方式"
+                aria-label="会话绑定方式"
               >
                 <button
                   type="button"
                   role="tab"
-                  aria-selected={draft.bindingMode === "agent"}
+                  aria-selected={draft.bindingMode === "newSession"}
                   className={classNames(localStyles.contextModeTab, {
-                    [localStyles.contextModeTabActive]: draft.bindingMode === "agent",
+                    [localStyles.contextModeTabActive]: draft.bindingMode === "newSession",
                   })}
-                  onClick={() => handleDraftBindingModeChange("agent")}
+                  onClick={() => handleDraftBindingModeChange("newSession")}
                 >
-                  只选 AI 专家
-                </button>
-                <button
-                  type="button"
-                  role="tab"
-                  aria-selected={draft.bindingMode === "channel"}
-                  className={classNames(localStyles.contextModeTab, {
-                    [localStyles.contextModeTabActive]: draft.bindingMode === "channel",
-                  })}
-                  onClick={() => handleDraftBindingModeChange("channel")}
-                >
-                  绑定空间 / 频道
+                  新会话
                 </button>
                 <button
                   type="button"
@@ -1332,7 +1266,7 @@ export const AutomationTaskView = (): JSX.Element => {
                   })}
                   onClick={() => handleDraftBindingModeChange("session")}
                 >
-                  绑定专家会话
+                  已有会话
                 </button>
               </div>
               <div className={localStyles.contextModePanel}>
@@ -1345,37 +1279,16 @@ export const AutomationTaskView = (): JSX.Element => {
               </div>
             </div>
 
-            {draft.bindingMode === "channel" ? (
+            {draft.bindingMode === "newSession" ? (
               <div className={automationStyles.formBlock}>
-                <div className={automationStyles.formLabel}>空间与频道</div>
-                <div className={localStyles.bindingSelectGrid}>
-                  <Select<string>
-                    value={draft.spaceId || undefined}
-                    className={automationStyles.modalSelect}
-                    options={spaceOptions}
-                    suffixIcon={<DownOutlined className={automationStyles.filterArrow} />}
-                    optionFilterProp="label"
-                    showSearch={true}
-                    placeholder="选择空间"
-                    prefix={<FolderOutlined className={automationStyles.filterPrefixIcon} />}
-                    onChange={handleDraftSpaceChange}
-                  />
-                  <Select<string>
-                    value={draft.channelId || undefined}
-                    className={automationStyles.modalSelect}
-                    options={draftChannelOptions}
-                    suffixIcon={<DownOutlined className={automationStyles.filterArrow} />}
-                    optionFilterProp="label"
-                    showSearch={true}
-                    placeholder="选择频道"
-                    prefix={<NumberOutlined className={automationStyles.filterPrefixIcon} />}
-                    onChange={value => handleDraftValueChange("channelId", value)}
-                  />
-                </div>
+                <div className={automationStyles.formLabel}>新会话预览</div>
                 <div className={localStyles.bindingPreview}>
-                  <span className={localStyles.bindingPreviewItem}>空间和频道现在是可选绑定</span>
+                  <span className={localStyles.bindingPreviewItem}>执行时自动创建新会话</span>
                   <span className={localStyles.bindingPreviewItem}>
-                    选了频道后任务结果默认回到该频道
+                    会话标题：{newSessionPreviewTitle}
+                  </span>
+                  <span className={localStyles.bindingPreviewItem}>
+                    结果会写回该会话的成果面板
                   </span>
                 </div>
               </div>
@@ -1383,7 +1296,7 @@ export const AutomationTaskView = (): JSX.Element => {
 
             {draft.bindingMode === "session" ? (
               <div className={automationStyles.formBlock}>
-                <div className={automationStyles.formLabel}>专家会话</div>
+                <div className={automationStyles.formLabel}>已有会话</div>
                 {draft.agentId && draftSessionOptions.length ? (
                   <Select<string>
                     value={draft.sessionId || undefined}
@@ -1392,14 +1305,14 @@ export const AutomationTaskView = (): JSX.Element => {
                     suffixIcon={<DownOutlined className={automationStyles.filterArrow} />}
                     optionFilterProp="label"
                     showSearch={true}
-                    placeholder="选择该专家的某个会话"
+                    placeholder="选择该 Agent 的某个会话"
                     onChange={value => handleDraftValueChange("sessionId", value)}
                   />
                 ) : (
                   <div className={localStyles.emptySessionHint}>
                     {draft.agentId
-                      ? "这个 AI 专家当前还没有可绑定的会话示例。"
-                      : "先选择一个 AI 专家，再绑定它的某个会话。"}
+                      ? "这个 Agent 当前还没有可绑定的历史会话，可切换为新会话。"
+                      : "先选择一个 Agent，再绑定它的某个会话。"}
                   </div>
                 )}
               </div>

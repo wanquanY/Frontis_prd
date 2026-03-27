@@ -1,0 +1,758 @@
+.agentStoreSceneList {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.agentStoreSceneSection {
+  padding: 18px;
+  border: 1px solid color-mix(in srgb, var(--text) 8%, var(--border));
+  border-radius: 24px;
+  background: color-mix(in srgb, var(--text) 2%, var(--surface));
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.agentStoreRequestSection {
+  background: linear-gradient(
+    160deg,
+    color-mix(in srgb, var(--primary) 4%, var(--surface)) 0%,
+    color-mix(in srgb, var(--text) 2%, var(--surface)) 100%
+  );
+}
+
+.agentStoreSceneHeader,
+.agentStoreSceneGroupHeader,
+.agentStoreSceneStats {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.agentStoreSceneHeader,
+.agentStoreSceneGroupHeader {
+  justify-content: space-between;
+}
+
+.agentStoreSceneHeaderBody,
+.agentStoreSceneGroup {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+}
+
+.agentStoreSceneHeaderBody,
+.agentStoreSceneGroup {
+  gap: 10px;
+}
+
+.agentStoreSceneEyebrow {
+  color: var(--primary);
+  font-size: 12px;
+  line-height: 18px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.agentStoreSceneTitle {
+  color: var(--text);
+  font-size: 24px;
+  line-height: 32px;
+  font-weight: 700;
+}
+
+.agentStoreSceneDescription,
+.agentStoreSceneGroupMeta {
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.agentStoreSceneStats {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.agentStoreSceneStatPill {
+  min-height: 28px;
+  padding: 0 10px;
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--primary) 8%, var(--surface));
+  color: var(--text);
+  font-size: 12px;
+  line-height: 18px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.agentStoreSceneGroupTitle {
+  color: var(--text);
+  font-size: 15px;
+  line-height: 22px;
+  font-weight: 600;
+}
+
+.agentStoreSceneGrid {
+  animation: none;
+}
+
+.agentStoreMainCard {
+  overflow: visible;
+}
+
+.agentStoreScenarioBar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.agentStoreScenarioButton {
+  min-height: 38px;
+  padding: 0 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid color-mix(in srgb, var(--text) 8%, var(--border));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--text) 3%, var(--surface));
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 20px;
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    border-color 160ms ease,
+    background 160ms ease,
+    color 160ms ease,
+    transform 160ms ease;
+}
+
+.agentStoreScenarioButton:hover {
+  transform: translateY(-1px);
+  border-color: color-mix(in srgb, var(--primary) 26%, var(--border));
+}
+
+.agentStoreScenarioButtonActive {
+  border-color: color-mix(in srgb, var(--primary) 34%, var(--border));
+  background: color-mix(in srgb, var(--primary) 10%, var(--surface));
+  color: var(--text);
+}
+
+.agentStoreScenarioCount {
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--surface) 88%, transparent);
+  color: var(--text-muted);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.agentStoreToolbarPill {
+  min-height: 28px;
+  padding: 0 10px;
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--text) 4%, var(--surface));
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.agentStoreCardOwned {
+  background: var(--surface);
+}
+
+.agentStoreCardMarket,
+.agentStoreRequestCard {
+  border: 1px dashed color-mix(in srgb, var(--primary) 18%, var(--border));
+  background: linear-gradient(
+    160deg,
+    color-mix(in srgb, var(--primary) 4%, var(--surface)) 0%,
+    color-mix(in srgb, var(--text) 2%, var(--surface)) 100%
+  );
+}
+
+.agentStoreStatusRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.agentStoreCardOwned .agentStoreStatusRow {
+  padding-right: 104px;
+}
+
+.agentStoreStatusBadge {
+  min-height: 24px;
+  padding: 0 10px;
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  font-size: 12px;
+  line-height: 18px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.agentStoreStatusBadgeOwned {
+  background: color-mix(in srgb, var(--primary) 14%, var(--surface));
+  color: var(--primary);
+}
+
+.agentStoreStatusBadgePending {
+  background: color-mix(in srgb, var(--text) 6%, var(--surface));
+  color: var(--text-secondary);
+}
+
+.agentStoreStatusBadgeRequest {
+  background: color-mix(in srgb, var(--primary) 10%, var(--surface));
+  color: var(--text);
+}
+
+.agentStoreStatusMeta,
+.agentStoreLeadHint,
+.agentStoreRequestDescription,
+.agentStoreRequestHint,
+.agentStoreHoverOverlayText {
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.agentStoreStatusMeta {
+  text-align: right;
+}
+
+.agentStoreMarketAvatar,
+.agentStoreRequestIcon {
+  background: color-mix(in srgb, var(--text) 6%, var(--surface));
+  color: var(--text);
+}
+
+.agentStoreMarketHighlight {
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--text) 4%, var(--surface));
+  color: var(--text);
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.agentStoreCapabilityList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.agentStoreCapabilityTag {
+  min-height: 24px;
+  padding: 0 8px;
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--primary) 8%, var(--surface));
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.agentStoreHoverOverlay {
+  position: absolute;
+  inset: 0;
+  padding: 14px;
+  display: flex;
+  align-items: flex-end;
+  border-radius: inherit;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--surface) 12%, transparent) 0%,
+    color-mix(in srgb, var(--primary) 16%, transparent) 100%
+  );
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 160ms ease;
+}
+
+.agentStoreHoverOverlayBody {
+  width: 100%;
+  padding: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--surface) 92%, transparent);
+  box-shadow: var(--shadow-sm);
+  pointer-events: none;
+}
+
+.agentStoreCardMarket:hover .agentStoreHoverOverlay,
+.agentStoreCardMarket:focus-visible .agentStoreHoverOverlay,
+.agentStoreCardMarket:focus-within .agentStoreHoverOverlay,
+.agentStoreRequestCard:hover .agentStoreHoverOverlay,
+.agentStoreRequestCard:focus-visible .agentStoreHoverOverlay,
+.agentStoreRequestCard:focus-within .agentStoreHoverOverlay {
+  opacity: 1;
+}
+
+.agentStoreHoverOverlayAction {
+  pointer-events: auto;
+}
+
+.agentStoreRequestCard {
+  justify-content: space-between;
+}
+
+.agentStoreRequestBody {
+  min-height: 100%;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  justify-content: center;
+  gap: 10px;
+}
+
+.agentStoreRequestIcon {
+  width: 44px;
+  height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 14px;
+  font-size: 18px;
+}
+
+.agentStoreRequestTitle {
+  color: var(--text);
+  font-size: 20px;
+  line-height: 28px;
+  font-weight: 600;
+}
+
+.agentStoreDemandGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.agentStoreDemandGridFull {
+  grid-column: 1 / -1;
+}
+
+.agentFooter {
+  color: var(--text-muted);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.detailBlock {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.detailBlockTitle {
+  color: var(--text);
+  font-size: 15px;
+  line-height: 22px;
+  font-weight: 600;
+}
+
+.infoList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.deviceHint {
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--primary) 5%, var(--surface));
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.providerTitle {
+  font-size: 18px;
+}
+
+.providerSearchInput {
+  width: 260px;
+}
+
+.providerList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.providerLayout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 184px;
+  gap: 16px;
+}
+
+.providerMain {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.providerIdentity {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.providerLogo {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--primary) 14%, var(--surface));
+  color: var(--primary);
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.providerBody {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.providerTitleRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.providerCapabilityRow,
+.providerModelList,
+.providerModalModelList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.providerCapability {
+  min-height: 24px;
+  padding: 0 8px;
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--text) 5%, var(--surface));
+  color: var(--text-muted);
+  font-size: 11px;
+  line-height: 16px;
+}
+
+.providerFooter {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.providerModelsToggle {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  font-size: 13px;
+  line-height: 20px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.providerModelsToggle:disabled {
+  color: var(--text-muted);
+  cursor: not-allowed;
+}
+
+.providerFooterMeta,
+.providerPanelHint,
+.providerStatusText,
+.providerModelsEmpty,
+.providerFieldHint,
+.providerStatusBannerText,
+.providerModalDescription {
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.providerStatusPanel {
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  border: 1px solid color-mix(in srgb, var(--text) 8%, transparent);
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--surface) 98%, var(--app-bg));
+}
+
+.providerStatusHeader,
+.providerModelsPanelHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.providerStatusValue {
+  color: var(--text);
+  font-size: 13px;
+  line-height: 20px;
+  font-weight: 600;
+  word-break: break-all;
+}
+
+.providerStatusDot {
+  width: 10px;
+  height: 10px;
+  flex-shrink: 0;
+  border-radius: 50%;
+}
+
+.providerStatusSuccess {
+  background: var(--primary);
+}
+
+.providerStatusWarning {
+  background: color-mix(in srgb, var(--text) 26%, var(--surface));
+}
+
+.providerStatusDanger {
+  background: color-mix(in srgb, var(--text) 52%, var(--app-bg));
+}
+
+.providerModalContent {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.providerModalForm {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.providerField {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.providerFieldLabel,
+.providerStatusBannerTitle {
+  color: var(--text);
+  font-size: 13px;
+  line-height: 20px;
+  font-weight: 600;
+}
+
+.providerModalActions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.providerStatusBanner,
+.providerModelsPanel {
+  padding: 14px;
+  border-radius: 16px;
+  border: 1px solid color-mix(in srgb, var(--text) 8%, transparent);
+}
+
+.providerStatusBanner {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.providerStatusBannerSuccess {
+  background: color-mix(in srgb, var(--primary) 8%, var(--surface));
+}
+
+.providerStatusBannerWarning {
+  background: color-mix(in srgb, var(--text) 4%, var(--surface));
+}
+
+.providerStatusBannerDanger {
+  background: color-mix(in srgb, var(--text) 8%, var(--app-bg));
+}
+
+.providerModelsEmpty {
+  padding: 6px 0;
+}
+
+.overrideGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.filterSelect,
+.fieldSelect {
+  min-width: 180px;
+}
+
+.searchInput {
+  width: 220px;
+}
+
+.healthMeta {
+  justify-content: flex-end;
+}
+
+@media (max-width: 1280px) {
+  .heroCard,
+  .splitLayout,
+  .dashboardGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .summaryGrid,
+  .dashboardMetricGrid,
+  .taskComposerGrid,
+  .agentGrid,
+  .providerGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .dashboardPanelWide,
+  .dashboardPanelSide {
+    grid-column: auto;
+  }
+}
+
+@media (max-width: 1120px) {
+  .providerLayout {
+    grid-template-columns: 1fr;
+  }
+
+  .agentStoreSceneHeader,
+  .agentStoreSceneGroupHeader {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .agentStoreHoverOverlayBody {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .dashboardDonutRow,
+  .dashboardHeroAside {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .deviceGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 960px) {
+  .view {
+    padding: 8px;
+  }
+
+  .detailGrid,
+  .overrideGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .toolbarRow,
+  .sectionHeader {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .agentStoreDemandGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .agentStoreScenarioBar {
+    gap: 8px;
+  }
+
+  .agentStoreScenarioButton {
+    justify-content: space-between;
+  }
+
+  .agentStoreSceneSection {
+    padding: 16px;
+  }
+
+  .agentStoreSceneStats {
+    justify-content: flex-start;
+  }
+
+  .agentStoreCardActions {
+    position: static;
+    opacity: 1;
+    transform: none;
+    align-self: flex-end;
+  }
+
+  .agentStoreHoverOverlay {
+    position: static;
+    inset: auto;
+    padding: 0;
+    background: transparent;
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .dashboardFilterBar,
+  .dashboardToggleGroup,
+  .dashboardDocumentStats {
+    grid-template-columns: 1fr;
+    flex-direction: column;
+  }
+
+  .filterSelect,
+  .fieldSelect,
+  .searchInput,
+  .dashboardFilterSelect,
+  .dashboardFilterSelectWide {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .providerIdentity,
+  .providerStatusHeader,
+  .providerModelsPanelHeader {
+    align-items: flex-start;
+  }
+
+  .dashboardHeatmapHeader,
+  .dashboardHeatmapRow {
+    grid-template-columns: 44px repeat(24, minmax(10px, 1fr));
+    gap: 4px;
+  }
+
+  .tableRow {
+    grid-template-columns: 1fr;
+  }
+}

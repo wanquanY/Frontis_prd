@@ -1,0 +1,208 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+.heroSection,
+.spotlightSection {
+  padding: 32px;
+}
+
+.heroSection {
+  display: grid;
+  gap: 18px;
+  padding-top: calc(var(--portalHeaderDockSpace) + 24px);
+}
+
+.heroTitle {
+  margin-top: 12px;
+  font-size: clamp(38px, 5vw, 62px);
+  line-height: 1;
+  font-weight: 700;
+  letter-spacing: -0.05em;
+}
+
+.heroDescription,
+.caseSummary {
+  margin-top: 18px;
+  font-size: 17px;
+  line-height: 1.85;
+}
+
+.filterRow,
+.sectionHeading,
+.caseMeta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.filterButton {
+  min-height: 42px;
+  padding: 0 16px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(248, 250, 252, 0.72);
+  font-size: 14px;
+  line-height: 1;
+  transition:
+    background 180ms ease,
+    border-color 180ms ease,
+    color 180ms ease,
+    transform 180ms ease;
+
+  &:hover {
+    transform: translateY(-1px);
+  }
+}
+
+.isActiveFilterButton {
+  background: rgba(125, 226, 241, 0.12);
+  border-color: rgba(125, 226, 241, 0.24);
+  color: #f8fafc;
+}
+
+.sectionHeading {
+  justify-content: space-between;
+}
+
+.spotlightBody,
+.metricGrid,
+.caseGrid {
+  display: grid;
+  gap: 16px;
+}
+
+.spotlightBody {
+  margin-top: 22px;
+  grid-template-columns: minmax(0, 1.08fr) minmax(320px, 0.92fr);
+}
+
+.spotlightMedia {
+  overflow: hidden;
+  border-radius: 30px;
+}
+
+.spotlightImage,
+.caseImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.spotlightContent {
+  padding: 26px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 30px;
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.customerName,
+.caseCustomer,
+.metricLabel {
+  color: rgba(15, 23, 42, 0.62);
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.customerName {
+  margin-top: 16px;
+}
+
+.metricGrid {
+  margin: 20px 0 24px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.metricCard {
+  padding: 18px;
+  border-radius: 22px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  background: rgba(15, 23, 42, 0.03);
+}
+
+.metricValue {
+  font-size: 24px;
+  line-height: 1.15;
+  font-weight: 700;
+  letter-spacing: -0.04em;
+}
+
+.gridSection {
+  padding-bottom: 4px;
+}
+
+.caseGrid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.caseCard {
+  overflow: hidden;
+}
+
+.caseImage {
+  height: 260px;
+}
+
+.caseBody {
+  padding: 22px;
+}
+
+.caseMeta {
+  justify-content: space-between;
+}
+
+.caseTitle {
+  margin-top: 14px;
+  font-size: 28px;
+  line-height: 1.08;
+  font-weight: 700;
+  letter-spacing: -0.04em;
+}
+
+.caseSummary {
+  color: rgba(15, 23, 42, 0.68);
+  font-size: 15px;
+}
+
+.caseLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 18px;
+  color: #0f172a;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+@media (max-width: 1120px) {
+  .spotlightBody,
+  .caseGrid,
+  .metricGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .spotlightBody {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 840px) {
+  .heroSection,
+  .spotlightSection {
+    padding: 22px;
+  }
+
+  .heroSection {
+    padding-top: calc(var(--portalHeaderDockSpace) + 18px);
+  }
+
+  .caseGrid,
+  .metricGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

@@ -133,7 +133,7 @@
   flex: 1;
   min-width: 0;
   display: grid;
-  grid-template-columns: 134px 134px 106px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
 }
 
@@ -575,6 +575,7 @@
 
 .createButton {
   height: 40px;
+  border: 0;
   border-radius: 12px;
   background: var(--automation-black);
   color: var(--automation-white);
@@ -585,6 +586,12 @@
   font-size: 14px;
   line-height: 20px;
   font-weight: 500;
+  cursor: pointer;
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.48;
+  }
 }
 
 .createButtonIcon {

@@ -1,0 +1,907 @@
+.pageShell {
+  position: relative;
+  width: 100dvw;
+  max-width: 100dvw;
+  margin-left: calc(50% - 50dvw);
+  margin-right: calc(50% - 50dvw);
+  overflow-x: clip;
+}
+
+.pageViewport {
+  position: relative;
+  width: 100%;
+}
+
+.pageNav {
+  position: fixed;
+  top: 50%;
+  right: clamp(16px, 2vw, 28px);
+  z-index: 10;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 28px;
+  background: rgba(7, 17, 31, 0.54);
+  backdrop-filter: blur(18px);
+  box-shadow: 0 24px 80px rgba(7, 17, 31, 0.18);
+}
+
+.pageNavMeta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  color: rgba(248, 250, 252, 0.76);
+}
+
+.pageNavIndex {
+  font-size: 18px;
+  line-height: 1.1;
+  font-weight: 700;
+}
+
+.pageNavLabel {
+  font-size: 12px;
+  line-height: 1.4;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.pageNavDots {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.pageNavButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 34px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: transparent;
+  color: rgba(248, 250, 252, 0.52);
+  transition:
+    color 180ms ease,
+    background 180ms ease,
+    transform 180ms ease;
+
+  &:hover {
+    color: rgba(248, 250, 252, 0.86);
+    transform: translateX(-2px);
+  }
+}
+
+.pageNavDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.28);
+  transition:
+    background 180ms ease,
+    transform 180ms ease;
+}
+
+.pageNavText {
+  font-size: 12px;
+  line-height: 1;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.isActivePageNavButton {
+  color: #f8fafc;
+  background: rgba(255, 255, 255, 0.06);
+
+  .pageNavDot {
+    background: #7de2f1;
+    transform: scale(1.25);
+  }
+}
+
+.pageSection {
+  position: relative;
+  min-height: 100vh;
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  padding: 36px 0 112px;
+  border: none;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  backdrop-filter: none;
+  isolation: isolate;
+}
+
+.sectionCue {
+  appearance: none;
+  border: none;
+  padding: 0;
+  background: transparent;
+  font: inherit;
+  white-space: nowrap;
+  cursor: pointer;
+  position: absolute;
+  left: 50%;
+  bottom: 26px;
+  transform: translateX(-50%);
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  color: rgba(248, 250, 252, 0.72);
+  transition:
+    transform 180ms ease,
+    color 180ms ease;
+
+  &:hover {
+    transform: translateX(-50%) translateY(-2px);
+    color: rgba(248, 250, 252, 0.92);
+  }
+}
+
+.isLightSectionCue {
+  color: rgba(15, 23, 42, 0.54);
+
+  &:hover {
+    color: rgba(15, 23, 42, 0.82);
+  }
+}
+
+.sectionCueMeta {
+  font-size: 10px;
+  line-height: 1;
+  font-weight: 700;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+}
+
+.sectionCueLine {
+  width: 1px;
+  height: 24px;
+  background: linear-gradient(180deg, transparent, currentColor 35%, transparent);
+  opacity: 0.52;
+}
+
+.sectionCueChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 42px;
+  padding: 0 16px;
+  border: 1px solid rgba(125, 226, 241, 0.18);
+  border-radius: 999px;
+  background:
+    linear-gradient(135deg, rgba(125, 226, 241, 0.08), rgba(7, 17, 31, 0.34)), rgba(7, 17, 31, 0.22);
+  box-shadow: 0 18px 36px rgba(7, 17, 31, 0.18);
+  backdrop-filter: blur(16px);
+  font-size: 13px;
+  line-height: 1;
+}
+
+.isLightSectionCue .sectionCueChip {
+  border-color: rgba(15, 23, 42, 0.08);
+  background:
+    linear-gradient(135deg, rgba(125, 226, 241, 0.12), rgba(255, 255, 255, 0.86)),
+    rgba(255, 255, 255, 0.72);
+  box-shadow: 0 18px 40px rgba(148, 163, 184, 0.16);
+}
+
+.sectionCueIndex {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.sectionCueLabel {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.sectionInner {
+  width: min(1280px, calc(100% - 320px));
+  margin: 0 auto;
+  padding: 0 32px;
+  box-sizing: border-box;
+}
+
+.heroSection,
+.archSection,
+.caseSection,
+.ctaSection {
+  color: var(--portalTextPrimary);
+}
+
+.heroSection {
+  background:
+    radial-gradient(circle at 82% 24%, rgba(125, 226, 241, 0.14), transparent 22%),
+    radial-gradient(circle at 14% 88%, rgba(84, 110, 255, 0.12), transparent 20%),
+    linear-gradient(180deg, #081321 0%, #0d1d31 100%);
+}
+
+.valueSection,
+.scenarioSection,
+.agentSection {
+  position: relative;
+  overflow: hidden;
+  color: var(--portalTextOnLight);
+}
+
+.valueSection {
+  background:
+    radial-gradient(circle at 14% 18%, rgba(125, 226, 241, 0.22), transparent 24%),
+    radial-gradient(circle at 84% 12%, rgba(84, 110, 255, 0.14), transparent 18%),
+    radial-gradient(circle at 52% 88%, rgba(255, 255, 255, 0.82), transparent 28%),
+    linear-gradient(180deg, #e7eef7 0%, #f8fafc 26%, #edf4fb 100%);
+}
+
+.archSection {
+  background:
+    radial-gradient(circle at 18% 24%, rgba(125, 226, 241, 0.12), transparent 20%),
+    linear-gradient(180deg, #07111f 0%, #0b182b 100%);
+}
+
+.scenarioSection {
+  background:
+    radial-gradient(circle at 76% 22%, rgba(125, 226, 241, 0.18), transparent 20%),
+    radial-gradient(circle at 18% 82%, rgba(84, 110, 255, 0.1), transparent 24%),
+    radial-gradient(circle at 50% 12%, rgba(255, 255, 255, 0.78), transparent 22%),
+    linear-gradient(180deg, #eef3f8 0%, #fbfcfd 24%, #eff4fa 100%);
+}
+
+.caseSection {
+  background:
+    radial-gradient(circle at 76% 28%, rgba(125, 226, 241, 0.1), transparent 18%),
+    linear-gradient(180deg, #091423 0%, #0e1d31 100%);
+}
+
+.agentSection {
+  align-items: flex-start;
+  padding-top: calc(var(--portalHeaderDockSpace) + 24px);
+  padding-bottom: 96px;
+  background:
+    radial-gradient(circle at 20% 20%, rgba(125, 226, 241, 0.2), transparent 22%),
+    radial-gradient(circle at 86% 78%, rgba(84, 110, 255, 0.1), transparent 22%),
+    radial-gradient(circle at 48% 50%, rgba(255, 255, 255, 0.72), transparent 26%),
+    linear-gradient(180deg, #e8eff8 0%, #f7fafd 24%, #edf3fa 100%);
+}
+
+.ctaSection {
+  background:
+    radial-gradient(circle at 50% 18%, rgba(125, 226, 241, 0.12), transparent 22%),
+    linear-gradient(180deg, #07111f 0%, #0a1728 100%);
+}
+
+.heroSection,
+.valueSection,
+.archSection,
+.scenarioSection,
+.agentSection,
+.ctaSection {
+  position: relative;
+  overflow: hidden;
+}
+
+.valueSection::before,
+.scenarioSection::before,
+.agentSection::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(15, 23, 42, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(15, 23, 42, 0.035) 1px, transparent 1px);
+  background-size: 136px 136px;
+  mask-image: radial-gradient(circle at center, rgba(0, 0, 0, 0.9), transparent 84%);
+  opacity: 0.32;
+}
+
+.valueSection::after,
+.scenarioSection::after,
+.agentSection::after {
+  content: "";
+  position: absolute;
+  inset: -10%;
+  border-radius: 999px;
+  filter: blur(36px);
+}
+
+.valueSection::after {
+  background:
+    radial-gradient(circle at 22% 22%, rgba(125, 226, 241, 0.18), transparent 18%),
+    radial-gradient(circle at 82% 18%, rgba(84, 110, 255, 0.12), transparent 16%),
+    radial-gradient(circle at 48% 72%, rgba(255, 255, 255, 0.56), transparent 22%);
+}
+
+.scenarioSection::after {
+  background:
+    radial-gradient(circle at 78% 24%, rgba(125, 226, 241, 0.16), transparent 18%),
+    radial-gradient(circle at 20% 78%, rgba(84, 110, 255, 0.1), transparent 18%),
+    radial-gradient(circle at 52% 50%, rgba(255, 255, 255, 0.52), transparent 24%);
+}
+
+.agentSection::after {
+  background:
+    radial-gradient(circle at 18% 18%, rgba(125, 226, 241, 0.18), transparent 18%),
+    radial-gradient(circle at 84% 76%, rgba(84, 110, 255, 0.11), transparent 18%),
+    radial-gradient(circle at 50% 42%, rgba(255, 255, 255, 0.5), transparent 24%);
+}
+
+.heroSection::before,
+.archSection::before,
+.ctaSection::before {
+  content: "";
+  position: absolute;
+  inset: 8% auto auto 66%;
+  width: 240px;
+  height: 240px;
+  border-radius: 999px;
+  background: rgba(125, 226, 241, 0.1);
+  filter: blur(24px);
+}
+
+.heroSection::after,
+.ctaSection::after {
+  content: "";
+  position: absolute;
+  inset: auto auto 10% -4%;
+  width: 320px;
+  height: 320px;
+  border-radius: 999px;
+  background: rgba(84, 110, 255, 0.1);
+  filter: blur(28px);
+}
+
+.heroSection .sectionInner,
+.valueSection .sectionInner,
+.archSection .sectionInner,
+.scenarioSection .sectionInner,
+.caseSection .sectionInner,
+.agentSection .sectionInner,
+.ctaSection .sectionInner {
+  position: relative;
+  z-index: 1;
+}
+
+.heroSection .sectionInner,
+.caseSpotlight,
+.agentGallery {
+  display: grid;
+  gap: 24px;
+}
+
+.heroSection .sectionInner {
+  grid-template-columns: minmax(0, 1.02fr) minmax(0, 0.98fr);
+  align-items: center;
+}
+
+.heroTitle,
+.ctaTitle {
+  margin-top: 14px;
+  font-size: clamp(42px, 6vw, 84px);
+  line-height: 0.96;
+  font-weight: 700;
+  letter-spacing: -0.06em;
+}
+
+.heroDescription,
+.archDescription,
+.caseDescription,
+.agentDisplaySummary,
+.ctaDescription {
+  margin-top: 18px;
+  max-width: 720px;
+  font-size: 18px;
+  line-height: 1.85;
+}
+
+.heroActions,
+.caseActions,
+.agentDisplayActions,
+.ctaActions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.heroActions {
+  margin-top: 24px;
+}
+
+.signalRow {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 28px;
+}
+
+.heroPoster {
+  position: relative;
+  min-height: 600px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 36px;
+  overflow: hidden;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02)),
+    radial-gradient(circle at 18% 18%, rgba(125, 226, 241, 0.18), transparent 24%);
+}
+
+.posterGlow {
+  position: absolute;
+  inset: 10% 10% auto auto;
+  width: 180px;
+  height: 180px;
+  border-radius: 999px;
+  background: rgba(125, 226, 241, 0.14);
+  filter: blur(22px);
+}
+
+.posterGrid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+  background-size: 42px 42px;
+  mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.92), transparent 90%);
+}
+
+.posterNodeBox,
+.posterNodeCloud,
+.posterNodeWeb {
+  position: absolute;
+  padding: 22px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 28px;
+  box-shadow: 0 28px 80px rgba(7, 17, 31, 0.28);
+  backdrop-filter: blur(16px);
+}
+
+.posterNodeBox {
+  left: 20px;
+  bottom: 22px;
+  width: min(50%, 270px);
+  background: rgba(16, 30, 48, 0.88);
+}
+
+.posterNodeCloud {
+  top: 20px;
+  right: 20px;
+  width: min(52%, 280px);
+  background: rgba(125, 226, 241, 0.12);
+}
+
+.posterNodeWeb {
+  left: 28%;
+  top: 38%;
+  width: min(48%, 260px);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.posterLabel,
+.archFlowIndex,
+.scenarioResult,
+.caseMetricLabel,
+.agentRailIndex,
+.valueIndex {
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.4;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.posterLabel,
+.archFlowIndex,
+.valueIndex {
+  color: rgba(125, 226, 241, 0.9);
+}
+
+.posterTitle {
+  margin-top: 12px;
+  font-size: 24px;
+  line-height: 1.15;
+  font-weight: 600;
+}
+
+.posterCopy {
+  margin-top: 8px;
+  color: rgba(248, 250, 252, 0.76);
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.posterRingPrimary,
+.posterRingSecondary {
+  position: absolute;
+  border: 1px dashed rgba(125, 226, 241, 0.34);
+  border-radius: 999px;
+}
+
+.posterRingPrimary {
+  inset: 110px 150px 200px 90px;
+}
+
+.posterRingSecondary {
+  inset: 220px 80px 100px 180px;
+}
+
+.valueSection .sectionInner,
+.scenarioSection .sectionInner,
+.agentSection .sectionInner {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+.agentSectionActions {
+  display: flex;
+  justify-content: center;
+}
+
+.sectionHeading {
+  max-width: 760px;
+}
+
+.valueGrid,
+.scenarioGrid,
+.caseMetricRow {
+  display: grid;
+  gap: 16px;
+}
+
+.valueGrid,
+.scenarioGrid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.valueCard,
+.scenarioCard,
+.archFlowCard,
+.archFeatureCard,
+.caseMetricCard,
+.agentDisplay,
+.agentRail {
+  border-radius: 30px;
+}
+
+.valueCard {
+  padding: 28px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  background: rgba(255, 255, 255, 0.76);
+  box-shadow: 0 24px 80px rgba(15, 23, 42, 0.08);
+}
+
+.valueTitle,
+.archTitle,
+.caseTitle,
+.agentDisplayTitle {
+  margin-top: 12px;
+  font-size: clamp(30px, 3vw, 48px);
+  line-height: 1.02;
+  font-weight: 700;
+  letter-spacing: -0.05em;
+}
+
+.valueDescription,
+.archFlowDescription,
+.archFeatureDescription,
+.scenarioDescription,
+.agentRailLink {
+  margin-top: 12px;
+  color: rgba(15, 23, 42, 0.68);
+  font-size: 15px;
+  line-height: 1.8;
+}
+
+.archSection .sectionInner {
+  display: grid;
+  gap: 22px;
+}
+
+.archCopy {
+  max-width: 820px;
+}
+
+.archFlow,
+.archFeatureRail {
+  display: grid;
+  gap: 16px;
+}
+
+.archFlow {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.archFlowCard,
+.archFeatureCard {
+  padding: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.archFlowTitle,
+.archFeatureTitle,
+.scenarioTitle {
+  margin-top: 12px;
+  font-size: 28px;
+  line-height: 1.08;
+  font-weight: 700;
+  letter-spacing: -0.04em;
+}
+
+.archFeatureRail {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.archFeatureTitle {
+  margin-top: 0;
+  color: #f8fafc;
+}
+
+.archFeatureDescription {
+  color: rgba(248, 250, 252, 0.7);
+}
+
+.scenarioCard {
+  overflow: hidden;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  background: rgba(255, 255, 255, 0.78);
+  box-shadow: 0 24px 80px rgba(15, 23, 42, 0.08);
+}
+
+.scenarioMedia {
+  height: 240px;
+}
+
+.scenarioImage,
+.caseImage,
+.agentDisplayImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.scenarioBody {
+  padding: 22px;
+}
+
+.scenarioResult {
+  color: #1eb5c7;
+}
+
+.caseSpotlight {
+  grid-template-columns: minmax(0, 0.96fr) minmax(0, 1.04fr);
+  align-items: center;
+}
+
+.caseCopy {
+  max-width: 600px;
+}
+
+.caseMetricRow {
+  margin-top: 22px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.caseMetricCard {
+  padding: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.caseMetricValue {
+  font-size: 24px;
+  line-height: 1.15;
+  font-weight: 700;
+  letter-spacing: -0.04em;
+}
+
+.caseActions {
+  margin-top: 22px;
+}
+
+.caseVisual {
+  position: relative;
+  min-height: 560px;
+  overflow: hidden;
+  border-radius: 34px;
+}
+
+.caseOverlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, transparent, rgba(7, 17, 31, 0.12));
+}
+
+.agentGallery {
+  grid-template-columns: minmax(0, 1.08fr) minmax(300px, 0.92fr);
+  align-items: stretch;
+}
+
+.agentDisplay {
+  overflow: hidden;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  background: rgba(255, 255, 255, 0.78);
+  box-shadow: 0 24px 80px rgba(15, 23, 42, 0.08);
+}
+
+.agentDisplayMedia {
+  height: 320px;
+}
+
+.agentDisplayBody {
+  padding: 24px;
+}
+
+.agentRoleRow {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 18px;
+}
+
+.agentRoleChip {
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.05);
+  color: rgba(15, 23, 42, 0.68);
+  font-size: 13px;
+  line-height: 1;
+}
+
+.agentDisplayActions {
+  margin-top: 22px;
+}
+
+.agentRail {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  background: rgba(255, 255, 255, 0.68);
+}
+
+.agentRailButton {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-height: 68px;
+  padding: 0 16px;
+  border-radius: 22px;
+  background: rgba(15, 23, 42, 0.03);
+  color: rgba(15, 23, 42, 0.68);
+  text-align: left;
+  transition:
+    transform 180ms ease,
+    background 180ms ease,
+    color 180ms ease;
+
+  &:hover {
+    transform: translateX(2px);
+  }
+}
+
+.isActiveAgentRailButton {
+  background: rgba(125, 226, 241, 0.12);
+  color: #0f172a;
+}
+
+.agentRailName {
+  font-size: 16px;
+  line-height: 1.4;
+  font-weight: 600;
+}
+
+.agentRailLink {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: auto;
+  padding: 14px 12px 0;
+  color: #0f172a;
+  font-weight: 600;
+}
+
+.ctaSection .sectionInner {
+  display: flex;
+  justify-content: center;
+}
+
+.ctaPanel {
+  max-width: 840px;
+  text-align: center;
+}
+
+.ctaDescription {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.ctaActions {
+  justify-content: center;
+  margin-top: 24px;
+}
+
+@media (max-width: 1320px) {
+  .pageNav {
+    display: none;
+  }
+
+  .sectionInner {
+    width: min(1280px, 100%);
+  }
+}
+
+@media (max-width: 1180px) {
+  .heroSection .sectionInner,
+  .valueGrid,
+  .archFlow,
+  .archFeatureRail,
+  .scenarioGrid,
+  .caseSpotlight,
+  .agentGallery {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .heroSection .sectionInner,
+  .caseSpotlight,
+  .agentGallery {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 860px) {
+  .pageSection {
+    min-height: auto;
+    padding: 24px 0;
+  }
+
+  .sectionInner {
+    padding: 0 20px;
+  }
+
+  .heroSection .sectionInner,
+  .valueGrid,
+  .archFlow,
+  .archFeatureRail,
+  .scenarioGrid,
+  .caseMetricRow {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .heroPoster,
+  .caseVisual {
+    min-height: 420px;
+  }
+
+  .posterNodeBox,
+  .posterNodeCloud,
+  .posterNodeWeb {
+    position: relative;
+    inset: auto;
+    width: 100%;
+    margin-top: 12px;
+  }
+
+  .posterRingPrimary,
+  .posterRingSecondary {
+    display: none;
+  }
+
+  .heroTitle,
+  .ctaTitle {
+    font-size: 42px;
+  }
+}

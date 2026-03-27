@@ -1,0 +1,260 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+.heroSection,
+.formCard {
+  padding: 32px;
+}
+
+.heroSection,
+.formSection,
+.timelineList,
+.grid,
+.asideColumn {
+  display: grid;
+  gap: 18px;
+}
+
+.heroSection {
+  grid-template-columns: minmax(0, 1.02fr) minmax(320px, 0.98fr);
+  padding-top: calc(var(--portalHeaderDockSpace) + 24px);
+}
+
+.heroTitle {
+  margin-top: 12px;
+  font-size: clamp(38px, 5vw, 64px);
+  line-height: 1;
+  font-weight: 700;
+  letter-spacing: -0.05em;
+}
+
+.heroDescription,
+.expectationCopy,
+.timelineCopy,
+.bundleDescription,
+.formHint {
+  margin-top: 18px;
+  font-size: 17px;
+  line-height: 1.85;
+}
+
+.expectationList {
+  display: grid;
+  gap: 12px;
+  margin-top: 26px;
+}
+
+.expectationCard,
+.timelineItem,
+.bundleMeta,
+.formActions {
+  display: flex;
+  gap: 12px;
+}
+
+.expectationCard {
+  padding: 16px 18px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.05);
+
+  svg {
+    color: rgba(125, 226, 241, 0.92);
+    margin-top: 4px;
+  }
+}
+
+.expectationTitle,
+.timelineTitle,
+.bundleTitle {
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.expectationCopy,
+.timelineCopy {
+  margin-top: 4px;
+  color: rgba(248, 250, 252, 0.72);
+  font-size: 14px;
+}
+
+.timelineCard {
+  padding: 26px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 32px;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.timelineLabel,
+.bundlePrice,
+.fieldLabel {
+  color: rgba(125, 226, 241, 0.86);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.4;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.timelineList {
+  margin-top: 20px;
+}
+
+.timelineItem {
+  align-items: flex-start;
+}
+
+.timelineIndex {
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(125, 226, 241, 0.14);
+  color: #f8fafc;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.timelineCopy {
+  margin-top: 4px;
+}
+
+.formSection {
+  grid-template-columns: minmax(0, 1.08fr) minmax(320px, 0.92fr);
+}
+
+.grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: 20px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.input,
+.textarea {
+  width: 100%;
+  min-height: 52px;
+  padding: 0 16px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.72);
+  color: #0f172a;
+  font-size: 15px;
+  line-height: 1.6;
+  transition:
+    border-color 180ms ease,
+    box-shadow 180ms ease,
+    background 180ms ease;
+
+  &:focus {
+    outline: none;
+    border-color: rgba(30, 181, 199, 0.22);
+    box-shadow: 0 0 0 4px rgba(125, 226, 241, 0.12);
+  }
+}
+
+.textarea {
+  min-height: 140px;
+  padding: 16px;
+  resize: vertical;
+}
+
+.agentChoiceGrid,
+.bundleAgentList {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.agentChoiceButton,
+.bundleAgent {
+  min-height: 40px;
+  padding: 0 14px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.03);
+  color: rgba(15, 23, 42, 0.68);
+  font-size: 14px;
+  line-height: 1;
+}
+
+.isActiveAgentChoiceButton {
+  border-color: rgba(30, 181, 199, 0.2);
+  background: rgba(125, 226, 241, 0.12);
+  color: #127b89;
+}
+
+.formActions {
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  margin-top: 22px;
+}
+
+.formHint {
+  margin-top: 0;
+  color: rgba(15, 23, 42, 0.62);
+  font-size: 13px;
+}
+
+.asideColumn {
+  align-content: start;
+}
+
+.bundleCard {
+  padding: 24px;
+}
+
+.bundleMeta {
+  justify-content: space-between;
+}
+
+.bundleTitle {
+  margin-top: 16px;
+  color: #0f172a;
+  line-height: 1.3;
+}
+
+.bundleDescription {
+  margin-top: 10px;
+  color: rgba(15, 23, 42, 0.68);
+  font-size: 15px;
+}
+
+.bundleAgentList {
+  margin-top: 18px;
+}
+
+@media (max-width: 1120px) {
+  .heroSection,
+  .formSection {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 840px) {
+  .heroSection,
+  .formCard {
+    padding: 22px;
+  }
+
+  .heroSection {
+    padding-top: calc(var(--portalHeaderDockSpace) + 18px);
+  }
+
+  .grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

@@ -2,9 +2,21 @@ import type { Block } from "@/types/block";
 import type { ReactNode } from "react";
 
 /**
- * SynClaw 原型页一级 Tab 标识。
+ * FrontisAI Web 端角色类型。
  */
-export type SynClawTabKey = "dialogue" | "group" | "skills" | "automation" | "experts";
+export type FrontisWebRole = "employee" | "admin";
+
+/**
+ * FrontisAI Web 端一级导航标识。
+ */
+export type FrontisWebTabKey =
+  | "dialogue"
+  | "automation"
+  | "dashboard"
+  | "store"
+  | "devices"
+  | "models"
+  | "users";
 
 /**
  * 工作站类型。
@@ -34,13 +46,13 @@ export type MessageRole = "user" | "assistant" | "system";
 export type AutomationStatus = "active" | "paused" | "draft";
 
 /**
- * SynClaw 一级 Tab 项定义。
+ * FrontisAI Web 端一级导航项定义。
  */
-export interface SynClawTabItem {
-  key: SynClawTabKey;
+export interface FrontisWebTabItem {
+  key: FrontisWebTabKey;
   label: string;
-  description: string;
   icon: ReactNode;
+  roles: FrontisWebRole[];
 }
 
 /**
@@ -157,4 +169,30 @@ export interface AutomationTaskItem {
   status: AutomationStatus;
   lastRun: string;
   summary: string;
+}
+
+/**
+ * FrontisAI Web 端用户角色。
+ */
+export type FrontisUserRole = "admin" | "member";
+
+/**
+ * FrontisAI Web 端用户状态。
+ */
+export type FrontisUserStatus = "active" | "disabled";
+
+/**
+ * FrontisAI Web 端用户信息。
+ */
+export interface FrontisWebUserItem {
+  id: string;
+  name: string;
+  phone: string;
+  role: FrontisUserRole;
+  status: FrontisUserStatus;
+  assignedAgentIds: string[];
+  lastActiveAt: string;
+  dialogueCount: number;
+  tokenUsage: number;
+  resultCount: number;
 }

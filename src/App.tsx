@@ -1,5 +1,30 @@
+import { Suspense, lazy } from "react";
+import { Navigate, Route, Routes } from "react-router-dom";
+
 import { ErrorBoundary } from "@/components/ErrorBoundary";
-import FrontisPage from "@/pages/FrontisPage";
+
+const FrontisPage = lazy(() => import("@/pages/FrontisPage"));
+const MarketingPortalShellPage = lazy(
+  () => import("@/pages/marketingPortal/MarketingPortalShellPage"),
+);
+const MarketingPortalHomePage = lazy(
+  () => import("@/pages/marketingPortal/MarketingPortalHomePage"),
+);
+const MarketingPortalAgentsPage = lazy(
+  () => import("@/pages/marketingPortal/MarketingPortalAgentsPage"),
+);
+const MarketingPortalAgentDetailPage = lazy(
+  () => import("@/pages/marketingPortal/MarketingPortalAgentDetailPage"),
+);
+const MarketingPortalCasesPage = lazy(
+  () => import("@/pages/marketingPortal/MarketingPortalCasesPage"),
+);
+const MarketingPortalCaseDetailPage = lazy(
+  () => import("@/pages/marketingPortal/MarketingPortalCaseDetailPage"),
+);
+const MarketingPortalContactPage = lazy(
+  () => import("@/pages/marketingPortal/MarketingPortalContactPage"),
+);
 
 /**
  * App
@@ -9,7 +34,23 @@ import FrontisPage from "@/pages/FrontisPage";
 const App = (): JSX.Element => {
   return (
     <ErrorBoundary>
-      <FrontisPage />
+      <Suspense fallback={<div />}>
+        <Routes>
+          <Route path="/" element={<Navigate replace to="/web/employee" />} />
+          <Route path="/portal" element={<MarketingPortalShellPage />}>
+            <Route index element={<MarketingPortalHomePage />} />
+            <Route path="agents" element={<MarketingPortalAgentsPage />} />
+            <Route path="agents/:agentSlug" element={<MarketingPortalAgentDetailPage />} />
+            <Route path="cases" element={<MarketingPortalCasesPage />} />
+            <Route path="cases/:caseSlug" element={<MarketingPortalCaseDetailPage />} />
+            <Route path="contact" element={<MarketingPortalContactPage />} />
+            <Route path="*" element={<Navigate replace to="/portal" />} />
+          </Route>
+          <Route path="/web/employee" element={<FrontisPage viewRole="employee" />} />
+          <Route path="/web/admin" element={<FrontisPage viewRole="admin" />} />
+          <Route path="*" element={<Navigate replace to="/web/employee" />} />
+        </Routes>
+      </Suspense>
     </ErrorBoundary>
   );
 };
