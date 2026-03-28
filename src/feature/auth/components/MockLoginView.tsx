@@ -141,100 +141,113 @@ export const MockLoginView = (): JSX.Element => {
         </div>
 
         <section className={styles.loginCard}>
-          <div className={styles.formHeader}>
-            <span className={styles.formEyebrow}>验证码登录</span>
-            <h1 className={styles.formTitle}>欢迎登录</h1>
-            <p className={styles.formDescription}>
-              输入已开通手机号并完成验证码校验后进入 Frontis AI 工作台。
-            </p>
-          </div>
+          <div className={styles.loginCardBody}>
+            <div className={styles.primaryPanel}>
+              <div className={styles.formHeader}>
+                <span className={styles.formEyebrow}>验证码登录</span>
+                <h1 className={styles.formTitle}>欢迎登录</h1>
+                <p className={styles.formDescription}>
+                  输入已开通手机号并完成验证码校验后进入 Frontis AI 工作台。
+                </p>
+              </div>
 
-          <form className={styles.form} onSubmit={handleSubmit}>
-            <div className={styles.fieldGroup}>
-              <label className={styles.fieldLabel} htmlFor="mock-login-phone">
-                手机号
-              </label>
-              <Input
-                id="mock-login-phone"
-                autoComplete="tel"
-                inputMode="numeric"
-                maxLength={11}
-                placeholder="请输入手机号"
-                size="large"
-                value={phoneValue}
-                onChange={event =>
-                  setPhoneValue(event.target.value.replace(/\D/g, "").slice(0, 11))
-                }
-              />
-            </div>
+              <form className={styles.form} onSubmit={handleSubmit}>
+                <div className={styles.fieldGroup}>
+                  <label className={styles.fieldLabel} htmlFor="mock-login-phone">
+                    手机号
+                  </label>
+                  <Input
+                    id="mock-login-phone"
+                    autoComplete="tel"
+                    inputMode="numeric"
+                    maxLength={11}
+                    placeholder="请输入手机号"
+                    size="large"
+                    value={phoneValue}
+                    onChange={event =>
+                      setPhoneValue(event.target.value.replace(/\D/g, "").slice(0, 11))
+                    }
+                  />
+                </div>
 
-            <div className={styles.fieldGroup}>
-              <label className={styles.fieldLabel} htmlFor="mock-login-code">
-                验证码
-              </label>
-              <div className={styles.codeRow}>
-                <Input
-                  id="mock-login-code"
-                  autoComplete="one-time-code"
-                  inputMode="numeric"
-                  maxLength={6}
-                  placeholder="请输入 6 位验证码"
+                <div className={styles.fieldGroup}>
+                  <label className={styles.fieldLabel} htmlFor="mock-login-code">
+                    验证码
+                  </label>
+                  <div className={styles.codeRow}>
+                    <Input
+                      id="mock-login-code"
+                      autoComplete="one-time-code"
+                      inputMode="numeric"
+                      maxLength={6}
+                      placeholder="请输入 6 位验证码"
+                      size="large"
+                      value={verificationCodeValue}
+                      onChange={event =>
+                        setVerificationCodeValue(event.target.value.replace(/\D/g, "").slice(0, 6))
+                      }
+                    />
+                    <Button
+                      size="large"
+                      onClick={handleSendVerificationCode}
+                      disabled={countdown > 0}
+                    >
+                      {countdown > 0 ? `${countdown}s后重试` : "获取验证码"}
+                    </Button>
+                  </div>
+                </div>
+
+                <Button
+                  block
+                  htmlType="submit"
                   size="large"
-                  value={verificationCodeValue}
-                  onChange={event =>
-                    setVerificationCodeValue(event.target.value.replace(/\D/g, "").slice(0, 6))
-                  }
-                />
-                <Button size="large" onClick={handleSendVerificationCode} disabled={countdown > 0}>
-                  {countdown > 0 ? `${countdown}s后重试` : "获取验证码"}
+                  type="primary"
+                  disabled={!phoneValue.trim() || verificationCodeValue.trim().length !== 6}
+                >
+                  登录
                 </Button>
+              </form>
+
+              <div className={styles.noticePanel}>
+                <p className={styles.noticeTitle}>登录说明</p>
+                <p className={styles.noticeText}>登录即代表你同意平台服务协议与隐私政策。</p>
               </div>
             </div>
 
-            <Button
-              block
-              htmlType="submit"
-              size="large"
-              type="primary"
-              disabled={!phoneValue.trim() || verificationCodeValue.trim().length !== 6}
-            >
-              登录
-            </Button>
-          </form>
-
-          <div className={styles.noticePanel}>
-            <p className={styles.noticeTitle}>登录说明</p>
-            <p className={styles.noticeText}>登录即代表你同意平台服务协议与隐私政策。</p>
-          </div>
-
-          <div className={styles.quickLoginSection}>
-            <p className={styles.quickLoginTitle}>快速体验入口</p>
-            <div className={styles.quickLoginButtons}>
-              <button
-                type="button"
-                className={styles.quickLoginButton}
-                onClick={() => handleQuickLogin("employee")}
-              >
-                <span className={styles.quickLoginIcon}>👤</span>
-                <span>普通员工登录</span>
-              </button>
-              <button
-                type="button"
-                className={styles.quickLoginButton}
-                onClick={() => handleQuickLogin("admin")}
-              >
-                <span className={styles.quickLoginIcon}>👔</span>
-                <span>企业老板登录</span>
-              </button>
-              <button
-                type="button"
-                className={styles.quickLoginButton}
-                onClick={handleQuickFdeLogin}
-              >
-                <span className={styles.quickLoginIcon}>🛠</span>
-                <span>FDE 登录</span>
-              </button>
-            </div>
+            <aside className={styles.quickLoginPanel}>
+              <div className={styles.quickLoginSection}>
+                <p className={styles.quickLoginTitle}>快速体验入口</p>
+                <p className={styles.quickLoginDescription}>
+                  无需验证码，可直接进入员工、企业老板或 FDE 工作台体验原型。
+                </p>
+                <div className={styles.quickLoginButtons}>
+                  <button
+                    type="button"
+                    className={styles.quickLoginButton}
+                    onClick={() => handleQuickLogin("employee")}
+                  >
+                    <span className={styles.quickLoginIcon}>👤</span>
+                    <span>普通员工登录</span>
+                  </button>
+                  <button
+                    type="button"
+                    className={styles.quickLoginButton}
+                    onClick={() => handleQuickLogin("admin")}
+                  >
+                    <span className={styles.quickLoginIcon}>👔</span>
+                    <span>企业老板登录</span>
+                  </button>
+                  <button
+                    type="button"
+                    className={styles.quickLoginButton}
+                    onClick={handleQuickFdeLogin}
+                  >
+                    <span className={styles.quickLoginIcon}>🛠</span>
+                    <span>FDE 登录</span>
+                  </button>
+                </div>
+              </div>
+            </aside>
           </div>
         </section>
       </div>
