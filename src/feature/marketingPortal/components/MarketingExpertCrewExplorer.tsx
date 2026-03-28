@@ -198,7 +198,7 @@ export const MarketingExpertCrewExplorer = ({
 
           {browseCardTo ? (
             <Link className={styles.compactSceneBrowseLink} to={browseCardTo}>
-              查看全部场景
+              查看全部AI专家
               <ArrowRightOutlined />
             </Link>
           ) : null}

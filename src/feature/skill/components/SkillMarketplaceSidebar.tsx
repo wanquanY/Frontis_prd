@@ -65,7 +65,7 @@ export const SkillMarketplaceSidebar = ({
         return {
           id: agent.id,
           name: agent.name,
-          avatarUrl: agent.avatarUrl ?? agent.avatar_url ?? undefined,
+          avatarUrl: agent.avatar_url ?? undefined,
           avatarLines: avatarMeta.lines,
           avatarBackground: avatarMeta.background,
           avatarTextColor: avatarMeta.textColor,

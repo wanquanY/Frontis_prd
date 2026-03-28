@@ -50,7 +50,7 @@ export const PORTAL_NAV_ITEMS: MarketingPortalNavItem[] = [
  * 首页首屏信任锚点。
  */
 export const PORTAL_HOME_TRUST_LINE =
-  "已有多家企业的老板，把这些事交出去了 · 内测名额有限 · 4月15日开放";
+  "已有多家企业老板，把这些事交给了AI专家团 · 内测名额有限 · 4月15日开放";
 
 /**
  * 首页焦虑命名卡片。

@@ -1042,7 +1042,7 @@ export const GroupPrototypeView = ({ currentUserName }: GroupPrototypeViewProps)
               type="button"
               className={workspaceStyles.leftPanelCollapsedButton}
               onClick={() => setIsSidebarCollapsed(false)}
-              aria-label="展开空间与频道列表"
+              aria-label="展开协作空间与任务列表"
             >
               <LayoutIcon className={workspaceStyles.leftPanelCollapsedIcon} />
             </button>
@@ -1050,13 +1050,13 @@ export const GroupPrototypeView = ({ currentUserName }: GroupPrototypeViewProps)
         ) : (
           <>
             <div className={workspaceStyles.leftPanelHeader}>
-              <div className={workspaceStyles.leftPanelTitle}>空间与频道</div>
+              <div className={workspaceStyles.leftPanelTitle}>协作空间与任务</div>
               <div className={workspaceStyles.leftPanelHeaderActions}>
                 <button
                   type="button"
                   className={workspaceStyles.leftPanelCollapseButton}
                   onClick={() => setIsSidebarCollapsed(true)}
-                  aria-label="收起空间与频道列表"
+                  aria-label="收起协作空间与任务列表"
                 >
                   <LayoutIcon className={workspaceStyles.leftPanelCollapseIcon} />
                 </button>

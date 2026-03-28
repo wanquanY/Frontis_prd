@@ -23,6 +23,7 @@ import {
 import { getAvatarText, getAvatarUrl } from "@/pages/utils";
 
 import { MarketingExpertCrewExplorer } from "./MarketingExpertCrewExplorer";
+import { MarketingPortalConsultationDrawer } from "./MarketingPortalConsultationDrawer";
 import layoutStyles from "./MarketingPortalLayout.module.less";
 import styles from "./MarketingPortalHomeView.module.less";
 
@@ -39,48 +40,48 @@ const HOME_SECTIONS: HomeSectionItem[] = [
   {
     id: "portal-hero",
     indexLabel: "01",
-    label: "封面",
-    navLabel: "Cover",
+    label: "Frontis AI",
+    navLabel: "Frontis AI",
   },
   {
     id: "portal-anxiety",
     indexLabel: "02",
-    label: "焦虑",
-    navLabel: "Anxiety",
+    label: "是否遇到过",
+    navLabel: "Struggling",
   },
   {
     id: "portal-handoff",
     indexLabel: "03",
-    label: "接管",
-    navLabel: "Handoff",
+    label: "AI专家团",
+    navLabel: "Experts",
   },
   {
     id: "portal-mindset",
     indexLabel: "04",
-    label: "认知",
-    navLabel: "Mindset",
+    label: "重新认识",
+    navLabel: "Discover",
   },
   {
     id: "portal-logo",
     indexLabel: "05",
-    label: "背书",
-    navLabel: "Logos",
+    label: "他们都选择",
+    navLabel: "Trusted",
   },
   {
     id: "portal-plan",
     indexLabel: "06",
-    label: "套餐",
-    navLabel: "Plan",
+    label: "优惠",
+    navLabel: "Offers",
   },
   {
     id: "portal-cta",
     indexLabel: "07",
-    label: "收口",
-    navLabel: "CTA",
+    label: "联系我们",
+    navLabel: "Contact",
   },
 ];
 
-const LIGHT_HOME_SECTION_IDS = new Set<string>(["portal-anxiety", "portal-mindset", "portal-plan"]);
+const LIGHT_HOME_SECTION_IDS = new Set<string>([]);
 
 interface SectionCueProps {
   nextSection: HomeSectionItem;
@@ -115,6 +116,7 @@ export const MarketingPortalHomeView = (): JSX.Element => {
   const [leadName, setLeadName] = useState<string>("");
   const [leadPhone, setLeadPhone] = useState<string>("");
   const [problemFocus, setProblemFocus] = useState<string>(PORTAL_HOME_PROBLEM_OPTIONS[0] ?? "");
+  const [consultDrawerOpen, setConsultDrawerOpen] = useState(false);
 
   const headerTone: HomeHeaderTone = LIGHT_HOME_SECTION_IDS.has(activeSectionId) ? "light" : "dark";
   const nextSectionMap = useMemo(() => {
@@ -141,24 +143,6 @@ export const MarketingPortalHomeView = (): JSX.Element => {
         items: [...items, ...items],
       }));
   }, []);
-  const ctaContactPath = useMemo(() => {
-    const params = new URLSearchParams();
-
-    if (leadName.trim()) {
-      params.set("name", leadName.trim());
-    }
-    if (leadPhone.trim()) {
-      params.set("phone", leadPhone.trim());
-    }
-    if (problemFocus) {
-      params.set("focus", problemFocus);
-    }
-
-    const query = params.toString();
-
-    return query ? `/portal/contact?${query}` : "/portal/contact";
-  }, [leadName, leadPhone, problemFocus]);
-
   useEffect(() => {
     const sectionHostElement = pageRef.current;
 
@@ -272,7 +256,6 @@ export const MarketingPortalHomeView = (): JSX.Element => {
         >
           <div className={styles.sectionInner}>
             <div className={styles.heroCopy}>
-              <p className={layoutStyles.sectionLabel}>fAI Public Cloud</p>
               <h1 className={styles.heroTitle}>
                 <span className={styles.heroLeadLine}>为你的企业配备一支</span>
                 <span className={styles.heroAccentLine}>AI 专家团队</span>
@@ -288,9 +271,13 @@ export const MarketingPortalHomeView = (): JSX.Element => {
                   看看 AI 专家能替你做什么
                   <ArrowRightOutlined />
                 </Link>
-                <Link className={layoutStyles.secondaryButton} to="/portal/contact">
+                <button
+                  type="button"
+                  className={layoutStyles.secondaryButton}
+                  onClick={() => setConsultDrawerOpen(true)}
+                >
                   预约一次 15 分钟演示
-                </Link>
+                </button>
               </div>
 
               <p className={styles.heroTrustLine}>{PORTAL_HOME_TRUST_LINE}</p>
@@ -308,11 +295,10 @@ export const MarketingPortalHomeView = (): JSX.Element => {
         <section
           id="portal-anxiety"
           data-home-section="true"
-          className={classNames(layoutStyles.glassSection, styles.pageSection, styles.valueSection)}
+          className={classNames(layoutStyles.darkSection, styles.pageSection, styles.valueSection)}
         >
           <div className={styles.sectionInner}>
-            <div className={styles.sectionHeading}>
-              <p className={layoutStyles.sectionLabel}>说的就是你</p>
+            <div className={styles.sectionHeading} style={{ textAlign: "center", maxWidth: "100%", alignSelf: "center" }}>
               <h2 className={layoutStyles.sectionTitle}>你是不是也有这些时刻</h2>
             </div>
 
@@ -382,7 +368,7 @@ export const MarketingPortalHomeView = (): JSX.Element => {
           {nextSectionMap["portal-anxiety"] ? (
             <SectionCue
               nextSection={nextSectionMap["portal-anxiety"]}
-              tone="light"
+              tone="dark"
               onJump={handleSectionJump}
             />
           ) : null}
@@ -394,15 +380,12 @@ export const MarketingPortalHomeView = (): JSX.Element => {
           className={classNames(layoutStyles.darkSection, styles.pageSection, styles.archSection)}
         >
           <div className={styles.sectionInner}>
-            <div className={styles.sectionHeading}>
-              <p className={layoutStyles.sectionLabel}>AI 专家接管</p>
+            <div className={styles.sectionHeading} style={{ textAlign: "center", maxWidth: "100%", alignSelf: "center" }}>
               <h2 className={styles.archTitle}>
-                老板说一句话
-                <br />
-                AI 专家团队，把整件事从头交付
+                AI专家团，实现任务的端到端交付
               </h2>
-              <p className={classNames(layoutStyles.darkTextMuted, styles.archDescription)}>
-                不是工具。不是软件。是一组真正懂业务的 AI 专家，分工协作，随时待命。
+              <p className={classNames(layoutStyles.darkTextMuted, styles.archDescription)} style={{ marginLeft: "auto", marginRight: "auto" }}>
+                不是工具。不是软件。是一批真正懂业务的数字员工，分工协作，随时待命。
               </p>
             </div>
 
@@ -425,18 +408,22 @@ export const MarketingPortalHomeView = (): JSX.Element => {
           id="portal-mindset"
           data-home-section="true"
           className={classNames(
-            layoutStyles.lightSection,
+            layoutStyles.darkSection,
             styles.pageSection,
             styles.scenarioSection,
           )}
         >
           <div className={styles.sectionInner}>
-            <div className={styles.sectionHeading}>
-              <p className={layoutStyles.sectionLabel}>重新认识这件事</p>
-              <h2 className={layoutStyles.sectionTitle}>
+            <div className={styles.sectionHeading} style={{ textAlign: "center", maxWidth: "100%", alignSelf: "center" }}>
+              <p className={classNames(layoutStyles.darkTextMuted, styles.mindsetSubtitle)}>
                 你以为你在买软件
-                <br />
-                但你买到的是一组不会离岗的 AI 专家团
+              </p>
+              <h2 className={layoutStyles.sectionTitle}>
+                但你买到的是一批{" "}
+                <span className={styles.highlightText}>不休假</span>、
+                <span className={styles.highlightText}>不离职</span>、
+                <span className={styles.highlightText}>不要五险一金</span>
+                {" "}的员工
               </h2>
             </div>
 
@@ -445,8 +432,7 @@ export const MarketingPortalHomeView = (): JSX.Element => {
                 <div className={styles.mindsetColumnHeader}>
                   <CloseCircleFilled className={styles.mindsetColumnIcon} />
                   <div>
-                    <p className={styles.mindsetColumnEyebrow}>传统方式</p>
-                    <h3 className={styles.mindsetColumnTitle}>传统软件 / 传统人力</h3>
+                    <h3 className={styles.mindsetColumnTitle}>传统软件</h3>
                   </div>
                 </div>
 
@@ -464,8 +450,7 @@ export const MarketingPortalHomeView = (): JSX.Element => {
                 <div className={styles.mindsetColumnHeader}>
                   <CheckCircleFilled className={styles.mindsetColumnIcon} />
                   <div>
-                    <p className={styles.mindsetColumnEyebrow}>AI 专家团</p>
-                    <h3 className={styles.mindsetColumnTitle}>Frontis AI 专家团</h3>
+                    <h3 className={styles.mindsetColumnTitle}>Frontis AI 员工</h3>
                   </div>
                 </div>
 
@@ -507,7 +492,7 @@ export const MarketingPortalHomeView = (): JSX.Element => {
           {nextSectionMap["portal-mindset"] ? (
             <SectionCue
               nextSection={nextSectionMap["portal-mindset"]}
-              tone="light"
+              tone="dark"
               onJump={handleSectionJump}
             />
           ) : null}
@@ -519,31 +504,38 @@ export const MarketingPortalHomeView = (): JSX.Element => {
           className={classNames(layoutStyles.darkSection, styles.pageSection, styles.caseSection)}
         >
           <div className={styles.sectionInner}>
-            <div className={classNames(styles.sectionHeading, styles.logoHeading)}>
-              <p className={layoutStyles.sectionLabel}>客户 Logo 墙</p>
+            <div className={classNames(styles.sectionHeading, styles.logoHeading)} style={{ textAlign: "center", maxWidth: "100%", alignSelf: "center" }}>
               <h2 className={styles.caseTitle}>他们已经把这些事，交出去了</h2>
-              <p className={classNames(layoutStyles.darkTextMuted, styles.caseDescription)}>
-                来自不同行业的企业主，正在用 fAI 的 AI 员工团队跑业务。
+              <p className={classNames(layoutStyles.darkTextMuted, styles.caseDescription)} style={{ marginLeft: "auto", marginRight: "auto" }}>
+                来自不同行业的企业主，正在用 Frontis 的 AI 专家团队跑业务。
               </p>
             </div>
 
-            <div className={styles.logoWall}>
-              {PORTAL_HOME_LOGO_WALL_ITEMS.map(item => (
-                <article
-                  key={item.id}
-                  className={classNames(
-                    styles.logoItem,
-                    item.tileSize === "wide" && styles.isWideLogoItem,
-                  )}
-                >
-                  <img className={styles.logoImage} src={item.logoUrl} alt={item.name} />
-                  <span className={styles.logoName}>{item.name}</span>
-                </article>
-              ))}
+            <div className={styles.logoMarquee}>
+              <div className={styles.voiceRowViewport}>
+                <div className={styles.logoRowTrack}>
+                  {[...PORTAL_HOME_LOGO_WALL_ITEMS.slice(0, 6), ...PORTAL_HOME_LOGO_WALL_ITEMS.slice(0, 6)].map((item, index) => (
+                    <article key={`${item.id}-a-${index}`} className={styles.logoCard}>
+                      <img className={styles.logoCardImage} src={item.logoUrl} alt={item.name} />
+                      <span className={styles.logoCardName}>{item.name}</span>
+                    </article>
+                  ))}
+                </div>
+              </div>
+              <div className={styles.voiceRowViewport}>
+                <div className={classNames(styles.logoRowTrack, styles.isReverseLogoRowTrack)}>
+                  {[...PORTAL_HOME_LOGO_WALL_ITEMS.slice(6), ...PORTAL_HOME_LOGO_WALL_ITEMS.slice(6)].map((item, index) => (
+                    <article key={`${item.id}-b-${index}`} className={styles.logoCard}>
+                      <img className={styles.logoCardImage} src={item.logoUrl} alt={item.name} />
+                      <span className={styles.logoCardName}>{item.name}</span>
+                    </article>
+                  ))}
+                </div>
+              </div>
             </div>
 
             <p className={styles.logoFootnote}>
-              以下品牌 Logo 仅作版式占位示意 · 可替换为正式客户 Logo 墙
+              覆盖电商、品牌、服务、制造等多个行业 · 持续增长中
             </p>
           </div>
           {nextSectionMap["portal-logo"] ? (
@@ -558,12 +550,13 @@ export const MarketingPortalHomeView = (): JSX.Element => {
         <section
           id="portal-plan"
           data-home-section="true"
-          className={classNames(layoutStyles.lightSection, styles.pageSection, styles.agentSection)}
+          className={classNames(layoutStyles.darkSection, styles.pageSection, styles.agentSection)}
         >
           <div className={styles.sectionInner}>
-            <div className={styles.sectionHeading}>
-              <p className={layoutStyles.sectionLabel}>套餐与信任</p>
-              <h2 className={layoutStyles.sectionTitle}>一次投入，换一支永不离职的 AI 员工团队</h2>
+            <div className={styles.sectionHeading} style={{ textAlign: "center", maxWidth: "100%", alignSelf: "center" }}>
+              <h2 className={layoutStyles.sectionTitle}>
+                一次投入，换一支<span className={styles.highlightText}>永不离职</span>的 AI 员工团队
+              </h2>
             </div>
 
             <div className={styles.planLayout}>
@@ -606,7 +599,7 @@ export const MarketingPortalHomeView = (): JSX.Element => {
           {nextSectionMap["portal-plan"] ? (
             <SectionCue
               nextSection={nextSectionMap["portal-plan"]}
-              tone="light"
+              tone="dark"
               onJump={handleSectionJump}
             />
           ) : null}
@@ -619,51 +612,71 @@ export const MarketingPortalHomeView = (): JSX.Element => {
         >
           <div className={styles.sectionInner}>
             <div className={styles.ctaPanel}>
-              <p className={layoutStyles.sectionLabel}>最终 CTA</p>
-              <h2 className={styles.ctaTitle}>
+              <p className={classNames(layoutStyles.darkTextMuted, styles.ctaSubtitle)}>
                 你不需要现在就决定
-                <br />
-                先看看，AI 员工能替你做什么
+              </p>
+              <h2 className={styles.ctaTitle}>
+                先看看，AI 专家能替你做什么
               </h2>
               <p className={classNames(layoutStyles.darkTextMuted, styles.ctaDescription)}>
-                留下你的联系方式，我们的 FDE 顾问会在 24 小时内联系你。
+                留下你的联系方式，我们的 FDE 顾问会在 24 小时内联系你
                 <br />
-                给你 15 分钟，演示一个你最头疼的业务场景。
+                给你 15 分钟，演示一个你最头疼的业务场景
               </p>
 
-              <div className={styles.ctaFormCard}>
-                <div className={styles.ctaFieldGrid}>
-                  <input
-                    className={styles.ctaInput}
-                    placeholder="姓名"
-                    value={leadName}
-                    onChange={event => setLeadName(event.target.value)}
-                  />
-                  <input
-                    className={styles.ctaInput}
-                    placeholder="手机"
-                    value={leadPhone}
-                    onChange={event => setLeadPhone(event.target.value)}
-                  />
-                  <select
-                    className={styles.ctaSelect}
-                    value={problemFocus}
-                    onChange={event => setProblemFocus(event.target.value)}
-                  >
-                    {PORTAL_HOME_PROBLEM_OPTIONS.map(option => (
-                      <option key={option} value={option}>
-                        {option}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                <div className={styles.ctaFormCard}>
+                  <div className={styles.ctaFieldGroup}>
+                    <label className={styles.ctaLabel} htmlFor="portalLeadName">
+                      姓名 <span className={styles.ctaRequired}>*</span>
+                    </label>
+                    <input
+                      id="portalLeadName"
+                      className={styles.ctaInput}
+                      placeholder="请输入您的姓名"
+                      value={leadName}
+                      onChange={event => setLeadName(event.target.value)}
+                    />
+                  </div>
 
-                <div className={styles.ctaActions}>
-                  <Link className={layoutStyles.primaryButton} to={ctaContactPath}>
-                    预约 15 分钟演示
-                    <ArrowRightOutlined />
-                  </Link>
-                </div>
+                  <div className={styles.ctaFieldGroup}>
+                    <label className={styles.ctaLabel} htmlFor="portalLeadPhone">
+                      手机 <span className={styles.ctaRequired}>*</span>
+                    </label>
+                    <input
+                      id="portalLeadPhone"
+                      className={styles.ctaInput}
+                      placeholder="请输入您的手机号"
+                      value={leadPhone}
+                      onChange={event => setLeadPhone(event.target.value)}
+                    />
+                  </div>
+
+                  <div className={styles.ctaFieldGroup}>
+                    <span className={styles.ctaLabel}>最想解决的问题</span>
+                    <div className={styles.ctaPillGroup}>
+                      {PORTAL_HOME_PROBLEM_OPTIONS.map(option => (
+                        <button
+                          key={option}
+                          type="button"
+                          className={classNames(
+                            styles.ctaPill,
+                            problemFocus === option && styles.isActivePill,
+                          )}
+                          onClick={() => setProblemFocus(option)}
+                        >
+                          {option}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                <button
+                  type="button"
+                  className={styles.ctaSubmitButton}
+                  onClick={() => setConsultDrawerOpen(true)}
+                >
+                  预约 15 分钟演示
+                </button>
               </div>
 
               <p className={styles.ctaClosing}>
@@ -674,6 +687,12 @@ export const MarketingPortalHomeView = (): JSX.Element => {
           </div>
         </section>
       </div>
+
+      <MarketingPortalConsultationDrawer
+        open={consultDrawerOpen}
+        initialAgentNames={[]}
+        onClose={() => setConsultDrawerOpen(false)}
+      />
     </div>
   );
 };

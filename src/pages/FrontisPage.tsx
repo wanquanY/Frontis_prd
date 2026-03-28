@@ -64,18 +64,18 @@ const FRONTIS_WEB_TABS: FrontisWebTabItem[] = [
   },
   {
     key: "dialogue",
-    label: "对话",
+    label: "我的AI专家",
     labels: {
-      admin: "AI对话",
+      admin: "工作台",
     },
     icon: <MessageOutlined />,
     roles: ["employee", "admin"],
   },
   {
     key: "group",
-    label: "群聊",
+    label: "AI军团空间",
     icon: <TeamOutlined />,
-    roles: ["employee", "admin"],
+    roles: ["employee"],
   },
   {
     key: "automation",
@@ -590,8 +590,10 @@ const FrontisPage = ({ viewRole }: FrontisPageProps): JSX.Element => {
           memberNames={INITIAL_FRONTIS_WEB_USERS.filter(item => item.status === "active").map(
             item => item.name,
           )}
+          onNavigateToTab={setActiveTabKey}
           onUpdateEmployeeAccess={handleUpdateEmployeeAccess}
           skills={INITIAL_SKILLS}
+          workspaces={workspaces}
         />
       );
     }
@@ -641,7 +643,7 @@ const FrontisPage = ({ viewRole }: FrontisPageProps): JSX.Element => {
               <div className={styles.brandCopy}>
                 <h1 className={styles.brandTitle}>Frontis AI</h1>
                 <p className={styles.brandSubtitle}>
-                  {viewRole === "admin" ? "企业老板端" : "企业工作台"}
+                  {viewRole === "admin" ? "企业老板端" : "AI专家协作台"}
                 </p>
               </div>
             )}
@@ -669,7 +671,13 @@ const FrontisPage = ({ viewRole }: FrontisPageProps): JSX.Element => {
                 [styles.isActiveTab]: item.key === activeTabKey,
                 [styles.tabButtonCollapsed]: isSidebarCollapsed,
               })}
-              onClick={() => setActiveTabKey(item.key)}
+              onClick={() => {
+                if (viewRole === "admin" && item.key === "dialogue") {
+                  window.open("/web/employee", "_blank");
+                  return;
+                }
+                setActiveTabKey(item.key);
+              }}
             >
               <span className={styles.tabIcon}>{item.icon}</span>
               <span className={styles.tabLabel}>{item.labels?.[viewRole] ?? item.label}</span>

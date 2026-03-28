@@ -1,209 +1,140 @@
-import classNames from "classnames";
-import { SettingOutlined, ShoppingCartOutlined } from "@ant-design/icons";
-import { Avatar, Button } from "antd";
+import { Button, Tag } from "antd";
 
-import type { SkillItem } from "../../types";
-import { getAvatarText } from "../../utils";
-import prototypeStyles from "../../FrontisPage.module.less";
-import adminStyles from "../FrontisAdminViews.module.less";
-import styles from "../FrontisWebViews.module.less";
-import { MAX_AGENT_CARD_SKILLS } from "./agentStoreData";
-import type { AgentStoreMarketItem, AgentStoreOwnedPresentation } from "./types";
-import { renderSkillCategoryIcon } from "./agentStoreUtils";
+import type { EmployeeItem, WorkspaceItem } from "../../types";
+import type { OwnedExpertTeam, RecommendedExpertTeam } from "./types";
 
-interface AgentStoreOwnedExpertCardProps {
-  installedSkills: SkillItem[];
-  item: AgentStoreOwnedPresentation;
-  onOpenConfig: (employeeId: string) => void;
-  onOpenSkillModal: (employeeId: string) => void;
+import styles from "./AgentStoreView.module.less";
+
+/* ── Owned Team Card ── */
+
+interface OwnedTeamCardProps {
+  employees: EmployeeItem[];
+  onUpgrade: (team: OwnedExpertTeam) => void;
+  onView: (teamId: string) => void;
+  team: OwnedExpertTeam;
+  workspace?: WorkspaceItem;
 }
 
-/**
- * 已购买专家卡片。
- */
-export const AgentStoreOwnedExpertCard = ({
-  installedSkills,
-  item,
-  onOpenConfig,
-  onOpenSkillModal,
-}: AgentStoreOwnedExpertCardProps): JSX.Element => {
-  const previewSkills = installedSkills.slice(0, MAX_AGENT_CARD_SKILLS);
-  const hiddenSkillCount = installedSkills.length - previewSkills.length;
+export const OwnedTeamCard = ({
+  employees,
+  onUpgrade,
+  onView,
+  team,
+  workspace,
+}: OwnedTeamCardProps): JSX.Element => {
+  const members = employees.filter(e => team.memberIds.includes(e.id));
+  const isOnline = members.some(e => ["online", "busy", "idle"].includes(e.status));
 
   return (
-    <article
-      className={classNames(
-        prototypeStyles.expertsEmployeeCard,
-        styles.agentStoreCard,
-        adminStyles.agentStoreCardOwned,
-      )}
-    >
-      <div className={styles.agentStoreCardActions}>
-        <Button
-          size="small"
-          icon={<SettingOutlined />}
-          onClick={event => {
-            event.stopPropagation();
-            onOpenConfig(item.employee.id);
-          }}
-        >
-          专家配置
-        </Button>
-      </div>
+    <div className={styles.ownedCard}>
+      <div className={styles.ownedCardBody}>
+        <div className={styles.cardIcon} style={{ background: `${team.categoryColor}12` }}>
+          <span style={{ fontSize: 24 }}>{team.icon}</span>
+        </div>
 
-      <div className={adminStyles.agentStoreStatusRow}>
-        <span
-          className={classNames(
-            adminStyles.agentStoreStatusBadge,
-            adminStyles.agentStoreStatusBadgeOwned,
-          )}
-        >
-          已购买
-        </span>
-        <span className={adminStyles.agentStoreStatusMeta}>
-          {item.employee.visibility === "all" ? "当前全员可见" : "当前指定成员使用"}
-        </span>
-      </div>
-
-      <div className={prototypeStyles.expertsEmployeeHeader}>
-        <div className={prototypeStyles.expertsEmployeeIdentity}>
-          <Avatar src={item.employee.avatarUrl} className={prototypeStyles.expertsEmployeeAvatar}>
-            {getAvatarText(item.employee.name)}
-          </Avatar>
-          <div className={prototypeStyles.expertsEmployeeIdentityBody}>
-            <div className={prototypeStyles.expertsEmployeeName}>{item.employee.name}</div>
-            <div className={prototypeStyles.expertsEmployeeSkillCount}>
-              已安装 {installedSkills.length} 个技能
-            </div>
+        <div className={styles.cardContent}>
+          <div className={styles.cardTitleRow}>
+            <h3 className={styles.cardTitle}>{team.name}</h3>
+            {team.hasNewVersion && <span className={styles.updateBadge}>有新版本</span>}
+          </div>
+          <div className={styles.cardMeta}>
+            <Tag color={team.categoryColor} bordered={false}>
+              {team.category}
+            </Tag>
+          </div>
+          <p className={styles.cardDesc}>{team.description}</p>
+          <div className={styles.subAgentTags}>
+            {team.subAgentTags.map(tag => (
+              <span key={tag} className={styles.subAgentTag}>
+                {tag}
+              </span>
+            ))}
           </div>
         </div>
-      </div>
 
-      <div className={prototypeStyles.expertsEmployeeBody}>
-        <div className={styles.agentStoreIntro}>
-          <div className={styles.agentStoreDescription}>{item.employee.summary}</div>
-          <div className={styles.agentStoreWelcome}>{item.employee.welcomeMessage}</div>
-        </div>
-
-        <div className={styles.agentStoreSkillSection}>
-          <div className={styles.agentStoreSkillLabel}>已安装技能</div>
-          {previewSkills.length > 0 ? (
-            <div className={styles.agentStoreSkillList}>
-              {previewSkills.map(skill => (
-                <div key={skill.id} className={styles.agentStoreSkillItem}>
-                  <span className={styles.agentStoreSkillIcon}>
-                    {renderSkillCategoryIcon(skill.category)}
-                  </span>
-                  <div className={styles.agentStoreSkillBody}>
-                    <div className={styles.agentStoreSkillTitleRow}>
-                      <span className={styles.agentStoreSkillName}>{skill.name}</span>
-                      <span className={styles.agentStoreSkillCategory}>{skill.category}</span>
-                    </div>
-                  </div>
-                </div>
-              ))}
-              {hiddenSkillCount > 0 ? (
-                <button
-                  type="button"
-                  className={styles.agentStoreSkillMoreButton}
-                  onClick={() => onOpenSkillModal(item.employee.id)}
-                >
-                  查看更多技能
-                  <span className={styles.agentStoreSkillMoreCount}>+{hiddenSkillCount}</span>
-                </button>
-              ) : null}
+        <div className={styles.cardRight}>
+          <div className={styles.cardStatus}>
+            <span className={isOnline ? styles.dotOnline : styles.dotOffline} />
+            <span>{isOnline ? "在线" : "离线"}</span>
+          </div>
+          <div className={styles.cardInfoItem}>
+            <span className={styles.cardInfoLabel}>{team.version}</span>
+          </div>
+          <div className={styles.cardInfoItem}>
+            <span className={styles.cardInfoValue}>
+              {team.cumulativeTaskCount.toLocaleString()}
+            </span>
+            <span className={styles.cardInfoLabel}>累计任务</span>
+          </div>
+          {workspace && (
+            <div className={styles.cardInfoItem}>
+              <span className={styles.cardInfoLabel}>{workspace.name}</span>
             </div>
-          ) : (
-            <div className={prototypeStyles.expertsEmployeeSkillEmpty}>当前未安装技能</div>
           )}
         </div>
       </div>
-    </article>
+
+      <div className={styles.cardActions}>
+        <Button type="primary" onClick={() => onView(team.id)}>
+          查看
+        </Button>
+        {team.hasNewVersion && (
+          <>
+            <Button onClick={() => onUpgrade(team)}>升级</Button>
+            <Button type="text" size="small">
+              忽略
+            </Button>
+          </>
+        )}
+      </div>
+    </div>
   );
 };
 
-interface AgentStoreMarketExpertCardProps {
-  item: AgentStoreMarketItem;
-  onOpenPurchaseLead: (desiredAgent: string, sceneLabel: string) => void;
-  sceneLabel: string;
+/* ── Recommended Team Card ── */
+
+interface RecommendedTeamCardProps {
+  team: RecommendedExpertTeam;
 }
 
-/**
- * 待采购专家卡片。
- */
-export const AgentStoreMarketExpertCard = ({
-  item,
-  onOpenPurchaseLead,
-  sceneLabel,
-}: AgentStoreMarketExpertCardProps): JSX.Element => (
-  <article
-    className={classNames(
-      prototypeStyles.expertsEmployeeCard,
-      styles.agentStoreCard,
-      adminStyles.agentStoreCardMarket,
-    )}
-  >
-    <div className={adminStyles.agentStoreStatusRow}>
-      <span
-        className={classNames(
-          adminStyles.agentStoreStatusBadge,
-          adminStyles.agentStoreStatusBadgePending,
-        )}
-      >
-        未购买
-      </span>
-      <span className={adminStyles.agentStoreStatusMeta}>{item.category}</span>
-    </div>
+export const RecommendedTeamCard = ({ team }: RecommendedTeamCardProps): JSX.Element => {
+  return (
+    <div className={styles.recCard}>
+      <div className={styles.recCardBody}>
+        <div className={styles.cardIcon} style={{ background: `${team.categoryColor}12` }}>
+          <span style={{ fontSize: 24 }}>{team.icon}</span>
+        </div>
 
-    <div className={prototypeStyles.expertsEmployeeHeader}>
-      <div className={prototypeStyles.expertsEmployeeIdentity}>
-        <Avatar
-          className={classNames(
-            prototypeStyles.expertsEmployeeAvatar,
-            adminStyles.agentStoreMarketAvatar,
-          )}
-        >
-          {getAvatarText(item.name)}
-        </Avatar>
-        <div className={prototypeStyles.expertsEmployeeIdentityBody}>
-          <div className={prototypeStyles.expertsEmployeeName}>{item.name}</div>
-          <div className={prototypeStyles.expertsEmployeeSkillCount}>{sceneLabel}</div>
+        <div className={styles.cardContent}>
+          <h3 className={styles.cardTitle}>{team.name}</h3>
+          <div className={styles.cardMeta}>
+            <Tag color={team.categoryColor} bordered={false}>
+              {team.category}
+            </Tag>
+          </div>
+          <p className={styles.cardDesc}>{team.description}</p>
+          <p className={styles.recNote}>
+            <span className={styles.recNoteIcon}>&#x21BB;</span>
+            {team.recommendation}
+          </p>
+        </div>
+
+        <div className={styles.recRight}>
+          <span className={styles.recPrice}>
+            ¥{team.price.toLocaleString()}
+          </span>
+          <span className={styles.recPriceUnit}>/年</span>
         </div>
       </div>
-    </div>
 
-    <div className={prototypeStyles.expertsEmployeeBody}>
-      <div className={styles.agentStoreIntro}>
-        <div className={styles.agentStoreDescription}>{item.summary}</div>
-        <div className={adminStyles.agentStoreMarketHighlight}>{item.highlight}</div>
-      </div>
-
-      <div className={styles.agentStoreSkillSection}>
-        <div className={styles.agentStoreSkillLabel}>适用能力</div>
-        <div className={adminStyles.agentStoreCapabilityList}>
-          {item.capabilityTags.map(tag => (
-            <span key={tag} className={adminStyles.agentStoreCapabilityTag}>
-              {tag}
-            </span>
-          ))}
-        </div>
-      </div>
-    </div>
-
-    <div className={adminStyles.agentStoreHoverOverlay}>
-      <div className={adminStyles.agentStoreHoverOverlayBody}>
-        <div className={adminStyles.agentStoreHoverOverlayText}>
-          支持按当前场景联系商务，确认采购、交付方式和上线周期。
-        </div>
+      <div className={styles.cardActions}>
         <Button
           type="primary"
-          icon={<ShoppingCartOutlined />}
-          className={adminStyles.agentStoreHoverOverlayAction}
-          onClick={() => onOpenPurchaseLead(item.name, sceneLabel)}
+          onClick={() => window.open(`/portal/agents/${team.detailSlug}`, "_blank")}
         >
-          联系商务购买
+          了解详情 &gt;
         </Button>
       </div>
     </div>
-  </article>
-);
+  );
+};

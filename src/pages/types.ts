@@ -97,6 +97,7 @@ export interface EmployeeItem {
   boundMembers: string[];
   welcomeMessage: string;
   systemPrompt: string;
+  skills?: string[];
 }
 
 /**

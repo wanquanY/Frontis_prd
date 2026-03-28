@@ -6,7 +6,7 @@ import { useMockAuth } from "@/feature/auth/hooks/useMockAuth";
 import type { FrontisWebRole } from "@/pages/types";
 
 interface AuthRouteProps {
-  allowedRole: FrontisWebRole;
+  allowedRole: FrontisWebRole | FrontisWebRole[];
   children: ReactElement;
 }
 
@@ -23,7 +23,9 @@ export const AuthRoute = ({ allowedRole, children }: AuthRouteProps): JSX.Elemen
     return <Navigate replace to={`/login?redirect=${encodeURIComponent(redirectPath)}`} />;
   }
 
-  if (session.role !== allowedRole) {
+  const allowed = Array.isArray(allowedRole) ? allowedRole : [allowedRole];
+
+  if (!allowed.includes(session.role)) {
     return <Navigate replace to={getDefaultPathByRole(session.role)} />;
   }
 

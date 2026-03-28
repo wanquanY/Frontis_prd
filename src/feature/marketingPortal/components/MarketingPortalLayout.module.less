@@ -31,18 +31,11 @@
   background:
     radial-gradient(circle at top left, rgba(125, 226, 241, 0.14), transparent 22%),
     radial-gradient(circle at 88% 6%, rgba(89, 102, 241, 0.16), transparent 18%),
-    linear-gradient(180deg, #07111f 0%, #0d1d31 18%, #eef3f8 44%, #f6f7fb 100%);
+    linear-gradient(180deg, #07111f 0%, #0d1d31 100%);
   color: var(--portalTextPrimary);
 }
 
-[data-portal-header-tone="light"] {
-  --portalHeaderSurface: rgba(248, 251, 255, 0.52);
-  --portalHeaderBorder: rgba(148, 163, 184, 0.18);
-  --portalHeaderShadow: 0 24px 80px rgba(148, 163, 184, 0.18);
-  --portalHeaderText: #0f172a;
-  --portalHeaderTextMuted: rgba(15, 23, 42, 0.68);
-  --portalHeaderHover: rgba(15, 23, 42, 0.06);
-}
+/* header always dark — no light tone needed */
 
 [data-portal-home="true"] {
   scroll-snap-type: y mandatory;
@@ -298,8 +291,8 @@
 
 .sectionTitle {
   margin-top: 10px;
-  font-size: clamp(28px, 3vw, 44px);
-  line-height: 1.04;
+  font-size: 48px;
+  line-height: 1.06;
   font-weight: 700;
   letter-spacing: -0.04em;
 }
@@ -348,7 +341,7 @@
   gap: 24px;
   margin-top: 22px;
   padding: 26px 4px 12px;
-  color: rgba(15, 23, 42, 0.68);
+  color: rgba(248, 250, 252, 0.68);
 }
 
 .footerBrand {
@@ -359,7 +352,7 @@
 }
 
 .footerTitle {
-  color: #0f172a;
+  color: #f8fafc;
   font-size: 16px;
   font-weight: 700;
   line-height: 1.4;
@@ -379,11 +372,11 @@
 }
 
 .footerLink {
-  color: rgba(15, 23, 42, 0.68);
+  color: rgba(248, 250, 252, 0.68);
 
   &:hover {
-    color: #0f172a;
-    background: rgba(15, 23, 42, 0.05);
+    color: #f8fafc;
+    background: rgba(255, 255, 255, 0.06);
   }
 }
 

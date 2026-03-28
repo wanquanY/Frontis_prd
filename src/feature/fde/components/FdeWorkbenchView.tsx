@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 
 import classNames from "classnames";
 import {
@@ -7,13 +7,17 @@ import {
   CloudServerOutlined,
   DashboardOutlined,
   LineChartOutlined,
+  LogoutOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
   ProfileOutlined,
   RocketOutlined,
 } from "@ant-design/icons";
-import { Avatar, Select } from "antd";
+import type { MenuProps } from "antd";
+import { Avatar, Dropdown, Select, message } from "antd";
+import { useNavigate } from "react-router-dom";
 
+import { useMockAuth } from "@/feature/auth/hooks/useMockAuth";
 import { useFdeWorkbench } from "@/feature/fde/hooks/useFdeWorkbench";
 import type {
   FdeDeliveryOrderItem,
@@ -88,6 +92,8 @@ const RoleSwitchButton = ({ active, label, onClick }: RoleSwitchButtonProps): JS
  * FDE 工作台主视图。
  */
 export const FdeWorkbenchView = (): JSX.Element => {
+  const navigate = useNavigate();
+  const { logout } = useMockAuth();
   const workbench = useFdeWorkbench();
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(false);
 
@@ -104,6 +110,19 @@ export const FdeWorkbenchView = (): JSX.Element => {
     [workbench.deliveryOrders, workbench.leads, workbench.opportunities],
   );
   const currentRoleLabel = workbench.activeRole === "leader" ? "团队负责人视角" : "FDE 员工视角";
+  const handleLogout = useCallback((): void => {
+    logout();
+    message.success("已退出模拟登录。");
+    navigate("/portal", { replace: true });
+  }, [logout, navigate]);
+  const accountMenuItems: MenuProps["items"] = [
+    {
+      key: "logout",
+      icon: <LogoutOutlined />,
+      label: "退出登录",
+      onClick: handleLogout,
+    },
+  ];
 
   const activeContent = useMemo<JSX.Element>(() => {
     if (workbench.activeTab === "opportunities") {
@@ -277,23 +296,26 @@ export const FdeWorkbenchView = (): JSX.Element => {
           ))}
         </nav>
 
-        <div
-          className={classNames(styles.sidebarFooter, {
-            [styles.sidebarFooterCollapsed]: isSidebarCollapsed,
-          })}
-        >
-          <Avatar
-            className={styles.memberAvatar}
-            src={getFdeAvatarUrl(workbench.activeMember.avatarSeed)}
-            size={40}
-          />
-          {isSidebarCollapsed ? null : (
-            <div className={styles.footerCopy}>
-              <div className={styles.footerValue}>{workbench.activeMember.name}</div>
-              <div className={styles.footerHint}>{currentRoleLabel}</div>
-            </div>
-          )}
-        </div>
+        <Dropdown menu={{ items: accountMenuItems }} placement="topLeft" trigger={["click"]}>
+          <button
+            type="button"
+            className={classNames(styles.sidebarFooter, {
+              [styles.sidebarFooterCollapsed]: isSidebarCollapsed,
+            })}
+          >
+            <Avatar
+              className={styles.memberAvatar}
+              src={getFdeAvatarUrl(workbench.activeMember.avatarSeed)}
+              size={40}
+            />
+            {isSidebarCollapsed ? null : (
+              <div className={styles.footerCopy}>
+                <div className={styles.footerValue}>{workbench.activeMember.name}</div>
+                <div className={styles.footerHint}>{currentRoleLabel}</div>
+              </div>
+            )}
+          </button>
+        </Dropdown>
       </aside>
 
       <main className={styles.main}>
@@ -330,17 +352,6 @@ export const FdeWorkbenchView = (): JSX.Element => {
                   onChange={value => workbench.setActiveMemberId(value)}
                 />
               ) : null}
-
-              <div className={styles.memberCard}>
-                <Avatar
-                  className={styles.memberAvatar}
-                  src={getFdeAvatarUrl(workbench.activeMember.avatarSeed)}
-                />
-                <div>
-                  <div className={styles.memberName}>{workbench.activeMember.name}</div>
-                  <div className={styles.memberMeta}>{workbench.activeMember.title}</div>
-                </div>
-              </div>
             </div>
           </header>
 

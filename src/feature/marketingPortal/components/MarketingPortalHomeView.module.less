@@ -147,11 +147,7 @@
 }
 
 .isLightSectionCue {
-  color: rgba(15, 23, 42, 0.54);
-
-  &:hover {
-    color: rgba(15, 23, 42, 0.82);
-  }
+  /* no longer used — all sections are dark */
 }
 
 .sectionCueMeta {
@@ -185,13 +181,7 @@
   line-height: 1;
 }
 
-.isLightSectionCue .sectionCueChip {
-  border-color: rgba(15, 23, 42, 0.08);
-  background:
-    linear-gradient(135deg, rgba(125, 226, 241, 0.12), rgba(255, 255, 255, 0.86)),
-    rgba(255, 255, 255, 0.72);
-  box-shadow: 0 18px 40px rgba(148, 163, 184, 0.16);
-}
+/* isLightSectionCue chip no longer needed — all dark */
 
 .sectionCueIndex {
   font-size: 11px;
@@ -232,15 +222,14 @@
 .agentSection {
   position: relative;
   overflow: hidden;
-  color: var(--portalTextOnLight);
+  color: var(--portalTextPrimary);
 }
 
 .valueSection {
   background:
-    radial-gradient(circle at 14% 18%, rgba(125, 226, 241, 0.22), transparent 24%),
-    radial-gradient(circle at 84% 12%, rgba(84, 110, 255, 0.14), transparent 18%),
-    radial-gradient(circle at 52% 88%, rgba(255, 255, 255, 0.82), transparent 28%),
-    linear-gradient(180deg, #e7eef7 0%, #f8fafc 26%, #edf4fb 100%);
+    radial-gradient(circle at 14% 18%, rgba(125, 226, 241, 0.12), transparent 24%),
+    radial-gradient(circle at 84% 12%, rgba(84, 110, 255, 0.1), transparent 18%),
+    linear-gradient(180deg, #091423 0%, #0c1a2e 100%);
 }
 
 .valueSection .sectionInner {
@@ -258,10 +247,9 @@
 
 .scenarioSection {
   background:
-    radial-gradient(circle at 76% 22%, rgba(125, 226, 241, 0.18), transparent 20%),
-    radial-gradient(circle at 18% 82%, rgba(84, 110, 255, 0.1), transparent 24%),
-    radial-gradient(circle at 50% 12%, rgba(255, 255, 255, 0.78), transparent 22%),
-    linear-gradient(180deg, #eef3f8 0%, #fbfcfd 24%, #eff4fa 100%);
+    radial-gradient(circle at 76% 22%, rgba(125, 226, 241, 0.12), transparent 20%),
+    radial-gradient(circle at 18% 82%, rgba(84, 110, 255, 0.08), transparent 24%),
+    linear-gradient(180deg, #081321 0%, #0d1d31 100%);
 }
 
 .caseSection {
@@ -272,13 +260,13 @@
 
 .agentSection {
   background:
-    radial-gradient(circle at 20% 20%, rgba(125, 226, 241, 0.2), transparent 22%),
-    radial-gradient(circle at 86% 78%, rgba(84, 110, 255, 0.1), transparent 22%),
-    radial-gradient(circle at 48% 50%, rgba(255, 255, 255, 0.72), transparent 26%),
-    linear-gradient(180deg, #e8eff8 0%, #f7fafd 24%, #edf3fa 100%);
+    radial-gradient(circle at 20% 20%, rgba(125, 226, 241, 0.12), transparent 22%),
+    radial-gradient(circle at 86% 78%, rgba(84, 110, 255, 0.08), transparent 22%),
+    linear-gradient(180deg, #07111f 0%, #0e1d31 100%);
 }
 
 .ctaSection {
+  padding-top: calc(var(--portalHeaderDockSpace) + 24px);
   background:
     radial-gradient(circle at 50% 18%, rgba(125, 226, 241, 0.12), transparent 22%),
     linear-gradient(180deg, #07111f 0%, #0a1728 100%);
@@ -301,8 +289,8 @@
   position: absolute;
   inset: 0;
   background-image:
-    linear-gradient(rgba(15, 23, 42, 0.035) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(15, 23, 42, 0.035) 1px, transparent 1px);
+    linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
   background-size: 136px 136px;
   mask-image: radial-gradient(circle at center, rgba(0, 0, 0, 0.9), transparent 84%);
   opacity: 0.32;
@@ -320,23 +308,20 @@
 
 .valueSection::after {
   background:
-    radial-gradient(circle at 22% 22%, rgba(125, 226, 241, 0.18), transparent 18%),
-    radial-gradient(circle at 82% 18%, rgba(84, 110, 255, 0.12), transparent 16%),
-    radial-gradient(circle at 48% 72%, rgba(255, 255, 255, 0.56), transparent 22%);
+    radial-gradient(circle at 22% 22%, rgba(125, 226, 241, 0.1), transparent 18%),
+    radial-gradient(circle at 82% 18%, rgba(84, 110, 255, 0.08), transparent 16%);
 }
 
 .scenarioSection::after {
   background:
-    radial-gradient(circle at 78% 24%, rgba(125, 226, 241, 0.16), transparent 18%),
-    radial-gradient(circle at 20% 78%, rgba(84, 110, 255, 0.1), transparent 18%),
-    radial-gradient(circle at 52% 50%, rgba(255, 255, 255, 0.52), transparent 24%);
+    radial-gradient(circle at 78% 24%, rgba(125, 226, 241, 0.1), transparent 18%),
+    radial-gradient(circle at 20% 78%, rgba(84, 110, 255, 0.07), transparent 18%);
 }
 
 .agentSection::after {
   background:
-    radial-gradient(circle at 18% 18%, rgba(125, 226, 241, 0.18), transparent 18%),
-    radial-gradient(circle at 84% 76%, rgba(84, 110, 255, 0.11), transparent 18%),
-    radial-gradient(circle at 50% 42%, rgba(255, 255, 255, 0.5), transparent 24%);
+    radial-gradient(circle at 18% 18%, rgba(125, 226, 241, 0.1), transparent 18%),
+    radial-gradient(circle at 84% 76%, rgba(84, 110, 255, 0.08), transparent 18%);
 }
 
 .heroSection::before,
@@ -423,8 +408,7 @@
   }
 }
 
-.heroTitle,
-.ctaTitle {
+.heroTitle {
   margin-top: 14px;
   font-size: clamp(42px, 6vw, 84px);
   line-height: 0.96;
@@ -438,6 +422,7 @@
 }
 
 .heroAccentLine {
+  margin-top: 18px;
   color: #1295ff;
   text-shadow:
     0 0 18px rgba(18, 149, 255, 0.34),
@@ -497,11 +482,19 @@
 .agentSection .sectionInner {
   display: flex;
   flex-direction: column;
+  align-items: center;
   gap: 22px;
 }
 
 .sectionHeading {
   max-width: 760px;
+}
+
+.valueSection .anxietyStage,
+.scenarioSection .mindsetBoard,
+.scenarioSection .mindsetHighlights,
+.agentSection .planLayout {
+  align-self: stretch;
 }
 
 .voiceWall {
@@ -552,10 +545,10 @@
   flex: 0 0 316px;
   min-height: 164px;
   padding: 16px 18px 18px;
-  border: 1px solid rgba(15, 23, 42, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 24px;
-  background: rgba(255, 255, 255, 0.72);
-  box-shadow: 0 24px 80px rgba(15, 23, 42, 0.08);
+  background: rgba(255, 255, 255, 0.05);
+  box-shadow: 0 24px 80px rgba(7, 17, 31, 0.2);
   backdrop-filter: blur(18px);
   transition:
     transform 220ms ease,
@@ -565,8 +558,8 @@
   &:hover {
     z-index: 1;
     transform: scale(1.035);
-    border-color: rgba(30, 181, 199, 0.22);
-    box-shadow: 0 28px 72px rgba(15, 23, 42, 0.14);
+    border-color: rgba(125, 226, 241, 0.22);
+    box-shadow: 0 28px 72px rgba(7, 17, 31, 0.28);
   }
 }
 
@@ -588,9 +581,9 @@
   flex-shrink: 0;
   width: 44px;
   height: 44px;
-  border: 1px solid rgba(255, 255, 255, 0.78);
-  background: linear-gradient(135deg, rgba(206, 244, 250, 0.95), rgba(234, 247, 250, 0.88));
-  box-shadow: 0 16px 36px rgba(30, 181, 199, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: linear-gradient(135deg, rgba(30, 181, 199, 0.24), rgba(84, 110, 255, 0.18));
+  box-shadow: 0 16px 36px rgba(7, 17, 31, 0.2);
 }
 
 .voiceIdentityBody {
@@ -605,14 +598,14 @@
 }
 
 .voiceAuthorName {
-  color: rgba(15, 23, 42, 0.96);
+  color: rgba(248, 250, 252, 0.96);
   font-size: 16px;
   line-height: 1.2;
   font-weight: 700;
 }
 
 .voiceAuthorRole {
-  color: rgba(15, 23, 42, 0.54);
+  color: rgba(248, 250, 252, 0.54);
   font-size: 12px;
   line-height: 1.3;
   font-weight: 600;
@@ -620,7 +613,7 @@
 
 .voiceAuthorCompany {
   margin-top: 4px;
-  color: rgba(15, 23, 42, 0.56);
+  color: rgba(248, 250, 252, 0.56);
   font-size: 12px;
   line-height: 1.5;
   white-space: nowrap;
@@ -643,7 +636,7 @@
 
 .voiceQuote {
   margin-top: 14px;
-  color: rgba(15, 23, 42, 0.94);
+  color: rgba(248, 250, 252, 0.94);
   font-size: 18px;
   line-height: 1.42;
   font-weight: 700;
@@ -652,7 +645,7 @@
 
 .voiceContext {
   margin-top: 10px;
-  color: rgba(15, 23, 42, 0.64);
+  color: rgba(248, 250, 252, 0.64);
   font-size: 13px;
   line-height: 1.72;
   display: -webkit-box;
@@ -675,10 +668,10 @@
   align-self: flex-start;
   max-width: 100%;
   padding: 15px 16px;
-  border: 1px solid rgba(15, 23, 42, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 24px 24px 24px 10px;
-  background: rgba(255, 255, 255, 0.74);
-  box-shadow: 0 18px 48px rgba(15, 23, 42, 0.08);
+  background: rgba(255, 255, 255, 0.05);
+  box-shadow: 0 18px 48px rgba(7, 17, 31, 0.2);
 
   &::after {
     content: "";
@@ -687,8 +680,8 @@
     bottom: -8px;
     width: 18px;
     height: 18px;
-    border-right: 1px solid rgba(15, 23, 42, 0.08);
-    border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+    border-right: 1px solid rgba(255, 255, 255, 0.08);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
     border-bottom-right-radius: 6px;
     background: inherit;
     transform: rotate(35deg);
@@ -698,14 +691,15 @@
 .isAccentTransitionBubble {
   align-self: flex-end;
   border-radius: 24px 24px 10px 24px;
-  background: linear-gradient(135deg, rgba(30, 181, 199, 0.16), rgba(255, 255, 255, 0.92));
+  border-color: rgba(125, 226, 241, 0.14);
+  background: linear-gradient(135deg, rgba(30, 181, 199, 0.12), rgba(255, 255, 255, 0.04));
 
   &::after {
     left: auto;
     right: 18px;
     border-right: 0;
-    border-left: 1px solid rgba(15, 23, 42, 0.08);
-    border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+    border-left: 1px solid rgba(125, 226, 241, 0.14);
+    border-bottom: 1px solid rgba(125, 226, 241, 0.14);
     border-bottom-left-radius: 6px;
     transform: rotate(-35deg);
   }
@@ -728,7 +722,7 @@
 }
 
 .transitionBubbleText {
-  color: rgba(15, 23, 42, 0.9);
+  color: rgba(248, 250, 252, 0.9);
   font-size: 16px;
   line-height: 1.6;
   font-weight: 600;
@@ -754,14 +748,12 @@
 
 .valueCard {
   padding: 28px;
-  border: 1px solid rgba(15, 23, 42, 0.08);
-  background: rgba(255, 255, 255, 0.76);
-  box-shadow: 0 24px 80px rgba(15, 23, 42, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.05);
+  box-shadow: 0 24px 80px rgba(7, 17, 31, 0.2);
 }
 
-.valueTitle,
-.archTitle,
-.caseTitle {
+.valueTitle {
   margin-top: 12px;
   font-size: clamp(30px, 3vw, 48px);
   line-height: 1.02;
@@ -769,17 +761,41 @@
   letter-spacing: -0.05em;
 }
 
-.valueDescription,
-.caseDescription {
+.caseTitle {
   margin-top: 12px;
-  color: rgba(15, 23, 42, 0.68);
+  font-size: 48px;
+  line-height: 1.06;
+  font-weight: 700;
+  letter-spacing: -0.05em;
+}
+
+.archTitle {
+  margin-top: 12px;
+  font-size: 48px;
+  line-height: 1.06;
+  font-weight: 700;
+  letter-spacing: -0.05em;
+}
+
+.valueDescription {
+  margin-top: 12px;
+  color: rgba(248, 250, 252, 0.68);
   font-size: 15px;
   line-height: 1.8;
 }
 
 .archSection .sectionInner {
   display: grid;
-  gap: 18px;
+  gap: 36px;
+  justify-items: center;
+}
+
+.archSection .archDescription {
+  margin-bottom: 12px;
+}
+
+.archSection .sectionInner > * {
+  width: 100%;
 }
 
 .archCopy {
@@ -795,26 +811,44 @@
   text-transform: uppercase;
 }
 
+.mindsetSubtitle {
+  font-size: 18px;
+  line-height: 1.85;
+  margin-bottom: 8px;
+}
+
+.highlightText {
+  color: #1295ff;
+  text-shadow:
+    0 0 18px rgba(18, 149, 255, 0.34),
+    0 0 38px rgba(18, 149, 255, 0.18);
+}
+
 .mindsetBoard {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 18px;
+  align-self: stretch;
 }
 
 .mindsetColumn {
   padding: 26px 28px 28px;
-  border: 1px solid rgba(15, 23, 42, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 32px;
-  background: rgba(255, 255, 255, 0.74);
-  box-shadow: 0 24px 80px rgba(15, 23, 42, 0.08);
+  background: rgba(255, 255, 255, 0.05);
+  box-shadow: 0 24px 80px rgba(7, 17, 31, 0.2);
 }
 
 .isAccentMindsetColumn {
-  border-color: rgba(30, 181, 199, 0.2);
-  background: linear-gradient(180deg, rgba(225, 249, 252, 0.92), rgba(255, 255, 255, 0.84));
+  border-color: rgba(18, 149, 255, 0.28);
+  background: linear-gradient(180deg, rgba(18, 149, 255, 0.06), rgba(255, 255, 255, 0.03));
   box-shadow:
-    0 24px 80px rgba(15, 23, 42, 0.08),
-    0 0 0 1px rgba(125, 226, 241, 0.18) inset;
+    0 24px 80px rgba(7, 17, 31, 0.2),
+    0 0 0 1px rgba(18, 149, 255, 0.12) inset;
+
+  .mindsetColumnIcon {
+    color: #1295ff;
+  }
 }
 
 .mindsetColumnHeader {
@@ -827,11 +861,11 @@
   flex-shrink: 0;
   margin-top: 2px;
   color: rgba(30, 181, 199, 0.92);
-  font-size: 24px;
+  font-size: 36px;
 }
 
 .mindsetColumnEyebrow {
-  color: rgba(15, 23, 42, 0.54);
+  color: rgba(248, 250, 252, 0.54);
   font-size: 12px;
   line-height: 1.3;
   font-weight: 700;
@@ -841,7 +875,7 @@
 
 .mindsetColumnTitle {
   margin-top: 8px;
-  color: rgba(15, 23, 42, 0.94);
+  color: rgba(248, 250, 252, 0.94);
   font-size: 28px;
   line-height: 1.1;
   font-weight: 700;
@@ -860,7 +894,7 @@
   gap: 12px;
   min-height: 68px;
   padding: 14px 0;
-  border-top: 1px solid rgba(15, 23, 42, 0.08);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .mindsetBullet {
@@ -874,24 +908,31 @@
 
 .mindsetLegacy,
 .mindsetNext {
-  font-size: 21px;
+  font-size: 22px;
   line-height: 1.38;
   font-weight: 600;
   letter-spacing: -0.03em;
 }
 
 .mindsetLegacy {
-  color: rgba(15, 23, 42, 0.52);
+  color: rgba(248, 250, 252, 0.52);
 }
 
 .mindsetNext {
-  color: rgba(15, 23, 42, 0.94);
+  color: rgba(248, 250, 252, 0.94);
 }
 
 .mindsetHighlights {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 16px;
+}
+
+.caseSection .sectionInner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 28px;
 }
 
 .logoHeading {
@@ -959,6 +1000,60 @@
   text-align: center;
 }
 
+.logoMarquee {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: 100%;
+  align-self: stretch;
+}
+
+.logoRowTrack {
+  display: flex;
+  gap: 14px;
+  width: max-content;
+  animation: voiceMarquee 32s linear infinite;
+}
+
+.isReverseLogoRowTrack {
+  animation-direction: reverse;
+  animation-duration: 38s;
+}
+
+.logoCard {
+  flex: 0 0 220px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px 22px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.04);
+  transition:
+    border-color 220ms ease,
+    background 220ms ease;
+
+  &:hover {
+    border-color: rgba(125, 226, 241, 0.18);
+    background: rgba(255, 255, 255, 0.07);
+  }
+}
+
+.logoCardImage {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+  filter: brightness(0) invert(1);
+  opacity: 0.88;
+}
+
+.logoCardName {
+  color: rgba(248, 250, 252, 0.88);
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
 .planLayout {
   display: grid;
   grid-template-columns: minmax(0, 0.96fr) minmax(0, 1.04fr);
@@ -969,10 +1064,10 @@
 .planCard,
 .trustCard,
 .ctaFormCard {
-  border: 1px solid rgba(15, 23, 42, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 32px;
-  background: rgba(255, 255, 255, 0.76);
-  box-shadow: 0 24px 80px rgba(15, 23, 42, 0.08);
+  background: rgba(255, 255, 255, 0.05);
+  box-shadow: 0 24px 80px rgba(7, 17, 31, 0.2);
 }
 
 .planCard {
@@ -981,7 +1076,7 @@
 
 .planPrice {
   margin-top: 14px;
-  color: rgba(15, 23, 42, 0.96);
+  color: rgba(248, 250, 252, 0.96);
   font-size: clamp(38px, 4vw, 64px);
   line-height: 1;
   font-weight: 700;
@@ -990,7 +1085,7 @@
 
 .planDescription {
   margin-top: 16px;
-  color: rgba(15, 23, 42, 0.68);
+  color: rgba(248, 250, 252, 0.68);
   font-size: 15px;
   line-height: 1.8;
 }
@@ -1005,7 +1100,7 @@
   display: flex;
   align-items: flex-start;
   gap: 12px;
-  color: rgba(15, 23, 42, 0.82);
+  color: rgba(248, 250, 252, 0.82);
   font-size: 15px;
   line-height: 1.8;
 }
@@ -1032,7 +1127,7 @@
 
 .trustTitle {
   margin-top: 14px;
-  color: rgba(15, 23, 42, 0.94);
+  color: rgba(248, 250, 252, 0.94);
   font-size: 24px;
   line-height: 1.2;
   font-weight: 700;
@@ -1041,7 +1136,7 @@
 
 .trustDescription {
   margin-top: 10px;
-  color: rgba(15, 23, 42, 0.66);
+  color: rgba(248, 250, 252, 0.66);
   font-size: 14px;
   line-height: 1.8;
 }
@@ -1056,45 +1151,66 @@
   text-align: center;
 }
 
+.ctaSubtitle {
+  font-size: 16px;
+  line-height: 1.6;
+  letter-spacing: 0.04em;
+}
+
+.ctaTitle {
+  margin-top: 10px;
+  font-size: 48px;
+  line-height: 1.06;
+  font-weight: 700;
+  letter-spacing: -0.05em;
+}
+
 .ctaDescription {
+  margin-top: 18px;
   margin-left: auto;
   margin-right: auto;
 }
 
-.ctaActions {
-  justify-content: center;
-  margin-top: 24px;
-}
-
 .ctaFormCard {
-  margin-top: 28px;
-  padding: 24px;
+  margin-top: 32px;
+  padding: 32px;
+  text-align: left;
 }
 
-.ctaFieldGrid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
+.ctaFieldGroup {
+  margin-bottom: 20px;
 }
 
-.ctaInput,
-.ctaSelect {
+.ctaLabel {
+  display: block;
+  margin-bottom: 8px;
+  color: rgba(248, 250, 252, 0.92);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.ctaRequired {
+  color: #ff4d4f;
+}
+
+.ctaInput {
   width: 100%;
-  min-height: 54px;
+  min-height: 52px;
   padding: 0 16px;
   border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 18px;
+  border-radius: 14px;
   background: rgba(7, 17, 31, 0.28);
   color: #f8fafc;
   font-size: 15px;
   line-height: 1;
   outline: none;
+  box-sizing: border-box;
   transition:
     border-color 180ms ease,
     background 180ms ease;
 
   &::placeholder {
-    color: rgba(248, 250, 252, 0.46);
+    color: rgba(248, 250, 252, 0.38);
   }
 
   &:focus {
@@ -1103,8 +1219,63 @@
   }
 }
 
-.ctaSelect {
+.ctaPillGroup {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.ctaPill {
   appearance: none;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(248, 250, 252, 0.78);
+  padding: 10px 20px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    border-color 180ms ease,
+    background 180ms ease,
+    color 180ms ease;
+
+  &:hover {
+    border-color: rgba(125, 226, 241, 0.28);
+    color: #f8fafc;
+  }
+}
+
+.isActivePill {
+  border-color: rgba(125, 226, 241, 0.5);
+  background: rgba(125, 226, 241, 0.12);
+  color: var(--portalAccent);
+}
+
+.ctaSubmitButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 56px;
+  margin-top: 8px;
+  border: none;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #7de2f1, #1eb5c7);
+  color: #07111f;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    transform 180ms ease,
+    box-shadow 180ms ease;
+  box-shadow: 0 14px 32px rgba(30, 181, 199, 0.2);
+
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 18px 40px rgba(30, 181, 199, 0.28);
+  }
 }
 
 .ctaClosing {
@@ -1148,20 +1319,11 @@
     max-width: 720px;
   }
 
-  .archTitle {
-    font-size: clamp(28px, 2.6vw, 40px);
-  }
-
   .archDescription {
     margin-top: 14px;
     max-width: 660px;
-    font-size: 16px;
-    line-height: 1.72;
   }
 
-  .scenarioSection h2 {
-    font-size: clamp(28px, 2.9vw, 40px);
-  }
   .mindsetBoard,
   .mindsetHighlights {
     gap: 14px;
@@ -1197,9 +1359,6 @@
     line-height: 1.62;
   }
 
-  .caseSection h2 {
-    font-size: clamp(28px, 2.8vw, 40px);
-  }
   .logoWall {
     grid-auto-rows: 96px;
     gap: 14px;
@@ -1232,10 +1391,6 @@
   .ctaPanel {
     max-width: 760px;
   }
-  .ctaDescription {
-    font-size: 15px;
-    line-height: 1.7;
-  }
 }
 
 @media (max-width: 1366px), (max-height: 1080px) and (min-width: 961px) {
@@ -1252,15 +1407,9 @@
     max-width: 580px;
   }
 
-  .archTitle {
-    font-size: clamp(22px, 2vw, 30px);
-  }
-
   .archDescription {
     margin-top: 10px;
     max-width: 560px;
-    font-size: 14px;
-    line-height: 1.56;
   }
 
   .archSection .sectionCue {
@@ -1272,9 +1421,6 @@
     padding: 0 14px;
   }
 
-  .scenarioSection h2 {
-    font-size: clamp(24px, 2.5vw, 32px);
-  }
   .mindsetBoard,
   .mindsetHighlights {
     gap: 12px;
@@ -1312,9 +1458,6 @@
     line-height: 1.5;
   }
 
-  .caseSection h2 {
-    font-size: clamp(24px, 2.4vw, 32px);
-  }
   .logoWall {
     grid-auto-rows: 84px;
     gap: 12px;
@@ -1345,8 +1488,7 @@
   }
   .planDescription,
   .planFeatureItem,
-  .trustDescription,
-  .ctaDescription {
+  .trustDescription {
     font-size: 13px;
     line-height: 1.5;
   }
@@ -1364,11 +1506,7 @@
     margin-top: 22px;
     padding: 20px;
   }
-  .ctaFieldGrid {
-    gap: 10px;
-  }
-  .ctaInput,
-  .ctaSelect {
+  .ctaInput {
     min-height: 48px;
     font-size: 14px;
   }
@@ -1437,8 +1575,7 @@
 
   .heroSection .sectionInner,
   .mindsetHighlights,
-  .trustGrid,
-  .ctaFieldGrid {
+  .trustGrid {
     grid-template-columns: minmax(0, 1fr);
   }
 
@@ -1446,8 +1583,7 @@
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .heroTitle,
-  .ctaTitle {
+  .heroTitle {
     font-size: 42px;
   }
 
@@ -1496,9 +1632,6 @@
   }
   .trustTitle {
     font-size: 20px;
-  }
-  .ctaTitle {
-    font-size: 36px;
   }
   .planPrice {
     font-size: 28px;

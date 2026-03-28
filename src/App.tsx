@@ -57,7 +57,7 @@ const App = (): JSX.Element => {
           <Route
             path="/web/employee"
             element={
-              <AuthRoute allowedRole="employee">
+              <AuthRoute allowedRole={["employee", "admin"]}>
                 <FrontisPage viewRole="employee" />
               </AuthRoute>
             }

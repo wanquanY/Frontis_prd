@@ -1,3 +1,9 @@
+.catalogShell {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
 .filterRow {
   display: flex;
   align-items: center;
@@ -30,9 +36,21 @@
 }
 
 .isActiveFilterButton {
-  border-color: rgba(30, 181, 199, 0.28);
-  background: linear-gradient(135deg, rgba(125, 226, 241, 0.16), rgba(30, 181, 199, 0.16));
+  border-color: rgba(30, 181, 199, 0.45);
+  background: linear-gradient(135deg, rgba(125, 226, 241, 0.22), rgba(30, 181, 199, 0.18));
   color: #ffffff;
+  box-shadow: 0 8px 24px rgba(30, 181, 199, 0.12);
+}
+
+.catalogBody {
+  display: flex;
+  align-items: flex-start;
+  gap: 24px;
+}
+
+.mainColumn {
+  flex: 1;
+  min-width: 0;
 }
 
 .sceneGrid {
@@ -42,114 +60,98 @@
 }
 
 .sceneCard {
-  padding: 28px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  height: 100%;
 }
 
-.cardHeader {
-  display: grid;
-  grid-template-columns: 86px minmax(0, 1fr);
+.cardTop {
+  display: flex;
   gap: 18px;
   align-items: flex-start;
 }
 
 .iconBadge {
-  width: 86px;
-  height: 86px;
-  border-radius: 24px;
+  flex-shrink: 0;
+  width: 72px;
+  height: 72px;
+  border-radius: 20px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(145deg, rgba(125, 226, 241, 0.16), rgba(84, 110, 255, 0.18));
+  background: linear-gradient(145deg, rgba(125, 226, 241, 0.22), rgba(30, 181, 199, 0.14));
   color: #7de2f1;
-  font-size: 34px;
+  font-size: 30px;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
 }
 
 .cardHeading {
   display: flex;
   flex-direction: column;
-  gap: 14px;
-}
-
-.titleRow {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 16px;
+  gap: 12px;
+  min-width: 0;
 }
 
 .cardTitle {
-  font-size: 30px;
-  line-height: 1.08;
+  margin: 0;
+  font-size: 22px;
+  line-height: 1.2;
   font-weight: 700;
-  letter-spacing: -0.04em;
+  letter-spacing: -0.03em;
+  color: #f8fafc;
 }
 
 .categoryList {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
-  gap: 8px;
   flex-wrap: wrap;
+  gap: 6px;
 }
 
 .categoryChip {
   display: inline-flex;
   align-items: center;
-  min-height: 30px;
-  padding: 0 12px;
+  min-height: 22px;
+  padding: 0 8px;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.08);
-  color: rgba(248, 250, 252, 0.82);
-  font-size: 12px;
+  color: rgba(248, 250, 252, 0.68);
+  font-size: 11px;
   font-weight: 600;
   line-height: 1;
 }
 
 .cardDescription {
-  color: rgba(248, 250, 252, 0.72);
-  font-size: 16px;
-  line-height: 1.85;
-}
-
-.expertGrid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 14px;
-  margin-top: 24px;
-}
-
-.expertCard {
-  min-height: 142px;
-  padding: 16px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 20px;
-  background: rgba(255, 255, 255, 0.04);
-}
-
-.expertName {
-  font-size: 18px;
-  line-height: 1.25;
-  font-weight: 700;
-  color: #ffffff;
+  margin: 0;
+  color: rgba(248, 250, 252, 0.78);
+  font-size: 14px;
+  line-height: 1.75;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .skillList {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
-  margin-top: 14px;
+  gap: 6px;
+  max-height: 56px;
+  overflow: hidden;
 }
 
 .skillChip {
   display: inline-flex;
   align-items: center;
-  min-height: 32px;
-  padding: 0 12px;
+  min-height: 24px;
+  padding: 0 8px;
   border-radius: 999px;
-  background: rgba(125, 226, 241, 0.12);
+  border: 1px solid rgba(125, 226, 241, 0.28);
+  background: rgba(125, 226, 241, 0.08);
   color: #7de2f1;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
   line-height: 1;
 }
@@ -157,16 +159,151 @@
 .cardActions {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px;
-  margin-top: 24px;
+  gap: 12px;
+  margin-top: auto;
 }
 
 .detailButton,
-.consultButton {
+.packageButton {
   width: 100%;
 }
 
+.packageButton.isPackageAdded {
+  border: 1px solid rgba(125, 226, 241, 0.55);
+  background: transparent;
+  color: #7de2f1;
+  box-shadow: none;
+
+  &:hover {
+    background: rgba(125, 226, 241, 0.08);
+    color: #b8f0f8;
+  }
+}
+
+.packagePanel {
+  position: sticky;
+  top: calc(var(--portalHeaderDockSpace) + 12px);
+  width: 300px;
+  flex-shrink: 0;
+  padding: 22px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  align-self: flex-start;
+  border-radius: var(--portalRadiusLg);
+}
+
+.packagePanelHeader {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.packagePanelTitle {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
+  color: #f8fafc;
+  letter-spacing: -0.02em;
+}
+
+.packagePanelMeta {
+  margin: 0;
+  font-size: 13px;
+  color: rgba(248, 250, 252, 0.62);
+  line-height: 1.4;
+}
+
+.packageEmpty {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.65;
+  color: rgba(248, 250, 252, 0.55);
+}
+
+.packageList {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: min(360px, 50vh);
+  overflow-y: auto;
+}
+
+.packageListItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 10px 10px 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.packageDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  flex-shrink: 0;
+  background: linear-gradient(135deg, #7de2f1, #1eb5c7);
+  box-shadow: 0 0 12px rgba(125, 226, 241, 0.35);
+}
+
+.packageListTitle {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(248, 250, 252, 0.92);
+  line-height: 1.35;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.packageRemove {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  color: rgba(248, 250, 252, 0.45);
+  cursor: pointer;
+  transition:
+    color 160ms ease,
+    background 160ms ease;
+
+  &:hover {
+    color: #f8fafc;
+    background: rgba(255, 255, 255, 0.08);
+  }
+}
+
+.packageContinue {
+  width: 100%;
+  margin-top: 4px;
+}
+
 @media (max-width: 1180px) {
+  .catalogBody {
+    flex-direction: column;
+  }
+
+  .packagePanel {
+    position: static;
+    width: 100%;
+    max-width: 520px;
+  }
+
   .sceneGrid {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -174,29 +311,23 @@
 
 @media (max-width: 840px) {
   .sceneCard {
-    padding: 22px;
+    padding: 20px;
   }
 
-  .cardHeader {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .iconBadge {
-    width: 72px;
-    height: 72px;
-    border-radius: 20px;
-    font-size: 28px;
-  }
-
-  .titleRow {
+  .cardTop {
     flex-direction: column;
   }
 
-  .cardTitle {
-    font-size: 28px;
+  .iconBadge {
+    width: 64px;
+    height: 64px;
+    font-size: 26px;
   }
 
-  .expertGrid,
+  .cardTitle {
+    font-size: 20px;
+  }
+
   .cardActions {
     grid-template-columns: minmax(0, 1fr);
   }

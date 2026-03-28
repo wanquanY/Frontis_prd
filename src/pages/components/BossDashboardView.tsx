@@ -1,12 +1,6 @@
 import { useMemo } from "react";
 
-import {
-  CheckCircleOutlined,
-  ClockCircleOutlined,
-  NotificationOutlined,
-  RocketOutlined,
-  ThunderboltOutlined,
-} from "@ant-design/icons";
+import { BellOutlined } from "@ant-design/icons";
 import { Button, message } from "antd";
 
 import type {
@@ -15,7 +9,6 @@ import type {
   FrontisWebUserItem,
   WorkspaceItem,
 } from "../types";
-import { getStatusLabel } from "../utils";
 
 import styles from "./BossDashboardView.module.less";
 
@@ -27,333 +20,451 @@ interface BossDashboardViewProps {
   workspaces: WorkspaceItem[];
 }
 
-interface DashboardMetricItem {
-  key: string;
-  title: string;
-  value: string;
-  hint: string;
-  tone: "primary" | "success" | "warning" | "accent";
-  icon: JSX.Element;
-}
+/* ── Constants ── */
 
-interface CrewSummaryItem {
+const DAY_NAMES = ["星期日", "星期一", "星期二", "星期三", "星期四", "星期五", "星期六"];
+const PLATFORM_LAUNCH = new Date(2025, 10, 20);
+
+interface ExpertTeamDef {
   id: string;
   name: string;
-  status: string;
-  taskCount: number;
-  summary: string;
+  icon: string;
+  description: string;
+  memberIds: string[];
 }
 
+const EXPERT_TEAMS: ExpertTeamDef[] = [
+  {
+    id: "team-product",
+    name: "产研协作专家团",
+    icon: "🧠",
+    description: "产品策略 · 交互设计 · 资料研究 · 上线协调",
+    memberIds: ["employee-pm", "employee-designer", "employee-research", "employee-ops"],
+  },
+  {
+    id: "team-sales",
+    name: "销售增长专家团",
+    icon: "📈",
+    description: "销售战报 · 内容创作 · 本地市场跟进",
+    memberIds: ["employee-writer", "employee-sales"],
+  },
+];
+
+const CHIP_STATUS_MAP: Record<string, "online" | "waiting" | "paused"> = {
+  online: "online",
+  busy: "online",
+  idle: "waiting",
+  pending: "waiting",
+  paused: "paused",
+  draft: "paused",
+};
+
+interface TimelineSegment {
+  text: string;
+  tone?: "primary" | "success" | "danger";
+}
+
+interface TimelineEntryDef {
+  id: string;
+  time: string;
+  employeeId: string;
+  agentLabel: string;
+  segments: TimelineSegment[];
+  tag: { label: string; tone: "warn" | "done" | "alert" };
+}
+
+const TIMELINE_ENTRIES: TimelineEntryDef[] = [
+  {
+    id: "tl-1",
+    time: "21:15",
+    employeeId: "employee-pm",
+    agentLabel: "产品策略官 · 产研协作专家团",
+    segments: [
+      { text: "完成 SynClaw 独立窗口 " },
+      { text: "五 Tab 结构方案", tone: "primary" },
+      { text: "，输出评审文档 1 份，等待你确认后进入下一阶段。" },
+    ],
+    tag: { label: "待确认", tone: "warn" },
+  },
+  {
+    id: "tl-2",
+    time: "20:42",
+    employeeId: "employee-research",
+    agentLabel: "资料研究员 · 产研协作专家团",
+    segments: [
+      { text: "完成竞品页面资料同步，梳理出 " },
+      { text: "3 个关键差异点", tone: "success" },
+      { text: "，建议优先在首屏强化\"AI 专家团\"概念。" },
+    ],
+    tag: { label: "已完成", tone: "done" },
+  },
+  {
+    id: "tl-3",
+    time: "19:30",
+    employeeId: "employee-writer",
+    agentLabel: "本地内容助理 · 销售增长专家团",
+    segments: [
+      { text: "整理完成昨日会议纪要摘要，提炼出 " },
+      { text: "7 个功能拆解点", tone: "primary" },
+      { text: "，已同步对话记录，等待你继续安排。" },
+    ],
+    tag: { label: "已完成", tone: "done" },
+  },
+  {
+    id: "tl-4",
+    time: "17:08",
+    employeeId: "employee-sales",
+    agentLabel: "销售战报助手 · 销售增长专家团",
+    segments: [
+      { text: "设备激活码尚未录入，" },
+      { text: "一线销售数据无法回流", tone: "danger" },
+      { text: "，建议尽快完成激活，补齐数据闭环。" },
+    ],
+    tag: { label: "需处理", tone: "alert" },
+  },
+  {
+    id: "tl-5",
+    time: "14:55",
+    employeeId: "employee-designer",
+    agentLabel: "交互设计师 · 产研协作专家团",
+    segments: [
+      { text: "AI 专家团页面命名方案整理完毕，提供 " },
+      { text: "3 个候选方案", tone: "primary" },
+      { text: " 供选择，确认后立即推进原型设计。" },
+    ],
+    tag: { label: "待确认", tone: "warn" },
+  },
+];
+
+const AVATAR_COLORS = [
+  { bg: "rgba(0, 193, 212, 0.12)", color: "#00a8ba" },
+  { bg: "rgba(22, 163, 74, 0.12)", color: "#16a34a" },
+  { bg: "rgba(124, 58, 237, 0.12)", color: "#7c3aed" },
+  { bg: "rgba(217, 119, 6, 0.12)", color: "#d97706" },
+  { bg: "rgba(219, 39, 119, 0.12)", color: "#db2777" },
+];
+
+/* ── Helpers ── */
+
 const getGreetingLabel = (): string => {
-  const currentHour = new Date().getHours();
-
-  if (currentHour < 6) {
-    return "夜深了";
-  }
-
-  if (currentHour < 12) {
-    return "早上好";
-  }
-
-  if (currentHour < 18) {
-    return "下午好";
-  }
-
+  const h = new Date().getHours();
+  if (h < 6) return "夜深了";
+  if (h < 12) return "早上好";
+  if (h < 18) return "下午好";
   return "晚上好";
 };
 
-const getExecutiveTitle = (currentUserName?: string): string => {
-  const normalizedName = currentUserName?.trim();
-
-  if (!normalizedName) {
-    return "老板";
-  }
-
-  return `${normalizedName.slice(0, 1)}总`;
+const getExecutiveTitle = (name?: string): string => {
+  const n = name?.trim();
+  if (!n) return "老板";
+  return `${n.slice(0, 1)}总`;
 };
 
-/**
- * 企业老板驾驶舱视图。
- */
+const formatDateLine = (): string => {
+  const now = new Date();
+  return `${now.getFullYear()}年${now.getMonth() + 1}月${now.getDate()}日 · ${DAY_NAMES[now.getDay()]} · ${getGreetingLabel()}`;
+};
+
+/* ── Component ── */
+
 export const BossDashboardView = ({
   currentUserName,
   dialogueSessions,
   employees,
   users,
-  workspaces,
 }: BossDashboardViewProps): JSX.Element => {
-  const activeUserCount = useMemo(
-    () => users.filter(item => item.status === "active").length,
-    [users],
-  );
-  const onlineWorkspaceCount = useMemo(
-    () => workspaces.filter(item => item.status === "online" || item.status === "busy").length,
-    [workspaces],
-  );
   const completedTaskCount = useMemo(
     () =>
       dialogueSessions.reduce((total, session, index) => {
-        const assistantMessageCount = session.messages.filter(
-          item => item.role === "assistant",
-        ).length;
-        return total + assistantMessageCount * 8 + 12 + index;
+        const aCount = session.messages.filter(m => m.role === "assistant").length;
+        return total + aCount * 8 + 12 + index;
       }, 0),
     [dialogueSessions],
   );
-  const savedHours = useMemo(
-    () => Math.round(completedTaskCount * 0.48 + onlineWorkspaceCount * 26),
-    [completedTaskCount, onlineWorkspaceCount],
-  );
-  const roiValue = useMemo(
-    () => Math.min(92, 24 + activeUserCount * 6 + employees.length * 4),
-    [activeUserCount, employees.length],
-  );
-  const paybackProgress = useMemo(
-    () => Math.min(96, 58 + Math.round(savedHours / 24)),
-    [savedHours],
-  );
-  const averageDialogueLoad = useMemo(
-    () =>
-      Math.max(
-        1,
-        Math.round(
-          dialogueSessions.reduce((total, item) => total + item.messages.length, 0) /
-            Math.max(1, employees.length),
-        ),
-      ),
-    [dialogueSessions, employees.length],
-  );
-  const metricItems = useMemo<DashboardMetricItem[]>(
-    () => [
-      {
-        hint: "AI 专家团持续承担需求拆解、资料整理和交付跟进",
-        icon: <ClockCircleOutlined />,
-        key: "runtime",
-        title: "平台稳定运行天数",
-        tone: "primary",
-        value: "128 天",
-      },
-      {
-        hint: `${employees.length} 个 AI 专家处于可调用状态`,
-        icon: <RocketOutlined />,
-        key: "agents",
-        title: "AI 专家数量",
-        tone: "accent",
-        value: `${employees.length} 个`,
-      },
-      {
-        hint: `今日人均负载 ${averageDialogueLoad} 条消息处理`,
-        icon: <CheckCircleOutlined />,
-        key: "tasks",
-        title: "累计完成任务",
-        tone: "success",
-        value: completedTaskCount.toLocaleString(),
-      },
-      {
-        hint: `${onlineWorkspaceCount} 台设备在线支撑交付`,
-        icon: <ThunderboltOutlined />,
-        key: "hours",
-        title: "节省人力",
-        tone: "warning",
-        value: `${savedHours} 小时`,
-      },
-    ],
-    [averageDialogueLoad, completedTaskCount, employees.length, onlineWorkspaceCount, savedHours],
-  );
-  const crewSummary = useMemo<CrewSummaryItem[]>(
-    () =>
-      employees.slice(0, 5).map((employee, index) => {
-        const relatedSessions = dialogueSessions.filter(item => item.employeeId === employee.id);
 
-        return {
-          id: employee.id,
-          name: employee.name,
-          status: getStatusLabel(employee.status),
-          summary: employee.lastAction,
-          taskCount: relatedSessions.length * 5 + index * 2 + 6,
-        };
+  const savedHours = useMemo(
+    () => Math.round(completedTaskCount * 0.48 + 2 * 26),
+    [completedTaskCount],
+  );
+
+  const recoveredValue = useMemo(() => {
+    const v = Math.round(savedHours * 63.3) / 10000;
+    return v.toFixed(1);
+  }, [savedHours]);
+
+  const roiPercent = useMemo(
+    () => Math.min(92, Math.round((parseFloat(recoveredValue) / 9.8) * 100)),
+    [recoveredValue],
+  );
+
+  const platformDays = useMemo(() => {
+    return Math.floor((Date.now() - PLATFORM_LAUNCH.getTime()) / 86_400_000);
+  }, []);
+
+  const cumulativeTaskCount = useMemo(
+    () => completedTaskCount + 3142,
+    [completedTaskCount],
+  );
+
+  const savedPeople = useMemo(() => Math.max(1, Math.round(savedHours / 160)), [savedHours]);
+
+  const savedDays = useMemo(
+    () => Math.max(1, Math.round(savedHours / (savedPeople * 8))),
+    [savedHours, savedPeople],
+  );
+
+  const isHealthy = useMemo(
+    () => employees.every(e => e.status !== "paused" && e.status !== "draft"),
+    [employees],
+  );
+
+  const teamData = useMemo(
+    () =>
+      EXPERT_TEAMS.map(team => {
+        const members = employees.filter(e => team.memberIds.includes(e.id));
+        const isRunning = members.some(e => ["online", "busy", "idle"].includes(e.status));
+        const collaborators = users.filter(
+          u => u.status === "active" && u.assignedAgentIds.some(id => team.memberIds.includes(id)),
+        );
+        const taskCount = dialogueSessions
+          .filter(s => team.memberIds.includes(s.employeeId))
+          .reduce((sum, s) => {
+            const aCount = s.messages.filter(m => m.role === "assistant").length;
+            return sum + aCount * 8 + 12;
+          }, team.memberIds.length * 5);
+        return { ...team, members, isRunning, collaborators, taskCount };
       }),
-    [dialogueSessions, employees],
+    [dialogueSessions, employees, users],
   );
-  const noticeItems = useMemo(
-    () => [
-      {
-        description: "本周已经有 4 个 AI 专家连续稳定交付，冲刺窗口没有出现新的阻塞告警。",
-        title: "经营状态稳定",
-      },
-      {
-        description: "OpenRouter 与 OpenAI 双供应商已连通，模型切换可直接下发到不同专家。",
-        title: "模型底座已备份",
-      },
-      {
-        description: "销售战报助手仍处于待激活状态，建议尽快完成边缘设备激活，补足一线数据闭环。",
-        title: "边缘节点待补齐",
-      },
-    ],
-    [],
-  );
+
+  const employeeMap = useMemo(() => new Map(employees.map(e => [e.id, e])), [employees]);
 
   return (
     <div className={styles.dashboard}>
-      <section className={styles.heroCard}>
-        <div className={styles.heroMain}>
-          <span className={styles.heroEyebrow}>驾驶舱</span>
-          <h2 className={styles.heroTitle}>
+      {/* ── Section 1: Greeting ── */}
+      <header className={styles.header}>
+        <div>
+          <p className={styles.greetingTime}>{formatDateLine()}</p>
+          <h1 className={styles.greetingName}>
             {getGreetingLabel()}，{getExecutiveTitle(currentUserName)}
-          </h2>
-          <p className={styles.heroDescription}>
-            今天 AI
-            专家团已经替团队扛住了最重的重复劳动，老板现在看到的是经营结果、风险提醒和下一步最值得推动的动作。
+          </h1>
+          <p className={styles.greetingSummary}>
+            你的 AI 专家团今天帮团队完成了{" "}
+            <span className={styles.highlight}>{completedTaskCount} 条任务</span>，相当于节省了{" "}
+            <span className={styles.emphasis}>
+              {savedPeople} 名员工整整 {savedDays} 天
+            </span>{" "}
+            的工作量。
           </p>
-          <div className={styles.heroTagRow}>
-            <span className={styles.heroTag}>活跃成员 {activeUserCount} 人</span>
-            <span className={styles.heroTag}>在线设备 {onlineWorkspaceCount} 台</span>
-            <span className={styles.heroTag}>本轮对话 {dialogueSessions.length} 个会话</span>
-          </div>
         </div>
-
-        <div className={styles.heroAside}>
-          <div className={styles.signalCard}>
-            <span className={styles.signalLabel}>经营信号</span>
-            <strong className={styles.signalValue}>AI 专家团已进入稳态交付</strong>
-            <p className={styles.signalDescription}>
-              当前运营节奏健康，建议把更多重复协作迁移到群聊和自动化任务里，继续拉高产能密度。
-            </p>
+        <div className={styles.headerRight}>
+          <div className={isHealthy ? styles.statusChipOk : styles.statusChipWarn}>
+            <span className={isHealthy ? styles.statusDotOk : styles.statusDotWarn} />
+            {isHealthy ? "专家团运转正常" : "有异常需关注"}
           </div>
-
           <button
             type="button"
-            className={styles.noticeButton}
-            onClick={() => message.info("老板端通知中心里可以查看全部系统、待办、告警和升级通知。")}
+            className={styles.notifyButton}
+            onClick={() => message.info("通知中心可查看全部系统、待办和告警通知。")}
           >
-            <NotificationOutlined />
-            查看重点通知
+            <BellOutlined />
+            <span className={styles.notifyDot} />
           </button>
         </div>
-      </section>
+      </header>
 
-      <section className={styles.metricGrid}>
-        {metricItems.map(item => (
-          <article key={item.key} className={styles.metricCard} data-tone={item.tone}>
-            <div className={styles.metricIcon}>{item.icon}</div>
-            <div className={styles.metricTitle}>{item.title}</div>
-            <div className={styles.metricValue}>{item.value}</div>
-            <div className={styles.metricHint}>{item.hint}</div>
+      {/* ── Section 2: 运营概览 ── */}
+      <section className={styles.section}>
+        <p className={styles.sectionLabel}>运营概览</p>
+        <div className={styles.statsGrid}>
+          <article className={styles.statCard}>
+            <div className={styles.statIcon} data-tone="primary">⚡</div>
+            <p className={styles.statCardLabel}>平台稳定运行</p>
+            <p className={styles.statValue} data-tone="primary">
+              {platformDays} <span className={styles.statUnit}>天</span>
+            </p>
+            <p className={styles.statSub}>AI 专家团持续稳定承载企业业务</p>
           </article>
-        ))}
+
+          <article className={styles.statCard}>
+            <div className={styles.statIcon} data-tone="purple">📋</div>
+            <p className={styles.statCardLabel}>累计完成任务</p>
+            <p className={styles.statValue} data-tone="purple">
+              {cumulativeTaskCount.toLocaleString()} <span className={styles.statUnit}>条</span>
+            </p>
+            <p className={styles.statSub}>
+              今日新增 {completedTaskCount} 条，本月日均 {Math.round(cumulativeTaskCount / 30)} 条
+            </p>
+          </article>
+
+          <article className={styles.statCard}>
+            <div className={styles.statIcon} data-tone="success">🕐</div>
+            <p className={styles.statCardLabel}>累计节省人力</p>
+            <p className={styles.statValue} data-tone="success">
+              {savedHours} <span className={styles.statUnit}>小时</span>
+            </p>
+            <p className={styles.statSub}>
+              相当于 {savedPeople} 名员工工作了整整 {savedDays} 天
+            </p>
+          </article>
+
+          <article className={styles.statCard}>
+            <div className={styles.statIcon} data-tone="amber">💰</div>
+            <p className={styles.statCardLabel}>累计创造价值</p>
+            <p className={styles.statValue} data-tone="amber">
+              ¥{recoveredValue} <span className={styles.statUnit}>万</span>
+            </p>
+            <p className={styles.statSub}>年服务费 ¥9.8 万，已回本 {roiPercent}%</p>
+          </article>
+        </div>
       </section>
 
-      <section className={styles.progressGrid}>
-        <article className={styles.progressCard}>
-          <div className={styles.progressHeader}>
-            <div>
-              <div className={styles.progressTitle}>投资回报概览</div>
-              <div className={styles.progressHint}>
-                按当前负载估算，AI 专家团正在持续释放组织产能。
-              </div>
-            </div>
-            <strong className={styles.progressValue}>¥2.8 万</strong>
-          </div>
-          <div className={styles.progressMeta}>
-            年框服务费 ¥9.8 万，已替团队消化重复劳动与返工成本。
-          </div>
-        </article>
-
-        <article className={styles.progressCard}>
-          <div className={styles.progressHeader}>
-            <div>
-              <div className={styles.progressTitle}>投资回报率 ROI</div>
-              <div className={styles.progressHint}>
-                当前看齐老板视角，只展示能不能继续投、值不值得扩。
-              </div>
-            </div>
-            <strong className={styles.progressValue}>{roiValue}%</strong>
-          </div>
-          <div className={styles.progressBarTrack}>
-            <div className={styles.progressBarFill} style={{ width: `${roiValue}%` }} />
-          </div>
-          <div className={styles.progressMeta}>
-            已跑出正向回报，建议继续加配内容、销售和运营场景。
-          </div>
-        </article>
-
-        <article className={styles.progressCard}>
-          <div className={styles.progressHeader}>
-            <div>
-              <div className={styles.progressTitle}>预计回本进度</div>
-              <div className={styles.progressHint}>
-                综合任务完成量、交付稳定度和设备在线率估算。
-              </div>
-            </div>
-            <strong className={styles.progressValue}>{paybackProgress}%</strong>
-          </div>
-          <div className={styles.progressBarTrack}>
-            <div className={styles.progressBarFill} style={{ width: `${paybackProgress}%` }} />
-          </div>
-          <div className={styles.progressMeta}>只要保持当前使用密度，回本节奏基本已经锁定。</div>
-        </article>
-      </section>
-
-      <section className={styles.crewSection}>
+      {/* ── Section 3: AI 专家团执行状态 ── */}
+      <section className={styles.section}>
         <div className={styles.sectionHeader}>
-          <div>
-            <div className={styles.sectionTitle}>AI 专家团今日工作汇总</div>
-            <div className={styles.sectionDescription}>
-              老板只看经营摘要，不需要翻每个会话也能知道谁在产生价值。
-            </div>
-          </div>
-          <Button onClick={() => message.info("AI 对话页会直接打开老板身份下的专家协作工作区。")}>
-            去 AI 对话
-          </Button>
-        </div>
-
-        <div className={styles.crewGrid}>
-          {crewSummary.map(item => (
-            <article key={item.id} className={styles.crewCard}>
-              <div className={styles.crewHeader}>
-                <div className={styles.crewName}>{item.name}</div>
-                <span className={styles.crewStatus}>{item.status}</span>
-              </div>
-              <div className={styles.crewTaskCount}>{item.taskCount}</div>
-              <div className={styles.crewTaskLabel}>今日任务</div>
-              <div className={styles.crewSummary}>{item.summary}</div>
-            </article>
-          ))}
-        </div>
-      </section>
-
-      <section className={styles.noticePanel}>
-        <div className={styles.sectionHeader}>
-          <div>
-            <div className={styles.sectionTitle}>老板提醒</div>
-            <div className={styles.sectionDescription}>
-              把值得你拍板的事项集中放到一屏里，不让信息埋进操作细节。
-            </div>
-          </div>
-        </div>
-
-        <div className={styles.noticeList}>
-          {noticeItems.map(item => (
-            <article key={item.title} className={styles.noticeItem}>
-              <div className={styles.noticeTitle}>{item.title}</div>
-              <div className={styles.noticeDescription}>{item.description}</div>
-            </article>
-          ))}
-        </div>
-
-        <div className={styles.upgradeBanner}>
-          <div>
-            <div className={styles.upgradeTitle}>升级提醒</div>
-            <div className={styles.upgradeDescription}>
-              建议优先给销售战报助手补齐设备激活，并把群聊中的高频任务沉淀为自动化模板。
-            </div>
-          </div>
+          <h2 className={styles.sectionHeaderTitle}>AI 专家团执行状态</h2>
           <Button
-            type="primary"
-            onClick={() => message.info("原型阶段先展示老板升级入口，正式版可接采购或扩容流程。")}
+            type="link"
+            size="small"
+            onClick={() => message.info("管理专家团页面即将上线。")}
           >
-            立即处理
+            管理专家团 &rarr;
           </Button>
+        </div>
+
+        <div className={styles.teamsGrid}>
+          {teamData.map((team, teamIndex) => (
+            <article key={team.id} className={styles.teamCard}>
+              <div className={styles.teamHeader}>
+                <div className={styles.teamNameRow}>
+                  <div
+                    className={styles.teamAvatar}
+                    data-tone={teamIndex === 0 ? "primary" : "success"}
+                  >
+                    {team.icon}
+                  </div>
+                  <div>
+                    <p className={styles.teamName}>{team.name}</p>
+                    <p className={styles.teamDesc}>{team.description}</p>
+                  </div>
+                </div>
+                <span className={team.isRunning ? styles.badgeRunning : styles.badgeIdle}>
+                  {team.isRunning ? "运行中" : "已暂停"}
+                </span>
+              </div>
+
+              <div className={styles.teamStatsRow}>
+                <div className={styles.teamStat}>
+                  <p className={styles.teamStatVal} data-tone="primary">
+                    {team.members.length}
+                  </p>
+                  <p className={styles.teamStatLbl}>AI 专家</p>
+                </div>
+                <div className={styles.teamStat}>
+                  <p className={styles.teamStatVal} data-tone="purple">
+                    {team.collaborators.length}
+                  </p>
+                  <p className={styles.teamStatLbl}>协作成员</p>
+                </div>
+                <div className={styles.teamStat}>
+                  <p className={styles.teamStatVal} data-tone="success">
+                    {team.taskCount}
+                  </p>
+                  <p className={styles.teamStatLbl}>今日任务</p>
+                </div>
+              </div>
+
+              <div>
+                <p className={styles.expertsTitle}>在线专家</p>
+                <div className={styles.expertsDots}>
+                  {team.members.map(member => (
+                    <div key={member.id} className={styles.expertChip}>
+                      <span
+                        className={styles.chipDot}
+                        data-status={CHIP_STATUS_MAP[member.status] ?? "paused"}
+                      />
+                      {member.name}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className={styles.collabSection}>
+                <p className={styles.collabTitle}>正在协作的员工</p>
+                <div className={styles.collabRow}>
+                  <p className={styles.collabInfo}>
+                    共 <strong>{team.collaborators.length} 名员工</strong> 与本专家团协作中
+                  </p>
+                  <div className={styles.collabAvatars}>
+                    {team.collaborators.slice(0, 5).map((u, i) => {
+                      const c = AVATAR_COLORS[i % AVATAR_COLORS.length];
+                      return (
+                        <div
+                          key={u.id}
+                          className={styles.collabAv}
+                          style={{ background: c.bg, color: c.color }}
+                        >
+                          {u.name.slice(0, 1)}
+                        </div>
+                      );
+                    })}
+                    {team.collaborators.length > 5 && (
+                      <div className={styles.collabAvMore}>+{team.collaborators.length - 5}</div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      {/* ── Section 4: AI 专家最新动态 ── */}
+      <section className={styles.section}>
+        <div className={styles.sectionHeader}>
+          <h2 className={styles.sectionHeaderTitle}>AI 专家最新动态</h2>
+          <Button
+            type="link"
+            size="small"
+            onClick={() => message.info("AI 对话页会直接打开老板身份下的专家协作工作区。")}
+          >
+            去 AI 对话 &rarr;
+          </Button>
+        </div>
+
+        <div className={styles.activityWrap}>
+          {TIMELINE_ENTRIES.map(entry => {
+            const emp = employeeMap.get(entry.employeeId);
+            return (
+              <div key={entry.id} className={styles.activityItem}>
+                <div className={styles.activityTimeCol}>
+                  <span className={styles.activityTime}>{entry.time}</span>
+                </div>
+                {emp?.avatarUrl ? (
+                  <img className={styles.activityAvatar} src={emp.avatarUrl} alt={emp.name} />
+                ) : (
+                  <div className={styles.activityAvatarFallback}>{entry.agentLabel.slice(0, 1)}</div>
+                )}
+                <div className={styles.activityContent}>
+                  <p className={styles.activityAgent}>{entry.agentLabel}</p>
+                  <p className={styles.activityText}>
+                    {entry.segments.map((seg, i) =>
+                      seg.tone ? (
+                        <strong key={i} data-tone={seg.tone}>
+                          {seg.text}
+                        </strong>
+                      ) : (
+                        <span key={i}>{seg.text}</span>
+                      ),
+                    )}
+                    <span className={styles.activityTag} data-tone={entry.tag.tone}>
+                      {entry.tag.label}
+                    </span>
+                  </p>
+                </div>
+              </div>
+            );
+          })}
         </div>
       </section>
     </div>

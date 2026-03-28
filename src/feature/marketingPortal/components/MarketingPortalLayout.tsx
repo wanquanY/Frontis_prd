@@ -25,7 +25,7 @@ export const MarketingPortalLayout = (): JSX.Element => {
               <span className={styles.brandMark}>F</span>
               <span className={styles.brandCopy}>
                 <strong className={styles.brandTitle}>FrontisAI</strong>
-                <span className={styles.brandSubtitle}>企业 AI 员工交付平台</span>
+                <span className={styles.brandSubtitle}>可持续进化的AI专家团</span>
               </span>
             </NavLink>
 
@@ -71,7 +71,7 @@ export const MarketingPortalLayout = (): JSX.Element => {
             <div>
               <p className={styles.footerTitle}>FrontisAI</p>
               <p className={styles.footerSubtitle}>
-                面向 SMB 的 AI 员工交付平台，围绕盒子运行、云端使用和持续运营展开。
+                可持续进化的AI专家团
               </p>
             </div>
           </div>

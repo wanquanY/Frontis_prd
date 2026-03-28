@@ -1,7 +1,14 @@
-import { useMemo } from "react";
+import { useCallback, useState } from "react";
 
-import { ApartmentOutlined, LinkOutlined, SyncOutlined, TeamOutlined } from "@ant-design/icons";
-import { Button, Tag, message } from "antd";
+import {
+  ApartmentOutlined,
+  DownOutlined,
+  FolderOutlined,
+  PlusOutlined,
+  RightOutlined,
+  SyncOutlined,
+} from "@ant-design/icons";
+import { Button, Switch, Tag, message } from "antd";
 
 import type { EmployeeItem, FrontisWebUserItem } from "../types";
 
@@ -14,268 +21,187 @@ interface OrganizationManagementViewProps {
   users: FrontisWebUserItem[];
 }
 
-interface OrganizationIntegrationItem {
-  key: string;
-  name: string;
-  description: string;
-  status: string;
-  lastSyncAt: string;
-}
-
-interface DepartmentItem {
+interface DepartmentNode {
   id: string;
   name: string;
-  owner: string;
   memberCount: number;
-  syncSource: string;
-  expertNames: string[];
 }
 
-const ORGANIZATION_INTEGRATIONS: OrganizationIntegrationItem[] = [
-  {
-    description: "支持组织架构、汇报关系和账号启停双向同步。",
-    key: "feishu",
-    lastSyncAt: "今天 18:16",
-    name: "飞书组织",
-    status: "已打通",
-  },
-  {
-    description: "适合销售、交付和一线团队账号统一管理。",
-    key: "wechat-work",
-    lastSyncAt: "今天 17:42",
-    name: "企业微信",
-    status: "待授权",
-  },
-  {
-    description: "可同步部门结构与成员，但当前租户尚未启用。",
-    key: "dingtalk",
-    lastSyncAt: "未接入",
-    name: "钉钉组织",
-    status: "未接入",
-  },
+const DEPARTMENTS: DepartmentNode[] = [
+  { id: "dept-mgmt", name: "管理层", memberCount: 1 },
+  { id: "dept-market", name: "市场部", memberCount: 1 },
+  { id: "dept-sales", name: "销售部", memberCount: 1 },
+  { id: "dept-finance", name: "财务部", memberCount: 1 },
+  { id: "dept-hr", name: "人力资源部", memberCount: 1 },
 ];
 
-/**
- * 企业老板组织管理视图。
- */
 export const OrganizationManagementView = ({
   currentUserName,
   employees,
   users,
 }: OrganizationManagementViewProps): JSX.Element => {
-  const activeUserCount = useMemo(
-    () => users.filter(item => item.status === "active").length,
-    [users],
+  const [treeExpanded, setTreeExpanded] = useState(true);
+  const [adminIds, setAdminIds] = useState<Set<string>>(
+    () => new Set(users.filter(u => u.role === "admin").map(u => u.id)),
   );
-  const departmentItems = useMemo<DepartmentItem[]>(
-    () => [
-      {
-        expertNames: employees
-          .filter(item =>
-            ["employee-pm", "employee-designer", "employee-research"].includes(item.id),
-          )
-          .map(item => item.name),
-        id: "dept-product",
-        memberCount: 16,
-        name: "产品与增长中心",
-        owner: currentUserName ?? "杨万泉",
-        syncSource: "飞书",
-      },
-      {
-        expertNames: employees
-          .filter(item => ["employee-writer", "employee-sales"].includes(item.id))
-          .map(item => item.name),
-        id: "dept-content",
-        memberCount: 11,
-        name: "内容与销售中心",
-        owner: "陈雪梅",
-        syncSource: "企业微信",
-      },
-      {
-        expertNames: employees.filter(item => item.id === "employee-ops").map(item => item.name),
-        id: "dept-delivery",
-        memberCount: 8,
-        name: "交付运营中心",
-        owner: "刘晨",
-        syncSource: "手动维护",
-      },
-    ],
-    [currentUserName, employees],
-  );
-  const boundExpertCount = useMemo(
-    () => new Set(employees.flatMap(item => item.boundMembers)).size,
-    [employees],
+
+  const handleSync = useCallback((platform: string) => {
+    message.success(`${platform}组织架构同步成功`);
+  }, []);
+
+  const handleToggleAdmin = useCallback(
+    (user: FrontisWebUserItem, checked: boolean) => {
+      setAdminIds(prev => {
+        const next = new Set(prev);
+        if (checked) {
+          next.add(user.id);
+        } else {
+          next.delete(user.id);
+        }
+        return next;
+      });
+      if (checked) {
+        message.success(`已设置 ${user.name} 为超级管理员`);
+      } else {
+        message.success(`已取消 ${user.name} 的超级管理员权限`);
+      }
+    },
+    [],
   );
 
   return (
     <div className={sharedStyles.view}>
-      <section className={sharedStyles.heroCard}>
-        <div className={sharedStyles.heroContent}>
-          <span className={sharedStyles.heroEyebrow}>组织管理</span>
-          <h2 className={sharedStyles.heroTitle}>统一管理组织结构、账号归属和外部平台同步</h2>
-          <p className={sharedStyles.heroDescription}>
-            老板端这里不只是在看成员列表，而是在管理组织边界、跨平台同步状态，以及每个部门能调用哪些
-            AI 专家。
-          </p>
+      {/* Header */}
+      <div className={styles.header}>
+        <div>
+          <h1 className={styles.title}>组织管理</h1>
+          <p className={styles.subtitle}>管理企业组织架构</p>
         </div>
-        <div className={sharedStyles.summaryGrid}>
-          <article className={sharedStyles.summaryCard}>
-            <span className={sharedStyles.summaryLabel}>组织成员</span>
-            <strong className={sharedStyles.summaryValue}>{users.length}</strong>
-            <span className={sharedStyles.summaryHint}>
-              当前已开通 {activeUserCount} 个可登录账号
-            </span>
-          </article>
-          <article className={sharedStyles.summaryCard}>
-            <span className={sharedStyles.summaryLabel}>部门数量</span>
-            <strong className={sharedStyles.summaryValue}>{departmentItems.length}</strong>
-            <span className={sharedStyles.summaryHint}>老板端统一维护组织负责人和汇报链路</span>
-          </article>
-          <article className={sharedStyles.summaryCard}>
-            <span className={sharedStyles.summaryLabel}>专家权限映射</span>
-            <strong className={sharedStyles.summaryValue}>{boundExpertCount}</strong>
-            <span className={sharedStyles.summaryHint}>组织成员与 AI 专家权限已开始按部门绑定</span>
-          </article>
-        </div>
-      </section>
+        <Button type="primary" icon={<PlusOutlined />}>
+          添加部门
+        </Button>
+      </div>
 
-      <section className={sharedStyles.sectionCard}>
-        <div className={sharedStyles.sectionHeader}>
-          <div>
-            <div className={sharedStyles.sectionTitle}>第三方组织打通</div>
-            <div className={sharedStyles.sectionDescription}>
-              支持和飞书、企微等平台保持组织同步，避免账号与权限配置双份维护。
-            </div>
-          </div>
-        </div>
+      {/* Sync buttons */}
+      <div className={styles.syncRow}>
+        <Button size="small" icon={<SyncOutlined />} onClick={() => handleSync("飞书")}>
+          同步飞书组织架构
+        </Button>
+        <Button size="small" icon={<SyncOutlined />} onClick={() => handleSync("企微")}>
+          同步企微组织架构
+        </Button>
+        <Button size="small" icon={<SyncOutlined />} onClick={() => handleSync("钉钉")}>
+          同步钉钉组织架构
+        </Button>
+      </div>
 
-        <div className={styles.integrationGrid}>
-          {ORGANIZATION_INTEGRATIONS.map(item => (
-            <article key={item.key} className={styles.integrationCard}>
-              <div className={styles.integrationHeader}>
-                <div className={styles.integrationIdentity}>
-                  <span className={styles.integrationIcon}>
-                    <LinkOutlined />
-                  </span>
-                  <div>
-                    <div className={styles.integrationTitle}>{item.name}</div>
-                    <div className={styles.integrationDescription}>{item.description}</div>
+      {/* Two-column layout */}
+      <div className={styles.layout}>
+        {/* Left: Org tree */}
+        <div className={styles.card}>
+          <h2 className={styles.cardTitle}>组织架构</h2>
+
+          <div className={styles.treeRoot}>
+            <button
+              type="button"
+              className={styles.treeRootRow}
+              onClick={() => setTreeExpanded(v => !v)}
+            >
+              {treeExpanded ? (
+                <DownOutlined className={styles.treeArrow} />
+              ) : (
+                <RightOutlined className={styles.treeArrow} />
+              )}
+              <ApartmentOutlined className={styles.treeRootIcon} />
+              <span className={styles.treeRootName}>北京科技有限公司</span>
+              <Tag color="blue" bordered={false}>
+                旗舰版
+              </Tag>
+            </button>
+
+            {treeExpanded && (
+              <div className={styles.treeChildren}>
+                {DEPARTMENTS.map(dept => (
+                  <div key={dept.id} className={styles.treeDeptRow}>
+                    <FolderOutlined className={styles.treeDeptIcon} />
+                    <span className={styles.treeDeptName}>{dept.name}</span>
+                    <span className={styles.treeDeptCount}>{dept.memberCount}人</span>
                   </div>
-                </div>
-                <Tag bordered={false} className={sharedStyles.lightTag}>
-                  {item.status}
-                </Tag>
-              </div>
-
-              <div className={styles.integrationMeta}>
-                <span>最近同步</span>
-                <strong>{item.lastSyncAt}</strong>
-              </div>
-
-              <div className={styles.integrationActions}>
-                <Button
-                  onClick={() =>
-                    message.info(`${item.name} 在原型阶段先展示入口，正式版接真实 OAuth 授权流程。`)
-                  }
-                >
-                  {item.status === "已打通" ? "重新授权" : "开始接入"}
-                </Button>
-                <Button
-                  icon={<SyncOutlined />}
-                  onClick={() => message.success(`${item.name} 已触发一次模拟同步。`)}
-                >
-                  立即同步
-                </Button>
-              </div>
-            </article>
-          ))}
-        </div>
-      </section>
-
-      <section className={sharedStyles.sectionCard}>
-        <div className={sharedStyles.sectionHeader}>
-          <div>
-            <div className={sharedStyles.sectionTitle}>部门与专家权限</div>
-            <div className={sharedStyles.sectionDescription}>
-              每个组织单元都可以绑定自己的 AI 专家团，老板在这里统一看权限分布是否合理。
-            </div>
-          </div>
-        </div>
-
-        <div className={styles.departmentGrid}>
-          {departmentItems.map(item => (
-            <article key={item.id} className={styles.departmentCard}>
-              <div className={styles.departmentHeader}>
-                <div className={styles.departmentTitleWrap}>
-                  <span className={styles.departmentIcon}>
-                    <ApartmentOutlined />
-                  </span>
-                  <div>
-                    <div className={styles.departmentTitle}>{item.name}</div>
-                    <div className={styles.departmentMeta}>
-                      负责人 {item.owner} · {item.syncSource} 同步
-                    </div>
-                  </div>
-                </div>
-                <Tag bordered={false} className={sharedStyles.primaryTag}>
-                  {item.memberCount} 人
-                </Tag>
-              </div>
-
-              <div className={styles.departmentExpertLabel}>已绑定 AI 专家</div>
-              <div className={sharedStyles.pillRow}>
-                {item.expertNames.map(expertName => (
-                  <span key={expertName} className={sharedStyles.pill}>
-                    {expertName}
-                  </span>
                 ))}
               </div>
-
-              <div className={styles.departmentFooter}>
-                <Button onClick={() => message.info(`${item.name} 的组织结构编辑入口已预留。`)}>
-                  编辑部门
-                </Button>
-                <Button
-                  icon={<TeamOutlined />}
-                  onClick={() => message.info(`${item.name} 的成员与权限配置入口已预留。`)}
-                >
-                  权限配置
-                </Button>
-              </div>
-            </article>
-          ))}
-        </div>
-      </section>
-
-      <section className={sharedStyles.sectionCard}>
-        <div className={sharedStyles.sectionHeader}>
-          <div>
-            <div className={sharedStyles.sectionTitle}>组织账号概览</div>
-            <div className={sharedStyles.sectionDescription}>
-              快速检查哪些成员已经开通，哪些成员仍未开始使用 AI 专家团。
-            </div>
+            )}
           </div>
         </div>
 
-        <div className={styles.memberList}>
-          {users.map(item => (
-            <article key={item.id} className={styles.memberRow}>
-              <div>
-                <div className={styles.memberName}>{item.name}</div>
-                <div className={styles.memberMeta}>
-                  {item.phone} · 已分配 {item.assignedAgentIds.length} 个专家
-                </div>
-              </div>
-              <div className={styles.memberStats}>
-                <span>{item.lastActiveAt}</span>
-                <Tag bordered={false} className={sharedStyles.lightTag}>
-                  {item.status === "active" ? "已启用" : "未启用"}
+        {/* Right: Company info */}
+        <div className={styles.card}>
+          <div className={styles.infoHeader}>
+            <div className={styles.infoLogo}>
+              <ApartmentOutlined />
+            </div>
+            <div>
+              <div className={styles.infoCompanyName}>北京科技有限公司</div>
+              <Tag color="blue" bordered={false}>
+                旗舰版
+              </Tag>
+            </div>
+          </div>
+
+          <div className={styles.infoRows}>
+            <div className={styles.infoRow}>
+              <span className={styles.infoLabel}>版本有效期</span>
+              <span className={styles.infoValue}>2027-03-27</span>
+            </div>
+            <div className={styles.infoRow}>
+              <span className={styles.infoLabel}>管理员</span>
+              <span className={styles.infoValue}>{currentUserName ?? "张总"}</span>
+            </div>
+            <div className={styles.infoRow}>
+              <span className={styles.infoLabel}>成员数量</span>
+              <span className={styles.infoValue}>{users.length}人</span>
+            </div>
+            <div className={styles.infoRow}>
+              <span className={styles.infoLabel}>Agent数量</span>
+              <span className={styles.infoValue}>{employees.length}个</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Member management */}
+      <div className={styles.card}>
+        <h2 className={styles.cardTitle}>成员管理</h2>
+
+        <div className={styles.memberTable}>
+          <div className={styles.memberHead}>
+            <span className={styles.colName}>姓名</span>
+            <span className={styles.colPhone}>手机号</span>
+            <span className={styles.colStatus}>状态</span>
+            <span className={styles.colAdmin}>超级管理员</span>
+          </div>
+          {users.map(user => (
+            <div key={user.id} className={styles.memberRow}>
+              <span className={styles.colName}>{user.name}</span>
+              <span className={styles.colPhone}>{user.phone}</span>
+              <span className={styles.colStatus}>
+                <Tag
+                  bordered={false}
+                  color={user.status === "active" ? "success" : "default"}
+                >
+                  {user.status === "active" ? "已启用" : "未启用"}
                 </Tag>
-              </div>
-            </article>
+              </span>
+              <span className={styles.colAdmin}>
+                <Switch
+                  size="small"
+                  checked={adminIds.has(user.id)}
+                  onChange={checked => handleToggleAdmin(user, checked)}
+                />
+              </span>
+            </div>
           ))}
         </div>
-      </section>
+      </div>
     </div>
   );
 };

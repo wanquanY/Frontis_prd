@@ -6,6 +6,8 @@ import { Button, Input, message } from "antd";
 import { Navigate, useNavigate, useSearchParams } from "react-router-dom";
 
 import { useMockAuth } from "@/feature/auth/hooks/useMockAuth";
+import { MOCK_AUTH_ACCOUNTS } from "@/feature/auth/mockAccounts";
+import { useAuthStore } from "@/store/auth";
 
 import styles from "./MockLoginView.module.less";
 
@@ -16,6 +18,7 @@ export const MockLoginView = (): JSX.Element => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { login, resolvePostLoginPath, sendVerificationCode, session } = useMockAuth();
+  const setSession = useAuthStore(state => state.setSession);
   const [phoneValue, setPhoneValue] = useState<string>("");
   const [verificationCodeValue, setVerificationCodeValue] = useState<string>("");
   const [countdown, setCountdown] = useState<number>(0);
@@ -94,6 +97,26 @@ export const MockLoginView = (): JSX.Element => {
     },
     [login, navigate, phoneValue, redirectPath, sentPhone, verificationCodeValue],
   );
+
+  const handleQuickLogin = useCallback(
+    (role: "employee" | "admin"): void => {
+      const account = MOCK_AUTH_ACCOUNTS.find(a => a.role === role);
+      if (!account) return;
+      setSession({
+        userId: account.userId,
+        name: account.name,
+        phone: account.phone,
+        role: account.role,
+        loginAt: new Date().toISOString(),
+      });
+      navigate(role === "admin" ? "/web/admin" : "/web/employee", { replace: true });
+    },
+    [navigate, setSession],
+  );
+
+  const handleQuickFdeLogin = useCallback((): void => {
+    navigate("/fde", { replace: true });
+  }, [navigate]);
 
   if (session) {
     return <Navigate replace to={resolvePostLoginPath(session.role, redirectPath)} />;
@@ -182,6 +205,36 @@ export const MockLoginView = (): JSX.Element => {
           <div className={styles.noticePanel}>
             <p className={styles.noticeTitle}>登录说明</p>
             <p className={styles.noticeText}>登录即代表你同意平台服务协议与隐私政策。</p>
+          </div>
+
+          <div className={styles.quickLoginSection}>
+            <p className={styles.quickLoginTitle}>快速体验入口</p>
+            <div className={styles.quickLoginButtons}>
+              <button
+                type="button"
+                className={styles.quickLoginButton}
+                onClick={() => handleQuickLogin("employee")}
+              >
+                <span className={styles.quickLoginIcon}>👤</span>
+                <span>普通员工登录</span>
+              </button>
+              <button
+                type="button"
+                className={styles.quickLoginButton}
+                onClick={() => handleQuickLogin("admin")}
+              >
+                <span className={styles.quickLoginIcon}>👔</span>
+                <span>企业老板登录</span>
+              </button>
+              <button
+                type="button"
+                className={styles.quickLoginButton}
+                onClick={handleQuickFdeLogin}
+              >
+                <span className={styles.quickLoginIcon}>🛠</span>
+                <span>FDE 登录</span>
+              </button>
+            </div>
           </div>
         </section>
       </div>

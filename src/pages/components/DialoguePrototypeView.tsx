@@ -25,7 +25,7 @@ import {
   type MouseEvent as ReactMouseEvent,
 } from "react";
 import type { InputRef, MenuProps } from "antd";
-import { Avatar, Dropdown, Input } from "antd";
+import { Avatar, Dropdown, Input, Tag } from "antd";
 
 import { SynClawArtifactsPanel } from "@/pages/synclaw/components/SynClawArtifactsPanel";
 import type { SynClawArtifactItem } from "@/pages/synclaw/types";
@@ -344,9 +344,8 @@ export const DialoguePrototypeView = ({
 
   const resolveRuntimeLabel = (employee: EmployeeItem): string => {
     const workspace = resolveEmployeeWorkspace(employee);
-    if (workspace?.type === "cloud") return "云端";
-    if (workspace?.type === "edge") return "边缘";
-    return "本地";
+    const typeSuffix = workspace?.type === "cloud" ? "云端" : workspace?.type === "edge" ? "边缘" : "本地";
+    return workspace ? `${workspace.name}（${typeSuffix}）` : typeSuffix;
   };
 
   const renderRuntimeIcon = (employee: EmployeeItem): JSX.Element => {
@@ -571,6 +570,13 @@ export const DialoguePrototypeView = ({
               {renderRuntimeIcon(activeEmployee)}
               <span>{resolveRuntimeLabel(activeEmployee)}</span>
             </span>
+            {activeEmployee.skills?.length ? (
+              <div className={styles.dialogueHeroSkills}>
+                {activeEmployee.skills.map(skill => (
+                  <Tag key={skill} bordered={false}>{skill}</Tag>
+                ))}
+              </div>
+            ) : null}
           </div>
 
           <button

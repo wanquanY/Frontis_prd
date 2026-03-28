@@ -1,0 +1,637 @@
+/* ── Agent Store — Light Theme ── */
+
+.page {
+  min-height: 100%;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  background: var(--surface);
+}
+
+/* ── Page Header ── */
+
+.pageHeader {
+  margin-bottom: 4px;
+}
+
+.pageTitle {
+  margin: 0 0 6px;
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.pageSubtitle {
+  margin: 0;
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+/* ── Tab Bar ── */
+
+.tabBar {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--text) 10%, transparent);
+  margin-bottom: 4px;
+}
+
+.tab,
+.tabActive {
+  padding: 10px 20px;
+  font-size: 14px;
+  font-weight: 500;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: color 0.2s, border-color 0.2s;
+
+  &:hover {
+    color: var(--text);
+  }
+}
+
+.tabActive {
+  color: var(--primary);
+  border-bottom-color: var(--primary);
+  font-weight: 600;
+}
+
+/* ── Card List (shared) ── */
+
+.cardList {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* ── Card Icon ── */
+
+.cardIcon {
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* ── Owned Team Card ── */
+
+.ownedCard {
+  background: var(--app-bg);
+  border: 1px solid color-mix(in srgb, var(--text) 8%, transparent);
+  border-radius: 16px;
+  overflow: hidden;
+  transition: box-shadow 0.2s;
+
+  &:hover {
+    box-shadow: 0 4px 16px color-mix(in srgb, var(--text) 6%, transparent);
+  }
+}
+
+.ownedCardBody {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 20px 24px;
+}
+
+.cardContent {
+  flex: 1;
+  min-width: 0;
+}
+
+.cardTitleRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 6px;
+}
+
+.cardTitle {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.updateBadge {
+  display: inline-block;
+  padding: 2px 8px;
+  background: color-mix(in srgb, #f59e0b 12%, transparent);
+  color: #d97706;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 10px;
+  white-space: nowrap;
+}
+
+.cardMeta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.cardDesc {
+  margin: 0 0 10px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.subAgentTags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.subAgentTag {
+  display: inline-block;
+  padding: 2px 10px;
+  background: color-mix(in srgb, var(--primary) 8%, transparent);
+  color: var(--primary);
+  font-size: 12px;
+  border-radius: 12px;
+  white-space: nowrap;
+}
+
+/* ── Owned Card Right Column ── */
+
+.cardRight {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+  flex-shrink: 0;
+  min-width: 100px;
+}
+
+.cardStatus {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.dotOnline {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #16a34a;
+  animation: pulse-green 2s infinite;
+}
+
+.dotOffline {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #94a3b8;
+}
+
+.dotWaiting {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #f59e0b;
+  animation: pulse-amber 2s infinite;
+}
+
+.dotError {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #e5484d;
+}
+
+@keyframes pulse-green {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 4px rgba(22, 163, 74, 0);
+  }
+}
+
+@keyframes pulse-amber {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 4px rgba(245, 158, 11, 0);
+  }
+}
+
+.cardInfoItem {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.cardInfoValue {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.cardInfoLabel {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+/* ── Card Actions ── */
+
+.cardActions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 24px;
+  border-top: 1px solid color-mix(in srgb, var(--text) 6%, transparent);
+  background: color-mix(in srgb, var(--text) 2%, transparent);
+}
+
+/* ── Recommended Team Card ── */
+
+.recCard {
+  background: var(--app-bg);
+  border: 1px solid color-mix(in srgb, var(--text) 8%, transparent);
+  border-radius: 16px;
+  overflow: hidden;
+  transition: box-shadow 0.2s;
+
+  &:hover {
+    box-shadow: 0 4px 16px color-mix(in srgb, var(--text) 6%, transparent);
+  }
+}
+
+.recCardBody {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 20px 24px;
+}
+
+.recRight {
+  display: flex;
+  align-items: baseline;
+  gap: 2px;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.recPrice {
+  font-size: 22px;
+  font-weight: 700;
+  color: #e5484d;
+}
+
+.recPriceUnit {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.recNote {
+  margin: 6px 0 0;
+  font-size: 12px;
+  color: #16a34a;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.recNoteIcon {
+  font-size: 14px;
+}
+
+/* ── Recommendation Banner ── */
+
+.recBanner {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 20px;
+  background: color-mix(in srgb, var(--primary) 6%, transparent);
+  border: 1px solid color-mix(in srgb, var(--primary) 15%, transparent);
+  border-radius: 14px;
+}
+
+.recBannerIcon {
+  font-size: 22px;
+  color: var(--primary);
+}
+
+.recBannerTitle {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.recBannerDesc {
+  margin: 2px 0 0;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+/* ── Upgrade Modal ── */
+
+.upgradeModal {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.upgradeInfo {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.upgradeName {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.upgradeVersions {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.upgradeNewVersion {
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.upgradeNotes {
+  padding: 14px 16px;
+  background: color-mix(in srgb, var(--text) 3%, transparent);
+  border-radius: 10px;
+}
+
+.upgradeNotesTitle {
+  margin: 0 0 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.upgradeNoteItem {
+  margin: 0 0 6px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.upgradeCheckIcon {
+  color: #16a34a;
+  font-size: 14px;
+}
+
+.upgradeWarning {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 14px 16px;
+  background: color-mix(in srgb, #f59e0b 8%, transparent);
+  border: 1px solid color-mix(in srgb, #f59e0b 20%, transparent);
+  border-radius: 10px;
+}
+
+.upgradeWarningIcon {
+  color: #d97706;
+  font-size: 18px;
+  margin-top: 2px;
+}
+
+.upgradeWarningTitle {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.upgradeWarningDesc {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+/* ── Detail Sub-page ── */
+
+.detailHeader {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.backButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 14px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: color 0.2s;
+
+  &:hover {
+    color: var(--primary);
+  }
+}
+
+.detailTitleRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.detailTitle {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.detailSubtitle {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.detailMeta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.badgeOnline,
+.badgeOffline {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.badgeOnline {
+  background: color-mix(in srgb, #16a34a 10%, transparent);
+  color: #16a34a;
+}
+
+.badgeOffline {
+  background: color-mix(in srgb, var(--text) 8%, transparent);
+  color: var(--text-secondary);
+}
+
+/* ── Section Title ── */
+
+.sectionTitle {
+  margin: 8px 0 0;
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+/* ── Expert Grid ── */
+
+.expertGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+/* ── Expert Config Card ── */
+
+.expertCard {
+  background: var(--app-bg);
+  border: 1px solid color-mix(in srgb, var(--text) 8%, transparent);
+  border-radius: 16px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.expertInfo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.expertAvatar {
+  flex-shrink: 0;
+}
+
+.expertMeta {
+  flex: 1;
+  min-width: 0;
+}
+
+.expertNameRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.expertName {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.expertStatusLabel {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.expertRole {
+  margin: 2px 0 0;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+/* ── Config Sections ── */
+
+.configSection {
+  padding-top: 14px;
+  border-top: 1px solid color-mix(in srgb, var(--text) 6%, transparent);
+}
+
+.configLabel {
+  margin: 0 0 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.modelInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.modelCurrent {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-secondary);
+
+  strong {
+    color: var(--text);
+  }
+}
+
+.modelLink {
+  padding: 0;
+  font-size: 12px;
+}
+
+/* ── Responsive ── */
+
+@media (max-width: 960px) {
+  .expertGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .ownedCardBody,
+  .recCardBody {
+    flex-direction: column;
+  }
+
+  .cardRight,
+  .recRight {
+    flex-direction: row;
+    align-items: center;
+    gap: 16px;
+  }
+}

@@ -4,14 +4,16 @@ import {
   AlertOutlined,
   BellOutlined,
   CheckCircleOutlined,
-  RocketOutlined,
+  LockOutlined,
+  UpCircleOutlined,
 } from "@ant-design/icons";
 import { Button, Tag, message } from "antd";
 
+import adminStyles from "./FrontisAdminViews.module.less";
 import sharedStyles from "./FrontisWebViews.module.less";
 import styles from "./NotificationCenterView.module.less";
 
-type NotificationCategory = "all" | "system" | "todo" | "alert" | "upgrade";
+type NotificationCategory = "all" | "system" | "alert" | "todo" | "security" | "upgrade";
 
 interface NotificationItem {
   id: string;
@@ -19,95 +21,85 @@ interface NotificationItem {
   title: string;
   summary: string;
   timeLabel: string;
-  actionLabel: string;
+  pinned?: boolean;
+  actionLabel?: string;
 }
 
 const NOTIFICATION_ITEMS: NotificationItem[] = [
   {
-    actionLabel: "查看设备",
-    category: "alert",
-    id: "notice-edge-sales",
-    summary: "销售战报助手所在边缘设备仍未激活，线索日报能力还没有恢复。",
-    timeLabel: "5 分钟前",
-    title: "边缘设备待激活",
-  },
-  {
-    actionLabel: "处理待办",
-    category: "todo",
-    id: "notice-access-review",
-    summary: "新增 3 位成员等待你确认 AI 专家权限分配，涉及产品与内容团队。",
-    timeLabel: "今天 17:42",
-    title: "成员权限待审批",
-  },
-  {
-    actionLabel: "查看升级",
+    id: "notice-agent-v21",
     category: "upgrade",
-    id: "notice-runtime-upgrade",
-    summary: "虚拟桌面运行时新增模型热切换能力，可直接对不同专家下发新模型。",
-    timeLabel: "今天 15:20",
-    title: "运行时能力可升级",
+    title: "Agent v2.1 新版本发布",
+    summary: "新版本包含多项性能优化和功能增强，建议尽快升级以获得更好的体验。",
+    timeLabel: "3小时前",
+    pinned: true,
+    actionLabel: "立即升级",
   },
   {
-    actionLabel: "查看详情",
-    category: "system",
-    id: "notice-daily-brief",
-    summary: "今日 AI 专家团累计完成 84 个子任务，结果沉淀速度明显快于上周同期。",
-    timeLabel: "今天 12:08",
-    title: "系统日报已生成",
-  },
-  {
-    actionLabel: "进入群聊",
-    category: "todo",
-    id: "notice-group-sync",
-    summary: "研发群聊里有一条“产品冲刺”的排期待确认，需要老板拍板是否加资源。",
-    timeLabel: "今天 10:16",
-    title: "群聊中有待拍板事项",
-  },
-  {
-    actionLabel: "查看供应商",
+    id: "notice-device-offline",
     category: "alert",
-    id: "notice-openrouter",
-    summary: "OpenRouter 当前处于正常状态，但建议保留 OpenAI-compatible 作为兜底路由。",
-    timeLabel: "昨天 18:32",
-    title: "模型供应商容灾提醒",
+    title: "设备离线告警",
+    summary: "检测到 BOX-2026-0402 设备已离线超过 2 小时，请及时检查网络连接和设备状态。",
+    timeLabel: "5小时前",
+    actionLabel: "查看详情",
+  },
+  {
+    id: "notice-todo",
+    category: "todo",
+    title: "待办事项",
+    summary: "您有 3 个待处理的审批请求和 2 个待确认的权限申请，请尽快处理。",
+    timeLabel: "昨天",
+    actionLabel: "去处理",
+  },
+  {
+    id: "notice-security",
+    category: "security",
+    title: "安全通知",
+    summary: "检测到您的账号在新设备登录，如非本人操作请立即修改密码。",
+    timeLabel: "2天前",
+    actionLabel: "查看记录",
+  },
+  {
+    id: "notice-system-update",
+    category: "system",
+    title: "系统更新公告",
+    summary: "平台将于本周六 02:00-06:00 进行系统维护升级，届时部分功能可能暂时不可用。",
+    timeLabel: "3天前",
+  },
+  {
+    id: "notice-agent-v20",
+    category: "upgrade",
+    title: "AI商机洞察专家团 v2.0 发布",
+    summary: "全新升级的商机洞察能力，支持多维度线索评分和智能推荐。",
+    timeLabel: "1周前",
+    actionLabel: "立即升级",
   },
 ];
 
-const CATEGORY_OPTIONS: Array<{
-  key: NotificationCategory;
-  label: string;
-}> = [
+const CATEGORY_OPTIONS: Array<{ key: NotificationCategory; label: string }> = [
   { key: "all", label: "全部" },
   { key: "system", label: "系统" },
-  { key: "todo", label: "待办" },
   { key: "alert", label: "告警" },
+  { key: "todo", label: "待办" },
+  { key: "security", label: "安全" },
   { key: "upgrade", label: "升级" },
 ];
 
-const getCategoryLabel = (category: NotificationItem["category"]): string => {
-  if (category === "system") {
-    return "系统";
-  }
-
-  if (category === "todo") {
-    return "待办";
-  }
-
-  if (category === "alert") {
-    return "告警";
-  }
-
-  return "升级";
+const CATEGORY_META: Record<
+  NotificationItem["category"],
+  { label: string; color: string; icon: React.ReactNode }
+> = {
+  system: { label: "系统通知", color: "blue", icon: <BellOutlined /> },
+  alert: { label: "告警通知", color: "orange", icon: <AlertOutlined /> },
+  todo: { label: "待办通知", color: "purple", icon: <CheckCircleOutlined /> },
+  security: { label: "安全通知", color: "red", icon: <LockOutlined /> },
+  upgrade: { label: "升级提醒", color: "green", icon: <UpCircleOutlined /> },
 };
 
-const getCategoryActionMessage = (item: NotificationItem): string =>
-  `${item.title} 的 "${item.actionLabel}" 入口已在原型中预留，正式版可接到对应业务页面。`;
-
-/**
- * 企业老板通知中心视图。
- */
 export const NotificationCenterView = (): JSX.Element => {
   const [activeCategory, setActiveCategory] = useState<NotificationCategory>("all");
+  const [readIds, setReadIds] = useState<Set<string>>(() => new Set());
+
   const filteredNotifications = useMemo(
     () =>
       activeCategory === "all"
@@ -115,117 +107,100 @@ export const NotificationCenterView = (): JSX.Element => {
         : NOTIFICATION_ITEMS.filter(item => item.category === activeCategory),
     [activeCategory],
   );
-  const summary = useMemo(
-    () => ({
-      alert: NOTIFICATION_ITEMS.filter(item => item.category === "alert").length,
-      system: NOTIFICATION_ITEMS.filter(item => item.category === "system").length,
-      todo: NOTIFICATION_ITEMS.filter(item => item.category === "todo").length,
-      upgrade: NOTIFICATION_ITEMS.filter(item => item.category === "upgrade").length,
-    }),
-    [],
-  );
+
+  const handleMarkAllRead = () => {
+    setReadIds(new Set(NOTIFICATION_ITEMS.map(n => n.id)));
+    message.success("已全部标为已读");
+  };
+
+  const handleMarkRead = (id: string) => {
+    setReadIds(prev => new Set(prev).add(id));
+  };
+
+  const handleAction = (item: NotificationItem) => {
+    message.info(`${item.actionLabel}功能已在原型中预留`);
+  };
 
   return (
     <div className={sharedStyles.view}>
-      <section className={sharedStyles.heroCard}>
-        <div className={sharedStyles.heroContent}>
-          <span className={sharedStyles.heroEyebrow}>通知中心</span>
-          <h2 className={sharedStyles.heroTitle}>把系统、待办、告警和升级消息放在一个老板入口里</h2>
-          <p className={sharedStyles.heroDescription}>
-            老板不需要逐页找消息，所有需要拍板、需要关注和值得扩容的信号，都应该沉到这里统一处理。
-          </p>
+      {/* Header */}
+      <div className={styles.header}>
+        <div>
+          <h1 className={adminStyles.devicePageTitle}>通知中心</h1>
+          <p className={adminStyles.devicePageSubtitle}>查看平台重要通知和待办事项</p>
         </div>
-        <div className={sharedStyles.summaryGrid}>
-          <article className={sharedStyles.summaryCard}>
-            <span className={sharedStyles.summaryLabel}>系统通知</span>
-            <strong className={sharedStyles.summaryValue}>{summary.system}</strong>
-            <span className={sharedStyles.summaryHint}>日报、运行结果与产品更新</span>
-          </article>
-          <article className={sharedStyles.summaryCard}>
-            <span className={sharedStyles.summaryLabel}>待办事项</span>
-            <strong className={sharedStyles.summaryValue}>{summary.todo}</strong>
-            <span className={sharedStyles.summaryHint}>老板需要确认、分配或拍板的事项</span>
-          </article>
-          <article className={sharedStyles.summaryCard}>
-            <span className={sharedStyles.summaryLabel}>告警与升级</span>
-            <strong className={sharedStyles.summaryValue}>{summary.alert + summary.upgrade}</strong>
-            <span className={sharedStyles.summaryHint}>设备、模型和容量层面的主动提醒</span>
-          </article>
-        </div>
-      </section>
+        <Button onClick={handleMarkAllRead}>全部已读</Button>
+      </div>
 
-      <section className={sharedStyles.sectionCard}>
-        <div className={sharedStyles.sectionHeader}>
-          <div>
-            <div className={sharedStyles.sectionTitle}>消息分类</div>
-            <div className={sharedStyles.sectionDescription}>
-              先按类型聚合，再决定哪些需要马上处理，哪些只需要顺手扫一眼。
-            </div>
-          </div>
-        </div>
+      {/* Filter tabs */}
+      <div className={styles.categoryRow}>
+        {CATEGORY_OPTIONS.map(item => (
+          <button
+            key={item.key}
+            type="button"
+            className={styles.categoryButton}
+            data-active={item.key === activeCategory}
+            onClick={() => setActiveCategory(item.key)}
+          >
+            {item.label}
+          </button>
+        ))}
+      </div>
 
-        <div className={styles.categoryRow}>
-          {CATEGORY_OPTIONS.map(item => (
-            <button
-              key={item.key}
-              type="button"
-              className={styles.categoryButton}
-              data-active={item.key === activeCategory}
-              onClick={() => setActiveCategory(item.key)}
+      {/* Notification list */}
+      <div className={styles.notificationList}>
+        {filteredNotifications.map(item => {
+          const meta = CATEGORY_META[item.category];
+          const isRead = readIds.has(item.id);
+
+          return (
+            <div
+              key={item.id}
+              className={`${styles.notificationRow} ${isRead ? styles.notificationRowRead : ""}`}
             >
-              {item.label}
-            </button>
-          ))}
-        </div>
-      </section>
+              <div className={styles.notificationIcon}>{meta.icon}</div>
 
-      <section className={sharedStyles.sectionCard}>
-        <div className={sharedStyles.sectionHeader}>
-          <div>
-            <div className={sharedStyles.sectionTitle}>消息列表</div>
-            <div className={sharedStyles.sectionDescription}>
-              共 {filteredNotifications.length} 条消息，按老板决策价值优先展示。
-            </div>
-          </div>
-        </div>
-
-        <div className={styles.notificationList}>
-          {filteredNotifications.map(item => (
-            <article key={item.id} className={styles.notificationCard}>
-              <div className={styles.notificationHeader}>
-                <div className={styles.notificationIdentity}>
-                  <span className={styles.notificationIcon}>
-                    {item.category === "system" ? (
-                      <BellOutlined />
-                    ) : item.category === "todo" ? (
-                      <CheckCircleOutlined />
-                    ) : item.category === "alert" ? (
-                      <AlertOutlined />
-                    ) : (
-                      <RocketOutlined />
+              <div className={styles.notificationBody}>
+                <div className={styles.notificationTopRow}>
+                  <div className={styles.notificationTags}>
+                    {item.pinned && (
+                      <Tag bordered={false} color="red">
+                        置顶
+                      </Tag>
                     )}
-                  </span>
-                  <div>
-                    <div className={styles.notificationTitle}>{item.title}</div>
-                    <div className={styles.notificationTime}>{item.timeLabel}</div>
+                    <Tag bordered={false} color={meta.color}>
+                      {meta.label}
+                    </Tag>
+                  </div>
+                  <div className={styles.notificationMeta}>
+                    <span className={styles.notificationTime}>{item.timeLabel}</span>
+                    {!isRead && (
+                      <button
+                        type="button"
+                        className={styles.markReadBtn}
+                        onClick={() => handleMarkRead(item.id)}
+                      >
+                        标为已读
+                      </button>
+                    )}
                   </div>
                 </div>
-                <Tag bordered={false} className={sharedStyles.lightTag}>
-                  {getCategoryLabel(item.category)}
-                </Tag>
-              </div>
 
-              <div className={styles.notificationSummary}>{item.summary}</div>
+                <div className={styles.notificationTitle}>{item.title}</div>
+                <div className={styles.notificationSummary}>{item.summary}</div>
 
-              <div className={styles.notificationFooter}>
-                <Button onClick={() => message.info(getCategoryActionMessage(item))}>
-                  {item.actionLabel}
-                </Button>
+                {item.actionLabel && (
+                  <div className={styles.notificationAction}>
+                    <Button size="small" type="primary" onClick={() => handleAction(item)}>
+                      {item.actionLabel}
+                    </Button>
+                  </div>
+                )}
               </div>
-            </article>
-          ))}
-        </div>
-      </section>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 };

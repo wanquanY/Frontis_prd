@@ -1,128 +1,238 @@
-.integrationGrid,
-.departmentGrid {
+/* ── Organization Management ── */
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.title {
+  margin: 0 0 6px;
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.subtitle {
+  margin: 0;
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.syncRow {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* ── Two-column layout ── */
+
+.layout {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
+  grid-template-columns: 1fr 320px;
+  gap: 16px;
+  align-items: start;
 }
 
-.integrationCard,
-.departmentCard,
-.memberRow {
+/* ── Card ── */
+
+.card {
+  padding: 20px;
+  background: var(--app-bg);
   border: 1px solid color-mix(in srgb, var(--text) 8%, transparent);
-  border-radius: 20px;
-  background: color-mix(in srgb, var(--surface) 96%, var(--app-bg));
-  box-shadow: var(--shadow-sm);
+  border-radius: 16px;
 }
 
-.integrationCard,
-.departmentCard {
-  padding: 16px;
+.cardTitle {
+  margin: 0 0 16px;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+/* ── Org tree ── */
+
+.treeRoot {
+  display: flex;
+  flex-direction: column;
+}
+
+.treeRootRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  background: color-mix(in srgb, var(--primary) 5%, transparent);
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  text-align: left;
+  font-size: 14px;
+}
+
+.treeArrow {
+  font-size: 10px;
+  color: var(--text-secondary);
+}
+
+.treeRootIcon {
+  font-size: 16px;
+  color: var(--primary);
+}
+
+.treeRootName {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.treeChildren {
+  margin-left: 24px;
+  padding-left: 16px;
+  border-left: 1px solid color-mix(in srgb, var(--text) 10%, transparent);
+}
+
+.treeDeptRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 10px;
+  border-bottom: 1px solid color-mix(in srgb, var(--text) 5%, transparent);
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.treeDeptIcon {
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.treeDeptName {
+  flex: 1;
+  font-size: 14px;
+  color: var(--text);
+}
+
+.treeDeptCount {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+/* ── Company info card ── */
+
+.infoHeader {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.infoLogo {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--primary) 10%, transparent);
+  color: var(--primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  flex-shrink: 0;
+}
+
+.infoCompanyName {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+
+.infoRows {
   display: flex;
   flex-direction: column;
   gap: 14px;
 }
 
-.integrationHeader,
-.integrationIdentity,
-.integrationActions,
-.departmentHeader,
-.departmentTitleWrap,
-.departmentFooter,
-.memberRow,
-.memberStats {
+.infoRow {
   display: flex;
-  align-items: center;
-  gap: 12px;
   justify-content: space-between;
-}
-
-.integrationIdentity,
-.departmentTitleWrap {
-  align-items: flex-start;
-  justify-content: flex-start;
-}
-
-.integrationIcon,
-.departmentIcon {
-  width: 40px;
-  height: 40px;
-  flex-shrink: 0;
-  border-radius: 14px;
-  background: color-mix(in srgb, var(--primary) 12%, var(--surface));
-  color: var(--primary);
-  display: inline-flex;
   align-items: center;
-  justify-content: center;
-  font-size: 18px;
 }
 
-.integrationTitle,
-.departmentTitle,
-.memberName {
-  color: var(--text);
-  font-size: 18px;
-  line-height: 28px;
-  font-weight: 600;
-}
-
-.integrationDescription,
-.integrationMeta,
-.departmentMeta,
-.departmentExpertLabel,
-.memberMeta,
-.memberStats {
-  color: var(--text-secondary);
+.infoLabel {
   font-size: 13px;
-  line-height: 20px;
+  color: var(--text-secondary);
 }
 
-.integrationMeta {
-  padding: 12px 14px;
-  border-radius: 16px;
-  background: color-mix(in srgb, var(--text) 4%, var(--surface));
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-
-  strong {
-    color: var(--text);
-    font-weight: 600;
-  }
+.infoValue {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
 }
 
-.integrationActions,
-.departmentFooter {
-  flex-wrap: wrap;
-}
+/* ── Member table ── */
 
-.memberList {
+.memberTable {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+}
+
+.memberHead {
+  display: flex;
+  align-items: center;
+  padding: 10px 12px;
+  border-bottom: 1px solid color-mix(in srgb, var(--text) 10%, transparent);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
 }
 
 .memberRow {
-  padding: 16px;
-}
+  display: flex;
+  align-items: center;
+  padding: 12px 12px;
+  border-bottom: 1px solid color-mix(in srgb, var(--text) 5%, transparent);
+  font-size: 14px;
+  color: var(--text);
 
-@media (max-width: 1280px) {
-  .integrationGrid,
-  .departmentGrid {
-    grid-template-columns: 1fr;
+  &:last-child {
+    border-bottom: none;
+  }
+
+  &:hover {
+    background: color-mix(in srgb, var(--text) 2%, transparent);
   }
 }
 
+.colName {
+  flex: 1;
+  min-width: 80px;
+}
+
+.colPhone {
+  flex: 1.5;
+  min-width: 120px;
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.colStatus {
+  flex: 0.8;
+  min-width: 80px;
+}
+
+.colAdmin {
+  flex: 0.8;
+  min-width: 80px;
+  text-align: right;
+}
+
+/* ── Responsive ── */
+
 @media (max-width: 960px) {
-  .integrationHeader,
-  .integrationIdentity,
-  .integrationActions,
-  .departmentHeader,
-  .departmentTitleWrap,
-  .departmentFooter,
-  .memberRow,
-  .memberStats {
-    align-items: flex-start;
-    flex-direction: column;
+  .layout {
+    grid-template-columns: 1fr;
   }
 }

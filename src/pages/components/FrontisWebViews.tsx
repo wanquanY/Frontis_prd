@@ -161,9 +161,13 @@ interface ModelProviderOption {
   capabilities: ModelProviderCapability[];
   defaultBaseUrl: string;
   description: string;
+  inputCost: string;
   key: string;
   label: string;
   logoText: string;
+  monthlyEstimate: string;
+  outputCost: string;
+  price: string;
 }
 
 export interface ModelProviderConfigState {
@@ -178,42 +182,58 @@ export const PROVIDER_OPTIONS: ModelProviderOption[] = [
   {
     capabilities: ["LLM", "TEXT EMBEDDING", "SPEECH2TEXT", "MODERATION", "TTS"],
     defaultBaseUrl: "https://api.openai.com/v1",
-    description: "适合作为通用默认供应商，覆盖推理、多模态与嵌入场景。",
+    description: "GPT-4o、GPT-4 Turbo 等前沿大语言模型",
+    inputCost: "$0.002 /1K",
     key: "openai",
     label: "OpenAI",
     logoText: "O",
-  },
-  {
-    capabilities: ["LLM", "RERANK", "TEXT EMBEDDING"],
-    defaultBaseUrl: "https://openrouter.ai/api/v1",
-    description: "适合统一接入多家上游模型，方便做供应商切换和路由。",
-    key: "openrouter",
-    label: "OpenRouter",
-    logoText: "R",
+    monthlyEstimate: "¥约 3,200",
+    outputCost: "$0.0040 /1K",
+    price: "$0.002 USD / 1K tokens",
   },
   {
     capabilities: ["LLM", "TEXT EMBEDDING"],
     defaultBaseUrl: "https://api.anthropic.com/v1",
-    description: "偏向长文本分析与高质量生成，适合策略、写作和复杂任务。",
+    description: "Claude 3.5 Sonnet、Claude 3 Opus 等安全可靠的AI助手",
+    inputCost: "$0.003 /1K",
     key: "anthropic",
     label: "Anthropic",
     logoText: "A",
+    monthlyEstimate: "¥约 4,800",
+    outputCost: "$0.015 /1K",
+    price: "$0.003 USD / 1K tokens",
+  },
+  {
+    capabilities: ["LLM", "TEXT EMBEDDING"],
+    defaultBaseUrl: "https://api.deepseek.com/v1",
+    description: "国产顶尖开源大模型，性价比极高",
+    inputCost: "$0.0001 /1K",
+    key: "deepseek",
+    label: "DeepSeek",
+    logoText: "D",
+    monthlyEstimate: "¥约 200",
+    outputCost: "$0.0002 /1K",
+    price: "$0.0001 USD / 1K tokens",
   },
   {
     capabilities: ["LLM", "RERANK", "TEXT EMBEDDING", "SPEECH2TEXT"],
     defaultBaseUrl: "https://your-api-host.example.com/v1",
-    description: "用于接入兼容 OpenAI API 的私有网关、代理层或第三方聚合平台。",
-    key: "compatible",
-    label: "OpenAI-compatible",
-    logoText: "C",
+    description: "私有化部署，完全数据自主可控",
+    inputCost: "—",
+    key: "local",
+    label: "本地部署",
+    logoText: "L",
+    monthlyEstimate: "按硬件成本",
+    outputCost: "—",
+    price: "硬件投入",
   },
 ];
 
 export const PROVIDER_MODEL_CATALOG: Record<string, string[]> = {
   anthropic: ["claude-3-7-sonnet", "claude-3-5-sonnet", "claude-3-5-haiku"],
-  compatible: ["frontis-chat-32k", "frontis-reasoner", "frontis-embedding-1"],
-  openai: ["gpt-5.2", "gpt-4.1", "text-embedding-3-large"],
-  openrouter: ["openai/gpt-4.1-mini", "anthropic/claude-3.7-sonnet", "google/gemini-2.0-flash"],
+  deepseek: ["deepseek-chat", "deepseek-coder", "deepseek-reasoner"],
+  local: ["frontis-chat-32k", "frontis-reasoner"],
+  openai: ["gpt-4o", "gpt-4-turbo", "gpt-3.5-turbo"],
 };
 
 export const INITIAL_PROVIDER_CONFIGS: Record<string, ModelProviderConfigState> = {
@@ -224,11 +244,18 @@ export const INITIAL_PROVIDER_CONFIGS: Record<string, ModelProviderConfigState> 
     fetchedModels: [],
     lastCheckedAt: "",
   },
-  compatible: {
-    apiKey: "sk-compatible-demo-0198",
+  deepseek: {
+    apiKey: "",
+    baseUrl: "",
+    connectivityStatus: "idle",
+    fetchedModels: [],
+    lastCheckedAt: "",
+  },
+  local: {
+    apiKey: "sk-local-demo-0198",
     baseUrl: "https://gateway.frontis.ai/v1",
     connectivityStatus: "success",
-    fetchedModels: PROVIDER_MODEL_CATALOG.compatible,
+    fetchedModels: PROVIDER_MODEL_CATALOG.local,
     lastCheckedAt: "今天 09:48",
   },
   openai: {
@@ -237,13 +264,6 @@ export const INITIAL_PROVIDER_CONFIGS: Record<string, ModelProviderConfigState> 
     connectivityStatus: "success",
     fetchedModels: PROVIDER_MODEL_CATALOG.openai,
     lastCheckedAt: "今天 10:24",
-  },
-  openrouter: {
-    apiKey: "sk-or-demo-2194",
-    baseUrl: "",
-    connectivityStatus: "success",
-    fetchedModels: PROVIDER_MODEL_CATALOG.openrouter,
-    lastCheckedAt: "今天 10:36",
   },
 };
 
@@ -396,18 +416,23 @@ export const DEFAULT_SCHEDULED_TASKS: ScheduledTaskItem[] = [
 const DEVICE_META_BY_WORKSPACE_ID: Record<string, Omit<DevicePresentation, "workspace">> = {
   "workspace-cloud": {
     activatedAt: "2026-03-04 11:20",
-    code: "BX-1001",
+    code: "CLD-2026-0301",
     location: "上海 · 产品中心",
   },
   "workspace-local": {
-    activatedAt: "2026-03-10 16:08",
-    code: "BX-2036",
-    location: "杭州 · 市场运营部",
+    activatedAt: "2026-03-10 09:45",
+    code: "CLD-2026-0302",
+    location: "上海 · 销售中心",
   },
-  "workspace-edge": {
-    activatedAt: "2026-03-22 09:15",
-    code: "BX-3018",
-    location: "深圳 · 华南销售中心",
+  "workspace-local-sh": {
+    activatedAt: "2026-03-18 14:30",
+    code: "BOX-2026-0401",
+    location: "上海 · 门店",
+  },
+  "workspace-local-bj": {
+    activatedAt: "2026-03-20 10:00",
+    code: "BOX-2026-0402",
+    location: "北京 · 总部",
   },
 };
 
@@ -528,9 +553,12 @@ export const isProviderConnectionAvailable = (config: ModelProviderConfigState):
 
 export const renderDeviceWorkspaceIcon = (): JSX.Element => <DesktopOutlined />;
 
-export const getDeviceDisplayName = (name: string): string => name.replace(/^(云端|本地|边缘)/, "");
+export const getDeviceDisplayName = (name: string): string => name;
 
 export const getDeviceManagementHint = (workspace: WorkspaceItem): string => {
+  if (workspace.status === "draft" || workspace.status === "paused") {
+    return "设备离线，专家暂停服务";
+  }
   if (workspace.status === "pending") {
     return "当前工作站待激活，激活后可分配 Agent 并接入任务。";
   }
