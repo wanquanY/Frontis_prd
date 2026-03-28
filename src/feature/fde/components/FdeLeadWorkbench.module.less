@@ -1,0 +1,370 @@
+.workbench {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.toolbar,
+.body,
+.detailGrid,
+.ownerCard,
+.actionRow,
+.modalActions,
+.memberOption {
+  display: flex;
+}
+
+.toolbar {
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.filterRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.filterButton {
+  min-height: 36px;
+  padding: 0 12px;
+  border: 1px solid var(--fdeBorder);
+  border-radius: 999px;
+  background: var(--fdeSurface);
+  color: var(--fdeTextSecondary);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.filterButtonActive {
+  border-color: var(--fdeBorderStrong);
+  background: color-mix(in srgb, var(--primary) 8%, transparent);
+  color: var(--fdeText);
+}
+
+.filterCount,
+.statusTag {
+  min-height: 22px;
+  padding: 0 8px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  line-height: 16px;
+  font-weight: 700;
+}
+
+.createButton {
+  border-radius: 12px;
+}
+
+.body {
+  min-height: 0;
+  align-items: stretch;
+  gap: 14px;
+}
+
+.listPanel,
+.detailPanel {
+  border: 1px solid var(--fdeBorder);
+  border-radius: 16px;
+  background: var(--fdeSurface);
+}
+
+.listPanel {
+  width: 320px;
+  min-height: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.listPanelHeader,
+.detailTitle {
+  color: var(--fdeText);
+  font-size: 18px;
+  line-height: 28px;
+  font-weight: 700;
+}
+
+.listPanelHeader {
+  padding: 16px 18px 12px;
+  border-bottom: 1px solid var(--fdeBorder);
+}
+
+.list {
+  flex: 1;
+  min-height: 0;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow: auto;
+}
+
+.listItem {
+  padding: 12px 14px;
+  border: 1px solid var(--fdeBorder);
+  border-radius: 12px;
+  background: var(--fdeSurface);
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.listItemActive {
+  border-color: var(--fdeBorderStrong);
+  background: color-mix(in srgb, var(--primary) 6%, var(--fdeSurface));
+}
+
+.listItemTop,
+.detailHeader,
+.actionRow {
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.listMeta,
+.detailSubtitle,
+.summaryText,
+.detailValue {
+  color: var(--fdeTextSecondary);
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.statusTag {
+  border: 1px solid transparent;
+}
+
+.statusNew {
+  background: color-mix(in srgb, var(--primary) 10%, transparent);
+  color: var(--fdeAccent);
+}
+
+.statusActive {
+  background: rgba(123, 97, 255, 0.12);
+  color: #8a7bff;
+}
+
+.statusWon {
+  background: rgba(70, 212, 147, 0.12);
+  color: var(--fdeSuccess);
+}
+
+.statusLost {
+  background: rgba(255, 103, 103, 0.12);
+  color: var(--fdeDanger);
+}
+
+.detailPanel {
+  min-width: 0;
+  flex: 1;
+  min-height: 0;
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.detailGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0;
+  border: 1px solid var(--fdeBorder);
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.detailItem {
+  min-width: 0;
+  min-height: 82px;
+  padding: 14px 16px;
+  border-right: 1px solid var(--fdeBorder);
+  border-bottom: 1px solid var(--fdeBorder);
+  background: var(--fdeSurface);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 8px;
+
+  &:nth-child(4n) {
+    border-right: none;
+  }
+
+  &:nth-last-child(-n + 4) {
+    border-bottom: none;
+  }
+}
+
+.detailLabel {
+  color: var(--fdeTextMuted);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.summaryText {
+  margin: 0;
+  color: var(--fdeText);
+  font-size: 14px;
+  line-height: 24px;
+}
+
+.summaryCard,
+.ownerCard {
+  padding: 18px 0 0;
+  border-top: 1px solid var(--fdeBorder);
+  background: transparent;
+  display: grid;
+  gap: 14px;
+}
+
+.ownerCard {
+  grid-template-columns: minmax(0, 1fr) 280px;
+  align-items: end;
+}
+
+.summaryCard {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.summaryBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ownerInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ownerValue {
+  color: var(--fdeText);
+  font-size: 15px;
+  line-height: 22px;
+  font-weight: 600;
+}
+
+.ownerSelect {
+  min-width: 240px;
+
+  :global(.ant-select-selector) {
+    min-height: 40px !important;
+    border-radius: 12px !important;
+    border-color: var(--fdeBorder) !important;
+    background: var(--fdeSurface) !important;
+    box-shadow: none !important;
+  }
+
+  :global(.ant-select-selection-item),
+  :global(.ant-select-selection-placeholder) {
+    color: var(--fdeTextSecondary) !important;
+    line-height: 38px !important;
+  }
+}
+
+.actionRow {
+  margin-top: auto;
+  padding-top: 18px;
+  border-top: 1px solid var(--fdeBorder);
+  flex-wrap: wrap;
+}
+
+.actionRow :global(.ant-btn) {
+  border-radius: 12px;
+}
+
+.modalForm {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.modalActions {
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.memberOption {
+  align-items: center;
+  gap: 10px;
+
+  img {
+    width: 24px;
+    height: 24px;
+    border-radius: 999px;
+  }
+}
+
+@media (max-width: 1220px) {
+  .body {
+    flex-direction: column;
+  }
+
+  .listPanel {
+    width: 100%;
+  }
+
+  .detailGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .detailItem {
+    &:nth-child(4n) {
+      border-right: 1px solid var(--fdeBorder);
+    }
+
+    &:nth-last-child(-n + 4) {
+      border-bottom: 1px solid var(--fdeBorder);
+    }
+
+    &:nth-child(2n) {
+      border-right: none;
+    }
+
+    &:nth-last-child(-n + 2) {
+      border-bottom: none;
+    }
+  }
+
+  .summaryCard,
+  .ownerCard {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 760px) {
+  .detailGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .detailItem {
+    min-height: 74px;
+    border-right: none;
+
+    &:nth-child(2n) {
+      border-right: none;
+    }
+
+    &:nth-last-child(-n + 2) {
+      border-bottom: 1px solid var(--fdeBorder);
+    }
+
+    &:last-child {
+      border-bottom: none;
+    }
+  }
+
+  .detailPanel {
+    padding: 16px;
+  }
+}

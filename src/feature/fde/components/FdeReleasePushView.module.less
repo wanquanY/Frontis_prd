@@ -1,0 +1,162 @@
+.workbench {
+  display: flex;
+  gap: 12px;
+}
+
+.releaseRail {
+  width: 300px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.releaseCard,
+.detailPanel,
+.metricCard,
+.card {
+  border: 1px solid var(--fdeBorder);
+  border-radius: 16px;
+  background: var(--fdeSurface);
+}
+
+.releaseCard {
+  padding: 12px 14px;
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.releaseCardActive {
+  border-color: var(--fdeBorderStrong);
+  background: color-mix(in srgb, var(--primary) 5%, var(--fdeSurface));
+}
+
+.releaseTop,
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.releaseMeta,
+.description,
+.releaseMetaRow {
+  color: var(--fdeTextSecondary);
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.statusTag {
+  min-height: 24px;
+  padding: 0 10px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  line-height: 16px;
+  font-weight: 700;
+}
+
+.statusPending {
+  background: rgba(245, 174, 60, 0.12);
+  color: var(--fdeWarning);
+}
+
+.statusRolling {
+  background: rgba(123, 97, 255, 0.12);
+  color: #8a7bff;
+}
+
+.statusDone {
+  background: rgba(70, 212, 147, 0.12);
+  color: var(--fdeSuccess);
+}
+
+.statusRollback {
+  background: rgba(255, 103, 103, 0.12);
+  color: var(--fdeDanger);
+}
+
+.detailPanel {
+  min-width: 0;
+  flex: 1;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.eyebrow,
+.sectionTitle,
+.metricLabel {
+  color: var(--fdeTextMuted);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.title,
+.metricValue {
+  margin: 0;
+  color: var(--fdeText);
+  font-size: 18px;
+  line-height: 28px;
+  font-weight: 700;
+}
+
+.metricGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.metricCard,
+.card {
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.noteList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.noteItem {
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--fdeBorder);
+  background: var(--fdeSurface);
+  color: var(--fdeTextSecondary);
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.noteDot {
+  width: 8px;
+  height: 8px;
+  margin-top: 6px;
+  border-radius: 999px;
+  background: var(--fdeAccent);
+  flex-shrink: 0;
+}
+
+@media (max-width: 1200px) {
+  .workbench {
+    flex-direction: column;
+  }
+
+  .releaseRail {
+    width: 100%;
+  }
+
+  .metricGrid {
+    grid-template-columns: 1fr;
+  }
+}

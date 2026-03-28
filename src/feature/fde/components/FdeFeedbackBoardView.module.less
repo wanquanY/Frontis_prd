@@ -1,0 +1,180 @@
+.workbench {
+  display: flex;
+  gap: 12px;
+}
+
+.agentRail {
+  width: 280px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.agentCard,
+.detailPanel,
+.metricCard,
+.card,
+.recommendationCard {
+  border: 1px solid var(--fdeBorder);
+  border-radius: 16px;
+  background: var(--fdeSurface);
+}
+
+.agentCard {
+  padding: 12px 14px;
+  text-align: left;
+  cursor: pointer;
+
+  &[data-active="true"] {
+    border-color: var(--fdeBorderStrong);
+    background: color-mix(in srgb, var(--primary) 5%, var(--fdeSurface));
+  }
+}
+
+.agentName,
+.title,
+.metricValue {
+  color: var(--fdeText);
+  font-weight: 700;
+}
+
+.agentName {
+  font-size: 14px;
+  line-height: 22px;
+}
+
+.agentMeta,
+.description,
+.recommendationText {
+  color: var(--fdeTextSecondary);
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.detailPanel {
+  min-width: 0;
+  flex: 1;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.eyebrow,
+.sectionTitle,
+.metricLabel {
+  color: var(--fdeTextMuted);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.title {
+  margin: 0;
+  font-size: 18px;
+  line-height: 28px;
+}
+
+.triggerButton {
+  border-radius: 12px;
+}
+
+.metricGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.metricCard,
+.card,
+.recommendationCard {
+  padding: 14px;
+}
+
+.metricCard {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.metricValue {
+  font-size: 18px;
+  line-height: 28px;
+}
+
+.metricHint {
+  color: var(--fdeTextMuted);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.detailGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.tagList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.tag,
+.signalItem {
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--fdeBorder);
+  background: var(--fdeSurface);
+  color: var(--fdeTextSecondary);
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.signalList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.signalItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.signalDot {
+  width: 8px;
+  height: 8px;
+  margin-top: 6px;
+  border-radius: 999px;
+  background: var(--fdeWarning);
+  flex-shrink: 0;
+}
+
+.recommendationText {
+  margin: 0;
+}
+
+@media (max-width: 1220px) {
+  .workbench {
+    flex-direction: column;
+  }
+
+  .agentRail,
+  .metricGrid,
+  .detailGrid {
+    width: 100%;
+  }
+
+  .metricGrid,
+  .detailGrid {
+    grid-template-columns: 1fr;
+  }
+}

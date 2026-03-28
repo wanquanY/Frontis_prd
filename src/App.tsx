@@ -30,6 +30,7 @@ const MarketingPortalCaseDetailPage = lazy(
 const MarketingPortalContactPage = lazy(
   () => import("@/pages/marketingPortal/MarketingPortalContactPage"),
 );
+const FdeWorkbenchPage = lazy(() => import("@/pages/fde/FdeWorkbenchPage"));
 
 /**
  * App
@@ -69,6 +70,7 @@ const App = (): JSX.Element => {
               </AuthRoute>
             }
           />
+          <Route path="/fde" element={<FdeWorkbenchPage />} />
           <Route path="*" element={<Navigate replace to="/portal" />} />
         </Routes>
       </Suspense>

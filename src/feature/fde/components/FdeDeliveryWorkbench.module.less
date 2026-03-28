@@ -1,0 +1,223 @@
+.workbench {
+  display: flex;
+  gap: 12px;
+}
+
+.orderList,
+.detailPanel,
+.card {
+  border: 1px solid var(--fdeBorder);
+  border-radius: 16px;
+  background: var(--fdeSurface);
+}
+
+.orderList {
+  width: 320px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sectionTitle,
+.detailTitle,
+.cardTitle {
+  color: var(--fdeText);
+  font-size: 18px;
+  line-height: 28px;
+  font-weight: 700;
+}
+
+.orderListBody {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.orderItem {
+  padding: 12px 14px;
+  border: 1px solid var(--fdeBorder);
+  border-radius: 12px;
+  background: var(--fdeSurface);
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.orderItemActive {
+  border-color: var(--fdeBorderStrong);
+  background: color-mix(in srgb, var(--primary) 5%, var(--fdeSurface));
+}
+
+.orderItemHeader,
+.detailHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.orderItemMeta,
+.detailEyebrow,
+.factLabel {
+  color: var(--fdeTextMuted);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.orderProgress,
+.detailMeta {
+  color: var(--fdeAccent);
+  font-weight: 700;
+}
+
+.detailPanel {
+  min-width: 0;
+  flex: 1;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.detailDescription,
+.factValue {
+  color: var(--fdeTextSecondary);
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.detailMeta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  font-size: 12px;
+}
+
+.stepRail {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 8px;
+  padding: 10px 0 4px;
+}
+
+.stepItem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.stepBadge {
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  border: 1px solid var(--fdeBorder);
+  background: var(--fdeSurface);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--fdeTextSecondary);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.stepBadgeDone {
+  background: rgba(70, 212, 147, 0.12);
+  border-color: rgba(70, 212, 147, 0.32);
+  color: var(--fdeSuccess);
+}
+
+.stepBadgeCurrent {
+  background: color-mix(in srgb, var(--primary) 10%, transparent);
+  border-color: var(--fdeBorderStrong);
+  color: var(--fdeAccent);
+}
+
+.stepLabel {
+  color: var(--fdeTextSecondary);
+  font-size: 12px;
+  line-height: 18px;
+  text-align: center;
+}
+
+.contentGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.card {
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.factGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.factItem,
+.checkItem {
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--fdeBorder);
+  background: var(--fdeSurface);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.checkList {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.checkItem {
+  align-items: flex-start;
+  flex-direction: row;
+  gap: 10px;
+  color: var(--fdeTextSecondary);
+}
+
+.checkDot {
+  width: 8px;
+  height: 8px;
+  margin-top: 6px;
+  border-radius: 999px;
+  background: var(--fdeAccent);
+  flex-shrink: 0;
+}
+
+@media (max-width: 1280px) {
+  .workbench {
+    flex-direction: column;
+  }
+
+  .orderList {
+    width: 100%;
+  }
+
+  .contentGrid,
+  .factGrid,
+  .checkList,
+  .stepRail {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 780px) {
+  .contentGrid,
+  .factGrid,
+  .checkList,
+  .stepRail {
+    grid-template-columns: 1fr;
+  }
+}

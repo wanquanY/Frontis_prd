@@ -1,0 +1,167 @@
+.workbench {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.customerRail {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.customerCard {
+  min-width: 220px;
+  padding: 12px 14px;
+  border: 1px solid var(--fdeBorder);
+  border-radius: 12px;
+  background: var(--fdeSurface);
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.customerCardActive {
+  border-color: var(--fdeBorderStrong);
+  background: color-mix(in srgb, var(--primary) 5%, var(--fdeSurface));
+}
+
+.customerTop,
+.heroHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.customerMeta,
+.description,
+.summaryText {
+  color: var(--fdeTextSecondary);
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.detailGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(300px, 0.8fr);
+  gap: 12px;
+}
+
+.heroCard,
+.alertCard,
+.highlightCard,
+.metricCard {
+  border: 1px solid var(--fdeBorder);
+  border-radius: 16px;
+  background: var(--fdeSurface);
+}
+
+.heroCard,
+.alertCard,
+.highlightCard {
+  padding: 16px;
+}
+
+.heroCard {
+  grid-column: 1 / span 2;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.eyebrow,
+.sectionTitle,
+.metricLabel {
+  color: var(--fdeTextMuted);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.title,
+.metricValue {
+  margin: 0;
+  color: var(--fdeText);
+  font-size: 18px;
+  line-height: 28px;
+  font-weight: 700;
+}
+
+.healthTag {
+  min-height: 28px;
+  padding: 0 12px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  line-height: 18px;
+  font-weight: 700;
+}
+
+.healthHealthy {
+  background: rgba(70, 212, 147, 0.12);
+  color: var(--fdeSuccess);
+}
+
+.healthAttention {
+  background: rgba(245, 174, 60, 0.12);
+  color: var(--fdeWarning);
+}
+
+.healthRisk {
+  background: rgba(255, 103, 103, 0.12);
+  color: var(--fdeDanger);
+}
+
+.metricGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.metricCard {
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.highlightList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.highlightItem {
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--fdeBorder);
+  background: var(--fdeSurface);
+  color: var(--fdeTextSecondary);
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.highlightDot {
+  width: 8px;
+  height: 8px;
+  margin-top: 6px;
+  border-radius: 999px;
+  background: var(--fdeAccent);
+  flex-shrink: 0;
+}
+
+@media (max-width: 1240px) {
+  .detailGrid,
+  .metricGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .heroCard {
+    grid-column: auto;
+  }
+}
