@@ -1,14 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
 import classNames from "classnames";
-import { Button, Empty, Input, Progress, Select, message } from "antd";
+import { Button, Empty, message } from "antd";
 
-import type {
-  FdeEvolutionCreatePayload,
-  FdeFeedbackAgentItem,
-  FdeFeedbackIssueCategory,
-  FdeFeedbackSignalItem,
-} from "@/feature/fde/types";
+import type { FdeFeedbackAgentItem } from "@/feature/fde/types";
 
 import styles from "./FdeFeedbackBoardView.module.less";
 
@@ -16,22 +11,8 @@ interface FdeFeedbackBoardViewProps {
   items: FdeFeedbackAgentItem[];
   selectedAgentId: string;
   setSelectedAgentId: (agentId: string) => void;
-  triggerEvolution: (agentId: string, payload?: FdeEvolutionCreatePayload) => string | null;
+  triggerEvolution: (agentId: string) => void;
 }
-
-const ALL_CATEGORY_FILTER = "全部分类";
-
-const getCategoryClassName = (category: FdeFeedbackIssueCategory): string => {
-  if (category === "知识缺口" || category === "规则误判") {
-    return styles.categoryWarning;
-  }
-
-  if (category === "数据延迟" || category === "接口异常") {
-    return styles.categoryDanger;
-  }
-
-  return styles.categoryAccent;
-};
 
 /**
  * 数据回流看板视图。
@@ -42,253 +23,145 @@ export const FdeFeedbackBoardView = ({
   setSelectedAgentId,
   triggerEvolution,
 }: FdeFeedbackBoardViewProps): JSX.Element => {
-  const [activeCategory, setActiveCategory] = useState<string>(ALL_CATEGORY_FILTER);
-  const [selectedSignalIds, setSelectedSignalIds] = useState<string[]>([]);
-  const [manualNote, setManualNote] = useState<string>("");
+  const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
+
+  const customers = useMemo(() => {
+    const customerMap = new Map<string, { id: string; name: string; agentCount: number }>();
+    items.forEach(item => {
+      if (!customerMap.has(item.customerId)) {
+        customerMap.set(item.customerId, {
+          id: item.customerId,
+          name: item.customerName,
+          agentCount: 0,
+        });
+      }
+      const customer = customerMap.get(item.customerId)!;
+      customer.agentCount += 1;
+    });
+    return Array.from(customerMap.values());
+  }, [items]);
+
+  const filteredAgents = useMemo(() => {
+    if (!selectedCustomerId) return [];
+    return items.filter(item => item.customerId === selectedCustomerId);
+  }, [items, selectedCustomerId]);
+
   const selectedAgent = useMemo(
-    () => items.find(item => item.id === selectedAgentId) ?? items[0] ?? null,
+    () => items.find(item => item.id === selectedAgentId) ?? null,
     [items, selectedAgentId],
   );
-  const categoryOptions = useMemo<string[]>(
-    () =>
-      selectedAgent
-        ? [
-            ALL_CATEGORY_FILTER,
-            ...Array.from(new Set(selectedAgent.issueSignals.map(item => item.category))),
-          ]
-        : [ALL_CATEGORY_FILTER],
-    [selectedAgent],
-  );
-  const filteredSignals = useMemo<FdeFeedbackSignalItem[]>(
-    () =>
-      selectedAgent
-        ? selectedAgent.issueSignals.filter(item =>
-            activeCategory === ALL_CATEGORY_FILTER ? true : item.category === activeCategory,
-          )
-        : [],
-    [activeCategory, selectedAgent],
-  );
-  const filteredSamples = useMemo(
-    () =>
-      selectedAgent
-        ? selectedAgent.samples.filter(item => {
-            const matchesCategory =
-              activeCategory === ALL_CATEGORY_FILTER ? true : item.issueCategory === activeCategory;
-            const matchesSignal =
-              selectedSignalIds.length > 0 ? selectedSignalIds.includes(item.signalId) : true;
-            return matchesCategory && matchesSignal;
-          })
-        : [],
-    [activeCategory, selectedAgent, selectedSignalIds],
-  );
-
-  useEffect(() => {
-    setSelectedSignalIds([]);
-    setManualNote(selectedAgent?.manualRemark ?? "");
-    setActiveCategory(ALL_CATEGORY_FILTER);
-  }, [selectedAgent?.id, selectedAgent?.manualRemark]);
-
-  const handleToggleSignal = (signalId: string): void => {
-    setSelectedSignalIds(previous =>
-      previous.includes(signalId)
-        ? previous.filter(item => item !== signalId)
-        : [...previous, signalId],
-    );
-  };
-
-  const handleTriggerEvolution = (): void => {
-    if (!selectedAgent) {
-      return;
-    }
-
-    const targetSignalIds =
-      selectedSignalIds.length > 0 ? selectedSignalIds : filteredSignals.map(item => item.id);
-
-    if (!targetSignalIds.length) {
-      message.warning("当前没有可创建任务的问题信号。");
-      return;
-    }
-
-    const nextTaskId = triggerEvolution(selectedAgent.id, {
-      manualNote: manualNote.trim(),
-      signalIds: targetSignalIds,
-    });
-
-    if (!nextTaskId) {
-      message.warning("当前回流任务不存在，无法创建进化任务。");
-      return;
-    }
-
-    message.success("已根据所选信号创建进化任务。");
-  };
 
   if (!items.length) {
     return <Empty description="当前视角下暂无回流数据" />;
   }
 
   return (
-    <div className={styles.workbench}>
-      <aside className={styles.agentRail}>
-        {items.map(item => (
-          <button
-            key={item.id}
-            type="button"
-            className={styles.agentCard}
-            data-active={item.id === selectedAgent?.id}
-            onClick={() => setSelectedAgentId(item.id)}
-          >
-            <div className={styles.agentName}>{item.agentName}</div>
-            <div className={styles.agentMeta}>{item.customerName}</div>
-            <div className={styles.agentMeta}>进化评分 {item.evolutionScore}</div>
-          </button>
-        ))}
+    <div className={styles.feedbackLayout}>
+      <aside className={styles.customerList}>
+        <div className={styles.sectionTitle}>客户列表</div>
+        <div className={styles.customerListBody}>
+          {customers.map(customer => (
+            <button
+              key={customer.id}
+              type="button"
+              className={classNames(
+                styles.customerCard,
+                selectedCustomerId === customer.id && styles.customerCardActive,
+              )}
+              onClick={() => {
+                setSelectedCustomerId(customer.id);
+                const firstAgent = items.find(item => item.customerId === customer.id);
+                if (firstAgent) {
+                  setSelectedAgentId(firstAgent.id);
+                }
+              }}
+            >
+              <div className={styles.customerName}>{customer.name}</div>
+              <div className={styles.customerMeta}>{customer.agentCount} 个 Agent</div>
+            </button>
+          ))}
+        </div>
+      </aside>
+
+      <aside className={styles.agentList}>
+        <div className={styles.sectionTitle}>Agent 列表</div>
+        <div className={styles.agentListBody}>
+          {filteredAgents.length > 0 ? (
+            filteredAgents.map(agent => (
+              <button
+                key={agent.id}
+                type="button"
+                className={classNames(
+                  styles.agentCard,
+                  selectedAgent?.id === agent.id && styles.agentCardActive,
+                )}
+                onClick={() => setSelectedAgentId(agent.id)}
+              >
+                <div className={styles.agentName}>{agent.agentName}</div>
+                <div className={styles.agentMeta}>版本 {agent.currentVersion}</div>
+                <div className={styles.agentMeta}>进化评分 {agent.evolutionScore}</div>
+              </button>
+            ))
+          ) : (
+            <Empty description="请先选择客户" image={Empty.PRESENTED_IMAGE_SIMPLE} />
+          )}
+        </div>
       </aside>
 
       <article className={styles.detailPanel}>
         {selectedAgent ? (
           <>
-            <div className={styles.header}>
+            <div className={styles.detailHeader}>
               <div>
-                <div className={styles.eyebrow}>数据回流看板</div>
-                <h2 className={styles.title}>{selectedAgent.agentName}</h2>
-                <p className={styles.description}>
-                  {selectedAgent.customerName} · {selectedAgent.scenarioName}
+                <div className={styles.detailEyebrow}>数据回流看板</div>
+                <h2 className={styles.detailTitle}>{selectedAgent.agentName}</h2>
+                <p className={styles.detailDescription}>
+                  {selectedAgent.customerName} · 当前版本 {selectedAgent.currentVersion}
                 </p>
               </div>
-              <Button type="primary" className={styles.triggerButton} onClick={handleTriggerEvolution}>
-                基于选中信号创建任务
+              <Button
+                type="primary"
+                onClick={() => {
+                  triggerEvolution(selectedAgent.id);
+                  message.success("已触发进化任务");
+                }}
+              >
+                手动触发进化
               </Button>
             </div>
 
-            <section className={styles.metricGrid}>
-              <article className={styles.metricCard}>
-                <span className={styles.metricLabel}>解决率</span>
-                <strong className={styles.metricValue}>{selectedAgent.resolutionRate}%</strong>
-                <Progress
-                  percent={selectedAgent.resolutionRate}
-                  showInfo={false}
-                  strokeColor="var(--fdeAccent)"
-                />
-              </article>
-              <article className={styles.metricCard}>
-                <span className={styles.metricLabel}>触发次数</span>
-                <strong className={styles.metricValue}>{selectedAgent.triggerCount}</strong>
-                <span className={styles.metricHint}>最近 30 天</span>
-              </article>
-              <article className={styles.metricCard}>
-                <span className={styles.metricLabel}>进化评分</span>
-                <strong className={styles.metricValue}>{selectedAgent.evolutionScore}</strong>
-                <span className={styles.metricHint}>最近进化：{selectedAgent.lastEvolvedAt}</span>
-              </article>
-            </section>
-
-            <section className={styles.controlCard}>
-              <div className={styles.controlHeader}>
-                <div className={styles.sectionTitle}>问题信号详情</div>
-                <Select
-                  className={styles.categorySelect}
-                  value={activeCategory}
-                  options={categoryOptions.map(item => ({
-                    label: item,
-                    value: item,
-                  }))}
-                  onChange={value => setActiveCategory(value)}
-                />
-              </div>
-              <div className={styles.signalList}>
-                {filteredSignals.map(item => {
-                  const isSelected = selectedSignalIds.includes(item.id);
-
-                  return (
-                    <button
-                      key={item.id}
-                      type="button"
-                      className={classNames(styles.signalItem, isSelected && styles.signalItemActive)}
-                      onClick={() => handleToggleSignal(item.id)}
-                    >
-                      <div className={styles.signalHeader}>
-                        <strong>{item.title}</strong>
-                        <span
-                          className={classNames(
-                            styles.categoryTag,
-                            getCategoryClassName(item.category),
-                          )}
-                        >
-                          {item.category}
-                        </span>
-                      </div>
-                      <div className={styles.signalMeta}>
-                        影响技能：{item.impactedSkill} · 样本 {item.sampleCount} 条
-                      </div>
-                      <div className={styles.signalDetail}>{item.detail}</div>
-                    </button>
-                  );
-                })}
+            <section className={styles.card}>
+              <div className={styles.cardTitle}>技能列表</div>
+              <div className={styles.skillGrid}>
+                {selectedAgent.skills.map((skill, idx) => (
+                  <div key={idx} className={styles.skillItem}>
+                    <div className={styles.skillName}>{skill.name}</div>
+                    <div className={styles.skillVersion}>版本 {skill.version}</div>
+                  </div>
+                ))}
               </div>
             </section>
 
-            <section className={styles.detailGrid}>
-              <article className={styles.card}>
-                <div className={styles.sectionTitle}>回流样本列表</div>
-                <div className={styles.sampleList}>
-                  {filteredSamples.map(item => (
-                    <div key={item.id} className={styles.sampleItem}>
-                      <div className={styles.sampleHeader}>
-                        <span
-                          className={classNames(
-                            styles.categoryTag,
-                            getCategoryClassName(item.issueCategory),
-                          )}
-                        >
-                          {item.issueCategory}
-                        </span>
-                        <span className={styles.sampleTime}>{item.createdAt}</span>
-                      </div>
-                      <div className={styles.sampleQuestion}>问题：{item.question}</div>
-                      <div className={styles.sampleBlock}>当前回复：{item.observedReply}</div>
-                      <div className={styles.sampleBlock}>期望回复：{item.expectedReply}</div>
-                    </div>
-                  ))}
+            <section className={styles.card}>
+              <div className={styles.cardTitle}>回流数据情况（最近 7 天）</div>
+              <div className={styles.feedbackTable}>
+                <div className={styles.tableHeader}>
+                  <div className={styles.tableCell}>日期</div>
+                  <div className={styles.tableCell}>触发次数</div>
+                  <div className={styles.tableCell}>成功次数</div>
+                  <div className={styles.tableCell}>失败次数</div>
+                  <div className={styles.tableCell}>平均响应时间</div>
                 </div>
-              </article>
-
-              <article className={styles.card}>
-                <div className={styles.sectionTitle}>进化前后效果对比</div>
-                <div className={styles.compareGrid}>
-                  <div className={styles.compareCard}>
-                    <div className={styles.compareLabel}>当前问题</div>
-                    <p className={styles.compareText}>{selectedAgent.comparison.beforeSummary}</p>
+                {selectedAgent.feedbackData.map((data, idx) => (
+                  <div key={idx} className={styles.tableRow}>
+                    <div className={styles.tableCell}>{data.date}</div>
+                    <div className={styles.tableCell}>{data.triggerCount}</div>
+                    <div className={styles.tableCell}>{data.successCount}</div>
+                    <div className={styles.tableCell}>{data.failCount}</div>
+                    <div className={styles.tableCell}>{data.avgResponseTime}s</div>
                   </div>
-                  <div className={styles.compareCard}>
-                    <div className={styles.compareLabel}>进化目标</div>
-                    <p className={styles.compareText}>{selectedAgent.comparison.afterSummary}</p>
-                  </div>
-                </div>
-              </article>
-            </section>
-
-            <section className={styles.detailGrid}>
-              <article className={styles.card}>
-                <div className={styles.sectionTitle}>核心技能</div>
-                <div className={styles.tagList}>
-                  {selectedAgent.skillTags.map(item => (
-                    <span key={item} className={styles.tag}>
-                      {item}
-                    </span>
-                  ))}
-                </div>
-              </article>
-
-              <article className={styles.card}>
-                <div className={styles.sectionTitle}>FDE 建议与备注</div>
-                <p className={styles.recommendationText}>{selectedAgent.recommendation}</p>
-                <Input.TextArea
-                  rows={4}
-                  value={manualNote}
-                  onChange={event => setManualNote(event.target.value)}
-                  placeholder="补充本轮进化备注，创建任务时会一并带入。"
-                />
-              </article>
+                ))}
+              </div>
             </section>
           </>
         ) : (

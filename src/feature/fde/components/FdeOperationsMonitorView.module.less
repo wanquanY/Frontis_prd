@@ -1,37 +1,132 @@
-.workbench {
+.monitorLayout {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 16px;
 }
 
-.customerRail {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.customerCard,
-.heroCard,
-.alertCard,
-.highlightCard,
-.trendCard,
-.diagnosticCard,
-.metricCard,
-.alertItem,
-.diagnosticItem {
+.alertCenter {
+  padding: 16px;
   border: 1px solid var(--fdeBorder);
   border-radius: 16px;
   background: var(--fdeSurface);
 }
 
-.customerCard {
-  min-width: 220px;
+.alertCenterTitle {
+  color: var(--fdeText);
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 700;
+  margin-bottom: 12px;
+}
+
+.alertList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.alertItem {
   padding: 12px 14px;
+  border-radius: 10px;
+  border-left: 3px solid;
+  background: var(--fdeSurface);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.alertCritical {
+  border-left-color: var(--fdeDanger);
+  background: rgba(255, 103, 103, 0.05);
+}
+
+.alertHigh {
+  border-left-color: var(--fdeWarning);
+  background: rgba(245, 174, 60, 0.05);
+}
+
+.alertMedium {
+  border-left-color: var(--fdeAccent);
+  background: rgba(70, 212, 147, 0.05);
+}
+
+.alertLow {
+  border-left-color: var(--fdeTextMuted);
+  background: rgba(0, 0, 0, 0.02);
+}
+
+.alertDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: currentColor;
+  flex-shrink: 0;
+}
+
+.alertContent {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.alertCustomer {
+  color: var(--fdeText);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.alertMessage {
+  color: var(--fdeTextSecondary);
+  font-size: 13px;
+}
+
+.alertTime {
+  color: var(--fdeTextMuted);
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+.workbench {
+  display: flex;
+  gap: 12px;
+}
+
+.customerList {
+  width: 280px;
+  padding: 14px;
+  border: 1px solid var(--fdeBorder);
+  border-radius: 16px;
+  background: var(--fdeSurface);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sectionTitle {
+  color: var(--fdeText);
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 700;
+}
+
+.customerListBody {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.customerCard {
+  padding: 12px 14px;
+  border: 1px solid var(--fdeBorder);
+  border-radius: 12px;
+  background: var(--fdeSurface);
   text-align: left;
   cursor: pointer;
   display: flex;
   flex-direction: column;
   gap: 4px;
+  position: relative;
 }
 
 .customerCardActive {
@@ -39,72 +134,78 @@
   background: color-mix(in srgb, var(--primary) 5%, var(--fdeSurface));
 }
 
-.customerTop,
-.heroHeader,
-.alertHeader {
+.customerCardAlert {
+  border-left: 3px solid var(--fdeDanger);
+}
+
+.customerTop {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
 }
 
-.customerMeta,
-.description,
-.summaryText,
-.alertDetail,
-.alertResolution,
-.trendMeta,
-.modalLabel {
+.alertBadge {
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  background: var(--fdeDanger);
+  color: white;
+  font-size: 12px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.customerMeta {
   color: var(--fdeTextSecondary);
-  font-size: 13px;
-  line-height: 20px;
+  font-size: 12px;
+  line-height: 18px;
 }
 
-.detailGrid {
-  display: grid;
-  grid-template-columns: minmax(0, 1.2fr) minmax(320px, 0.8fr);
-  gap: 12px;
-}
-
-.heroCard,
-.alertCard,
-.highlightCard,
-.trendCard,
-.diagnosticCard {
+.detailPanel {
+  min-width: 0;
+  flex: 1;
   padding: 16px;
-}
-
-.heroCard {
-  grid-column: 1 / span 2;
+  border: 1px solid var(--fdeBorder);
+  border-radius: 16px;
+  background: var(--fdeSurface);
   display: flex;
   flex-direction: column;
   gap: 12px;
 }
 
-.eyebrow,
-.sectionTitle,
-.metricLabel,
-.alertMeta,
-.diagnosticTitle,
-.trendLabel,
-.trendSummary,
-.modalLabel {
+.detailHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--fdeBorder);
+}
+
+.detailEyebrow {
   color: var(--fdeTextMuted);
   font-size: 12px;
   line-height: 18px;
 }
 
-.title,
-.metricValue {
+.detailTitle {
   margin: 0;
   color: var(--fdeText);
-  font-size: 18px;
-  line-height: 28px;
+  font-size: 20px;
+  line-height: 30px;
   font-weight: 700;
 }
 
-.healthTag,
-.statusTag {
+.detailDescription {
+  color: var(--fdeTextSecondary);
+  font-size: 14px;
+  line-height: 22px;
+}
+
+.healthTag {
   min-height: 28px;
   padding: 0 12px;
   border-radius: 999px;
@@ -121,154 +222,149 @@
   color: var(--fdeSuccess);
 }
 
-.healthAttention,
-.severityMedium,
-.alertPending {
+.healthAttention {
   background: rgba(245, 174, 60, 0.12);
   color: var(--fdeWarning);
 }
 
-.healthRisk,
-.severityHigh {
+.healthRisk {
   background: rgba(255, 103, 103, 0.12);
   color: var(--fdeDanger);
 }
 
-.severityLow,
-.alertClosed {
-  background: color-mix(in srgb, var(--primary) 10%, transparent);
-  color: var(--fdeAccent);
+.card {
+  padding: 16px;
+  border: 1px solid var(--fdeBorder);
+  border-radius: 12px;
+  background: var(--fdeSurface);
 }
 
-.alertProcessing {
+.cardTitle {
+  color: var(--fdeText);
+  font-size: 15px;
+  line-height: 24px;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+
+.deviceGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 10px;
+}
+
+.deviceCard {
+  padding: 12px;
+  border: 1px solid var(--fdeBorder);
+  border-radius: 10px;
+  background: var(--fdeSurface);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.deviceHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.deviceIcon {
+  font-size: 18px;
+}
+
+.deviceName {
+  flex: 1;
+  color: var(--fdeText);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.deviceStatus {
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.deviceStatusOnline {
   background: rgba(70, 212, 147, 0.12);
   color: var(--fdeSuccess);
 }
 
-.metricGrid {
+.deviceStatusOffline {
+  background: rgba(255, 103, 103, 0.12);
+  color: var(--fdeDanger);
+}
+
+.deviceMeta {
+  color: var(--fdeTextMuted);
+  font-size: 12px;
+}
+
+.agentGrid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
   gap: 10px;
 }
 
-.metricCard {
-  padding: 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.jumpActions,
-.alertActions,
-.alertTags,
-.trendSummary {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.alertList,
-.highlightList,
-.trendList,
-.modalForm {
-  display: flex;
-  flex-direction: column;
-}
-
-.alertList,
-.highlightList,
-.trendList {
-  gap: 8px;
-}
-
-.modalForm {
-  gap: 12px;
-}
-
-.alertCard,
-.trendCard,
-.diagnosticCard {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.alertItem,
-.diagnosticItem {
-  padding: 12px;
-  gap: 8px;
-  display: flex;
-  flex-direction: column;
-}
-
-.highlightItem {
-  padding: 10px 12px;
-  border-radius: 12px;
+.agentCard {
+  padding: 14px;
   border: 1px solid var(--fdeBorder);
-  background: var(--fdeSurface);
-  color: var(--fdeTextSecondary);
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-}
-
-.highlightDot {
-  width: 8px;
-  height: 8px;
-  margin-top: 6px;
-  border-radius: 999px;
-  background: var(--fdeAccent);
-  flex-shrink: 0;
-}
-
-.trendItem {
-  padding: 12px;
-  border-radius: 12px;
-  border: 1px solid var(--fdeBorder);
+  border-radius: 10px;
   background: var(--fdeSurface);
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
 }
 
-.trendBars {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+.agentName {
+  color: var(--fdeText);
+  font-size: 14px;
+  font-weight: 600;
 }
 
-.trendMetric {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.diagnosticGrid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
-}
-
-.diagnosticSection {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.modalField {
+.agentStats {
   display: flex;
   flex-direction: column;
   gap: 6px;
 }
 
-@media (max-width: 1240px) {
-  .detailGrid,
-  .metricGrid,
-  .diagnosticGrid {
-    grid-template-columns: 1fr;
+.agentStat {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.agentStatLabel {
+  color: var(--fdeTextMuted);
+  font-size: 12px;
+}
+
+.agentStatValue {
+  color: var(--fdeAccent);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+@media (max-width: 1280px) {
+  .workbench {
+    flex-direction: column;
   }
 
-  .heroCard {
-    grid-column: auto;
+  .customerList {
+    width: 100%;
+  }
+
+  .deviceGrid,
+  .agentGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 780px) {
+  .deviceGrid,
+  .agentGrid {
+    grid-template-columns: 1fr;
   }
 }

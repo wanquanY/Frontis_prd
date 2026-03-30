@@ -1,68 +1,28 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
 import classNames from "classnames";
-import { Button, Empty, Input, Progress, message } from "antd";
+import { Button, Empty, Input, Modal, Progress, message } from "antd";
 
-import type {
-  FdeEvolutionReviewDecision,
-  FdeEvolutionTaskItem,
-  FdeEvolutionTaskStatus,
-  FdeTeamMemberItem,
-} from "@/feature/fde/types";
+import type { FdeEvolutionTaskItem, FdeTeamMemberItem } from "@/feature/fde/types";
 import { getFdeMemberName } from "@/feature/fde/utils";
 
 import styles from "./FdeEvolutionTasksView.module.less";
-
-const { TextArea } = Input;
 
 interface FdeEvolutionTasksViewProps {
   items: FdeEvolutionTaskItem[];
   members: FdeTeamMemberItem[];
   selectedTaskId: string;
   setSelectedTaskId: (taskId: string) => void;
-  startTask: (taskId: string) => FdeEvolutionTaskStatus | null;
-  pauseTask: (taskId: string) => FdeEvolutionTaskStatus | null;
-  retryTask: (taskId: string) => FdeEvolutionTaskStatus | null;
-  terminateTask: (taskId: string) => FdeEvolutionTaskStatus | null;
-  submitTaskReview: (taskId: string) => FdeEvolutionTaskStatus | null;
-  reviewTask: (
-    taskId: string,
-    decision: FdeEvolutionReviewDecision,
-    note: string,
-  ) => FdeEvolutionTaskStatus | null;
-  createReleaseFromTask: (taskId: string) => string | null;
 }
 
 const getStatusClassName = (status: FdeEvolutionTaskItem["status"]): string => {
-  if (status === "排队中") {
-    return styles.statusQueued;
-  }
-
-  if (status === "训练中") {
-    return styles.statusRunning;
-  }
-
-  if (status === "已暂停") {
-    return styles.statusPaused;
-  }
-
-  if (status === "待审核") {
-    return styles.statusReview;
-  }
-
-  if (status === "已驳回") {
-    return styles.statusRejected;
-  }
-
-  if (status === "已终止") {
-    return styles.statusTerminated;
-  }
-
-  return styles.statusDone;
+  if (status === "排队中") return styles.statusQueued;
+  if (status === "进化中") return styles.statusRunning;
+  if (status === "进化已完成") return styles.statusCompleted;
+  if (status === "已推送客户审核中") return styles.statusReview;
+  if (status === "客户已采纳") return styles.statusAdopted;
+  return styles.statusRejected;
 };
-
-const getDecisionClassName = (decision: FdeEvolutionReviewDecision): string =>
-  decision === "通过" ? styles.decisionApproved : styles.decisionRejected;
 
 /**
  * 进化任务管理视图。
@@ -72,70 +32,19 @@ export const FdeEvolutionTasksView = ({
   members,
   selectedTaskId,
   setSelectedTaskId,
-  startTask,
-  pauseTask,
-  retryTask,
-  terminateTask,
-  submitTaskReview,
-  reviewTask,
-  createReleaseFromTask,
 }: FdeEvolutionTasksViewProps): JSX.Element => {
-  const [reviewNote, setReviewNote] = useState<string>("");
+  const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
+  const [upgradeNotes, setUpgradeNotes] = useState("");
+
   const selectedTask = useMemo(
     () => items.find(item => item.id === selectedTaskId) ?? items[0] ?? null,
     [items, selectedTaskId],
   );
-  const latestReview = selectedTask?.reviewRecords[0] ?? null;
 
-  useEffect(() => {
-    setReviewNote("");
-  }, [selectedTask?.id]);
-
-  const handleStatusAction = (action: () => FdeEvolutionTaskStatus | null, successText: string) => {
-    const nextStatus = action();
-    if (!nextStatus) {
-      message.warning("当前任务状态不支持这个操作。");
-      return;
-    }
-
-    message.success(successText);
-  };
-
-  const handleReview = (decision: FdeEvolutionReviewDecision): void => {
-    if (!selectedTask) {
-      return;
-    }
-
-    const trimmedNote = reviewNote.trim();
-    if (!trimmedNote) {
-      message.warning("请先填写审核意见。");
-      return;
-    }
-
-    const nextStatus = reviewTask(selectedTask.id, decision, trimmedNote);
-    if (!nextStatus) {
-      message.warning("当前任务不在待审核状态。");
-      return;
-    }
-
-    message.success(decision === "通过" ? "已通过审核。" : "已驳回当前候选版本。");
-    setReviewNote("");
-  };
-
-  const handleCreateRelease = (): void => {
-    if (!selectedTask) {
-      return;
-    }
-
-    const nextReleaseId = createReleaseFromTask(selectedTask.id);
-    if (!nextReleaseId) {
-      message.warning("当前任务尚未审核通过，无法创建发布单。");
-      return;
-    }
-
-    message.success(
-      selectedTask.releaseId ? "已打开关联发布单。" : "已创建发布单，并切换到版本推送模块。",
-    );
+  const handleSubmitUpgrade = (): void => {
+    message.success("升级审核已提交给客户");
+    setIsUpgradeModalOpen(false);
+    setUpgradeNotes("");
   };
 
   if (!items.length) {
@@ -143,32 +52,35 @@ export const FdeEvolutionTasksView = ({
   }
 
   return (
-    <div className={styles.workbench}>
-      <section className={styles.taskGrid}>
-        {items.map(item => (
-          <button
-            key={item.id}
-            type="button"
-            className={classNames(
-              styles.taskCard,
-              item.id === selectedTask?.id && styles.taskCardActive,
-            )}
-            onClick={() => setSelectedTaskId(item.id)}
-          >
-            <div className={styles.taskHeader}>
-              <div>
-                <div className={styles.taskName}>{item.agentName}</div>
-                <div className={styles.taskMeta}>{item.customerName}</div>
+    <div className={styles.layout}>
+      <aside className={styles.taskList}>
+        <div className={styles.sectionTitle}>进化任务列表</div>
+        <div className={styles.taskListBody}>
+          {items.map(item => (
+            <button
+              key={item.id}
+              type="button"
+              className={classNames(
+                styles.taskCard,
+                item.id === selectedTask?.id && styles.taskCardActive,
+              )}
+              onClick={() => setSelectedTaskId(item.id)}
+            >
+              <div className={styles.taskHeader}>
+                <div>
+                  <div className={styles.taskName}>{item.agentName}</div>
+                  <div className={styles.taskMeta}>{item.customerName}</div>
+                </div>
+                <span className={classNames(styles.statusTag, getStatusClassName(item.status))}>
+                  {item.status}
+                </span>
               </div>
-              <span className={classNames(styles.statusTag, getStatusClassName(item.status))}>
-                {item.status}
-              </span>
-            </div>
-            <div className={styles.taskMeta}>候选版本 {item.versionCandidate}</div>
-            <Progress percent={item.progress} showInfo={false} strokeColor="var(--fdeAccent)" />
-          </button>
-        ))}
-      </section>
+              <div className={styles.taskMeta}>候选版本 {item.versionCandidate}</div>
+              <Progress percent={item.progress} showInfo={false} strokeColor="var(--primary)" />
+            </button>
+          ))}
+        </div>
+      </aside>
 
       <article className={styles.detailPanel}>
         {selectedTask ? (
@@ -207,190 +119,11 @@ export const FdeEvolutionTasksView = ({
                 <span className={styles.infoLabel}>预计完成</span>
                 <strong className={styles.infoValue}>{selectedTask.expectedFinishAt}</strong>
               </div>
-              <div className={styles.infoCard}>
-                <span className={styles.infoLabel}>提交审核</span>
-                <strong className={styles.infoValue}>{selectedTask.submittedAt || "未提交"}</strong>
-              </div>
-              <div className={styles.infoCard}>
-                <span className={styles.infoLabel}>最新审核</span>
-                <strong className={styles.infoValue}>
-                  {latestReview
-                    ? `${latestReview.decision} · ${getFdeMemberName(members, latestReview.reviewerId)}`
-                    : "暂无结果"}
-                </strong>
-              </div>
-              <div className={styles.infoCard}>
-                <span className={styles.infoLabel}>发布单</span>
-                <strong className={styles.infoValue}>
-                  {selectedTask.releaseId ? "已创建" : "未创建"}
-                </strong>
-              </div>
             </div>
-
-            <article className={styles.actionCard}>
-              <div className={styles.sectionTitle}>任务动作</div>
-              <div className={styles.actionRow}>
-                {selectedTask.status === "排队中" ? (
-                  <>
-                    <Button
-                      type="primary"
-                      onClick={() =>
-                        handleStatusAction(
-                          () => startTask(selectedTask.id),
-                          "任务已开始训练。",
-                        )
-                      }
-                    >
-                      开始训练
-                    </Button>
-                    <Button
-                      danger
-                      onClick={() =>
-                        handleStatusAction(
-                          () => terminateTask(selectedTask.id),
-                          "任务已终止。",
-                        )
-                      }
-                    >
-                      终止任务
-                    </Button>
-                  </>
-                ) : null}
-
-                {selectedTask.status === "训练中" ? (
-                  <>
-                    <Button
-                      onClick={() =>
-                        handleStatusAction(
-                          () => pauseTask(selectedTask.id),
-                          "任务已暂停。",
-                        )
-                      }
-                    >
-                      暂停训练
-                    </Button>
-                    <Button
-                      type="primary"
-                      onClick={() =>
-                        handleStatusAction(
-                          () => submitTaskReview(selectedTask.id),
-                          "任务已提交审核。",
-                        )
-                      }
-                    >
-                      提交审核
-                    </Button>
-                    <Button
-                      danger
-                      onClick={() =>
-                        handleStatusAction(
-                          () => terminateTask(selectedTask.id),
-                          "任务已终止。",
-                        )
-                      }
-                    >
-                      终止任务
-                    </Button>
-                  </>
-                ) : null}
-
-                {selectedTask.status === "已暂停" ? (
-                  <>
-                    <Button
-                      type="primary"
-                      onClick={() =>
-                        handleStatusAction(
-                          () => startTask(selectedTask.id),
-                          "任务已恢复训练。",
-                        )
-                      }
-                    >
-                      继续训练
-                    </Button>
-                    <Button
-                      onClick={() =>
-                        handleStatusAction(
-                          () => submitTaskReview(selectedTask.id),
-                          "任务已提交审核。",
-                        )
-                      }
-                    >
-                      提交审核
-                    </Button>
-                    <Button
-                      danger
-                      onClick={() =>
-                        handleStatusAction(
-                          () => terminateTask(selectedTask.id),
-                          "任务已终止。",
-                        )
-                      }
-                    >
-                      终止任务
-                    </Button>
-                  </>
-                ) : null}
-
-                {selectedTask.status === "待审核" ? (
-                  <>
-                    <Button type="primary" onClick={() => handleReview("通过")}>
-                      审核通过
-                    </Button>
-                    <Button danger onClick={() => handleReview("驳回")}>
-                      审核驳回
-                    </Button>
-                  </>
-                ) : null}
-
-                {selectedTask.status === "已驳回" || selectedTask.status === "已终止" ? (
-                  <Button
-                    type="primary"
-                    onClick={() =>
-                      handleStatusAction(
-                        () => retryTask(selectedTask.id),
-                        "任务已重新进入训练。",
-                      )
-                    }
-                  >
-                    重试训练
-                  </Button>
-                ) : null}
-
-                {selectedTask.status === "已完成" ? (
-                  <Button type="primary" onClick={handleCreateRelease}>
-                    {selectedTask.releaseId ? "查看发布单" : "创建发布单"}
-                  </Button>
-                ) : null}
-              </div>
-
-              {selectedTask.status === "待审核" ? (
-                <div className={styles.reviewPanel}>
-                  <div className={styles.sectionTitle}>审核意见</div>
-                  <TextArea
-                    className={styles.reviewInput}
-                    rows={4}
-                    value={reviewNote}
-                    placeholder="请输入通过或驳回的原因，便于后续追踪和回看。"
-                    onChange={event => setReviewNote(event.target.value)}
-                  />
-                </div>
-              ) : null}
-            </article>
 
             <article className={styles.summaryCard}>
               <div className={styles.sectionTitle}>任务摘要</div>
               <p className={styles.summaryText}>{selectedTask.summary}</p>
-            </article>
-
-            <article className={styles.summaryCard}>
-              <div className={styles.sectionTitle}>来源信号</div>
-              <div className={styles.skillList}>
-                {selectedTask.sourceSignalTitles.map(item => (
-                  <span key={item} className={styles.skillTag}>
-                    {item}
-                  </span>
-                ))}
-              </div>
             </article>
 
             <article className={styles.skillCard}>
@@ -404,61 +137,137 @@ export const FdeEvolutionTasksView = ({
               </div>
             </article>
 
-            <article className={styles.summaryCard}>
-              <div className={styles.sectionTitle}>候选版本差异</div>
-              <p className={styles.summaryText}>{selectedTask.diffSummary}</p>
-              {selectedTask.manualNote ? (
-                <p className={styles.summaryText}>FDE 备注：{selectedTask.manualNote}</p>
-              ) : null}
-            </article>
-
-            <article className={styles.summaryCard}>
-              <div className={styles.sectionTitle}>审核记录</div>
-              {selectedTask.reviewRecords.length ? (
-                <div className={styles.reviewList}>
-                  {selectedTask.reviewRecords.map(item => (
-                    <div key={item.id} className={styles.reviewItem}>
-                      <div className={styles.reviewHeader}>
-                        <span
-                          className={classNames(
-                            styles.statusTag,
-                            getDecisionClassName(item.decision),
-                          )}
-                        >
-                          {item.decision}
-                        </span>
-                        <span className={styles.reviewMeta}>
-                          {getFdeMemberName(members, item.reviewerId)} · {item.reviewedAt}
-                        </span>
-                      </div>
-                      <p className={styles.summaryText}>{item.note}</p>
-                    </div>
-                  ))}
+            {selectedTask.status === "排队中" && selectedTask.queuePosition && (
+              <article className={styles.queueCard}>
+                <div className={styles.queueIcon}>⏳</div>
+                <div className={styles.queueTitle}>任务排队中</div>
+                <div className={styles.queueText}>
+                  前面还有 <strong>{selectedTask.queuePosition}</strong> 个任务正在处理
                 </div>
-              ) : (
-                <div className={styles.emptyText}>当前还没有审核记录。</div>
-              )}
-            </article>
+              </article>
+            )}
 
-            <article className={styles.summaryCard}>
-              <div className={styles.sectionTitle}>任务流转记录</div>
-              <div className={styles.timelineList}>
-                {selectedTask.timeline.map(item => (
-                  <div key={item.id} className={styles.timelineItem}>
-                    <div className={styles.timelineHeader}>
-                      <strong className={styles.taskName}>{item.title}</strong>
-                      <span className={styles.timelineTime}>{item.createdAt}</span>
+            {selectedTask.status === "进化中" && selectedTask.estimatedTime && (
+              <article className={styles.trainingCard}>
+                <div className={styles.trainingTitle}>进化训练中</div>
+                <Progress
+                  percent={selectedTask.progress}
+                  strokeColor="var(--primary)"
+                  className={styles.trainingProgress}
+                />
+                <div className={styles.trainingText}>预计还需 {selectedTask.estimatedTime}</div>
+              </article>
+            )}
+
+            {selectedTask.status === "进化已完成" && selectedTask.benchmarkResults && (
+              <>
+                {selectedTask.benchmarkResults.map((result, idx) => (
+                  <article key={idx} className={styles.benchmarkCard}>
+                    <div className={styles.benchmarkHeader}>
+                      <div className={styles.sectionTitle}>{result.skillName}</div>
+                      <div className={styles.versionBadge}>
+                        {result.oldVersion} → {result.newVersion}
+                      </div>
                     </div>
-                    <p className={styles.summaryText}>{item.detail}</p>
-                  </div>
+                    <div className={styles.benchmarkTable}>
+                      <div className={styles.tableHeader}>
+                        <div className={styles.tableCell}>指标</div>
+                        <div className={styles.tableCell}>{result.oldVersion}</div>
+                        <div className={styles.tableCell}>{result.newVersion}</div>
+                        <div className={styles.tableCell}>变化</div>
+                      </div>
+                      {result.metrics.map((metric, mIdx) => (
+                        <div key={mIdx} className={styles.tableRow}>
+                          <div className={styles.tableCell}>{metric.name}</div>
+                          <div className={styles.tableCell}>{metric.oldValue}</div>
+                          <div className={styles.tableCell}>{metric.newValue}</div>
+                          <div className={classNames(styles.tableCell, styles.improvementCell)}>
+                            {metric.improvement}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </article>
                 ))}
-              </div>
-            </article>
+
+                <div className={styles.actionButtons}>
+                  <Button onClick={() => message.info("重新进化功能开发中")}>重新进化</Button>
+                  <Button onClick={() => message.info("新版本测试功能开发中")}>
+                    新版本测试
+                  </Button>
+                  <Button type="primary" onClick={() => setIsUpgradeModalOpen(true)}>
+                    提交升级审核
+                  </Button>
+                </div>
+              </>
+            )}
+
+            {selectedTask.status === "已推送客户审核中" && selectedTask.upgradeNotes && (
+              <article className={styles.reviewCard}>
+                <div className={styles.reviewTitle}>已推送客户审核</div>
+                <div className={styles.reviewInfo}>
+                  <div className={styles.reviewLabel}>推送版本</div>
+                  <div className={styles.reviewValue}>{selectedTask.versionCandidate}</div>
+                </div>
+                <div className={styles.reviewInfo}>
+                  <div className={styles.reviewLabel}>当前版本</div>
+                  <div className={styles.reviewValue}>{selectedTask.currentVersion}</div>
+                </div>
+                <div className={styles.reviewInfo}>
+                  <div className={styles.reviewLabel}>版本升级说明</div>
+                  <div className={styles.reviewValue}>{selectedTask.upgradeNotes}</div>
+                </div>
+              </article>
+            )}
+
+            {selectedTask.status === "客户已采纳" && selectedTask.currentVersion && (
+              <article className={styles.adoptedCard}>
+                <div className={styles.adoptedIcon}>✓</div>
+                <div className={styles.adoptedTitle}>客户已采纳</div>
+                <div className={styles.adoptedInfo}>
+                  <div className={styles.adoptedLabel}>当前版本</div>
+                  <div className={styles.adoptedValue}>{selectedTask.currentVersion}</div>
+                </div>
+                {selectedTask.upgradeNotes && (
+                  <div className={styles.adoptedNotes}>{selectedTask.upgradeNotes}</div>
+                )}
+              </article>
+            )}
+
+            {selectedTask.status === "客户未采纳" && selectedTask.rejectionReason && (
+              <article className={styles.rejectedCard}>
+                <div className={styles.rejectedIcon}>✕</div>
+                <div className={styles.rejectedTitle}>客户未采纳</div>
+                <div className={styles.rejectedReason}>
+                  <div className={styles.rejectedLabel}>未采纳原因</div>
+                  <div className={styles.rejectedText}>{selectedTask.rejectionReason}</div>
+                </div>
+              </article>
+            )}
           </>
         ) : (
           <Empty description="请选择进化任务" />
         )}
       </article>
+
+      <Modal
+        title="提交升级审核"
+        open={isUpgradeModalOpen}
+        onOk={handleSubmitUpgrade}
+        onCancel={() => setIsUpgradeModalOpen(false)}
+        okText="提交审核"
+        cancelText="取消"
+      >
+        <div className={styles.modalContent}>
+          <div className={styles.modalLabel}>版本升级说明</div>
+          <Input.TextArea
+            rows={4}
+            placeholder="请输入版本升级说明，描述本次进化的主要改进点和注意事项..."
+            value={upgradeNotes}
+            onChange={e => setUpgradeNotes(e.target.value)}
+          />
+        </div>
+      </Modal>
     </div>
   );
 };

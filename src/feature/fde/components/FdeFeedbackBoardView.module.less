@@ -1,251 +1,220 @@
-.workbench {
+.feedbackLayout {
   display: flex;
   gap: 12px;
 }
 
-.agentRail {
-  width: 280px;
+.customerList,
+.agentList {
+  width: 240px;
+  padding: 14px;
+  border: 1px solid var(--fdeBorder);
+  border-radius: 16px;
+  background: var(--fdeSurface);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sectionTitle {
+  color: var(--fdeText);
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 700;
+}
+
+.customerListBody,
+.agentListBody {
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
 
-.agentCard,
-.detailPanel,
-.metricCard,
-.card,
-.controlCard,
-.signalItem,
-.sampleItem,
-.compareCard {
-  border: 1px solid var(--fdeBorder);
-  border-radius: 16px;
-  background: var(--fdeSurface);
-}
-
+.customerCard,
 .agentCard {
   padding: 12px 14px;
+  border: 1px solid var(--fdeBorder);
+  border-radius: 12px;
+  background: var(--fdeSurface);
   text-align: left;
   cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  transition: all 0.2s;
 
-  &[data-active="true"] {
+  &:hover {
     border-color: var(--fdeBorderStrong);
-    background: color-mix(in srgb, var(--primary) 5%, var(--fdeSurface));
   }
 }
 
-.agentName,
-.title,
-.metricValue {
-  color: var(--fdeText);
-  font-weight: 700;
+.customerCardActive,
+.agentCardActive {
+  border-color: var(--fdeBorderStrong);
+  background: color-mix(in srgb, var(--primary) 5%, var(--fdeSurface));
 }
 
+.customerName,
 .agentName {
+  color: var(--fdeText);
   font-size: 14px;
-  line-height: 22px;
+  font-weight: 600;
 }
 
-.agentMeta,
-.description,
-.recommendationText,
-.signalDetail,
-.sampleBlock,
-.sampleQuestion,
-.compareText {
-  color: var(--fdeTextSecondary);
-  font-size: 13px;
-  line-height: 20px;
+.customerMeta,
+.agentMeta {
+  color: var(--fdeTextMuted);
+  font-size: 12px;
+  line-height: 18px;
 }
 
 .detailPanel {
   min-width: 0;
   flex: 1;
   padding: 16px;
+  border: 1px solid var(--fdeBorder);
+  border-radius: 16px;
+  background: var(--fdeSurface);
   display: flex;
   flex-direction: column;
   gap: 12px;
 }
 
-.header,
-.controlHeader,
-.signalHeader,
-.sampleHeader {
+.detailHeader {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--fdeBorder);
 }
 
-.eyebrow,
-.sectionTitle,
-.metricLabel,
-.metricHint,
-.signalMeta,
-.sampleTime,
-.compareLabel {
+.detailEyebrow {
   color: var(--fdeTextMuted);
   font-size: 12px;
   line-height: 18px;
 }
 
-.title {
+.detailTitle {
   margin: 0;
-  font-size: 18px;
-  line-height: 28px;
-}
-
-.triggerButton {
-  border-radius: 12px;
-}
-
-.metricGrid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
-}
-
-.metricCard,
-.card,
-.controlCard {
-  padding: 14px;
-}
-
-.metricCard {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.metricValue {
-  font-size: 18px;
-  line-height: 28px;
-}
-
-.controlCard {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.categorySelect {
-  min-width: 180px;
-}
-
-.signalList,
-.sampleList,
-.tagList,
-.compareGrid {
-  display: flex;
-  gap: 8px;
-}
-
-.signalList,
-.sampleList {
-  flex-direction: column;
-}
-
-.tagList {
-  flex-wrap: wrap;
-}
-
-.compareGrid {
-  flex-direction: column;
-}
-
-.signalItem,
-.sampleItem,
-.compareCard,
-.tag {
-  padding: 12px;
-}
-
-.signalItem {
-  text-align: left;
-  cursor: pointer;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.signalItemActive {
-  border-color: var(--fdeBorderStrong);
-  background: color-mix(in srgb, var(--primary) 6%, var(--fdeSurface));
-}
-
-.categoryTag {
-  min-height: 26px;
-  padding: 0 10px;
-  border-radius: 999px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 12px;
-  line-height: 18px;
+  color: var(--fdeText);
+  font-size: 20px;
+  line-height: 30px;
   font-weight: 700;
 }
 
-.categoryWarning {
-  background: rgba(245, 174, 60, 0.12);
-  color: var(--fdeWarning);
-}
-
-.categoryDanger {
-  background: rgba(255, 103, 103, 0.12);
-  color: var(--fdeDanger);
-}
-
-.categoryAccent {
-  background: color-mix(in srgb, var(--primary) 10%, transparent);
-  color: var(--fdeAccent);
-}
-
-.detailGrid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
+.detailDescription {
+  color: var(--fdeTextSecondary);
+  font-size: 14px;
+  line-height: 22px;
 }
 
 .card {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.sampleItem,
-.compareCard {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.tag {
-  border-radius: 12px;
+  padding: 16px;
   border: 1px solid var(--fdeBorder);
+  border-radius: 12px;
   background: var(--fdeSurface);
-  color: var(--fdeTextSecondary);
+}
+
+.cardTitle {
+  color: var(--fdeText);
+  font-size: 15px;
+  line-height: 24px;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+
+.skillGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 10px;
+}
+
+.skillItem {
+  padding: 12px;
+  border: 1px solid var(--fdeBorder);
+  border-radius: 10px;
+  background: var(--fdeSurface);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.skillName {
+  color: var(--fdeText);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.skillVersion {
+  color: var(--fdeTextMuted);
+  font-size: 12px;
+}
+
+.feedbackTable {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  border: 1px solid var(--fdeBorder);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.tableHeader {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 1fr 1.2fr;
+  background: color-mix(in srgb, var(--primary) 3%, var(--fdeSurface));
+  font-weight: 600;
+}
+
+.tableRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 1fr 1.2fr;
+  background: var(--fdeSurface);
+
+  &:not(:last-child) {
+    border-bottom: 1px solid var(--fdeBorder);
+  }
+}
+
+.tableCell {
+  padding: 12px;
+  color: var(--fdeText);
   font-size: 13px;
-  line-height: 20px;
+  display: flex;
+  align-items: center;
 }
 
-.recommendationText,
-.compareText {
-  margin: 0;
-}
-
-@media (max-width: 1220px) {
-  .workbench {
+@media (max-width: 1280px) {
+  .feedbackLayout {
     flex-direction: column;
   }
 
-  .agentRail,
-  .metricGrid,
-  .detailGrid {
+  .customerList,
+  .agentList {
     width: 100%;
   }
 
-  .metricGrid,
-  .detailGrid {
+  .skillGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .tableHeader,
+  .tableRow {
+    grid-template-columns: 1fr 0.8fr 0.8fr 0.8fr 1fr;
+  }
+}
+
+@media (max-width: 780px) {
+  .skillGrid {
     grid-template-columns: 1fr;
+  }
+
+  .tableHeader,
+  .tableRow {
+    grid-template-columns: 1fr;
+  }
+
+  .tableCell {
+    padding: 8px 12px;
   }
 }
