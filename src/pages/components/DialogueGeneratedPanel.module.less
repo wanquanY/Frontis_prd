@@ -1,0 +1,1592 @@
+.panel {
+  --result-bg: #f5f4f7;
+  --result-surface: #ffffff;
+  --result-surface-soft: #faf8fb;
+  --result-text: #2d2d2d;
+  --result-text-secondary: #8f8b94;
+  --result-border: #ebe5ee;
+  --result-shadow: 0 8px 24px rgba(33, 18, 45, 0.08);
+  --result-brand: #bf0b6f;
+  --result-brand-strong: #9f005c;
+  --result-brand-soft: #f9deec;
+  --result-brand-soft-strong: #f5d2e6;
+  --result-yellow: #f0bd14;
+  --result-yellow-soft: #fff7d7;
+  --result-green: #58c219;
+  --result-green-soft: #ecf8df;
+  --result-green-border: #cdecb6;
+  --result-red: #ff575f;
+  --result-red-soft: #fdecee;
+  --result-red-border: #ffd1d6;
+  --result-gray-soft: #f3f2f4;
+  --result-gray-pill: #eceaee;
+  --result-blue-soft: #dff1ff;
+  --result-orange: #b96a1f;
+  --result-orange-soft: #f7e6cf;
+  --result-silver: #b3b3b7;
+  --result-silver-soft: #efeff2;
+  --result-score: #f0bc0f;
+  --result-outline: rgba(255, 255, 255, 0.7);
+  --result-toolbar-surface: rgba(255, 255, 255, 0.84);
+  --result-topbar-shadow: rgba(96, 12, 59, 0.2);
+  --result-topbar-text-soft: rgba(255, 255, 255, 0.88);
+  --result-topbar-pill: rgba(255, 255, 255, 0.16);
+  --result-topbar-tile: rgba(255, 255, 255, 0.14);
+  --result-notice-badge: #ff7f65;
+  --result-ai-button-bg: #ffc61e;
+  --result-ai-button-text: #523100;
+  --result-user-avatar-bg: rgba(255, 255, 255, 0.95);
+  --result-filter-dark: #343434;
+  --result-radar-fill: rgba(191, 11, 111, 0.12);
+  --result-radar-label: #67606b;
+  --result-dimension-arrow: #b7b1ba;
+  --result-ask-ai-shadow: rgba(200, 146, 0, 0.2);
+  --result-section-arrow: #aaa4ad;
+  --result-suggestion-text: #3e5a70;
+  --result-warning-button-bg: #fff4d7;
+  --result-warning-button-text: #8c6a08;
+  --result-zone-border-neutral: #d9d5dc;
+  --result-rank-gold: #ffb500;
+  --result-achievement-banner-start: #f4fbf1;
+  --result-achievement-banner-end: #fbfffd;
+  --result-achievement-banner-text: #4c5d3b;
+  --result-score-meta: #555161;
+  --result-dimension-band-bg: #fff8fc;
+  --result-chat-close-bg: rgba(255, 255, 255, 0.12);
+  --result-chat-prompt-text: #57525c;
+  --result-chat-bubble-bg: #f4f4f6;
+  --result-chat-input-text: #b3b0b7;
+  --result-chat-send-bg: #d9d9dc;
+  --result-warning-border: #f2dd9c;
+
+  position: relative;
+  height: 100%;
+  min-height: 0;
+  background: var(--result-bg);
+  overflow: hidden;
+}
+
+.viewport {
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.viewerToolbar {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 6;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.viewerIconButton {
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--result-outline);
+  border-radius: 12px;
+  background: var(--result-toolbar-surface);
+  color: var(--result-text);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(8px);
+  cursor: pointer;
+}
+
+.emptyState {
+  height: 100%;
+  min-height: 0;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  text-align: center;
+}
+
+.emptyStateIcon {
+  color: var(--result-brand);
+  font-size: 28px;
+}
+
+.emptyStateTitle {
+  color: var(--result-text);
+  font-size: 18px;
+  line-height: 26px;
+  font-weight: 700;
+}
+
+.emptyStateText {
+  max-width: 280px;
+  color: var(--result-text-secondary);
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.mockPage,
+.chatDrawerPage {
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.mockTopbar {
+  min-height: 62px;
+  padding: 0 24px;
+  background: linear-gradient(90deg, var(--result-brand), var(--result-brand-strong));
+  color: var(--result-surface);
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  box-shadow: 0 3px 14px var(--result-topbar-shadow);
+}
+
+.mockBrand {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 0 0 auto;
+}
+
+.mockBrandName {
+  font-size: 18px;
+  line-height: 22px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+}
+
+.mockBrandSub {
+  font-size: 11px;
+  line-height: 16px;
+  opacity: 0.9;
+}
+
+.mockNav {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow: hidden;
+}
+
+.mockNavItem {
+  min-height: 34px;
+  padding: 0 10px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  color: var(--result-topbar-text-soft);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.mockNavItemActive {
+  background: var(--result-topbar-pill);
+  color: var(--result-surface);
+}
+
+.mockNavIcon {
+  font-size: 13px;
+}
+
+.mockTopbarRight {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 0 0 auto;
+}
+
+.mockBell {
+  position: relative;
+  width: 30px;
+  height: 30px;
+  border-radius: 10px;
+  background: var(--result-topbar-tile);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mockBellBadge {
+  position: absolute;
+  top: -6px;
+  right: -5px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: var(--result-notice-badge);
+  color: var(--result-surface);
+  font-size: 11px;
+  line-height: 18px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.mockAiButton {
+  min-height: 40px;
+  padding: 0 16px;
+  border-radius: 10px;
+  background: var(--result-ai-button-bg);
+  color: var(--result-ai-button-text);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 700;
+}
+
+.mockUserChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  line-height: 18px;
+}
+
+.mockUserAvatar {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--result-user-avatar-bg);
+  color: var(--result-brand);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+}
+
+.mockPageBody {
+  flex: 1;
+  min-height: 0;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  overflow-y: auto;
+  background: var(--result-bg);
+}
+
+.pageIntro,
+.scorePageHeading,
+.pageHeaderRow,
+.timeRangeBar,
+.dimensionBand,
+.pageFilterRow,
+.warningSection,
+.assessSurface,
+.assessDetailSurface,
+.rankZoneCard,
+.achievementCard {
+  border: 1px solid var(--result-border);
+  border-radius: 18px;
+  background: var(--result-surface);
+  box-shadow: var(--result-shadow);
+}
+
+.pageIntro {
+  padding: 6px 0 0;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  background: transparent;
+}
+
+.pageTitle {
+  margin: 0;
+  color: var(--result-text);
+  font-size: 22px;
+  line-height: 32px;
+  font-weight: 700;
+}
+
+.pageSubtleText {
+  color: var(--result-text-secondary);
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.overviewMetricGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.overviewMetricCard {
+  min-height: 108px;
+  padding: 18px;
+  border-radius: 18px;
+  background: var(--result-surface);
+  box-shadow: var(--result-shadow);
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr);
+  gap: 14px;
+  align-items: center;
+}
+
+.overviewMetricIcon {
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  background: var(--result-brand-soft);
+  color: var(--result-brand);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+}
+
+.overviewMetricBody {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.overviewMetricValueRow {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.overviewMetricValue {
+  color: var(--result-score);
+  font-size: 26px;
+  line-height: 32px;
+  font-weight: 700;
+}
+
+.overviewMetricDelta,
+.sequenceBoardTrend,
+.achievementDelta,
+.rankMemberDelta,
+.assessDimensionDelta {
+  font-size: 13px;
+  line-height: 20px;
+  font-weight: 700;
+}
+
+.overviewMetricLabel,
+.sequenceBoardRole,
+.sequenceBoardTagsLabel,
+.achievementMeta,
+.warningInfoLabel,
+.warningDate,
+.pageFilterRow,
+.assessProfileMeta,
+.assessDimensionWeight,
+.redlineChecklistText,
+.chatDrawerFootHint {
+  color: var(--result-text-secondary);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.overviewMetricHint {
+  color: var(--result-text-secondary);
+  font-size: 13px;
+  line-height: 18px;
+}
+
+.pageFilterRow,
+.dimensionBand,
+.timeRangeBar {
+  padding: 16px 18px;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.filterLabel,
+.dimensionBandLabel {
+  color: var(--result-text);
+  font-size: 13px;
+  line-height: 20px;
+  font-weight: 600;
+}
+
+.filterChip,
+.thresholdTag,
+.inlineTag,
+.warningLevelBadge,
+.warningSectionCount,
+.rankZoneCount,
+.sequenceBoardCount,
+.dimensionSpecialBadge {
+  min-height: 30px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: var(--result-gray-soft);
+  color: var(--result-text-secondary);
+  display: inline-flex;
+  align-items: center;
+  font-size: 12px;
+  line-height: 18px;
+  font-weight: 600;
+}
+
+.filterChipActive {
+  background: var(--result-brand);
+  color: var(--result-surface);
+}
+
+.filterChipDark {
+  background: var(--result-filter-dark);
+  color: var(--result-surface);
+}
+
+.sequenceBoardGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.sequenceBoardCard {
+  min-height: 210px;
+  padding: 20px;
+  border: 1px solid var(--result-border);
+  border-radius: 18px;
+  background: var(--result-surface);
+  box-shadow: var(--result-shadow);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.sequenceBoardHeader,
+.sequenceBoardNameRow,
+.sequenceBoardFooter,
+.warningPanelHeader,
+.warningLevelRow,
+.rankZoneHeader,
+.achievementHeader,
+.achievementDeltaRow,
+.scorePageHeading,
+.rankMemberNameRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.sequenceBoardName,
+.assessSectionTitle,
+.warningPersonName,
+.rankMemberName,
+.achievementName {
+  margin: 0;
+  color: var(--result-text);
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 700;
+}
+
+.sequenceBoardScoreBlock,
+.rankMemberScoreSide,
+.warningHeaderRight,
+.achievementScoreBlock {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.sequenceBoardScore {
+  color: var(--result-score);
+  font-size: 30px;
+  line-height: 34px;
+  font-weight: 700;
+}
+
+.sequenceBoardFooter {
+  margin-top: auto;
+  padding-top: 14px;
+  border-top: 1px solid var(--result-border);
+}
+
+.sequenceBoardMeta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--result-text-secondary);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.inlineTagList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.inlineTag {
+  min-height: 28px;
+  padding: 0 10px;
+}
+
+.assessLayout {
+  display: grid;
+  grid-template-columns: 280px minmax(0, 1fr);
+  gap: 18px;
+  align-items: flex-start;
+}
+
+.assessSidebar,
+.highScoreList,
+.redlineChecklist,
+.assessDimensionList,
+.warningPanelList,
+.achievementList,
+.chatDrawerMessages {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.assessSurface,
+.assessDetailSurface {
+  padding: 22px;
+}
+
+.assessProfileRow,
+.warningPersonBlock,
+.achievementPerson,
+.chatDrawerTitleWrap,
+.chatMessageRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.assessAvatar,
+.warningAvatar,
+.rankAvatar,
+.achievementAvatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--result-brand-soft);
+  color: var(--result-brand);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  font-weight: 700;
+  flex: 0 0 auto;
+}
+
+.assessProfileMain {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.assessProfileName {
+  color: var(--result-text);
+  font-size: 20px;
+  line-height: 28px;
+  font-weight: 700;
+}
+
+.radarChartWrap {
+  position: relative;
+  width: 244px;
+  height: 244px;
+  margin: 12px auto 0;
+}
+
+.radarChart {
+  width: 244px;
+  height: 244px;
+}
+
+.radarGrid,
+.radarAxis {
+  fill: none;
+  stroke: var(--result-border);
+  stroke-width: 1;
+}
+
+.radarFill {
+  fill: var(--result-radar-fill);
+  stroke: none;
+}
+
+.radarStroke {
+  fill: none;
+  stroke: var(--result-brand);
+  stroke-width: 2;
+}
+
+.radarPoint {
+  fill: var(--result-brand);
+}
+
+.radarLabel {
+  position: absolute;
+  color: var(--result-radar-label);
+  font-size: 12px;
+  line-height: 16px;
+  white-space: nowrap;
+}
+
+.redlineChecklistItem {
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: var(--result-surface-soft);
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 12px;
+  align-items: center;
+}
+
+.redlineChecklistIcon {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--result-green-soft);
+  color: var(--result-green);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.highScoreItem {
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--result-surface-soft);
+  color: var(--result-text);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 13px;
+  line-height: 20px;
+  font-weight: 600;
+}
+
+.highScoreValue {
+  font-size: 18px;
+  line-height: 24px;
+}
+
+.assessDimensionRow {
+  padding: 18px;
+  border: 1px solid var(--result-border);
+  border-radius: 14px;
+  background: var(--result-surface);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.assessDimensionTitleRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.assessDimensionTitle {
+  color: var(--result-text);
+  font-size: 15px;
+  line-height: 22px;
+  font-weight: 700;
+}
+
+.dimensionSpecialBadge {
+  min-height: 22px;
+  padding: 0 8px;
+  background: var(--result-yellow-soft);
+  color: var(--result-orange);
+  font-size: 11px;
+}
+
+.assessDimensionScoreSide {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.assessDimensionScore {
+  font-size: 20px;
+  line-height: 28px;
+  font-weight: 700;
+}
+
+.assessDimensionArrow {
+  color: var(--result-dimension-arrow);
+  font-size: 12px;
+}
+
+.warningSection {
+  padding: 18px;
+  border-left: 4px solid var(--result-red);
+}
+
+.warningSectionTitle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--result-text);
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 700;
+}
+
+.warningSectionDot,
+.rankMemberDot,
+.chatDrawerOnlineDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--result-red);
+  flex: 0 0 auto;
+}
+
+.warningSectionArrow,
+.rankZoneArrow {
+  color: var(--result-section-arrow);
+}
+
+.warningPanelCard {
+  padding: 18px;
+  border: 1px solid var(--result-border);
+  border-radius: 14px;
+  background: var(--result-surface);
+}
+
+.warningHeaderRight {
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.warningLevelBadge {
+  min-height: 26px;
+  padding: 0 10px;
+  background: var(--result-red-soft);
+  color: var(--result-red);
+}
+
+.warningScoreText {
+  color: var(--result-red);
+  font-size: 28px;
+  line-height: 32px;
+  font-weight: 700;
+}
+
+.warningInfoRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.warningInfoValue {
+  color: var(--result-text);
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.warningSuggestionBanner {
+  margin-top: 16px;
+  min-height: 56px;
+  padding: 0 16px;
+  border-radius: 10px;
+  background: var(--result-blue-soft);
+  color: var(--result-suggestion-text);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  line-height: 22px;
+}
+
+.warningActionRow {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--result-border);
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.warningActionButton {
+  min-height: 36px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--result-gray-soft);
+  color: var(--result-text);
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 600;
+}
+
+.warningActionButtonWarning {
+  background: var(--result-warning-button-bg);
+  color: var(--result-warning-button-text);
+}
+
+.warningActionButtonDanger {
+  background: var(--result-red);
+  color: var(--result-surface);
+}
+
+.rankZoneCard {
+  padding: 18px;
+  border-left: 4px solid var(--result-zone-border-neutral);
+}
+
+.rankZoneTitle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--result-text);
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 700;
+}
+
+.rankZoneMemberList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.rankMemberRow {
+  padding: 18px;
+  border: 1px solid var(--result-border);
+  border-radius: 12px;
+  background: var(--result-surface);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.rankMemberMain {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.rankCircle {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--result-orange);
+  color: var(--result-surface);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  line-height: 18px;
+  font-weight: 700;
+  flex: 0 0 auto;
+}
+
+.rankCirclePlain {
+  width: 0;
+  display: none;
+}
+
+.rankToneGold {
+  background: var(--result-rank-gold);
+}
+
+.rankToneSilver {
+  background: var(--result-silver);
+}
+
+.rankToneBronze {
+  background: var(--result-orange);
+}
+
+.rankMemberText {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.rankMemberMeta,
+.rankMemberStory,
+.achievementChannelText,
+.chatMessageTime {
+  color: var(--result-text-secondary);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.rankMemberScoreBubble {
+  min-width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background: var(--result-green-soft);
+  color: var(--result-green);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  line-height: 24px;
+  font-weight: 700;
+}
+
+.achievementCard {
+  padding: 18px;
+  border-left: 4px solid var(--result-green);
+}
+
+.achievementScoreBlock {
+  align-items: center;
+}
+
+.achievementScore {
+  min-width: 62px;
+  min-height: 32px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: var(--result-green-soft);
+  color: var(--result-green);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  line-height: 24px;
+  font-weight: 700;
+}
+
+.achievementBanner {
+  margin-top: 16px;
+  min-height: 64px;
+  padding: 0 16px;
+  border-radius: 10px;
+  background: linear-gradient(
+    90deg,
+    var(--result-achievement-banner-start),
+    var(--result-achievement-banner-end)
+  );
+  color: var(--result-achievement-banner-text);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  line-height: 22px;
+}
+
+.achievementFoot {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--result-border);
+}
+
+.achievementActions {
+  margin-top: 12px;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.achievementPrimaryButton,
+.achievementSecondaryButton {
+  min-height: 34px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 600;
+}
+
+.achievementPrimaryButton {
+  background: var(--result-green);
+  color: var(--result-surface);
+}
+
+.achievementSecondaryButton {
+  background: var(--result-gray-soft);
+  color: var(--result-text);
+}
+
+.achievementChannelText {
+  margin-top: 10px;
+}
+
+.pageHeaderRow {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  background: transparent;
+}
+
+.backLinkButton {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--result-text-secondary);
+  font-size: 14px;
+  line-height: 20px;
+  cursor: pointer;
+}
+
+.scorePageHeading {
+  padding: 18px 0 22px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  border-bottom: 1px solid var(--result-border);
+}
+
+.scoreMetaRow,
+.thresholdTagRow {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-top: 8px;
+}
+
+.scoreMetaItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--result-score-meta);
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.thresholdTag {
+  min-height: 32px;
+}
+
+.dimensionBand {
+  border-color: var(--result-brand-soft-strong);
+  background: var(--result-dimension-band-bg);
+}
+
+.ceoHero,
+.ceoSectionSurface,
+.ceoFollowupSurface {
+  border: 1px solid var(--result-border);
+  border-radius: 18px;
+  background: var(--result-surface);
+  box-shadow: var(--result-shadow);
+}
+
+.ceoHero {
+  padding: 22px 24px;
+  background: linear-gradient(180deg, var(--result-surface), var(--result-surface-soft));
+}
+
+.ceoHeroMetaRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.ceoHeroBadge {
+  min-height: 28px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: var(--result-brand-soft);
+  color: var(--result-brand);
+  display: inline-flex;
+  align-items: center;
+  font-size: 12px;
+  line-height: 18px;
+  font-weight: 700;
+}
+
+.ceoHeroHeadline {
+  margin-top: 14px;
+  color: var(--result-text);
+  font-size: 18px;
+  line-height: 28px;
+  font-weight: 700;
+}
+
+.ceoHeroSummary {
+  margin-top: 10px;
+  color: var(--result-text-secondary);
+  font-size: 13px;
+  line-height: 22px;
+}
+
+.ceoBoardGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.ceoFocusSection,
+.ceoActionSection {
+  grid-column: 1 / -1;
+}
+
+.ceoSectionSurface,
+.ceoFollowupSurface {
+  padding: 20px;
+}
+
+.ceoSectionHeader {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.ceoSectionIcon {
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  background: var(--result-brand-soft);
+  color: var(--result-brand);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  line-height: 20px;
+  flex: 0 0 auto;
+}
+
+.ceoSectionEyebrow {
+  color: var(--result-text-secondary);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.ceoSectionTitle {
+  margin-top: 2px;
+  color: var(--result-text);
+  font-size: 17px;
+  line-height: 26px;
+  font-weight: 700;
+}
+
+.ceoFocusGrid {
+  margin-top: 16px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.ceoFocusCard,
+.ceoRiskCard {
+  min-height: 116px;
+  padding: 16px;
+  border: 1px solid var(--result-border);
+  border-radius: 16px;
+}
+
+.ceoFocusCardHeader,
+.ceoRiskHeader,
+.ceoKeyPersonBadgeRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.ceoFocusCardTitle,
+.ceoKeyPersonName,
+.ceoRiskName {
+  color: var(--result-text);
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 700;
+}
+
+.ceoFocusCardDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex: 0 0 auto;
+}
+
+.ceoFocusCardSummary,
+.ceoKeyPersonStory,
+.ceoRiskSummary,
+.ceoActionText {
+  margin-top: 10px;
+  color: var(--result-text-secondary);
+  font-size: 13px;
+  line-height: 22px;
+}
+
+.ceoKeyPersonSurface {
+  background: linear-gradient(180deg, var(--result-surface), var(--result-green-soft));
+}
+
+.ceoKeyPersonCard {
+  margin-top: 16px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.ceoKeyPersonMain {
+  min-width: 0;
+  flex: 1;
+}
+
+.ceoKeyPersonBadge {
+  min-height: 28px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: var(--result-green-soft);
+  color: var(--result-green);
+  display: inline-flex;
+  align-items: center;
+  font-size: 12px;
+  line-height: 18px;
+  font-weight: 700;
+}
+
+.ceoKeyPersonMeta,
+.ceoRiskLabel {
+  margin-top: 6px;
+  color: var(--result-text-secondary);
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.ceoKeyPersonScoreSide {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+
+.ceoKeyPersonScore {
+  min-width: 68px;
+  min-height: 68px;
+  padding: 0 16px;
+  border-radius: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 30px;
+  line-height: 34px;
+  font-weight: 700;
+}
+
+.ceoKeyPersonDelta {
+  font-size: 16px;
+  line-height: 22px;
+  font-weight: 700;
+}
+
+.ceoRiskList,
+.ceoActionList {
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.ceoRiskAvatar,
+.ceoActionIndex {
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  background: var(--result-brand-soft);
+  color: var(--result-brand);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  line-height: 20px;
+  font-weight: 700;
+  flex: 0 0 auto;
+}
+
+.ceoActionItem {
+  padding: 14px 16px;
+  border: 1px solid var(--result-border);
+  border-radius: 16px;
+  background: var(--result-surface-soft);
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.ceoFollowupSurface {
+  background: linear-gradient(180deg, var(--result-surface), var(--result-surface-soft));
+}
+
+.ceoPromptList {
+  margin-top: 16px;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.ceoPromptChip {
+  min-height: 34px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid var(--result-border);
+  background: var(--result-surface);
+  color: var(--result-text);
+  display: inline-flex;
+  align-items: center;
+  font-size: 13px;
+  line-height: 18px;
+}
+
+.chatDrawerPage {
+  background: var(--result-surface);
+}
+
+.chatDrawerHeader {
+  min-height: 76px;
+  padding: 0 24px;
+  background: linear-gradient(90deg, var(--result-brand), var(--result-brand-strong));
+  color: var(--result-surface);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.chatDrawerAvatar,
+.chatMessageAvatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--result-topbar-tile);
+  color: var(--result-surface);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 700;
+  flex: 0 0 auto;
+}
+
+.chatDrawerTitle {
+  font-size: 15px;
+  line-height: 22px;
+  font-weight: 700;
+}
+
+.chatDrawerOnline {
+  margin-top: 4px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.chatDrawerOnlineDot {
+  width: 8px;
+  height: 8px;
+  background: var(--result-green);
+}
+
+.chatDrawerCloseGhost {
+  width: 34px;
+  height: 34px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--result-chat-close-bg);
+  color: var(--result-surface);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.chatDrawerPromptRow {
+  padding: 10px 16px 8px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  overflow-x: auto;
+  border-bottom: 1px solid var(--result-border);
+}
+
+.chatDrawerPromptChip {
+  min-height: 32px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid var(--result-border);
+  background: var(--result-surface);
+  color: var(--result-chat-prompt-text);
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+  font-size: 13px;
+  line-height: 18px;
+}
+
+.chatDrawerMessages {
+  flex: 1;
+  min-height: 0;
+  padding: 18px 16px;
+  overflow-y: auto;
+  gap: 10px;
+}
+
+.chatMessageBubble {
+  max-width: 320px;
+  padding: 16px 18px;
+  border-radius: 16px;
+  background: var(--result-chat-bubble-bg);
+  color: var(--result-text);
+  font-size: 14px;
+  line-height: 24px;
+}
+
+.chatMessageParagraph {
+  margin: 0 0 8px;
+}
+
+.chatMessageParagraph:last-of-type {
+  margin-bottom: 6px;
+}
+
+.chatSuggestionList {
+  margin: 8px 0 0 18px;
+  padding: 0;
+}
+
+.chatSuggestionList li + li {
+  margin-top: 6px;
+}
+
+.chatMessageTime {
+  padding-left: 46px;
+}
+
+.chatDrawerComposer {
+  position: relative;
+  padding: 14px 16px 18px;
+  border-top: 1px solid var(--result-border);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.chatDrawerInput {
+  min-height: 40px;
+  padding: 0 14px;
+  border: 1px solid var(--result-border);
+  border-radius: 14px;
+  color: var(--result-chat-input-text);
+  display: flex;
+  align-items: center;
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.chatDrawerSendButton {
+  position: absolute;
+  right: 24px;
+  bottom: 34px;
+  width: 38px;
+  height: 38px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--result-chat-send-bg);
+  color: var(--result-surface);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tonePositive {
+  color: var(--result-green);
+  background: var(--result-green-soft);
+  border-color: var(--result-green-border);
+}
+
+.toneWarning {
+  color: var(--result-score);
+  background: var(--result-yellow-soft);
+  border-color: var(--result-warning-border);
+}
+
+.toneDanger {
+  color: var(--result-red);
+  background: var(--result-red-soft);
+  border-color: var(--result-red-border);
+}
+
+.toneAccent {
+  color: var(--result-brand);
+  background: var(--result-brand-soft);
+  border-color: var(--result-brand-soft-strong);
+}
+
+.deltaPositive {
+  color: var(--result-green);
+}
+
+.deltaNegative {
+  color: var(--result-red);
+}
+
+@media (max-width: 880px) {
+  .mockTopbar {
+    padding: 0 16px;
+  }
+
+  .mockNav {
+    display: none;
+  }
+
+  .overviewMetricGrid,
+  .sequenceBoardGrid,
+  .assessLayout,
+  .ceoBoardGrid,
+  .ceoFocusGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .mockPageBody {
+    padding: 18px 16px;
+  }
+
+  .ceoHeroMetaRow,
+  .warningPanelHeader,
+  .rankMemberRow,
+  .achievementHeader,
+  .scorePageHeading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .ceoKeyPersonCard {
+    flex-direction: column;
+  }
+
+  .ceoKeyPersonScoreSide {
+    align-items: flex-start;
+  }
+}

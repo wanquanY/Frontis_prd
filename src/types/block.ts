@@ -13,6 +13,7 @@ export type BlockKind =
   | "dynamics_workflow_tool" // Dynamics Workflow 工具（作为 tool_use 的子块）
   | "plan" // 研究计划
   | "artifact" // 报告/文档 artifact
+  | "result_cards" // 结果卡片列表
   | "message" // 消息容器 (分组 thinking + text)
   | "hitl_request" // 人机交互请求（兼容旧版 patch）
   | "ask_user" // 人机交互请求（新版 apply）
@@ -395,6 +396,19 @@ export interface Artifact {
   data: Record<string, unknown>;
   blockId: string;
   isStreaming: boolean;
+}
+
+export interface ResultCardItemData {
+  id: string;
+  title: string;
+  subtitle?: string;
+  created_at?: string;
+  badge?: string;
+}
+
+export interface ResultCardsData {
+  title?: string;
+  items: ResultCardItemData[];
 }
 
 // ============ HITL 提交负载（前端内部使用） ============

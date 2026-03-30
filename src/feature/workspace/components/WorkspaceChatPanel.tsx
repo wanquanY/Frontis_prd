@@ -45,6 +45,7 @@ export const WorkspaceChatPanel = ({
   assistantAvatarAlt,
   onHITLRespond,
   onOpenArtifact,
+  onOpenResult,
   onActorNameClick,
   greeting = DEFAULT_GREETING,
   workspaceSummary,
@@ -594,6 +595,7 @@ export const WorkspaceChatPanel = ({
               block={block}
               onHITLRespond={onHITLRespond}
               onOpenArtifact={onOpenArtifact}
+              onOpenResult={onOpenResult}
               onDownloadArtifact={onDownloadArtifact}
               onAddArtifactToKnowledge={onAddArtifactToKnowledge}
             />
@@ -643,6 +645,7 @@ export const WorkspaceChatPanel = ({
               block={block}
               onHITLRespond={onHITLRespond}
               onOpenArtifact={onOpenArtifact}
+              onOpenResult={onOpenResult}
               onDownloadArtifact={onDownloadArtifact}
               onAddArtifactToKnowledge={onAddArtifactToKnowledge}
               copyContext={copyContextMap[block.id]}
@@ -655,6 +658,7 @@ export const WorkspaceChatPanel = ({
     isUserBlock,
     onHITLRespond,
     onOpenArtifact,
+    onOpenResult,
     onDownloadArtifact,
     onAddArtifactToKnowledge,
     actorAvatars,

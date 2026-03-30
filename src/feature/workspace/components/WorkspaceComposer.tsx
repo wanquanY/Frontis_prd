@@ -190,6 +190,7 @@ export const WorkspaceComposer = ({
   attachments = [],
   onRemoveAttachment,
   allowAttachmentOnlySend = false,
+  footerExtra,
   disabled = false,
   sending = false,
   reconnecting = false,
@@ -874,6 +875,8 @@ export const WorkspaceComposer = ({
               </div>
             ) : null}
           </div>
+
+          {footerExtra ? <div className={styles.footerExtra}>{footerExtra}</div> : null}
 
           <button
             type="button"

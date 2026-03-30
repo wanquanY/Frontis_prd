@@ -49,6 +49,7 @@ import type {
   MessageAttachment,
   PlanData,
   ArtifactImage,
+  ResultCardsData,
 } from "@/types/block";
 import { decodeMention, MENTION_DISPLAY_REGEX } from "@/utils/mention";
 import { formatFileSize, getFileExtension } from "@/utils/file";
@@ -125,6 +126,7 @@ interface BlockItemProps {
   block: Block;
   onHITLRespond?: (payload: HITLRespondPayload) => void; // 使用 blockId 而不是 requestId
   onOpenArtifact?: (block: Block) => void;
+  onOpenResult?: (resultId: string) => void;
   onDownloadArtifact?: (url: string) => void;
   onAddArtifactToKnowledge?: (artifactId: string) => void;
   /** 控制复制按钮的显示与复制内容（仅助手 text） */
@@ -217,6 +219,51 @@ const normalizeThinkingContent = (value: unknown): string => {
   return value.replace(/^\s*Reasoning:\s*/i, "");
 };
 
+const STREAMING_TEXT_BATCH_SIZE = 3;
+const STREAMING_TEXT_STEP_MS = 28;
+
+const useTypewriterText = (content: string, isStreaming: boolean): string => {
+  const [visibleLength, setVisibleLength] = useState<number>(() =>
+    isStreaming ? 0 : content.length,
+  );
+  const previousContentRef = useRef(content);
+
+  useEffect(() => {
+    if (!isStreaming) {
+      previousContentRef.current = content;
+      setVisibleLength(content.length);
+      return;
+    }
+
+    const previousContent = previousContentRef.current;
+    previousContentRef.current = content;
+
+    setVisibleLength(currentVisibleLength => {
+      if (content.startsWith(previousContent)) {
+        return Math.min(content.length, Math.max(currentVisibleLength, previousContent.length));
+      }
+
+      return 0;
+    });
+  }, [content, isStreaming]);
+
+  useEffect(() => {
+    if (!isStreaming || visibleLength >= content.length) {
+      return;
+    }
+
+    const timerId = window.setTimeout(() => {
+      setVisibleLength(currentVisibleLength =>
+        Math.min(content.length, currentVisibleLength + STREAMING_TEXT_BATCH_SIZE),
+      );
+    }, STREAMING_TEXT_STEP_MS);
+
+    return () => window.clearTimeout(timerId);
+  }, [content, isStreaming, visibleLength]);
+
+  return isStreaming ? content.slice(0, visibleLength) : content;
+};
+
 class MarkdownErrorBoundary extends Component<
   MarkdownErrorBoundaryProps,
   MarkdownErrorBoundaryState
@@ -245,6 +292,7 @@ export function BlockItem({
   block,
   onHITLRespond,
   onOpenArtifact,
+  onOpenResult,
   onDownloadArtifact,
   onAddArtifactToKnowledge,
   copyContext,
@@ -283,6 +331,8 @@ export function BlockItem({
           onAddArtifactToKnowledge={onAddArtifactToKnowledge}
         />
       );
+    case "result_cards":
+      return <ResultCardsBlock block={block} onOpenResult={onOpenResult} />;
     case "error":
       return <ErrorBlock block={block} />;
     case "message":
@@ -291,6 +341,7 @@ export function BlockItem({
           block={block}
           onHITLRespond={onHITLRespond}
           onOpenArtifact={onOpenArtifact}
+          onOpenResult={onOpenResult}
           onDownloadArtifact={onDownloadArtifact}
           onAddArtifactToKnowledge={onAddArtifactToKnowledge}
           copyContext={copyContext}
@@ -306,6 +357,7 @@ function MessageBlock({
   block,
   onHITLRespond,
   onOpenArtifact,
+  onOpenResult,
   onDownloadArtifact,
   onAddArtifactToKnowledge,
   copyContext,
@@ -313,6 +365,7 @@ function MessageBlock({
   block: Block;
   onHITLRespond?: (payload: HITLRespondPayload) => void;
   onOpenArtifact?: (block: Block) => void;
+  onOpenResult?: (resultId: string) => void;
   onDownloadArtifact?: (url: string) => void;
   onAddArtifactToKnowledge?: (artifactId: string) => void;
   copyContext?: BlockCopyContext;
@@ -403,6 +456,7 @@ function MessageBlock({
                   block={child}
                   onHITLRespond={onHITLRespond}
                   onOpenArtifact={onOpenArtifact}
+                  onOpenResult={onOpenResult}
                   onDownloadArtifact={onDownloadArtifact}
                   onAddArtifactToKnowledge={onAddArtifactToKnowledge}
                   copyContext={childCopyContextMap[child.id] ?? copyContext}
@@ -468,6 +522,8 @@ function TextBlock({
   const data = block.data as unknown as TextData;
   const content = data.content || "";
   const displayContent = isUser ? decodeMention(content) : content;
+  const isStreaming = !isUser && (block.isStreaming || data.status === "streaming");
+  const streamedDisplayContent = useTypewriterText(displayContent, isStreaming);
   const userMentionSegments = useMemo(
     () => (isUser ? buildMentionDisplaySegments(displayContent) : []),
     [displayContent, isUser],
@@ -540,8 +596,8 @@ function TextBlock({
       >
         <div className={styles.assistantResultCard}>
           <div className={styles.assistantResultBody}>
-            <MarkdownErrorBoundary content={content}>
-              <ChatMarkdown source={content} />
+            <MarkdownErrorBoundary content={streamedDisplayContent}>
+              <ChatMarkdown source={streamedDisplayContent} />
             </MarkdownErrorBoundary>
           </div>
 
@@ -639,8 +695,8 @@ function TextBlock({
       ) : (
         <Bubble
           content={
-            <MarkdownErrorBoundary content={content}>
-              <ChatMarkdown source={content} />
+            <MarkdownErrorBoundary content={streamedDisplayContent}>
+              <ChatMarkdown source={streamedDisplayContent} />
             </MarkdownErrorBoundary>
           }
           variant="borderless"
@@ -777,7 +833,9 @@ function AttachmentRow({ attachments }: { attachments: MessageAttachment[] }) {
 function ThinkingBlock({ block }: { block: Block }) {
   const data = block.data as unknown as TextData;
   const content = normalizeThinkingContent(data.content);
-  const isComplete = !block.isStreaming || data.status === "completed";
+  const isStreaming = block.isStreaming || data.status === "streaming";
+  const displayContent = useTypewriterText(content, isStreaming);
+  const isComplete = !isStreaming || data.status === "completed";
   const [expanded, setExpanded] = useState(!isComplete);
 
   useEffect(() => {
@@ -797,8 +855,8 @@ function ThinkingBlock({ block }: { block: Block }) {
         blink={!isComplete}
       >
         <div className={styles.thinkingMarkdown}>
-          <MarkdownErrorBoundary content={content}>
-            <ChatMarkdown source={content} />
+          <MarkdownErrorBoundary content={displayContent}>
+            <ChatMarkdown source={displayContent} />
           </MarkdownErrorBoundary>
         </div>
       </Think>
@@ -2304,6 +2362,54 @@ function HITLRequestBlock({
             </div>
           </>
         )}
+      </div>
+    </div>
+  );
+}
+
+function ResultCardsBlock({
+  block,
+  onOpenResult,
+}: {
+  block: Block;
+  onOpenResult?: (resultId: string) => void;
+}) {
+  const data = block.data as unknown as ResultCardsData;
+  const items = Array.isArray(data.items)
+    ? data.items.filter(item => typeof item.id === "string" && typeof item.title === "string")
+    : [];
+
+  if (!items.length) {
+    return null;
+  }
+
+  return (
+    <div className={styles.resultCardsBlock}>
+      <div className={styles.resultCardsGrid}>
+        {items.map(item => (
+          <button
+            key={item.id}
+            type="button"
+            className={styles.resultCard}
+            onClick={() => onOpenResult?.(item.id)}
+            disabled={!onOpenResult}
+            aria-label={`打开结果：${item.title}`}
+          >
+            <span className={styles.resultCardIcon} aria-hidden={true}>
+              <FileTextOutlined />
+            </span>
+            <span className={styles.resultCardBody}>
+              {item.badge ? <span className={styles.resultCardBadge}>{item.badge}</span> : null}
+              <span className={styles.resultCardTitle}>{item.title}</span>
+              {item.subtitle ? (
+                <span className={styles.resultCardSubtitle}>{item.subtitle}</span>
+              ) : null}
+              {item.created_at ? (
+                <span className={styles.resultCardMeta}>创建时间：{item.created_at}</span>
+              ) : null}
+            </span>
+          </button>
+        ))}
       </div>
     </div>
   );

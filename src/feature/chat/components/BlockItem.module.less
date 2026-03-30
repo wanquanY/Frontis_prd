@@ -374,6 +374,106 @@
   font-size: 13px;
 }
 
+.resultCardsBlock {
+  width: 100%;
+  max-width: 700px;
+  margin: 4px auto 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.resultCardsGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.resultCard {
+  flex: 0 1 312px;
+  max-width: 312px;
+  padding: 12px 14px;
+  border: 1px solid #e8edf3;
+  border-radius: 16px;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--primary) 4%, var(--surface)),
+    var(--surface)
+  );
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr);
+  gap: 10px;
+  align-items: flex-start;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    transform 180ms ease,
+    border-color 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.resultCard:hover:not(:disabled) {
+  transform: translateY(-1px);
+  border-color: color-mix(in srgb, var(--primary) 20%, #e8edf3);
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
+}
+
+.resultCard:disabled {
+  cursor: default;
+  opacity: 0.7;
+}
+
+.resultCardIcon {
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--primary) 14%, var(--surface));
+  color: var(--primary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+}
+
+.resultCardBody {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.resultCardBadge {
+  width: fit-content;
+  min-height: 22px;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--primary) 12%, var(--surface));
+  color: var(--primary);
+  display: inline-flex;
+  align-items: center;
+  font-size: 11px;
+  line-height: 16px;
+  font-weight: 700;
+}
+
+.resultCardTitle {
+  color: var(--text);
+  font-size: 15px;
+  line-height: 22px;
+  font-weight: 700;
+}
+
+.resultCardSubtitle,
+.resultCardMeta {
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.resultCardMeta {
+  margin-top: 1px;
+}
+
 .messageWrapper {
   display: flex;
   align-items: flex-start;

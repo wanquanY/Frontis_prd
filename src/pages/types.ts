@@ -83,6 +83,8 @@ export interface EmployeeItem {
   name: string;
   avatarUrl?: string;
   role: string;
+  /** 可见端范围。 */
+  portalRoles: FrontisWebRole[];
   status: StatusTone;
   workspaceId: string;
   connectionMode: ConnectionMode;
@@ -135,6 +137,221 @@ export interface DialogueSessionItem {
   preview: string;
   updatedAt: string;
   messages: ChatMessage[];
+}
+
+export type DialogueGeneratedPanelStatus = "running" | "success";
+export type DialogueGeneratedPanelTone = "neutral" | "positive" | "warning" | "danger" | "accent";
+
+export interface DialogueGeneratedMetricItem {
+  label: string;
+  value: string;
+  hint?: string;
+  delta?: string;
+  tone?: DialogueGeneratedPanelTone;
+}
+
+export interface DialogueGeneratedTagItem {
+  label: string;
+  tone?: DialogueGeneratedPanelTone;
+}
+
+export interface DialogueGeneratedActionItem {
+  id: string;
+  label: string;
+  tone?: DialogueGeneratedPanelTone;
+}
+
+export interface DialogueSequenceCardItem {
+  id: string;
+  name: string;
+  peopleLabel: string;
+  roleLabel: string;
+  score: string;
+  trend: string;
+  benchmarkLabel: string;
+  alertLabel: string;
+  focusTags: DialogueGeneratedTagItem[];
+}
+
+export interface DialogueDimensionScoreItem {
+  id: string;
+  label: string;
+  weightLabel: string;
+  score: string;
+  delta: string;
+  tone?: DialogueGeneratedPanelTone;
+}
+
+export interface DialogueRedlineStatusItem {
+  id: string;
+  label: string;
+  description: string;
+  statusLabel: string;
+  tone?: DialogueGeneratedPanelTone;
+}
+
+export interface DialogueEvidenceItem {
+  id: string;
+  source: string;
+  date: string;
+  content: string;
+}
+
+export interface DialogueWarningItem {
+  id: string;
+  name: string;
+  roleLabel: string;
+  sequenceLabel: string;
+  reason: string;
+  dimensionLabel: string;
+  score: string;
+  levelLabel: string;
+  dateLabel?: string;
+  suggestion: string;
+  tone?: DialogueGeneratedPanelTone;
+  actions: DialogueGeneratedActionItem[];
+}
+
+export interface DialogueBenchmarkPersonItem {
+  id: string;
+  rankLabel: string;
+  name: string;
+  roleLabel: string;
+  levelLabel: string;
+  score: string;
+  delta: string;
+  story: string;
+  avatarLabel?: string;
+  dateLabel?: string;
+  tone?: DialogueGeneratedPanelTone;
+}
+
+export interface DialogueRankZoneItem {
+  id: string;
+  title: string;
+  countLabel: string;
+  tone?: DialogueGeneratedPanelTone;
+  collapsed?: boolean;
+  members: DialogueBenchmarkPersonItem[];
+}
+
+export interface DialogueFocusPersonItem {
+  id: string;
+  name: string;
+  summary: string;
+  tone?: DialogueGeneratedPanelTone;
+}
+
+interface DialogueGeneratedPanelBase {
+  id: string;
+  kind:
+    | "sequenceOverview"
+    | "employeeAssess"
+    | "redlineDetect"
+    | "benchmarkFind"
+    | "scoreRank"
+    | "ceoSynthesis";
+  title: string;
+  subtitle: string;
+  skillName: string;
+  updatedAt: string;
+  status: DialogueGeneratedPanelStatus;
+}
+
+export interface DialogueSequenceOverviewPanelState extends DialogueGeneratedPanelBase {
+  kind: "sequenceOverview";
+  payload: {
+    summaryMetrics: DialogueGeneratedMetricItem[];
+    sortLabel: string;
+    sequenceCards: DialogueSequenceCardItem[];
+    insight: string;
+  };
+}
+
+export interface DialogueEmployeeAssessPanelState extends DialogueGeneratedPanelBase {
+  kind: "employeeAssess";
+  payload: {
+    employeeName: string;
+    employeeRole: string;
+    sequenceLabel: string;
+    score: string;
+    trend: string;
+    zoneLabel: string;
+    dimensionScores: DialogueDimensionScoreItem[];
+    redlineStatuses: DialogueRedlineStatusItem[];
+    evidences: DialogueEvidenceItem[];
+    actionItems: string[];
+  };
+}
+
+export interface DialogueRedlineDetectPanelState extends DialogueGeneratedPanelBase {
+  kind: "redlineDetect";
+  payload: {
+    alertSummary: string;
+    warnings: DialogueWarningItem[];
+  };
+}
+
+export interface DialogueBenchmarkFindPanelState extends DialogueGeneratedPanelBase {
+  kind: "benchmarkFind";
+  payload: {
+    viewMode: "ranking" | "achievement";
+    sequenceLabel: string;
+    benchmarkPeople: DialogueBenchmarkPersonItem[];
+    middleZoneCountLabel: string;
+    attentionPeople: DialogueBenchmarkPersonItem[];
+    actionItems: string[];
+  };
+}
+
+export interface DialogueScoreRankPanelState extends DialogueGeneratedPanelBase {
+  kind: "scoreRank";
+  payload: {
+    viewMode: "overview" | "fullList";
+    sequenceLabel: string;
+    peopleCountLabel: string;
+    averageScoreLabel: string;
+    dimensions: DialogueGeneratedTagItem[];
+    benchmarkLineLabel: string;
+    attentionLineLabel: string;
+    zones: DialogueRankZoneItem[];
+  };
+}
+
+export interface DialogueCeoSynthesisPanelState extends DialogueGeneratedPanelBase {
+  kind: "ceoSynthesis";
+  payload: {
+    summaryMetrics: DialogueGeneratedMetricItem[];
+    focusAreas: DialogueFocusPersonItem[];
+    keyPerson: DialogueBenchmarkPersonItem;
+    risks: DialogueFocusPersonItem[];
+    actionItems: string[];
+    closingLine: string;
+    promptSuggestions: string[];
+    greetingLines: string[];
+    questionSuggestions: string[];
+    inputPlaceholder: string;
+  };
+}
+
+export type DialogueGeneratedPanelState =
+  | DialogueSequenceOverviewPanelState
+  | DialogueEmployeeAssessPanelState
+  | DialogueRedlineDetectPanelState
+  | DialogueBenchmarkFindPanelState
+  | DialogueScoreRankPanelState
+  | DialogueCeoSynthesisPanelState;
+
+/**
+ * 对话结果卡片项。
+ */
+export interface DialogueGeneratedResultItem {
+  id: string;
+  title: string;
+  subtitle: string;
+  createdAt: string;
+  badge?: string;
+  panel: DialogueGeneratedPanelState;
 }
 
 /**

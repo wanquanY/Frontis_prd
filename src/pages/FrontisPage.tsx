@@ -1,19 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-
-import classNames from "classnames";
 import {
-  ApartmentOutlined,
-  BellOutlined,
-  ClockCircleOutlined,
-  CloudServerOutlined,
-  ControlOutlined,
-  DashboardOutlined,
   LogoutOutlined,
-  MessageOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
-  RobotOutlined,
-  TeamOutlined,
 } from "@ant-design/icons";
 import type { MenuProps } from "antd";
 import { Avatar, Dropdown, Empty, message } from "antd";
@@ -21,31 +10,25 @@ import { useNavigate } from "react-router-dom";
 import type { WorkspaceComposerAttachmentItem } from "@/feature/workspace/types";
 import { useMockAuth } from "@/feature/auth/hooks/useMockAuth";
 import { isChatAttachmentFileAllowed } from "@/utils/chatAttachmentFileTypes";
+import {
+  AI_CEO_AGENT_HOME_CONFIGS,
+  AI_CEO_DEFAULT_HOME_CONFIG,
+} from "@/constants/aiCeoHome";
 
-import { AutomationTaskView } from "./components/AutomationTaskView";
-import { BossDashboardView } from "./components/BossDashboardView";
-import { DeviceManagementView } from "./components/DeviceManagementView";
 import { DialoguePrototypeView } from "./components/DialoguePrototypeView";
-import { AgentStoreView } from "./components/agentStore/AgentStoreView";
-import { GroupPrototypeView } from "./components/GroupPrototypeView";
-import { ModelConfigurationView } from "./components/ModelConfigurationView";
-import { NotificationCenterView } from "./components/NotificationCenterView";
-import { OrganizationManagementView } from "./components/OrganizationManagementView";
 import {
   INITIAL_DIALOGUE_ARTIFACTS,
+  INITIAL_DIALOGUE_RESULTS,
   INITIAL_DIALOGUE_SESSIONS,
   INITIAL_EMPLOYEES,
   INITIAL_FRONTIS_WEB_USERS,
-  INITIAL_SKILLS,
-  INITIAL_WORKSPACES,
 } from "@/mocks/mockData";
+import { findDialogueScenario } from "./dialogueScenarioSimulation";
+import type { SynClawArtifactItem } from "@/pages/synclaw/types";
 import type {
+  DialogueGeneratedResultItem,
   DialogueSessionItem,
-  EmployeeItem,
   FrontisWebRole,
-  FrontisWebTabItem,
-  FrontisWebTabKey,
-  WorkspaceItem,
 } from "./types";
 import {
   buildAttachmentItem,
@@ -55,72 +38,11 @@ import {
 } from "./utils";
 import styles from "./FrontisPage.module.less";
 
-const FRONTIS_WEB_TABS: FrontisWebTabItem[] = [
-  {
-    key: "dashboard",
-    label: "驾驶舱",
-    icon: <DashboardOutlined />,
-    roles: ["admin"],
-  },
-  {
-    key: "dialogue",
-    label: "我的AI专家",
-    labels: {
-      admin: "工作台",
-    },
-    icon: <MessageOutlined />,
-    roles: ["employee", "admin"],
-  },
-  {
-    key: "group",
-    label: "AI军团空间",
-    icon: <TeamOutlined />,
-    roles: ["employee"],
-  },
-  {
-    key: "automation",
-    label: "自动化",
-    icon: <ClockCircleOutlined />,
-    roles: ["employee"],
-  },
-  {
-    key: "store",
-    label: "AI专家团",
-    labels: {
-      admin: "我的AI专家团",
-    },
-    icon: <RobotOutlined />,
-    roles: ["admin"],
-  },
-  {
-    key: "devices",
-    label: "设备管理",
-    icon: <CloudServerOutlined />,
-    roles: ["admin"],
-  },
-  {
-    key: "models",
-    label: "模型配置",
-    icon: <ControlOutlined />,
-    roles: ["admin"],
-  },
-  {
-    key: "organization",
-    label: "组织管理",
-    icon: <ApartmentOutlined />,
-    roles: ["admin"],
-  },
-  {
-    key: "notifications",
-    label: "通知中心",
-    icon: <BellOutlined />,
-    roles: ["admin"],
-  },
-];
-
 interface FrontisPageProps {
   viewRole: FrontisWebRole;
 }
+
+const DEFAULT_CONVERSATION_EMPLOYEE_ID = "employee-writer";
 
 /**
  * FrontisAI Web 原型主页面
@@ -130,17 +52,21 @@ interface FrontisPageProps {
 const FrontisPage = ({ viewRole }: FrontisPageProps): JSX.Element => {
   const navigate = useNavigate();
   const { logout, session } = useMockAuth();
-  const [activeTabKey, setActiveTabKey] = useState<FrontisWebTabKey>(
-    viewRole === "admin" ? "dashboard" : "dialogue",
-  );
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(false);
-  const [employees, setEmployees] = useState<EmployeeItem[]>(INITIAL_EMPLOYEES);
+  const [isDialogueSidebarCollapsed, setIsDialogueSidebarCollapsed] = useState<boolean>(false);
   const [dialogueSessions, setDialogueSessions] =
     useState<DialogueSessionItem[]>(INITIAL_DIALOGUE_SESSIONS);
-  const [activeEmployeeId, setActiveEmployeeId] = useState<string>(INITIAL_EMPLOYEES[0]?.id ?? "");
-  const [activeDialogueSessionId, setActiveDialogueSessionId] = useState<string>(
-    INITIAL_DIALOGUE_SESSIONS.find(item => item.employeeId === INITIAL_EMPLOYEES[0]?.id)?.id ?? "",
+  const [dialogueArtifactsBySession, setDialogueArtifactsBySession] = useState<
+    Record<string, SynClawArtifactItem[]>
+  >(INITIAL_DIALOGUE_ARTIFACTS);
+  const [dialogueResultsBySession, setDialogueResultsBySession] = useState<
+    Record<string, DialogueGeneratedResultItem[]>
+  >(INITIAL_DIALOGUE_RESULTS);
+  const [activeEmployeeId, setActiveEmployeeId] = useState<string>(
+    DEFAULT_CONVERSATION_EMPLOYEE_ID,
   );
+  const [activeDialogueSessionId, setActiveDialogueSessionId] = useState<string>("");
+  const [isDialogueHomeActive, setIsDialogueHomeActive] = useState<boolean>(true);
+  const [selectedSkillId, setSelectedSkillId] = useState<string | null>(null);
   const [dialogueInputValue, setDialogueInputValue] = useState<string>("");
   const [dialogueAttachments, setDialogueAttachments] = useState<WorkspaceComposerAttachmentItem[]>(
     [],
@@ -148,9 +74,9 @@ const FrontisPage = ({ viewRole }: FrontisPageProps): JSX.Element => {
   const [respondingDialogueSessionId, setRespondingDialogueSessionId] = useState<string | null>(
     null,
   );
-  const dialogueTimerRef = useRef<number | null>(null);
+  const dialogueTimerRefs = useRef<number[]>([]);
   const latestDialogueAttachmentsRef = useRef<WorkspaceComposerAttachmentItem[]>([]);
-  const workspaces: WorkspaceItem[] = INITIAL_WORKSPACES;
+  const employees = INITIAL_EMPLOYEES;
   const currentUser = useMemo(
     () =>
       INITIAL_FRONTIS_WEB_USERS.find(item => item.id === session?.userId) ??
@@ -164,23 +90,31 @@ const FrontisPage = ({ viewRole }: FrontisPageProps): JSX.Element => {
       null,
     [session?.userId, viewRole],
   );
+  const roleVisibleEmployees = useMemo(
+    () => employees.filter(item => item.portalRoles.includes(viewRole)),
+    [employees, viewRole],
+  );
   const conversationEmployees = useMemo(
     () =>
-      viewRole === "admin"
-        ? employees
-        : employees.filter(item => {
+      (viewRole === "admin"
+        ? roleVisibleEmployees
+        : roleVisibleEmployees.filter(item => {
             const isAssigned = currentUser?.assignedAgentIds.includes(item.id) ?? false;
             if (!isAssigned) {
               return false;
             }
             return item.visibility === "all" || item.boundMembers.includes(currentUser?.name ?? "");
-          }),
-    [currentUser?.assignedAgentIds, currentUser?.name, employees, viewRole],
-  );
-
-  const visibleTabs = useMemo(
-    () => FRONTIS_WEB_TABS.filter(item => item.roles.includes(viewRole)),
-    [viewRole],
+          })
+      ).slice().sort((left, right) => {
+        if (left.id === DEFAULT_CONVERSATION_EMPLOYEE_ID) {
+          return -1;
+        }
+        if (right.id === DEFAULT_CONVERSATION_EMPLOYEE_ID) {
+          return 1;
+        }
+        return 0;
+      }),
+    [currentUser?.assignedAgentIds, currentUser?.name, roleVisibleEmployees, viewRole],
   );
 
   const activeEmployee = useMemo(
@@ -198,31 +132,49 @@ const FrontisPage = ({ viewRole }: FrontisPageProps): JSX.Element => {
   );
 
   const activeDialogueSession = useMemo(
-    () =>
-      employeeDialogueSessions.find(item => item.id === activeDialogueSessionId) ??
-      employeeDialogueSessions[0] ??
-      null,
-    [activeDialogueSessionId, employeeDialogueSessions],
+    () => {
+      if (isDialogueHomeActive) {
+        return null;
+      }
+      return (
+        employeeDialogueSessions.find(item => item.id === activeDialogueSessionId) ??
+        employeeDialogueSessions[0] ??
+        null
+      );
+    },
+    [activeDialogueSessionId, employeeDialogueSessions, isDialogueHomeActive],
   );
-
   const dialogueMessages = activeDialogueSession?.messages ?? [];
-  const visibleDialogueSessions = useMemo(
-    () =>
-      dialogueSessions.filter(item =>
-        conversationEmployees.some(employee => employee.id === item.employeeId),
-      ),
-    [conversationEmployees, dialogueSessions],
-  );
   const activeDialogueArtifacts = useMemo(
-    () =>
-      activeDialogueSession ? (INITIAL_DIALOGUE_ARTIFACTS[activeDialogueSession.id] ?? []) : [],
-    [activeDialogueSession],
+    () => (activeDialogueSession ? (dialogueArtifactsBySession[activeDialogueSession.id] ?? []) : []),
+    [activeDialogueSession, dialogueArtifactsBySession],
   );
-  const activeWorkspace = useMemo(
-    () => workspaces.find(item => item.id === activeEmployee?.workspaceId) ?? workspaces[0] ?? null,
-    [activeEmployee?.workspaceId, workspaces],
+  const activeDialogueResults = useMemo(
+    () => (activeDialogueSession ? (dialogueResultsBySession[activeDialogueSession.id] ?? []) : []),
+    [activeDialogueSession, dialogueResultsBySession],
   );
   const isDialogueResponding = activeDialogueSession?.id === respondingDialogueSessionId;
+  const activeAgentHomeConfig = useMemo(
+    () =>
+      activeEmployee
+        ? (AI_CEO_AGENT_HOME_CONFIGS[activeEmployee.id] ?? AI_CEO_DEFAULT_HOME_CONFIG)
+        : AI_CEO_DEFAULT_HOME_CONFIG,
+    [activeEmployee],
+  );
+  const selectedSkill = useMemo(
+    () =>
+      selectedSkillId
+        ? (activeAgentHomeConfig.skillItems.find(item => item.id === selectedSkillId) ?? null)
+        : null,
+    [activeAgentHomeConfig.skillItems, selectedSkillId],
+  );
+  const dialoguePlaceholder = useMemo(
+    () =>
+      selectedSkill
+        ? `已选择技能：${selectedSkill.name}，请输入你的具体需求`
+        : "输入消息或上传附件",
+    [selectedSkill],
+  );
 
   useEffect(() => {
     if (!conversationEmployees.length) {
@@ -236,12 +188,12 @@ const FrontisPage = ({ viewRole }: FrontisPageProps): JSX.Element => {
   }, [activeEmployeeId, conversationEmployees]);
 
   useEffect(() => {
-    if (!visibleTabs.some(item => item.key === activeTabKey)) {
-      setActiveTabKey(visibleTabs[0]?.key ?? "dialogue");
+    if (isDialogueHomeActive) {
+      if (activeDialogueSessionId !== "") {
+        setActiveDialogueSessionId("");
+      }
+      return;
     }
-  }, [activeTabKey, visibleTabs]);
-
-  useEffect(() => {
     if (!employeeDialogueSessions.length) {
       if (activeDialogueSessionId !== "") {
         setActiveDialogueSessionId("");
@@ -252,20 +204,33 @@ const FrontisPage = ({ viewRole }: FrontisPageProps): JSX.Element => {
       return;
     }
     setActiveDialogueSessionId(employeeDialogueSessions[0].id);
-  }, [activeDialogueSessionId, employeeDialogueSessions]);
+  }, [activeDialogueSessionId, employeeDialogueSessions, isDialogueHomeActive]);
 
   useEffect(() => {
     latestDialogueAttachmentsRef.current = dialogueAttachments;
   }, [dialogueAttachments]);
 
   useEffect(() => {
+    if (!selectedSkillId) {
+      return;
+    }
+    if (activeAgentHomeConfig.skillItems.some(item => item.id === selectedSkillId)) {
+      return;
+    }
+    setSelectedSkillId(null);
+  }, [activeAgentHomeConfig.skillItems, selectedSkillId]);
+
+  const clearDialogueTimers = useCallback((): void => {
+    dialogueTimerRefs.current.forEach(timerId => window.clearTimeout(timerId));
+    dialogueTimerRefs.current = [];
+  }, []);
+
+  useEffect(() => {
     return () => {
-      if (dialogueTimerRef.current !== null) {
-        window.clearTimeout(dialogueTimerRef.current);
-      }
+      clearDialogueTimers();
       latestDialogueAttachmentsRef.current.forEach(revokeComposerAttachmentPreview);
     };
-  }, []);
+  }, [clearDialogueTimers]);
 
   const buildAllowedComposerAttachments = useCallback(
     (files?: FileList | File[] | null): WorkspaceComposerAttachmentItem[] =>
@@ -302,41 +267,39 @@ const FrontisPage = ({ viewRole }: FrontisPageProps): JSX.Element => {
     (employeeId: string): void => {
       setActiveEmployeeId(employeeId);
       const nextEmployeeSessions = dialogueSessions.filter(item => item.employeeId === employeeId);
-      setActiveDialogueSessionId(nextEmployeeSessions[0]?.id ?? "");
+      setActiveDialogueSessionId(isDialogueHomeActive ? "" : (nextEmployeeSessions[0]?.id ?? ""));
       dialogueAttachments.forEach(revokeComposerAttachmentPreview);
       setDialogueAttachments([]);
       setDialogueInputValue("");
+      setSelectedSkillId(null);
     },
-    [dialogueAttachments, dialogueSessions],
+    [dialogueAttachments, dialogueSessions, isDialogueHomeActive],
   );
 
   const handleSelectDialogueSession = useCallback(
     (sessionId: string): void => {
+      setIsDialogueHomeActive(false);
       setActiveDialogueSessionId(sessionId);
       dialogueAttachments.forEach(revokeComposerAttachmentPreview);
       setDialogueAttachments([]);
       setDialogueInputValue("");
+      setSelectedSkillId(null);
     },
     [dialogueAttachments],
   );
 
   const handleCreateDialogueSession = useCallback((): void => {
-    if (!activeEmployee) return;
-    const nextSessionId = createId("dialogue-session");
-    const nextSession: DialogueSessionItem = {
-      id: nextSessionId,
-      employeeId: activeEmployee.id,
-      title: "新对话",
-      preview: "等待输入新的任务或附件。",
-      updatedAt: "刚刚",
-      messages: [],
-    };
-    setDialogueSessions(prev => [nextSession, ...prev]);
-    setActiveDialogueSessionId(nextSessionId);
+    setIsDialogueHomeActive(true);
+    setActiveDialogueSessionId("");
     dialogueAttachments.forEach(revokeComposerAttachmentPreview);
     setDialogueAttachments([]);
     setDialogueInputValue("");
-  }, [activeEmployee, dialogueAttachments]);
+    setSelectedSkillId(null);
+  }, [dialogueAttachments]);
+
+  const handleSelectSkill = useCallback((skillId: string): void => {
+    setSelectedSkillId(current => (current === skillId ? null : skillId));
+  }, []);
 
   const handleRenameDialogueSession = useCallback((sessionId: string, title: string): void => {
     const nextTitle = title.trim();
@@ -353,6 +316,16 @@ const FrontisPage = ({ viewRole }: FrontisPageProps): JSX.Element => {
 
       const nextSessions = dialogueSessions.filter(item => item.id !== sessionId);
       setDialogueSessions(nextSessions);
+      setDialogueArtifactsBySession(prev => {
+        const nextArtifacts = { ...prev };
+        delete nextArtifacts[sessionId];
+        return nextArtifacts;
+      });
+      setDialogueResultsBySession(prev => {
+        const nextResults = { ...prev };
+        delete nextResults[sessionId];
+        return nextResults;
+      });
 
       if (activeDialogueSessionId !== sessionId) {
         return;
@@ -366,22 +339,57 @@ const FrontisPage = ({ viewRole }: FrontisPageProps): JSX.Element => {
     [activeDialogueSessionId, dialogueSessions],
   );
 
-  const handleSendDialogue = useCallback((): void => {
+  const updateDialogueSession = useCallback(
+    (
+      sessionId: string,
+      updater: (session: DialogueSessionItem) => DialogueSessionItem,
+    ): void => {
+      setDialogueSessions(prev => {
+        const currentSession = prev.find(item => item.id === sessionId);
+        if (!currentSession) {
+          return prev;
+        }
+
+        const nextSession = updater(currentSession);
+        return [nextSession, ...prev.filter(item => item.id !== sessionId)];
+      });
+    },
+    [],
+  );
+
+  const commitDialogue = useCallback((rawInput: string): void => {
     if (!activeEmployee) return;
-    const content = dialogueInputValue.trim();
+    const content = rawInput.trim();
     if (!content && dialogueAttachments.length === 0) return;
 
+    const fallbackContent = "已发送附件，请结合文件内容继续处理。";
+    const scenarioQuestion = content || fallbackContent;
+    const matchedScenario = findDialogueScenario(
+      activeEmployee.id,
+      scenarioQuestion,
+      createId("dialogue-scenario"),
+    );
     const targetSessionId = activeDialogueSession?.id ?? createId("dialogue-session");
     const nextSessionTitle =
-      content.length > 0 ? content.slice(0, 18) : (dialogueAttachments[0]?.name ?? "新对话");
+      matchedScenario?.title ??
+      (content.length > 0
+        ? content.slice(0, 18)
+        : (dialogueAttachments[0]?.name ??
+          (selectedSkill ? `${selectedSkill.name}需求` : "新对话")));
     const messageAttachments =
       dialogueAttachments.length > 0 ? dialogueAttachments.map(buildAttachmentItem) : undefined;
+    const userMessageContent = selectedSkill
+      ? `技能：${selectedSkill.name}\n需求：${content || fallbackContent}`
+      : (content || fallbackContent);
+    const sessionPreview = selectedSkill
+      ? `${selectedSkill.name} · ${content || fallbackContent}`
+      : (content || fallbackContent);
 
     const nextUserMessage = {
       id: createId("dialogue"),
       role: "user" as const,
       author: "你",
-      content: content || "已发送附件，请结合文件内容继续处理。",
+      content: userMessageContent,
       timeLabel: "刚刚",
       attachments: messageAttachments,
     };
@@ -394,7 +402,7 @@ const FrontisPage = ({ viewRole }: FrontisPageProps): JSX.Element => {
             id: targetSessionId,
             employeeId: activeEmployee.id,
             title: nextSessionTitle,
-            preview: nextUserMessage.content,
+            preview: sessionPreview,
             updatedAt: "刚刚",
             messages: [nextUserMessage],
           },
@@ -410,7 +418,7 @@ const FrontisPage = ({ viewRole }: FrontisPageProps): JSX.Element => {
       const nextSession: DialogueSessionItem = {
         ...currentSession,
         title: currentSession.messages.length === 0 ? nextSessionTitle : currentSession.title,
-        preview: nextUserMessage.content,
+        preview: sessionPreview,
         updatedAt: "刚刚",
         messages: [...currentSession.messages, nextUserMessage],
       };
@@ -418,21 +426,130 @@ const FrontisPage = ({ viewRole }: FrontisPageProps): JSX.Element => {
     });
 
     setActiveDialogueSessionId(targetSessionId);
+    setIsDialogueHomeActive(false);
     setDialogueInputValue("");
+    setSelectedSkillId(null);
     dialogueAttachments.forEach(revokeComposerAttachmentPreview);
     setDialogueAttachments([]);
     setRespondingDialogueSessionId(targetSessionId);
+    clearDialogueTimers();
 
-    if (dialogueTimerRef.current !== null) {
-      window.clearTimeout(dialogueTimerRef.current);
+    if (matchedScenario) {
+      const [firstFrame, ...remainingFrames] = matchedScenario.frames;
+      const assistantMessageId = createId("dialogue");
+
+      if (!firstFrame) {
+        setRespondingDialogueSessionId(null);
+        return;
+      }
+
+      setDialogueArtifactsBySession(prev => ({
+        ...prev,
+        [targetSessionId]: [],
+      }));
+      setDialogueResultsBySession(prev => ({
+        ...prev,
+        [targetSessionId]: [],
+      }));
+      setDialogueArtifactsBySession(prev => {
+        if (!firstFrame.artifacts) {
+          return prev;
+        }
+        return {
+          ...prev,
+          [targetSessionId]: firstFrame.artifacts,
+        };
+      });
+      setDialogueResultsBySession(prev => {
+        if (!firstFrame.results) {
+          return prev;
+        }
+        return {
+          ...prev,
+          [targetSessionId]: firstFrame.results,
+        };
+      });
+
+      updateDialogueSession(targetSessionId, currentSession => ({
+        ...currentSession,
+        preview: firstFrame.preview,
+        updatedAt: "刚刚",
+        messages: [
+          ...currentSession.messages,
+          {
+            id: assistantMessageId,
+            role: "assistant",
+            author: activeEmployee.name,
+            content: firstFrame.preview,
+            timeLabel: "刚刚",
+            blocks: firstFrame.blocks,
+          },
+        ],
+      }));
+
+      if (remainingFrames.length === 0) {
+        setRespondingDialogueSessionId(null);
+        return;
+      }
+
+      let accumulatedDelayMs = 0;
+
+      remainingFrames.forEach((frame, frameIndex) => {
+        accumulatedDelayMs += frame.delayMs;
+        const isLastFrame = frameIndex === remainingFrames.length - 1;
+        const timerId = window.setTimeout(() => {
+          updateDialogueSession(targetSessionId, currentSession => ({
+            ...currentSession,
+            preview: frame.preview,
+            updatedAt: "刚刚",
+            messages: currentSession.messages.map(message =>
+              message.id === assistantMessageId
+                ? {
+                    ...message,
+                    content: frame.preview,
+                    timeLabel: "刚刚",
+                    blocks: frame.blocks,
+                  }
+                : message,
+            ),
+          }));
+
+          if (frame.artifacts) {
+            setDialogueArtifactsBySession(prev => ({
+              ...prev,
+              [targetSessionId]: frame.artifacts ?? [],
+            }));
+          }
+
+          if (frame.results) {
+            setDialogueResultsBySession(prev => ({
+              ...prev,
+              [targetSessionId]: frame.results ?? [],
+            }));
+          }
+
+          dialogueTimerRefs.current = dialogueTimerRefs.current.filter(
+            currentTimerId => currentTimerId !== timerId,
+          );
+
+          if (isLastFrame) {
+            setRespondingDialogueSessionId(current =>
+              current === targetSessionId ? null : current,
+            );
+          }
+        }, accumulatedDelayMs);
+
+        dialogueTimerRefs.current.push(timerId);
+      });
+
+      return;
     }
 
-    const responseText =
-      activeEmployee.connectionMode === "cloud"
-        ? "已继续在云端工作站中执行，我会同步整理结果，并在需要管理员介入或排查设备时提醒你。"
-        : "已在本地工作模式下继续处理，本轮不展示远端桌面，结果会直接回流到当前对话右侧成果面板。";
+    const responseText = selectedSkill
+      ? `已按「${selectedSkill.name}」开始处理，我会先聚焦这项能力来回应你的需求。`
+      : "已继续处理当前任务，结果会直接回流到本轮对话和右侧成果面板；如需管理员或其他角色协同，我会同步提醒。";
 
-    dialogueTimerRef.current = window.setTimeout(() => {
+    const timerId = window.setTimeout(() => {
       const nextAssistantMessage = {
         id: createId("dialogue"),
         role: "assistant" as const,
@@ -453,17 +570,32 @@ const FrontisPage = ({ viewRole }: FrontisPageProps): JSX.Element => {
         };
         return [nextSession, ...prev.filter(item => item.id !== targetSessionId)];
       });
-      setRespondingDialogueSessionId(null);
-      dialogueTimerRef.current = null;
+      setRespondingDialogueSessionId(current => (current === targetSessionId ? null : current));
+      dialogueTimerRefs.current = dialogueTimerRefs.current.filter(
+        currentTimerId => currentTimerId !== timerId,
+      );
     }, 1200);
-  }, [activeDialogueSession, activeEmployee, dialogueAttachments, dialogueInputValue]);
+    dialogueTimerRefs.current.push(timerId);
+  }, [
+    activeDialogueSession,
+    activeEmployee,
+    clearDialogueTimers,
+    dialogueAttachments,
+    selectedSkill,
+    updateDialogueSession,
+  ]);
+
+  const handleSendDialogue = useCallback((): void => {
+    commitDialogue(dialogueInputValue);
+  }, [commitDialogue, dialogueInputValue]);
+
+  const handleSendDialogueHomePrompt = useCallback((question: string): void => {
+    commitDialogue(question);
+  }, [commitDialogue]);
 
   const handleStopDialogue = useCallback((): void => {
     if (!isDialogueResponding || !activeDialogueSession) return;
-    if (dialogueTimerRef.current !== null) {
-      window.clearTimeout(dialogueTimerRef.current);
-      dialogueTimerRef.current = null;
-    }
+    clearDialogueTimers();
     setRespondingDialogueSessionId(null);
     setDialogueSessions(prev => {
       const currentSession = prev.find(item => item.id === activeDialogueSession.id);
@@ -487,24 +619,7 @@ const FrontisPage = ({ viewRole }: FrontisPageProps): JSX.Element => {
       };
       return [nextSession, ...prev.filter(item => item.id !== activeDialogueSession.id)];
     });
-  }, [activeDialogueSession, isDialogueResponding]);
-
-  const handleUpdateEmployeeAccess = useCallback(
-    (employeeId: string, visibility: EmployeeItem["visibility"], boundMembers: string[]): void => {
-      setEmployees(prev =>
-        prev.map(item =>
-          item.id === employeeId
-            ? {
-                ...item,
-                visibility,
-                boundMembers,
-              }
-            : item,
-        ),
-      );
-    },
-    [],
-  );
+  }, [activeDialogueSession, clearDialogueTimers, isDialogueResponding]);
 
   const handleLogout = useCallback((): void => {
     logout();
@@ -522,195 +637,80 @@ const FrontisPage = ({ viewRole }: FrontisPageProps): JSX.Element => {
   ];
 
   const renderContent = (): JSX.Element => {
-    if (activeTabKey === "dialogue" && activeEmployee && activeWorkspace) {
+    if (activeEmployee) {
       return (
         <DialoguePrototypeView
           activeEmployee={activeEmployee}
           activeDialogueArtifacts={activeDialogueArtifacts}
+          activeDialogueResults={activeDialogueResults}
           activeDialogueSession={activeDialogueSession}
-          activeWorkspace={activeWorkspace}
           allEmployees={conversationEmployees}
-          allWorkspaces={workspaces}
+          dialoguePlaceholder={dialoguePlaceholder}
           dialogueAttachments={dialogueAttachments}
           dialogueInputValue={dialogueInputValue}
           dialogueMessages={dialogueMessages}
           dialogueSessions={employeeDialogueSessions}
+          homeIntro={activeAgentHomeConfig.intro}
+          homePromptItems={activeAgentHomeConfig.promptItems}
+          homeSkillItems={activeAgentHomeConfig.skillItems}
+          isHomeVisible={isDialogueHomeActive}
+          isSidebarCollapsed={isDialogueSidebarCollapsed}
           isDialogueResponding={isDialogueResponding}
           onCreateDialogueSession={handleCreateDialogueSession}
           onDialogueAttachmentsSelected={handleDialogueAttachmentsSelected}
           onDialogueInputChange={setDialogueInputValue}
           onDialogueSessionSelect={handleSelectDialogueSession}
+          onHomePromptSend={handleSendDialogueHomePrompt}
           onRemoveDialogueSession={handleRemoveDialogueSession}
           onRenameDialogueSession={handleRenameDialogueSession}
           onEmployeeSelect={handleSelectEmployee}
           onRemoveAttachment={handleRemoveDialogueAttachment}
+          onSkillSelect={handleSelectSkill}
           onSendDialogue={handleSendDialogue}
+          selectedSkillId={selectedSkillId}
           onStopDialogue={handleStopDialogue}
         />
       );
     }
 
-    if (activeTabKey === "dialogue") {
-      return (
-        <div className={styles.emptyPageState}>
-          <Empty description="当前账号暂未分配 Agent，请联系管理员分配后再开始对话。" />
-        </div>
-      );
-    }
-
-    if (activeTabKey === "automation") {
-      return (
-        <AutomationTaskView
-          dialogueSessions={visibleDialogueSessions}
-          employees={conversationEmployees}
-        />
-      );
-    }
-
-    if (activeTabKey === "group") {
-      return <GroupPrototypeView currentUserName={currentUser?.name} />;
-    }
-
-    if (activeTabKey === "dashboard") {
-      return (
-        <BossDashboardView
-          currentUserName={currentUser?.name}
-          dialogueSessions={dialogueSessions}
-          employees={employees}
-          users={INITIAL_FRONTIS_WEB_USERS}
-          workspaces={workspaces}
-        />
-      );
-    }
-
-    if (activeTabKey === "store") {
-      return (
-        <AgentStoreView
-          employees={employees}
-          memberNames={INITIAL_FRONTIS_WEB_USERS.filter(item => item.status === "active").map(
-            item => item.name,
-          )}
-          onNavigateToTab={setActiveTabKey}
-          onUpdateEmployeeAccess={handleUpdateEmployeeAccess}
-          skills={INITIAL_SKILLS}
-          workspaces={workspaces}
-        />
-      );
-    }
-
-    if (activeTabKey === "devices") {
-      return <DeviceManagementView employees={employees} workspaces={workspaces} />;
-    }
-
-    if (activeTabKey === "models") {
-      return <ModelConfigurationView employees={employees} />;
-    }
-
-    if (activeTabKey === "organization") {
-      return (
-        <OrganizationManagementView
-          currentUserName={currentUser?.name}
-          employees={employees}
-          users={INITIAL_FRONTIS_WEB_USERS}
-        />
-      );
-    }
-
-    return <NotificationCenterView />;
+    return (
+      <div className={styles.emptyPageState}>
+        <Empty description="当前账号暂未分配 Agent，请联系管理员分配后再开始对话。" />
+      </div>
+    );
   };
 
   return (
     <div className={styles.page}>
-      <aside
-        className={classNames(styles.sidebar, {
-          [styles.sidebarCollapsed]: isSidebarCollapsed,
-        })}
-      >
-        <div
-          className={classNames(styles.sidebarTop, {
-            [styles.sidebarTopCollapsed]: isSidebarCollapsed,
-          })}
-        >
-          <div
-            className={classNames(styles.brandCard, {
-              [styles.brandCardCollapsed]: isSidebarCollapsed,
-            })}
-          >
-            <div className={styles.brandLogo}>
-              <CloudServerOutlined />
-            </div>
-            {isSidebarCollapsed ? null : (
-              <div className={styles.brandCopy}>
-                <h1 className={styles.brandTitle}>Frontis AI</h1>
-                <p className={styles.brandSubtitle}>
-                  {viewRole === "admin" ? "企业老板端" : "AI专家协作台"}
-                </p>
-              </div>
-            )}
-          </div>
-          <button
-            type="button"
-            className={styles.sidebarToggle}
-            aria-label={isSidebarCollapsed ? "展开菜单栏" : "收起菜单栏"}
-            onClick={() => setIsSidebarCollapsed(current => !current)}
-          >
-            {isSidebarCollapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
-          </button>
-        </div>
-
-        <div
-          className={classNames(styles.sidebarSection, {
-            [styles.sidebarSectionCollapsed]: isSidebarCollapsed,
-          })}
-        >
-          {visibleTabs.map(item => (
-            <button
-              key={item.key}
-              type="button"
-              className={classNames(styles.tabButton, {
-                [styles.isActiveTab]: item.key === activeTabKey,
-                [styles.tabButtonCollapsed]: isSidebarCollapsed,
-              })}
-              onClick={() => {
-                if (viewRole === "admin" && item.key === "dialogue") {
-                  window.open("/web/employee", "_blank");
-                  return;
-                }
-                setActiveTabKey(item.key);
-              }}
-            >
-              <span className={styles.tabIcon}>{item.icon}</span>
-              <span className={styles.tabLabel}>{item.labels?.[viewRole] ?? item.label}</span>
-            </button>
-          ))}
-        </div>
-
-        <div className={styles.sidebarBottom}>
-          <Dropdown menu={{ items: accountMenuItems }} placement="topLeft" trigger={["click"]}>
-            <button
-              type="button"
-              className={classNames(styles.accountTrigger, {
-                [styles.accountTriggerExpanded]: !isSidebarCollapsed,
-              })}
-            >
-              <Avatar className={styles.accountAvatar} size={40}>
-                {currentUser ? currentUser.name.slice(0, 1) : "U"}
-              </Avatar>
-              <span className={styles.accountName}>{currentUser?.name ?? "未登录"}</span>
-            </button>
-          </Dropdown>
-        </div>
-      </aside>
-
       <main className={styles.main}>
         <div className={styles.mainPanel}>
-          <div
-            className={classNames(styles.content, {
-              [styles.featureContent]: activeTabKey !== "dialogue" && activeTabKey !== "group",
-            })}
-          >
-            {renderContent()}
-          </div>
+          <header className={styles.header}>
+            <div className={styles.headerLeft}>
+              <div className={styles.employeeHeaderBrand}>
+                <span className={styles.employeeHeaderLogoPlaceholder}>F</span>
+                <span className={styles.employeeHeaderBrandName}>Frontis AI</span>
+                <button
+                  type="button"
+                  className={styles.employeeHeaderSidebarToggle}
+                  aria-label={isDialogueSidebarCollapsed ? "展开左侧面板" : "收起左侧面板"}
+                  onClick={() => setIsDialogueSidebarCollapsed(current => !current)}
+                >
+                  {isDialogueSidebarCollapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
+                </button>
+              </div>
+            </div>
+            <div className={styles.headerRight}>
+              <Dropdown menu={{ items: accountMenuItems }} placement="bottomRight" trigger={["click"]}>
+                <button type="button" className={styles.headerAccountTrigger}>
+                  <Avatar className={styles.accountAvatar} size={40}>
+                    {currentUser ? currentUser.name.slice(0, 1) : "U"}
+                  </Avatar>
+                  <span className={styles.headerAccountName}>{currentUser?.name ?? "未登录"}</span>
+                </button>
+              </Dropdown>
+            </div>
+          </header>
+          <div className={styles.content}>{renderContent()}</div>
         </div>
       </main>
     </div>

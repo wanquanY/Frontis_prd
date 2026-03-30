@@ -58,14 +58,14 @@
         height: auto;
         min-height: var(--workspace-composer-chat-footer-min-height, 40px);
         padding-top: var(--workspace-composer-chat-footer-padding-top, 4px);
-        align-items: flex-end;
+        align-items: center;
       }
 
       .left {
         .iconButton {
-          width: 36px;
-          height: 36px;
-          border-radius: 18px;
+          width: 34px;
+          height: 34px;
+          border-radius: 12px;
         }
 
         .attachIcon {
@@ -642,6 +642,15 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
+
+      .footerExtra {
+        flex: 1;
+        min-width: 0;
+        padding: 0 12px;
+        display: flex;
+        align-items: center;
+        overflow: hidden;
+      }
 
       .left {
         display: flex;

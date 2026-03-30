@@ -1,4 +1,4 @@
-import type { ChangeEvent, DragEvent, KeyboardEvent, RefObject } from "react";
+import type { ChangeEvent, DragEvent, KeyboardEvent, ReactNode, RefObject } from "react";
 import type { Block, HITLRespondPayload } from "@/types/block";
 import type { SpaceItem } from "@/types/prdPrototype";
 import type { AnalysisStatus } from "@/types/prdPrototype";
@@ -394,6 +394,8 @@ export interface WorkspaceChatPanelProps {
   onHITLRespond?: (payload: HITLRespondPayload) => void;
   /** 点击 artifact block 打开预览 */
   onOpenArtifact?: (block: Block) => void;
+  /** 点击结果卡片后打开生成式结果 */
+  onOpenResult?: (resultId: string) => void;
   /** 无对话消息时的欢迎语 */
   greeting?: string;
   /** 工作空间摘要（Markdown），用于新会话态展示 */
@@ -480,6 +482,8 @@ export interface WorkspaceComposerProps {
   onAttachmentsSelected?: (files: FileList | File[] | null | undefined) => void;
   /** 允许仅凭附件发送消息（无文本输入） */
   allowAttachmentOnlySend?: boolean;
+  /** 聊天页底部扩展工具条（可选） */
+  footerExtra?: ReactNode;
   /** 是否禁用交互（发送中/外部禁用） */
   disabled?: boolean;
   /** 是否正在发送/流式中，用于禁用输入与上传 */

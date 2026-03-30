@@ -15,6 +15,7 @@ interface SynClawArtifactsPanelProps {
   onDownloadFile?: (file: SynClawArtifactItem) => void;
   resolveFileUrl?: (file: SynClawArtifactItem) => Promise<string>;
   onPreviewStateChange?: (previewing: boolean) => void;
+  preferredFileId?: string;
 }
 
 const CloseIcon = ({ className }: { className?: string }): JSX.Element => (
@@ -63,6 +64,7 @@ export const SynClawArtifactsPanel = ({
   onDownloadFile,
   resolveFileUrl,
   onPreviewStateChange,
+  preferredFileId,
 }: SynClawArtifactsPanelProps): JSX.Element => {
   const [keyword, setKeyword] = useState("");
   const [selectedFileId, setSelectedFileId] = useState<string>();
@@ -86,6 +88,18 @@ export const SynClawArtifactsPanel = ({
     [files, selectedFileId],
   );
   const previewState = useSynClawArtifactPreview(selectedFile, resolveFileUrl);
+
+  useEffect(() => {
+    if (!preferredFileId) {
+      return;
+    }
+
+    if (!files.some(item => item.id === preferredFileId)) {
+      return;
+    }
+
+    setSelectedFileId(current => (current === preferredFileId ? current : preferredFileId));
+  }, [files, preferredFileId]);
 
   useEffect(() => {
     onPreviewStateChange?.(Boolean(selectedFile));
