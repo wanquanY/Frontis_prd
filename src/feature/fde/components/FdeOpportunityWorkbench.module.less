@@ -105,7 +105,8 @@
 }
 
 .stageCount,
-.stageBadge {
+.stageBadge,
+.priorityBadge {
   min-width: 24px;
   min-height: 24px;
   padding: 0 8px;
@@ -117,6 +118,40 @@
   font-size: 11px;
   line-height: 16px;
   font-weight: 700;
+}
+
+.priorityBadge {
+  padding: 0 10px;
+}
+
+.priorityHigh {
+  background: rgba(255, 103, 103, 0.12);
+  color: var(--fdeDanger);
+}
+
+.priorityMedium {
+  background: rgba(245, 174, 60, 0.12);
+  color: #d58b00;
+}
+
+.priorityLow {
+  background: rgba(70, 212, 147, 0.12);
+  color: var(--fdeSuccess);
+}
+
+.riskHigh {
+  background: rgba(255, 103, 103, 0.12);
+  color: var(--fdeDanger);
+}
+
+.riskAttention {
+  background: rgba(245, 174, 60, 0.12);
+  color: #d58b00;
+}
+
+.riskLow {
+  background: rgba(70, 212, 147, 0.12);
+  color: var(--fdeSuccess);
 }
 
 .stageList {
@@ -180,6 +215,19 @@
   gap: 14px;
 }
 
+.actionRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.actionHint,
+.deliveryHint {
+  color: var(--fdeTextMuted);
+  font-size: 12px;
+  line-height: 18px;
+}
+
 .cardHeader,
 .rankItem {
   display: flex;
@@ -188,10 +236,23 @@
   gap: 12px;
 }
 
+.cardTags,
+.timelineHeader,
+.blockerItem {
+  display: flex;
+}
+
 .detailGrid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
+}
+
+.cardTags {
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
 }
 
 .detailItem,
@@ -239,6 +300,102 @@
   font-weight: 700;
 }
 
+.followUpGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.followUpCard {
+  padding: 14px;
+  border: 1px solid var(--fdeBorder);
+  border-radius: 12px;
+  background: var(--fdeSurface);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.timelineList,
+.blockerList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.timelineItem {
+  padding: 12px 14px;
+  border: 1px solid var(--fdeBorder);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--primary) 3%, var(--fdeSurface));
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.timelineHeader {
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.timelineTime,
+.emptyHint,
+.originHint,
+.actionHint,
+.deliveryHint,
+.modalLabel {
+  color: var(--fdeTextMuted);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.timelineDetail {
+  margin: 0;
+  color: var(--fdeTextSecondary);
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.blockerItem {
+  align-items: flex-start;
+  gap: 8px;
+  color: var(--fdeTextSecondary);
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.blockerDot {
+  width: 7px;
+  height: 7px;
+  margin-top: 6px;
+  border-radius: 999px;
+  background: var(--fdeDanger);
+  flex-shrink: 0;
+}
+
+.modalForm {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.modalGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.modalField {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.fullWidthInput {
+  width: 100%;
+}
+
 @media (max-width: 1480px) {
   .metricGrid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -251,7 +408,9 @@
 
 @media (max-width: 980px) {
   .metricGrid,
-  .detailGrid {
+  .detailGrid,
+  .followUpGrid,
+  .modalGrid {
     grid-template-columns: 1fr;
   }
 }

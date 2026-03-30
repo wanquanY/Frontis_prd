@@ -2,6 +2,7 @@ import { useCallback, useMemo, useState } from "react";
 
 import classNames from "classnames";
 import {
+  AppstoreOutlined,
   ApartmentOutlined,
   BranchesOutlined,
   CloudServerOutlined,
@@ -22,10 +23,12 @@ import { useFdeWorkbench } from "@/feature/fde/hooks/useFdeWorkbench";
 import type {
   FdeDeliveryOrderItem,
   FdeLeadItem,
+  FdeOperationsCustomerItem,
   FdeOpportunityItem,
   FdeTeamMemberItem,
   FdeWorkbenchTabItem,
   FdeWorkbenchTabKey,
+  FdeWorkbenchTargetInfo,
 } from "@/feature/fde/types";
 import { getFdeAvatarUrl } from "@/feature/fde/utils";
 
@@ -33,6 +36,7 @@ import { FdeDeliveryWorkbench } from "./FdeDeliveryWorkbench";
 import { FdeEvolutionTasksView } from "./FdeEvolutionTasksView";
 import { FdeFeedbackBoardView } from "./FdeFeedbackBoardView";
 import { FdeLeadWorkbench } from "./FdeLeadWorkbench";
+import { FdeOverviewDashboard } from "./FdeOverviewDashboard";
 import { FdeOperationsMonitorView } from "./FdeOperationsMonitorView";
 import { FdeOpportunityWorkbench } from "./FdeOpportunityWorkbench";
 import { FdeReleasePushView } from "./FdeReleasePushView";
@@ -41,6 +45,7 @@ import styles from "./FdeWorkbenchView.module.less";
 const getWorkbenchTitle = (tab: FdeWorkbenchTabItem): string => `${tab.label}`;
 
 const FDE_TAB_ICONS: Record<FdeWorkbenchTabKey, JSX.Element> = {
+  overview: <AppstoreOutlined />,
   opportunities: <DashboardOutlined />,
   leads: <ProfileOutlined />,
   delivery: <CloudServerOutlined />,
@@ -54,6 +59,7 @@ const buildSceneOptions = (
   opportunities: FdeOpportunityItem[],
   leads: FdeLeadItem[],
   deliveryOrders: FdeDeliveryOrderItem[],
+  operationsCustomers: FdeOperationsCustomerItem[],
 ): string[] => {
   const sceneSet = new Set<string>();
 
@@ -66,6 +72,9 @@ const buildSceneOptions = (
     });
   });
   deliveryOrders.forEach(item => {
+    sceneSet.add(item.scenarioName);
+  });
+  operationsCustomers.forEach(item => {
     sceneSet.add(item.scenarioName);
   });
 
@@ -106,8 +115,27 @@ export const FdeWorkbenchView = (): JSX.Element => {
     [workbench.teamMembers],
   );
   const sceneOptions = useMemo<string[]>(
-    () => buildSceneOptions(workbench.opportunities, workbench.leads, workbench.deliveryOrders),
-    [workbench.deliveryOrders, workbench.leads, workbench.opportunities],
+    () =>
+      buildSceneOptions(
+        workbench.opportunities,
+        workbench.leads,
+        workbench.deliveryOrders,
+        workbench.operationsCustomers,
+      ),
+    [workbench.deliveryOrders, workbench.leads, workbench.opportunities, workbench.operationsCustomers],
+  );
+  const ownerOptions = useMemo<{ label: string; value: string }[]>(
+    () => [
+      {
+        label: "全部负责人",
+        value: "all",
+      },
+      ...engineerMembers.map(item => ({
+        label: `${item.name} · ${item.title}`,
+        value: item.id,
+      })),
+    ],
+    [engineerMembers],
   );
   const currentRoleLabel = workbench.activeRole === "leader" ? "团队负责人视角" : "FDE 员工视角";
   const handleLogout = useCallback((): void => {
@@ -115,6 +143,132 @@ export const FdeWorkbenchView = (): JSX.Element => {
     message.success("已退出模拟登录。");
     navigate("/portal", { replace: true });
   }, [logout, navigate]);
+  const handleOpenTarget = useCallback(
+    (target: FdeWorkbenchTargetInfo): void => {
+      workbench.setActiveTab(target.tabKey);
+
+      if (target.entityType === "lead") {
+        workbench.setSelectedLeadId(target.entityId);
+        return;
+      }
+
+      if (target.entityType === "opportunity") {
+        workbench.setSelectedOpportunityId(target.entityId);
+        return;
+      }
+
+      if (target.entityType === "delivery") {
+        workbench.setSelectedDeliveryOrderId(target.entityId);
+        return;
+      }
+
+      if (target.entityType === "operations") {
+        workbench.setSelectedOperationsCustomerId(target.entityId);
+        return;
+      }
+
+      if (target.entityType === "feedback") {
+        workbench.setSelectedFeedbackAgentId(target.entityId);
+        return;
+      }
+
+      if (target.entityType === "evolution") {
+        workbench.setSelectedEvolutionTaskId(target.entityId);
+        return;
+      }
+
+      workbench.setSelectedReleasePushId(target.entityId);
+    },
+    [workbench],
+  );
+  const handleConvertLeadToOpportunity = useCallback(
+    (leadId: string): string | null => {
+      const nextOpportunityId = workbench.convertLeadToOpportunity(leadId);
+      if (!nextOpportunityId) {
+        message.warning("当前线索不存在，无法转入商机。");
+        return null;
+      }
+
+      workbench.setActiveTab("opportunities");
+      workbench.setSelectedOpportunityId(nextOpportunityId);
+      return nextOpportunityId;
+    },
+    [workbench],
+  );
+  const handleConvertOpportunityToDelivery = useCallback(
+    (opportunityId: string): string | null => {
+      const nextDeliveryOrderId = workbench.convertOpportunityToDelivery(opportunityId);
+      if (!nextDeliveryOrderId) {
+        message.warning("当前商机不存在，无法转入配置交付。");
+        return null;
+      }
+
+      workbench.setActiveTab("delivery");
+      workbench.setSelectedDeliveryOrderId(nextDeliveryOrderId);
+      return nextDeliveryOrderId;
+    },
+    [workbench],
+  );
+  const handleOpenDeliveryFromOperations = useCallback(
+    (customerName: string): void => {
+      const targetOrder = workbench.deliveryOrders.find(item => item.customerName === customerName);
+      if (!targetOrder) {
+        message.info("当前客户还没有交付工单。");
+        return;
+      }
+
+      workbench.setActiveTab("delivery");
+      workbench.setSelectedDeliveryOrderId(targetOrder.id);
+    },
+    [workbench],
+  );
+  const handleOpenFeedbackFromOperations = useCallback(
+    (customerName: string): void => {
+      const targetAgent = workbench.feedbackAgents.find(item => item.customerName === customerName);
+      if (!targetAgent) {
+        message.info("当前客户还没有可查看的回流数据。");
+        return;
+      }
+
+      workbench.setActiveTab("feedback");
+      workbench.setSelectedFeedbackAgentId(targetAgent.id);
+    },
+    [workbench],
+  );
+  const handleTriggerEvolution = useCallback(
+    (
+      agentId: string,
+      payload?: {
+        manualNote: string;
+        signalIds: string[];
+      },
+    ): string | null => {
+      const nextTaskId = workbench.triggerEvolution(agentId, payload);
+      if (!nextTaskId) {
+        message.warning("当前回流任务不存在，无法创建进化任务。");
+        return null;
+      }
+
+      workbench.setActiveTab("evolution");
+      workbench.setSelectedEvolutionTaskId(nextTaskId);
+      return nextTaskId;
+    },
+    [workbench],
+  );
+  const handleCreateReleaseFromEvolutionTask = useCallback(
+    (taskId: string): string | null => {
+      const nextReleaseId = workbench.createReleaseFromEvolutionTask(taskId);
+      if (!nextReleaseId) {
+        message.warning("当前任务尚未审核通过，无法创建发布单。");
+        return null;
+      }
+
+      workbench.setActiveTab("releases");
+      workbench.setSelectedReleasePushId(nextReleaseId);
+      return nextReleaseId;
+    },
+    [workbench],
+  );
   const accountMenuItems: MenuProps["items"] = [
     {
       key: "logout",
@@ -125,13 +279,39 @@ export const FdeWorkbenchView = (): JSX.Element => {
   ];
 
   const activeContent = useMemo<JSX.Element>(() => {
+    if (workbench.activeTab === "overview") {
+      return (
+        <FdeOverviewDashboard
+          activeRole={workbench.activeRole}
+          activityFeed={workbench.activityFeed}
+          hasActiveFilters={workbench.hasActiveFilters}
+          onOpenTarget={handleOpenTarget}
+          ownerOptions={ownerOptions}
+          resetWorkbenchFilters={workbench.resetWorkbenchFilters}
+          sceneOptions={sceneOptions}
+          searchResults={workbench.searchResults}
+          setWorkbenchFilterOwnerId={workbench.setWorkbenchFilterOwnerId}
+          setWorkbenchFilterSceneName={workbench.setWorkbenchFilterSceneName}
+          setWorkbenchFilterSearchKeyword={workbench.setWorkbenchFilterSearchKeyword}
+          setWorkbenchFilterStatusLabel={workbench.setWorkbenchFilterStatusLabel}
+          statusOptions={workbench.statusOptions}
+          todoItems={workbench.todoItems}
+          workbenchFilters={workbench.workbenchFilters}
+        />
+      );
+    }
+
     if (workbench.activeTab === "opportunities") {
       return (
         <FdeOpportunityWorkbench
           items={workbench.filteredOpportunities}
+          deliveryOrders={workbench.deliveryOrders}
           members={workbench.teamMembers}
           selectedOpportunityId={workbench.selectedOpportunityId}
           setSelectedOpportunityId={workbench.setSelectedOpportunityId}
+          updateOpportunityStage={workbench.updateOpportunityStage}
+          updateOpportunityFollowUp={workbench.updateOpportunityFollowUp}
+          convertOpportunityToDelivery={handleConvertOpportunityToDelivery}
         />
       );
     }
@@ -147,6 +327,7 @@ export const FdeWorkbenchView = (): JSX.Element => {
           setSelectedLeadId={workbench.setSelectedLeadId}
           assignLead={workbench.assignLead}
           createLead={workbench.createLead}
+          convertLeadToOpportunity={handleConvertLeadToOpportunity}
           updateLeadStatus={workbench.updateLeadStatus}
         />
       );
@@ -159,6 +340,10 @@ export const FdeWorkbenchView = (): JSX.Element => {
           members={workbench.teamMembers}
           selectedOrderId={workbench.selectedDeliveryOrderId}
           setSelectedOrderId={workbench.setSelectedDeliveryOrderId}
+          updateDeliveryStep={workbench.updateDeliveryStep}
+          updateDeliveryOrder={workbench.updateDeliveryOrder}
+          addDeliveryBlocker={workbench.addDeliveryBlocker}
+          updateDeliveryBlockerStatus={workbench.updateDeliveryBlockerStatus}
         />
       );
     }
@@ -167,8 +352,14 @@ export const FdeWorkbenchView = (): JSX.Element => {
       return (
         <FdeOperationsMonitorView
           items={workbench.filteredOperationsCustomers}
+          members={workbench.teamMembers}
           selectedCustomerId={workbench.selectedOperationsCustomerId}
           setSelectedCustomerId={workbench.setSelectedOperationsCustomerId}
+          updateAlertStatus={workbench.updateOperationsAlertStatus}
+          assignAlert={workbench.assignOperationsAlert}
+          recordAlertResolution={workbench.recordOperationsAlertResolution}
+          openDelivery={handleOpenDeliveryFromOperations}
+          openFeedback={handleOpenFeedbackFromOperations}
         />
       );
     }
@@ -179,7 +370,7 @@ export const FdeWorkbenchView = (): JSX.Element => {
           items={workbench.filteredFeedbackAgents}
           selectedAgentId={workbench.selectedFeedbackAgentId}
           setSelectedAgentId={workbench.setSelectedFeedbackAgentId}
-          triggerEvolution={workbench.triggerEvolution}
+          triggerEvolution={handleTriggerEvolution}
         />
       );
     }
@@ -191,6 +382,13 @@ export const FdeWorkbenchView = (): JSX.Element => {
           members={workbench.teamMembers}
           selectedTaskId={workbench.selectedEvolutionTaskId}
           setSelectedTaskId={workbench.setSelectedEvolutionTaskId}
+          startTask={workbench.startEvolutionTask}
+          pauseTask={workbench.pauseEvolutionTask}
+          retryTask={workbench.retryEvolutionTask}
+          terminateTask={workbench.terminateEvolutionTask}
+          submitTaskReview={workbench.submitEvolutionTaskReview}
+          reviewTask={workbench.reviewEvolutionTask}
+          createReleaseFromTask={handleCreateReleaseFromEvolutionTask}
         />
       );
     }
@@ -201,15 +399,24 @@ export const FdeWorkbenchView = (): JSX.Element => {
         members={workbench.teamMembers}
         selectedReleaseId={workbench.selectedReleasePushId}
         setSelectedReleaseId={workbench.setSelectedReleasePushId}
+        updateReleasePush={workbench.updateReleasePush}
+        startReleasePush={workbench.startReleasePush}
+        pauseReleasePush={workbench.pauseReleasePush}
+        completeReleasePush={workbench.completeReleasePush}
+        rollbackReleasePush={workbench.rollbackReleasePush}
       />
     );
   }, [
     engineerMembers,
+    handleOpenTarget,
+    ownerOptions,
     sceneOptions,
     workbench.activeRole,
     workbench.activeTab,
+    workbench.activityFeed,
     workbench.assignLead,
     workbench.createLead,
+    workbench.deliveryOrders,
     workbench.filteredDeliveryOrders,
     workbench.filteredEvolutionTasks,
     workbench.filteredFeedbackAgents,
@@ -217,6 +424,9 @@ export const FdeWorkbenchView = (): JSX.Element => {
     workbench.filteredOperationsCustomers,
     workbench.filteredOpportunities,
     workbench.filteredReleasePushes,
+    workbench.hasActiveFilters,
+    workbench.resetWorkbenchFilters,
+    workbench.searchResults,
     workbench.selectedDeliveryOrderId,
     workbench.selectedEvolutionTaskId,
     workbench.selectedFeedbackAgentId,
@@ -231,9 +441,41 @@ export const FdeWorkbenchView = (): JSX.Element => {
     workbench.setSelectedOperationsCustomerId,
     workbench.setSelectedOpportunityId,
     workbench.setSelectedReleasePushId,
+    workbench.setWorkbenchFilterOwnerId,
+    workbench.setWorkbenchFilterSceneName,
+    workbench.setWorkbenchFilterSearchKeyword,
+    workbench.setWorkbenchFilterStatusLabel,
+    workbench.statusOptions,
     workbench.teamMembers,
-    workbench.triggerEvolution,
+    workbench.updateOperationsAlertStatus,
+    workbench.updateDeliveryBlockerStatus,
+    workbench.updateDeliveryOrder,
+    workbench.updateDeliveryStep,
     workbench.updateLeadStatus,
+    workbench.updateOpportunityFollowUp,
+    workbench.updateOpportunityStage,
+    workbench.assignOperationsAlert,
+    workbench.addDeliveryBlocker,
+    workbench.recordOperationsAlertResolution,
+    workbench.startEvolutionTask,
+    workbench.pauseEvolutionTask,
+    workbench.retryEvolutionTask,
+    workbench.terminateEvolutionTask,
+    workbench.submitEvolutionTaskReview,
+    workbench.reviewEvolutionTask,
+    workbench.updateReleasePush,
+    workbench.startReleasePush,
+    workbench.pauseReleasePush,
+    workbench.completeReleasePush,
+    workbench.rollbackReleasePush,
+    workbench.todoItems,
+    workbench.workbenchFilters,
+    handleOpenDeliveryFromOperations,
+    handleOpenFeedbackFromOperations,
+    handleTriggerEvolution,
+    handleCreateReleaseFromEvolutionTask,
+    handleConvertOpportunityToDelivery,
+    handleConvertLeadToOpportunity,
   ]);
 
   return (

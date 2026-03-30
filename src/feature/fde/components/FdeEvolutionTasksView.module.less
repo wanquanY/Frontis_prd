@@ -14,19 +14,22 @@
 .detailPanel,
 .infoCard,
 .summaryCard,
-.skillCard {
+.skillCard,
+.actionCard,
+.reviewItem,
+.timelineItem {
   border: 1px solid var(--fdeBorder);
   border-radius: 16px;
   background: var(--fdeSurface);
 }
 
 .taskCard {
-  padding: 12px 14px;
-  text-align: left;
-  cursor: pointer;
   display: flex;
   flex-direction: column;
   gap: 8px;
+  padding: 12px 14px;
+  text-align: left;
+  cursor: pointer;
 }
 
 .taskCardActive {
@@ -35,7 +38,9 @@
 }
 
 .taskHeader,
-.header {
+.header,
+.reviewHeader,
+.timelineHeader {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
@@ -54,9 +59,18 @@
   line-height: 22px;
 }
 
+.title {
+  margin: 0;
+  font-size: 18px;
+  line-height: 28px;
+}
+
 .taskMeta,
 .description,
-.summaryText {
+.summaryText,
+.reviewMeta,
+.timelineTime,
+.emptyText {
   color: var(--fdeTextSecondary);
   font-size: 13px;
   line-height: 20px;
@@ -75,30 +89,47 @@
 }
 
 .statusQueued {
-  background: rgba(245, 174, 60, 0.12);
+  background: color-mix(in srgb, var(--fdeWarning) 14%, transparent);
   color: var(--fdeWarning);
 }
 
 .statusRunning {
-  background: color-mix(in srgb, var(--primary) 10%, transparent);
+  background: color-mix(in srgb, var(--fdeAccent) 12%, transparent);
   color: var(--fdeAccent);
 }
 
-.statusReview {
-  background: rgba(123, 97, 255, 0.12);
-  color: #8a7bff;
+.statusPaused {
+  background: color-mix(in srgb, var(--fdeTextMuted) 16%, transparent);
+  color: var(--fdeTextSecondary);
 }
 
-.statusDone {
-  background: rgba(70, 212, 147, 0.12);
+.statusReview {
+  background: color-mix(in srgb, var(--primary) 14%, transparent);
+  color: var(--primary);
+}
+
+.statusRejected,
+.decisionRejected {
+  background: color-mix(in srgb, var(--fdeDanger) 12%, transparent);
+  color: var(--fdeDanger);
+}
+
+.statusTerminated {
+  background: color-mix(in srgb, var(--fdeTextMuted) 12%, transparent);
+  color: var(--fdeTextMuted);
+}
+
+.statusDone,
+.decisionApproved {
+  background: color-mix(in srgb, var(--fdeSuccess) 12%, transparent);
   color: var(--fdeSuccess);
 }
 
 .detailPanel {
-  padding: 16px;
   display: flex;
   flex-direction: column;
   gap: 12px;
+  padding: 16px;
 }
 
 .eyebrow,
@@ -109,12 +140,6 @@
   line-height: 18px;
 }
 
-.title {
-  margin: 0;
-  font-size: 18px;
-  line-height: 28px;
-}
-
 .infoGrid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -123,14 +148,18 @@
 
 .infoCard,
 .summaryCard,
-.skillCard {
-  padding: 14px;
+.skillCard,
+.actionCard {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
+  padding: 14px;
 }
 
-.skillList {
+.skillList,
+.actionRow,
+.reviewList,
+.timelineList {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
@@ -146,6 +175,35 @@
   line-height: 20px;
 }
 
+.actionRow {
+  align-items: center;
+}
+
+.reviewPanel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.reviewInput {
+  width: 100%;
+}
+
+.reviewList,
+.timelineList {
+  flex-direction: column;
+}
+
+.reviewItem,
+.timelineItem {
+  padding: 12px;
+}
+
+.reviewHeader,
+.timelineHeader {
+  align-items: center;
+}
+
 @media (max-width: 1280px) {
   .infoGrid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -155,5 +213,12 @@
 @media (max-width: 860px) {
   .infoGrid {
     grid-template-columns: 1fr;
+  }
+
+  .header,
+  .taskHeader,
+  .reviewHeader,
+  .timelineHeader {
+    flex-direction: column;
   }
 }

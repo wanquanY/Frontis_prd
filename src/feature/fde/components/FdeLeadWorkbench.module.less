@@ -10,7 +10,10 @@
 .ownerCard,
 .actionRow,
 .modalActions,
-.memberOption {
+.memberOption,
+.toolbarActions,
+.listItemTags,
+.timelineHeader {
   display: flex;
 }
 
@@ -18,6 +21,13 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+  flex-wrap: wrap;
+}
+
+.toolbarActions {
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
 }
 
 .filterRow {
@@ -46,7 +56,8 @@
 }
 
 .filterCount,
-.statusTag {
+.statusTag,
+.priorityTag {
   min-height: 22px;
   padding: 0 8px;
   border-radius: 999px;
@@ -60,6 +71,24 @@
 
 .createButton {
   border-radius: 12px;
+}
+
+.sourceSelect {
+  min-width: 172px;
+
+  :global(.ant-select-selector) {
+    min-height: 40px !important;
+    border-radius: 12px !important;
+    border-color: var(--fdeBorder) !important;
+    background: var(--fdeSurface) !important;
+    box-shadow: none !important;
+  }
+
+  :global(.ant-select-selection-item),
+  :global(.ant-select-selection-placeholder) {
+    color: var(--fdeTextSecondary) !important;
+    line-height: 38px !important;
+  }
 }
 
 .body {
@@ -131,6 +160,13 @@
   gap: 12px;
 }
 
+.listItemTags {
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 .listMeta,
 .detailSubtitle,
 .summaryText,
@@ -142,6 +178,25 @@
 
 .statusTag {
   border: 1px solid transparent;
+}
+
+.priorityTag {
+  border: 1px solid transparent;
+}
+
+.priorityHigh {
+  background: rgba(255, 103, 103, 0.12);
+  color: var(--fdeDanger);
+}
+
+.priorityMedium {
+  background: rgba(245, 174, 60, 0.12);
+  color: #d58b00;
+}
+
+.priorityLow {
+  background: rgba(70, 212, 147, 0.12);
+  color: var(--fdeSuccess);
 }
 
 .statusNew {
@@ -176,32 +231,21 @@
 
 .detailGrid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 0;
-  border: 1px solid var(--fdeBorder);
-  border-radius: 14px;
-  overflow: hidden;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
 }
 
 .detailItem {
   min-width: 0;
   min-height: 82px;
   padding: 14px 16px;
-  border-right: 1px solid var(--fdeBorder);
-  border-bottom: 1px solid var(--fdeBorder);
+  border: 1px solid var(--fdeBorder);
+  border-radius: 14px;
   background: var(--fdeSurface);
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   gap: 8px;
-
-  &:nth-child(4n) {
-    border-right: none;
-  }
-
-  &:nth-last-child(-n + 4) {
-    border-bottom: none;
-  }
 }
 
 .detailLabel {
@@ -233,6 +277,49 @@
 
 .summaryCard {
   grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.timelineCard {
+  padding-top: 18px;
+  border-top: 1px solid var(--fdeBorder);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.timelineList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.timelineItem {
+  padding: 14px 16px;
+  border: 1px solid var(--fdeBorder);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--primary) 3%, var(--fdeSurface));
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.timelineHeader {
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.timelineTime {
+  color: var(--fdeTextMuted);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.timelineDetail {
+  margin: 0;
+  color: var(--fdeTextSecondary);
+  font-size: 13px;
+  line-height: 20px;
 }
 
 .summaryBlock {
@@ -318,24 +405,6 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .detailItem {
-    &:nth-child(4n) {
-      border-right: 1px solid var(--fdeBorder);
-    }
-
-    &:nth-last-child(-n + 4) {
-      border-bottom: 1px solid var(--fdeBorder);
-    }
-
-    &:nth-child(2n) {
-      border-right: none;
-    }
-
-    &:nth-last-child(-n + 2) {
-      border-bottom: none;
-    }
-  }
-
   .summaryCard,
   .ownerCard {
     grid-template-columns: 1fr;
@@ -349,19 +418,6 @@
 
   .detailItem {
     min-height: 74px;
-    border-right: none;
-
-    &:nth-child(2n) {
-      border-right: none;
-    }
-
-    &:nth-last-child(-n + 2) {
-      border-bottom: 1px solid var(--fdeBorder);
-    }
-
-    &:last-child {
-      border-bottom: none;
-    }
   }
 
   .detailPanel {

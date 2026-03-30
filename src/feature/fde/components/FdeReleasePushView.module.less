@@ -13,19 +13,23 @@
 .releaseCard,
 .detailPanel,
 .metricCard,
-.card {
+.card,
+.actionCard,
+.customerItem,
+.sectionCard,
+.timelineItem {
   border: 1px solid var(--fdeBorder);
   border-radius: 16px;
   background: var(--fdeSurface);
 }
 
 .releaseCard {
-  padding: 12px 14px;
-  text-align: left;
-  cursor: pointer;
   display: flex;
   flex-direction: column;
   gap: 6px;
+  padding: 12px 14px;
+  text-align: left;
+  cursor: pointer;
 }
 
 .releaseCardActive {
@@ -34,7 +38,9 @@
 }
 
 .releaseTop,
-.header {
+.header,
+.customerTop,
+.timelineHeader {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
@@ -43,7 +49,9 @@
 
 .releaseMeta,
 .description,
-.releaseMetaRow {
+.releaseMetaRow,
+.helperText,
+.rollbackNote {
   color: var(--fdeTextSecondary);
   font-size: 13px;
   line-height: 20px;
@@ -62,37 +70,43 @@
 }
 
 .statusPending {
-  background: rgba(245, 174, 60, 0.12);
+  background: color-mix(in srgb, var(--fdeWarning) 12%, transparent);
   color: var(--fdeWarning);
 }
 
 .statusRolling {
-  background: rgba(123, 97, 255, 0.12);
-  color: #8a7bff;
+  background: color-mix(in srgb, var(--primary) 12%, transparent);
+  color: var(--primary);
+}
+
+.statusPaused {
+  background: color-mix(in srgb, var(--fdeTextMuted) 16%, transparent);
+  color: var(--fdeTextSecondary);
 }
 
 .statusDone {
-  background: rgba(70, 212, 147, 0.12);
+  background: color-mix(in srgb, var(--fdeSuccess) 12%, transparent);
   color: var(--fdeSuccess);
 }
 
 .statusRollback {
-  background: rgba(255, 103, 103, 0.12);
+  background: color-mix(in srgb, var(--fdeDanger) 12%, transparent);
   color: var(--fdeDanger);
 }
 
 .detailPanel {
   min-width: 0;
   flex: 1;
-  padding: 16px;
   display: flex;
   flex-direction: column;
   gap: 12px;
+  padding: 16px;
 }
 
 .eyebrow,
 .sectionTitle,
-.metricLabel {
+.metricLabel,
+.configTitle {
   color: var(--fdeTextMuted);
   font-size: 12px;
   line-height: 18px;
@@ -107,35 +121,71 @@
   font-weight: 700;
 }
 
-.metricGrid {
+.metricGrid,
+.configGrid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 10px;
 }
 
-.metricCard,
-.card {
-  padding: 14px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
+.metricGrid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
-.noteList {
+.metricCard,
+.card,
+.actionCard,
+.customerItem,
+.sectionCard,
+.timelineItem {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  padding: 14px;
+}
+
+.configGrid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.configBlock,
+.rollbackPanel,
+.sectionList,
+.noteList,
+.customerList,
+.timelineList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.checkboxGroup {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.percentInput {
+  width: 160px;
+}
+
+.actionRow,
+.customerMetrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.customerMetrics {
+  color: var(--fdeTextSecondary);
+  font-size: 12px;
+  line-height: 18px;
 }
 
 .noteItem {
-  padding: 10px 12px;
-  border-radius: 12px;
-  border: 1px solid var(--fdeBorder);
-  background: var(--fdeSurface);
-  color: var(--fdeTextSecondary);
   display: flex;
   align-items: flex-start;
   gap: 8px;
+  color: var(--fdeTextSecondary);
 }
 
 .noteDot {
@@ -156,7 +206,23 @@
     width: 100%;
   }
 
-  .metricGrid {
+  .metricGrid,
+  .configGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 860px) {
+  .metricGrid,
+  .configGrid,
+  .checkboxGroup {
     grid-template-columns: 1fr;
+  }
+
+  .header,
+  .releaseTop,
+  .customerTop,
+  .timelineHeader {
+    flex-direction: column;
   }
 }

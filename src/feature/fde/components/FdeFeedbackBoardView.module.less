@@ -14,7 +14,10 @@
 .detailPanel,
 .metricCard,
 .card,
-.recommendationCard {
+.controlCard,
+.signalItem,
+.sampleItem,
+.compareCard {
   border: 1px solid var(--fdeBorder);
   border-radius: 16px;
   background: var(--fdeSurface);
@@ -45,7 +48,11 @@
 
 .agentMeta,
 .description,
-.recommendationText {
+.recommendationText,
+.signalDetail,
+.sampleBlock,
+.sampleQuestion,
+.compareText {
   color: var(--fdeTextSecondary);
   font-size: 13px;
   line-height: 20px;
@@ -60,7 +67,10 @@
   gap: 12px;
 }
 
-.header {
+.header,
+.controlHeader,
+.signalHeader,
+.sampleHeader {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
@@ -69,7 +79,11 @@
 
 .eyebrow,
 .sectionTitle,
-.metricLabel {
+.metricLabel,
+.metricHint,
+.signalMeta,
+.sampleTime,
+.compareLabel {
   color: var(--fdeTextMuted);
   font-size: 12px;
   line-height: 18px;
@@ -93,7 +107,7 @@
 
 .metricCard,
 .card,
-.recommendationCard {
+.controlCard {
   padding: 14px;
 }
 
@@ -108,10 +122,82 @@
   line-height: 28px;
 }
 
-.metricHint {
-  color: var(--fdeTextMuted);
+.controlCard {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.categorySelect {
+  min-width: 180px;
+}
+
+.signalList,
+.sampleList,
+.tagList,
+.compareGrid {
+  display: flex;
+  gap: 8px;
+}
+
+.signalList,
+.sampleList {
+  flex-direction: column;
+}
+
+.tagList {
+  flex-wrap: wrap;
+}
+
+.compareGrid {
+  flex-direction: column;
+}
+
+.signalItem,
+.sampleItem,
+.compareCard,
+.tag {
+  padding: 12px;
+}
+
+.signalItem {
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.signalItemActive {
+  border-color: var(--fdeBorderStrong);
+  background: color-mix(in srgb, var(--primary) 6%, var(--fdeSurface));
+}
+
+.categoryTag {
+  min-height: 26px;
+  padding: 0 10px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   font-size: 12px;
   line-height: 18px;
+  font-weight: 700;
+}
+
+.categoryWarning {
+  background: rgba(245, 174, 60, 0.12);
+  color: var(--fdeWarning);
+}
+
+.categoryDanger {
+  background: rgba(255, 103, 103, 0.12);
+  color: var(--fdeDanger);
+}
+
+.categoryAccent {
+  background: color-mix(in srgb, var(--primary) 10%, transparent);
+  color: var(--fdeAccent);
 }
 
 .detailGrid {
@@ -120,15 +206,20 @@
   gap: 10px;
 }
 
-.tagList {
+.card {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.sampleItem,
+.compareCard {
+  display: flex;
+  flex-direction: column;
   gap: 8px;
 }
 
-.tag,
-.signalItem {
-  padding: 10px 12px;
+.tag {
   border-radius: 12px;
   border: 1px solid var(--fdeBorder);
   background: var(--fdeSurface);
@@ -137,28 +228,8 @@
   line-height: 20px;
 }
 
-.signalList {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.signalItem {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-}
-
-.signalDot {
-  width: 8px;
-  height: 8px;
-  margin-top: 6px;
-  border-radius: 999px;
-  background: var(--fdeWarning);
-  flex-shrink: 0;
-}
-
-.recommendationText {
+.recommendationText,
+.compareText {
   margin: 0;
 }
 

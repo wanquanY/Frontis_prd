@@ -28,10 +28,22 @@
   font-weight: 700;
 }
 
-.orderListBody {
+.orderListBody,
+.blockerList,
+.apiList,
+.modalForm {
   display: flex;
   flex-direction: column;
+}
+
+.orderListBody,
+.blockerList,
+.apiList {
   gap: 8px;
+}
+
+.modalForm {
+  gap: 12px;
 }
 
 .orderItem {
@@ -52,7 +64,10 @@
 }
 
 .orderItemHeader,
-.detailHeader {
+.detailHeader,
+.blockerHeader,
+.apiHeader,
+.acceptanceHeader {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
@@ -61,16 +76,35 @@
 
 .orderItemMeta,
 .detailEyebrow,
-.factLabel {
+.factLabel,
+.sectionHint,
+.blockerMeta,
+.apiNote,
+.modalLabel {
   color: var(--fdeTextMuted);
   font-size: 12px;
   line-height: 18px;
 }
 
 .orderProgress,
-.detailMeta {
+.detailMeta,
+.progressValue {
   color: var(--fdeAccent);
   font-weight: 700;
+}
+
+.orderBlockerCount {
+  display: inline-flex;
+  align-self: flex-start;
+  padding: 0 10px;
+  min-height: 24px;
+  border-radius: 999px;
+  background: rgba(255, 103, 103, 0.12);
+  color: var(--fdeDanger);
+  font-size: 12px;
+  line-height: 18px;
+  font-weight: 600;
+  align-items: center;
 }
 
 .detailPanel {
@@ -83,7 +117,8 @@
 }
 
 .detailDescription,
-.factValue {
+.factValue,
+.blockerDetail {
   color: var(--fdeTextSecondary);
   font-size: 13px;
   line-height: 20px;
@@ -95,6 +130,12 @@
   align-items: flex-end;
   gap: 4px;
   font-size: 12px;
+}
+
+.actionRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
 }
 
 .stepRail {
@@ -111,9 +152,10 @@
   gap: 6px;
 }
 
-.stepBadge {
-  width: 30px;
-  height: 30px;
+.stepBadge,
+.statusTag {
+  min-height: 30px;
+  padding: 0 12px;
   border-radius: 999px;
   border: 1px solid var(--fdeBorder);
   background: var(--fdeSurface);
@@ -125,16 +167,35 @@
   font-weight: 700;
 }
 
-.stepBadgeDone {
+.stepBadge {
+  width: 30px;
+  padding: 0;
+}
+
+.stepBadgeDone,
+.apiDone,
+.acceptanceDone,
+.blockerResolved {
   background: rgba(70, 212, 147, 0.12);
   border-color: rgba(70, 212, 147, 0.32);
   color: var(--fdeSuccess);
 }
 
-.stepBadgeCurrent {
+.stepBadgeCurrent,
+.apiProcessing,
+.acceptanceProcessing,
+.blockerProcessing {
   background: color-mix(in srgb, var(--primary) 10%, transparent);
   border-color: var(--fdeBorderStrong);
   color: var(--fdeAccent);
+}
+
+.apiPending,
+.acceptancePending,
+.blockerPending {
+  background: rgba(245, 174, 60, 0.12);
+  border-color: rgba(245, 174, 60, 0.32);
+  color: #d58b00;
 }
 
 .stepLabel {
@@ -144,7 +205,10 @@
   text-align: center;
 }
 
-.contentGrid {
+.contentGrid,
+.factGrid,
+.workspaceGrid,
+.modalGrid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
@@ -157,14 +221,16 @@
   gap: 12px;
 }
 
-.factGrid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+.factGrid,
+.workspaceGrid {
   gap: 10px;
 }
 
 .factItem,
-.checkItem {
+.workspaceItem,
+.checkItem,
+.blockerItem,
+.apiItem {
   padding: 10px 12px;
   border-radius: 12px;
   border: 1px solid var(--fdeBorder);
@@ -172,6 +238,36 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
+}
+
+.workspaceItem {
+  background: color-mix(in srgb, var(--primary) 4%, var(--fdeSurface));
+}
+
+.blockerItem,
+.apiItem {
+  gap: 8px;
+}
+
+.blockerDetail {
+  margin: 0;
+}
+
+.inlineButton {
+  align-self: flex-start;
+}
+
+.memberProgressRow {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.memberProgressInfo {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
 }
 
 .checkList {
@@ -196,6 +292,22 @@
   flex-shrink: 0;
 }
 
+.emptyHint {
+  color: var(--fdeTextMuted);
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.modalField {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.fullWidthInput {
+  width: 100%;
+}
+
 @media (max-width: 1280px) {
   .workbench {
     flex-direction: column;
@@ -207,8 +319,10 @@
 
   .contentGrid,
   .factGrid,
+  .workspaceGrid,
   .checkList,
-  .stepRail {
+  .stepRail,
+  .modalGrid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
@@ -216,8 +330,10 @@
 @media (max-width: 780px) {
   .contentGrid,
   .factGrid,
+  .workspaceGrid,
   .checkList,
-  .stepRail {
+  .stepRail,
+  .modalGrid {
     grid-template-columns: 1fr;
   }
 }
