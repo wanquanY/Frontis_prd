@@ -1,6 +1,16 @@
 import { useCallback, useMemo, useState } from "react";
 
-import { AppleOutlined, DeleteOutlined, PlusOutlined, PoweroffOutlined, ToolOutlined, WarningOutlined, WindowsOutlined } from "@ant-design/icons";
+import {
+  AppleOutlined,
+  DeleteOutlined,
+  EditOutlined,
+  PlusOutlined,
+  PoweroffOutlined,
+  ToolOutlined,
+  UserOutlined,
+  WarningOutlined,
+  WindowsOutlined,
+} from "@ant-design/icons";
 import { Button, Input, Modal, Popconfirm, Select, Tag, Tooltip, message } from "antd";
 
 import type { FrontisWebUserItem } from "../types";
@@ -314,7 +324,7 @@ export const DeviceManagementView = ({
                       <Select
                         allowClear
                         size="small"
-                        style={{ width: 120 }}
+                        style={{ width: 140 }}
                         placeholder="选择员工"
                         options={userOptions}
                         value={editingOwnerId.ownerId}
@@ -323,22 +333,33 @@ export const DeviceManagementView = ({
                         autoFocus
                       />
                     ) : (
-                      <button
-                        type="button"
-                        style={{
-                          background: "none",
-                          border: "none",
-                          cursor: "pointer",
-                          color: ownerName ? "inherit" : "var(--text-secondary)",
-                          fontSize: 13,
-                          padding: 0,
-                        }}
-                        onClick={() =>
-                          setEditingOwnerId({ deviceId: item.workspace.id, ownerId })
-                        }
-                      >
-                        {ownerName ?? "未分配（点击分配）"}
-                      </button>
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                        <UserOutlined
+                          style={{
+                            color: ownerName ? "var(--primary-color, #1677ff)" : "#bbb",
+                            fontSize: 13,
+                          }}
+                        />
+                        <span
+                          style={{
+                            color: ownerName ? "inherit" : "var(--text-secondary)",
+                            fontSize: 13,
+                          }}
+                        >
+                          {ownerName ?? "未分配"}
+                        </span>
+                        <Button
+                          type="link"
+                          size="small"
+                          icon={<EditOutlined />}
+                          style={{ fontSize: 12, padding: "0 4px" }}
+                          onClick={() =>
+                            setEditingOwnerId({ deviceId: item.workspace.id, ownerId })
+                          }
+                        >
+                          {ownerName ? "更改" : "分配"}
+                        </Button>
+                      </span>
                     )}
                   </span>
                 </div>
@@ -436,7 +457,7 @@ export const DeviceManagementView = ({
                       <Select
                         allowClear
                         size="small"
-                        style={{ width: 120 }}
+                        style={{ width: 140 }}
                         placeholder="选择员工"
                         options={userOptions}
                         value={editingOwnerId.ownerId}
@@ -451,22 +472,33 @@ export const DeviceManagementView = ({
                         autoFocus
                       />
                     ) : (
-                      <button
-                        type="button"
-                        style={{
-                          background: "none",
-                          border: "none",
-                          cursor: "pointer",
-                          color: ownerName ? "inherit" : "var(--text-secondary)",
-                          fontSize: 13,
-                          padding: 0,
-                        }}
-                        onClick={() =>
-                          setEditingOwnerId({ deviceId: item.id, ownerId: item.ownerId })
-                        }
-                      >
-                        {ownerName ?? "未分配（点击分配）"}
-                      </button>
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                        <UserOutlined
+                          style={{
+                            color: ownerName ? "var(--primary-color, #1677ff)" : "#bbb",
+                            fontSize: 13,
+                          }}
+                        />
+                        <span
+                          style={{
+                            color: ownerName ? "inherit" : "var(--text-secondary)",
+                            fontSize: 13,
+                          }}
+                        >
+                          {ownerName ?? "未分配"}
+                        </span>
+                        <Button
+                          type="link"
+                          size="small"
+                          icon={<EditOutlined />}
+                          style={{ fontSize: 12, padding: "0 4px" }}
+                          onClick={() =>
+                            setEditingOwnerId({ deviceId: item.id, ownerId: item.ownerId })
+                          }
+                        >
+                          {ownerName ? "更改" : "分配"}
+                        </Button>
+                      </span>
                     )}
                   </span>
                 </div>

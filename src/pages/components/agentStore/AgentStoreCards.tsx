@@ -2,6 +2,7 @@ import { Button, Tag } from "antd";
 
 import type { EmployeeItem, WorkspaceItem } from "../../types";
 import type { OwnedExpertTeam, RecommendedExpertTeam } from "./types";
+import { EXPERT_VERSION_INFO } from "./AgentStoreTeamDetail";
 
 import styles from "./AgentStoreView.module.less";
 
@@ -9,7 +10,6 @@ import styles from "./AgentStoreView.module.less";
 
 interface OwnedTeamCardProps {
   employees: EmployeeItem[];
-  onUpgrade: (team: OwnedExpertTeam) => void;
   onView: (teamId: string) => void;
   team: OwnedExpertTeam;
   workspace?: WorkspaceItem;
@@ -17,13 +17,17 @@ interface OwnedTeamCardProps {
 
 export const OwnedTeamCard = ({
   employees,
-  onUpgrade,
   onView,
   team,
   workspace,
 }: OwnedTeamCardProps): JSX.Element => {
   const members = employees.filter(e => team.memberIds.includes(e.id));
   const isOnline = members.some(e => ["online", "busy", "idle"].includes(e.status));
+  const hasExpertUpdate = team.memberIds.some(memberId => {
+    const versionInfo = EXPERT_VERSION_INFO[memberId];
+
+    return Boolean(versionInfo?.newVersion && versionInfo.newVersion !== versionInfo.version);
+  });
 
   return (
     <div className={styles.ownedCard}>
@@ -35,7 +39,7 @@ export const OwnedTeamCard = ({
         <div className={styles.cardContent}>
           <div className={styles.cardTitleRow}>
             <h3 className={styles.cardTitle}>{team.name}</h3>
-            {team.hasNewVersion && <span className={styles.updateBadge}>有新版本</span>}
+            {hasExpertUpdate ? <span className={styles.updateBadge}>有新版本</span> : null}
           </div>
           <div className={styles.cardMeta}>
             <Tag color={team.categoryColor} bordered={false}>
@@ -58,9 +62,6 @@ export const OwnedTeamCard = ({
             <span>{isOnline ? "在线" : "离线"}</span>
           </div>
           <div className={styles.cardInfoItem}>
-            <span className={styles.cardInfoLabel}>{team.version}</span>
-          </div>
-          <div className={styles.cardInfoItem}>
             <span className={styles.cardInfoValue}>
               {team.cumulativeTaskCount.toLocaleString()}
             </span>
@@ -78,14 +79,6 @@ export const OwnedTeamCard = ({
         <Button type="primary" onClick={() => onView(team.id)}>
           查看
         </Button>
-        {team.hasNewVersion && (
-          <>
-            <Button onClick={() => onUpgrade(team)}>升级</Button>
-            <Button type="text" size="small">
-              忽略
-            </Button>
-          </>
-        )}
       </div>
     </div>
   );
