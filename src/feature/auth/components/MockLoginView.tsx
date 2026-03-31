@@ -6,7 +6,7 @@ import { Button, Input, message } from "antd";
 import { Navigate, useNavigate, useSearchParams } from "react-router-dom";
 
 import { useMockAuth } from "@/feature/auth/hooks/useMockAuth";
-import { MOCK_AUTH_ACCOUNTS } from "@/feature/auth/mockAccounts";
+import { MOCK_AUTH_ACCOUNTS, getWorkspacePathByRole } from "@/feature/auth/mockAccounts";
 import { useAuthStore } from "@/store/auth";
 
 import styles from "./MockLoginView.module.less";
@@ -23,6 +23,7 @@ export const MockLoginView = (): JSX.Element => {
   const [verificationCodeValue, setVerificationCodeValue] = useState<string>("");
   const [countdown, setCountdown] = useState<number>(0);
   const [sentPhone, setSentPhone] = useState<string>("");
+  const [pendingQuickLoginPath, setPendingQuickLoginPath] = useState<string>();
 
   const redirectPath = useMemo(() => {
     const targetPath = searchParams.get("redirect")?.trim();
@@ -99,9 +100,12 @@ export const MockLoginView = (): JSX.Element => {
   );
 
   const handleQuickLogin = useCallback(
-    (role: "employee" | "admin"): void => {
+    (role: "employee" | "admin", version: "v1" | "v2" = "v1"): void => {
       const account = MOCK_AUTH_ACCOUNTS.find(a => a.role === role);
       if (!account) return;
+      const targetPath = getWorkspacePathByRole(role, version);
+
+      setPendingQuickLoginPath(targetPath);
       setSession({
         userId: account.userId,
         name: account.name,
@@ -109,7 +113,7 @@ export const MockLoginView = (): JSX.Element => {
         role: account.role,
         loginAt: new Date().toISOString(),
       });
-      navigate(role === "admin" ? "/web/admin" : "/web/employee", { replace: true });
+      navigate(targetPath, { replace: true });
     },
     [navigate, setSession],
   );
@@ -119,7 +123,12 @@ export const MockLoginView = (): JSX.Element => {
   }, [navigate]);
 
   if (session) {
-    return <Navigate replace to={resolvePostLoginPath(session.role, redirectPath)} />;
+    return (
+      <Navigate
+        replace
+        to={pendingQuickLoginPath ?? resolvePostLoginPath(session.role, redirectPath)}
+      />
+    );
   }
 
   return (
@@ -236,6 +245,22 @@ export const MockLoginView = (): JSX.Element => {
                   >
                     <span className={styles.quickLoginIcon}>👔</span>
                     <span>企业老板登录</span>
+                  </button>
+                  <button
+                    type="button"
+                    className={styles.quickLoginButton}
+                    onClick={() => handleQuickLogin("employee", "v2")}
+                  >
+                    <span className={styles.quickLoginIcon}>🆕</span>
+                    <span>普通员工登录 V2</span>
+                  </button>
+                  <button
+                    type="button"
+                    className={styles.quickLoginButton}
+                    onClick={() => handleQuickLogin("admin", "v2")}
+                  >
+                    <span className={styles.quickLoginIcon}>🚀</span>
+                    <span>企业老板登录 V2</span>
                   </button>
                   <button
                     type="button"

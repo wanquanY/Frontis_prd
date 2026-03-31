@@ -1,5 +1,17 @@
 import type { Block } from "@/types/block";
 import type { SynClawArtifactItem, SynClawSpaceItem } from "@/pages/synclaw/types";
+import {
+  ECOMMERCE_AUTOMATION_AGENT_DEMO,
+  ECOMMERCE_AUTOMATION_SKILL_DEMOS,
+} from "@/constants/ecommerceAutomationDemo";
+import {
+  LIVE_BROADCAST_AGENT_DEMO,
+  LIVE_BROADCAST_SKILL_DEMOS,
+} from "@/constants/liveBroadcastDemo";
+import {
+  XIAOCANMAMA_IP_AGENT_DEMO,
+  XIAOCANMAMA_IP_SKILL_DEMOS,
+} from "@/constants/xiaocanMamaIpDemo";
 import type {
   AdminAiEmployeeListItem,
   CoworkerSkillItem,
@@ -264,6 +276,72 @@ export const INITIAL_EMPLOYEES: EmployeeItem[] = [
     skills: ["benchmark_find"],
   },
   {
+    id: ECOMMERCE_AUTOMATION_AGENT_DEMO.id,
+    name: ECOMMERCE_AUTOMATION_AGENT_DEMO.name,
+    avatarUrl: getAvatarUrl(ECOMMERCE_AUTOMATION_AGENT_DEMO.avatarSeed),
+    role: ECOMMERCE_AUTOMATION_AGENT_DEMO.role,
+    portalRoles: ["admin", "employee"],
+    status: "online",
+    workspaceId: "workspace-local",
+    connectionMode: "cloud",
+    model: "gpt-4o",
+    summary: ECOMMERCE_AUTOMATION_AGENT_DEMO.summary,
+    lastAction: "已生成货盘比价、商品质检、订单异常监控和运营播报示例。",
+    source: "coworker",
+    visibility: "all",
+    subAgentModel: "gpt-4o-mini",
+    agentId: "ecom-ops-agent-01",
+    runtimeAgentId: "rt-ecom-ops-01",
+    boundMembers: [...ECOMMERCE_AUTOMATION_AGENT_DEMO.boundMembers],
+    welcomeMessage: ECOMMERCE_AUTOMATION_AGENT_DEMO.welcomeMessage,
+    systemPrompt: ECOMMERCE_AUTOMATION_AGENT_DEMO.systemPrompt,
+    skills: ECOMMERCE_AUTOMATION_SKILL_DEMOS.map(item => item.id),
+  },
+  {
+    id: LIVE_BROADCAST_AGENT_DEMO.id,
+    name: LIVE_BROADCAST_AGENT_DEMO.name,
+    avatarUrl: getAvatarUrl(LIVE_BROADCAST_AGENT_DEMO.avatarSeed),
+    role: LIVE_BROADCAST_AGENT_DEMO.role,
+    portalRoles: ["admin", "employee"],
+    status: "online",
+    workspaceId: "workspace-local",
+    connectionMode: "cloud",
+    model: "gpt-4o",
+    summary: LIVE_BROADCAST_AGENT_DEMO.summary,
+    lastAction: "已生成直播脚本、达人投放、热点选题、爆品热度和舆情预审示例。",
+    source: "coworker",
+    visibility: "all",
+    subAgentModel: "gpt-4o-mini",
+    agentId: "live-ops-agent-01",
+    runtimeAgentId: "rt-live-ops-01",
+    boundMembers: [...LIVE_BROADCAST_AGENT_DEMO.boundMembers],
+    welcomeMessage: LIVE_BROADCAST_AGENT_DEMO.welcomeMessage,
+    systemPrompt: LIVE_BROADCAST_AGENT_DEMO.systemPrompt,
+    skills: LIVE_BROADCAST_SKILL_DEMOS.map(item => item.id),
+  },
+  {
+    id: XIAOCANMAMA_IP_AGENT_DEMO.id,
+    name: XIAOCANMAMA_IP_AGENT_DEMO.name,
+    avatarUrl: getAvatarUrl(XIAOCANMAMA_IP_AGENT_DEMO.avatarSeed),
+    role: XIAOCANMAMA_IP_AGENT_DEMO.role,
+    portalRoles: ["admin", "employee"],
+    status: "online",
+    workspaceId: "workspace-local",
+    connectionMode: "cloud",
+    model: "gpt-4o",
+    summary: XIAOCANMAMA_IP_AGENT_DEMO.summary,
+    lastAction: "已生成童装清仓和创维吹风机返场两组开团文示例。",
+    source: "coworker",
+    visibility: "all",
+    subAgentModel: "gpt-4o-mini",
+    agentId: "xiaocanmama-ip-agent-01",
+    runtimeAgentId: "rt-xiaocanmama-ip-01",
+    boundMembers: [...XIAOCANMAMA_IP_AGENT_DEMO.boundMembers],
+    welcomeMessage: XIAOCANMAMA_IP_AGENT_DEMO.welcomeMessage,
+    systemPrompt: XIAOCANMAMA_IP_AGENT_DEMO.systemPrompt,
+    skills: XIAOCANMAMA_IP_SKILL_DEMOS.map(item => item.id),
+  },
+  {
     id: "employee-writer",
     name: "CEO分身",
     avatarUrl: getAvatarUrl("employee-writer"),
@@ -314,6 +392,9 @@ export const INITIAL_EMPLOYEE_DOCUMENTS: Record<string, string[]> = {
   "employee-designer": ["交互规范.md", "布局原则.md", "组件清单.md"],
   "employee-research": ["竞品调研.md", "行业资料.md", "参考案例.md"],
   "employee-ops": ["上线检查表.md", "回归清单.md", "发布说明.md"],
+  [ECOMMERCE_AUTOMATION_AGENT_DEMO.id]: [...ECOMMERCE_AUTOMATION_AGENT_DEMO.documentNames],
+  [LIVE_BROADCAST_AGENT_DEMO.id]: [...LIVE_BROADCAST_AGENT_DEMO.documentNames],
+  [XIAOCANMAMA_IP_AGENT_DEMO.id]: [...XIAOCANMAMA_IP_AGENT_DEMO.documentNames],
   "employee-writer": ["写作规范.md", "会议纪要模板.md", "归档说明.md"],
   "employee-sales": ["销售日报模板.md", "客户跟进规范.md", "战报汇总.md"],
   "employee-store-ops": ["门店运营日报.md", "客流分析模板.md", "库存预警规范.md"],
@@ -352,6 +433,30 @@ export const INITIAL_EMPLOYEE_DOCUMENT_CONTENTS: Record<string, Record<string, s
     "发布说明.md":
       "# 发布说明\n\n当前原型以演示效果为主，允许 mock 数据覆盖业务态，但不能破坏布局一致性。\n",
   },
+  [ECOMMERCE_AUTOMATION_AGENT_DEMO.id]: {
+    "电商托管说明.md":
+      "# 电商托管说明\n\n- 覆盖货盘比价、商品质检、发货超时、退款拒绝、差评监控和运营播报\n- 当前全部为 mock 演示，不调用真实微店或 IM 接口\n- 预置问题直接对应文档中的 6 组电商托管场景\n",
+    "商品质检规则.md":
+      "# 商品质检规则\n\n1. 以 SKU 为主键对齐货盘和微店在售商品\n2. 重点看漏上架、未备案、售价误差、规格名称和运费险\n3. 输出逐 SKU 质检清单与运营摘要\n",
+    "订单异常监控SOP.md":
+      "# 订单异常监控 SOP\n\n- 发货超时：付款 48h 未出单或填单 72h 未揽收即告警\n- 退款拒绝：结合金额、拒绝次数和平台介入概率分级\n- 差评监控：聚合高频问题关键词并回推责任方整改\n- 运营响应：每小时订单播报 + 每日数据大盘摘要\n",
+  },
+  [LIVE_BROADCAST_AGENT_DEMO.id]: {
+    "直播运营说明.md":
+      "# 直播运营说明\n\n- 处理直播脚本、达人投放、热点选题、爆品热度和微博舆情\n- 当前全部为 mock 演示，不调用真实平台接口\n- 预置问题直接对应文档中的 6 组真实示例\n",
+    "抖音投放流程.md":
+      "# 抖音投放流程\n\n1. 先判断赛道和商品标签\n2. 再抓达人 / 热榜 / 视频热度数据\n3. 最后输出投放建议、选题建议或选品建议\n",
+    "直播编导清单.md":
+      "# 直播编导清单\n\n- 校准直播类型与品类基调\n- 输出整场 Rundown\n- 深化关键模块逐字稿\n- 生成主持串场与福利节奏\n",
+  },
+  [XIAOCANMAMA_IP_AGENT_DEMO.id]: {
+    "小蚕妈妈IP运营说明.md":
+      "# 小蚕妈妈 IP 运营说明\n\n- 面向私域带货、公众号种草和团购开卖场景\n- 当前全部为 mock 演示，不调用真实店铺或素材库接口\n- 预置问题直接对应“童装清仓开团”和“创维吹风机返场”两组示例\n",
+    "开团文输入规范.md":
+      "# 开团文输入规范\n\n## 必填字段\n- 商品名称\n- 品牌\n- 价格：活动价 + 锚点原价\n- 开卖时间\n- 店铺链接\n\n## 选填字段\n- 产品核心参数\n- 销量数据\n- 真实使用反馈\n- 品类特殊说明（内衣 / 电器 / 鞋类等）\n\n## 可选媒体\n- 产品图\n- 视频\n- 所有媒体位在输出中统一用占位符标记\n",
+    "返场补货SOP.md":
+      "# 返场补货 SOP\n\n1. 先讲清楚为什么返场、为什么还能补到货\n2. 再给价格锚点、库存量和前 N 名福利\n3. 最后按适合人群拆解购买理由，并收口“清完不补”的稀缺感\n",
+  },
   "employee-writer": {
     "写作规范.md":
       "# 写作规范\n\n- 输出先结论后展开\n- 用词尽量简洁直接\n- 结构优先于修辞\n",
@@ -385,6 +490,9 @@ export const INITIAL_FRONTIS_WEB_USERS: FrontisWebUserItem[] = [
       "employee-designer",
       "employee-research",
       "employee-ops",
+      ECOMMERCE_AUTOMATION_AGENT_DEMO.id,
+      LIVE_BROADCAST_AGENT_DEMO.id,
+      XIAOCANMAMA_IP_AGENT_DEMO.id,
       "employee-sales",
       "employee-writer",
     ],
@@ -404,6 +512,9 @@ export const INITIAL_FRONTIS_WEB_USERS: FrontisWebUserItem[] = [
       "employee-designer",
       "employee-research",
       "employee-ops",
+      ECOMMERCE_AUTOMATION_AGENT_DEMO.id,
+      LIVE_BROADCAST_AGENT_DEMO.id,
+      XIAOCANMAMA_IP_AGENT_DEMO.id,
       "employee-sales",
       "employee-writer",
     ],
@@ -418,7 +529,12 @@ export const INITIAL_FRONTIS_WEB_USERS: FrontisWebUserItem[] = [
     phone: "13800000011",
     role: "member",
     status: "active",
-    assignedAgentIds: ["employee-writer"],
+    assignedAgentIds: [
+      "employee-writer",
+      ECOMMERCE_AUTOMATION_AGENT_DEMO.id,
+      LIVE_BROADCAST_AGENT_DEMO.id,
+      XIAOCANMAMA_IP_AGENT_DEMO.id,
+    ],
     lastActiveAt: "今天 17:36",
     dialogueCount: 21,
     tokenUsage: 78000,
@@ -430,7 +546,12 @@ export const INITIAL_FRONTIS_WEB_USERS: FrontisWebUserItem[] = [
     phone: "13800000012",
     role: "member",
     status: "active",
-    assignedAgentIds: ["employee-writer"],
+    assignedAgentIds: [
+      "employee-writer",
+      ECOMMERCE_AUTOMATION_AGENT_DEMO.id,
+      LIVE_BROADCAST_AGENT_DEMO.id,
+      XIAOCANMAMA_IP_AGENT_DEMO.id,
+    ],
     lastActiveAt: "今天 15:12",
     dialogueCount: 18,
     tokenUsage: 64200,
@@ -442,7 +563,12 @@ export const INITIAL_FRONTIS_WEB_USERS: FrontisWebUserItem[] = [
     phone: "13800000013",
     role: "member",
     status: "disabled",
-    assignedAgentIds: ["employee-writer"],
+    assignedAgentIds: [
+      "employee-writer",
+      ECOMMERCE_AUTOMATION_AGENT_DEMO.id,
+      LIVE_BROADCAST_AGENT_DEMO.id,
+      XIAOCANMAMA_IP_AGENT_DEMO.id,
+    ],
     lastActiveAt: "昨天 20:18",
     dialogueCount: 7,
     tokenUsage: 21500,
@@ -454,7 +580,12 @@ export const INITIAL_FRONTIS_WEB_USERS: FrontisWebUserItem[] = [
     phone: "13800000014",
     role: "member",
     status: "active",
-    assignedAgentIds: ["employee-writer"],
+    assignedAgentIds: [
+      "employee-writer",
+      ECOMMERCE_AUTOMATION_AGENT_DEMO.id,
+      LIVE_BROADCAST_AGENT_DEMO.id,
+      XIAOCANMAMA_IP_AGENT_DEMO.id,
+    ],
     lastActiveAt: "从未使用",
     dialogueCount: 0,
     tokenUsage: 0,
@@ -703,6 +834,38 @@ export const INITIAL_CHANNEL_ARTIFACTS: Record<string, SynClawArtifactItem[]> = 
  * 原型页默认技能列表。
  */
 export const INITIAL_SKILLS: SkillItem[] = [
+  ...ECOMMERCE_AUTOMATION_SKILL_DEMOS.map(item => ({
+    id: `skill-${item.id}`,
+    name: item.name,
+    category: item.category,
+    summary: item.summary,
+    installedFor: [ECOMMERCE_AUTOMATION_AGENT_DEMO.id],
+    supportAutomation:
+      item.id === "shipping-timeout-watch" ||
+      item.id === "refund-reject-watch" ||
+      item.id === "negative-review-watch" ||
+      item.id === "ops-hourly-briefing",
+  })),
+  ...LIVE_BROADCAST_SKILL_DEMOS.map(item => ({
+    id: `skill-${item.id}`,
+    name: item.name,
+    category: item.category,
+    summary: item.summary,
+    installedFor: [LIVE_BROADCAST_AGENT_DEMO.id],
+    supportAutomation:
+      item.id === "live-script" ||
+      item.id === "product-heat-analysis" ||
+      item.id === "weibo-risk-scan" ||
+      item.id === "live-rundown-director",
+  })),
+  ...XIAOCANMAMA_IP_SKILL_DEMOS.map(item => ({
+    id: `skill-${item.id}`,
+    name: item.name,
+    category: item.category,
+    summary: item.summary,
+    installedFor: [XIAOCANMAMA_IP_AGENT_DEMO.id],
+    supportAutomation: false,
+  })),
   {
     id: "skill-prd",
     name: "PRD 拆解器",

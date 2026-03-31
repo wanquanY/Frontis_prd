@@ -1,6 +1,18 @@
 import type { SynClawArtifactItem } from "@/pages/synclaw/types";
 import type { Block } from "@/types/block";
 import { AI_CEO_AGENT_SCENARIO_QUESTIONS } from "@/constants/aiCeoScenarioPrompts";
+import {
+  ECOMMERCE_AUTOMATION_AGENT_DEMO,
+  ECOMMERCE_AUTOMATION_SKILL_DEMOS,
+} from "@/constants/ecommerceAutomationDemo";
+import {
+  LIVE_BROADCAST_AGENT_DEMO,
+  LIVE_BROADCAST_SKILL_DEMOS,
+} from "@/constants/liveBroadcastDemo";
+import {
+  XIAOCANMAMA_IP_AGENT_DEMO,
+  XIAOCANMAMA_IP_SKILL_DEMOS,
+} from "@/constants/xiaocanMamaIpDemo";
 
 import type {
   ChatMessage,
@@ -68,6 +80,10 @@ const TYPEWRITER_BATCH_SIZE = 3;
 const TYPEWRITER_STEP_MS = 28;
 const TYPEWRITER_MIN_DELAY_MS = 900;
 const TYPEWRITER_MAX_DELAY_MS = 3600;
+const TYPEWRITER_FRAME_MIN_DELAY_MS = 72;
+const TYPEWRITER_FRAME_MAX_DELAY_MS = 168;
+const TYPEWRITER_TARGET_CHARS_PER_STEP = 18;
+const TYPEWRITER_MAX_PROGRESS_STEPS = 12;
 
 const SCENARIO_TOOL_DISPLAY_NAMES: Record<string, string> = {
   sequence_overview: "序列总览",
@@ -81,6 +97,44 @@ const SCENARIO_TOOL_DISPLAY_NAMES: Record<string, string> = {
   score_rank: "评分排名",
   attention_risk_digest: "关注区风险摘要",
   management_plan: "管理动作生成",
+  live_brief_ingest: "商品资料整理",
+  live_script_outline: "脚本框架生成",
+  live_script_polish: "讲品话术润色",
+  category_match: "投放赛道归类",
+  tikhub_xingtu_search: "星图达人搜索",
+  creator_scoring: "投放评分",
+  tikhub_billboard: "抖音热榜抓取",
+  topic_match: "热点匹配",
+  opening_hook_generate: "口播建议生成",
+  douyin_video_scan: "抖音视频抓取",
+  heat_score: "热度评分",
+  product_pick_suggestion: "选品建议",
+  weibo_search: "微博检索",
+  risk_cluster: "舆情聚类",
+  forbidden_words_generate: "违禁词建议",
+  brief_align: "直播类型校准",
+  rundown_generate: "Rundown 框架生成",
+  conversion_module_deepen: "转化环节深化",
+  price_sheet_parse: "货盘字段识别",
+  margin_guard_check: "毛利率校验",
+  public_price_scan: "公开平台比价",
+  pricing_band_generate: "定价区间生成",
+  sku_sheet_parse: "货盘 SKU 解析",
+  weidian_catalog_sync: "微店在售拉取",
+  sku_quality_compare: "六维质检比对",
+  quality_summary_push: "质检摘要推送",
+  order_status_poll: "订单状态轮询",
+  shipping_timeout_detect: "超时规则识别",
+  supplier_routing_alert: "供应商路由告警",
+  refund_case_scan: "退款拒绝扫描",
+  refund_risk_score: "退款风险评级",
+  ops_group_alert: "运营群告警",
+  review_stream_collect: "评价流采集",
+  review_keyword_cluster: "高频问题聚类",
+  review_digest_push: "差评摘要推送",
+  exception_merge: "异常结果合并",
+  ops_brief_generate: "播报生成",
+  action_route_generate: "责任方路由",
 };
 
 const SEQUENCE_OVERVIEW_PAGE_IMAGE_URL = new URL(
@@ -140,6 +194,50 @@ const estimateTypewriterDelay = (content: string): number => {
   return Math.max(TYPEWRITER_MIN_DELAY_MS, Math.min(TYPEWRITER_MAX_DELAY_MS, estimatedDelay));
 };
 
+const estimateTypewriterFrameDelay = (nextContent: string, previousContent: string): number => {
+  const nextLength = Array.from(nextContent).length;
+  const previousLength = Array.from(previousContent).length;
+  const appendedLength = Math.max(1, nextLength - previousLength);
+  const punctuationPause = /[，。！？；：、,.!?;:]$/.test(nextContent.trim()) ? 24 : 0;
+  const estimatedDelay =
+    Math.ceil(appendedLength / TYPEWRITER_BATCH_SIZE) * TYPEWRITER_STEP_MS * 2 + punctuationPause;
+
+  return Math.max(
+    TYPEWRITER_FRAME_MIN_DELAY_MS,
+    Math.min(TYPEWRITER_FRAME_MAX_DELAY_MS, estimatedDelay),
+  );
+};
+
+const buildTypewriterProgressSteps = (
+  targetContent: string,
+  currentContent = "",
+): string[] => {
+  const targetCharacters = Array.from(targetContent);
+  const currentLength = Array.from(currentContent).length;
+
+  if (targetCharacters.length <= currentLength) {
+    return [];
+  }
+
+  const remainingLength = targetCharacters.length - currentLength;
+  const stepCount = Math.min(
+    TYPEWRITER_MAX_PROGRESS_STEPS,
+    Math.max(3, Math.ceil(remainingLength / TYPEWRITER_TARGET_CHARS_PER_STEP)),
+  );
+  const chunkSize = Math.max(
+    TYPEWRITER_BATCH_SIZE * 2,
+    Math.ceil(remainingLength / stepCount),
+  );
+  const steps: string[] = [];
+
+  for (let length = currentLength + chunkSize; length < targetCharacters.length; length += chunkSize) {
+    steps.push(targetCharacters.slice(0, length).join(""));
+  }
+
+  steps.push(targetCharacters.join(""));
+  return steps;
+};
+
 const cloneScenarioBlock = (block: Block): Block => ({
   ...block,
   data:
@@ -155,9 +253,9 @@ const extractScenarioBlockContent = (block: Block): string => {
   return typeof block.data.content === "string" ? block.data.content : "";
 };
 
-const buildScenarioBlockWithState = (
+const buildScenarioContentBlockWithState = (
   block: Block,
-  options: { id?: string; isStreaming: boolean },
+  options: { id?: string; content: string; isStreaming: boolean },
 ): Block => {
   const nextBlock = cloneScenarioBlock(block);
 
@@ -170,6 +268,7 @@ const buildScenarioBlockWithState = (
   if (typeof nextBlock.data === "object" && nextBlock.data !== null) {
     nextBlock.data = {
       ...nextBlock.data,
+      content: options.content,
       status: options.isStreaming ? "streaming" : "completed",
     };
   }
@@ -177,17 +276,8 @@ const buildScenarioBlockWithState = (
   return nextBlock;
 };
 
-const createScenarioNarrationBlock = (id: string, content: string, isStreaming: boolean): Block => ({
-  id,
-  kind: "text",
-  data: {
-    content,
-    status: isStreaming ? "streaming" : "completed",
-    role: "assistant",
-  },
-  actorRole: "assistant",
-  isStreaming,
-});
+const areScenarioBlocksEqual = (left: Block, right: Block): boolean =>
+  JSON.stringify(left) === JSON.stringify(right);
 
 const upsertScenarioChildBlock = (children: Block[], block: Block): Block[] => {
   const nextChildren = [...children];
@@ -238,23 +328,142 @@ const expandFramesForTypewriter = (frames: DialogueScenarioFrame[]): DialogueSce
   let messageId = "";
   let accumulatedChildren: Block[] = [];
   let thinkingStepIndex = 0;
-  let narrationStepIndex = 0;
   let lastThinkingContent = "";
-  let lastPreview = "";
-  let hasShownAction = false;
+
+  const pushFrame = (
+    preview: string,
+    delayMs: number,
+    artifacts?: SynClawArtifactItem[],
+    results?: DialogueGeneratedResultItem[],
+  ): void => {
+    timelineFrames.push(
+      buildScenarioMessageFrame(messageId, accumulatedChildren, preview, delayMs, artifacts, results),
+    );
+  };
+
+  const upsertStaticBlocks = (blocks: Block[]): boolean => {
+    let hasChanged = false;
+
+    blocks.forEach(block => {
+      const nextBlock = cloneScenarioBlock(block);
+      const currentBlock = accumulatedChildren.find(child => child.id === nextBlock.id);
+
+      if (currentBlock && areScenarioBlocksEqual(currentBlock, nextBlock)) {
+        return;
+      }
+
+      accumulatedChildren = upsertScenarioChildBlock(accumulatedChildren, nextBlock);
+      hasChanged = true;
+    });
+
+    return hasChanged;
+  };
+
+  const finalizeStreamingBlock = (sourceBlock: Block, blockId: string): void => {
+    const currentBlock = accumulatedChildren.find(child => child.id === blockId);
+
+    if (!currentBlock || currentBlock.isStreaming !== true) {
+      return;
+    }
+
+    accumulatedChildren = upsertScenarioChildBlock(
+      accumulatedChildren,
+      buildScenarioContentBlockWithState(sourceBlock, {
+        id: blockId,
+        content: extractScenarioBlockContent(currentBlock),
+        isStreaming: false,
+      }),
+    );
+  };
+
+  const getLatestThinkingBlock = (): Block | undefined =>
+    [...accumulatedChildren].reverse().find(child => child.kind === "thinking");
+
+  const resolveThinkingBlockId = (sourceThinkingId: string): string => {
+    const lastChild = accumulatedChildren[accumulatedChildren.length - 1];
+
+    if (lastChild?.kind === "thinking") {
+      return lastChild.id;
+    }
+
+    const latestThinkingBlock = getLatestThinkingBlock();
+
+    if (!latestThinkingBlock) {
+      return sourceThinkingId;
+    }
+
+    thinkingStepIndex += 1;
+    return `${sourceThinkingId}-phase-${thinkingStepIndex}`;
+  };
+
+  const streamTextualBlock = (
+    sourceBlock: Block,
+    blockId: string,
+    targetContent: string,
+    options: {
+      keepStreamingAtEnd: boolean;
+      preview: string;
+      artifacts?: SynClawArtifactItem[];
+      results?: DialogueGeneratedResultItem[];
+    },
+  ): boolean => {
+    const currentBlock = accumulatedChildren.find(child => child.id === blockId);
+    const currentContent = currentBlock ? extractScenarioBlockContent(currentBlock) : "";
+    const progressSteps = buildTypewriterProgressSteps(targetContent, currentContent);
+
+    if (progressSteps.length === 0) {
+      const nextBlock = buildScenarioContentBlockWithState(sourceBlock, {
+        id: blockId,
+        content: targetContent,
+        isStreaming: options.keepStreamingAtEnd,
+      });
+
+      if (!currentBlock || !areScenarioBlocksEqual(currentBlock, nextBlock)) {
+        accumulatedChildren = upsertScenarioChildBlock(accumulatedChildren, nextBlock);
+      }
+
+      return false;
+    }
+
+    let previousContent = currentContent;
+
+    progressSteps.forEach((contentStep, index) => {
+      const isLastStep = index === progressSteps.length - 1;
+
+      accumulatedChildren = upsertScenarioChildBlock(
+        accumulatedChildren,
+        buildScenarioContentBlockWithState(sourceBlock, {
+          id: blockId,
+          content: contentStep,
+          isStreaming: isLastStep ? options.keepStreamingAtEnd : true,
+        }),
+      );
+
+      pushFrame(
+        isLastStep ? options.preview : contentStep,
+        estimateTypewriterFrameDelay(contentStep, previousContent),
+        isLastStep ? options.artifacts : undefined,
+        isLastStep ? options.results : undefined,
+      );
+
+      previousContent = contentStep;
+    });
+
+    return true;
+  };
 
   frames.forEach(frame => {
     const messageBlock = frame.blocks.find(block => block.kind === "message");
     const messageChildren = messageBlock?.children ?? [];
     const thinkingBlock = messageChildren.find(block => block.kind === "thinking");
     const toolBlocks = messageChildren.filter(block => block.kind === "tool_use");
-    const resultCardBlocks = messageChildren.filter(block => block.kind === "result_cards");
     const finalTextBlocks = messageChildren.filter(
       block => block.kind === "text" && block.id.endsWith(FINAL_TEXT_BLOCK_SUFFIX),
     );
     const hasActionBlocks =
-      toolBlocks.length > 0 || finalTextBlocks.length > 0 || resultCardBlocks.length > 0;
+      toolBlocks.length > 0 || finalTextBlocks.length > 0 || (frame.results?.length ?? 0) > 0;
     const preview = frame.preview.trim();
+    let hasPushedFrame = false;
 
     if (!messageId) {
       messageId = messageBlock?.id ?? `scenario-message-${Date.now()}`;
@@ -263,146 +472,57 @@ const expandFramesForTypewriter = (frames: DialogueScenarioFrame[]): DialogueSce
     const thinkingContent = thinkingBlock ? extractScenarioBlockContent(thinkingBlock).trim() : "";
 
     if (thinkingBlock && thinkingContent) {
-      if (accumulatedChildren.length === 0) {
-        const nextThinkingId = `${thinkingBlock.id}-phase-${++thinkingStepIndex}`;
-        accumulatedChildren = [
-          ...accumulatedChildren,
-          buildScenarioBlockWithState(thinkingBlock, {
-            id: nextThinkingId,
-            isStreaming: true,
-          }),
-        ];
+      if (thinkingContent !== lastThinkingContent) {
+        const nextThinkingId = resolveThinkingBlockId(thinkingBlock.id);
+        hasPushedFrame =
+          streamTextualBlock(thinkingBlock, nextThinkingId, thinkingContent, {
+            keepStreamingAtEnd: !hasActionBlocks,
+            preview: preview || thinkingContent,
+          }) || hasPushedFrame;
         lastThinkingContent = thinkingContent;
-
-        timelineFrames.push(
-          buildScenarioMessageFrame(
-            messageId,
-            accumulatedChildren,
-            preview || thinkingContent,
-            estimateTypewriterDelay(thinkingContent),
-          ),
-        );
 
         if (!hasActionBlocks) {
           return;
         }
+      } else if (hasActionBlocks) {
+        const lastThinkingBlock = getLatestThinkingBlock();
 
-        accumulatedChildren = accumulatedChildren.map(child =>
-          child.id === nextThinkingId
-            ? buildScenarioBlockWithState(thinkingBlock, {
-                id: nextThinkingId,
-                isStreaming: false,
-              })
-            : child,
-        );
-      } else if (thinkingContent !== lastThinkingContent) {
-        if (!hasShownAction && hasActionBlocks) {
-          const lastThinkingBlock = [...accumulatedChildren]
-            .reverse()
-            .find(child => child.kind === "thinking");
-
-          if (lastThinkingBlock) {
-            accumulatedChildren = accumulatedChildren.map(child =>
-              child.id === lastThinkingBlock.id
-                ? buildScenarioBlockWithState(thinkingBlock, {
-                    id: lastThinkingBlock.id,
-                    isStreaming: false,
-                  })
-                : child,
-            );
-          }
-        } else {
-          const nextThinkingId = `${thinkingBlock.id}-phase-${++thinkingStepIndex}`;
-          accumulatedChildren = [
-            ...accumulatedChildren,
-            buildScenarioBlockWithState(thinkingBlock, {
-              id: nextThinkingId,
-              isStreaming: true,
-            }),
-          ];
-
-          timelineFrames.push(
-            buildScenarioMessageFrame(
-              messageId,
-              accumulatedChildren,
-              preview || thinkingContent,
-              estimateTypewriterDelay(thinkingContent),
-            ),
-          );
-
-          accumulatedChildren = accumulatedChildren.map(child =>
-            child.id === nextThinkingId
-              ? buildScenarioBlockWithState(thinkingBlock, {
-                  id: nextThinkingId,
-                  isStreaming: false,
-                })
-              : child,
-          );
+        if (lastThinkingBlock) {
+          finalizeStreamingBlock(thinkingBlock, lastThinkingBlock.id);
         }
-
-        lastThinkingContent = thinkingContent;
       }
     }
 
-    if (preview && preview !== lastPreview && hasActionBlocks) {
-      const narrationBlockId = `${messageId}-narration-${++narrationStepIndex}`;
-      accumulatedChildren = [
-        ...accumulatedChildren,
-        createScenarioNarrationBlock(narrationBlockId, preview, true),
-      ];
+    const didToolsChange = upsertStaticBlocks(toolBlocks);
 
-      timelineFrames.push(
-        buildScenarioMessageFrame(
-          messageId,
-          accumulatedChildren,
-          preview,
-          estimateTypewriterDelay(preview),
-        ),
-      );
-
-      accumulatedChildren = accumulatedChildren.map(child =>
-        child.id === narrationBlockId
-          ? createScenarioNarrationBlock(narrationBlockId, preview, false)
-          : child,
-      );
-      lastPreview = preview;
+    if (didToolsChange && finalTextBlocks.length === 0) {
+      pushFrame(preview || lastThinkingContent, frame.delayMs, frame.artifacts, frame.results);
+      hasPushedFrame = true;
     }
 
-    toolBlocks.forEach(block => {
-      accumulatedChildren = upsertScenarioChildBlock(accumulatedChildren, cloneScenarioBlock(block));
+    finalTextBlocks.forEach((block, index) => {
+      const finalText = extractScenarioBlockContent(block);
+
+      if (!finalText) {
+        accumulatedChildren = upsertScenarioChildBlock(accumulatedChildren, cloneScenarioBlock(block));
+        return;
+      }
+
+      const isLastTextBlock = index === finalTextBlocks.length - 1;
+      hasPushedFrame =
+        streamTextualBlock(block, block.id, finalText, {
+          keepStreamingAtEnd: block.isStreaming === true,
+          preview: preview || finalText,
+          artifacts: isLastTextBlock ? frame.artifacts : undefined,
+          results: isLastTextBlock ? frame.results : undefined,
+        }) || hasPushedFrame;
     });
 
-    finalTextBlocks.forEach(block => {
-      accumulatedChildren = upsertScenarioChildBlock(accumulatedChildren, cloneScenarioBlock(block));
-    });
-
-    resultCardBlocks.forEach(block => {
-      accumulatedChildren = upsertScenarioChildBlock(accumulatedChildren, cloneScenarioBlock(block));
-    });
-
-    if (hasActionBlocks || frame.artifacts?.length || frame.results?.length) {
-      const streamingContents = accumulatedChildren
-        .filter(child => child.isStreaming === true)
-        .map(child => extractScenarioBlockContent(child).trim())
-        .filter(Boolean);
-      const delayMs = streamingContents.length
-        ? streamingContents.reduce<number>(
-            (longestDelay, content) => Math.max(longestDelay, estimateTypewriterDelay(content)),
-            frame.delayMs,
-          )
-        : frame.delayMs;
-
-      timelineFrames.push(
-        buildScenarioMessageFrame(
-          messageId,
-          accumulatedChildren,
-          preview,
-          delayMs,
-          frame.artifacts,
-          frame.results,
-        ),
-      );
-      hasShownAction = true;
+    if (
+      !hasPushedFrame &&
+      (didToolsChange || frame.artifacts?.length || frame.results?.length || finalTextBlocks.length > 0)
+    ) {
+      pushFrame(preview || lastThinkingContent, frame.delayMs, frame.artifacts, frame.results);
     }
   });
 
@@ -3219,7 +3339,217 @@ const buildCeoFrames = (sessionId: string): DialogueScenarioFrame[] => {
   ];
 };
 
+const buildLiveBroadcastArtifacts = (
+  sessionId: string,
+  scenario: (typeof LIVE_BROADCAST_SKILL_DEMOS)[number],
+): SynClawArtifactItem[] =>
+  buildArtifactGroup(
+    createMarkdownArtifact(
+      sessionId,
+      `${scenario.id}-artifact`,
+      scenario.artifactFileName,
+      LIVE_BROADCAST_AGENT_DEMO.name,
+      scenario.artifactTaskName,
+      scenario.responseMarkdown,
+      "刚刚",
+      scenario.artifactSize,
+    ),
+  );
+
+const buildLiveBroadcastFrames = (
+  sessionId: string,
+  scenario: (typeof LIVE_BROADCAST_SKILL_DEMOS)[number],
+): DialogueScenarioFrame[] => {
+  const messageId = `${sessionId}-assistant`;
+  const toolBlocks = scenario.toolSteps.map((step, index) =>
+    createToolUseBlock({
+      id: `${messageId}-tool-${index + 1}`,
+      name: step.name,
+      displayName: step.displayName,
+      purpose: step.purpose,
+      status: "completed",
+      output: step.output,
+    }),
+  );
+  const artifacts = buildLiveBroadcastArtifacts(sessionId, scenario);
+
+  return [
+    buildScenarioMessageFrame(
+      messageId,
+      [createThinkingBlock(`${messageId}-thinking`, scenario.thinking, true)],
+      scenario.preview,
+      880,
+    ),
+    buildScenarioMessageFrame(
+      messageId,
+      [createThinkingBlock(`${messageId}-thinking`, scenario.thinking), ...toolBlocks],
+      scenario.preview,
+      960,
+    ),
+    buildScenarioMessageFrame(
+      messageId,
+      [
+        createThinkingBlock(`${messageId}-thinking`, scenario.thinking),
+        ...toolBlocks,
+        createTextBlock(`${messageId}-final`, scenario.responseMarkdown),
+      ],
+      scenario.preview,
+      estimateTypewriterDelay(scenario.responseMarkdown),
+      artifacts,
+    ),
+  ];
+};
+
+const buildEcommerceAutomationArtifacts = (
+  sessionId: string,
+  scenario: (typeof ECOMMERCE_AUTOMATION_SKILL_DEMOS)[number],
+): SynClawArtifactItem[] =>
+  buildArtifactGroup(
+    createMarkdownArtifact(
+      sessionId,
+      `${scenario.id}-artifact`,
+      scenario.artifactFileName,
+      ECOMMERCE_AUTOMATION_AGENT_DEMO.name,
+      scenario.artifactTaskName,
+      scenario.responseMarkdown,
+      "刚刚",
+      scenario.artifactSize,
+    ),
+  );
+
+const buildEcommerceAutomationFrames = (
+  sessionId: string,
+  scenario: (typeof ECOMMERCE_AUTOMATION_SKILL_DEMOS)[number],
+): DialogueScenarioFrame[] => {
+  const messageId = `${sessionId}-assistant`;
+  const toolBlocks = scenario.toolSteps.map((step, index) =>
+    createToolUseBlock({
+      id: `${messageId}-tool-${index + 1}`,
+      name: step.name,
+      displayName: step.displayName,
+      purpose: step.purpose,
+      status: "completed",
+      output: step.output,
+    }),
+  );
+  const artifacts = buildEcommerceAutomationArtifacts(sessionId, scenario);
+
+  return [
+    buildScenarioMessageFrame(
+      messageId,
+      [createThinkingBlock(`${messageId}-thinking`, scenario.thinking, true)],
+      scenario.preview,
+      880,
+    ),
+    buildScenarioMessageFrame(
+      messageId,
+      [createThinkingBlock(`${messageId}-thinking`, scenario.thinking), ...toolBlocks],
+      scenario.preview,
+      960,
+    ),
+    buildScenarioMessageFrame(
+      messageId,
+      [
+        createThinkingBlock(`${messageId}-thinking`, scenario.thinking),
+        ...toolBlocks,
+        createTextBlock(`${messageId}-final`, scenario.responseMarkdown),
+      ],
+      scenario.preview,
+      estimateTypewriterDelay(scenario.responseMarkdown),
+      artifacts,
+    ),
+  ];
+};
+
+const buildXiaocanMamaIpArtifacts = (
+  sessionId: string,
+  scenario: (typeof XIAOCANMAMA_IP_SKILL_DEMOS)[number],
+): SynClawArtifactItem[] =>
+  buildArtifactGroup(
+    createMarkdownArtifact(
+      sessionId,
+      `${scenario.id}-artifact`,
+      scenario.artifactFileName,
+      XIAOCANMAMA_IP_AGENT_DEMO.name,
+      scenario.artifactTaskName,
+      scenario.responseMarkdown,
+      "刚刚",
+      scenario.artifactSize,
+    ),
+  );
+
+const buildXiaocanMamaIpFrames = (
+  sessionId: string,
+  scenario: (typeof XIAOCANMAMA_IP_SKILL_DEMOS)[number],
+): DialogueScenarioFrame[] => {
+  const messageId = `${sessionId}-assistant`;
+  const toolBlocks = scenario.toolSteps.map((step, index) =>
+    createToolUseBlock({
+      id: `${messageId}-tool-${index + 1}`,
+      name: step.name,
+      displayName: step.displayName,
+      purpose: step.purpose,
+      status: "completed",
+      output: step.output,
+    }),
+  );
+  const artifacts = buildXiaocanMamaIpArtifacts(sessionId, scenario);
+
+  return [
+    buildScenarioMessageFrame(
+      messageId,
+      [createThinkingBlock(`${messageId}-thinking`, scenario.thinking, true)],
+      scenario.preview,
+      880,
+    ),
+    buildScenarioMessageFrame(
+      messageId,
+      [createThinkingBlock(`${messageId}-thinking`, scenario.thinking), ...toolBlocks],
+      scenario.preview,
+      960,
+    ),
+    buildScenarioMessageFrame(
+      messageId,
+      [
+        createThinkingBlock(`${messageId}-thinking`, scenario.thinking),
+        ...toolBlocks,
+        createTextBlock(`${messageId}-final`, scenario.responseMarkdown),
+      ],
+      scenario.preview,
+      estimateTypewriterDelay(scenario.responseMarkdown),
+      artifacts,
+    ),
+  ];
+};
+
 const SCENARIO_DEFINITIONS: DialogueScenarioDefinition[] = [
+  ...ECOMMERCE_AUTOMATION_SKILL_DEMOS.map(item => ({
+    employeeId: ECOMMERCE_AUTOMATION_AGENT_DEMO.id,
+    agentName: ECOMMERCE_AUTOMATION_AGENT_DEMO.name,
+    sessionId: `dialogue-seed-ecom-ops-${item.id}`,
+    title: item.title,
+    updatedAt: item.updatedAt,
+    triggerQuestion: item.prompt,
+    buildFrames: (sessionId: string) => buildEcommerceAutomationFrames(sessionId, item),
+  })),
+  ...LIVE_BROADCAST_SKILL_DEMOS.map(item => ({
+    employeeId: LIVE_BROADCAST_AGENT_DEMO.id,
+    agentName: LIVE_BROADCAST_AGENT_DEMO.name,
+    sessionId: `dialogue-seed-live-ops-${item.id}`,
+    title: item.title,
+    updatedAt: item.updatedAt,
+    triggerQuestion: item.prompt,
+    buildFrames: (sessionId: string) => buildLiveBroadcastFrames(sessionId, item),
+  })),
+  ...XIAOCANMAMA_IP_SKILL_DEMOS.map(item => ({
+    employeeId: XIAOCANMAMA_IP_AGENT_DEMO.id,
+    agentName: XIAOCANMAMA_IP_AGENT_DEMO.name,
+    sessionId: `dialogue-seed-xiaocanmama-ip-${item.id}`,
+    title: item.title,
+    updatedAt: item.updatedAt,
+    triggerQuestion: item.prompt,
+    buildFrames: (sessionId: string) => buildXiaocanMamaIpFrames(sessionId, item),
+  })),
   {
     employeeId: "employee-pm",
     agentName: "序列总览专家",

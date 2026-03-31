@@ -529,18 +529,6 @@
   :global {
     .ant-think-status-wrapper {
       position: relative;
-
-      &::before {
-        display: block;
-        content: "";
-        background-color: #fff;
-        width: 4px;
-        height: 8px;
-        position: absolute;
-        top: 22px;
-        left: -1px;
-        z-index: 1;
-      }
     }
 
     .ant-think-content {
@@ -550,15 +538,6 @@
       margin-top: 0;
       // padding-top: 8px;
       transition: height 5s;
-
-      &::before {
-        display: block;
-        content: "";
-        width: 4px;
-        height: 8px;
-        background-color: transparent;
-        transition: background-color 5s;
-      }
     }
   }
 }

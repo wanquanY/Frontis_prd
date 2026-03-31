@@ -3,6 +3,8 @@ import type { FrontisWebRole } from "@/pages/types";
 
 import type { MockAuthAccount } from "@/feature/auth/types";
 
+export type FrontisWorkspaceVersion = "v1" | "v2";
+
 const buildMockAccount = (
   userId: string,
   role: FrontisWebRole,
@@ -33,10 +35,30 @@ export const MOCK_AUTH_ACCOUNTS: MockAuthAccount[] = [
 ];
 
 /**
+ * 根据角色和版本获取工作台路径。
+ */
+export const getWorkspacePathByRole = (
+  role: FrontisWebRole,
+  version: FrontisWorkspaceVersion = "v1",
+): string => {
+  if (role === "admin") {
+    return version === "v2" ? "/web/admin/v2/workspace" : "/web/admin/workspace";
+  }
+
+  return version === "v2" ? "/web/employee/v2" : "/web/employee";
+};
+
+/**
  * 根据角色获取默认工作台路径。
  */
 export const getDefaultPathByRole = (role: FrontisWebRole): string =>
-  role === "admin" ? "/web/admin" : "/web/employee";
+  getWorkspacePathByRole(role, "v1");
+
+/**
+ * 获取企业老板管理后台路径。
+ */
+export const getAdminManagementPath = (version: FrontisWorkspaceVersion = "v1"): string =>
+  version === "v2" ? "/web/admin/v2" : "/web/admin";
 
 /**
  * 根据手机号匹配模拟登录账号。

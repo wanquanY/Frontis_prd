@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
+  AppstoreOutlined,
   LogoutOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
@@ -8,6 +9,7 @@ import type { MenuProps } from "antd";
 import { Avatar, Dropdown, Empty, message } from "antd";
 import { useNavigate } from "react-router-dom";
 import type { WorkspaceComposerAttachmentItem } from "@/feature/workspace/types";
+import { getAdminManagementPath } from "@/feature/auth/mockAccounts";
 import { useMockAuth } from "@/feature/auth/hooks/useMockAuth";
 import { isChatAttachmentFileAllowed } from "@/utils/chatAttachmentFileTypes";
 import {
@@ -36,6 +38,7 @@ import {
   createId,
   revokeComposerAttachmentPreview,
 } from "./utils";
+import { mapDialogueSessionForRole, mapEmployeeForRole } from "./agentDisplay";
 import styles from "./FrontisPage.module.less";
 
 interface FrontisPageProps {
@@ -54,7 +57,9 @@ const FrontisPage = ({ viewRole }: FrontisPageProps): JSX.Element => {
   const { logout, session } = useMockAuth();
   const [isDialogueSidebarCollapsed, setIsDialogueSidebarCollapsed] = useState<boolean>(false);
   const [dialogueSessions, setDialogueSessions] =
-    useState<DialogueSessionItem[]>(INITIAL_DIALOGUE_SESSIONS);
+    useState<DialogueSessionItem[]>(() =>
+      INITIAL_DIALOGUE_SESSIONS.map(item => mapDialogueSessionForRole(item, viewRole)),
+    );
   const [dialogueArtifactsBySession, setDialogueArtifactsBySession] = useState<
     Record<string, SynClawArtifactItem[]>
   >(INITIAL_DIALOGUE_ARTIFACTS);
@@ -76,7 +81,10 @@ const FrontisPage = ({ viewRole }: FrontisPageProps): JSX.Element => {
   );
   const dialogueTimerRefs = useRef<number[]>([]);
   const latestDialogueAttachmentsRef = useRef<WorkspaceComposerAttachmentItem[]>([]);
-  const employees = INITIAL_EMPLOYEES;
+  const employees = useMemo(
+    () => INITIAL_EMPLOYEES.map(item => mapEmployeeForRole(item, viewRole)),
+    [viewRole],
+  );
   const currentUser = useMemo(
     () =>
       INITIAL_FRONTIS_WEB_USERS.find(item => item.id === session?.userId) ??
@@ -627,7 +635,26 @@ const FrontisPage = ({ viewRole }: FrontisPageProps): JSX.Element => {
     navigate("/portal", { replace: true });
   }, [logout, navigate]);
 
+  const handleOpenManagementPortal = useCallback((): void => {
+    const targetUrl = new URL(getAdminManagementPath("v1"), window.location.origin).toString();
+    const openedWindow = window.open(targetUrl, "_blank", "noopener,noreferrer");
+
+    if (!openedWindow) {
+      message.warning("浏览器拦截了新窗口，请允许弹窗后重试。");
+    }
+  }, []);
+
   const accountMenuItems: MenuProps["items"] = [
+    ...(viewRole === "admin"
+      ? [
+          {
+            key: "management",
+            icon: <AppstoreOutlined />,
+            label: "企业管理",
+            onClick: handleOpenManagementPortal,
+          },
+        ]
+      : []),
     {
       key: "logout",
       icon: <LogoutOutlined />,

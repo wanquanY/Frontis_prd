@@ -1,4 +1,16 @@
 import { AI_CEO_AGENT_SCENARIO_QUESTIONS } from "@/constants/aiCeoScenarioPrompts";
+import {
+  ECOMMERCE_AUTOMATION_AGENT_DEMO,
+  ECOMMERCE_AUTOMATION_SKILL_DEMOS,
+} from "@/constants/ecommerceAutomationDemo";
+import {
+  LIVE_BROADCAST_AGENT_DEMO,
+  LIVE_BROADCAST_SKILL_DEMOS,
+} from "@/constants/liveBroadcastDemo";
+import {
+  XIAOCANMAMA_IP_AGENT_DEMO,
+  XIAOCANMAMA_IP_SKILL_DEMOS,
+} from "@/constants/xiaocanMamaIpDemo";
 
 /**
  * AI CEO 首页快捷问题定义。
@@ -131,6 +143,42 @@ export const AI_CEO_AGENT_HOME_CONFIGS: Record<string, AiCeoAgentHomeConfig> = {
       { id: "sales-5", question: "帮我看一下销售序列第一梯队最近的变化。" },
       { id: "sales-6", question: "把销售序列的排名结构压成一段老板口径。" },
     ],
+  },
+  [ECOMMERCE_AUTOMATION_AGENT_DEMO.id]: {
+    intro: ECOMMERCE_AUTOMATION_AGENT_DEMO.intro,
+    skillItems: ECOMMERCE_AUTOMATION_SKILL_DEMOS.map(item => ({
+      id: item.id,
+      name: item.name,
+      iconKey: item.iconKey,
+    })),
+    promptItems: ECOMMERCE_AUTOMATION_SKILL_DEMOS.map((item, index) => ({
+      id: `ecom-ops-${index + 1}`,
+      question: item.prompt,
+    })),
+  },
+  [LIVE_BROADCAST_AGENT_DEMO.id]: {
+    intro: LIVE_BROADCAST_AGENT_DEMO.intro,
+    skillItems: LIVE_BROADCAST_SKILL_DEMOS.map(item => ({
+      id: item.id,
+      name: item.name,
+      iconKey: item.iconKey,
+    })),
+    promptItems: LIVE_BROADCAST_SKILL_DEMOS.map((item, index) => ({
+      id: `live-ops-${index + 1}`,
+      question: item.prompt,
+    })),
+  },
+  [XIAOCANMAMA_IP_AGENT_DEMO.id]: {
+    intro: XIAOCANMAMA_IP_AGENT_DEMO.intro,
+    skillItems: XIAOCANMAMA_IP_SKILL_DEMOS.map(item => ({
+      id: item.id,
+      name: item.name,
+      iconKey: item.iconKey,
+    })),
+    promptItems: XIAOCANMAMA_IP_SKILL_DEMOS.map((item, index) => ({
+      id: `xiaocanmama-ip-${index + 1}`,
+      question: item.prompt,
+    })),
   },
   "employee-writer": {
     intro: "我是 CEO 分身，你可以直接问我经营判断、人员状态、制度流程和协作安排，我会给你一句到位的建议。",
