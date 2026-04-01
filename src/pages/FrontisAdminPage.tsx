@@ -19,7 +19,6 @@ import { useNavigate } from "react-router-dom";
 
 import { useMockAuth } from "@/feature/auth/hooks/useMockAuth";
 import {
-  INITIAL_DIALOGUE_ARTIFACTS,
   INITIAL_DIALOGUE_SESSIONS,
   INITIAL_EMPLOYEES,
   INITIAL_FRONTIS_WEB_USERS,
@@ -27,7 +26,7 @@ import {
   INITIAL_WORKSPACES,
 } from "@/mocks/mockData";
 
-import { AdminDashboardView } from "./components/AdminDashboardView";
+import { BossDashboardView } from "./components/BossDashboardView";
 import { DeviceManagementView } from "./components/DeviceManagementView";
 import { NotificationCenterView } from "./components/NotificationCenterView";
 import { OrganizationManagementView } from "./components/OrganizationManagementView";
@@ -155,11 +154,12 @@ const FrontisAdminPage = ({
   const renderContent = (): JSX.Element => {
     if (activeTabKey === "dashboard") {
       return (
-        <AdminDashboardView
-          artifactsBySession={INITIAL_DIALOGUE_ARTIFACTS}
+        <BossDashboardView
+          currentUserName={currentUser?.name}
           dialogueSessions={dialogueSessions}
           employees={employees}
           users={users}
+          workspaces={workspaces}
         />
       );
     }
