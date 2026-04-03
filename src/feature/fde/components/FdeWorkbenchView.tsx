@@ -2,13 +2,16 @@ import { useCallback, useMemo, useState } from "react";
 
 import classNames from "classnames";
 import {
+  AppstoreOutlined,
   CloudServerOutlined,
+  CodeOutlined,
   DashboardOutlined,
   LineChartOutlined,
   LogoutOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
   SyncOutlined,
+  ThunderboltOutlined,
 } from "@ant-design/icons";
 import type { MenuProps } from "antd";
 import { Avatar, Dropdown, Empty, message } from "antd";
@@ -16,11 +19,17 @@ import { useNavigate } from "react-router-dom";
 
 import { useMockAuth } from "@/feature/auth/hooks/useMockAuth";
 import { useFdeWorkbench } from "@/feature/fde/hooks/useFdeWorkbench";
-import type { FdeWorkbenchTabItem, FdeWorkbenchTabKey } from "@/feature/fde/types";
+import type {
+  FdeWorkbenchTabItem,
+  FdeWorkbenchTabKey,
+} from "@/feature/fde/types";
 import { getFdeAvatarUrl } from "@/feature/fde/utils";
 
+import { FdeAgentDevView } from "./FdeAgentDevView";
+import { FdeAgentStoreView } from "./FdeAgentStoreView";
 import { FdeDeliveryWorkbench } from "./FdeDeliveryWorkbench";
 import { FdeOperationsMonitorView } from "./FdeOperationsMonitorView";
+import { FdeSkillMarketView } from "./FdeSkillMarketView";
 import { FdeVersionManagementView } from "./FdeVersionManagementView";
 import styles from "./FdeWorkbenchView.module.less";
 
@@ -34,6 +43,9 @@ const FDE_TAB_ICONS: Record<FdeWorkbenchTabKey, JSX.Element> = {
   versionManagement: <SyncOutlined />,
   feedback: <LineChartOutlined />,
   evolution: <LineChartOutlined />,
+  agentDev: <CodeOutlined />,
+  skillMarket: <ThunderboltOutlined />,
+  agentStore: <AppstoreOutlined />,
 };
 
 /**
@@ -97,6 +109,26 @@ export const FdeWorkbenchView = (): JSX.Element => {
       );
     }
 
+    if (workbench.activeTab === "skillMarket") {
+      return (
+        <FdeSkillMarketView
+          onNavigateToAgentDev={() => workbench.setActiveTab("agentDev")}
+        />
+      );
+    }
+
+    if (workbench.activeTab === "agentStore") {
+      return (
+        <FdeAgentStoreView
+          onNavigateToAgentDev={() => workbench.setActiveTab("agentDev")}
+        />
+      );
+    }
+
+    if (workbench.activeTab === "agentDev") {
+      return <FdeAgentDevView />;
+    }
+
     return <Empty description="未找到对应的工作台内容" />;
   }, [
     workbench.activeTab,
@@ -110,6 +142,7 @@ export const FdeWorkbenchView = (): JSX.Element => {
     workbench.setSelectedDeliveryOrderId,
     workbench.setSelectedOperationsCustomerId,
     workbench.setSelectedVersionTaskId,
+    workbench.setActiveTab,
     workbench.teamMembers,
   ]);
 
@@ -155,21 +188,51 @@ export const FdeWorkbenchView = (): JSX.Element => {
           })}
           aria-label="FDE 工作台导航"
         >
-          {workbench.tabs.map(item => (
-            <button
-              key={item.key}
-              type="button"
-              className={classNames(
-                styles.navButton,
-                isSidebarCollapsed && styles.navButtonCollapsed,
-                workbench.activeTab === item.key && styles.navButtonActive,
+          {workbench.navGroups.map(group => (
+            <div key={group.groupKey} className={styles.navGroup}>
+              {isSidebarCollapsed ? null : (
+                <div className={styles.navGroupLabel}>{group.groupLabel}</div>
               )}
-              onClick={() => workbench.setActiveTab(item.key)}
-              title={item.label}
-            >
-              <span className={styles.navIcon}>{FDE_TAB_ICONS[item.key]}</span>
-              <span className={styles.navLabel}>{item.label}</span>
-            </button>
+              {group.items.map(item => (
+                <button
+                  key={item.key}
+                  type="button"
+                  className={classNames(
+                    styles.navButton,
+                    isSidebarCollapsed && styles.navButtonCollapsed,
+                    workbench.activeTab === item.key && styles.navButtonActive,
+                  )}
+                  onClick={() => workbench.setActiveTab(item.key)}
+                  title={item.label}
+                >
+                  <span className={styles.navIcon}>{FDE_TAB_ICONS[item.key]}</span>
+                  <span className={styles.navLabel}>{item.label}</span>
+                </button>
+              ))}
+              {group.subGroups?.map(sub => (
+                <div key={sub.groupKey} className={styles.navSubGroup}>
+                  {isSidebarCollapsed ? null : (
+                    <div className={styles.navSubGroupLabel}>{sub.groupLabel}</div>
+                  )}
+                  {sub.items.map(item => (
+                    <button
+                      key={item.key}
+                      type="button"
+                      className={classNames(
+                        styles.navButton,
+                        isSidebarCollapsed && styles.navButtonCollapsed,
+                        workbench.activeTab === item.key && styles.navButtonActive,
+                      )}
+                      onClick={() => workbench.setActiveTab(item.key)}
+                      title={item.label}
+                    >
+                      <span className={styles.navIcon}>{FDE_TAB_ICONS[item.key]}</span>
+                      <span className={styles.navLabel}>{item.label}</span>
+                    </button>
+                  ))}
+                </div>
+              ))}
+            </div>
           ))}
         </nav>
 

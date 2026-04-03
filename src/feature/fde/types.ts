@@ -13,7 +13,10 @@ export type FdeWorkbenchTabKey =
   | "operations"
   | "versionManagement"
   | "feedback"
-  | "evolution";
+  | "evolution"
+  | "agentDev"
+  | "skillMarket"
+  | "agentStore";
 
 /**
  * FDE 成员状态。
@@ -96,6 +99,25 @@ export interface FdeWorkbenchTabItem {
   key: FdeWorkbenchTabKey;
   label: string;
   description: string;
+}
+
+/**
+ * 工作台导航子分组。
+ */
+export interface FdeWorkbenchNavSubGroup {
+  groupKey: string;
+  groupLabel: string;
+  items: FdeWorkbenchTabItem[];
+}
+
+/**
+ * 工作台导航分组。
+ */
+export interface FdeWorkbenchNavGroup {
+  groupKey: string;
+  groupLabel: string;
+  items: FdeWorkbenchTabItem[];
+  subGroups?: FdeWorkbenchNavSubGroup[];
 }
 
 /**
@@ -506,5 +528,175 @@ export interface UseFdeWorkbenchResult {
   addLeadProgress: (leadId: string, content: string) => void;
   triggerEvolution: (agentId: string) => void;
   tabs: FdeWorkbenchTabItem[];
+  navGroups: FdeWorkbenchNavGroup[];
   teamMembers: FdeTeamMemberItem[];
+}
+
+/* ─── Skill 市场 ─── */
+
+export type FdeSkillType = "workflow" | "skill" | "model";
+export type FdeSkillVisibility = "public" | "private" | "team";
+export type FdeSkillMarketTab = "public" | "team" | "mine";
+export type FdeSkillCategoryFilter = "all" | FdeSkillType;
+
+export interface FdeSkillVersionItem {
+  version: string;
+  releaseNote: string;
+  publishTime: string;
+}
+
+export interface FdeSkillItem {
+  id: string;
+  name: string;
+  version: string;
+  type: FdeSkillType;
+  tags: string[];
+  description: string;
+  publisher: string;
+  publishTime: string;
+  iconColor: string;
+  iconText: string;
+  visibility: FdeSkillVisibility;
+  isSharedToMe?: boolean;
+  isSharedByMe?: boolean;
+  versions: FdeSkillVersionItem[];
+}
+
+export interface FdeSkillPresetCover {
+  key: string;
+  label: string;
+  gradient: string;
+  emoji: string;
+}
+
+/* ─── Agent Store ─── */
+
+export type FdeAgentType = "metaagent" | "syngent" | "openclaw";
+export type FdeAgentCategory = "general" | "production" | "supply" | "sales";
+export type FdeAgentCategoryFilter = "all" | FdeAgentCategory;
+export type FdeAgentMarketTab = "public" | "team" | "mine";
+
+export interface FdeAgentSkillRef {
+  skillName: string;
+  version: string;
+}
+
+export interface FdeAgentFeedbackRow {
+  id: string;
+  summary: string;
+  source: "线上回流" | "人工标注";
+  rating: number;
+  toolCallRounds: number;
+  dialogueRounds: number;
+  tokenUsage: number;
+  enterprise: string;
+}
+
+export interface FdeAgentVersionEvolution {
+  skillTriggerAccuracy: string;
+  skillTriggerAccuracyTrend: string;
+  taskCompletionRate: string;
+  taskCompletionRateTrend: string;
+  qualityScore: string;
+  qualityScoreTrend: string;
+  executionTime: string;
+  executionTimeTrend: string;
+  tokenUsage: string;
+  tokenUsageTrend: string;
+  regressionRetention: string;
+  regressionRetentionTrend: string;
+}
+
+export interface FdeAgentEvalReportMetric {
+  label: string;
+  value: string;
+  trend: string;
+}
+
+export interface FdeAgentEvalReport {
+  summary: string;
+  overallScore: number;
+  overallScoreTrend: string;
+  metrics: FdeAgentEvalReportMetric[];
+  testTime: string;
+  testRounds: number;
+  testScenes: string[];
+  issues: string;
+  suggestions: string;
+  conclusion: string;
+}
+
+export interface FdeAgentVersionItem {
+  version: string;
+  releaseNote: string;
+  publishTime: string;
+  evolution?: FdeAgentVersionEvolution;
+  evalReport?: FdeAgentEvalReport;
+}
+
+export interface FdeAgentItem {
+  id: string;
+  name: string;
+  version: string;
+  agentType: FdeAgentType;
+  category: FdeAgentCategory;
+  tags: string[];
+  description: string;
+  publisher: string;
+  publishTime: string;
+  iconColor: string;
+  iconText: string;
+  visibility: FdeSkillVisibility;
+  isSharedToMe?: boolean;
+  isSharedByMe?: boolean;
+  skills: FdeAgentSkillRef[];
+  versions: FdeAgentVersionItem[];
+  feedbackData: FdeAgentFeedbackRow[];
+}
+
+/* ─── Agent 工作空间（Frontis 开发） ─── */
+
+export type FdeAgentFramework = "MetaAgent" | "Syngent" | "OpenClaw";
+
+export interface FdeWorkspaceConversation {
+  id: string;
+  title: string;
+  summary: string;
+  date: string;
+}
+
+export interface FdeWorkspaceKnowledgeBase {
+  id: string;
+  name: string;
+  fileCount: number;
+}
+
+export interface FdeWorkspaceFeedback {
+  enterprise: string;
+  count: number;
+}
+
+export interface FdeWorkspaceResult {
+  id: string;
+  title: string;
+  resultCount: number;
+  lastDate: string;
+}
+
+export interface FdeAgentWorkspace {
+  id: string;
+  name: string;
+  description: string;
+  iconColor: string;
+  iconText: string;
+  framework: FdeAgentFramework;
+  skillCount: number;
+  skills: { name: string; version: string }[];
+  createdAt: string;
+  conversations: FdeWorkspaceConversation[];
+  knowledgeBases: FdeWorkspaceKnowledgeBase[];
+  feedbackData: FdeWorkspaceFeedback[];
+  results: FdeWorkspaceResult[];
+  fileCount: number;
+  overviewText: string;
 }

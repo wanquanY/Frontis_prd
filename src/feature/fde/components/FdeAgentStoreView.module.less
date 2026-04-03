@@ -1,0 +1,1042 @@
+.root {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+/* ─── 顶部操作栏 ─── */
+
+.topBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.tabList {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--text) 4%, transparent);
+}
+
+.tabButton {
+  height: 36px;
+  padding: 0 18px;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 160ms ease, color 160ms ease;
+  &:hover { color: var(--text); }
+}
+
+.tabButtonActive {
+  background: var(--surface);
+  color: var(--text);
+  font-weight: 600;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+}
+
+.topActions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.searchInput {
+  width: 280px;
+  :global(.ant-input-affix-wrapper) {
+    height: 38px; padding: 0 12px; border-radius: 12px;
+    border-color: var(--border);
+    background: color-mix(in srgb, var(--app-bg) 78%, var(--surface));
+    box-shadow: none;
+  }
+  :global(.ant-input-affix-wrapper:hover),
+  :global(.ant-input-affix-wrapper-focused) {
+    border-color: color-mix(in srgb, var(--primary) 36%, var(--border));
+    background: color-mix(in srgb, var(--app-bg) 88%, var(--surface));
+    box-shadow: none;
+  }
+  :global(.ant-input) { color: var(--text); font-size: 14px; }
+}
+
+.searchIcon { color: var(--text-muted); }
+
+/* ─── 分类筛选 ─── */
+
+.filterBar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-top: 16px;
+}
+
+.filterPill {
+  height: 34px;
+  padding: 0 14px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: border-color 160ms ease, background 160ms ease, color 160ms ease;
+  &:hover { border-color: color-mix(in srgb, var(--primary) 36%, var(--border)); }
+}
+
+.filterPillActive {
+  border-color: var(--primary);
+  background: var(--primary-weak);
+  color: var(--primary);
+  font-weight: 600;
+}
+
+/* ─── 卡片网格 ─── */
+
+.cardGrid {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding-top: 18px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr));
+  align-content: flex-start;
+  align-items: start;
+  gap: 16px;
+}
+
+.agentCard {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--surface);
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  cursor: pointer;
+  transition: border-color 200ms ease, box-shadow 200ms ease, transform 200ms ease;
+  &:hover {
+    border-color: color-mix(in srgb, var(--primary) 24%, var(--border));
+    box-shadow: var(--shadow-sm);
+    transform: translateY(-1px);
+  }
+}
+
+.cardHeader {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.cardIcon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.cardTitleBlock {
+  min-width: 0; flex: 1;
+  display: flex; flex-direction: column; gap: 2px;
+}
+
+.cardName {
+  margin: 0; color: var(--text); font-size: 15px; line-height: 22px; font-weight: 700;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+.cardMeta {
+  margin: 0; display: flex; align-items: center; gap: 6px;
+  color: var(--text-secondary); font-size: 12px; line-height: 18px;
+}
+
+.catBadge {
+  display: inline-block; padding: 1px 6px; border-radius: 6px;
+  font-size: 11px; font-weight: 600; line-height: 16px;
+  background: color-mix(in srgb, var(--primary) 12%, transparent);
+  color: var(--primary);
+}
+
+.agentTypeBadge {
+  display: inline-block; padding: 1px 6px; border-radius: 6px;
+  font-size: 11px; font-weight: 600; line-height: 16px;
+}
+
+.cardDescription {
+  margin: 0; color: var(--text-secondary); font-size: 13px; line-height: 20px;
+  min-height: 40px;
+  display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2;
+  -webkit-box-orient: vertical; overflow: hidden; text-overflow: ellipsis;
+}
+
+.skillChips {
+  display: flex; align-items: center; gap: 6px; flex-wrap: wrap; min-height: 22px;
+}
+
+.skillChip {
+  padding: 2px 8px; border-radius: 999px;
+  background: color-mix(in srgb, #667eea 8%, transparent);
+  color: #667eea; font-size: 11px; font-weight: 500; line-height: 16px;
+}
+
+.tagList {
+  display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+}
+
+.tag {
+  padding: 2px 8px; border-radius: 999px;
+  background: color-mix(in srgb, var(--primary) 8%, transparent);
+  color: var(--text-secondary); font-size: 11px; font-weight: 500; line-height: 16px;
+}
+
+.cardFooter {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding-top: 8px; border-top: 1px solid color-mix(in srgb, var(--text) 5%, transparent);
+  margin-top: auto; color: var(--text-muted); font-size: 12px; line-height: 18px;
+}
+
+.shareBadge {
+  padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 600; line-height: 16px;
+}
+.shareBadgeToMe { background: color-mix(in srgb, var(--primary) 10%, transparent); color: var(--primary); }
+.shareBadgeByMe { background: color-mix(in srgb, #7b61ff 10%, transparent); color: #7b61ff; }
+.shareBadgeMine { background: color-mix(in srgb, #f5576c 10%, transparent); color: #f5576c; }
+
+.emptyState {
+  flex: 1; min-height: 280px; display: flex; align-items: center; justify-content: center;
+}
+
+/* ─── 详情页 ─── */
+
+.detailRoot {
+  flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 0;
+}
+
+.detailTopBar {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding-bottom: 16px; border-bottom: 1px solid color-mix(in srgb, var(--text) 6%, transparent);
+}
+
+.backButton {
+  height: 34px; padding: 0 14px; border: 1px solid var(--border); border-radius: 10px;
+  background: var(--surface); color: var(--text-secondary); font-size: 13px; font-weight: 500;
+  cursor: pointer; display: inline-flex; align-items: center; gap: 6px;
+  transition: border-color 160ms ease, color 160ms ease;
+  &:hover { border-color: color-mix(in srgb, var(--primary) 36%, var(--border)); color: var(--text); }
+}
+
+.detailTopActions {
+  display: flex; align-items: center; gap: 10px;
+}
+
+.detailBody {
+  flex: 1; min-height: 0; overflow-y: auto;
+  display: flex; gap: 28px; padding-top: 20px;
+  transition: gap 300ms ease;
+}
+
+.detailBodyEvolution {
+  gap: 0;
+}
+
+/* 左侧 */
+
+.detailLeft {
+  flex: 0 0 400px; display: flex; flex-direction: column; gap: 18px;
+  transition: flex-basis 300ms ease;
+  overflow-y: auto;
+}
+
+.detailLeftEvolution {
+  flex: 0 0 340px;
+}
+
+.detailHeader {
+  display: flex; align-items: flex-start; gap: 16px;
+}
+
+.detailIconLarge {
+  width: 64px; height: 64px; border-radius: 16px;
+  display: inline-flex; align-items: center; justify-content: center;
+  color: #fff; font-size: 28px; font-weight: 700; flex: 0 0 auto;
+}
+
+.detailHeaderInfo {
+  min-width: 0; flex: 1; display: flex; flex-direction: column; gap: 4px;
+}
+
+.detailName {
+  margin: 0; color: var(--text); font-size: 20px; line-height: 28px; font-weight: 700;
+}
+
+.detailMetaRow {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+}
+
+.detailVersion {
+  color: var(--text-secondary); font-size: 13px; font-weight: 500;
+}
+
+.detailDescription {
+  margin: 0; color: var(--text-secondary); font-size: 14px; line-height: 22px;
+}
+
+/* Skills 列表 */
+
+.sectionTitle {
+  margin: 0; color: var(--text); font-size: 14px; font-weight: 700;
+  padding-bottom: 8px; border-bottom: 1px solid color-mix(in srgb, var(--text) 6%, transparent);
+}
+
+.skillRefList {
+  display: flex; flex-direction: column; gap: 8px;
+}
+
+.skillRefRow {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  padding: 8px 12px; border-radius: 10px;
+  background: color-mix(in srgb, var(--app-bg) 60%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--text) 4%, transparent);
+}
+
+.skillRefName {
+  color: var(--text); font-size: 13px; font-weight: 600;
+}
+
+.skillRefVersion {
+  color: var(--text-muted); font-size: 12px;
+}
+
+/* 回流数据 */
+
+.feedbackSection {
+  display: flex; flex-direction: column; gap: 10px;
+}
+
+.feedbackEnterprise {
+  margin: 6px 0 2px; color: var(--text); font-size: 13px; font-weight: 700;
+  display: flex; align-items: center; gap: 6px;
+}
+
+.enterpriseTag {
+  padding: 1px 8px; border-radius: 999px; font-size: 11px; font-weight: 600; line-height: 16px;
+  background: color-mix(in srgb, #667eea 10%, transparent); color: #667eea;
+}
+
+.feedbackTable {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 12px;
+
+  th, td {
+    padding: 6px 8px;
+    text-align: left;
+    white-space: nowrap;
+  }
+
+  th {
+    color: var(--text-muted);
+    font-weight: 600;
+    border-bottom: 1px solid color-mix(in srgb, var(--text) 8%, transparent);
+  }
+
+  td {
+    color: var(--text-secondary);
+    border-bottom: 1px solid color-mix(in srgb, var(--text) 4%, transparent);
+  }
+}
+
+.ratingStars {
+  color: #f5ae3c;
+  letter-spacing: 1px;
+}
+
+.sourceBadge {
+  display: inline-block; padding: 1px 6px; border-radius: 6px;
+  font-size: 11px; font-weight: 600; line-height: 16px;
+}
+
+.sourceOnline {
+  background: color-mix(in srgb, var(--primary) 12%, transparent); color: var(--primary);
+}
+
+.sourceManual {
+  background: color-mix(in srgb, #f5ae3c 12%, transparent); color: #d97706;
+}
+
+/* ─── 右侧版本 ─── */
+
+.detailRight {
+  flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 0;
+  transition: flex 300ms ease, opacity 300ms ease, width 300ms ease;
+  overflow: hidden;
+}
+
+.detailRightHidden {
+  flex: 0 0 0; opacity: 0; overflow: hidden; pointer-events: none;
+}
+
+.versionHeader {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; padding-bottom: 16px;
+}
+
+.versionTitle {
+  margin: 0; color: var(--text); font-size: 16px; line-height: 24px; font-weight: 700;
+}
+
+.versionCount {
+  color: var(--text-muted); font-size: 13px;
+}
+
+.versionTimeline {
+  display: flex; flex-direction: column; gap: 0;
+  position: relative; padding-left: 24px;
+  &::before {
+    content: ""; position: absolute; left: 7px; top: 8px; bottom: 8px;
+    width: 2px; background: color-mix(in srgb, var(--text) 8%, transparent); border-radius: 1px;
+  }
+}
+
+.versionNode {
+  position: relative; padding: 10px 0 10px 16px;
+}
+
+.versionDot {
+  position: absolute; left: -24px; top: 16px; width: 16px; height: 16px;
+  border-radius: 50%; border: 3px solid color-mix(in srgb, var(--text) 12%, var(--surface));
+  background: var(--surface); transition: border-color 160ms ease;
+}
+
+.versionNodeLatest .versionDot {
+  border-color: var(--primary); background: color-mix(in srgb, var(--primary) 14%, var(--surface));
+}
+
+.versionNodeCard {
+  padding: 12px 14px; border: 1px solid color-mix(in srgb, var(--text) 6%, transparent);
+  border-radius: 12px; background: var(--surface);
+  display: flex; flex-direction: column; gap: 6px; cursor: pointer;
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+  &:hover {
+    border-color: color-mix(in srgb, var(--primary) 18%, var(--border));
+    box-shadow: var(--shadow-sm);
+  }
+}
+
+.versionNodeLatest .versionNodeCard {
+  border-color: color-mix(in srgb, var(--primary) 22%, var(--border));
+}
+
+.versionNodeTop {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+}
+
+.versionLabel {
+  display: inline-flex; align-items: center; gap: 6px;
+  color: var(--text); font-size: 14px; font-weight: 700;
+}
+
+.latestTag {
+  padding: 1px 8px; border-radius: 999px;
+  background: color-mix(in srgb, var(--primary) 12%, transparent);
+  color: var(--primary); font-size: 11px; font-weight: 600;
+}
+
+.versionDate {
+  color: var(--text-muted); font-size: 12px; white-space: nowrap;
+}
+
+.versionNote {
+  margin: 0; color: var(--text-secondary); font-size: 13px; line-height: 20px;
+}
+
+/* 版本进化展开 */
+
+.evolutionPanel {
+  margin-top: 8px; padding: 14px; border-radius: 10px;
+  background: color-mix(in srgb, var(--app-bg) 70%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--text) 5%, transparent);
+  display: flex; flex-direction: column; gap: 10px;
+}
+
+.evolutionGrid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+}
+
+.metricCard {
+  padding: 10px 12px; border-radius: 8px; background: var(--surface);
+  border: 1px solid color-mix(in srgb, var(--text) 5%, transparent);
+  display: flex; flex-direction: column; gap: 2px;
+}
+
+.metricLabel {
+  color: var(--text-muted); font-size: 11px; font-weight: 500;
+}
+
+.metricValue {
+  display: flex; align-items: baseline; gap: 6px;
+}
+
+.metricNumber {
+  color: var(--text); font-size: 16px; font-weight: 700;
+}
+
+.metricTrendUp {
+  color: #3cbf7b; font-size: 12px; font-weight: 600;
+}
+
+.metricTrendDown {
+  color: #3cbf7b; font-size: 12px; font-weight: 600;
+}
+
+/* 左侧隐藏 */
+
+.detailLeftHidden {
+  flex: 0 0 0 !important; opacity: 0; overflow: hidden; pointer-events: none;
+  padding: 0 !important; margin: 0 !important;
+  transition: flex-basis 300ms ease, opacity 300ms ease;
+}
+
+/* ─── 进化对话面板 ─── */
+
+.evolutionChat {
+  flex: 1; min-width: 0;
+  display: flex; flex-direction: column;
+  border: 1px solid color-mix(in srgb, var(--text) 8%, transparent);
+  border-radius: 16px; background: var(--surface);
+  margin-left: 20px;
+  overflow: hidden;
+}
+
+.evolutionChatHeader {
+  padding: 14px 18px; border-bottom: 1px solid color-mix(in srgb, var(--text) 6%, transparent);
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+}
+
+.evolutionChatTitle {
+  margin: 0; color: var(--text); font-size: 15px; font-weight: 700;
+}
+
+.evolutionChatBody {
+  flex: 1; min-height: 0; overflow-y: auto;
+  padding: 18px; display: flex; flex-direction: column; gap: 14px;
+}
+
+.chatBubbleSystem {
+  padding: 12px 16px; border-radius: 12px;
+  background: color-mix(in srgb, var(--primary) 6%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--primary) 12%, transparent);
+  color: var(--text); font-size: 14px; line-height: 22px;
+}
+
+.chatBubbleAssistant {
+  padding: 12px 16px; border-radius: 12px;
+  background: color-mix(in srgb, var(--app-bg) 60%, var(--surface));
+  color: var(--text-secondary); font-size: 14px; line-height: 22px;
+}
+
+.enterpriseSelect {
+  display: flex; flex-direction: column; gap: 8px;
+  padding: 12px 16px; border-radius: 12px;
+  background: color-mix(in srgb, var(--app-bg) 60%, var(--surface));
+}
+
+.enterpriseSelectLabel {
+  color: var(--text); font-size: 14px; font-weight: 600;
+}
+
+.enterpriseCheckList {
+  display: flex; flex-direction: column; gap: 6px;
+}
+
+.enterpriseCheckItem {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 13px; color: var(--text-secondary);
+  cursor: pointer;
+
+  input[type="checkbox"] {
+    accent-color: var(--primary);
+  }
+}
+
+.evolutionChatFooter {
+  padding: 12px 18px; border-top: 1px solid color-mix(in srgb, var(--text) 6%, transparent);
+  display: flex; align-items: center; gap: 10px;
+}
+
+.chatInput {
+  flex: 1;
+  :global(.ant-input) {
+    border-radius: 10px;
+  }
+}
+
+/* ─── 测评报告按钮 ─── */
+
+.evalReportBtn {
+  align-self: flex-start;
+  padding: 0;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--primary);
+  &:hover { color: color-mix(in srgb, var(--primary) 80%, #000); }
+}
+
+/* ─── 测评报告面板 ─── */
+
+.reportRoot {
+  flex: 1; min-width: 0; display: flex; flex-direction: column;
+  border: 1px solid color-mix(in srgb, var(--text) 8%, transparent);
+  border-radius: 16px; background: var(--surface);
+  overflow: hidden;
+}
+
+.reportHeader {
+  display: flex; align-items: center; gap: 10px;
+  padding: 16px 20px; border-bottom: 1px solid color-mix(in srgb, var(--text) 6%, transparent);
+}
+
+.reportBackBtn {
+  width: 32px; height: 32px; border: 1px solid var(--border); border-radius: 8px;
+  background: var(--surface); color: var(--text-secondary); font-size: 14px;
+  cursor: pointer; display: inline-flex; align-items: center; justify-content: center;
+  transition: border-color 160ms ease, color 160ms ease;
+  &:hover { border-color: color-mix(in srgb, var(--primary) 36%, var(--border)); color: var(--text); }
+}
+
+.reportTitle {
+  margin: 0; color: var(--text); font-size: 16px; line-height: 24px; font-weight: 700;
+}
+
+.reportBody {
+  flex: 1; min-height: 0; overflow-y: auto;
+  padding: 20px; display: flex; flex-direction: column; gap: 24px;
+}
+
+.reportSection {
+  display: flex; flex-direction: column; gap: 10px;
+}
+
+.reportSectionTitle {
+  margin: 0; color: var(--text); font-size: 14px; font-weight: 700;
+  padding-bottom: 6px; border-bottom: 1px solid color-mix(in srgb, var(--text) 6%, transparent);
+}
+
+.reportSummary {
+  margin: 0; color: var(--text-secondary); font-size: 14px; line-height: 22px;
+}
+
+/* 性能指标列表 */
+
+.reportMetricList {
+  display: flex; flex-direction: column; gap: 0;
+  border: 1px solid color-mix(in srgb, var(--text) 6%, transparent);
+  border-radius: 12px; overflow: hidden;
+}
+
+.reportMetricRow {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 16px;
+  border-bottom: 1px solid color-mix(in srgb, var(--text) 4%, transparent);
+  &:last-child { border-bottom: none; }
+}
+
+.reportMetricRowHighlight {
+  background: color-mix(in srgb, var(--primary) 4%, transparent);
+}
+
+.reportMetricLabel {
+  color: var(--text); font-size: 13px; font-weight: 500;
+}
+
+.reportMetricValueGroup {
+  display: flex; align-items: baseline; gap: 8px;
+}
+
+.reportMetricScore {
+  color: var(--text); font-size: 20px; font-weight: 700;
+}
+
+.reportMetricValue {
+  color: var(--text); font-size: 14px; font-weight: 600;
+}
+
+.reportMetricTrendUp {
+  color: #3cbf7b; font-size: 12px; font-weight: 600;
+}
+
+.reportMetricTrendDown {
+  color: #3cbf7b; font-size: 12px; font-weight: 600;
+}
+
+/* 测试详情 */
+
+.reportDetailGrid {
+  display: flex; flex-direction: column; gap: 8px;
+}
+
+.reportDetailItem {
+  display: flex; align-items: flex-start; gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--text) 4%, transparent);
+  &:last-child { border-bottom: none; }
+}
+
+.reportDetailLabel {
+  flex: 0 0 72px;
+  color: var(--text-muted); font-size: 13px; font-weight: 500;
+}
+
+.reportDetailValue {
+  color: var(--text); font-size: 13px;
+}
+
+/* 问题与建议 */
+
+.reportIssueBlock {
+  display: flex; flex-direction: column; gap: 10px;
+  padding: 14px 16px; border-radius: 10px;
+  background: color-mix(in srgb, var(--app-bg) 60%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--text) 5%, transparent);
+}
+
+.reportIssueRow {
+  display: flex; gap: 4px; font-size: 13px; line-height: 20px;
+}
+
+.reportIssueBullet {
+  flex: 0 0 auto; color: #f5576c; font-weight: 600;
+}
+
+.reportSuggestionBullet {
+  flex: 0 0 auto; color: #3cbf7b; font-weight: 600;
+}
+
+.reportIssueText {
+  color: var(--text-secondary);
+}
+
+/* 结论 */
+
+.reportConclusion {
+  margin: 0; color: var(--text-secondary); font-size: 14px; line-height: 22px;
+  padding: 14px 16px; border-radius: 10px;
+  background: color-mix(in srgb, var(--primary) 4%, transparent);
+  border: 1px solid color-mix(in srgb, var(--primary) 10%, transparent);
+}
+
+/* ─── 进化建议卡片 ─── */
+
+.evoSuggestionCard {
+  padding: 20px; border-radius: 14px; background: var(--surface);
+  border: 1px solid color-mix(in srgb, var(--text) 8%, transparent);
+  display: flex; flex-direction: column; gap: 16px;
+}
+.evoSuggestionTitle { margin: 0; color: var(--text); font-size: 14px; font-weight: 700; }
+.evoSuggestionItem { display: flex; gap: 10px; }
+.evoSuggestionDot {
+  width: 10px; height: 10px; border-radius: 50%; background: #f5ae3c;
+  flex: 0 0 auto; margin-top: 6px;
+}
+.evoSuggestionContent { display: flex; flex-direction: column; gap: 4px; }
+.evoSuggestionName { margin: 0; color: var(--text); font-size: 15px; font-weight: 700; }
+.evoSuggestionScope { color: #d97706; font-size: 12px; font-weight: 500; }
+.evoSuggestionDesc { margin: 0; color: var(--text-secondary); font-size: 13px; line-height: 20px; }
+.evoExecuteBtn { margin-top: 4px; border-radius: 10px; height: 44px; font-size: 15px; font-weight: 600; background: #3cbf7b; border-color: #3cbf7b; }
+
+/* ─── 进化进度卡片 ─── */
+
+.evoProgressCard {
+  padding: 18px 20px; border-radius: 14px; background: var(--surface);
+  border: 1px solid color-mix(in srgb, var(--text) 8%, transparent);
+  display: flex; flex-direction: column; gap: 14px;
+}
+.evoProgressHeader { display: flex; align-items: center; gap: 8px; }
+.evoProgressTitle { margin: 0; color: var(--text); font-size: 15px; font-weight: 700; }
+.evoProgressRow { display: flex; align-items: center; gap: 12px; }
+.evoProgressLabel { flex: 0 0 60px; color: var(--text-secondary); font-size: 13px; }
+.evoProgressBar {
+  flex: 1; height: 8px; border-radius: 4px;
+  background: color-mix(in srgb, var(--text) 8%, transparent);
+  overflow: hidden;
+}
+.evoProgressBarFill {
+  height: 100%; border-radius: 4px; background: color-mix(in srgb, var(--text) 18%, transparent);
+  transition: width 600ms ease;
+}
+.evoProgressPct { flex: 0 0 36px; text-align: right; color: var(--text-muted); font-size: 12px; }
+
+/* ─── 评测集卡片 ─── */
+
+.evoEvalCard {
+  padding: 18px 20px; border-radius: 14px; background: var(--surface);
+  border: 1px solid color-mix(in srgb, var(--text) 8%, transparent);
+  display: flex; flex-direction: column; gap: 12px;
+}
+.evoEvalHeader { display: flex; align-items: center; gap: 8px; }
+.evoEvalIcon {
+  width: 32px; height: 32px; border-radius: 8px;
+  background: color-mix(in srgb, #a855f7 10%, transparent);
+  display: inline-flex; align-items: center; justify-content: center; font-size: 16px;
+}
+.evoEvalTitle { margin: 0; color: var(--text); font-size: 15px; font-weight: 700; }
+.evoEvalRow {
+  display: flex; align-items: center; justify-content: space-between;
+  color: var(--text-secondary); font-size: 13px;
+}
+.evoEvalHighlight { color: #3cbf7b; font-weight: 600; }
+
+/* ─── 版本血缘卡片 ─── */
+
+.evoLineageCard {
+  padding: 18px 20px; border-radius: 14px; background: var(--surface);
+  border: 1px solid color-mix(in srgb, var(--text) 8%, transparent);
+  display: flex; flex-direction: column; gap: 12px;
+}
+.evoLineageHeader { display: flex; align-items: center; gap: 8px; }
+.evoLineageIcon {
+  width: 32px; height: 32px; border-radius: 8px;
+  background: color-mix(in srgb, #f97316 10%, transparent);
+  display: inline-flex; align-items: center; justify-content: center; font-size: 16px;
+}
+.evoLineageTitle { margin: 0; color: var(--text); font-size: 15px; font-weight: 700; }
+.evoLineageVersions {
+  display: flex; align-items: center; gap: 12px; justify-content: center;
+  padding: 12px; border-radius: 10px;
+  background: color-mix(in srgb, var(--app-bg) 70%, var(--surface));
+}
+.evoLineageTag {
+  padding: 4px 14px; border-radius: 999px; font-size: 13px; font-weight: 600;
+}
+
+.evoViewCompareBtn {
+  width: 100%; padding: 14px; border: 1px solid color-mix(in srgb, var(--text) 8%, transparent);
+  border-radius: 12px; background: var(--surface); color: var(--text);
+  font-size: 15px; font-weight: 600; cursor: pointer;
+  transition: border-color 160ms ease, background 160ms ease;
+  &:hover { border-color: var(--primary); background: color-mix(in srgb, var(--primary) 4%, transparent); }
+}
+
+/* ─── SVG 雷达图 ─── */
+
+.radarWrapper { border-radius: 16px; overflow: hidden; }
+.radarSvg { width: 100%; display: block; }
+
+/* ─── SVG 趋势图 ─── */
+
+.trendChartWrapper { display: flex; flex-direction: column; gap: 12px; }
+.trendSvg { width: 100%; display: block; border: 1px solid color-mix(in srgb, var(--text) 6%, transparent); border-radius: 12px; }
+.trendLegend { display: flex; align-items: center; justify-content: center; gap: 20px; }
+.trendLegendItem { display: flex; align-items: center; gap: 6px; color: var(--text-secondary); font-size: 12px; }
+.trendLegendDot {
+  width: 10px; height: 10px; border-radius: 50%;
+  border: 2px solid; background: #fff;
+}
+
+/* ═══ 进化对比视图 ═══ */
+
+.evoCompareRoot {
+  flex: 1; min-width: 0; display: flex; flex-direction: column;
+  border: 1px solid color-mix(in srgb, var(--text) 8%, transparent);
+  border-radius: 16px; background: var(--surface); overflow: hidden;
+}
+.evoCompareHeader {
+  display: flex; align-items: center; gap: 12px;
+  padding: 14px 20px;
+  border-bottom: 1px solid color-mix(in srgb, var(--text) 6%, transparent);
+}
+.evoCompareBackBtn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 12px; border: 1px solid var(--border); border-radius: 8px;
+  background: var(--surface); color: var(--text-secondary); font-size: 13px;
+  cursor: pointer; transition: border-color 160ms ease, color 160ms ease;
+  &:hover { border-color: var(--primary); color: var(--primary); }
+}
+.evoCompareTitle { margin: 0; color: var(--primary); font-size: 16px; font-weight: 700; flex: 1; }
+.evoCompareActions { display: flex; gap: 8px; }
+.evoCompareBody { flex: 1; min-height: 0; overflow-y: auto; padding: 24px; display: flex; flex-direction: column; gap: 28px; }
+
+/* 版本演进树 */
+.evoTreeSection { display: flex; flex-direction: column; gap: 14px; }
+.evoTreeTitle { margin: 0; color: var(--text); font-size: 14px; font-weight: 700; }
+.evoTree {
+  display: flex; flex-direction: column; position: relative; padding-left: 20px;
+  &::before { content: ""; position: absolute; left: 7px; top: 12px; bottom: 12px; width: 2px; background: color-mix(in srgb, var(--primary) 20%, transparent); border-radius: 1px; }
+}
+.evoTreeNode { position: relative; padding: 8px 0 8px 16px; }
+.evoTreeDot {
+  position: absolute; left: -20px; top: 16px; width: 14px; height: 14px;
+  border-radius: 50%; border: 2.5px solid var(--primary); background: var(--surface);
+}
+.evoTreeDotFilled { background: var(--primary); }
+.evoTreeCard {
+  padding: 14px 16px; border: 1px solid color-mix(in srgb, var(--text) 6%, transparent);
+  border-radius: 12px; background: var(--surface); display: flex; flex-direction: column; gap: 6px;
+}
+.evoTreeCardCurrent { background: color-mix(in srgb, var(--primary) 4%, var(--surface)); border-color: color-mix(in srgb, var(--primary) 20%, transparent); }
+.evoTreeCardTop { display: flex; align-items: center; gap: 8px; }
+.evoTreeVersion { color: var(--text); font-size: 16px; font-weight: 700; }
+.evoTreeReportLink { padding: 0; font-size: 13px; color: var(--primary); }
+.evoTreeStatus { color: #3cbf7b; font-size: 12px; font-weight: 600; }
+.evoTreeRounds {
+  padding: 2px 10px; border-radius: 999px; font-size: 11px; font-weight: 600;
+  background: color-mix(in srgb, var(--text) 6%, transparent); color: var(--text-secondary);
+}
+.evoTreeDate { color: var(--text-muted); font-size: 12px; }
+.evoTreeNote { color: var(--text-secondary); font-size: 13px; }
+
+/* 核心指标 */
+.evoCoreSection { display: flex; flex-direction: column; gap: 14px; }
+.evoCoreTitle { margin: 0; color: var(--text); font-size: 14px; font-weight: 700; }
+.evoCoreGrid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.evoCoreCard {
+  padding: 14px 16px; border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--text) 6%, transparent);
+  display: flex; align-items: center; gap: 12px;
+}
+.evoCoreLabel { flex: 1; color: var(--text-secondary); font-size: 13px; }
+.evoCoreValue { color: var(--text); font-size: 18px; font-weight: 700; }
+.evoCoreTrendUp { color: #3cbf7b; font-size: 12px; font-weight: 600; }
+.evoCoreTrendDown { color: #3b82f6; font-size: 12px; font-weight: 600; }
+
+/* 趋势 */
+.evoTrendSection { display: flex; flex-direction: column; gap: 14px; }
+.evoTrendTitle { margin: 0; color: var(--text); font-size: 14px; font-weight: 700; }
+
+/* ═══ 测试面板 ═══ */
+
+.evoTestRoot {
+  flex: 1; min-width: 0; display: flex; flex-direction: column;
+  border: 1px solid color-mix(in srgb, var(--text) 8%, transparent);
+  border-radius: 16px; background: var(--surface); overflow: hidden;
+}
+.evoTestHeader {
+  display: flex; align-items: center; gap: 12px;
+  padding: 14px 20px;
+  border-bottom: 1px solid color-mix(in srgb, var(--text) 6%, transparent);
+}
+.evoTestBody { flex: 1; min-height: 0; overflow-y: auto; padding: 24px; display: flex; flex-direction: column; gap: 10px; }
+.evoTestWriteItem {
+  display: flex; align-items: center; gap: 8px; padding: 6px 0;
+  color: var(--text-secondary); font-size: 13px;
+  animation: evoFadeIn 300ms ease both;
+}
+.evoTestDoneMsg {
+  display: flex; align-items: center; gap: 10px;
+  margin: 12px 0 8px; padding: 14px 18px; border-radius: 12px;
+  background: color-mix(in srgb, #3cbf7b 8%, transparent);
+  color: var(--text); font-size: 14px; font-weight: 500;
+  animation: evoFadeIn 400ms ease both;
+}
+.evoTestMsgRow { display: flex; }
+.evoTestMsgUser { justify-content: flex-end; }
+.evoTestMsgAssistant { justify-content: flex-start; }
+.evoTestMsgBubble {
+  max-width: 80%; padding: 10px 16px; border-radius: 14px;
+  background: color-mix(in srgb, var(--app-bg) 60%, var(--surface));
+  color: var(--text); font-size: 14px; line-height: 22px;
+}
+.evoTestMsgBubbleUser {
+  background: color-mix(in srgb, var(--text) 6%, var(--surface));
+  border-radius: 14px 14px 4px 14px;
+}
+.evoTestFooter {
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px 18px;
+  border-top: 1px solid color-mix(in srgb, var(--text) 6%, transparent);
+}
+
+@keyframes evoFadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ═══ 发布面板 ═══ */
+
+.evoPublishRoot {
+  flex: 1; min-width: 0; display: flex; flex-direction: column;
+  border: 1px solid color-mix(in srgb, var(--text) 8%, transparent);
+  border-radius: 16px; background: var(--surface); overflow: hidden;
+}
+.evoPublishBody { flex: 1; min-height: 0; overflow-y: auto; padding: 24px; display: flex; flex-direction: column; gap: 24px; }
+.evoPublishSuccess { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; text-align: center; }
+.evoPublishTypeSection { display: flex; flex-direction: column; gap: 16px; }
+.evoPublishHint {
+  padding: 12px 16px; border-radius: 10px;
+  background: color-mix(in srgb, #f5ae3c 8%, transparent);
+  color: #d97706; font-size: 13px; font-weight: 500;
+}
+.evoPublishTypeCards { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.evoPublishTypeCard {
+  display: flex; align-items: center; gap: 14px;
+  padding: 20px; border: 1.5px solid var(--border); border-radius: 12px;
+  background: var(--surface); cursor: pointer; text-align: left;
+  transition: border-color 160ms ease, background 160ms ease;
+  &:hover { border-color: var(--primary); background: color-mix(in srgb, var(--primary) 4%, transparent); }
+}
+.evoPublishTypeIcon { font-size: 28px; color: var(--primary); flex: 0 0 auto; }
+.evoPublishTypeTitle { color: var(--text); font-size: 15px; font-weight: 600; }
+.evoPublishTypeDesc { color: var(--text-muted); font-size: 13px; }
+.evoPublishSkillList { display: flex; flex-direction: column; gap: 6px; }
+.evoPublishSkillItem {
+  display: flex; align-items: center; gap: 8px;
+  padding: 12px 14px; border: 1.5px solid var(--border); border-radius: 10px;
+  background: var(--surface); color: var(--text); font-size: 13px;
+  cursor: pointer; transition: border-color 160ms ease, background 160ms ease;
+  &:hover { border-color: color-mix(in srgb, var(--primary) 40%, var(--border)); }
+}
+.evoPublishSkillItemActive {
+  border-color: var(--primary); background: color-mix(in srgb, var(--primary) 8%, transparent);
+  color: var(--primary); font-weight: 500;
+}
+.evoPublishSkillVer { margin-left: auto; color: var(--text-muted); font-size: 12px; }
+.evoPublishFormArea { display: flex; flex-direction: column; gap: 20px; }
+.evoPublishFormSection { display: flex; flex-direction: column; gap: 12px; }
+.evoPublishFormSectionTitle { margin: 0; color: var(--text); font-size: 14px; font-weight: 700; }
+.evoPublishFormRow { display: flex; flex-direction: column; gap: 6px; }
+.evoPublishFormLabel { color: var(--text-secondary); font-size: 13px; font-weight: 500; }
+.evoPublishCoverGrid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; }
+.evoPublishCoverItem {
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  padding: 8px; border: 2px solid transparent; border-radius: 10px;
+  background: transparent; cursor: pointer;
+  transition: border-color 160ms ease;
+  &:hover { border-color: color-mix(in srgb, var(--text) 12%, transparent); }
+}
+.evoPublishCoverItemActive { border-color: var(--primary); }
+.evoPublishCoverSwatch { width: 100%; aspect-ratio: 1.6; border-radius: 8px; display: block; }
+.evoPublishCoverLabel { color: var(--text-muted); font-size: 11px; }
+.evoPublishFooter { display: flex; justify-content: flex-end; gap: 10px; padding-top: 12px; border-top: 1px solid color-mix(in srgb, var(--text) 6%, transparent); }
+
+/* ─── 响应式 ─── */
+
+@media (max-width: 1100px) {
+  .detailBody { flex-direction: column; }
+  .detailLeft, .detailLeftEvolution { flex: none; }
+  .evolutionChat { margin-left: 0; margin-top: 16px; min-height: 400px; }
+}
+
+@media (max-width: 960px) {
+  .topBar { flex-direction: column; align-items: stretch; }
+  .topActions { flex-wrap: wrap; }
+  .searchInput { width: 100%; flex: 1; }
+  .cardGrid { grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr)); }
+}

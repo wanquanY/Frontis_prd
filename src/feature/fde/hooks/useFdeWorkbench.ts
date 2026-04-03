@@ -9,6 +9,7 @@ import {
   FDE_OPPORTUNITIES,
   FDE_TEAM_MEMBERS,
   FDE_VERSION_MANAGEMENT_TASKS,
+  FDE_WORKBENCH_NAV_GROUPS,
   FDE_WORKBENCH_TABS,
 } from "@/feature/fde/mockData";
 import type {
@@ -327,6 +328,7 @@ export const useFdeWorkbench = (): UseFdeWorkbenchResult => {
     addLeadProgress,
     triggerEvolution,
     tabs: FDE_WORKBENCH_TABS,
+    navGroups: FDE_WORKBENCH_NAV_GROUPS,
     teamMembers: FDE_TEAM_MEMBERS,
   };
 };
