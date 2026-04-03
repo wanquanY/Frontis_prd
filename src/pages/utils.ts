@@ -131,6 +131,32 @@ export const downloadArtifact = (file: SynClawArtifactItem): void => {
   document.body.removeChild(anchor);
 };
 
+interface PrototypeDownloadFileOptions {
+  content: string;
+  fileName: string;
+  mimeType?: string;
+}
+
+/**
+ * 触发原型页本地占位文件下载。
+ */
+export const downloadPrototypeFile = ({
+  content,
+  fileName,
+  mimeType = "text/plain;charset=utf-8",
+}: PrototypeDownloadFileOptions): void => {
+  const blob = new Blob([content], { type: mimeType });
+  const objectUrl = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = objectUrl;
+  anchor.download = fileName;
+  anchor.rel = "noreferrer";
+  document.body.appendChild(anchor);
+  anchor.click();
+  document.body.removeChild(anchor);
+  URL.revokeObjectURL(objectUrl);
+};
+
 /**
  * 格式化附件体积展示文案。
  */

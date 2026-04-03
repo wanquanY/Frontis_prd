@@ -1,9 +1,10 @@
 import { useCallback, useMemo, useState } from "react";
 
-import { ArrowLeftOutlined, PlusOutlined } from "@ant-design/icons";
+import { ArrowLeftOutlined, DownloadOutlined, PlusOutlined } from "@ant-design/icons";
 import { Button, Input, Modal, Popconfirm, Select, Switch, message } from "antd";
 
 import type { FrontisWebUserItem } from "../types";
+import { downloadPrototypeFile } from "../utils";
 
 import adminStyles from "./FrontisAdminViews.module.less";
 import {
@@ -39,6 +40,40 @@ const DEVICE_KIND_QUOTA: Record<DeviceKind, number> = {
   "local-client": 80,
   "local-workstation": 20,
 };
+
+interface ClientDownloadItem {
+  fileName: string;
+  key: string;
+  label: string;
+  packageName: string;
+}
+
+const CLIENT_DOWNLOAD_OPTIONS: ClientDownloadItem[] = [
+  {
+    fileName: "FrontisAI-macos-apple-silicon-installer.txt",
+    key: "macos-apple-silicon",
+    label: "下载 macOS（Apple 芯片）",
+    packageName: "FrontisAI-macOS-AppleSilicon.dmg",
+  },
+  {
+    fileName: "FrontisAI-macos-intel-installer.txt",
+    key: "macos-intel",
+    label: "下载 macOS（Intel 芯片）",
+    packageName: "FrontisAI-macOS-Intel.dmg",
+  },
+  {
+    fileName: "FrontisAI-windows-installer.txt",
+    key: "windows",
+    label: "下载 Windows",
+    packageName: "FrontisAI-Windows-x64.exe",
+  },
+  {
+    fileName: "FrontisAI-linux-installer.txt",
+    key: "linux",
+    label: "下载 Linux",
+    packageName: "FrontisAI-Linux-x64.AppImage",
+  },
+];
 
 interface PendingDeviceItem {
   activationCode: string;
@@ -456,6 +491,25 @@ export const DeviceManagementView = ({
     [],
   );
 
+  const handleDownloadClient = useCallback((downloadItem: ClientDownloadItem): void => {
+    downloadPrototypeFile({
+      content: [
+        "Frontis AI 客户端安装包下载占位文件",
+        "",
+        `下载入口：${downloadItem.label}`,
+        `正式安装包名称：${downloadItem.packageName}`,
+        "适用场景：企业管理后台 -> 设备管理 -> 本地客户端安装",
+        "",
+        "说明：",
+        "1. 当前原型提供一键下载入口，便于演示不同系统安装包分发。",
+        "2. 正式环境可将该下载逻辑替换为 CDN / OSS 的真实安装包地址。",
+        "3. Mac 客户端已区分 Apple 芯片与 Intel 芯片。",
+      ].join("\n"),
+      fileName: downloadItem.fileName,
+    });
+    message.success(`${downloadItem.label}已开始下载`);
+  }, []);
+
   const filterOptions = useMemo(
     () => [
       { key: "all" as const, label: `全部 (${allRecords.length})` },
@@ -518,15 +572,36 @@ export const DeviceManagementView = ({
       </header>
 
       {!selectedRecord ? (
-        <div className={adminStyles.consoleSummaryStrip}>
-          {summaryItems.map(item => (
-            <div key={item.label} className={adminStyles.consoleSummaryItem}>
-              <span className={adminStyles.consoleSummaryLabel}>{item.label}</span>
-              <strong className={adminStyles.consoleSummaryValue}>{item.value}</strong>
-              <span className={adminStyles.consoleSummaryHint}>{item.hint}</span>
+        <>
+          <div className={adminStyles.consoleSummaryStrip}>
+            {summaryItems.map(item => (
+              <div key={item.label} className={adminStyles.consoleSummaryItem}>
+                <span className={adminStyles.consoleSummaryLabel}>{item.label}</span>
+                <strong className={adminStyles.consoleSummaryValue}>{item.value}</strong>
+                <span className={adminStyles.consoleSummaryHint}>{item.hint}</span>
+              </div>
+            ))}
+          </div>
+
+          <section className={adminStyles.consoleSection}>
+            <div className={adminStyles.consoleSectionHeader}>
+              <div className={adminStyles.consoleSectionHeaderMain}>
+                <h2 className={adminStyles.consoleSectionTitle}>客户端下载</h2>
+              </div>
             </div>
-          ))}
-        </div>
+            <div className={adminStyles.consolePillRow}>
+              {CLIENT_DOWNLOAD_OPTIONS.map(downloadItem => (
+                <Button
+                  key={downloadItem.key}
+                  icon={<DownloadOutlined />}
+                  onClick={() => handleDownloadClient(downloadItem)}
+                >
+                  {downloadItem.label}
+                </Button>
+              ))}
+            </div>
+          </section>
+        </>
       ) : null}
 
       {selectedRecord ? (
