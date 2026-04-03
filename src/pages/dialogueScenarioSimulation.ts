@@ -34,16 +34,29 @@ interface CreateToolUseBlockOptions {
   purpose: string;
   status: string;
   output?: string;
+  contactResults?: ScenarioContactLookupItem[];
   isError?: boolean;
 }
 
-interface DialogueScenarioFrame {
+interface ScenarioContactLookupItem {
+  id: string;
+  name: string;
+  avatarLabel?: string;
+  typeLabel: string;
+  identityLabel: string;
+  feishuId: string;
+  matchLabel?: string;
+  note?: string;
+}
+
+export interface DialogueScenarioFrame {
   delayMs: number;
   preview: string;
   blocks: Block[];
   artifacts?: SynClawArtifactItem[];
   panel?: DialogueGeneratedPanelState;
   results?: DialogueGeneratedResultItem[];
+  followupSuggestions?: string[];
 }
 
 interface DialogueScenarioDefinition {
@@ -53,6 +66,7 @@ interface DialogueScenarioDefinition {
   title: string;
   updatedAt: string;
   triggerQuestion: string;
+  seeded?: boolean;
   buildFrames: (sessionId: string) => DialogueScenarioFrame[];
 }
 
@@ -66,13 +80,27 @@ export interface DialogueScenario {
   frames: DialogueScenarioFrame[];
 }
 
+export interface DialogueScenarioReplayRound {
+  agentName: string;
+  question: string;
+  updatedAt: string;
+  frames: DialogueScenarioFrame[];
+}
+
+export interface DialogueScenarioReplay {
+  employeeId: string;
+  title: string;
+  triggerQuestion: string;
+  rounds: DialogueScenarioReplayRound[];
+}
+
 const SCENARIO_SEED_IDS: Record<string, string> = {
   "employee-pm": "dialogue-seed-sequence-overview",
   "employee-designer": "dialogue-seed-employee-assess",
   "employee-research": "dialogue-seed-redline-detect",
   "employee-ops": "dialogue-seed-benchmark-find",
   "employee-sales": "dialogue-seed-score-rank",
-  "employee-writer": "dialogue-seed-ceo-orchestration",
+  "employee-writer": "dialogue-seed-ceo-sequence-overview",
 };
 
 const FINAL_TEXT_BLOCK_SUFFIX = "-final";
@@ -97,6 +125,8 @@ const SCENARIO_TOOL_DISPLAY_NAMES: Record<string, string> = {
   score_rank: "评分排名",
   attention_risk_digest: "关注区风险摘要",
   management_plan: "管理动作生成",
+  feishu_contact_lookup: "飞书通讯录查询",
+  feishu_send_message: "飞书消息发送",
   live_brief_ingest: "商品资料整理",
   live_script_outline: "脚本框架生成",
   live_script_polish: "讲品话术润色",
@@ -137,6 +167,87 @@ const SCENARIO_TOOL_DISPLAY_NAMES: Record<string, string> = {
   action_route_generate: "责任方路由",
 };
 
+const CEO_SEQUENCE_OVERVIEW_QUESTION = "给我看一下各序列的整体情况，按平均分排序。";
+const CEO_EMPLOYEE_ASSESS_QUESTION = "质量/食品安全序列王建国";
+const CEO_REDLINE_QUESTION = "小张最近有没有触碰红线？";
+const CEO_BENCHMARK_QUESTION = "生产序列最近有哪些表现突出的标杆？我想了解一下。";
+const CEO_SCORE_RANK_QUESTION = "销售序列这季度的人员排名怎么样？有没有需要关注的？";
+const CEO_FEISHU_ENTRY_QUESTION = "管理和销售这两条线今天该怎么收口？";
+const CEO_FEISHU_DISPATCH_QUESTION = "把管理和销售今天要收口的内容发给负责人。";
+const CEO_FEISHU_MANAGEMENT_FOCUS_QUESTION = "把管理序列那段单独发给管理负责人，语气再重一点。";
+
+const CEO_SEQUENCE_FOLLOWUPS = [
+  CEO_EMPLOYEE_ASSESS_QUESTION,
+  "哪个序列的预警最值得我今天盯？",
+  "管理序列的 6 个预警大概来自哪几类问题？",
+  "把这份盘面压成一段晨会口径。",
+  "质量和生产为什么能稳住？",
+];
+
+const CEO_EMPLOYEE_ASSESS_FOLLOWUPS = [
+  CEO_REDLINE_QUESTION,
+  "王建国最强的两个维度是什么？",
+  "他离标杆线还差哪一步？",
+  "ERP 数据有没有拖后腿？",
+  "如果要培养他，第一步怎么带？",
+];
+
+const CEO_REDLINE_FOLLOWUPS = [
+  CEO_BENCHMARK_QUESTION,
+  "这次约谈最该先讲哪一句？",
+  "还有哪些人虽然没触碰，但已经在注意区？",
+  "张伟这轮要不要暂停对外承诺权限？",
+  "把最近红黄灯事件给我压成一页管理口径。",
+];
+
+const CEO_BENCHMARK_FOLLOWUPS = [
+  CEO_SCORE_RANK_QUESTION,
+  "这 3 个人里谁最适合进储备干部名单？",
+  "如果我要做表彰，先点名谁最有效？",
+  "谁不只是能打，还具备带教能力？",
+  "把标杆培养动作也一起列出来。",
+];
+
+const CEO_SCORE_RANK_FOLLOWUPS = [
+  CEO_FEISHU_ENTRY_QUESTION,
+  "关注区 3 个人该怎么一人一策？",
+  "李明这个底线问题要先怎么处理？",
+  "王强连续下滑的过程问题该先拆哪里？",
+  "把销售序列排名结构压成一句老板口径。",
+];
+
+const CEO_SYNTHESIS_FOLLOWUPS = [
+  CEO_SEQUENCE_OVERVIEW_QUESTION,
+  CEO_EMPLOYEE_ASSESS_QUESTION,
+  CEO_REDLINE_QUESTION,
+  CEO_BENCHMARK_QUESTION,
+  CEO_SCORE_RANK_QUESTION,
+];
+
+const CEO_FEISHU_ENTRY_FOLLOWUPS = [
+  CEO_FEISHU_DISPATCH_QUESTION,
+  CEO_FEISHU_MANAGEMENT_FOCUS_QUESTION,
+  "把销售负责人那段也单独写得更明确一点。",
+  "先把拟发送内容完整给我看。",
+  "抄送我和 COO。",
+];
+
+const CEO_FEISHU_DISPATCH_FOLLOWUPS = [
+  CEO_FEISHU_MANAGEMENT_FOCUS_QUESTION,
+  "把销售关注区名单也一起发给销售负责人。",
+  "抄送我和 COO。",
+  "要求他们今天 17:00 前回执。",
+  "把发出去的内容完整给我看一眼。",
+];
+
+const CEO_FEISHU_MANAGEMENT_FOLLOWUPS = [
+  CEO_FEISHU_DISPATCH_QUESTION,
+  "再抄送 COO。",
+  "加一句今天中午前必须回我。",
+  "如果没回执，下午 3 点自动提醒一次。",
+  "把销售负责人也按同样标准发掉。",
+];
+
 const SEQUENCE_OVERVIEW_PAGE_IMAGE_URL = new URL(
   "../assets/images/aiCeoScenarioOutputs/sequence-overview-page.png",
   import.meta.url,
@@ -170,7 +281,8 @@ const CEO_CHAT_DRAWER_IMAGE_URL = new URL(
   import.meta.url,
 ).href;
 
-const normalizeScenarioQuestion = (value: string): string => value.replace(/\s+/g, "").trim();
+const normalizeScenarioQuestion = (value: string): string =>
+  value.replace(/[\s，。？！,.!?:：；;]/g, "").trim();
 
 const resolveScenarioToolDisplayName = (name: string, displayName?: string): string => {
   const normalizedDisplayName = displayName?.trim() ?? "";
@@ -288,6 +400,18 @@ const upsertScenarioChildBlock = (children: Block[], block: Block): Block[] => {
     return nextChildren;
   }
 
+  if (block.kind === "text" || block.kind === "result_cards") {
+    nextChildren.push(block);
+    return nextChildren;
+  }
+
+  const firstTextBlockIndex = nextChildren.findIndex(item => item.kind === "text");
+
+  if (firstTextBlockIndex >= 0) {
+    nextChildren.splice(firstTextBlockIndex, 0, block);
+    return nextChildren;
+  }
+
   nextChildren.push(block);
   return nextChildren;
 };
@@ -298,12 +422,16 @@ const buildScenarioMessageFrame = (
   preview: string,
   delayMs: number,
   artifacts?: SynClawArtifactItem[],
+  panel?: DialogueGeneratedPanelState,
   results?: DialogueGeneratedResultItem[],
+  followupSuggestions?: string[],
 ): DialogueScenarioFrame => ({
   delayMs,
   preview,
   artifacts,
+  panel,
   results,
+  followupSuggestions,
   blocks: [
     {
       id: messageId,
@@ -327,17 +455,27 @@ const expandFramesForTypewriter = (frames: DialogueScenarioFrame[]): DialogueSce
   const timelineFrames: DialogueScenarioFrame[] = [];
   let messageId = "";
   let accumulatedChildren: Block[] = [];
-  let thinkingStepIndex = 0;
   let lastThinkingContent = "";
 
   const pushFrame = (
     preview: string,
     delayMs: number,
     artifacts?: SynClawArtifactItem[],
+    panel?: DialogueGeneratedPanelState,
     results?: DialogueGeneratedResultItem[],
+    followupSuggestions?: string[],
   ): void => {
     timelineFrames.push(
-      buildScenarioMessageFrame(messageId, accumulatedChildren, preview, delayMs, artifacts, results),
+      buildScenarioMessageFrame(
+        messageId,
+        accumulatedChildren,
+        preview,
+        delayMs,
+        artifacts,
+        panel,
+        results,
+        followupSuggestions,
+      ),
     );
   };
 
@@ -379,21 +517,38 @@ const expandFramesForTypewriter = (frames: DialogueScenarioFrame[]): DialogueSce
   const getLatestThinkingBlock = (): Block | undefined =>
     [...accumulatedChildren].reverse().find(child => child.kind === "thinking");
 
-  const resolveThinkingBlockId = (sourceThinkingId: string): string => {
-    const lastChild = accumulatedChildren[accumulatedChildren.length - 1];
-
-    if (lastChild?.kind === "thinking") {
-      return lastChild.id;
+  const findLatestBlockIndex = (kind: Block["kind"]): number => {
+    for (let index = accumulatedChildren.length - 1; index >= 0; index -= 1) {
+      if (accumulatedChildren[index]?.kind === kind) {
+        return index;
+      }
     }
 
+    return -1;
+  };
+
+  const resolveThinkingBlockId = (sourceThinkingId: string): string => {
     const latestThinkingBlock = getLatestThinkingBlock();
 
     if (!latestThinkingBlock) {
       return sourceThinkingId;
     }
 
-    thinkingStepIndex += 1;
-    return `${sourceThinkingId}-phase-${thinkingStepIndex}`;
+    const latestThinkingIndex = findLatestBlockIndex("thinking");
+    const latestToolIndex = findLatestBlockIndex("tool_use");
+
+    if (latestThinkingIndex > latestToolIndex) {
+      return latestThinkingBlock.id;
+    }
+
+    const phaseCount =
+      accumulatedChildren.filter(
+        child =>
+          child.kind === "thinking" &&
+          (child.id === sourceThinkingId || child.id.startsWith(`${sourceThinkingId}-phase-`)),
+      ).length + 1;
+
+    return `${sourceThinkingId}-phase-${phaseCount}`;
   };
 
   const streamTextualBlock = (
@@ -404,7 +559,9 @@ const expandFramesForTypewriter = (frames: DialogueScenarioFrame[]): DialogueSce
       keepStreamingAtEnd: boolean;
       preview: string;
       artifacts?: SynClawArtifactItem[];
+      panel?: DialogueGeneratedPanelState;
       results?: DialogueGeneratedResultItem[];
+      followupSuggestions?: string[];
     },
   ): boolean => {
     const currentBlock = accumulatedChildren.find(child => child.id === blockId);
@@ -443,7 +600,9 @@ const expandFramesForTypewriter = (frames: DialogueScenarioFrame[]): DialogueSce
         isLastStep ? options.preview : contentStep,
         estimateTypewriterFrameDelay(contentStep, previousContent),
         isLastStep ? options.artifacts : undefined,
+        isLastStep ? options.panel : undefined,
         isLastStep ? options.results : undefined,
+        isLastStep ? options.followupSuggestions : undefined,
       );
 
       previousContent = contentStep;
@@ -478,6 +637,8 @@ const expandFramesForTypewriter = (frames: DialogueScenarioFrame[]): DialogueSce
           streamTextualBlock(thinkingBlock, nextThinkingId, thinkingContent, {
             keepStreamingAtEnd: !hasActionBlocks,
             preview: preview || thinkingContent,
+            panel: !hasActionBlocks ? frame.panel : undefined,
+            followupSuggestions: !hasActionBlocks ? frame.followupSuggestions : undefined,
           }) || hasPushedFrame;
         lastThinkingContent = thinkingContent;
 
@@ -496,7 +657,14 @@ const expandFramesForTypewriter = (frames: DialogueScenarioFrame[]): DialogueSce
     const didToolsChange = upsertStaticBlocks(toolBlocks);
 
     if (didToolsChange && finalTextBlocks.length === 0) {
-      pushFrame(preview || lastThinkingContent, frame.delayMs, frame.artifacts, frame.results);
+      pushFrame(
+        preview || lastThinkingContent,
+        frame.delayMs,
+        frame.artifacts,
+        frame.panel,
+        frame.results,
+        frame.followupSuggestions,
+      );
       hasPushedFrame = true;
     }
 
@@ -514,15 +682,30 @@ const expandFramesForTypewriter = (frames: DialogueScenarioFrame[]): DialogueSce
           keepStreamingAtEnd: block.isStreaming === true,
           preview: preview || finalText,
           artifacts: isLastTextBlock ? frame.artifacts : undefined,
+          panel: isLastTextBlock ? frame.panel : undefined,
           results: isLastTextBlock ? frame.results : undefined,
+          followupSuggestions: isLastTextBlock ? frame.followupSuggestions : undefined,
         }) || hasPushedFrame;
     });
 
     if (
       !hasPushedFrame &&
-      (didToolsChange || frame.artifacts?.length || frame.results?.length || finalTextBlocks.length > 0)
+      (
+        didToolsChange ||
+        frame.artifacts?.length ||
+        frame.results?.length ||
+        finalTextBlocks.length > 0 ||
+        frame.followupSuggestions?.length
+      )
     ) {
-      pushFrame(preview || lastThinkingContent, frame.delayMs, frame.artifacts, frame.results);
+      pushFrame(
+        preview || lastThinkingContent,
+        frame.delayMs,
+        frame.artifacts,
+        frame.panel,
+        frame.results,
+        frame.followupSuggestions,
+      );
     }
   });
 
@@ -598,6 +781,7 @@ const createToolUseBlock = ({
   purpose,
   status,
   output,
+  contactResults,
   isError,
 }: CreateToolUseBlockOptions): Block => {
   const callId = `${id}-call`;
@@ -611,6 +795,7 @@ const createToolUseBlock = ({
       purpose,
       status,
       call_id: callId,
+      contact_results: contactResults,
     },
     actorRole: "assistant",
     children: output
@@ -1309,6 +1494,284 @@ const createCeoSynthesisPanelState = (
   },
 });
 
+const createDispatchExecutionPanelState = (
+  sessionId: string,
+  status: DialogueGeneratedPanelStatus,
+  mode: "overview" | "managementFocus",
+): DialogueGeneratedPanelState => {
+  if (mode === "managementFocus") {
+    const isRunning = status === "running";
+
+    return {
+      id: `${sessionId}-panel-dispatch-management-focus`,
+      kind: "dispatchExecution",
+      title: "飞书发送记录",
+      subtitle:
+        status === "running"
+          ? "正在确认飞书通讯录并把强化提醒发给管理序列负责人"
+          : "已完成通讯录匹配，并把强化提醒发给管理序列负责人",
+      skillName: "飞书触达",
+      updatedAt: "刚刚",
+      status,
+      payload: {
+        summaryMetrics: [
+          { label: "触达人数", value: "1", hint: "管理序列负责人", tone: "accent" },
+          { label: "通讯录命中", value: "1/1", hint: "陈峰", tone: "warning" },
+          {
+            label: "送达状态",
+            value: isRunning ? "发送中" : "1/1",
+            hint: isRunning ? "等待飞书回执" : "已发送",
+            tone: "positive",
+          },
+          { label: "回执要求", value: "12:00", hint: "未回执自动提醒", tone: "danger" },
+        ],
+        dispatchLabel: isRunning
+          ? "CEO分身已确认飞书通讯录中的陈峰，正在把强化版管理提醒按单聊发出。"
+          : "CEO分身先确认了飞书通讯录中的陈峰，再把强化版管理提醒按单聊发出。",
+        recipients: [
+          {
+            id: "chenfeng",
+            name: "陈峰",
+            roleLabel: "管理序列负责人",
+            channelLabel: "飞书单聊",
+            statusLabel: isRunning ? "发送中" : "已发送",
+            summary: "要求今天中午前拆清 6 个预警来源，重点说明执行脱节和跨部门协同卡点。",
+            note: "语气已加强，并要求未按时回执则下午 15:00 自动提醒。",
+            tone: "danger",
+          },
+        ],
+        conversationItems: [
+          {
+            id: "management-focus-yesterday",
+            actorLabel: "系统",
+            summary: "昨天 17:36",
+            direction: "system",
+          },
+          {
+            id: "management-focus-history-incoming",
+            actorLabel: "陈峰",
+            avatarLabel: "陈",
+            direction: "incoming",
+            tagLabel: "管理序列负责人",
+            timeLabel: "17:36",
+            summary: "管理序列这周 6 个预警里，3 个是流程执行脱节，另外 3 个还卡在跨部门责任边界。",
+          },
+          {
+            id: "management-focus-history-outgoing",
+            actorLabel: "CEO分身",
+            avatarLabel: "我",
+            direction: "outgoing",
+            timeLabel: "17:42",
+            statusLabel: "已送达",
+            summary: "先不要给泛泛结论，明早把来源拆清，再看哪些需要上升到组织协同问题。",
+            detail: "飞书单聊 · 管理序列负责人",
+          },
+          {
+            id: "management-focus-today-morning",
+            actorLabel: "系统",
+            summary: "今天 09:18",
+            direction: "system",
+          },
+          {
+            id: "management-focus-morning-incoming",
+            actorLabel: "陈峰",
+            avatarLabel: "陈",
+            direction: "incoming",
+            tagLabel: "管理序列负责人",
+            timeLabel: "09:18",
+            summary: "我这边已经把 6 个预警先拆完了，但还有 2 个协同卡点需要再对一下责任归属。",
+          },
+          {
+            id: "management-focus-time",
+            actorLabel: "系统",
+            summary: "今天 09:26",
+            direction: "system",
+          },
+          {
+            id: "management-focus-message",
+            actorLabel: "CEO分身",
+            avatarLabel: "我",
+            direction: "outgoing",
+            tagLabel: "@陈峰",
+            timeLabel: "09:26",
+            edited: true,
+            statusLabel: isRunning ? "发送中" : "已送达",
+            summary: `陈峰，今天先把管理序列 6 个预警来源拆清楚，中午 12 点前直接回我。
+
+这次不是泛泛复盘，要把两件事说明白：
+1. 哪些问题属于执行脱节；
+2. 哪些问题属于跨部门协同卡点。`,
+            detail: "飞书单聊 · 已开启 15:00 未回执自动提醒",
+          },
+        ],
+        messagePreview: `陈峰，今天先把管理序列 6 个预警来源拆清楚，中午 12 点前直接回我。
+
+这次不是泛泛复盘，要把两件事说明白：
+1. 哪些问题属于执行脱节；
+2. 哪些问题属于跨部门协同卡点。
+
+如果中午前没有回执，下午 15:00 我会再追一次。`,
+        actionItems: [
+          "12:00 前等待管理序列负责人回执",
+          "若未回执，15:00 自动追加一次飞书提醒",
+          "收到回执后，再决定是否同步 COO",
+        ],
+      },
+    };
+  }
+
+  const isRunning = status === "running";
+
+  return {
+    id: `${sessionId}-panel-dispatch-overview`,
+    kind: "dispatchExecution",
+    title: "飞书发送记录",
+    subtitle:
+      status === "running"
+        ? "正在查询飞书通讯录，并把收口要求发给对应负责人"
+        : "已完成通讯录匹配，并把收口要求发给管理与销售负责人",
+    skillName: "飞书触达",
+    updatedAt: "刚刚",
+    status,
+    payload: {
+      summaryMetrics: [
+        { label: "触达人数", value: "2", hint: "管理 / 销售负责人", tone: "accent" },
+        { label: "通讯录命中", value: "2/2", hint: "陈峰 / 刘敏", tone: "warning" },
+        {
+          label: "送达状态",
+          value: isRunning ? "发送中" : "2/2",
+          hint: isRunning ? "等待飞书回执" : "均已送达",
+          tone: "positive",
+        },
+        { label: "回执要求", value: "17:00", hint: "逾期自动提醒", tone: "danger" },
+      ],
+      dispatchLabel: isRunning
+        ? "CEO分身正在根据飞书通讯录匹配结果，把老板刚才确认的收口口径分别发给负责人。"
+        : "CEO分身先查询飞书通讯录确认负责人身份，再按老板刚才确认的收口口径分别发出。",
+      recipients: [
+        {
+          id: "chenfeng",
+          name: "陈峰",
+          roleLabel: "管理序列负责人",
+          channelLabel: "飞书单聊",
+          statusLabel: isRunning ? "发送中" : "已发送",
+          summary: "今天中午前拆清 6 个预警来源，重点说明执行脱节和跨部门协同卡点。",
+          note: "老板希望先拆来源，再决定是否上升到组织协同问题。",
+          tone: "danger",
+        },
+        {
+          id: "liumin",
+          name: "刘敏",
+          roleLabel: "销售序列负责人",
+          channelLabel: "飞书单聊",
+          statusLabel: isRunning ? "发送中" : "已发送",
+          summary: "今天 17:00 前回传关注区名单和处理动作，连续下滑与底线问题分开处理。",
+          note: "消息里已经要求先拉名单，再按问题类型拆动作。",
+          tone: "warning",
+        },
+      ],
+      conversationItems: [
+        {
+          id: "dispatch-yesterday",
+          actorLabel: "系统",
+          summary: "昨天 18:42",
+          direction: "system",
+        },
+        {
+          id: "dispatch-history-chenfeng",
+          actorLabel: "陈峰",
+          avatarLabel: "陈",
+          direction: "incoming",
+          tagLabel: "管理序列负责人",
+          timeLabel: "18:42",
+          summary: "管理序列这周的 6 个预警，我先归成执行脱节和协同卡点两类，明早给你一版口径。",
+        },
+        {
+          id: "dispatch-history-liumin",
+          actorLabel: "刘敏",
+          avatarLabel: "刘",
+          direction: "incoming",
+          tagLabel: "销售序列负责人",
+          timeLabel: "18:47",
+          summary: "销售关注区先锁定了 4 个人，其中 1 个可能碰到底线，我今晚再把名单收一遍。",
+        },
+        {
+          id: "dispatch-history-ceo",
+          actorLabel: "CEO分身",
+          avatarLabel: "我",
+          direction: "outgoing",
+          timeLabel: "18:50",
+          statusLabel: "已送达",
+          summary: "明早 8:30 前都带一版处理建议，晨会只看结论和动作，不再重复讲过程。",
+          detail: "群聊 · 今日经营收口群",
+        },
+        {
+          id: "dispatch-today-morning",
+          actorLabel: "系统",
+          summary: "今天 09:12",
+          direction: "system",
+        },
+        {
+          id: "dispatch-morning-chenfeng",
+          actorLabel: "陈峰",
+          avatarLabel: "陈",
+          direction: "incoming",
+          tagLabel: "管理序列负责人",
+          timeLabel: "09:12",
+          summary: "管理序列 6 个预警我先拆完了，执行脱节 4 个，跨部门协同 2 个。",
+        },
+        {
+          id: "dispatch-morning-liumin",
+          actorLabel: "刘敏",
+          avatarLabel: "刘",
+          direction: "incoming",
+          tagLabel: "销售序列负责人",
+          timeLabel: "09:14",
+          summary: "销售关注区名单已拉出 3 人，其中 1 人是底线风险，我已经按两条线先分开。",
+        },
+        {
+          id: "dispatch-time",
+          actorLabel: "系统",
+          summary: "今天 09:20",
+          direction: "system",
+        },
+        {
+          id: "dispatch-to-chenfeng",
+          actorLabel: "CEO分身",
+          avatarLabel: "我",
+          direction: "outgoing",
+          tagLabel: "@陈峰",
+          timeLabel: "09:20",
+          edited: true,
+          statusLabel: isRunning ? "发送中" : "已送达",
+          summary: "陈峰，今天先把管理序列 6 个预警来源拆清楚，中午前回我，重点看执行脱节和跨部门协同卡点。",
+          detail: "群聊 · 今日经营收口群",
+        },
+        {
+          id: "dispatch-to-liumin",
+          actorLabel: "CEO分身",
+          avatarLabel: "我",
+          direction: "outgoing",
+          tagLabel: "@刘敏",
+          timeLabel: "09:20",
+          edited: true,
+          statusLabel: isRunning ? "发送中" : "已送达",
+          summary: "刘敏，今天把销售关注区名单拉出来，连续下滑和底线问题分开处理，下午 17:00 前把处理动作回我。",
+          detail: "群聊 · 今日经营收口群",
+        },
+      ],
+      messagePreview: `陈峰，今天先把管理序列 6 个预警来源拆清楚，中午前回我，重点看执行脱节和跨部门协同卡点。
+
+刘敏，今天把销售关注区名单拉出来，连续下滑和底线问题分开处理，下午 17:00 前把处理动作回我。`,
+      actionItems: [
+        "管理序列负责人 12:00 前回传预警拆解",
+        "销售序列负责人 17:00 前回传关注区处理动作",
+        "若任一负责人未回执，CEO分身自动追加提醒",
+      ],
+    },
+  };
+};
+
 const buildSequenceOverviewResults = (sessionId: string): DialogueGeneratedResultItem[] => [
   createGeneratedResultItem(
     sessionId,
@@ -1412,6 +1875,28 @@ const buildCeoResults = (sessionId: string): DialogueGeneratedResultItem[] => [
     "可直接晨会复述的盘面判断与管理动作",
     createCeoSynthesisPanelState(sessionId, "success"),
     "CEO 综判",
+  ),
+];
+
+const buildFeishuDispatchResults = (sessionId: string): DialogueGeneratedResultItem[] => [
+  createGeneratedResultItem(
+    sessionId,
+    "result-feishu-dispatch",
+    "飞书发送记录",
+    "通讯录命中、对话记录与消息内容",
+    createDispatchExecutionPanelState(sessionId, "success", "overview"),
+    "飞书触达",
+  ),
+];
+
+const buildFeishuManagementFocusResults = (sessionId: string): DialogueGeneratedResultItem[] => [
+  createGeneratedResultItem(
+    sessionId,
+    "result-feishu-management-dispatch",
+    "管理序列飞书发送记录",
+    "通讯录命中、强化提醒内容与回执设置",
+    createDispatchExecutionPanelState(sessionId, "success", "managementFocus"),
+    "飞书触达",
   ),
 ];
 
@@ -1881,6 +2366,136 @@ const buildCeoArtifacts = (sessionId: string): SynClawArtifactItem[] => {
   ];
 };
 
+const buildFeishuDispatchArtifacts = (
+  sessionId: string,
+  mode: "overview" | "managementFocus",
+): SynClawArtifactItem[] => {
+  const producerName = "CEO分身";
+  const producedAt = mode === "overview" ? "2026-03-30 09:20" : "2026-03-30 09:26";
+
+  if (mode === "managementFocus") {
+    const markdown = `# 管理序列负责人飞书提醒
+
+## 发送对象
+- 陈峰（管理序列负责人）
+
+## 发送内容
+陈峰，今天先把管理序列 6 个预警来源拆清楚，中午 12 点前直接回我。
+
+这次不是泛泛复盘，要把两件事说明白：
+1. 哪些问题属于执行脱节；
+2. 哪些问题属于跨部门协同卡点。
+
+如果中午前没有回执，下午 15:00 我会再追一次。
+
+## 回执要求
+- 中午 12:00 前回传
+- 未回执自动追加提醒`;
+    const receipt = prettyJson({
+      channel: "feishu",
+      dispatch_mode: "single",
+      recipients: [
+        {
+          name: "陈峰",
+          role: "管理序列负责人",
+          status: "sent",
+          ack_deadline: "2026-03-30 12:00",
+          auto_reminder_at: "2026-03-30 15:00",
+        },
+      ],
+    });
+
+    return [
+      createMarkdownArtifact(
+        sessionId,
+        "dispatch-management-message",
+        "管理序列飞书提醒.md",
+        producerName,
+        "飞书触达",
+        markdown,
+        producedAt,
+        "2 KB",
+      ),
+      createJsonArtifact(
+        sessionId,
+        "dispatch-management-receipt",
+        "management-feishu-dispatch.json",
+        producerName,
+        "飞书触达",
+        receipt,
+        producedAt,
+        "1 KB",
+      ),
+    ];
+  }
+
+  const markdown = `# 管理与销售负责人飞书发送记录
+
+## 对话记录
+- 老板：把管理和销售今天要收口的内容发给负责人。
+- CEO分身：先查飞书通讯录，再按上一轮确认的收口口径发出。
+- 通讯录命中：陈峰（管理序列负责人）、刘敏（销售序列负责人）
+
+## 发送对象
+- 陈峰（管理序列负责人）
+- 刘敏（销售序列负责人）
+
+## 发送内容
+### 管理序列负责人
+陈峰，今天先把管理序列 6 个预警来源拆清楚，中午前回我，重点看执行脱节和跨部门协同卡点。
+
+### 销售序列负责人
+刘敏，今天把销售关注区名单拉出来，连续下滑和底线问题分开处理，下午 17:00 前把处理动作回我。
+
+## 回执要求
+- 管理序列：12:00 前
+- 销售序列：17:00 前
+- 未回执自动提醒`;
+  const receipt = prettyJson({
+    channel: "feishu",
+    contacts_matched: ["陈峰", "刘敏"],
+    dispatch_mode: "single",
+    recipients: [
+      {
+        name: "陈峰",
+        role: "管理序列负责人",
+        status: "sent",
+        ack_deadline: "2026-03-30 12:00",
+      },
+      {
+        name: "刘敏",
+        role: "销售序列负责人",
+        status: "sent",
+        ack_deadline: "2026-03-30 17:00",
+      },
+    ],
+    thread_id: "feishu-thread-ceo-dispatch-001",
+  });
+
+  return [
+    createMarkdownArtifact(
+      sessionId,
+      "dispatch-message",
+      "管理与销售负责人飞书下发.md",
+      producerName,
+      "飞书触达",
+      markdown,
+      producedAt,
+      "2 KB",
+    ),
+    createJsonArtifact(
+      sessionId,
+      "dispatch-receipt",
+      "feishu-dispatch-receipt.json",
+      producerName,
+      "飞书触达",
+      receipt,
+      producedAt,
+      "1 KB",
+    ),
+  ];
+};
+
 const buildSequenceOverviewFrames = (sessionId: string): DialogueScenarioFrame[] => {
   const messageId = `${sessionId}-assistant`;
   const thinkingId = `${sessionId}-thinking`;
@@ -2079,6 +2694,7 @@ const buildSequenceOverviewFrames = (sessionId: string): DialogueScenarioFrame[]
       panel: successPanel,
       artifacts: finalArtifacts,
       results: buildSequenceOverviewResults(sessionId),
+      followupSuggestions: CEO_SEQUENCE_FOLLOWUPS,
     },
   ];
 };
@@ -2363,6 +2979,7 @@ const buildEmployeeAssessFrames = (sessionId: string): DialogueScenarioFrame[] =
       panel: successPanel,
       artifacts: finalArtifacts,
       results: buildEmployeeAssessResults(sessionId),
+      followupSuggestions: CEO_EMPLOYEE_ASSESS_FOLLOWUPS,
     },
   ];
 };
@@ -2570,6 +3187,7 @@ const buildRedlineFrames = (sessionId: string): DialogueScenarioFrame[] => {
       panel: successPanel,
       artifacts: finalArtifacts,
       results: buildRedlineResults(sessionId),
+      followupSuggestions: CEO_REDLINE_FOLLOWUPS,
     },
   ];
 };
@@ -2775,6 +3393,7 @@ const buildBenchmarkFrames = (sessionId: string): DialogueScenarioFrame[] => {
       panel: successPanel,
       artifacts: finalArtifacts,
       results: buildBenchmarkResults(sessionId),
+      followupSuggestions: CEO_BENCHMARK_FOLLOWUPS,
     },
   ];
 };
@@ -2980,6 +3599,7 @@ const buildScoreRankFrames = (sessionId: string): DialogueScenarioFrame[] => {
       panel: successPanel,
       artifacts: finalArtifacts,
       results: buildScoreRankResults(sessionId),
+      followupSuggestions: CEO_SCORE_RANK_FOLLOWUPS,
     },
   ];
 };
@@ -3335,6 +3955,598 @@ const buildCeoFrames = (sessionId: string): DialogueScenarioFrame[] => {
       panel: successPanel,
       artifacts: finalArtifacts,
       results: buildCeoResults(sessionId),
+      followupSuggestions: CEO_SYNTHESIS_FOLLOWUPS,
+    },
+  ];
+};
+
+const buildFeishuDispatchFrames = (sessionId: string): DialogueScenarioFrame[] => {
+  const messageId = `${sessionId}-assistant`;
+  const thinkingId = `${sessionId}-thinking`;
+  const contactToolId = `${sessionId}-feishu-contact-lookup`;
+  const feishuToolId = `${sessionId}-feishu-send`;
+  const finalTextId = `${sessionId}-final`;
+  const finalArtifacts = buildFeishuDispatchArtifacts(sessionId, "overview");
+  const runningPanel = createDispatchExecutionPanelState(sessionId, "running", "overview");
+  const successPanel = createDispatchExecutionPanelState(sessionId, "success", "overview");
+  const contactResults: ScenarioContactLookupItem[] = [
+    {
+      id: "chenfeng-person",
+      name: "陈峰",
+      avatarLabel: "陈",
+      typeLabel: "个人",
+      identityLabel: "管理序列负责人",
+      feishuId: "chenfeng.ops",
+      matchLabel: "精确命中",
+      note: "管理序列今日收口第一责任人。",
+    },
+    {
+      id: "liumin-person",
+      name: "刘敏",
+      avatarLabel: "刘",
+      typeLabel: "个人",
+      identityLabel: "销售序列负责人",
+      feishuId: "liumin.sales",
+      matchLabel: "精确命中",
+      note: "销售关注区处理第一责任人。",
+    },
+    {
+      id: "wangyan-person",
+      name: "王岩",
+      avatarLabel: "王",
+      typeLabel: "个人",
+      identityLabel: "COO",
+      feishuId: "wangyan.coo",
+      matchLabel: "可抄送",
+      note: "需要升级经营协同时可同步抄送。",
+    },
+    {
+      id: "gaojie-person",
+      name: "高洁",
+      avatarLabel: "高",
+      typeLabel: "个人",
+      identityLabel: "HRBP / 组织协同",
+      feishuId: "gaojie.org",
+      matchLabel: "相关联系人",
+      note: "管理序列若判断为组织协同问题，可追加同步。",
+    },
+    {
+      id: "management-group",
+      name: "管理序列负责人群",
+      avatarLabel: "群",
+      typeLabel: "群聊",
+      identityLabel: "9 人群",
+      feishuId: "oc_mgmt_line_group",
+      matchLabel: "群聊可选",
+      note: "适合同步执行脱节与跨部门协同卡点。",
+    },
+    {
+      id: "sales-group",
+      name: "销售经营推进群",
+      avatarLabel: "群",
+      typeLabel: "群聊",
+      identityLabel: "12 人群",
+      feishuId: "oc_sales_ops_group",
+      matchLabel: "群聊可选",
+      note: "适合同步关注区名单和动作节奏。",
+    },
+    {
+      id: "close-group",
+      name: "今日经营收口群",
+      avatarLabel: "群",
+      typeLabel: "群聊",
+      identityLabel: "16 人群",
+      feishuId: "oc_daily_close_group",
+      matchLabel: "相关群聊",
+      note: "老板抄送后可统一追进度。",
+    },
+    {
+      id: "coord-group",
+      name: "CEO办公室协同群",
+      avatarLabel: "群",
+      typeLabel: "群聊",
+      identityLabel: "6 人群",
+      feishuId: "oc_ceo_coord_group",
+      matchLabel: "相关群聊",
+      note: "适合沉淀发送记录和后续回执。",
+    },
+  ];
+  const feishuOutput = `发送结果
+- 陈峰：已送达，要求 12:00 前回执
+- 刘敏：已送达，要求 17:00 前回执
+- 会话线程：feishu-thread-ceo-dispatch-001
+- 未回执自动提醒：已开启`;
+  const partialText = `### 联系人已经确认，我现在直接发
+- **陈峰** 对应管理序列负责人
+- **刘敏** 对应销售序列负责人
+- 我按刚才确认的收口口径分别发出去，并带上回执要求`;
+  const finalText = `### 我已经发出去了
+- 我先在飞书通讯录里确认了 **陈峰** 和 **刘敏** 两个负责人
+- 然后按你刚才确定的收口口径分别发给了他们，并带了回执要求
+- 管理序列要求 **12:00 前** 回执，销售序列要求 **17:00 前** 回执
+
+### 我发出去的内容
+陈峰，今天先把管理序列 6 个预警来源拆清楚，中午前回我，重点看执行脱节和跨部门协同卡点。
+
+刘敏，今天把销售关注区名单拉出来，连续下滑和底线问题分开处理，下午 17:00 前把处理动作回我。`;
+
+  return [
+    {
+      delayMs: 220,
+      preview: "正在准备飞书代发，先确认要触达的负责人...",
+      blocks: [
+        createAssistantMessageBlock(
+          messageId,
+          [
+            createThinkingBlock(
+              thinkingId,
+              `### 正在判断任务
+- 用户已经确认要我代老板发消息
+- 这一步先不重新讲盘面，而是先查飞书通讯录确认收件人
+- 找到陈峰和刘敏后，再按上一轮确定的收口口径发出去`,
+              true,
+            ),
+          ],
+          true,
+        ),
+      ],
+    },
+    {
+      delayMs: 760,
+      preview: "正在查询飞书通讯录，确认管理和销售负责人的单聊身份...",
+      blocks: [
+        createAssistantMessageBlock(messageId, [
+          createThinkingBlock(
+            thinkingId,
+            `### 处理步骤
+1. 先调用 \`feishu_contact_lookup\` 查询通讯录
+2. 锁定陈峰和刘敏两个负责人
+3. 再调用 \`feishu_send_message\` 分别发到飞书单聊`,
+          ),
+          createToolUseBlock({
+            id: contactToolId,
+            name: "feishu_contact_lookup",
+            displayName: "feishu_contact_lookup",
+            purpose: "查询管理和销售负责人的飞书通讯录信息",
+            status: "running",
+          }),
+        ]),
+      ],
+    },
+    {
+      delayMs: 860,
+      preview: "通讯录联系人已经确认，正在把收口要求发给管理和销售负责人...",
+      blocks: [
+        createAssistantMessageBlock(messageId, [
+          createThinkingBlock(
+            thinkingId,
+            `### 联系人已确认
+- 陈峰对应管理序列负责人
+- 刘敏对应销售序列负责人
+- 现在按上一轮确认的收口要求分别发出`,
+          ),
+          createToolUseBlock({
+            id: contactToolId,
+            name: "feishu_contact_lookup",
+            displayName: "feishu_contact_lookup",
+            purpose: "查询管理和销售负责人的飞书通讯录信息",
+            status: "success",
+            contactResults,
+          }),
+          createToolUseBlock({
+            id: feishuToolId,
+            name: "feishu_send_message",
+            displayName: "feishu_send_message",
+            purpose: "把管理和销售的收口要求发到对应负责人的飞书单聊",
+            status: "running",
+          }),
+          createTextBlock(finalTextId, partialText, { isStreaming: true }),
+        ]),
+      ],
+      panel: runningPanel,
+      artifacts: finalArtifacts,
+    },
+    {
+      delayMs: 980,
+      preview: "我已经把管理和销售今天要收口的内容通过飞书发给负责人了。",
+      blocks: [
+        createAssistantMessageBlock(messageId, [
+          createThinkingBlock(
+            thinkingId,
+            `### 本轮总结
+- 已先完成飞书通讯录匹配
+- 发送记录和消息正文都保存在右侧面板里
+- 后面如果要加抄送或改单独强化，可以直接继续追问`,
+          ),
+          createToolUseBlock({
+            id: contactToolId,
+            name: "feishu_contact_lookup",
+            displayName: "feishu_contact_lookup",
+            purpose: "查询管理和销售负责人的飞书通讯录信息",
+            status: "success",
+            contactResults,
+          }),
+          createToolUseBlock({
+            id: feishuToolId,
+            name: "feishu_send_message",
+            displayName: "feishu_send_message",
+            purpose: "把管理和销售的收口要求发到对应负责人的飞书单聊",
+            status: "success",
+            output: feishuOutput,
+          }),
+          createTextBlock(finalTextId, finalText),
+        ]),
+      ],
+      panel: successPanel,
+      artifacts: finalArtifacts,
+      results: buildFeishuDispatchResults(sessionId),
+      followupSuggestions: CEO_FEISHU_DISPATCH_FOLLOWUPS,
+    },
+  ];
+};
+
+const buildFeishuDispatchPlanningFrames = (sessionId: string): DialogueScenarioFrame[] => {
+  const messageId = `${sessionId}-assistant`;
+  const thinkingId = `${sessionId}-thinking`;
+  const overviewToolId = `${sessionId}-sequence-overview`;
+  const digestToolId = `${sessionId}-alert-digest`;
+  const finalTextId = `${sessionId}-final`;
+  const overviewOutput = {
+    focus_sequences: [
+      { name: "管理序列", avg_score: 74.8, alerts: 6, trend: "-1.3" },
+      { name: "销售序列", avg_score: 71.4, alerts: 5, trend: "-0.9" },
+    ],
+  };
+  const digestOutput = {
+    action_drafts: [
+      {
+        owner: "陈峰",
+        sequence: "管理序列",
+        action: "中午前拆清 6 个预警来源",
+        focus: "执行脱节、跨部门协同卡点",
+      },
+      {
+        owner: "刘敏",
+        sequence: "销售序列",
+        action: "17:00 前回传关注区名单和处理动作",
+        focus: "连续下滑、底线问题分开处理",
+      },
+    ],
+  };
+  const partialText = `### 这两条线今天都得收口
+- **管理序列**先拆 6 个预警来源，不要先泛化成执行力问题。
+- **销售序列**先拉关注区名单，再把连续下滑和底线问题分开处理。`;
+  const finalText = `### 我建议你今天这样收口
+
+#### 先抓管理序列
+- 让负责人今天中午前把 **6 个预警来源**拆清楚，先分成“执行脱节”和“跨部门协同卡点”两类。
+- 这一步先要来源，不急着追责任，先把组织问题和个体问题分开。
+
+#### 再抓销售序列
+- 让负责人今天 **17:00 前** 把关注区名单和处理动作一起回上来。
+- 连续下滑的人先拆过程问题，触碰底线的人先处理权限和约谈，不要混成一锅。
+
+#### 你今天一句话就够
+质量和生产继续稳住，管理先拆预警来源，销售先拉关注区名单，今天必须把动作收回来。
+
+如果你要，我下一句就可以按这套口径直接发给两个负责人。`;
+
+  return [
+    {
+      delayMs: 220,
+      preview: "正在判断管理和销售两条线今天各自该怎么收口...",
+      blocks: [
+        createAssistantMessageBlock(
+          messageId,
+          [
+            createThinkingBlock(
+              thinkingId,
+              `### 正在判断任务
+- 这不是直接发消息，而是先判断今天该怎么推进
+- 核心是把管理和销售两条线的收口动作先拆清楚
+- 如果老板确认要代发，我再进入飞书通讯录和发送动作`,
+              true,
+            ),
+          ],
+          true,
+        ),
+      ],
+    },
+    {
+      delayMs: 760,
+      preview: "先看管理和销售两条线的盘面，再提炼今天的收口动作...",
+      blocks: [
+        createAssistantMessageBlock(messageId, [
+          createThinkingBlock(
+            thinkingId,
+            `### 处理步骤
+1. 用 \`sequence_overview\` 看管理和销售当前盘面
+2. 用 \`alert_digest\` 提炼今天必须收口的动作
+3. 先给老板一版可直接下指令的推进口径`,
+          ),
+          createToolUseBlock({
+            id: overviewToolId,
+            name: "sequence_overview",
+            displayName: "sequence_overview",
+            purpose: "聚焦管理和销售两条线的评分、预警和趋势",
+            status: "running",
+          }),
+        ]),
+      ],
+    },
+    {
+      delayMs: 860,
+      preview: "今天的收口动作已经提炼出来了，正在整理成老板可直接复述的推进口径...",
+      blocks: [
+        createAssistantMessageBlock(messageId, [
+          createThinkingBlock(
+            thinkingId,
+            `### 已锁定收口方向
+- 管理序列重点是预警来源拆解
+- 销售序列重点是关注区名单和动作回传
+- 我先把它们整理成老板今天可以直接下指令的口径`,
+          ),
+          createToolUseBlock({
+            id: overviewToolId,
+            name: "sequence_overview",
+            displayName: "sequence_overview",
+            purpose: "聚焦管理和销售两条线的评分、预警和趋势",
+            status: "success",
+            output: prettyJson(overviewOutput),
+          }),
+          createToolUseBlock({
+            id: digestToolId,
+            name: "alert_digest",
+            displayName: "alert_digest",
+            purpose: "提炼管理和销售两条线今天的收口动作",
+            status: "success",
+            output: prettyJson(digestOutput),
+          }),
+          createTextBlock(finalTextId, partialText, { isStreaming: true }),
+        ]),
+      ],
+    },
+    {
+      delayMs: 980,
+      preview: "管理和销售今天的收口动作我已经拆好了。",
+      blocks: [
+        createAssistantMessageBlock(messageId, [
+          createThinkingBlock(
+            thinkingId,
+            `### 本轮总结
+- 已经先把今天的推进动作拆清楚
+- 这一轮先给老板经营判断和动作顺序
+- 如果老板要代发，再进入飞书通讯录和发送链路`,
+          ),
+          createToolUseBlock({
+            id: overviewToolId,
+            name: "sequence_overview",
+            displayName: "sequence_overview",
+            purpose: "聚焦管理和销售两条线的评分、预警和趋势",
+            status: "success",
+            output: prettyJson(overviewOutput),
+          }),
+          createToolUseBlock({
+            id: digestToolId,
+            name: "alert_digest",
+            displayName: "alert_digest",
+            purpose: "提炼管理和销售两条线今天的收口动作",
+            status: "success",
+            output: prettyJson(digestOutput),
+          }),
+          createTextBlock(finalTextId, finalText),
+        ]),
+      ],
+      followupSuggestions: CEO_FEISHU_ENTRY_FOLLOWUPS,
+    },
+  ];
+};
+
+const buildFeishuManagementFocusFrames = (sessionId: string): DialogueScenarioFrame[] => {
+  const messageId = `${sessionId}-assistant`;
+  const thinkingId = `${sessionId}-thinking`;
+  const contactToolId = `${sessionId}-feishu-contact-lookup`;
+  const feishuToolId = `${sessionId}-feishu-send`;
+  const finalTextId = `${sessionId}-final`;
+  const finalArtifacts = buildFeishuDispatchArtifacts(sessionId, "managementFocus");
+  const runningPanel = createDispatchExecutionPanelState(sessionId, "running", "managementFocus");
+  const successPanel = createDispatchExecutionPanelState(sessionId, "success", "managementFocus");
+  const contactResults: ScenarioContactLookupItem[] = [
+    {
+      id: "chenfeng-person",
+      name: "陈峰",
+      avatarLabel: "陈",
+      typeLabel: "个人",
+      identityLabel: "管理序列负责人",
+      feishuId: "chenfeng.ops",
+      matchLabel: "精确命中",
+      note: "本轮强化提醒的唯一主发送对象。",
+    },
+    {
+      id: "wangyan-person",
+      name: "王岩",
+      avatarLabel: "王",
+      typeLabel: "个人",
+      identityLabel: "COO",
+      feishuId: "wangyan.coo",
+      matchLabel: "可抄送",
+      note: "如果中午前未回执，可追加同步。",
+    },
+    {
+      id: "sunjie-person",
+      name: "孙捷",
+      avatarLabel: "孙",
+      typeLabel: "个人",
+      identityLabel: "经营分析BP",
+      feishuId: "sunjie.bp",
+      matchLabel: "相关联系人",
+      note: "需要拆解预警来源时可同步。",
+    },
+    {
+      id: "management-group",
+      name: "管理序列负责人群",
+      avatarLabel: "群",
+      typeLabel: "群聊",
+      identityLabel: "9 人群",
+      feishuId: "oc_mgmt_line_group",
+      matchLabel: "群聊可选",
+      note: "适合升级为群内协同提醒。",
+    },
+    {
+      id: "coord-group",
+      name: "CEO办公室协同群",
+      avatarLabel: "群",
+      typeLabel: "群聊",
+      identityLabel: "6 人群",
+      feishuId: "oc_ceo_coord_group",
+      matchLabel: "相关群聊",
+      note: "适合同步发送记录和回执。",
+    },
+    {
+      id: "risk-group",
+      name: "组织协同预警群",
+      avatarLabel: "群",
+      typeLabel: "群聊",
+      identityLabel: "11 人群",
+      feishuId: "oc_org_risk_group",
+      matchLabel: "相关群聊",
+      note: "跨部门协同问题升级时可直接切群发送。",
+    },
+  ];
+  const feishuOutput = `发送结果
+- 陈峰：已送达，要求 12:00 前回执
+- 15:00 未回执自动提醒：已开启
+- 会话线程：feishu-thread-ceo-management-001`;
+  const partialText = `### 我先把管理序列这段单独重写
+- 只发给陈峰
+- 语气更直接
+- 补上中午前回执要求`;
+  const finalText = `### 管理序列这段我已经单独重发了
+- 接收人只有 **陈峰（管理序列负责人）**
+- 语气已经加重，明确要求 **今天中午 12:00 前** 回我
+- 如果没回执，我会在 **15:00** 自动再提醒一次
+
+### 重写后的飞书内容
+陈峰，今天先把管理序列 6 个预警来源拆清楚，中午 12 点前直接回我。
+
+这次不是泛泛复盘，要把两件事说明白：
+1. 哪些问题属于执行脱节；
+2. 哪些问题属于跨部门协同卡点。
+
+如果中午前没有回执，下午 15:00 我会再追一次。`;
+
+  return [
+    {
+      delayMs: 240,
+      preview: "正在把管理序列这段改成更强提醒版本...",
+      blocks: [
+        createAssistantMessageBlock(
+          messageId,
+          [
+            createThinkingBlock(
+              thinkingId,
+              `### 正在重写消息
+- 这次只保留管理序列
+- 语气要更直接
+- 还要先确认陈峰的飞书单聊身份`,
+              true,
+            ),
+          ],
+          true,
+        ),
+      ],
+    },
+    {
+      delayMs: 700,
+      preview: "正在查询管理序列负责人的飞书通讯录信息...",
+      blocks: [
+        createAssistantMessageBlock(messageId, [
+          createThinkingBlock(
+            thinkingId,
+            `### 处理步骤
+1. 先调用 \`feishu_contact_lookup\` 确认陈峰的飞书身份
+2. 再把管理序列这段重写成更强提醒版本
+3. 最后调用 \`feishu_send_message\` 发到飞书单聊`,
+          ),
+          createToolUseBlock({
+            id: contactToolId,
+            name: "feishu_contact_lookup",
+            displayName: "feishu_contact_lookup",
+            purpose: "查询管理序列负责人的飞书通讯录信息",
+            status: "running",
+          }),
+        ]),
+      ],
+    },
+    {
+      delayMs: 820,
+      preview: "已确认管理序列负责人的飞书身份，正在发送强化提醒...",
+      blocks: [
+        createAssistantMessageBlock(messageId, [
+          createThinkingBlock(
+            thinkingId,
+            `### 已锁定发送策略
+- 只发管理序列负责人陈峰
+- 强化执行脱节和协同卡点两个重点
+- 中午前没回执就自动再提醒`,
+          ),
+          createToolUseBlock({
+            id: contactToolId,
+            name: "feishu_contact_lookup",
+            displayName: "feishu_contact_lookup",
+            purpose: "查询管理序列负责人的飞书通讯录信息",
+            status: "success",
+            contactResults,
+          }),
+          createToolUseBlock({
+            id: feishuToolId,
+            name: "feishu_send_message",
+            displayName: "feishu_send_message",
+            purpose: "把强化版管理提醒发到飞书单聊",
+            status: "running",
+          }),
+          createTextBlock(finalTextId, partialText, { isStreaming: true }),
+        ]),
+      ],
+      panel: runningPanel,
+      artifacts: finalArtifacts,
+    },
+    {
+      delayMs: 960,
+      preview: "管理序列负责人的强化提醒已经通过飞书发出。",
+      blocks: [
+        createAssistantMessageBlock(messageId, [
+          createThinkingBlock(
+            thinkingId,
+            `### 本轮总结
+- 已完成飞书通讯录匹配
+- 管理序列消息已单独强化
+- 飞书已发出
+- 中午前不回执会自动再提醒`,
+          ),
+          createToolUseBlock({
+            id: contactToolId,
+            name: "feishu_contact_lookup",
+            displayName: "feishu_contact_lookup",
+            purpose: "查询管理序列负责人的飞书通讯录信息",
+            status: "success",
+            contactResults,
+          }),
+          createToolUseBlock({
+            id: feishuToolId,
+            name: "feishu_send_message",
+            displayName: "feishu_send_message",
+            purpose: "把强化版管理提醒发到飞书单聊",
+            status: "success",
+            output: feishuOutput,
+          }),
+          createTextBlock(finalTextId, finalText),
+        ]),
+      ],
+      panel: successPanel,
+      artifacts: finalArtifacts,
+      results: buildFeishuManagementFocusResults(sessionId),
+      followupSuggestions: CEO_FEISHU_MANAGEMENT_FOLLOWUPS,
     },
   ];
 };
@@ -3551,6 +4763,84 @@ const SCENARIO_DEFINITIONS: DialogueScenarioDefinition[] = [
     buildFrames: (sessionId: string) => buildXiaocanMamaIpFrames(sessionId, item),
   })),
   {
+    employeeId: "employee-writer",
+    agentName: "CEO分身",
+    sessionId: SCENARIO_SEED_IDS["employee-writer"],
+    title: "经营总览晨会版",
+    updatedAt: "09:12",
+    triggerQuestion: CEO_SEQUENCE_OVERVIEW_QUESTION,
+    buildFrames: buildSequenceOverviewFrames,
+  },
+  {
+    employeeId: "employee-writer",
+    agentName: "CEO分身",
+    sessionId: "dialogue-seed-ceo-feishu-planning",
+    title: "管理与销售收口安排",
+    updatedAt: "09:18",
+    triggerQuestion: CEO_FEISHU_ENTRY_QUESTION,
+    buildFrames: buildFeishuDispatchPlanningFrames,
+  },
+  {
+    employeeId: "employee-writer",
+    agentName: "CEO分身",
+    sessionId: "dialogue-seed-ceo-feishu-dispatch-hidden",
+    title: "飞书任务下发",
+    updatedAt: "09:20",
+    triggerQuestion: CEO_FEISHU_DISPATCH_QUESTION,
+    seeded: false,
+    buildFrames: buildFeishuDispatchFrames,
+  },
+  {
+    employeeId: "employee-writer",
+    agentName: "CEO分身",
+    sessionId: "dialogue-seed-ceo-feishu-management-hidden",
+    title: "管理序列飞书强化提醒",
+    updatedAt: "09:26",
+    triggerQuestion: CEO_FEISHU_MANAGEMENT_FOCUS_QUESTION,
+    seeded: false,
+    buildFrames: buildFeishuManagementFocusFrames,
+  },
+  {
+    employeeId: "employee-writer",
+    agentName: "CEO分身",
+    sessionId: "dialogue-seed-ceo-employee-assess-hidden",
+    title: "王建国表现追问",
+    updatedAt: "09:28",
+    triggerQuestion: CEO_EMPLOYEE_ASSESS_QUESTION,
+    seeded: false,
+    buildFrames: buildEmployeeAssessFrames,
+  },
+  {
+    employeeId: "employee-writer",
+    agentName: "CEO分身",
+    sessionId: "dialogue-seed-ceo-redline-hidden",
+    title: "张伟红线核查",
+    updatedAt: "09:41",
+    triggerQuestion: CEO_REDLINE_QUESTION,
+    seeded: false,
+    buildFrames: buildRedlineFrames,
+  },
+  {
+    employeeId: "employee-writer",
+    agentName: "CEO分身",
+    sessionId: "dialogue-seed-ceo-benchmark-hidden",
+    title: "生产序列标杆识别",
+    updatedAt: "09:52",
+    triggerQuestion: CEO_BENCHMARK_QUESTION,
+    seeded: false,
+    buildFrames: buildBenchmarkFrames,
+  },
+  {
+    employeeId: "employee-writer",
+    agentName: "CEO分身",
+    sessionId: "dialogue-seed-ceo-score-rank-hidden",
+    title: "销售序列排名分层",
+    updatedAt: "10:04",
+    triggerQuestion: CEO_SCORE_RANK_QUESTION,
+    seeded: false,
+    buildFrames: buildScoreRankFrames,
+  },
+  {
     employeeId: "employee-pm",
     agentName: "序列总览专家",
     sessionId: SCENARIO_SEED_IDS["employee-pm"],
@@ -3598,28 +4888,176 @@ const SCENARIO_DEFINITIONS: DialogueScenarioDefinition[] = [
   {
     employeeId: "employee-writer",
     agentName: "CEO分身",
-    sessionId: SCENARIO_SEED_IDS["employee-writer"],
+    sessionId: "dialogue-seed-ceo-synthesis-hidden",
     title: "CEO综合研判",
     updatedAt: "10:18",
     triggerQuestion: AI_CEO_AGENT_SCENARIO_QUESTIONS["employee-writer"],
+    seeded: false,
     buildFrames: buildCeoFrames,
   },
 ];
 
-const buildSeedAssistantMessage = (
+interface SeedDialogueScenarioBundle {
+  artifacts: SynClawArtifactItem[];
+  messages: ChatMessage[];
+  panel?: DialogueGeneratedPanelState;
+  preview: string;
+  results: DialogueGeneratedResultItem[];
+  updatedAt: string;
+}
+
+const findScenarioDefinitionByQuestion = (
+  employeeId: string,
+  question: string,
+): DialogueScenarioDefinition | null =>
+  SCENARIO_DEFINITIONS.find(
+    item =>
+      item.employeeId === employeeId &&
+      normalizeScenarioQuestion(item.triggerQuestion) === normalizeScenarioQuestion(question),
+  ) ?? null;
+
+const appendUniqueItems = <TItem extends { id: string }>(
+  target: TItem[],
+  items: TItem[],
+): void => {
+  const existingIds = new Set(target.map(item => item.id));
+
+  items.forEach(item => {
+    if (existingIds.has(item.id)) {
+      return;
+    }
+
+    target.push(item);
+    existingIds.add(item.id);
+  });
+};
+
+const buildDialogueScenarioReplayRounds = (
   definition: DialogueScenarioDefinition,
-  sessionId: string,
-): ChatMessage => {
-  const frames = expandFramesForTypewriter(definition.buildFrames(sessionId));
-  const lastFrame = frames[frames.length - 1];
+  frameScopeIdPrefix: string = definition.sessionId,
+): DialogueScenarioReplayRound[] => {
+  const rounds: DialogueScenarioReplayRound[] = [];
+  const visitedQuestions = new Set<string>();
+  let currentDefinition: DialogueScenarioDefinition | null = definition;
+  let roundIndex = 0;
+
+  while (currentDefinition && roundIndex < 12) {
+    const normalizedQuestion = normalizeScenarioQuestion(currentDefinition.triggerQuestion);
+
+    if (visitedQuestions.has(normalizedQuestion)) {
+      break;
+    }
+
+    visitedQuestions.add(normalizedQuestion);
+
+    const frameScopeId =
+      roundIndex === 0
+        ? frameScopeIdPrefix
+        : `${frameScopeIdPrefix}-round-${roundIndex + 1}`;
+
+    rounds.push({
+      agentName: currentDefinition.agentName,
+      question: currentDefinition.triggerQuestion,
+      updatedAt: currentDefinition.updatedAt,
+      frames: expandFramesForTypewriter(currentDefinition.buildFrames(frameScopeId)),
+    });
+
+    const latestFrame = rounds[rounds.length - 1].frames.at(-1);
+    const nextQuestion = latestFrame?.followupSuggestions?.[0];
+
+    if (!nextQuestion) {
+      break;
+    }
+
+    const nextDefinition = findScenarioDefinitionByQuestion(definition.employeeId, nextQuestion);
+
+    if (!nextDefinition || nextDefinition.seeded !== false) {
+      break;
+    }
+
+    currentDefinition = nextDefinition;
+    roundIndex += 1;
+  }
+
+  return rounds;
+};
+
+const buildSeedDialogueScenarioBundle = (
+  definition: DialogueScenarioDefinition,
+): SeedDialogueScenarioBundle => {
+  const messages: ChatMessage[] = [];
+  const artifacts: SynClawArtifactItem[] = [];
+  const results: DialogueGeneratedResultItem[] = [];
+  let latestPreview = definition.title;
+  let latestUpdatedAt = definition.updatedAt;
+  let latestPanel: DialogueGeneratedPanelState | undefined;
+  const replayRounds = buildDialogueScenarioReplayRounds(definition);
+
+  replayRounds.forEach((round, roundIndex) => {
+    const frames = round.frames;
+    const lastFrame = frames[frames.length - 1];
+    const latestResultFrame = [...frames].reverse().find(item => item.results?.length);
+    const latestPanelFrame = [...frames].reverse().find(item => item.panel);
+
+    messages.push({
+      id: `${definition.sessionId}-user-message-${roundIndex + 1}`,
+      role: "user",
+      author: "你",
+      content: round.question,
+      timeLabel: round.updatedAt,
+    });
+    messages.push({
+      id: `${definition.sessionId}-assistant-message-${roundIndex + 1}`,
+      role: "assistant",
+      author: round.agentName,
+      content: lastFrame.preview,
+      timeLabel: round.updatedAt,
+      blocks: lastFrame.blocks,
+      followupSuggestions: lastFrame.followupSuggestions,
+    });
+
+    latestPreview = lastFrame.preview;
+    latestUpdatedAt = round.updatedAt;
+
+    if (lastFrame.artifacts?.length) {
+      appendUniqueItems(artifacts, lastFrame.artifacts);
+    }
+    if (latestResultFrame?.results?.length) {
+      appendUniqueItems(results, latestResultFrame.results);
+    }
+    if (latestPanelFrame?.panel) {
+      latestPanel = latestPanelFrame.panel;
+    }
+  });
 
   return {
-    id: `${sessionId}-assistant-message`,
-    role: "assistant",
-    author: definition.agentName,
-    content: lastFrame.preview,
-    timeLabel: definition.updatedAt,
-    blocks: lastFrame.blocks,
+    messages,
+    preview: latestPreview,
+    updatedAt: latestUpdatedAt,
+    artifacts,
+    panel: latestPanel,
+    results,
+  };
+};
+
+export const buildDialogueScenarioReplay = (
+  employeeId: string,
+  question: string,
+  frameScopeIdPrefix?: string,
+): DialogueScenarioReplay | null => {
+  const matched = findScenarioDefinitionByQuestion(employeeId, question);
+  if (!matched) {
+    return null;
+  }
+
+  return {
+    employeeId: matched.employeeId,
+    title: matched.title,
+    triggerQuestion: matched.triggerQuestion,
+    rounds: buildDialogueScenarioReplayRounds(
+      matched,
+      frameScopeIdPrefix ?? `dialogue-scenario-replay-${Date.now()}-${matched.employeeId}`,
+    ),
   };
 };
 
@@ -3631,11 +5069,7 @@ export const findDialogueScenario = (
   question: string,
   frameScopeId?: string,
 ): DialogueScenario | null => {
-  const matched = SCENARIO_DEFINITIONS.find(
-    item =>
-      item.employeeId === employeeId &&
-      normalizeScenarioQuestion(item.triggerQuestion) === normalizeScenarioQuestion(question),
-  );
+  const matched = findScenarioDefinitionByQuestion(employeeId, question);
   if (!matched) {
     return null;
   }
@@ -3654,27 +5088,16 @@ export const findDialogueScenario = (
  * 构建默认单聊场景种子会话。
  */
 export const buildDialogueScenarioSeedSessions = (): DialogueSessionItem[] =>
-  SCENARIO_DEFINITIONS.map(definition => {
-    const sessionId = definition.sessionId;
-    const frames = definition.buildFrames(sessionId);
-    const lastFrame = frames[frames.length - 1];
+  SCENARIO_DEFINITIONS.filter(definition => definition.seeded !== false).map(definition => {
+    const bundle = buildSeedDialogueScenarioBundle(definition);
 
     return {
-      id: sessionId,
+      id: definition.sessionId,
       employeeId: definition.employeeId,
       title: definition.title,
-      preview: lastFrame.preview,
-      updatedAt: definition.updatedAt,
-      messages: [
-        {
-          id: `${sessionId}-user-message`,
-          role: "user",
-          author: "你",
-          content: definition.triggerQuestion,
-          timeLabel: definition.updatedAt,
-        },
-        buildSeedAssistantMessage(definition, sessionId),
-      ],
+      preview: bundle.preview,
+      updatedAt: bundle.updatedAt,
+      messages: bundle.messages,
     };
   });
 
@@ -3682,11 +5105,12 @@ export const buildDialogueScenarioSeedSessions = (): DialogueSessionItem[] =>
  * 构建默认单聊场景成果文件。
  */
 export const buildDialogueScenarioSeedArtifacts = (): Record<string, SynClawArtifactItem[]> =>
-  SCENARIO_DEFINITIONS.reduce<Record<string, SynClawArtifactItem[]>>((result, definition) => {
-    const frames = definition.buildFrames(definition.sessionId);
-    const lastFrame = frames[frames.length - 1];
-    if (lastFrame.artifacts?.length) {
-      result[definition.sessionId] = lastFrame.artifacts;
+  SCENARIO_DEFINITIONS.filter(definition => definition.seeded !== false).reduce<
+    Record<string, SynClawArtifactItem[]>
+  >((result, definition) => {
+    const bundle = buildSeedDialogueScenarioBundle(definition);
+    if (bundle.artifacts.length) {
+      result[definition.sessionId] = bundle.artifacts;
     }
     return result;
   }, {});
@@ -3695,11 +5119,12 @@ export const buildDialogueScenarioSeedArtifacts = (): Record<string, SynClawArti
  * 构建默认单聊场景右侧生成式面板。
  */
 export const buildDialogueScenarioSeedPanels = (): Record<string, DialogueGeneratedPanelState> =>
-  SCENARIO_DEFINITIONS.reduce<Record<string, DialogueGeneratedPanelState>>((result, definition) => {
-    const frames = definition.buildFrames(definition.sessionId);
-    const lastFrame = [...frames].reverse().find(item => item.panel);
-    if (lastFrame?.panel) {
-      result[definition.sessionId] = lastFrame.panel;
+  SCENARIO_DEFINITIONS.filter(definition => definition.seeded !== false).reduce<
+    Record<string, DialogueGeneratedPanelState>
+  >((result, definition) => {
+    const bundle = buildSeedDialogueScenarioBundle(definition);
+    if (bundle.panel) {
+      result[definition.sessionId] = bundle.panel;
     }
     return result;
   }, {});
@@ -3708,12 +5133,13 @@ export const buildDialogueScenarioSeedPanels = (): Record<string, DialogueGenera
  * 构建默认单聊场景结果卡片。
  */
 export const buildDialogueScenarioSeedResults = (): Record<string, DialogueGeneratedResultItem[]> =>
-  SCENARIO_DEFINITIONS.reduce<Record<string, DialogueGeneratedResultItem[]>>(
+  SCENARIO_DEFINITIONS.filter(definition => definition.seeded !== false).reduce<
+    Record<string, DialogueGeneratedResultItem[]>
+  >(
     (result, definition) => {
-      const frames = definition.buildFrames(definition.sessionId);
-      const lastFrame = [...frames].reverse().find(item => item.results?.length);
-      if (lastFrame?.results?.length) {
-        result[definition.sessionId] = lastFrame.results;
+      const bundle = buildSeedDialogueScenarioBundle(definition);
+      if (bundle.results.length) {
+        result[definition.sessionId] = bundle.results;
       }
       return result;
     },

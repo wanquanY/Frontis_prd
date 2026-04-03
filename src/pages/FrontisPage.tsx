@@ -15,6 +15,7 @@ import { isChatAttachmentFileAllowed } from "@/utils/chatAttachmentFileTypes";
 import {
   AI_CEO_AGENT_HOME_CONFIGS,
   AI_CEO_DEFAULT_HOME_CONFIG,
+  WORKSPACE_DEFAULT_AGENT_CONFIG_IDS,
 } from "@/constants/aiCeoHome";
 
 import { DialoguePrototypeView } from "./components/DialoguePrototypeView";
@@ -24,18 +25,23 @@ import {
   INITIAL_DIALOGUE_SESSIONS,
   INITIAL_EMPLOYEES,
   INITIAL_FRONTIS_WEB_USERS,
+  INITIAL_WORKSPACES,
 } from "@/mocks/mockData";
 import { findDialogueScenario } from "./dialogueScenarioSimulation";
 import type { SynClawArtifactItem } from "@/pages/synclaw/types";
 import type {
   DialogueGeneratedResultItem,
   DialogueSessionItem,
+  EmployeeItem,
   FrontisWebRole,
+  StatusTone,
+  WorkspaceItem,
 } from "./types";
 import {
   buildAttachmentItem,
   createComposerAttachment,
   createId,
+  getAvatarUrl,
   revokeComposerAttachmentPreview,
 } from "./utils";
 import { mapDialogueSessionForRole, mapEmployeeForRole } from "./agentDisplay";
@@ -46,6 +52,102 @@ interface FrontisPageProps {
 }
 
 const DEFAULT_CONVERSATION_EMPLOYEE_ID = "employee-writer";
+const MANAGEMENT_USER_ROLES = new Set(["boss", "admin"]);
+const ACTIVE_WORKSPACE_STATUSES = new Set<StatusTone>(["online", "busy", "idle"]);
+const DEFAULT_WORKSPACE_AGENT_ORDER: string[] = Object.values(WORKSPACE_DEFAULT_AGENT_CONFIG_IDS);
+
+const buildLiveDialogueResults = (
+  sessionId: string,
+  frame: {
+    panel?: DialogueGeneratedResultItem["panel"];
+    results?: DialogueGeneratedResultItem[];
+  },
+): DialogueGeneratedResultItem[] => {
+  if (frame.results?.length) {
+    return frame.results;
+  }
+
+  if (!frame.panel || frame.panel.kind !== "dispatchExecution") {
+    return [];
+  }
+
+  return [
+    {
+      id: `${sessionId}-${frame.panel.id}-live`,
+      title: frame.panel.title,
+      subtitle: frame.panel.subtitle,
+      createdAt: "刚刚",
+      badge: frame.panel.skillName,
+      panel: frame.panel,
+    },
+  ];
+};
+
+const buildWorkspaceDefaultAgent = (
+  workspace: WorkspaceItem,
+  currentUserName?: string,
+  nameOverride?: string,
+): EmployeeItem | null => {
+  const agentId =
+    WORKSPACE_DEFAULT_AGENT_CONFIG_IDS[
+      workspace.id as keyof typeof WORKSPACE_DEFAULT_AGENT_CONFIG_IDS
+    ];
+
+  if (!agentId) {
+    return null;
+  }
+
+  const homeConfig = AI_CEO_AGENT_HOME_CONFIGS[agentId] ?? AI_CEO_DEFAULT_HOME_CONFIG;
+
+  return {
+    id: agentId,
+    name: nameOverride?.trim() || `${workspace.name}默认Agent`,
+    avatarUrl: getAvatarUrl(agentId),
+    role: workspace.summary,
+    portalRoles: ["admin", "employee"],
+    status: ACTIVE_WORKSPACE_STATUSES.has(workspace.status) ? "idle" : "pending",
+    workspaceId: workspace.id,
+    connectionMode: workspace.type === "cloud" ? "cloud" : "local",
+    model: workspace.type === "cloud" ? "gpt-4o" : "local-runtime",
+    summary: homeConfig.intro,
+    lastAction: ACTIVE_WORKSPACE_STATUSES.has(workspace.status)
+      ? `已绑定 ${workspace.name}，可直接查看案例或开始提问`
+      : `${workspace.name} 当前未就绪，可先看案例回放和推荐问法`,
+    source: "openclaw",
+    visibility: "all",
+    subAgentModel: workspace.type === "cloud" ? "gpt-4o-mini" : "device-runtime",
+    agentId: `default-agent-${workspace.id}`,
+    runtimeAgentId: `default-runtime-${workspace.id}`,
+    boundMembers: currentUserName ? [currentUserName] : [],
+    welcomeMessage: homeConfig.intro,
+    systemPrompt: `你是绑定在 ${workspace.name} 上的默认 Agent，优先帮助用户结合设备上下文完成任务整理、任务触达和结果收口。`,
+    skills: homeConfig.skillItems.map(item => item.id),
+  };
+};
+
+const sortConversationEmployees = (employees: EmployeeItem[]): EmployeeItem[] =>
+  [...employees].sort((left, right) => {
+    const leftDefaultIndex = DEFAULT_WORKSPACE_AGENT_ORDER.indexOf(left.id);
+    const rightDefaultIndex = DEFAULT_WORKSPACE_AGENT_ORDER.indexOf(right.id);
+
+    if (leftDefaultIndex !== -1 || rightDefaultIndex !== -1) {
+      if (leftDefaultIndex === -1) {
+        return 1;
+      }
+      if (rightDefaultIndex === -1) {
+        return -1;
+      }
+      return leftDefaultIndex - rightDefaultIndex;
+    }
+
+    if (left.id === DEFAULT_CONVERSATION_EMPLOYEE_ID) {
+      return -1;
+    }
+    if (right.id === DEFAULT_CONVERSATION_EMPLOYEE_ID) {
+      return 1;
+    }
+    return 0;
+  });
 
 /**
  * FrontisAI Web 原型主页面
@@ -72,6 +174,9 @@ const FrontisPage = ({ viewRole }: FrontisPageProps): JSX.Element => {
   const [activeDialogueSessionId, setActiveDialogueSessionId] = useState<string>("");
   const [isDialogueHomeActive, setIsDialogueHomeActive] = useState<boolean>(true);
   const [selectedSkillId, setSelectedSkillId] = useState<string | null>(null);
+  const [defaultAgentNameOverrides, setDefaultAgentNameOverrides] = useState<Record<string, string>>(
+    {},
+  );
   const [dialogueInputValue, setDialogueInputValue] = useState<string>("");
   const [dialogueAttachments, setDialogueAttachments] = useState<WorkspaceComposerAttachmentItem[]>(
     [],
@@ -85,16 +190,17 @@ const FrontisPage = ({ viewRole }: FrontisPageProps): JSX.Element => {
     () => INITIAL_EMPLOYEES.map(item => mapEmployeeForRole(item, viewRole)),
     [viewRole],
   );
+  const workspaces = useMemo(() => INITIAL_WORKSPACES, []);
   const currentUser = useMemo(
     () =>
       INITIAL_FRONTIS_WEB_USERS.find(item => item.id === session?.userId) ??
-      INITIAL_FRONTIS_WEB_USERS.find(
-        item =>
-          item.role === (viewRole === "admin" ? "admin" : "member") && item.status === "active",
-      ) ??
-      INITIAL_FRONTIS_WEB_USERS.find(
-        item => item.role === (viewRole === "admin" ? "admin" : "member"),
-      ) ??
+      (viewRole === "admin"
+        ? INITIAL_FRONTIS_WEB_USERS.find(
+            item => MANAGEMENT_USER_ROLES.has(item.role) && item.status === "active",
+          ) ??
+          INITIAL_FRONTIS_WEB_USERS.find(item => MANAGEMENT_USER_ROLES.has(item.role))
+        : INITIAL_FRONTIS_WEB_USERS.find(item => item.role === "member" && item.status === "active") ??
+          INITIAL_FRONTIS_WEB_USERS.find(item => item.role === "member")) ??
       null,
     [session?.userId, viewRole],
   );
@@ -102,27 +208,53 @@ const FrontisPage = ({ viewRole }: FrontisPageProps): JSX.Element => {
     () => employees.filter(item => item.portalRoles.includes(viewRole)),
     [employees, viewRole],
   );
-  const conversationEmployees = useMemo(
+  const deviceDefaultAgents = useMemo(
     () =>
-      (viewRole === "admin"
-        ? roleVisibleEmployees
-        : roleVisibleEmployees.filter(item => {
-            const isAssigned = currentUser?.assignedAgentIds.includes(item.id) ?? false;
-            if (!isAssigned) {
-              return false;
-            }
-            return item.visibility === "all" || item.boundMembers.includes(currentUser?.name ?? "");
-          })
-      ).slice().sort((left, right) => {
-        if (left.id === DEFAULT_CONVERSATION_EMPLOYEE_ID) {
-          return -1;
+      (currentUser?.assignedWorkspaceIds ?? [])
+        .map(workspaceId => workspaces.find(item => item.id === workspaceId) ?? null)
+        .map(workspace =>
+          workspace
+            ? buildWorkspaceDefaultAgent(
+                workspace,
+                currentUser?.name,
+                defaultAgentNameOverrides[
+                  WORKSPACE_DEFAULT_AGENT_CONFIG_IDS[
+                    workspace.id as keyof typeof WORKSPACE_DEFAULT_AGENT_CONFIG_IDS
+                  ]
+                ],
+              )
+            : null,
+        )
+        .filter((item): item is EmployeeItem => item !== null),
+    [currentUser?.assignedWorkspaceIds, currentUser?.name, defaultAgentNameOverrides, workspaces],
+  );
+  const conversationEmployees = useMemo(
+    () => {
+      const assignedEmployees = roleVisibleEmployees.filter(item => {
+        const isAssigned = currentUser?.assignedAgentIds.includes(item.id) ?? false;
+        if (!isAssigned) {
+          return false;
         }
-        if (right.id === DEFAULT_CONVERSATION_EMPLOYEE_ID) {
-          return 1;
+        if (viewRole === "admin") {
+          return true;
         }
-        return 0;
-      }),
-    [currentUser?.assignedAgentIds, currentUser?.name, roleVisibleEmployees, viewRole],
+        return item.visibility === "all" || item.boundMembers.includes(currentUser?.name ?? "");
+      });
+
+      const mergedEmployees = [...deviceDefaultAgents, ...assignedEmployees];
+      const uniqueEmployees = mergedEmployees.filter(
+        (item, index) => mergedEmployees.findIndex(candidate => candidate.id === item.id) === index,
+      );
+
+      return sortConversationEmployees(uniqueEmployees);
+    },
+    [
+      currentUser?.assignedAgentIds,
+      currentUser?.name,
+      deviceDefaultAgents,
+      roleVisibleEmployees,
+      viewRole,
+    ],
   );
 
   const activeEmployee = useMemo(
@@ -152,7 +284,17 @@ const FrontisPage = ({ viewRole }: FrontisPageProps): JSX.Element => {
     },
     [activeDialogueSessionId, employeeDialogueSessions, isDialogueHomeActive],
   );
-  const dialogueMessages = activeDialogueSession?.messages ?? [];
+  const dialogueMessages = useMemo(
+    () => activeDialogueSession?.messages ?? [],
+    [activeDialogueSession],
+  );
+  const dialogueFollowupSuggestions = useMemo(() => {
+    const lastMessage = dialogueMessages[dialogueMessages.length - 1];
+    if (!lastMessage || lastMessage.role !== "assistant") {
+      return [];
+    }
+    return lastMessage.followupSuggestions ?? [];
+  }, [dialogueMessages]);
   const activeDialogueArtifacts = useMemo(
     () => (activeDialogueSession ? (dialogueArtifactsBySession[activeDialogueSession.id] ?? []) : []),
     [activeDialogueSession, dialogueArtifactsBySession],
@@ -469,12 +611,13 @@ const FrontisPage = ({ viewRole }: FrontisPageProps): JSX.Element => {
         };
       });
       setDialogueResultsBySession(prev => {
-        if (!firstFrame.results) {
+        const nextResults = buildLiveDialogueResults(targetSessionId, firstFrame);
+        if (!nextResults.length) {
           return prev;
         }
         return {
           ...prev,
-          [targetSessionId]: firstFrame.results,
+          [targetSessionId]: nextResults,
         };
       });
 
@@ -491,6 +634,7 @@ const FrontisPage = ({ viewRole }: FrontisPageProps): JSX.Element => {
             content: firstFrame.preview,
             timeLabel: "刚刚",
             blocks: firstFrame.blocks,
+            followupSuggestions: firstFrame.followupSuggestions,
           },
         ],
       }));
@@ -512,14 +656,15 @@ const FrontisPage = ({ viewRole }: FrontisPageProps): JSX.Element => {
             updatedAt: "刚刚",
             messages: currentSession.messages.map(message =>
               message.id === assistantMessageId
-                ? {
-                    ...message,
-                    content: frame.preview,
-                    timeLabel: "刚刚",
-                    blocks: frame.blocks,
-                  }
-                : message,
-            ),
+                  ? {
+                      ...message,
+                      content: frame.preview,
+                      timeLabel: "刚刚",
+                      blocks: frame.blocks,
+                      followupSuggestions: frame.followupSuggestions,
+                    }
+                  : message,
+              ),
           }));
 
           if (frame.artifacts) {
@@ -530,9 +675,16 @@ const FrontisPage = ({ viewRole }: FrontisPageProps): JSX.Element => {
           }
 
           if (frame.results) {
+            const nextResults = buildLiveDialogueResults(targetSessionId, frame);
             setDialogueResultsBySession(prev => ({
               ...prev,
-              [targetSessionId]: frame.results ?? [],
+              [targetSessionId]: nextResults,
+            }));
+          } else if (frame.panel?.kind === "dispatchExecution") {
+            const nextResults = buildLiveDialogueResults(targetSessionId, frame);
+            setDialogueResultsBySession(prev => ({
+              ...prev,
+              [targetSessionId]: nextResults,
             }));
           }
 
@@ -597,6 +749,22 @@ const FrontisPage = ({ viewRole }: FrontisPageProps): JSX.Element => {
     commitDialogue(dialogueInputValue);
   }, [commitDialogue, dialogueInputValue]);
 
+  const handleRenameDefaultAgent = useCallback((employeeId: string, nextName: string): void => {
+    if (!DEFAULT_WORKSPACE_AGENT_ORDER.includes(employeeId)) {
+      return;
+    }
+
+    const trimmedName = nextName.trim();
+    if (!trimmedName) {
+      return;
+    }
+
+    setDefaultAgentNameOverrides(prev => ({
+      ...prev,
+      [employeeId]: trimmedName,
+    }));
+  }, []);
+
   const handleSendDialogueHomePrompt = useCallback((question: string): void => {
     commitDialogue(question);
   }, [commitDialogue]);
@@ -636,21 +804,16 @@ const FrontisPage = ({ viewRole }: FrontisPageProps): JSX.Element => {
   }, [logout, navigate]);
 
   const handleOpenManagementPortal = useCallback((): void => {
-    const targetUrl = new URL(getAdminManagementPath("v1"), window.location.origin).toString();
-    const openedWindow = window.open(targetUrl, "_blank", "noopener,noreferrer");
-
-    if (!openedWindow) {
-      message.warning("浏览器拦截了新窗口，请允许弹窗后重试。");
-    }
-  }, []);
+    navigate(getAdminManagementPath("v1"));
+  }, [navigate]);
 
   const accountMenuItems: MenuProps["items"] = [
-    ...(viewRole === "admin"
+    ...(currentUser && MANAGEMENT_USER_ROLES.has(currentUser.role)
       ? [
           {
             key: "management",
             icon: <AppstoreOutlined />,
-            label: "企业管理",
+            label: "管理后台",
             onClick: handleOpenManagementPortal,
           },
         ]
@@ -677,17 +840,21 @@ const FrontisPage = ({ viewRole }: FrontisPageProps): JSX.Element => {
           dialogueInputValue={dialogueInputValue}
           dialogueMessages={dialogueMessages}
           dialogueSessions={employeeDialogueSessions}
-          homeIntro={activeAgentHomeConfig.intro}
+          followupSuggestions={dialogueFollowupSuggestions}
+          homeCaseItems={activeAgentHomeConfig.caseItems}
           homePromptItems={activeAgentHomeConfig.promptItems}
           homeSkillItems={activeAgentHomeConfig.skillItems}
           isHomeVisible={isDialogueHomeActive}
           isSidebarCollapsed={isDialogueSidebarCollapsed}
           isDialogueResponding={isDialogueResponding}
+          defaultAgentIds={deviceDefaultAgents.map(item => item.id)}
           onCreateDialogueSession={handleCreateDialogueSession}
           onDialogueAttachmentsSelected={handleDialogueAttachmentsSelected}
           onDialogueInputChange={setDialogueInputValue}
           onDialogueSessionSelect={handleSelectDialogueSession}
+          onFollowupClick={handleSendDialogueHomePrompt}
           onHomePromptSend={handleSendDialogueHomePrompt}
+          onRenameDefaultAgent={handleRenameDefaultAgent}
           onRemoveDialogueSession={handleRemoveDialogueSession}
           onRenameDialogueSession={handleRenameDialogueSession}
           onEmployeeSelect={handleSelectEmployee}
@@ -696,6 +863,7 @@ const FrontisPage = ({ viewRole }: FrontisPageProps): JSX.Element => {
           onSendDialogue={handleSendDialogue}
           selectedSkillId={selectedSkillId}
           onStopDialogue={handleStopDialogue}
+          viewerName={currentUser?.name ?? "你"}
         />
       );
     }

@@ -1,4 +1,4 @@
-import type { EmployeeItem, EmployeeVisibility, FrontisWebTabKey, SkillItem, WorkspaceItem } from "../../types";
+import type { EmployeeItem, EmployeeVisibility, FrontisWebTabKey, WorkspaceItem } from "../../types";
 
 /**
  * AI 专家团视图组件入参。
@@ -12,8 +12,16 @@ export interface AgentStoreViewProps {
     visibility: EmployeeVisibility,
     boundMembers: string[],
   ) => void;
-  skills: SkillItem[];
+  onUpdateEmployeeModel: (employeeId: string, model: string) => void;
   workspaces: WorkspaceItem[];
+}
+
+/**
+ * AI 专家在企业后台中的部署配置。
+ */
+export interface ExpertDeploymentState {
+  assignedWorkspaceId: string | null;
+  isDeviceLocked: boolean;
 }
 
 /**

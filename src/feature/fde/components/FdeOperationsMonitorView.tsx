@@ -1,10 +1,10 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 
+import { DownOutlined, RightOutlined } from "@ant-design/icons";
 import classNames from "classnames";
 import { Empty } from "antd";
 
-import type { FdeOperationsCustomerItem, FdeTeamMemberItem } from "@/feature/fde/types";
-import { getFdeHealthLabel } from "@/feature/fde/utils";
+import type { FdeAssetQuotaItem, FdeOperationsCustomerItem } from "@/feature/fde/types";
 
 import styles from "./FdeOperationsMonitorView.module.less";
 
@@ -12,177 +12,392 @@ interface FdeOperationsMonitorViewProps {
   items: FdeOperationsCustomerItem[];
   selectedCustomerId: string;
   setSelectedCustomerId: (customerId: string) => void;
-  activeMemberId: string;
 }
 
-const getHealthClassName = (health: FdeOperationsCustomerItem["health"]): string => {
-  if (health === "healthy") {
-    return styles.healthHealthy;
-  }
+type FdeAssetDetailTabKey = "recharge" | "devices" | "agents";
+type FdeAgentAssetRow =
+  | {
+      kind: "group";
+      key: string;
+      groupName: string;
+      agents: FdeOperationsCustomerItem["agents"];
+      completedTasks: number;
+    }
+  | {
+      kind: "single";
+      key: string;
+      agent: FdeOperationsCustomerItem["agents"][number];
+    };
 
-  if (health === "attention") {
-    return styles.healthAttention;
-  }
-
-  return styles.healthRisk;
+const getDeviceStatusClassName = (status: "online" | "offline"): string => {
+  return status === "online" ? styles.deviceStatusOnline : styles.deviceStatusOffline;
 };
 
-const getAlertSeverityClass = (severity: string): string => {
-  switch (severity) {
-    case "critical":
-      return styles.alertCritical;
-    case "high":
-      return styles.alertHigh;
-    case "medium":
-      return styles.alertMedium;
-    default:
-      return styles.alertLow;
+const getQuotaMetaLabel = (quota: FdeAssetQuotaItem): string => {
+  const remaining = Math.max(quota.total - quota.used, 0);
+  return `已用 ${quota.used}${quota.unit} / 剩余 ${remaining}${quota.unit}`;
+};
+
+const getAgentTargetLabel = (item: FdeOperationsCustomerItem["agents"][number]): string => {
+  if (item.deploymentLabel === "全公司可用") {
+    return "全员";
   }
+
+  return item.assignedMembers?.join("、") ?? "暂未分配";
+};
+
+const getAgentSourceTags = (
+  item: FdeOperationsCustomerItem["agents"][number],
+): string[] => {
+  const tags = item.collectionLabels?.length
+    ? item.collectionLabels
+    : [item.deliverySourceLabel ?? "单个下发"];
+
+  return tags;
+};
+
+const buildAgentAssetRows = (
+  agents: FdeOperationsCustomerItem["agents"],
+): FdeAgentAssetRow[] => {
+  const groupedAgents = new Map<string, FdeOperationsCustomerItem["agents"]>();
+
+  agents.forEach(agent => {
+    const groupName = agent.collectionLabels?.[0];
+
+    if (!groupName) {
+      return;
+    }
+
+    const existing = groupedAgents.get(groupName);
+
+    if (existing) {
+      existing.push(agent);
+      return;
+    }
+
+    groupedAgents.set(groupName, [agent]);
+  });
+
+  const seenGroups = new Set<string>();
+
+  return agents.flatMap<FdeAgentAssetRow>(agent => {
+    const groupName = agent.collectionLabels?.[0];
+
+    if (!groupName) {
+      return [
+        {
+          kind: "single",
+          key: `agent-${agent.name}`,
+          agent,
+        },
+      ];
+    }
+
+    if (seenGroups.has(groupName)) {
+      return [];
+    }
+
+    seenGroups.add(groupName);
+    const groupItems = groupedAgents.get(groupName) ?? [agent];
+
+    return [
+      {
+        kind: "group",
+        key: `group-${groupName}`,
+        groupName,
+        agents: groupItems,
+        completedTasks: groupItems.reduce((total, item) => total + item.completedTasks, 0),
+      },
+    ];
+  });
 };
 
 /**
- * 运营监控视图。
+ * 客户资产管理视图。
  */
 export const FdeOperationsMonitorView = ({
   items,
   selectedCustomerId,
   setSelectedCustomerId,
-  activeMemberId,
 }: FdeOperationsMonitorViewProps): JSX.Element => {
+  const [activeDetailTab, setActiveDetailTab] = useState<FdeAssetDetailTabKey>("recharge");
+  const [expandedGroupKeys, setExpandedGroupKeys] = useState<string[]>([]);
+  const deliveredItems = useMemo<FdeOperationsCustomerItem[]>(
+    () => items.filter(item => item.isDelivered),
+    [items],
+  );
   const selectedCustomer = useMemo(
-    () => items.find(item => item.id === selectedCustomerId) ?? items[0] ?? null,
-    [items, selectedCustomerId],
+    () =>
+      deliveredItems.find(item => item.id === selectedCustomerId) ?? deliveredItems[0] ?? null,
+    [deliveredItems, selectedCustomerId],
+  );
+  const agentAssetRows = useMemo<FdeAgentAssetRow[]>(
+    () => (selectedCustomer ? buildAgentAssetRows(selectedCustomer.agents) : []),
+    [selectedCustomer],
   );
 
-  const allAlerts = useMemo(() => {
-    return items.flatMap(customer =>
-      customer.alerts.map(alert => ({
-        ...alert,
-        customerName: customer.customerName,
-      })),
-    );
-  }, [items]);
+  useEffect(() => {
+    setExpandedGroupKeys([]);
+  }, [selectedCustomer?.id]);
 
-  if (!items.length) {
-    return <Empty description="当前视角下暂无运营监控客户" />;
+  const handleToggleGroup = (groupKey: string): void => {
+    setExpandedGroupKeys(previous =>
+      previous.includes(groupKey)
+        ? previous.filter(item => item !== groupKey)
+        : [...previous, groupKey],
+    );
+  };
+
+  if (!deliveredItems.length) {
+    return <Empty description="当前暂无已交付客户资产" />;
   }
 
   return (
-    <div className={styles.monitorLayout}>
-      {allAlerts.length > 0 && (
-        <section className={styles.alertCenter}>
-          <div className={styles.alertCenterTitle}>告警通知中心</div>
-          <div className={styles.alertList}>
-            {allAlerts.map(alert => (
-              <div key={alert.id} className={classNames(styles.alertItem, getAlertSeverityClass(alert.severity))}>
-                <div className={styles.alertDot} />
-                <div className={styles.alertContent}>
-                  <span className={styles.alertCustomer}>{alert.customerName}</span>
-                  <span className={styles.alertMessage}>{alert.message}</span>
-                </div>
-                <span className={styles.alertTime}>{alert.time}</span>
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
+    <div className={styles.layout}>
+      <aside className={styles.customerSidebar}>
+        <div className={styles.sidebarTitle}>客户列表</div>
+        <div className={styles.customerList}>
+          {deliveredItems.map(item => (
+            <button
+              key={item.id}
+              type="button"
+              className={classNames(
+                styles.customerItem,
+                item.id === selectedCustomer?.id && styles.customerItemActive,
+              )}
+              onClick={() => setSelectedCustomerId(item.id)}
+            >
+              <span className={styles.customerName}>{item.customerName}</span>
+            </button>
+          ))}
+        </div>
+      </aside>
 
-      <div className={styles.workbench}>
-        <aside className={styles.customerList}>
-          <div className={styles.sectionTitle}>客户列表</div>
-          <div className={styles.customerListBody}>
-            {items.map(item => (
-              <button
-                key={item.id}
-                type="button"
-                className={classNames(
-                  styles.customerCard,
-                  item.id === selectedCustomer?.id && styles.customerCardActive,
-                  item.alerts.length > 0 && styles.customerCardAlert,
-                )}
-                onClick={() => setSelectedCustomerId(item.id)}
-              >
-                <div className={styles.customerTop}>
-                  <strong>{item.customerName}</strong>
-                  {item.alerts.length > 0 && <span className={styles.alertBadge}>!</span>}
-                </div>
-                <div className={styles.customerMeta}>{item.scenarioName}</div>
-                <div className={styles.customerMeta}>{item.lastHeartbeat}</div>
-              </button>
-            ))}
-          </div>
-        </aside>
+      <section className={styles.contentPanel}>
+        {selectedCustomer ? (
+          <>
+            <div className={styles.pageHeader}>
+              <h2 className={styles.pageTitle}>{selectedCustomer.customerName}</h2>
+            </div>
 
-        <article className={styles.detailPanel}>
-          {selectedCustomer ? (
-            <>
-              <div className={styles.detailHeader}>
-                <div>
-                  <div className={styles.detailEyebrow}>运营监控</div>
-                  <h2 className={styles.detailTitle}>{selectedCustomer.customerName}</h2>
-                  <p className={styles.detailDescription}>{selectedCustomer.scenarioName}</p>
+            <section className={styles.section}>
+              <div className={styles.sectionTitle}>资产概况</div>
+              <div className={styles.overviewGrid}>
+                {selectedCustomer.assetQuotas.map(item => (
+                  <div key={item.id} className={styles.overviewCard}>
+                    <div className={styles.cardLabel}>{item.label}</div>
+                    <div className={styles.cardValue}>
+                      {item.used}/{item.total}
+                      {item.unit}
+                    </div>
+                    <div className={styles.cardMeta}>{getQuotaMetaLabel(item)}</div>
+                  </div>
+                ))}
+                <div className={styles.overviewCard}>
+                  <div className={styles.cardLabel}>积分余额</div>
+                  <div className={styles.cardValue}>{selectedCustomer.pointsBalanceLabel}</div>
+                  <div className={styles.cardMeta}>当前可用余额</div>
                 </div>
-                <div
-                  className={classNames(
-                    styles.healthTag,
-                    getHealthClassName(selectedCustomer.health),
-                  )}
-                >
-                  {getFdeHealthLabel(selectedCustomer.health)}
+                <div className={styles.overviewCard}>
+                  <div className={styles.cardLabel}>Token 使用情况</div>
+                  <div className={styles.cardValue}>{selectedCustomer.tokenUsage.usedLabel}</div>
+                  <div className={styles.cardMeta}>
+                    {selectedCustomer.tokenUsage.billingCycleLabel} / 上限{" "}
+                    {selectedCustomer.tokenUsage.limitLabel}
+                  </div>
                 </div>
               </div>
+            </section>
 
-              <section className={styles.card}>
-                <div className={styles.cardTitle}>设备情况</div>
-                <div className={styles.deviceGrid}>
+            <section className={styles.section}>
+              <div className={styles.sectionHeader}>
+                <div className={styles.sectionTitle}>资产明细</div>
+                <div className={styles.detailTabs}>
+                  <button
+                    type="button"
+                    className={classNames(
+                      styles.detailTab,
+                      activeDetailTab === "recharge" && styles.detailTabActive,
+                    )}
+                    onClick={() => setActiveDetailTab("recharge")}
+                  >
+                    充值记录
+                  </button>
+                  <button
+                    type="button"
+                    className={classNames(
+                      styles.detailTab,
+                      activeDetailTab === "devices" && styles.detailTabActive,
+                    )}
+                    onClick={() => setActiveDetailTab("devices")}
+                  >
+                    设备资产
+                  </button>
+                  <button
+                    type="button"
+                    className={classNames(
+                      styles.detailTab,
+                      activeDetailTab === "agents" && styles.detailTabActive,
+                    )}
+                    onClick={() => setActiveDetailTab("agents")}
+                  >
+                    AI 专家资产
+                  </button>
+                </div>
+              </div>
+
+              {activeDetailTab === "recharge" ? (
+                <>
+                  <div className={styles.tableHeaderRecharge}>
+                    <span>充值时间</span>
+                    <span>充值金额</span>
+                    <span>积分变动</span>
+                    <span>充值渠道</span>
+                    <span>操作人</span>
+                    <span>状态</span>
+                  </div>
+                  {selectedCustomer.rechargeRecords.map(record => (
+                    <div key={record.id} className={styles.tableRowRecharge}>
+                      <span>{record.rechargeDate}</span>
+                      <span className={styles.tableStrong}>{record.amountLabel}</span>
+                      <span>{record.pointsLabel}</span>
+                      <span>{record.channelLabel}</span>
+                      <span>{record.operatorName}</span>
+                      <span>{record.statusLabel}</span>
+                    </div>
+                  ))}
+                </>
+              ) : null}
+
+              {activeDetailTab === "devices" ? (
+                <>
+                  <div className={styles.tableHeaderDevice}>
+                    <span>设备</span>
+                    <span>类型</span>
+                    <span>状态</span>
+                    <span>归属</span>
+                    <span>绑定员工</span>
+                    <span>位置</span>
+                    <span>运行时长</span>
+                  </div>
                   {selectedCustomer.devices.map(device => (
-                    <div key={device.id} className={styles.deviceCard}>
-                      <div className={styles.deviceHeader}>
-                        <span className={styles.deviceIcon}>
-                          {device.type === "cloud" ? "☁️" : "💻"}
-                        </span>
-                        <span className={styles.deviceName}>{device.name}</span>
-                        <span
-                          className={classNames(
-                            styles.deviceStatus,
-                            device.status === "online" ? styles.deviceStatusOnline : styles.deviceStatusOffline,
-                          )}
-                        >
-                          {device.status === "online" ? "在线" : "离线"}
-                        </span>
-                      </div>
-                      <div className={styles.deviceMeta}>运行时长: {device.uptime}</div>
+                    <div key={device.id} className={styles.tableRowDevice}>
+                      <span className={styles.tableStrong}>{device.name}</span>
+                      <span>{device.categoryLabel ?? "待确认"}</span>
+                      <span
+                        className={classNames(
+                          styles.deviceStatus,
+                          getDeviceStatusClassName(device.status),
+                        )}
+                      >
+                        {device.status === "online" ? "在线" : "离线"}
+                      </span>
+                      <span>{device.ownerLabel ?? "待确认"}</span>
+                      <span>{device.assignedEmployeeName ?? "暂未绑定"}</span>
+                      <span>{device.locationLabel ?? "待确认"}</span>
+                      <span>{device.uptime}</span>
                     </div>
                   ))}
-                </div>
-              </section>
+                </>
+              ) : null}
 
-              <section className={styles.card}>
-                <div className={styles.cardTitle}>AI 专家团运行情况</div>
-                <div className={styles.agentGrid}>
-                  {selectedCustomer.agents.map((agent, idx) => (
-                    <div key={idx} className={styles.agentCard}>
-                      <div className={styles.agentName}>{agent.name}</div>
-                      <div className={styles.agentStats}>
-                        <div className={styles.agentStat}>
-                          <span className={styles.agentStatLabel}>运行时长</span>
-                          <span className={styles.agentStatValue}>{agent.runningHours} 小时</span>
+              {activeDetailTab === "agents" ? (
+                <>
+                  <div className={styles.tableHeaderAgent}>
+                    <span>AI 专家</span>
+                    <span>当前版本</span>
+                    <span>模型</span>
+                    <span>已完成任务</span>
+                    <span>授权对象</span>
+                    <span>可用范围</span>
+                  </div>
+                  {agentAssetRows.map(row => {
+                    if (row.kind === "group") {
+                      const isExpanded = expandedGroupKeys.includes(row.key);
+
+                      return (
+                        <div key={row.key} className={styles.agentGroupBlock}>
+                          <button
+                            type="button"
+                            className={classNames(styles.tableRowAgent, styles.tableRowAgentButton)}
+                            onClick={() => handleToggleGroup(row.key)}
+                          >
+                            <span className={styles.agentPrimaryCell}>
+                              <span className={styles.agentGroupTitle}>
+                                <span className={styles.expandIcon}>
+                                  {isExpanded ? <DownOutlined /> : <RightOutlined />}
+                                </span>
+                                <span className={styles.tableStrong}>{row.groupName}</span>
+                              </span>
+                              <span className={styles.agentGroupMeta}>
+                                包含 {row.agents.length} 个 AI 专家
+                              </span>
+                              <span className={styles.agentSourceTags}>
+                                <span className={styles.agentSourceTag}>专家团</span>
+                              </span>
+                            </span>
+                            <span>-</span>
+                            <span>-</span>
+                            <span>{row.completedTasks} 条</span>
+                            <span>-</span>
+                            <span>-</span>
+                          </button>
+                          {isExpanded
+                            ? row.agents.map(agent => (
+                                <div
+                                  key={`${row.key}-${agent.name}`}
+                                  className={classNames(
+                                    styles.tableRowAgent,
+                                    styles.tableRowAgentChild,
+                                  )}
+                                >
+                                  <span className={styles.agentPrimaryCell}>
+                                    <span className={styles.agentChildTitle}>
+                                      <span className={styles.tableStrong}>{agent.name}</span>
+                                    </span>
+                                  </span>
+                                  <span>{agent.currentVersion ?? "待确认"}</span>
+                                  <span>{agent.modelLabel ?? "待配置"}</span>
+                                  <span>{agent.completedTasks} 条</span>
+                                  <span>{getAgentTargetLabel(agent)}</span>
+                                  <span>{agent.deploymentLabel ?? "指定范围可用"}</span>
+                                </div>
+                              ))
+                            : null}
                         </div>
-                        <div className={styles.agentStat}>
-                          <span className={styles.agentStatLabel}>完成任务</span>
-                          <span className={styles.agentStatValue}>{agent.completedTasks} 条</span>
-                        </div>
+                      );
+                    }
+
+                    const agent = row.agent;
+
+                    return (
+                      <div key={row.key} className={styles.tableRowAgent}>
+                        <span className={styles.agentPrimaryCell}>
+                          <span className={styles.tableStrong}>{agent.name}</span>
+                          <span className={styles.agentSourceTags}>
+                            {getAgentSourceTags(agent).map(tag => (
+                              <span key={tag} className={styles.agentSourceTag}>
+                                {tag}
+                              </span>
+                            ))}
+                          </span>
+                        </span>
+                        <span>{agent.currentVersion ?? "待确认"}</span>
+                        <span>{agent.modelLabel ?? "待配置"}</span>
+                        <span>{agent.completedTasks} 条</span>
+                        <span>{getAgentTargetLabel(agent)}</span>
+                        <span>{agent.deploymentLabel ?? "指定范围可用"}</span>
                       </div>
-                    </div>
-                  ))}
-                </div>
-              </section>
-            </>
-          ) : (
-            <Empty description="请选择客户" />
-          )}
-        </article>
-      </div>
+                    );
+                  })}
+                </>
+              ) : null}
+            </section>
+          </>
+        ) : (
+          <Empty description="请选择客户" />
+        )}
+      </section>
     </div>
   );
 };

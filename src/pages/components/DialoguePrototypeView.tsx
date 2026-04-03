@@ -7,6 +7,7 @@ import {
   CloseOutlined,
   DatabaseOutlined,
   DownOutlined,
+  EditOutlined,
   FileTextOutlined,
   FolderOutlined,
   MoreOutlined,
@@ -33,6 +34,7 @@ import { Avatar, Dropdown, Input } from "antd";
 import type { Block } from "@/types/block";
 
 import type {
+  AiCeoHomeCaseItem,
   AiCeoHomePromptItem,
   AiCeoHomeSkillItem,
   AiCeoSkillIconKey,
@@ -70,12 +72,14 @@ interface DialoguePrototypeViewProps {
   activeDialogueResults: DialogueGeneratedResultItem[];
   activeDialogueSession: DialogueSessionItem | null;
   allEmployees: EmployeeItem[];
+  defaultAgentIds: string[];
   dialoguePlaceholder: string;
   dialogueAttachments: WorkspaceComposerAttachmentItem[];
   dialogueInputValue: string;
   dialogueMessages: ChatMessage[];
   dialogueSessions: DialogueSessionItem[];
-  homeIntro: string;
+  followupSuggestions: string[];
+  homeCaseItems?: AiCeoHomeCaseItem[];
   homePromptItems: AiCeoHomePromptItem[];
   homeSkillItems: AiCeoHomeSkillItem[];
   isHomeVisible: boolean;
@@ -85,7 +89,9 @@ interface DialoguePrototypeViewProps {
   onDialogueAttachmentsSelected: (files?: FileList | File[] | null) => void;
   onDialogueInputChange: (value: string) => void;
   onDialogueSessionSelect: (sessionId: string) => void;
+  onFollowupClick: (question: string) => void;
   onHomePromptSend: (question: string) => void;
+  onRenameDefaultAgent: (employeeId: string, name: string) => void;
   onRemoveDialogueSession: (sessionId: string) => void;
   onRenameDialogueSession: (sessionId: string, title: string) => void;
   onEmployeeSelect: (employeeId: string) => void;
@@ -94,6 +100,7 @@ interface DialoguePrototypeViewProps {
   onSendDialogue: () => void;
   selectedSkillId: string | null;
   onStopDialogue: () => void;
+  viewerName: string;
 }
 
 const renderSkillIcon = (iconKey: AiCeoSkillIconKey): JSX.Element => {
@@ -163,12 +170,14 @@ export const DialoguePrototypeView = ({
   activeDialogueResults,
   activeDialogueSession,
   allEmployees,
+  defaultAgentIds,
   dialoguePlaceholder,
   dialogueAttachments,
   dialogueInputValue,
   dialogueMessages,
   dialogueSessions,
-  homeIntro,
+  followupSuggestions,
+  homeCaseItems,
   homePromptItems,
   homeSkillItems,
   isHomeVisible,
@@ -178,7 +187,9 @@ export const DialoguePrototypeView = ({
   onDialogueAttachmentsSelected,
   onDialogueInputChange,
   onDialogueSessionSelect,
+  onFollowupClick,
   onHomePromptSend,
+  onRenameDefaultAgent,
   onRemoveDialogueSession,
   onRenameDialogueSession,
   onEmployeeSelect,
@@ -187,12 +198,15 @@ export const DialoguePrototypeView = ({
   onSendDialogue,
   selectedSkillId,
   onStopDialogue,
+  viewerName,
 }: DialoguePrototypeViewProps): JSX.Element => {
   const attachmentInputRef = useRef<HTMLInputElement | null>(null);
+  const agentNameInputRef = useRef<InputRef | null>(null);
   const sessionTitleInputRef = useRef<InputRef | null>(null);
   const employeeSwitcherRef = useRef<HTMLDivElement | null>(null);
   const skillTrackRef = useRef<HTMLDivElement | null>(null);
   const dialogueShellRef = useRef<HTMLDivElement | null>(null);
+  const latestResultIdRef = useRef<string>("");
   const sidePanelResizeStateRef = useRef<{ startX: number; startWidth: number } | null>(null);
   const sidePanelPendingWidthRef = useRef<number>(DIALOGUE_ARTIFACT_LIST_PANEL_DEFAULT_WIDTH);
   const [sidePanelMode, setSidePanelMode] = useState<"artifacts" | "results" | null>(null);
@@ -200,6 +214,8 @@ export const DialoguePrototypeView = ({
   const [activeResultId, setActiveResultId] = useState<string | null>(null);
   const [isArtifactPreviewing, setIsArtifactPreviewing] = useState<boolean>(false);
   const [isEmployeeSwitcherOpen, setIsEmployeeSwitcherOpen] = useState<boolean>(false);
+  const [editingAgentId, setEditingAgentId] = useState<string | null>(null);
+  const [editingAgentName, setEditingAgentName] = useState<string>("");
   const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
   const [editingSessionTitle, setEditingSessionTitle] = useState<string>("");
   const [skillTrackWidth, setSkillTrackWidth] = useState<number>(0);
@@ -360,6 +376,11 @@ export const DialoguePrototypeView = ({
   }, [editingSessionId]);
 
   useEffect(() => {
+    if (!editingAgentId) return;
+    agentNameInputRef.current?.focus({ cursor: "all" });
+  }, [editingAgentId]);
+
+  useEffect(() => {
     if (!isHomeVisible) {
       return;
     }
@@ -423,7 +444,52 @@ export const DialoguePrototypeView = ({
   }, [activeDialogueResults, activeResultId]);
 
   useEffect(() => {
+    if (isDialogueResponding) {
+      latestResultIdRef.current = "";
+      return;
+    }
+    const latestResult = activeDialogueResults[activeDialogueResults.length - 1];
+    if (!latestResult) {
+      latestResultIdRef.current = "";
+      return;
+    }
+
+    if (latestResult.panel.kind === "dispatchExecution") {
+      latestResultIdRef.current = "";
+      return;
+    }
+
+    latestResultIdRef.current = latestResult.id;
+  }, [activeDialogueSession?.id, isDialogueResponding]);
+
+  useEffect(() => {
+    const latestResult = activeDialogueResults[activeDialogueResults.length - 1];
+    const latestResultId = latestResult?.id ?? "";
+    if (!latestResultId) {
+      latestResultIdRef.current = "";
+      return;
+    }
+    if (latestResultIdRef.current === latestResultId) {
+      return;
+    }
+
+    latestResultIdRef.current = latestResultId;
+
+    if (latestResult.panel.kind !== "dispatchExecution") {
+      return;
+    }
+
+    setSidePanelWidth(currentWidth =>
+      clampSidePanelWidth(Math.max(currentWidth, DIALOGUE_RESULT_PANEL_DEFAULT_WIDTH)),
+    );
+    setActiveResultId(latestResultId);
+    setSidePanelMode("results");
+  }, [activeDialogueResults, clampSidePanelWidth]);
+
+  useEffect(() => {
     if (!isEmployeeSwitcherOpen) {
+      setEditingAgentId(null);
+      setEditingAgentName("");
       return undefined;
     }
 
@@ -449,6 +515,13 @@ export const DialoguePrototypeView = ({
     }
     setIsEmployeeSwitcherOpen(false);
   }, [isSidebarCollapsed]);
+
+  useEffect(() => {
+    if (!editingAgentId) return;
+    if (allEmployees.some(item => item.id === editingAgentId)) return;
+    setEditingAgentId(null);
+    setEditingAgentName("");
+  }, [allEmployees, editingAgentId]);
 
   useEffect(() => {
     const skillTrackElement = skillTrackRef.current;
@@ -560,6 +633,28 @@ export const DialoguePrototypeView = ({
     event.stopPropagation();
   };
 
+  const handleStartRenameAgent = (employeeId: string, currentName: string): void => {
+    setEditingAgentId(employeeId);
+    setEditingAgentName(currentName);
+  };
+
+  const handleCancelRenameAgent = (): void => {
+    setEditingAgentId(null);
+    setEditingAgentName("");
+  };
+
+  const handleSubmitRenameAgent = (): void => {
+    if (!editingAgentId) return;
+    const nextName = editingAgentName.trim();
+    if (!nextName) {
+      handleCancelRenameAgent();
+      return;
+    }
+    onRenameDefaultAgent(editingAgentId, nextName);
+    setEditingAgentId(null);
+    setEditingAgentName("");
+  };
+
   const handleStartRenameSession = (sessionId: string, currentTitle: string): void => {
     setEditingSessionId(sessionId);
     setEditingSessionTitle(currentTitle);
@@ -666,6 +761,99 @@ export const DialoguePrototypeView = ({
     document.body.style.userSelect = "none";
   };
 
+  const composerNode = (
+    <div className={styles.composerWrap}>
+      <WorkspaceComposer
+        rootClassName={styles.synclawComposer}
+        value={dialogueInputValue}
+        placeholder={dialoguePlaceholder}
+        attachments={dialogueAttachments}
+        onRemoveAttachment={onRemoveAttachment}
+        onAttachmentsSelected={onDialogueAttachmentsSelected}
+        allowAttachmentOnlySend={true}
+        footerExtra={
+          <div className={styles.dialogueComposerSkillBar}>
+            <span className={styles.dialogueComposerSkillDivider} aria-hidden={true} />
+            <div ref={skillTrackRef} className={styles.dialogueComposerSkillTrack}>
+              {selectedSkillItem ? (
+                <div className={styles.dialogueComposerSkillSelected}>
+                  <span className={styles.dialogueComposerSkillIcon}>
+                    {renderSkillIcon(selectedSkillItem.iconKey)}
+                  </span>
+                  <span className={styles.dialogueComposerSkillLabel}>
+                    {selectedSkillItem.name}
+                  </span>
+                  <button
+                    type="button"
+                    className={styles.dialogueComposerSkillClearButton}
+                    aria-label={`取消选择 ${selectedSkillItem.name}`}
+                    onClick={() => onSkillSelect(selectedSkillItem.id)}
+                  >
+                    <CloseOutlined />
+                  </button>
+                </div>
+              ) : null}
+              {visibleSkillItems.map(skill => (
+                <button
+                  key={skill.id}
+                  type="button"
+                  className={styles.dialogueComposerSkillButton}
+                  onClick={() => onSkillSelect(skill.id)}
+                >
+                  <span className={styles.dialogueComposerSkillIcon}>
+                    {renderSkillIcon(skill.iconKey)}
+                  </span>
+                  <span className={styles.dialogueComposerSkillLabel}>{skill.name}</span>
+                </button>
+              ))}
+              {overflowSkillItems.length > 0 ? (
+                <Dropdown
+                  menu={{
+                    items: moreSkillMenuItems,
+                    selectable: true,
+                    selectedKeys: selectedSkillId ? [selectedSkillId] : [],
+                    onClick: ({ key }) => onSkillSelect(String(key)),
+                  }}
+                  placement="topLeft"
+                  trigger={["click"]}
+                >
+                  <button
+                    type="button"
+                    className={styles.dialogueComposerSkillButton}
+                  >
+                    <span className={styles.dialogueComposerSkillIcon}>
+                      <MoreOutlined />
+                    </span>
+                    <span className={styles.dialogueComposerSkillLabel}>更多</span>
+                  </button>
+                </Dropdown>
+              ) : null}
+            </div>
+          </div>
+        }
+        sending={isDialogueResponding}
+        showModelSelector={false}
+        modelLabel={activeEmployee.model}
+        selectedModelId={WORKSPACE_MODEL_OPTIONS[0]?.id ?? 1}
+        modelMenuOpen={false}
+        modelOptions={WORKSPACE_MODEL_OPTIONS}
+        onValueChange={onDialogueInputChange}
+        onAttach={() => attachmentInputRef.current?.click()}
+        onSend={onSendDialogue}
+        onAbort={onStopDialogue}
+        isChatPage={true}
+      />
+      <input
+        ref={attachmentInputRef}
+        className={styles.hiddenInput}
+        type="file"
+        multiple={true}
+        accept={CHAT_ATTACHMENT_ACCEPT_ATTR}
+        onChange={handleFileInputChange}
+      />
+    </div>
+  );
+
   return (
     <div
       ref={dialogueShellRef}
@@ -719,38 +907,104 @@ export const DialoguePrototypeView = ({
             {isEmployeeSwitcherOpen ? (
               <div className={styles.dialogueAgentDropdownMenu}>
                 <div className={styles.dialogueSwitcherList}>
-                  {allEmployees.map(item => (
-                    <button
-                      key={item.id}
-                      type="button"
-                      className={classNames(styles.dialogueSwitcherItem, {
-                        [styles.dialogueSwitcherItemActive]: item.id === activeEmployee.id,
-                      })}
-                      onClick={() => {
-                        onEmployeeSelect(item.id);
-                        setIsEmployeeSwitcherOpen(false);
-                      }}
-                    >
-                      <span className={styles.employeeAvatarWrap}>
-                        <Avatar src={item.avatarUrl} size={40} className={styles.dialogueHeroAvatar}>
-                          {getAvatarText(item.name)}
-                        </Avatar>
-                        <span
-                          className={classNames(styles.employeeStatusDot, {
-                            [styles.employeeStatusDotIdle]: item.status === "idle",
-                            [styles.employeeStatusDotBusy]: item.status === "busy",
-                            [styles.employeeStatusDotPending]:
-                              item.status === "pending" ||
-                              item.status === "paused" ||
-                              item.status === "draft",
-                          })}
-                        />
-                      </span>
-                      <span className={styles.dialogueSwitcherItemBody}>
-                        <span className={styles.dialogueSwitcherItemName}>{item.name}</span>
-                      </span>
-                    </button>
-                  ))}
+                  {allEmployees.map(item => {
+                    const isDefaultAgent = defaultAgentIds.includes(item.id);
+                    const isEditingAgent = editingAgentId === item.id;
+
+                    return (
+                      <div key={item.id} className={styles.dialogueSwitcherItemRow}>
+                        {isEditingAgent ? (
+                          <div
+                            className={classNames(styles.dialogueSwitcherItem, {
+                              [styles.dialogueSwitcherItemActive]: item.id === activeEmployee.id,
+                              [styles.dialogueSwitcherItemEditing]: true,
+                            })}
+                          >
+                            <span className={styles.employeeAvatarWrap}>
+                              <Avatar src={item.avatarUrl} size={40} className={styles.dialogueHeroAvatar}>
+                                {getAvatarText(item.name)}
+                              </Avatar>
+                              <span
+                                className={classNames(styles.employeeStatusDot, {
+                                  [styles.employeeStatusDotIdle]: item.status === "idle",
+                                  [styles.employeeStatusDotBusy]: item.status === "busy",
+                                  [styles.employeeStatusDotPending]:
+                                    item.status === "pending" ||
+                                    item.status === "paused" ||
+                                    item.status === "draft",
+                                })}
+                              />
+                            </span>
+                            <span className={styles.dialogueSwitcherItemBody}>
+                              <span className={styles.dialogueSwitcherAgentEditRow}>
+                                <Input
+                                  ref={agentNameInputRef}
+                                  size="small"
+                                  value={editingAgentName}
+                                  maxLength={24}
+                                  placeholder="输入默认 Agent 名称"
+                                  className={styles.dialogueSwitcherAgentEditInput}
+                                  onChange={event => setEditingAgentName(event.target.value)}
+                                  onPressEnter={handleSubmitRenameAgent}
+                                  onBlur={handleSubmitRenameAgent}
+                                  onKeyDown={event => {
+                                    event.stopPropagation();
+                                    if (event.key === "Escape") {
+                                      handleCancelRenameAgent();
+                                    }
+                                  }}
+                                />
+                              </span>
+                            </span>
+                          </div>
+                        ) : (
+                          <button
+                            type="button"
+                            className={classNames(styles.dialogueSwitcherItem, {
+                              [styles.dialogueSwitcherItemActive]: item.id === activeEmployee.id,
+                            })}
+                            onClick={() => {
+                              onEmployeeSelect(item.id);
+                              setIsEmployeeSwitcherOpen(false);
+                            }}
+                          >
+                            <span className={styles.employeeAvatarWrap}>
+                              <Avatar src={item.avatarUrl} size={40} className={styles.dialogueHeroAvatar}>
+                                {getAvatarText(item.name)}
+                              </Avatar>
+                              <span
+                                className={classNames(styles.employeeStatusDot, {
+                                  [styles.employeeStatusDotIdle]: item.status === "idle",
+                                  [styles.employeeStatusDotBusy]: item.status === "busy",
+                                  [styles.employeeStatusDotPending]:
+                                    item.status === "pending" ||
+                                    item.status === "paused" ||
+                                    item.status === "draft",
+                                })}
+                              />
+                            </span>
+                            <span className={styles.dialogueSwitcherItemBody}>
+                              <span className={styles.dialogueSwitcherItemName}>{item.name}</span>
+                            </span>
+                          </button>
+                        )}
+
+                        {isDefaultAgent && !isEditingAgent ? (
+                          <button
+                            type="button"
+                            className={styles.dialogueSwitcherAgentAction}
+                            aria-label={`编辑 ${item.name} 名称`}
+                            onClick={event => {
+                              handleMenuButtonClick(event);
+                              handleStartRenameAgent(item.id, item.name);
+                            }}
+                          >
+                            <EditOutlined />
+                          </button>
+                        ) : null}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             ) : null}
@@ -870,122 +1124,49 @@ export const DialoguePrototypeView = ({
         ) : null}
 
         {isHomeVisible ? (
-          <DialogueHomeView
-            agentName={activeEmployee.name}
-            intro={homeIntro}
-            promptItems={homePromptItems}
-            onPromptSend={onHomePromptSend}
-          />
-        ) : (
-          <div className={styles.dialogueStage}>
-            <div className={styles.chatPanelBody}>
-              <WorkspaceChatPanel
-                blocks={chatBlocks}
-                messages={chatMessages}
-                actorAvatars={dialogueActorAvatars}
-                currentSessionId={activeDialogueSession?.id ?? activeEmployee.id}
-                isStreaming={isDialogueResponding}
-                assistantAvatarUrl={activeEmployee.avatarUrl}
-                assistantAvatarAlt={activeEmployee.name}
-                workspaceSummary={activeEmployee.summary}
-                greeting="输入消息或上传文件，开始协作"
-                onOpenArtifact={handleOpenArtifact}
-                onOpenResult={handleOpenResult}
-              />
+          <div className={styles.dialogueHomeLayout}>
+            <div className={styles.dialogueHomeHero}>
+              <Avatar src={activeEmployee.avatarUrl} size={88} className={styles.dialogueHomeHeroAvatar}>
+                {getAvatarText(activeEmployee.name)}
+              </Avatar>
+              <h2 className={styles.dialogueHomeHeroTitle}>
+                {`Hi ${viewerName}，有什么可以帮你的？`}
+              </h2>
             </div>
+            {composerNode}
+            <DialogueHomeView
+              activeEmployeeAvatarUrl={activeEmployee.avatarUrl}
+              activeEmployeeId={activeEmployee.id}
+              activeEmployeeName={activeEmployee.name}
+              caseItems={homeCaseItems}
+              promptItems={homePromptItems}
+              onPromptSend={onHomePromptSend}
+            />
           </div>
-        )}
-
-        <div className={styles.composerWrap}>
-          <WorkspaceComposer
-            rootClassName={styles.synclawComposer}
-            value={dialogueInputValue}
-            placeholder={dialoguePlaceholder}
-            attachments={dialogueAttachments}
-            onRemoveAttachment={onRemoveAttachment}
-            onAttachmentsSelected={onDialogueAttachmentsSelected}
-            allowAttachmentOnlySend={true}
-            footerExtra={
-              <div className={styles.dialogueComposerSkillBar}>
-                <span className={styles.dialogueComposerSkillDivider} aria-hidden={true} />
-                <div ref={skillTrackRef} className={styles.dialogueComposerSkillTrack}>
-                  {selectedSkillItem ? (
-                    <div className={styles.dialogueComposerSkillSelected}>
-                      <span className={styles.dialogueComposerSkillIcon}>
-                        {renderSkillIcon(selectedSkillItem.iconKey)}
-                      </span>
-                      <span className={styles.dialogueComposerSkillLabel}>
-                        {selectedSkillItem.name}
-                      </span>
-                      <button
-                        type="button"
-                        className={styles.dialogueComposerSkillClearButton}
-                        aria-label={`取消选择 ${selectedSkillItem.name}`}
-                        onClick={() => onSkillSelect(selectedSkillItem.id)}
-                      >
-                        <CloseOutlined />
-                      </button>
-                    </div>
-                  ) : null}
-                  {visibleSkillItems.map(skill => (
-                    <button
-                      key={skill.id}
-                      type="button"
-                      className={styles.dialogueComposerSkillButton}
-                      onClick={() => onSkillSelect(skill.id)}
-                    >
-                      <span className={styles.dialogueComposerSkillIcon}>
-                        {renderSkillIcon(skill.iconKey)}
-                      </span>
-                      <span className={styles.dialogueComposerSkillLabel}>{skill.name}</span>
-                    </button>
-                  ))}
-                  {overflowSkillItems.length > 0 ? (
-                    <Dropdown
-                      menu={{
-                        items: moreSkillMenuItems,
-                        selectable: true,
-                        selectedKeys: selectedSkillId ? [selectedSkillId] : [],
-                        onClick: ({ key }) => onSkillSelect(String(key)),
-                      }}
-                      placement="topLeft"
-                      trigger={["click"]}
-                    >
-                      <button
-                        type="button"
-                        className={styles.dialogueComposerSkillButton}
-                      >
-                        <span className={styles.dialogueComposerSkillIcon}>
-                          <MoreOutlined />
-                        </span>
-                        <span className={styles.dialogueComposerSkillLabel}>更多</span>
-                      </button>
-                    </Dropdown>
-                  ) : null}
-                </div>
+        ) : (
+          <>
+            <div className={styles.dialogueStage}>
+              <div className={styles.chatPanelBody}>
+                <WorkspaceChatPanel
+                  blocks={chatBlocks}
+                  messages={chatMessages}
+                  followupSuggestions={followupSuggestions}
+                  actorAvatars={dialogueActorAvatars}
+                  currentSessionId={activeDialogueSession?.id ?? activeEmployee.id}
+                  isStreaming={isDialogueResponding}
+                  assistantAvatarUrl={activeEmployee.avatarUrl}
+                  assistantAvatarAlt={activeEmployee.name}
+                  workspaceSummary={activeEmployee.summary}
+                  greeting="输入消息或上传文件，开始协作"
+                  onFollowupClick={onFollowupClick}
+                  onOpenArtifact={handleOpenArtifact}
+                  onOpenResult={handleOpenResult}
+                />
               </div>
-            }
-            sending={isDialogueResponding}
-            showModelSelector={false}
-            modelLabel={activeEmployee.model}
-            selectedModelId={WORKSPACE_MODEL_OPTIONS[0]?.id ?? 1}
-            modelMenuOpen={false}
-            modelOptions={WORKSPACE_MODEL_OPTIONS}
-            onValueChange={onDialogueInputChange}
-            onAttach={() => attachmentInputRef.current?.click()}
-            onSend={onSendDialogue}
-            onAbort={onStopDialogue}
-            isChatPage={true}
-          />
-          <input
-            ref={attachmentInputRef}
-            className={styles.hiddenInput}
-            type="file"
-            multiple={true}
-            accept={CHAT_ATTACHMENT_ACCEPT_ATTR}
-            onChange={handleFileInputChange}
-          />
-        </div>
+            </div>
+            {composerNode}
+          </>
+        )}
       </section>
 
       {isSidePanelVisible && !isStackedLayout ? (

@@ -15,6 +15,196 @@
   color: var(--text);
 }
 
+.adminPage {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background: var(--surface);
+  color: var(--text);
+  overflow: hidden;
+}
+
+.adminBody {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.adminHeader {
+  position: relative;
+  border-bottom: 0;
+  background: color-mix(in srgb, var(--surface) 96%, var(--app-bg));
+}
+
+.adminHeader::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 1px;
+  background: var(--panelBorderStrong);
+}
+
+.adminSidebar {
+  width: 232px;
+  flex-shrink: 0;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  border-right: 0;
+  background: color-mix(in srgb, var(--surface) 98%, var(--app-bg));
+  overflow: hidden;
+  transition:
+    width 180ms ease,
+    border-color 180ms ease;
+}
+
+.adminSidebar::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 1px;
+  height: 100%;
+  background: var(--border);
+}
+
+.adminSidebarCollapsed {
+  width: 76px;
+}
+
+.adminSidebarTop {
+  padding: 16px 12px 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.adminSidebarSection {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 8px 20px;
+}
+
+.adminSidebarSectionCollapsed {
+  align-items: center;
+  padding-left: 6px;
+  padding-right: 6px;
+}
+
+.adminBackButton {
+  width: 100%;
+  min-height: 40px;
+  padding: 0 12px;
+  border: 0;
+  background: transparent;
+  color: var(--text-secondary);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  transition:
+    background 160ms ease,
+    color 160ms ease;
+}
+
+.adminBackButton:hover {
+  background: color-mix(in srgb, var(--text) 4%, transparent);
+  color: var(--text);
+}
+
+.adminBackButtonCollapsed {
+  width: 100%;
+  justify-content: center;
+  padding: 0;
+}
+
+.adminBackButtonCollapsed .adminBackLabel {
+  display: none;
+}
+
+.adminBackIcon {
+  width: 16px;
+  height: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.adminBackLabel {
+  font-size: 13px;
+  line-height: 20px;
+  font-weight: 500;
+}
+
+.adminNavButton {
+  width: 100%;
+  min-height: 44px;
+  padding: 0 12px 0 14px;
+  border: 0;
+  border-left: 2px solid transparent;
+  background: transparent;
+  color: var(--text-secondary);
+  text-align: left;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  transition:
+    background 160ms ease,
+    color 160ms ease,
+    border-color 160ms ease;
+}
+
+.adminNavButton:hover {
+  background: color-mix(in srgb, var(--text) 3%, transparent);
+  color: var(--text);
+}
+
+.adminNavButtonActive {
+  border-left-color: var(--primary);
+  background: color-mix(in srgb, var(--primary) 6%, transparent);
+  color: var(--primary);
+}
+
+.adminNavButtonCollapsed {
+  min-width: 56px;
+  width: 56px;
+  padding: 10px 0;
+  justify-content: center;
+  border-left-width: 0;
+  border-bottom: 2px solid transparent;
+  border-radius: 12px;
+}
+
+.adminNavButtonCollapsed.adminNavButtonActive {
+  border-bottom-color: var(--primary);
+}
+
+.adminNavButtonCollapsed .tabLabel {
+  display: none;
+}
+
+.adminMain {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.adminMainPanel {
+  background: var(--surface);
+}
+
+.adminFeatureContent {
+  background: var(--surface);
+}
+
 .sidebar {
   flex-shrink: 0;
   width: 280px;
@@ -33,6 +223,57 @@
     background 180ms ease,
     border-color 180ms ease,
     box-shadow 180ms ease;
+}
+
+.sidebarBackButton {
+  width: 100%;
+  min-height: 40px;
+  padding: 0 12px;
+  border: 1px solid var(--panelBorder);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--primary) 6%, var(--surface));
+  color: var(--text);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  transition:
+    background 160ms ease,
+    border-color 160ms ease,
+    color 160ms ease,
+    transform 160ms ease;
+}
+
+.sidebarBackButton:hover {
+  border-color: color-mix(in srgb, var(--primary) 24%, var(--border));
+  background: color-mix(in srgb, var(--primary) 10%, var(--surface));
+}
+
+.sidebarBackButtonCollapsed {
+  width: 56px;
+  min-width: 56px;
+  padding: 0;
+  justify-content: center;
+  align-self: center;
+}
+
+.sidebarBackButtonCollapsed .sidebarBackLabel {
+  display: none;
+}
+
+.sidebarBackIcon {
+  width: 16px;
+  height: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+}
+
+.sidebarBackLabel {
+  font-size: 13px;
+  line-height: 20px;
+  font-weight: 600;
 }
 
 .sidebarCollapsed {
@@ -438,6 +679,66 @@
   background: var(--surface);
   overflow: auto;
   display: block;
+}
+
+.header.adminHeader {
+  position: relative;
+  border-bottom: 0;
+  background: color-mix(in srgb, var(--surface) 96%, var(--app-bg));
+  box-shadow: none;
+}
+
+.header.adminHeader::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 1px;
+  background: var(--border);
+}
+
+.mainPanel.adminMainPanel {
+  background: var(--surface);
+}
+
+.content.featureContent.adminFeatureContent {
+  background: var(--surface);
+}
+
+.emptyPanel {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 12px;
+  padding: 48px;
+}
+
+.emptyPanelTitle {
+  margin: 0;
+  color: var(--text);
+  font-size: 24px;
+  line-height: 32px;
+  font-weight: 700;
+}
+
+.emptyPanelDescription {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 14px;
+  line-height: 22px;
+}
+
+.emptyPanelAction {
+  min-height: 40px;
+  padding: 0 16px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
 }
 
 .sidebarBottom {
@@ -965,8 +1266,15 @@
   padding: 0;
 }
 
+.dialogueSwitcherItemRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .dialogueSwitcherItem {
   width: 100%;
+  min-width: 0;
   padding: 12px;
   border-radius: 18px;
   display: grid;
@@ -981,11 +1289,57 @@
   background: color-mix(in srgb, var(--primary) 8%, var(--surface));
 }
 
+.dialogueSwitcherItemEditing {
+  cursor: default;
+}
+
 .dialogueSwitcherItemBody {
   min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 4px;
+}
+
+.dialogueSwitcherAgentEditRow {
+  display: flex;
+  width: 100%;
+}
+
+.dialogueSwitcherAgentEditInput {
+  flex: 1;
+  min-width: 0;
+}
+
+.dialogueSwitcherAgentAction {
+  width: 28px;
+  height: 28px;
+  flex: 0 0 auto;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--text-secondary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    opacity 160ms ease,
+    background 160ms ease,
+    color 160ms ease;
+}
+
+.dialogueSwitcherItemRow:hover .dialogueSwitcherAgentAction,
+.dialogueSwitcherItemRow:focus-within .dialogueSwitcherAgentAction,
+.dialogueSwitcherItemEditing .dialogueSwitcherAgentAction {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.dialogueSwitcherAgentAction:hover {
+  background: color-mix(in srgb, var(--text) 5%, transparent);
+  color: var(--text);
 }
 
 .dialogueSwitcherItemName,
@@ -1245,20 +1599,56 @@
   color: var(--text);
 }
 
-.dialogueHomeStage {
+.dialogueHomeLayout {
   flex: 1;
   min-height: 0;
-  padding: 20px 24px 12px;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  padding-top: 44px;
+}
+
+.dialogueHomeStage {
+  flex: 1 0 auto;
+  min-height: 0;
+  padding: 48px 24px 8px;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-.dialogueHomeInner {
-  width: min(760px, 100%);
+.dialogueHomeInner,
+.dialogueHomeLower {
+  width: min(1120px, 100%);
+}
+
+.dialogueHomeHero {
+  padding: 0 24px 8px;
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  align-items: center;
+  gap: 12px;
+  text-align: center;
+}
+
+.dialogueHomeHeroAvatar {
+  box-shadow: 0 16px 40px color-mix(in srgb, var(--primary) 12%, transparent);
+}
+
+.dialogueHomeHeroTitle {
+  margin: 0;
+  color: var(--text);
+  font-size: 32px;
+  line-height: 42px;
+  font-weight: 500;
+}
+
+.dialogueHomeHeroSubtitle {
+  max-width: 760px;
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 14px;
+  line-height: 22px;
 }
 
 .dialogueHomeIntro {
@@ -1347,12 +1737,458 @@
 .dialoguePromptQuestion {
   display: block;
   color: var(--text);
-  font-size: 15px;
-  line-height: 22px;
-  font-weight: 500;
+  font-size: 13px;
+  line-height: 20px;
+  font-weight: 400;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.dialogueHomeLower {
+  margin: 0 auto;
+  padding: 0 24px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 26px;
+}
+
+.dialoguePromptRail {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 14px 16px;
+}
+
+.dialoguePromptChip {
+  min-height: 40px;
+  max-width: 100%;
+  padding: 0 16px;
+  border: 1px solid var(--panelBorder);
+  border-radius: 999px;
+  background: transparent;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  cursor: pointer;
+  transition:
+    border-color 160ms ease,
+    background 160ms ease,
+    transform 160ms ease;
+}
+
+.dialoguePromptChip:hover {
+  transform: translateY(-1px);
+  border-color: color-mix(in srgb, var(--primary) 22%, var(--panelBorder));
+  background: color-mix(in srgb, var(--primary) 5%, var(--surface));
+}
+
+.dialoguePracticeSection {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.dialoguePracticeHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.dialoguePracticeTitle {
+  color: var(--text);
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 600;
+}
+
+.dialogueCaseRail {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 4px;
+  scroll-snap-type: x proximity;
+}
+
+.dialogueCaseRail::-webkit-scrollbar {
+  height: 8px;
+}
+
+.dialogueCaseRail::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--text) 12%, transparent);
+}
+
+.dialogueCaseShowcaseCard {
+  width: 272px;
+  min-width: 272px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+  text-align: left;
+  cursor: pointer;
+  scroll-snap-align: start;
+  transition:
+    transform 180ms ease,
+    opacity 180ms ease;
+}
+
+.dialogueCaseShowcaseCard:hover {
+  transform: translateY(-2px);
+  opacity: 0.92;
+}
+
+.dialogueCaseShowcasePreview {
+  width: 100%;
+  aspect-ratio: 1.56 / 1;
+  padding: 14px;
+  border: 1px solid var(--panelBorder);
+  border-radius: 18px;
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--primary) 16%, var(--surface)),
+    color-mix(in srgb, var(--surface) 94%, var(--app-bg)) 42%,
+    color-mix(in srgb, var(--primary) 6%, var(--surface))
+  );
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  overflow: hidden;
+  position: relative;
+  isolation: isolate;
+}
+
+.dialogueCaseShowcaseImage {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: -3;
+}
+
+.dialogueCaseShowcaseOverlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--surface) 12%, transparent) 0%,
+    color-mix(in srgb, var(--surface) 10%, transparent) 35%,
+    color-mix(in srgb, var(--surface) 90%, var(--text)) 100%
+  );
+  z-index: -2;
+}
+
+.dialogueCaseShowcaseTitle {
+  max-width: 90%;
+  color: var(--text);
+  font-size: 16px;
+  line-height: 22px;
+  font-weight: 600;
+  text-shadow: 0 1px 2px color-mix(in srgb, var(--surface) 25%, transparent);
+}
+
+.dialogueCaseShowcaseMetaWrap {
+  width: 100%;
+  padding: 0 4px;
+  position: relative;
+}
+
+.dialogueCaseShowcaseMeta {
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 20px;
+  font-weight: 400;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dialogueCaseShowcaseMetaTooltip {
+  position: absolute;
+  left: 4px;
+  right: 4px;
+  bottom: calc(100% + 10px);
+  padding: 10px 12px;
+  border: 1px solid var(--panelBorder);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--surface) 98%, var(--app-bg));
+  box-shadow: var(--shadow-md);
+  color: var(--text);
+  font-size: 12px;
+  line-height: 18px;
+  font-weight: 400;
+  opacity: 0;
+  transform: translateY(6px);
+  pointer-events: none;
+  transition:
+    opacity 160ms ease,
+    transform 160ms ease;
+  z-index: 2;
+}
+
+.dialogueCaseShowcaseCard:hover .dialogueCaseShowcaseMetaTooltip,
+.dialogueCaseShowcaseCard:focus-visible .dialogueCaseShowcaseMetaTooltip {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.dialogueReplayModalBody {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  gap: 18px;
+  overflow: hidden;
+}
+
+.dialogueReplayHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex: 0 0 auto;
+  gap: 16px;
+}
+
+.dialogueReplayHeaderMain {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.dialogueReplayStatus {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.dialogueReplayStatusBadge {
+  min-height: 24px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--primary) 10%, var(--surface));
+  color: var(--primary);
+  display: inline-flex;
+  align-items: center;
+  font-size: 12px;
+  line-height: 18px;
+  font-weight: 600;
+}
+
+.dialogueReplayStatusText {
+  color: var(--text-muted);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.dialogueReplayTitle {
+  margin: 0;
+  color: var(--text);
+  font-size: 22px;
+  line-height: 30px;
+  font-weight: 700;
+}
+
+.dialogueReplaySummary {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 14px;
+  line-height: 22px;
+}
+
+.dialogueReplayReplayButton {
+  min-height: 36px;
+  padding: 0 14px;
+  border: 1px solid var(--panelBorder);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--text) 3%, var(--surface));
+  color: var(--text);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  transition:
+    border-color 160ms ease,
+    background 160ms ease;
+}
+
+.dialogueReplayReplayButton:hover {
+  border-color: color-mix(in srgb, var(--primary) 24%, var(--panelBorder));
+  background: color-mix(in srgb, var(--primary) 8%, var(--surface));
+}
+
+.dialogueReplaySurface {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 20px;
+  border: 1px solid var(--panelBorder);
+  border-radius: 24px;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--surface) 94%, var(--app-bg)),
+    color-mix(in srgb, var(--surface) 98%, var(--primary))
+  );
+}
+
+.dialogueReplaySceneShell {
+  flex: 1;
+  height: 100%;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  border: 1px solid var(--panelBorder);
+  border-radius: 24px;
+  background: color-mix(in srgb, var(--surface) 97%, var(--app-bg));
+  overflow: hidden;
+}
+
+.dialogueReplaySceneShellSplit {
+  grid-template-columns: minmax(0, 1fr) 420px;
+}
+
+.dialogueReplaySceneChat {
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  overflow: hidden;
+}
+
+.dialogueReplayScenePanel {
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  border-left: 1px solid var(--panelBorder);
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.dialogueReplayMessages {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.dialogueReplayRowUser,
+.dialogueReplayRowAssistant {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-width: 82%;
+  animation: dialogueReplayBubbleIn 260ms ease;
+}
+
+.dialogueReplayRowUser {
+  align-self: flex-end;
+}
+
+.dialogueReplayRowAssistant {
+  align-self: flex-start;
+}
+
+.dialogueReplayMeta {
+  color: var(--text-muted);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.dialogueReplayRowUser .dialogueReplayMeta {
+  text-align: right;
+}
+
+.dialogueReplayBubble {
+  padding: 14px 16px;
+  border-radius: 18px;
+  font-size: 14px;
+  line-height: 22px;
+  white-space: pre-wrap;
+  box-shadow: var(--shadow-sm);
+}
+
+.dialogueReplayBubbleUser {
+  border-top-right-radius: 6px;
+  background: color-mix(in srgb, var(--primary) 16%, var(--surface));
+  color: var(--text);
+}
+
+.dialogueReplayBubbleAssistant {
+  border-top-left-radius: 6px;
+  background: var(--surface);
+  color: var(--text);
+}
+
+.dialogueReplaySystemNotice {
+  align-self: center;
+  max-width: 88%;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--text) 6%, var(--surface));
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 18px;
+  animation: dialogueReplayBubbleIn 260ms ease;
+}
+
+.dialogueReplayTyping {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.dialogueReplayTyping span {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--text) 24%, transparent);
+  animation: dialogueReplayTypingPulse 1s ease-in-out infinite;
+}
+
+.dialogueReplayTyping span:nth-child(2) {
+  animation-delay: 120ms;
+}
+
+.dialogueReplayTyping span:nth-child(3) {
+  animation-delay: 240ms;
+}
+
+@keyframes dialogueReplayBubbleIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes dialogueReplayTypingPulse {
+  0%,
+  80%,
+  100% {
+    transform: scale(0.72);
+    opacity: 0.42;
+  }
+
+  40% {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 
 .dialogueStage {
@@ -4471,6 +5307,66 @@
     min-height: 100vh;
   }
 
+  .adminBody {
+    flex-direction: column;
+  }
+
+  .adminSidebar,
+  .adminSidebarCollapsed {
+    width: auto;
+    border-right: 0;
+    border-bottom: 1px solid var(--panelBorder);
+  }
+
+  .adminSidebar::after,
+  .adminSidebarCollapsed::after {
+    display: none;
+  }
+
+  .adminSidebarTop {
+    padding: 12px 16px 8px;
+  }
+
+  .adminSidebarSection,
+  .adminSidebarSectionCollapsed {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: stretch;
+    padding: 8px 12px 14px;
+  }
+
+  .adminBackButton,
+  .adminBackButtonCollapsed {
+    width: auto;
+    padding: 0 12px;
+    justify-content: flex-start;
+  }
+
+  .adminBackButtonCollapsed .adminBackLabel {
+    display: inline;
+  }
+
+  .adminNavButton,
+  .adminNavButtonCollapsed {
+    width: auto;
+    min-width: 0;
+    padding: 0 12px 0 14px;
+    justify-content: flex-start;
+    border-left: 2px solid transparent;
+    border-bottom: 0;
+    border-radius: 0;
+  }
+
+  .adminNavButtonCollapsed.adminNavButtonActive {
+    border-left-color: var(--primary);
+    border-bottom-color: transparent;
+  }
+
+  .adminNavButtonCollapsed .tabLabel {
+    display: inline;
+  }
+
   .sidebar {
     width: auto;
     height: auto;
@@ -4625,7 +5521,52 @@
     min-width: 0 !important;
   }
 
-  .dialoguePromptGrid {
+  .dialoguePromptGrid,
+  .dialoguePromptRail {
     gap: 12px;
+  }
+
+  .dialogueHomeLayout {
+    padding-top: 24px;
+  }
+
+  .dialogueHomeHero {
+    padding: 0 16px 8px;
+  }
+
+  .dialogueReplayHeader,
+  .dialoguePracticeHeader {
+    flex-direction: column;
+  }
+
+  .dialogueCaseShowcaseCard {
+    width: 224px;
+    min-width: 224px;
+  }
+
+  .dialogueHomeLower {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .dialogueReplaySurface {
+    min-height: 0;
+  }
+
+  .dialogueReplaySceneShell,
+  .dialogueReplaySceneShellSplit {
+    height: 100%;
+    min-height: 0;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .dialogueReplayScenePanel {
+    border-left: 0;
+    border-top: 1px solid var(--panelBorder);
+  }
+
+  .dialogueReplayRowUser,
+  .dialogueReplayRowAssistant {
+    max-width: 100%;
   }
 }

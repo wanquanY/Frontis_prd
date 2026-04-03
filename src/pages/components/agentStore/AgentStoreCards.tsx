@@ -10,6 +10,7 @@ import styles from "./AgentStoreView.module.less";
 
 interface OwnedTeamCardProps {
   employees: EmployeeItem[];
+  memberNames: string[];
   onView: (teamId: string) => void;
   team: OwnedExpertTeam;
   workspace?: WorkspaceItem;
@@ -17,17 +18,27 @@ interface OwnedTeamCardProps {
 
 export const OwnedTeamCard = ({
   employees,
+  memberNames,
   onView,
   team,
   workspace,
 }: OwnedTeamCardProps): JSX.Element => {
   const members = employees.filter(e => team.memberIds.includes(e.id));
   const isOnline = members.some(e => ["online", "busy", "idle"].includes(e.status));
-  const hasExpertUpdate = team.memberIds.some(memberId => {
+  const pendingUpgradeCount = team.memberIds.filter(memberId => {
     const versionInfo = EXPERT_VERSION_INFO[memberId];
-
     return Boolean(versionInfo?.newVersion && versionInfo.newVersion !== versionInfo.version);
-  });
+  }).length;
+  const allowedNames = Array.from(
+    members.reduce((result, member) => {
+      if (member.visibility === "all") {
+        memberNames.forEach(name => result.add(name));
+        return result;
+      }
+      member.boundMembers.forEach(name => result.add(name));
+      return result;
+    }, new Set<string>()),
+  );
 
   return (
     <div className={styles.ownedCard}>
@@ -39,7 +50,9 @@ export const OwnedTeamCard = ({
         <div className={styles.cardContent}>
           <div className={styles.cardTitleRow}>
             <h3 className={styles.cardTitle}>{team.name}</h3>
-            {hasExpertUpdate ? <span className={styles.updateBadge}>有新版本</span> : null}
+            {pendingUpgradeCount > 0 ? (
+              <span className={styles.updateBadge}>{pendingUpgradeCount} 个待升级</span>
+            ) : null}
           </div>
           <div className={styles.cardMeta}>
             <Tag color={team.categoryColor} bordered={false}>
@@ -48,11 +61,15 @@ export const OwnedTeamCard = ({
           </div>
           <p className={styles.cardDesc}>{team.description}</p>
           <div className={styles.subAgentTags}>
-            {team.subAgentTags.map(tag => (
-              <span key={tag} className={styles.subAgentTag}>
-                {tag}
-              </span>
-            ))}
+            {allowedNames.length ? (
+              allowedNames.map(name => (
+                <span key={name} className={styles.subAgentTag}>
+                  {name}
+                </span>
+              ))
+            ) : (
+              <span className={styles.subAgentTag}>暂未配置可用成员</span>
+            )}
           </div>
         </div>
 
@@ -63,21 +80,23 @@ export const OwnedTeamCard = ({
           </div>
           <div className={styles.cardInfoItem}>
             <span className={styles.cardInfoValue}>
-              {team.cumulativeTaskCount.toLocaleString()}
+              {members.length}
             </span>
-            <span className={styles.cardInfoLabel}>累计任务</span>
+            <span className={styles.cardInfoLabel}>AI 专家</span>
           </div>
-          {workspace && (
-            <div className={styles.cardInfoItem}>
-              <span className={styles.cardInfoLabel}>{workspace.name}</span>
-            </div>
-          )}
+          <div className={styles.cardInfoItem}>
+            <span className={styles.cardInfoValue}>{allowedNames.length}</span>
+            <span className={styles.cardInfoLabel}>可用成员</span>
+          </div>
+          <div className={styles.cardInfoItem}>
+            <span className={styles.cardInfoLabel}>{workspace?.name ?? "待确认运行环境"}</span>
+          </div>
         </div>
       </div>
 
       <div className={styles.cardActions}>
         <Button type="primary" onClick={() => onView(team.id)}>
-          查看
+          进入配置
         </Button>
       </div>
     </div>

@@ -2,88 +2,39 @@ import { useCallback, useMemo, useState } from "react";
 
 import classNames from "classnames";
 import {
-  ApartmentOutlined,
-  BranchesOutlined,
   CloudServerOutlined,
   DashboardOutlined,
   LineChartOutlined,
   LogoutOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
-  ProfileOutlined,
+  SyncOutlined,
 } from "@ant-design/icons";
 import type { MenuProps } from "antd";
-import { Avatar, Dropdown, Empty, Select, message } from "antd";
+import { Avatar, Dropdown, Empty, message } from "antd";
 import { useNavigate } from "react-router-dom";
 
 import { useMockAuth } from "@/feature/auth/hooks/useMockAuth";
 import { useFdeWorkbench } from "@/feature/fde/hooks/useFdeWorkbench";
-import type {
-  FdeDeliveryOrderItem,
-  FdeLeadItem,
-  FdeOpportunityItem,
-  FdeTeamMemberItem,
-  FdeWorkbenchTabItem,
-  FdeWorkbenchTabKey,
-} from "@/feature/fde/types";
+import type { FdeWorkbenchTabItem, FdeWorkbenchTabKey } from "@/feature/fde/types";
 import { getFdeAvatarUrl } from "@/feature/fde/utils";
 
 import { FdeDeliveryWorkbench } from "./FdeDeliveryWorkbench";
-import { FdeEvolutionTasksView } from "./FdeEvolutionTasksView";
-import { FdeFeedbackBoardView } from "./FdeFeedbackBoardView";
-import { FdeLeadWorkbench } from "./FdeLeadWorkbench";
 import { FdeOperationsMonitorView } from "./FdeOperationsMonitorView";
-import { FdeOpportunityWorkbench } from "./FdeOpportunityWorkbench";
+import { FdeVersionManagementView } from "./FdeVersionManagementView";
 import styles from "./FdeWorkbenchView.module.less";
 
 const getWorkbenchTitle = (tab: FdeWorkbenchTabItem): string => `${tab.label}`;
 
 const FDE_TAB_ICONS: Record<FdeWorkbenchTabKey, JSX.Element> = {
   opportunities: <DashboardOutlined />,
-  leads: <ProfileOutlined />,
+  leads: <DashboardOutlined />,
   delivery: <CloudServerOutlined />,
   operations: <LineChartOutlined />,
-  feedback: <ApartmentOutlined />,
-  evolution: <BranchesOutlined />,
+  versionManagement: <SyncOutlined />,
+  feedback: <LineChartOutlined />,
+  evolution: <LineChartOutlined />,
 };
-
-const buildSceneOptions = (
-  opportunities: FdeOpportunityItem[],
-  leads: FdeLeadItem[],
-  deliveryOrders: FdeDeliveryOrderItem[],
-): string[] => {
-  const sceneSet = new Set<string>();
-
-  opportunities.forEach(item => {
-    sceneSet.add(item.scenarioName);
-  });
-  leads.forEach(item => {
-    item.interestedScenes.forEach(scene => {
-      sceneSet.add(scene);
-    });
-  });
-  deliveryOrders.forEach(item => {
-    sceneSet.add(item.scenarioName);
-  });
-
-  return Array.from(sceneSet);
-};
-
-interface RoleSwitchButtonProps {
-  active: boolean;
-  label: string;
-  onClick: () => void;
-}
-
-const RoleSwitchButton = ({ active, label, onClick }: RoleSwitchButtonProps): JSX.Element => (
-  <button
-    type="button"
-    className={classNames(styles.roleButton, active && styles.roleButtonActive)}
-    onClick={onClick}
-  >
-    {label}
-  </button>
-);
 
 /**
  * FDE 工作台主视图。
@@ -98,15 +49,6 @@ export const FdeWorkbenchView = (): JSX.Element => {
     () => workbench.tabs.find(item => item.key === workbench.activeTab) ?? workbench.tabs[0],
     [workbench.activeTab, workbench.tabs],
   );
-  const engineerMembers = useMemo<FdeTeamMemberItem[]>(
-    () => workbench.teamMembers.filter(item => item.role === "engineer"),
-    [workbench.teamMembers],
-  );
-  const sceneOptions = useMemo<string[]>(
-    () => buildSceneOptions(workbench.opportunities, workbench.leads, workbench.deliveryOrders),
-    [workbench.deliveryOrders, workbench.leads, workbench.opportunities],
-  );
-  const currentRoleLabel = workbench.activeRole === "leader" ? "团队负责人视角" : "FDE 员工视角";
   const handleLogout = useCallback((): void => {
     logout();
     message.success("已退出模拟登录。");
@@ -122,40 +64,12 @@ export const FdeWorkbenchView = (): JSX.Element => {
   ];
 
   const activeContent = useMemo<JSX.Element>(() => {
-    if (workbench.activeTab === "opportunities") {
-      return (
-        <FdeOpportunityWorkbench
-          items={workbench.filteredOpportunities}
-          members={workbench.teamMembers}
-          selectedOpportunityId={workbench.selectedOpportunityId}
-          setSelectedOpportunityId={workbench.setSelectedOpportunityId}
-        />
-      );
-    }
-
-    if (workbench.activeTab === "leads") {
-      return (
-        <FdeLeadWorkbench
-          activeRole={workbench.activeRole}
-          activeMemberId={workbench.activeMember.id}
-          items={workbench.filteredLeads}
-          members={engineerMembers}
-          sceneOptions={sceneOptions}
-          selectedLeadId={workbench.selectedLeadId}
-          setSelectedLeadId={workbench.setSelectedLeadId}
-          assignLead={workbench.assignLead}
-          createLead={workbench.createLead}
-          updateLeadStatus={workbench.updateLeadStatus}
-          addLeadProgress={workbench.addLeadProgress}
-        />
-      );
-    }
-
     if (workbench.activeTab === "delivery") {
       return (
         <FdeDeliveryWorkbench
           items={workbench.filteredDeliveryOrders}
           members={workbench.teamMembers}
+          currentMemberId={workbench.activeMember.id}
           selectedOrderId={workbench.selectedDeliveryOrderId}
           setSelectedOrderId={workbench.setSelectedDeliveryOrderId}
         />
@@ -168,64 +82,35 @@ export const FdeWorkbenchView = (): JSX.Element => {
           items={workbench.filteredOperationsCustomers}
           selectedCustomerId={workbench.selectedOperationsCustomerId}
           setSelectedCustomerId={workbench.setSelectedOperationsCustomerId}
-          activeMemberId={workbench.activeMember.id}
         />
       );
     }
 
-    if (workbench.activeTab === "feedback") {
+    if (workbench.activeTab === "versionManagement") {
       return (
-        <FdeFeedbackBoardView
-          items={workbench.filteredFeedbackAgents}
-          selectedAgentId={workbench.selectedFeedbackAgentId}
-          setSelectedAgentId={workbench.setSelectedFeedbackAgentId}
-          triggerEvolution={workbench.triggerEvolution}
-        />
-      );
-    }
-
-    if (workbench.activeTab === "evolution") {
-      return (
-        <FdeEvolutionTasksView
-          items={workbench.filteredEvolutionTasks}
+        <FdeVersionManagementView
+          items={workbench.filteredVersionTasks}
           members={workbench.teamMembers}
-          selectedTaskId={workbench.selectedEvolutionTaskId}
-          setSelectedTaskId={workbench.setSelectedEvolutionTaskId}
+          selectedTaskId={workbench.selectedVersionTaskId}
+          setSelectedTaskId={workbench.setSelectedVersionTaskId}
         />
       );
     }
 
     return <Empty description="未找到对应的工作台内容" />;
   }, [
-    engineerMembers,
-    sceneOptions,
-    workbench.activeRole,
     workbench.activeTab,
-    workbench.activeMember.id,
-    workbench.assignLead,
-    workbench.addLeadProgress,
-    workbench.createLead,
     workbench.filteredDeliveryOrders,
-    workbench.filteredEvolutionTasks,
-    workbench.filteredFeedbackAgents,
-    workbench.filteredLeads,
     workbench.filteredOperationsCustomers,
-    workbench.filteredOpportunities,
+    workbench.filteredVersionTasks,
+    workbench.activeMember.id,
     workbench.selectedDeliveryOrderId,
-    workbench.selectedEvolutionTaskId,
-    workbench.selectedFeedbackAgentId,
-    workbench.selectedLeadId,
     workbench.selectedOperationsCustomerId,
-    workbench.selectedOpportunityId,
+    workbench.selectedVersionTaskId,
     workbench.setSelectedDeliveryOrderId,
-    workbench.setSelectedEvolutionTaskId,
-    workbench.setSelectedFeedbackAgentId,
-    workbench.setSelectedLeadId,
     workbench.setSelectedOperationsCustomerId,
-    workbench.setSelectedOpportunityId,
+    workbench.setSelectedVersionTaskId,
     workbench.teamMembers,
-    workbench.triggerEvolution,
-    workbench.updateLeadStatus,
   ]);
 
   return (
@@ -303,7 +188,7 @@ export const FdeWorkbenchView = (): JSX.Element => {
             {isSidebarCollapsed ? null : (
               <div className={styles.footerCopy}>
                 <div className={styles.footerValue}>{workbench.activeMember.name}</div>
-                <div className={styles.footerHint}>{currentRoleLabel}</div>
+                <div className={styles.footerHint}>FDE</div>
               </div>
             )}
           </button>
@@ -314,36 +199,7 @@ export const FdeWorkbenchView = (): JSX.Element => {
         <div className={styles.mainPanel}>
           <header className={styles.header}>
             <div className={styles.headerIntro}>
-              <span className={styles.eyebrow}>FDE Prototype</span>
               <h1 className={styles.title}>{getWorkbenchTitle(currentTab)}</h1>
-              <p className={styles.description}>{currentTab.description}</p>
-            </div>
-
-            <div className={styles.headerControls}>
-              <div className={styles.roleSwitch}>
-                <RoleSwitchButton
-                  active={workbench.activeRole === "leader"}
-                  label="团队负责人"
-                  onClick={() => workbench.setActiveRole("leader")}
-                />
-                <RoleSwitchButton
-                  active={workbench.activeRole === "engineer"}
-                  label="FDE 员工"
-                  onClick={() => workbench.setActiveRole("engineer")}
-                />
-              </div>
-
-              {workbench.activeRole === "engineer" ? (
-                <Select
-                  className={styles.memberSelect}
-                  value={workbench.activeMember.id}
-                  options={engineerMembers.map(item => ({
-                    label: `${item.name} · ${item.title}`,
-                    value: item.id,
-                  }))}
-                  onChange={value => workbench.setActiveMemberId(value)}
-                />
-              ) : null}
             </div>
           </header>
 

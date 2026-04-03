@@ -11,6 +11,7 @@ export type FdeWorkbenchTabKey =
   | "leads"
   | "delivery"
   | "operations"
+  | "versionManagement"
   | "feedback"
   | "evolution";
 
@@ -59,6 +60,16 @@ export type FdeEvolutionTaskStatus =
   | "已推送客户审核中"
   | "客户已采纳"
   | "客户未采纳";
+
+/**
+ * FDE 租户版本推送状态。
+ */
+export type FdeVersionManagementStatus =
+  | "当前版本"
+  | "可升级"
+  | "已推送"
+  | "已忽略"
+  | "已回退";
 
 /**
  * 配置交付订单状态。
@@ -186,8 +197,16 @@ export interface FdeDeliveryOrderItem {
   currentStep: FdeDeliveryStepKey;
   stepProgress: number;
   orderAmount: string;
+  sourceLabel?: string;
+  tenantStatusLabel?: string;
+  deliveryBoundary?: string;
   deviceConfig: FdeDeviceConfigInfo;
   expertNames: string[];
+  requiredInputs?: string[];
+  handoffItems?: string[];
+  agentGroups?: FdeDeliveryAgentGroupItem[];
+  agentPackages?: FdeDeliveryAgentPackageItem[];
+  adminTodo?: string[];
   apiTargets: string[];
   memberCount: number;
   createdAt: string;
@@ -206,7 +225,12 @@ export interface FdeOperationsCustomerItem {
   customerName: string;
   scenarioName: string;
   assignedToId: string;
+  isDelivered: boolean;
   health: FdeMonitorHealth;
+  tenantStatusLabel?: string;
+  deviceSummary?: string;
+  modelUsageSummary?: string;
+  assetValueSummary?: string;
   activeExperts: number;
   onlineExperts: number;
   issueCount: number;
@@ -215,9 +239,46 @@ export interface FdeOperationsCustomerItem {
   lastHeartbeat: string;
   alertSummary: string;
   highlights: string[];
+  assetQuotas: FdeAssetQuotaItem[];
+  pointsBalanceLabel: string;
+  tokenUsage: FdeTokenUsageInfo;
+  rechargeRecords: FdeRechargeRecordItem[];
   devices: FdeDeviceMonitorItem[];
   agents: FdeAgentMonitorItem[];
   alerts: FdeAlertItem[];
+}
+
+/**
+ * 客户资产额度条目。
+ */
+export interface FdeAssetQuotaItem {
+  id: string;
+  label: string;
+  used: number;
+  total: number;
+  unit: string;
+}
+
+/**
+ * Token 使用信息。
+ */
+export interface FdeTokenUsageInfo {
+  usedLabel: string;
+  limitLabel: string;
+  billingCycleLabel: string;
+}
+
+/**
+ * 充值记录条目。
+ */
+export interface FdeRechargeRecordItem {
+  id: string;
+  rechargeDate: string;
+  amountLabel: string;
+  pointsLabel: string;
+  channelLabel: string;
+  operatorName: string;
+  statusLabel: string;
 }
 
 /**
@@ -229,6 +290,11 @@ export interface FdeDeviceMonitorItem {
   type: "cloud" | "local";
   status: "online" | "offline";
   uptime: string;
+  categoryLabel?: string;
+  ownerLabel?: string;
+  activationLabel?: string;
+  assignedEmployeeName?: string;
+  locationLabel?: string;
 }
 
 /**
@@ -238,6 +304,37 @@ export interface FdeAgentMonitorItem {
   name: string;
   runningHours: number;
   completedTasks: number;
+  currentVersion?: string;
+  latestVersion?: string;
+  deliverySourceLabel?: string;
+  collectionLabels?: string[];
+  permissionScope?: string;
+  assignedMembers?: string[];
+  modelLabel?: string;
+  deploymentLabel?: string;
+}
+
+/**
+ * 交付阶段的 Agent 下发包。
+ */
+export interface FdeDeliveryAgentPackageItem {
+  name: string;
+  releaseVersion: string;
+  sourceLabel: string;
+  statusLabel: string;
+  permissionHint: string;
+}
+
+/**
+ * 交付阶段的 AI 专家团。
+ */
+export interface FdeDeliveryAgentGroupItem {
+  id: string;
+  name: string;
+  description: string;
+  sourceLabel: string;
+  statusLabel: string;
+  agents: FdeDeliveryAgentPackageItem[];
 }
 
 /**
@@ -328,6 +425,44 @@ export interface FdeEvolutionTaskItem {
 }
 
 /**
+ * FDE 租户 Agent 版本管理任务。
+ */
+export interface FdeVersionManagementTaskItem {
+  id: string;
+  customerId: string;
+  customerName: string;
+  agentName: string;
+  assignedToId: string;
+  deliverySourceLabel?: string;
+  collectionLabels?: string[];
+  currentVersion: string;
+  latestVersion: string;
+  status: FdeVersionManagementStatus;
+  targetScope: string;
+  targetMembers: string[];
+  releaseDate: string;
+  lastActionLabel: string;
+  lastActionAt: string;
+  releaseSummary: string;
+  diffHighlights: string[];
+  riskHint: string;
+  customerDecisionHint?: string;
+  ignoreReason?: string;
+  versionHistory: FdeVersionHistoryItem[];
+}
+
+/**
+ * AI 专家历史版本记录。
+ */
+export interface FdeVersionHistoryItem {
+  version: string;
+  releaseDate: string;
+  statusLabel: string;
+  summary: string;
+  isCurrent?: boolean;
+}
+
+/**
  * FDE 工作台 hook 返回结构。
  */
 export interface UseFdeWorkbenchResult {
@@ -337,12 +472,14 @@ export interface UseFdeWorkbenchResult {
   deliveryOrders: FdeDeliveryOrderItem[];
   evolutionTasks: FdeEvolutionTaskItem[];
   feedbackAgents: FdeFeedbackAgentItem[];
+  versionTasks: FdeVersionManagementTaskItem[];
   filteredDeliveryOrders: FdeDeliveryOrderItem[];
   filteredEvolutionTasks: FdeEvolutionTaskItem[];
   filteredFeedbackAgents: FdeFeedbackAgentItem[];
   filteredLeads: FdeLeadItem[];
   filteredOpportunities: FdeOpportunityItem[];
   filteredOperationsCustomers: FdeOperationsCustomerItem[];
+  filteredVersionTasks: FdeVersionManagementTaskItem[];
   leads: FdeLeadItem[];
   opportunities: FdeOpportunityItem[];
   operationsCustomers: FdeOperationsCustomerItem[];
@@ -352,6 +489,7 @@ export interface UseFdeWorkbenchResult {
   selectedLeadId: string;
   selectedOperationsCustomerId: string;
   selectedOpportunityId: string;
+  selectedVersionTaskId: string;
   setActiveMemberId: (memberId: string) => void;
   setActiveRole: (role: FdeWorkbenchRole) => void;
   setActiveTab: (tab: FdeWorkbenchTabKey) => void;
@@ -361,6 +499,7 @@ export interface UseFdeWorkbenchResult {
   setSelectedLeadId: (leadId: string) => void;
   setSelectedOperationsCustomerId: (customerId: string) => void;
   setSelectedOpportunityId: (opportunityId: string) => void;
+  setSelectedVersionTaskId: (taskId: string) => void;
   createLead: (payload: FdeLeadFormState) => void;
   assignLead: (leadId: string, memberId: string | null) => void;
   updateLeadStatus: (leadId: string, status: FdeLeadStatus, closedNote?: string) => void;

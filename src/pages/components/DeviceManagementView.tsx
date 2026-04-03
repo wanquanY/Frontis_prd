@@ -1,40 +1,105 @@
 import { useCallback, useMemo, useState } from "react";
 
-import {
-  AppleOutlined,
-  DeleteOutlined,
-  EditOutlined,
-  PlusOutlined,
-  PoweroffOutlined,
-  ToolOutlined,
-  UserOutlined,
-  WarningOutlined,
-  WindowsOutlined,
-} from "@ant-design/icons";
-import { Button, Input, Modal, Popconfirm, Select, Tag, Tooltip, message } from "antd";
+import { ArrowLeftOutlined, PlusOutlined } from "@ant-design/icons";
+import { Button, Input, Modal, Popconfirm, Select, Switch, message } from "antd";
 
 import type { FrontisWebUserItem } from "../types";
 
 import adminStyles from "./FrontisAdminViews.module.less";
-import styles from "./FrontisWebViews.module.less";
 import {
   buildDevicePresentations,
   getDeviceDisplayName,
-  renderDeviceWorkspaceIcon,
 } from "./FrontisWebViews";
 import type { DeviceManagementViewProps } from "./FrontisWebViews";
 
-const DEVICE_TYPE_LABEL: Record<string, string> = {
-  cloud: "☁️ 云端",
-  local: "🖥️ 本地",
-  edge: "🖥️ 边缘",
+const INITIAL_DEVICE_OWNER_IDS: Record<string, string | null> = {
+  "workspace-cloud": null,
+  "workspace-local": null,
+  "workspace-local-bj": "user-admin-001",
+  "workspace-local-sh": "user-member-001",
 };
 
-/** 本地设备配额上限 */
-const LOCAL_DEVICE_QUOTA = 80;
+const COMPANY_MANAGED_DEVICE_TYPES = new Set(["cloud", "edge"]);
+type DeviceKind = "cloud-workstation" | "local-workstation" | "local-client";
+type DeviceFilterKey =
+  | "all"
+  | "cloud-workstation"
+  | "local-workstation"
+  | "local-client"
+  | "pending";
 
-const isDeviceOnline = (status: string): boolean =>
-  ["online", "busy", "idle"].includes(status);
+const DEVICE_KIND_LABEL: Record<DeviceKind, string> = {
+  "cloud-workstation": "云端工作站",
+  "local-client": "本地客户端",
+  "local-workstation": "本地工作站",
+};
+
+const DEVICE_KIND_QUOTA: Record<DeviceKind, number> = {
+  "cloud-workstation": 12,
+  "local-client": 80,
+  "local-workstation": 20,
+};
+
+interface PendingDeviceItem {
+  activationCode: string;
+  deviceKind: DeviceKind;
+  id: string;
+  location: string;
+  name: string;
+  ownerId: string | null;
+}
+
+type ExistingDeviceItem = ReturnType<typeof buildDevicePresentations>[number];
+
+interface ExistingDeviceRecord {
+  id: string;
+  kind: "existing";
+  item: ExistingDeviceItem;
+}
+
+interface PendingDeviceRecord {
+  id: string;
+  kind: "pending";
+  item: PendingDeviceItem;
+}
+
+type DeviceRecord = ExistingDeviceRecord | PendingDeviceRecord;
+
+const isDeviceOnline = (status: string): boolean => ["online", "busy", "idle"].includes(status);
+
+const resolveDeviceKind = (workspaceType: string): DeviceKind => {
+  if (workspaceType === "cloud") {
+    return "cloud-workstation";
+  }
+
+  if (workspaceType === "edge") {
+    return "local-workstation";
+  }
+
+  return "local-client";
+};
+
+const getStatusClassName = (tone: "success" | "warning" | "danger"): string => {
+  if (tone === "success") {
+    return `${adminStyles.consoleStatusTag} ${adminStyles.consoleStatusTagSuccess}`;
+  }
+
+  if (tone === "warning") {
+    return `${adminStyles.consoleStatusTag} ${adminStyles.consoleStatusTagWarning}`;
+  }
+
+  return `${adminStyles.consoleStatusTag} ${adminStyles.consoleStatusTagDanger}`;
+};
+
+const getExistingDeviceStatus = (online: boolean): { label: string; tone: "success" | "danger" } => ({
+  label: online ? "运行中" : "待处理",
+  tone: online ? "success" : "danger",
+});
+
+const getPendingDeviceStatus = (): { label: string; tone: "warning" } => ({
+  label: "待激活",
+  tone: "warning",
+});
 
 export const DeviceManagementView = ({
   employees,
@@ -45,544 +110,858 @@ export const DeviceManagementView = ({
     () => buildDevicePresentations(workspaces, employees),
     [employees, workspaces],
   );
-
-  const [isLocalDeviceModalOpen, setIsLocalDeviceModalOpen] = useState(false);
-  const [localDeviceName, setLocalDeviceName] = useState("");
-  const [localDeviceLocation, setLocalDeviceLocation] = useState("");
-  const [localDeviceOwner, setLocalDeviceOwner] = useState<string | null>(null);
-  const [pendingDevices, setPendingDevices] = useState<Array<{
-    id: string;
-    name: string;
-    location: string;
-    ownerId: string | null;
-    activationCode: string;
-    isOnline: boolean;
-  }>>([]);
-  const [deviceOwners, setDeviceOwners] = useState<Record<string, string | null>>({});
-  const [editingOwnerId, setEditingOwnerId] = useState<{ deviceId: string; ownerId: string | null } | null>(null);
-
-  /** 已上线/下线状态覆盖（key: workspace id / pending id） */
-  const [deviceStatusOverrides, setDeviceStatusOverrides] = useState<Record<string, boolean>>({});
-  /** 已移除的设备 ID 集合 */
-  const [removedDeviceIds, setRemovedDeviceIds] = useState<Set<string>>(new Set());
-
   const activeUsers = useMemo(
-    () => users.filter(u => u.status === "active"),
+    () => users.filter(user => user.status === "active"),
     [users],
   );
-
   const userOptions = useMemo(
-    () => activeUsers.map(u => ({ label: u.name, value: u.id })),
+    () => activeUsers.map(user => ({ label: user.name, value: user.id })),
     [activeUsers],
   );
 
+  const [activeFilter, setActiveFilter] = useState<DeviceFilterKey>("all");
+  const [selectedDeviceId, setSelectedDeviceId] = useState<string>("");
+  const [isLocalDeviceModalOpen, setIsLocalDeviceModalOpen] = useState<boolean>(false);
+  const [allowDeviceActivation, setAllowDeviceActivation] = useState<boolean>(true);
+  const [deviceStatusOverrides, setDeviceStatusOverrides] = useState<Record<string, boolean>>({});
+  const [removedDeviceIds, setRemovedDeviceIds] = useState<Set<string>>(new Set());
+  const [draftDeviceName, setDraftDeviceName] = useState<string>("");
+  const [draftDeviceLocation, setDraftDeviceLocation] = useState<string>("");
+  const [draftDeviceOwner, setDraftDeviceOwner] = useState<string | null>(null);
+  const [draftDeviceKind, setDraftDeviceKind] = useState<DeviceKind | null>(null);
+  const [deviceLocationOverrides, setDeviceLocationOverrides] = useState<Record<string, string>>({});
+  const [deviceNameOverrides, setDeviceNameOverrides] = useState<Record<string, string>>({});
+  const [deviceOwners, setDeviceOwners] = useState<Record<string, string | null>>(
+    INITIAL_DEVICE_OWNER_IDS,
+  );
+  const [pendingDevices, setPendingDevices] = useState<PendingDeviceItem[]>([]);
+
   const getOwnerName = useCallback(
     (ownerId: string | null): string | null => {
-      if (!ownerId) return null;
-      return activeUsers.find(u => u.id === ownerId)?.name ?? null;
+      if (!ownerId) {
+        return null;
+      }
+      return activeUsers.find(user => user.id === ownerId)?.name ?? null;
     },
     [activeUsers],
   );
 
-  /** 判断某个已有设备当前是否在线（考虑覆盖状态） */
   const resolveOnlineStatus = useCallback(
     (workspaceId: string, originalStatus: string): boolean => {
-      if (workspaceId in deviceStatusOverrides) return deviceStatusOverrides[workspaceId];
+      if (workspaceId in deviceStatusOverrides) {
+        return deviceStatusOverrides[workspaceId];
+      }
       return isDeviceOnline(originalStatus);
     },
     [deviceStatusOverrides],
   );
 
-  /** 过滤掉已移除的已有设备 */
+  const getExistingDeviceName = useCallback(
+    (deviceId: string, fallbackName: string): string => {
+      if (deviceId in deviceNameOverrides) {
+        return deviceNameOverrides[deviceId] ?? "";
+      }
+
+      return getDeviceDisplayName(fallbackName);
+    },
+    [deviceNameOverrides],
+  );
+
+  const getExistingDeviceLocation = useCallback(
+    (deviceId: string, fallbackLocation: string): string => {
+      if (deviceId in deviceLocationOverrides) {
+        return deviceLocationOverrides[deviceId] ?? "";
+      }
+
+      return fallbackLocation;
+    },
+    [deviceLocationOverrides],
+  );
+
   const visibleDevices = useMemo(
-    () => devices.filter(item => !removedDeviceIds.has(item.workspace.id)),
+    () => devices.filter(device => !removedDeviceIds.has(device.workspace.id)),
     [devices, removedDeviceIds],
   );
 
+  const companyManagedDevices = useMemo(
+    () =>
+      visibleDevices.filter(device => COMPANY_MANAGED_DEVICE_TYPES.has(device.workspace.type)),
+    [visibleDevices],
+  );
+  const nonCompanyManagedDevices = useMemo(
+    () =>
+      visibleDevices.filter(device => !COMPANY_MANAGED_DEVICE_TYPES.has(device.workspace.type)),
+    [visibleDevices],
+  );
+
+  const deviceCountByKind = useMemo(() => {
+    const initialCounts: Record<DeviceKind, number> = {
+      "cloud-workstation": 0,
+      "local-client": 0,
+      "local-workstation": 0,
+    };
+
+    visibleDevices.forEach(device => {
+      const deviceKind = resolveDeviceKind(device.workspace.type);
+      initialCounts[deviceKind] += 1;
+    });
+
+    pendingDevices.forEach(device => {
+      initialCounts[device.deviceKind] += 1;
+    });
+
+    return initialCounts;
+  }, [pendingDevices, visibleDevices]);
+
   const onlineDeviceCount = useMemo(
-    () => visibleDevices.filter(item => resolveOnlineStatus(item.workspace.id, item.workspace.status)).length,
-    [visibleDevices, resolveOnlineStatus],
-  );
-
-  const offlineDeviceCount = visibleDevices.length - onlineDeviceCount;
-
-  const onlineAgentCount = useMemo(
     () =>
-      employees.filter(e => {
-        const ws = workspaces.find(w => w.id === e.workspaceId);
-        return ws && !removedDeviceIds.has(ws.id) && resolveOnlineStatus(ws.id, ws.status);
-      }).length,
-    [employees, workspaces, removedDeviceIds, resolveOnlineStatus],
+      visibleDevices.filter(device =>
+        resolveOnlineStatus(device.workspace.id, device.workspace.status),
+      ).length,
+    [resolveOnlineStatus, visibleDevices],
   );
 
-  const offlineAgentCount = useMemo(
-    () =>
-      employees.filter(e => {
-        const ws = workspaces.find(w => w.id === e.workspaceId);
-        return ws && !removedDeviceIds.has(ws.id);
-      }).length - onlineAgentCount,
-    [employees, workspaces, removedDeviceIds, onlineAgentCount],
+  const abnormalDeviceCount = useMemo(
+    () => visibleDevices.length + pendingDevices.length - onlineDeviceCount,
+    [onlineDeviceCount, pendingDevices.length, visibleDevices.length],
   );
 
-  /** 判断设备上是否部署了 AI 专家 */
-  const hasDeployedAgents = useCallback(
-    (workspaceId: string): boolean =>
-      employees.some(e => e.workspaceId === workspaceId),
+  const activeExpertCount = useMemo(
+    () => employees.filter(employee => ["busy", "idle", "online"].includes(employee.status)).length,
     [employees],
   );
 
-  /** 本地设备已用数量（不含已移除的） */
-  const currentLocalCount = useMemo(() => {
-    const existingLocal = workspaces.filter(w => w.type !== "cloud" && !removedDeviceIds.has(w.id)).length;
-    return existingLocal + pendingDevices.length;
-  }, [workspaces, removedDeviceIds, pendingDevices]);
+  const allRecords = useMemo<DeviceRecord[]>(
+    () => [
+      ...companyManagedDevices.map<DeviceRecord>(item => ({
+        id: item.workspace.id,
+        item,
+        kind: "existing",
+      })),
+      ...nonCompanyManagedDevices.map<DeviceRecord>(item => ({
+        id: item.workspace.id,
+        item,
+        kind: "existing",
+      })),
+      ...pendingDevices.map<DeviceRecord>(item => ({
+        id: item.id,
+        item,
+        kind: "pending",
+      })),
+    ],
+    [companyManagedDevices, nonCompanyManagedDevices, pendingDevices],
+  );
 
-  const remainingQuota = LOCAL_DEVICE_QUOTA - currentLocalCount;
+  const filteredRecords = useMemo(() => {
+    switch (activeFilter) {
+      case "cloud-workstation":
+      case "local-workstation":
+      case "local-client":
+        return allRecords.filter(record =>
+          record.kind === "pending"
+            ? record.item.deviceKind === activeFilter
+            : resolveDeviceKind(record.item.workspace.type) === activeFilter,
+        );
+      case "pending":
+        return allRecords.filter(record => record.kind === "pending");
+      case "all":
+      default:
+        return allRecords;
+    }
+  }, [activeFilter, allRecords]);
 
-  const handleRepair = useCallback(() => {
+  const selectedRecord = useMemo(
+    () => allRecords.find(record => record.id === selectedDeviceId) ?? null,
+    [allRecords, selectedDeviceId],
+  );
+  const selectedRecordHeader = useMemo(() => {
+    if (!selectedRecord) {
+      return null;
+    }
+
+    if (selectedRecord.kind === "pending") {
+      return {
+        statusLabel: "待激活",
+        statusTone: "warning" as const,
+        subtitle: selectedRecord.item.activationCode,
+        title: selectedRecord.item.name,
+        typeLabel: DEVICE_KIND_LABEL[selectedRecord.item.deviceKind],
+      };
+    }
+
+    const online = resolveOnlineStatus(
+      selectedRecord.item.workspace.id,
+      selectedRecord.item.workspace.status,
+    );
+    const status = getExistingDeviceStatus(online);
+
+    return {
+      statusLabel: status.label,
+      statusTone: status.tone,
+      subtitle: selectedRecord.item.code,
+      title: getExistingDeviceName(selectedRecord.item.workspace.id, selectedRecord.item.workspace.name),
+      typeLabel: DEVICE_KIND_LABEL[resolveDeviceKind(selectedRecord.item.workspace.type)],
+    };
+  }, [getExistingDeviceName, resolveOnlineStatus, selectedRecord]);
+
+  const summaryItems = useMemo(
+    () => [
+      {
+        hint: `已用 ${deviceCountByKind["cloud-workstation"]} 台 / 总额 ${DEVICE_KIND_QUOTA["cloud-workstation"]} 台`,
+        label: "云端工作站额度",
+        value: `${deviceCountByKind["cloud-workstation"]}/${DEVICE_KIND_QUOTA["cloud-workstation"]}`,
+      },
+      {
+        hint: `已用 ${deviceCountByKind["local-workstation"]} 台 / 总额 ${DEVICE_KIND_QUOTA["local-workstation"]} 台`,
+        label: "本地工作站额度",
+        value: `${deviceCountByKind["local-workstation"]}/${DEVICE_KIND_QUOTA["local-workstation"]}`,
+      },
+      {
+        hint: `已用 ${deviceCountByKind["local-client"]} 台 / 总额 ${DEVICE_KIND_QUOTA["local-client"]} 台`,
+        label: "本地客户端额度",
+        value: `${deviceCountByKind["local-client"]}/${DEVICE_KIND_QUOTA["local-client"]}`,
+      },
+      {
+        hint: `当前支撑 ${activeExpertCount} 个活跃 AI 专家`,
+        label: "待处理设备",
+        value: `${abnormalDeviceCount} 台`,
+      },
+    ],
+    [
+      abnormalDeviceCount,
+      activeExpertCount,
+      deviceCountByKind,
+    ],
+  );
+
+  const handleRepair = useCallback((): void => {
     message.success("报修请求已提交，FDE 工程师将在 2 小时内联系您处理");
   }, []);
 
-  /** 上线/下线切换 */
-  const handleToggleDeviceStatus = useCallback((deviceId: string, currentlyOnline: boolean) => {
+  const handleToggleDeviceStatus = useCallback((deviceId: string, currentlyOnline: boolean): void => {
     setDeviceStatusOverrides(prev => ({ ...prev, [deviceId]: !currentlyOnline }));
     message.success(currentlyOnline ? "设备已下线" : "设备已上线");
   }, []);
 
-  /** 移除设备 */
-  const handleRemoveDevice = useCallback((deviceId: string, isPending: boolean) => {
+  const handleRemoveDevice = useCallback((deviceId: string, isPending: boolean): void => {
     if (isPending) {
-      setPendingDevices(prev => prev.filter(d => d.id !== deviceId));
+      setPendingDevices(prev => prev.filter(device => device.id !== deviceId));
     } else {
       setRemovedDeviceIds(prev => new Set([...prev, deviceId]));
     }
     message.success("设备已移除");
   }, []);
 
-  const handleAddLocalDevice = useCallback(() => {
-    if (remainingQuota <= 0) {
-      message.error("本地设备配额已用完，请先下线并移除不再使用的设备");
+  const handleAddLocalDevice = useCallback((): void => {
+    if (!allowDeviceActivation) {
+      message.warning("当前已关闭设备激活，请先开启激活策略");
       return;
     }
-    if (!localDeviceName.trim()) {
+    if (!draftDeviceKind) {
+      message.warning("请选择设备类型");
+      return;
+    }
+    const remainingQuota = DEVICE_KIND_QUOTA[draftDeviceKind] - deviceCountByKind[draftDeviceKind];
+    if (remainingQuota <= 0) {
+      message.error(`${DEVICE_KIND_LABEL[draftDeviceKind]}额度已用完，请先移除不再使用的设备`);
+      return;
+    }
+    if (!draftDeviceName.trim()) {
       message.warning("请输入设备名称");
       return;
     }
+
     const activationCode = `SC-${Math.random().toString(36).substring(2, 10).toUpperCase()}`;
+    const nextDeviceId = `pending-${Date.now()}`;
+
     setPendingDevices(prev => [
       ...prev,
       {
-        id: `pending-${Date.now()}`,
-        name: localDeviceName.trim(),
-        location: localDeviceLocation.trim() || "未填写",
-        ownerId: localDeviceOwner,
         activationCode,
-        isOnline: false,
+        deviceKind: draftDeviceKind,
+        id: nextDeviceId,
+        location: draftDeviceLocation.trim() || "未填写",
+        name: draftDeviceName.trim(),
+        ownerId: draftDeviceOwner,
       },
     ]);
-    message.success("设备已创建，请将激活码提供给员工");
+    setSelectedDeviceId(nextDeviceId);
+    setActiveFilter("pending");
     setIsLocalDeviceModalOpen(false);
-    setLocalDeviceName("");
-    setLocalDeviceLocation("");
-    setLocalDeviceOwner(null);
-  }, [localDeviceName, localDeviceLocation, localDeviceOwner, remainingQuota]);
+    setDraftDeviceName("");
+    setDraftDeviceLocation("");
+    setDraftDeviceOwner(null);
+    setDraftDeviceKind(null);
+    message.success("已创建设备并生成激活码");
+  }, [
+    allowDeviceActivation,
+    deviceCountByKind,
+    draftDeviceKind,
+    draftDeviceLocation,
+    draftDeviceName,
+    draftDeviceOwner,
+  ]);
 
-  const handleAssignOwner = useCallback((deviceId: string, ownerId: string | null) => {
-    setDeviceOwners(prev => ({ ...prev, [deviceId]: ownerId }));
-    setEditingOwnerId(null);
-    if (ownerId) {
-      message.success("已分配所属员工");
-    } else {
-      message.success("已取消分配");
-    }
+  const handleAssignOwner = useCallback(
+    (deviceId: string, ownerId: string | null): void => {
+      if (pendingDevices.some(device => device.id === deviceId)) {
+        setPendingDevices(prev =>
+          prev.map(device =>
+            device.id === deviceId
+              ? {
+                  ...device,
+                  ownerId,
+                }
+              : device,
+          ),
+        );
+      } else {
+        setDeviceOwners(prev => ({
+          ...prev,
+          [deviceId]: ownerId,
+        }));
+      }
+      message.success(ownerId ? "已更新设备归属" : "已清空设备归属");
+    },
+    [pendingDevices],
+  );
+
+  const handleRenameExistingDevice = useCallback((deviceId: string, value: string): void => {
+    setDeviceNameOverrides(prev => ({
+      ...prev,
+      [deviceId]: value,
+    }));
   }, []);
 
+  const handleUpdateExistingDeviceLocation = useCallback((deviceId: string, value: string): void => {
+    setDeviceLocationOverrides(prev => ({
+      ...prev,
+      [deviceId]: value,
+    }));
+  }, []);
+
+  const handleUpdatePendingDevice = useCallback(
+    (deviceId: string, updates: Partial<Pick<PendingDeviceItem, "location" | "name">>): void => {
+      setPendingDevices(prev =>
+        prev.map(device =>
+          device.id === deviceId
+            ? {
+                ...device,
+                ...updates,
+              }
+            : device,
+        ),
+      );
+    },
+    [],
+  );
+
+  const filterOptions = useMemo(
+    () => [
+      { key: "all" as const, label: `全部 (${allRecords.length})` },
+      {
+        key: "cloud-workstation" as const,
+        label: `${DEVICE_KIND_LABEL["cloud-workstation"]} (${deviceCountByKind["cloud-workstation"]})`,
+      },
+      {
+        key: "local-workstation" as const,
+        label: `${DEVICE_KIND_LABEL["local-workstation"]} (${deviceCountByKind["local-workstation"]})`,
+      },
+      {
+        key: "local-client" as const,
+        label: `${DEVICE_KIND_LABEL["local-client"]} (${deviceCountByKind["local-client"]})`,
+      },
+      { key: "pending" as const, label: `待激活 (${pendingDevices.length})` },
+    ],
+    [allRecords.length, deviceCountByKind, pendingDevices.length],
+  );
+
   return (
-    <div className={styles.view}>
-      <div className={adminStyles.devicePageHeader}>
-        <h1 className={adminStyles.devicePageTitle}>设备管理</h1>
-        <p className={adminStyles.devicePageSubtitle}>
-          查看并管理你购买的所有设备，实时掌握运行状态
-        </p>
-
-        <div className={adminStyles.deviceStatsRow}>
-          <div className={adminStyles.deviceStatCard}>
-            <strong className={adminStyles.deviceStatValue}>{visibleDevices.length + pendingDevices.length}</strong>
-            <span className={adminStyles.deviceStatLabel}>设备总数</span>
-            <span className={adminStyles.deviceStatHint}>
-              云端 {visibleDevices.filter(d => d.workspace.type === "cloud").length} 台 · 本地 {visibleDevices.filter(d => d.workspace.type !== "cloud").length + pendingDevices.length} 台
-            </span>
-          </div>
-          <div className={adminStyles.deviceStatCard}>
-            <strong className={adminStyles.deviceStatValue}>{onlineDeviceCount}</strong>
-            <span className={adminStyles.deviceStatLabel}>运行中</span>
-            <span className={adminStyles.deviceStatHint}>
-              共部署了 {onlineAgentCount} 个 AI 专家
-            </span>
-          </div>
-          <div className={adminStyles.deviceStatCard}>
-            <strong className={adminStyles.deviceStatValue}>{offlineDeviceCount}</strong>
-            <span className={adminStyles.deviceStatLabel}>离线中</span>
-            <span className={adminStyles.deviceStatHint}>
-              共部署了 {offlineAgentCount} 个 AI 专家
-            </span>
-          </div>
-        </div>
-      </div>
-
-      <section className={styles.sectionCard}>
-        <div className={styles.sectionHeader}>
-          <div>
-            <div className={styles.sectionTitle}>SynClaw 客户端下载</div>
-            <div className={styles.sectionDescription}>
-              员工下载并安装 SynClaw 客户端后，使用管理员分配的激活码即可将个人电脑接入企业设备管理
-            </div>
-          </div>
-        </div>
-        <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-          <Button icon={<AppleOutlined />} size="large">
-            macOS (Apple 芯片)
-          </Button>
-          <Button icon={<AppleOutlined />} size="large">
-            macOS (Intel 芯片)
-          </Button>
-          <Button icon={<WindowsOutlined />} size="large">
-            Windows
-          </Button>
-        </div>
-      </section>
-
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", margin: "16px 0 8px" }}>
-        <div className={styles.sectionTitle} style={{ fontSize: 16, fontWeight: 600 }}>设备列表</div>
-        <Tooltip title={remainingQuota <= 0 ? "本地设备配额已用完，请先下线并移除不再使用的设备" : undefined}>
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            disabled={remainingQuota <= 0}
-            onClick={() => setIsLocalDeviceModalOpen(true)}
-          >
-            添加本地设备（剩余 {remainingQuota}）
-          </Button>
-        </Tooltip>
-      </div>
-
-      <div className={styles.deviceGrid}>
-        {visibleDevices.map(item => {
-          const online = resolveOnlineStatus(item.workspace.id, item.workspace.status);
-          const agentsOnDevice = employees.filter(
-            employee => employee.workspaceId === item.workspace.id,
-          );
-          const ownerId = deviceOwners[item.workspace.id] ?? null;
-          const ownerName = getOwnerName(ownerId);
-          const isEditingThisOwner = editingOwnerId?.deviceId === item.workspace.id;
-          const deviceHasAgents = hasDeployedAgents(item.workspace.id);
-
-          return (
-            <article key={item.workspace.id} className={styles.deviceCard}>
-              <div className={styles.deviceHero}>
-                <div className={styles.deviceIdentity}>
-                  <div className={styles.deviceIconWrap}>{renderDeviceWorkspaceIcon()}</div>
-                  <div className={styles.deviceIdentityBody}>
-                    <div className={styles.deviceTitle}>
-                      {getDeviceDisplayName(item.workspace.name)}
-                      {!online && (
-                        <WarningOutlined style={{ color: "#e5484d", marginLeft: 6, fontSize: 14 }} />
-                      )}
-                    </div>
-                    <div className={styles.deviceCode} style={{ whiteSpace: "nowrap" }}>
-                      {item.code}
-                    </div>
-                  </div>
-                </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <Tag bordered={false} className={styles.lightTag}>
-                    {DEVICE_TYPE_LABEL[item.workspace.type] ?? item.workspace.type}
-                  </Tag>
-                  <Tag bordered={false} color={online ? "success" : "error"}>
-                    {online ? "🟢 运行中" : "🔴 离线中"}
-                  </Tag>
-                </div>
-              </div>
-
-              <div className={styles.deviceMetaStack}>
-                <div className={styles.deviceMetaRow}>
-                  <span className={styles.deviceMetaLabel}>设备 ID</span>
-                  <span className={styles.deviceMetaText} style={{ whiteSpace: "nowrap" }}>
-                    {item.code}
-                  </span>
-                </div>
-                <div className={styles.deviceMetaRow}>
-                  <span className={styles.deviceMetaLabel}>激活时间</span>
-                  <span className={styles.deviceMetaText} style={{ whiteSpace: "nowrap" }}>
-                    {item.activatedAt}
-                  </span>
-                </div>
-                <div className={styles.deviceMetaRow}>
-                  <span className={styles.deviceMetaLabel}>所属员工</span>
-                  <span className={styles.deviceMetaText}>
-                    {isEditingThisOwner ? (
-                      <Select
-                        allowClear
-                        size="small"
-                        style={{ width: 140 }}
-                        placeholder="选择员工"
-                        options={userOptions}
-                        value={editingOwnerId.ownerId}
-                        onChange={val => handleAssignOwner(item.workspace.id, val ?? null)}
-                        onBlur={() => setEditingOwnerId(null)}
-                        autoFocus
-                      />
-                    ) : (
-                      <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-                        <UserOutlined
-                          style={{
-                            color: ownerName ? "var(--primary-color, #1677ff)" : "#bbb",
-                            fontSize: 13,
-                          }}
-                        />
-                        <span
-                          style={{
-                            color: ownerName ? "inherit" : "var(--text-secondary)",
-                            fontSize: 13,
-                          }}
-                        >
-                          {ownerName ?? "未分配"}
-                        </span>
-                        <Button
-                          type="link"
-                          size="small"
-                          icon={<EditOutlined />}
-                          style={{ fontSize: 12, padding: "0 4px" }}
-                          onClick={() =>
-                            setEditingOwnerId({ deviceId: item.workspace.id, ownerId })
-                          }
-                        >
-                          {ownerName ? "更改" : "分配"}
-                        </Button>
-                      </span>
-                    )}
-                  </span>
-                </div>
-              </div>
-
-              <div className={styles.deviceAgentRow}>
-                <div className={styles.deviceAgentLabel}>部署 AI 专家</div>
-                {online ? (
-                  <div className={styles.pillRow}>
-                    {agentsOnDevice.map(agent => (
-                      <span key={agent.id} className={styles.pill}>
-                        {agent.name}
-                      </span>
-                    ))}
-                  </div>
-                ) : (
-                  <span style={{ fontSize: 13, color: "var(--text-secondary)" }}>
-                    设备离线，专家暂停服务
-                  </span>
-                )}
-              </div>
-
-              <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+    <div className={adminStyles.consolePage}>
+      <header className={adminStyles.consoleHeader}>
+        <div className={adminStyles.consoleHeaderMain}>
+          {selectedRecordHeader ? (
+            <>
+              <div className={adminStyles.consoleToolbarGroup}>
                 <Button
-                  icon={<PoweroffOutlined />}
-                  onClick={() => handleToggleDeviceStatus(item.workspace.id, online)}
+                  icon={<ArrowLeftOutlined />}
+                  size="small"
+                  onClick={() => setSelectedDeviceId("")}
                 >
-                  {online ? "下线" : "上线"}
+                  返回上一页
                 </Button>
-                {!online && (
-                  deviceHasAgents ? (
-                    <Tooltip title="该设备上部署了 AI 专家，不允许移除">
-                      <Button danger disabled icon={<DeleteOutlined />}>
-                        移除
-                      </Button>
-                    </Tooltip>
-                  ) : (
-                    <Popconfirm
-                      title="确认移除此设备？"
-                      description="移除后将释放本地设备配额"
-                      onConfirm={() => handleRemoveDevice(item.workspace.id, false)}
-                      okText="确认"
-                      cancelText="取消"
-                    >
-                      <Button danger icon={<DeleteOutlined />}>
-                        移除
-                      </Button>
-                    </Popconfirm>
-                  )
-                )}
-                {!online && (
-                  <Button
-                    type="primary"
-                    danger
-                    icon={<ToolOutlined />}
-                    onClick={handleRepair}
-                  >
-                    一键报修
-                  </Button>
-                )}
+                <h1 className={adminStyles.consoleTitle}>{selectedRecordHeader.title}</h1>
               </div>
-            </article>
-          );
-        })}
-
-        {pendingDevices.map(item => {
-          const ownerName = getOwnerName(item.ownerId);
-          const isEditingThisOwner = editingOwnerId?.deviceId === item.id;
-
-          return (
-            <article key={item.id} className={styles.deviceCard}>
-              <div className={styles.deviceHero}>
-                <div className={styles.deviceIdentity}>
-                  <div className={styles.deviceIconWrap}>{renderDeviceWorkspaceIcon()}</div>
-                  <div className={styles.deviceIdentityBody}>
-                    <div className={styles.deviceTitle}>{item.name}</div>
-                    <div className={styles.deviceCode}>{item.activationCode}</div>
-                  </div>
-                </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <Tag bordered={false} className={styles.lightTag}>🖥️ 本地</Tag>
-                  <Tag bordered={false} color="warning">⏳ 待激活</Tag>
-                </div>
-              </div>
-
-              <div className={styles.deviceMetaStack}>
-                <div className={styles.deviceMetaRow}>
-                  <span className={styles.deviceMetaLabel}>部署位置</span>
-                  <span className={styles.deviceMetaText}>{item.location}</span>
-                </div>
-                <div className={styles.deviceMetaRow}>
-                  <span className={styles.deviceMetaLabel}>所属员工</span>
-                  <span className={styles.deviceMetaText}>
-                    {isEditingThisOwner ? (
-                      <Select
-                        allowClear
-                        size="small"
-                        style={{ width: 140 }}
-                        placeholder="选择员工"
-                        options={userOptions}
-                        value={editingOwnerId.ownerId}
-                        onChange={val => {
-                          setPendingDevices(prev =>
-                            prev.map(d => d.id === item.id ? { ...d, ownerId: val ?? null } : d),
-                          );
-                          setEditingOwnerId(null);
-                          message.success(val ? "已分配所属员工" : "已取消分配");
-                        }}
-                        onBlur={() => setEditingOwnerId(null)}
-                        autoFocus
-                      />
-                    ) : (
-                      <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-                        <UserOutlined
-                          style={{
-                            color: ownerName ? "var(--primary-color, #1677ff)" : "#bbb",
-                            fontSize: 13,
-                          }}
-                        />
-                        <span
-                          style={{
-                            color: ownerName ? "inherit" : "var(--text-secondary)",
-                            fontSize: 13,
-                          }}
-                        >
-                          {ownerName ?? "未分配"}
-                        </span>
-                        <Button
-                          type="link"
-                          size="small"
-                          icon={<EditOutlined />}
-                          style={{ fontSize: 12, padding: "0 4px" }}
-                          onClick={() =>
-                            setEditingOwnerId({ deviceId: item.id, ownerId: item.ownerId })
-                          }
-                        >
-                          {ownerName ? "更改" : "分配"}
-                        </Button>
-                      </span>
-                    )}
-                  </span>
-                </div>
-                <div className={styles.deviceMetaRow}>
-                  <span className={styles.deviceMetaLabel}>激活码</span>
-                  <span className={styles.deviceMetaText} style={{ fontFamily: "monospace", fontWeight: 600 }}>
-                    {item.activationCode}
-                    <Button
-                      size="small"
-                      type="link"
-                      onClick={() => {
-                        void navigator.clipboard.writeText(item.activationCode);
-                        message.success("激活码已复制");
-                      }}
-                    >
-                      复制
-                    </Button>
-                  </span>
-                </div>
-              </div>
-
-              <div className={styles.deviceAgentRow}>
-                <div className={styles.deviceAgentLabel}>部署 AI 专家</div>
-                <span style={{ fontSize: 13, color: "var(--text-secondary)" }}>
-                  设备待激活，请员工在 SynClaw 客户端输入激活码
+              <div className={adminStyles.consoleMetaRow}>
+                <span className={adminStyles.consoleMetaTag}>{selectedRecordHeader.typeLabel}</span>
+                <span className={getStatusClassName(selectedRecordHeader.statusTone)}>
+                  {selectedRecordHeader.statusLabel}
                 </span>
               </div>
+            </>
+          ) : (
+            <h1 className={adminStyles.consoleTitle}>设备管理</h1>
+          )}
+        </div>
+        <div className={adminStyles.consoleHeaderSide}>
+          <span className={adminStyles.consoleMetaTag}>
+            设备激活 {allowDeviceActivation ? "已开启" : "已关闭"}
+          </span>
+          <Switch
+            checked={allowDeviceActivation}
+            onChange={checked => {
+              setAllowDeviceActivation(checked);
+              message.success(checked ? "已开启设备激活" : "已关闭设备激活");
+            }}
+          />
+        </div>
+      </header>
 
-              <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                <Popconfirm
-                  title="确认移除此设备？"
-                  description="移除后将释放本地设备配额"
-                  onConfirm={() => handleRemoveDevice(item.id, true)}
-                  okText="确认"
-                  cancelText="取消"
-                >
-                  <Button danger icon={<DeleteOutlined />}>
-                    移除
-                  </Button>
-                </Popconfirm>
-              </div>
-            </article>
-          );
-        })}
-      </div>
+      {!selectedRecord ? (
+        <div className={adminStyles.consoleSummaryStrip}>
+          {summaryItems.map(item => (
+            <div key={item.label} className={adminStyles.consoleSummaryItem}>
+              <span className={adminStyles.consoleSummaryLabel}>{item.label}</span>
+              <strong className={adminStyles.consoleSummaryValue}>{item.value}</strong>
+              <span className={adminStyles.consoleSummaryHint}>{item.hint}</span>
+            </div>
+          ))}
+        </div>
+      ) : null}
+
+      {selectedRecord ? (
+        <section className={adminStyles.consoleSection}>
+          {selectedRecord.kind === "pending" ? (
+            <PendingDeviceDetail
+              allowDeviceActivation={allowDeviceActivation}
+              device={selectedRecord.item}
+              handleAssignOwner={handleAssignOwner}
+              handleRemoveDevice={handleRemoveDevice}
+              handleUpdatePendingDevice={handleUpdatePendingDevice}
+              userOptions={userOptions}
+            />
+          ) : (
+            <ExistingDeviceDetail
+              device={selectedRecord.item}
+              deviceOwners={deviceOwners}
+              deviceLocation={getExistingDeviceLocation(
+                selectedRecord.item.workspace.id,
+                selectedRecord.item.location,
+              )}
+              deviceName={getExistingDeviceName(
+                selectedRecord.item.workspace.id,
+                selectedRecord.item.workspace.name,
+              )}
+              employees={employees}
+              handleAssignOwner={handleAssignOwner}
+              handleRenameDevice={handleRenameExistingDevice}
+              handleRemoveDevice={handleRemoveDevice}
+              handleRepair={handleRepair}
+              handleToggleDeviceStatus={handleToggleDeviceStatus}
+              handleUpdateDeviceLocation={handleUpdateExistingDeviceLocation}
+              resolveOnlineStatus={resolveOnlineStatus}
+              userOptions={userOptions}
+            />
+          )}
+        </section>
+      ) : (
+        <section className={adminStyles.consoleSection}>
+          <div className={adminStyles.consoleSectionHeader}>
+            <div className={adminStyles.consoleSectionHeaderMain}>
+              <h2 className={adminStyles.consoleSectionTitle}>设备列表</h2>
+            </div>
+            <div className={adminStyles.consoleActions}>
+              <Button
+                type="primary"
+                icon={<PlusOutlined />}
+                disabled={!allowDeviceActivation}
+                onClick={() => setIsLocalDeviceModalOpen(true)}
+              >
+                添加设备
+              </Button>
+            </div>
+          </div>
+
+          <div className={adminStyles.consoleTabs}>
+            {filterOptions.map(option => (
+              <button
+                key={option.key}
+                type="button"
+                className={`${adminStyles.consoleTabButton} ${
+                  activeFilter === option.key ? adminStyles.consoleTabButtonActive : ""
+                }`}
+                onClick={() => setActiveFilter(option.key)}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+
+          <div className={adminStyles.consoleHtmlTableWrap}>
+            <table className={adminStyles.consoleHtmlTable}>
+              <thead>
+                <tr>
+                  <th>设备名称</th>
+                  <th>类型</th>
+                  <th>状态</th>
+                  <th>所属员工</th>
+                  <th>部署位置</th>
+                  <th>操作</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredRecords.length ? (
+                  filteredRecords.map(record => {
+                    if (record.kind === "pending") {
+                      const pendingStatus = getPendingDeviceStatus();
+
+                      return (
+                        <tr key={record.id}>
+                          <td className={adminStyles.consoleHtmlTableStrong}>{record.item.name}</td>
+                          <td>{DEVICE_KIND_LABEL[record.item.deviceKind]}</td>
+                          <td>
+                            <span className={getStatusClassName(pendingStatus.tone)}>
+                              {pendingStatus.label}
+                            </span>
+                          </td>
+                          <td>{getOwnerName(record.item.ownerId) ?? ""}</td>
+                          <td>{record.item.location}</td>
+                          <td>
+                            <Button size="small" onClick={() => setSelectedDeviceId(record.id)}>
+                              查看详情
+                            </Button>
+                          </td>
+                        </tr>
+                      );
+                    }
+
+                    const online = resolveOnlineStatus(record.item.workspace.id, record.item.workspace.status);
+                    const existingStatus = getExistingDeviceStatus(online);
+                    const ownerId =
+                      deviceOwners[record.item.workspace.id] ??
+                      INITIAL_DEVICE_OWNER_IDS[record.item.workspace.id] ??
+                      null;
+
+                    return (
+                      <tr key={record.id}>
+                        <td className={adminStyles.consoleHtmlTableStrong}>
+                          {getExistingDeviceName(record.item.workspace.id, record.item.workspace.name)}
+                        </td>
+                        <td>{DEVICE_KIND_LABEL[resolveDeviceKind(record.item.workspace.type)]}</td>
+                        <td>
+                          <span className={getStatusClassName(existingStatus.tone)}>
+                            {existingStatus.label}
+                          </span>
+                        </td>
+                        <td>{getOwnerName(ownerId) ?? ""}</td>
+                        <td>
+                          {getExistingDeviceLocation(record.item.workspace.id, record.item.location)}
+                        </td>
+                        <td>
+                          <Button size="small" onClick={() => setSelectedDeviceId(record.id)}>
+                            查看详情
+                          </Button>
+                        </td>
+                      </tr>
+                    );
+                  })
+                ) : (
+                  <tr>
+                    <td colSpan={6}>
+                      <div className={adminStyles.consoleEmpty}>当前筛选下暂无设备。</div>
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
 
       <Modal
-        title="添加本地设备"
+        title="添加设备"
         open={isLocalDeviceModalOpen}
         onCancel={() => setIsLocalDeviceModalOpen(false)}
         onOk={handleAddLocalDevice}
         okText="确认"
         cancelText="取消"
       >
-        <div style={{ display: "flex", flexDirection: "column", gap: 16, padding: "12px 0" }}>
-          <div>
-            <div style={{ marginBottom: 6, fontWeight: 600 }}>设备名称</div>
-            <Input
-              placeholder="如：hw-sz-001"
-              value={localDeviceName}
-              onChange={e => setLocalDeviceName(e.target.value)}
+        <div className={adminStyles.consoleRows}>
+          <div className={adminStyles.consoleInfoRow}>
+            <span className={adminStyles.consoleInfoLabel}>设备类型</span>
+            <Select
+              className={adminStyles.consoleControl}
+              placeholder="请选择设备类型"
+              options={Object.entries(DEVICE_KIND_LABEL).map(([value, label]) => ({
+                label: `${label}（额度 ${deviceCountByKind[value as DeviceKind]}/${DEVICE_KIND_QUOTA[value as DeviceKind]}）`,
+                value,
+              }))}
+              value={draftDeviceKind ?? undefined}
+              onChange={value => setDraftDeviceKind(value)}
             />
           </div>
-          <div>
-            <div style={{ marginBottom: 6, fontWeight: 600 }}>部署位置</div>
+          <div className={adminStyles.consoleInfoRow}>
+            <span className={adminStyles.consoleInfoLabel}>设备名称</span>
+            <Input
+              placeholder="如：sz-local-001"
+              value={draftDeviceName}
+              onChange={event => setDraftDeviceName(event.target.value)}
+            />
+          </div>
+          <div className={adminStyles.consoleInfoRow}>
+            <span className={adminStyles.consoleInfoLabel}>部署位置</span>
             <Input
               placeholder="如：深圳数据中心"
-              value={localDeviceLocation}
-              onChange={e => setLocalDeviceLocation(e.target.value)}
+              value={draftDeviceLocation}
+              onChange={event => setDraftDeviceLocation(event.target.value)}
             />
           </div>
-          <div>
-            <div style={{ marginBottom: 6, fontWeight: 600 }}>所属员工</div>
+          <div className={adminStyles.consoleInfoRow}>
+            <span className={adminStyles.consoleInfoLabel}>所属员工</span>
             <Select
+              className={adminStyles.consoleControl}
               allowClear
-              style={{ width: "100%" }}
               placeholder="选择所属员工（可选）"
               options={userOptions}
-              value={localDeviceOwner}
-              onChange={val => setLocalDeviceOwner(val ?? null)}
+              value={draftDeviceOwner ?? undefined}
+              onChange={value => setDraftDeviceOwner(value ?? null)}
             />
           </div>
         </div>
       </Modal>
     </div>
+  );
+};
+
+interface ExistingDeviceDetailProps {
+  device: ExistingDeviceItem;
+  deviceOwners: Record<string, string | null>;
+  deviceLocation: string;
+  deviceName: string;
+  employees: DeviceManagementViewProps["employees"];
+  handleAssignOwner: (deviceId: string, ownerId: string | null) => void;
+  handleRenameDevice: (deviceId: string, value: string) => void;
+  handleRemoveDevice: (deviceId: string, isPending: boolean) => void;
+  handleRepair: () => void;
+  handleToggleDeviceStatus: (deviceId: string, currentlyOnline: boolean) => void;
+  handleUpdateDeviceLocation: (deviceId: string, value: string) => void;
+  resolveOnlineStatus: (workspaceId: string, originalStatus: string) => boolean;
+  userOptions: Array<{ label: string; value: string }>;
+}
+
+const ExistingDeviceDetail = ({
+  device,
+  deviceOwners,
+  deviceLocation,
+  deviceName,
+  employees,
+  handleAssignOwner,
+  handleRenameDevice,
+  handleRemoveDevice,
+  handleRepair,
+  handleToggleDeviceStatus,
+  handleUpdateDeviceLocation,
+  resolveOnlineStatus,
+  userOptions,
+}: ExistingDeviceDetailProps): JSX.Element => {
+  const online = resolveOnlineStatus(device.workspace.id, device.workspace.status);
+  const ownerId = deviceOwners[device.workspace.id] ?? INITIAL_DEVICE_OWNER_IDS[device.workspace.id] ?? null;
+  const agentsOnDevice = employees.filter(employee => employee.workspaceId === device.workspace.id);
+  const deviceKind = resolveDeviceKind(device.workspace.type);
+
+  return (
+    <>
+      <section className={adminStyles.consoleSection}>
+        <h3 className={adminStyles.consoleSectionTitle}>基础信息</h3>
+        <div className={adminStyles.consoleRows}>
+          <div className={adminStyles.consoleInfoRow}>
+            <span className={adminStyles.consoleInfoLabel}>设备名称</span>
+            <div className={adminStyles.consoleInfoValue}>
+              <Input
+                value={deviceName}
+                onChange={event => handleRenameDevice(device.workspace.id, event.target.value)}
+              />
+            </div>
+          </div>
+          <div className={adminStyles.consoleInfoRow}>
+            <span className={adminStyles.consoleInfoLabel}>设备 ID</span>
+            <span className={adminStyles.consoleInfoValue}>{device.code}</span>
+          </div>
+          <div className={adminStyles.consoleInfoRow}>
+            <span className={adminStyles.consoleInfoLabel}>部署位置</span>
+            <div className={adminStyles.consoleInfoValue}>
+              <Input
+                value={deviceLocation}
+                onChange={event =>
+                  handleUpdateDeviceLocation(device.workspace.id, event.target.value)
+                }
+              />
+            </div>
+          </div>
+          <div className={adminStyles.consoleInfoRow}>
+            <span className={adminStyles.consoleInfoLabel}>设备类型</span>
+            <span className={adminStyles.consoleInfoValue}>{DEVICE_KIND_LABEL[deviceKind]}</span>
+          </div>
+          <div className={adminStyles.consoleInfoRow}>
+            <span className={adminStyles.consoleInfoLabel}>激活时间</span>
+            <span className={adminStyles.consoleInfoValue}>{device.activatedAt}</span>
+          </div>
+          <div className={adminStyles.consoleInfoRow}>
+            <span className={adminStyles.consoleInfoLabel}>所属员工</span>
+            <div className={adminStyles.consoleInfoValue}>
+              <Select
+                className={adminStyles.consoleControl}
+                allowClear
+                placeholder="选择员工（可选）"
+                options={userOptions}
+                value={ownerId ?? undefined}
+                onChange={value => handleAssignOwner(device.workspace.id, value ?? null)}
+              />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className={adminStyles.consoleSection}>
+        <h3 className={adminStyles.consoleSectionTitle}>部署 AI 专家</h3>
+        <div className={adminStyles.consolePillRow}>
+          {agentsOnDevice.length ? (
+            agentsOnDevice.map(agent => (
+              <span key={agent.id} className={adminStyles.consolePill}>
+                {agent.name}
+              </span>
+            ))
+          ) : (
+            <span className={adminStyles.consoleEmpty}>暂无已生效的 AI 专家。</span>
+          )}
+        </div>
+      </section>
+
+      <section className={adminStyles.consoleSection}>
+        <h3 className={adminStyles.consoleSectionTitle}>管理员操作</h3>
+        <div className={adminStyles.consoleActions}>
+          <Button onClick={() => handleToggleDeviceStatus(device.workspace.id, online)}>
+            {online ? "下线设备" : "恢复上线"}
+          </Button>
+          {!online ? (
+            <Button type="primary" danger onClick={handleRepair}>
+              一键报修
+            </Button>
+          ) : null}
+          <Popconfirm
+            title="确认移除此设备？"
+            description={`移除后将释放 ${DEVICE_KIND_LABEL[deviceKind]} 额度`}
+            onConfirm={() => handleRemoveDevice(device.workspace.id, false)}
+            okText="确认"
+            cancelText="取消"
+          >
+            <Button danger>移除设备</Button>
+          </Popconfirm>
+        </div>
+      </section>
+    </>
+  );
+};
+
+interface PendingDeviceDetailProps {
+  allowDeviceActivation: boolean;
+  device: PendingDeviceItem;
+  handleAssignOwner: (deviceId: string, ownerId: string | null) => void;
+  handleRemoveDevice: (deviceId: string, isPending: boolean) => void;
+  handleUpdatePendingDevice: (
+    deviceId: string,
+    updates: Partial<Pick<PendingDeviceItem, "location" | "name">>,
+  ) => void;
+  userOptions: Array<{ label: string; value: string }>;
+}
+
+const PendingDeviceDetail = ({
+  allowDeviceActivation,
+  device,
+  handleAssignOwner,
+  handleRemoveDevice,
+  handleUpdatePendingDevice,
+  userOptions,
+}: PendingDeviceDetailProps): JSX.Element => {
+  return (
+    <>
+      <section className={adminStyles.consoleSection}>
+        <h3 className={adminStyles.consoleSectionTitle}>基础信息</h3>
+        <div className={adminStyles.consoleRows}>
+          <div className={adminStyles.consoleInfoRow}>
+            <span className={adminStyles.consoleInfoLabel}>设备名称</span>
+            <div className={adminStyles.consoleInfoValue}>
+              <Input
+                value={device.name}
+                onChange={event =>
+                  handleUpdatePendingDevice(device.id, { name: event.target.value })
+                }
+              />
+            </div>
+          </div>
+          <div className={adminStyles.consoleInfoRow}>
+            <span className={adminStyles.consoleInfoLabel}>激活码</span>
+            <span className={adminStyles.consoleInfoValue}>{device.activationCode}</span>
+          </div>
+          <div className={adminStyles.consoleInfoRow}>
+            <span className={adminStyles.consoleInfoLabel}>部署位置</span>
+            <div className={adminStyles.consoleInfoValue}>
+              <Input
+                value={device.location}
+                onChange={event =>
+                  handleUpdatePendingDevice(device.id, { location: event.target.value })
+                }
+              />
+            </div>
+          </div>
+          <div className={adminStyles.consoleInfoRow}>
+            <span className={adminStyles.consoleInfoLabel}>设备类型</span>
+            <span className={adminStyles.consoleInfoValue}>{DEVICE_KIND_LABEL[device.deviceKind]}</span>
+          </div>
+          <div className={adminStyles.consoleInfoRow}>
+            <span className={adminStyles.consoleInfoLabel}>所属员工</span>
+            <div className={adminStyles.consoleInfoValue}>
+              <Select
+                className={adminStyles.consoleControl}
+                allowClear
+                placeholder="选择员工（可选）"
+                options={userOptions}
+                value={device.ownerId ?? undefined}
+                onChange={value => handleAssignOwner(device.id, value ?? null)}
+              />
+            </div>
+          </div>
+          <div className={adminStyles.consoleInfoRow}>
+            <span className={adminStyles.consoleInfoLabel}>激活策略</span>
+            <span className={adminStyles.consoleInfoValue}>
+              {allowDeviceActivation ? "允许设备激活" : "已关闭激活"}
+            </span>
+          </div>
+        </div>
+      </section>
+
+      <section className={adminStyles.consoleSection}>
+        <h3 className={adminStyles.consoleSectionTitle}>管理员操作</h3>
+        <div className={adminStyles.consoleActions}>
+          <Button
+            onClick={() => {
+              void navigator.clipboard.writeText(device.activationCode);
+              message.success("激活码已复制");
+            }}
+          >
+            复制激活码
+          </Button>
+          <Popconfirm
+            title="确认移除此设备？"
+            description={`移除后将释放 ${DEVICE_KIND_LABEL[device.deviceKind]} 额度`}
+            onConfirm={() => handleRemoveDevice(device.id, true)}
+            okText="确认"
+            cancelText="取消"
+          >
+            <Button danger>移除设备</Button>
+          </Popconfirm>
+        </div>
+      </section>
+    </>
   );
 };

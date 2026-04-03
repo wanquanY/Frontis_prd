@@ -107,6 +107,17 @@ export type ToolUseStatus =
   // Allow backend to introduce new statuses without breaking the UI typing.
   | (string & NonNullable<unknown>);
 
+export interface ToolContactLookupItem {
+  id: string;
+  name: string;
+  avatarLabel?: string;
+  typeLabel: string;
+  identityLabel: string;
+  feishuId: string;
+  matchLabel?: string;
+  note?: string;
+}
+
 export interface ToolUseData {
   name: string;
   display_name?: string; // 工具展示名称（优先用于 UI 展示）
@@ -118,6 +129,7 @@ export interface ToolUseData {
   stage?: string; // 子 agent / 特殊工具的阶段字段
   bytes_received?: number; // 已接收字节数
   search_results?: ToolSearchResultItem[]; // web_search 结果
+  contact_results?: ToolContactLookupItem[]; // 飞书通讯录查询结果
   error?: string; // 失败原因
   is_subagent?: boolean;
   subagent_label?: string;

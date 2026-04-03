@@ -3,14 +3,13 @@ import { useCallback, useMemo, useState } from "react";
 import classNames from "classnames";
 import {
   ApartmentOutlined,
-  BellOutlined,
+  ArrowLeftOutlined,
   CloudServerOutlined,
   ControlOutlined,
   DashboardOutlined,
   LogoutOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
-  MessageOutlined,
   RobotOutlined,
 } from "@ant-design/icons";
 import type { MenuProps } from "antd";
@@ -22,30 +21,32 @@ import {
   INITIAL_DIALOGUE_SESSIONS,
   INITIAL_EMPLOYEES,
   INITIAL_FRONTIS_WEB_USERS,
-  INITIAL_SKILLS,
   INITIAL_WORKSPACES,
 } from "@/mocks/mockData";
 
 import { BossDashboardView } from "./components/BossDashboardView";
+import { AdminNotificationPopover } from "./components/AdminNotificationPopover";
 import { DeviceManagementView } from "./components/DeviceManagementView";
-import { NotificationCenterView } from "./components/NotificationCenterView";
 import { OrganizationManagementView } from "./components/OrganizationManagementView";
 import { AgentStoreView } from "./components/agentStore/AgentStoreView";
 import { ModelConfigurationView } from "./components/ModelConfigurationView";
-import type { EmployeeItem, FrontisWebTabItem, FrontisWebTabKey } from "./types";
+import type {
+  EmployeeItem,
+  FrontisUserRole,
+  FrontisUserStatus,
+  FrontisWebTabItem,
+  FrontisWebTabKey,
+  FrontisWebUserItem,
+} from "./types";
 import styles from "./FrontisPage.module.less";
+
+const MANAGEMENT_USER_ROLES = new Set<FrontisUserRole>(["boss", "admin"]);
 
 const FRONTIS_ADMIN_TABS: FrontisWebTabItem[] = [
   {
     key: "dashboard",
     label: "驾驶舱",
     icon: <DashboardOutlined />,
-    roles: ["admin"],
-  },
-  {
-    key: "dialogue",
-    label: "工作台",
-    icon: <MessageOutlined />,
     roles: ["admin"],
   },
   {
@@ -68,14 +69,8 @@ const FRONTIS_ADMIN_TABS: FrontisWebTabItem[] = [
   },
   {
     key: "organization",
-    label: "组织管理",
+    label: "人员管理",
     icon: <ApartmentOutlined />,
-    roles: ["admin"],
-  },
-  {
-    key: "notifications",
-    label: "通知中心",
-    icon: <BellOutlined />,
     roles: ["admin"],
   },
 ];
@@ -95,15 +90,15 @@ const FrontisAdminPage = ({
   const [activeTabKey, setActiveTabKey] = useState<FrontisWebTabKey>("dashboard");
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(false);
   const [employees, setEmployees] = useState<EmployeeItem[]>(INITIAL_EMPLOYEES);
+  const [users, setUsers] = useState<FrontisWebUserItem[]>(INITIAL_FRONTIS_WEB_USERS);
   const dialogueSessions = INITIAL_DIALOGUE_SESSIONS;
   const workspaces = INITIAL_WORKSPACES;
-  const users = INITIAL_FRONTIS_WEB_USERS;
 
   const currentUser = useMemo(
     () =>
       users.find(item => item.id === session?.userId) ??
-      users.find(item => item.role === "admin" && item.status === "active") ??
-      users.find(item => item.role === "admin") ??
+      users.find(item => MANAGEMENT_USER_ROLES.has(item.role) && item.status === "active") ??
+      users.find(item => MANAGEMENT_USER_ROLES.has(item.role)) ??
       null,
     [session?.userId, users],
   );
@@ -125,6 +120,73 @@ const FrontisAdminPage = ({
     [],
   );
 
+  const handleUpdateEmployeeModel = useCallback((employeeId: string, model: string): void => {
+    setEmployees(prev =>
+      prev.map(item =>
+        item.id === employeeId
+          ? {
+              ...item,
+              model,
+            }
+          : item,
+      ),
+    );
+  }, []);
+
+  const handleApplyGlobalModel = useCallback((model: string): void => {
+    setEmployees(prev => prev.map(item => ({ ...item, model })));
+  }, []);
+
+  const handleAddUsers = useCallback((nextUsers: FrontisWebUserItem[]): void => {
+    setUsers(prev => {
+      const existingIds = new Set(prev.map(item => item.id));
+      const deduplicatedUsers = nextUsers.filter(item => !existingIds.has(item.id));
+      return [...prev, ...deduplicatedUsers];
+    });
+  }, []);
+
+  const handleUpdateUser = useCallback(
+    (
+      userId: string,
+      updates: Pick<FrontisWebUserItem, "name" | "phone" | "role">,
+    ): void => {
+      setUsers(prev =>
+        prev.map(item =>
+          item.id === userId
+            ? {
+                ...item,
+                assignedAgentIds:
+                  updates.role === "member"
+                    ? item.assignedAgentIds
+                    : employees.map(employee => employee.id),
+                name: updates.name,
+                phone: updates.phone,
+                role: updates.role,
+              }
+            : item,
+        ),
+      );
+    },
+    [employees],
+  );
+
+  const handleUpdateUserStatus = useCallback((userId: string, status: FrontisUserStatus): void => {
+    setUsers(prev =>
+      prev.map(item =>
+        item.id === userId
+          ? {
+              ...item,
+              status,
+            }
+          : item,
+      ),
+    );
+  }, []);
+
+  const handleRemoveUser = useCallback((userId: string): void => {
+    setUsers(prev => prev.filter(item => item.id !== userId));
+  }, []);
+
   const handleLogout = useCallback((): void => {
     logout();
     message.success("已退出模拟登录。");
@@ -142,14 +204,20 @@ const FrontisAdminPage = ({
 
   const handleSelectTab = useCallback(
     (tabKey: FrontisWebTabKey): void => {
-      if (tabKey === "dialogue") {
-        navigate(workspacePath);
-        return;
-      }
       setActiveTabKey(tabKey);
     },
-    [navigate, workspacePath],
+    [],
   );
+
+  const handleBackToWorkspace = useCallback((): void => {
+    navigate(workspacePath);
+  }, [navigate, workspacePath]);
+
+  const handleBackToEmployeeWorkspace = useCallback((): void => {
+    navigate(workspacePath.includes("/v2/") ? "/web/employee/v2" : "/web/employee");
+  }, [navigate, workspacePath]);
+
+  const hasManagementAccess = currentUser ? MANAGEMENT_USER_ROLES.has(currentUser.role) : true;
 
   const renderContent = (): JSX.Element => {
     if (activeTabKey === "dashboard") {
@@ -158,6 +226,7 @@ const FrontisAdminPage = ({
           currentUserName={currentUser?.name}
           dialogueSessions={dialogueSessions}
           employees={employees}
+          onNavigateToTab={handleSelectTab}
           users={users}
           workspaces={workspaces}
         />
@@ -171,7 +240,7 @@ const FrontisAdminPage = ({
           memberNames={users.filter(item => item.status === "active").map(item => item.name)}
           onNavigateToTab={handleSelectTab}
           onUpdateEmployeeAccess={handleUpdateEmployeeAccess}
-          skills={INITIAL_SKILLS}
+          onUpdateEmployeeModel={handleUpdateEmployeeModel}
           workspaces={workspaces}
         />
       );
@@ -182,102 +251,133 @@ const FrontisAdminPage = ({
     }
 
     if (activeTabKey === "models") {
-      return <ModelConfigurationView />;
+      return (
+        <ModelConfigurationView
+          employees={employees}
+          onApplyGlobalModel={handleApplyGlobalModel}
+          onUpdateEmployeeModel={handleUpdateEmployeeModel}
+        />
+      );
     }
 
     if (activeTabKey === "organization") {
       return (
         <OrganizationManagementView
-          currentUserName={currentUser?.name}
           employees={employees}
+          onAddUsers={handleAddUsers}
+          onRemoveUser={handleRemoveUser}
+          onUpdateUser={handleUpdateUser}
+          onUpdateUserStatus={handleUpdateUserStatus}
           users={users}
         />
       );
     }
 
-    return <NotificationCenterView />;
+    return (
+      <BossDashboardView
+        currentUserName={currentUser?.name}
+        dialogueSessions={dialogueSessions}
+        employees={employees}
+        onNavigateToTab={handleSelectTab}
+        users={users}
+        workspaces={workspaces}
+      />
+    );
   };
 
   return (
-    <div className={styles.page}>
-      <aside
-        className={classNames(styles.sidebar, {
-          [styles.sidebarCollapsed]: isSidebarCollapsed,
-        })}
-      >
-        <div
-          className={classNames(styles.sidebarTop, {
-            [styles.sidebarTopCollapsed]: isSidebarCollapsed,
-          })}
-        >
-          <div
-            className={classNames(styles.brandCard, {
-              [styles.brandCardCollapsed]: isSidebarCollapsed,
-            })}
-          >
-            <div className={styles.brandLogo}>
-              <CloudServerOutlined />
-            </div>
-            {isSidebarCollapsed ? null : (
-              <div className={styles.brandCopy}>
-                <h1 className={styles.brandTitle}>Frontis AI</h1>
-                <p className={styles.brandSubtitle}>企业管理后台</p>
-              </div>
-            )}
-          </div>
-          <button
-            type="button"
-            className={styles.sidebarToggle}
-            aria-label={isSidebarCollapsed ? "展开菜单栏" : "收起菜单栏"}
-            onClick={() => setIsSidebarCollapsed(current => !current)}
-          >
-            {isSidebarCollapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
-          </button>
-        </div>
-
-        <div
-          className={classNames(styles.sidebarSection, {
-            [styles.sidebarSectionCollapsed]: isSidebarCollapsed,
-          })}
-        >
-          {FRONTIS_ADMIN_TABS.map(item => (
+    <div className={styles.adminPage}>
+      <header className={classNames(styles.header, styles.adminHeader)}>
+        <div className={styles.headerLeft}>
+          <div className={styles.employeeHeaderBrand}>
+            <span className={styles.employeeHeaderLogoPlaceholder}>F</span>
+            <span className={styles.employeeHeaderBrandName}>Frontis AI</span>
             <button
-              key={item.key}
               type="button"
-              className={classNames(styles.tabButton, {
-                [styles.isActiveTab]: item.key === activeTabKey,
-                [styles.tabButtonCollapsed]: isSidebarCollapsed,
-              })}
-              onClick={() => handleSelectTab(item.key)}
+              className={styles.employeeHeaderSidebarToggle}
+              aria-label={isSidebarCollapsed ? "展开左侧菜单" : "收起左侧菜单"}
+              onClick={() => setIsSidebarCollapsed(current => !current)}
             >
-              <span className={styles.tabIcon}>{item.icon}</span>
-              <span className={styles.tabLabel}>{item.label}</span>
+              {isSidebarCollapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
             </button>
-          ))}
+          </div>
         </div>
-
-        <div className={styles.sidebarBottom}>
-          <Dropdown menu={{ items: accountMenuItems }} placement="topLeft" trigger={["click"]}>
-            <button
-              type="button"
-              className={classNames(styles.accountTrigger, {
-                [styles.accountTriggerExpanded]: !isSidebarCollapsed,
-              })}
-            >
+        <div className={styles.headerRight}>
+          <AdminNotificationPopover onNavigateToTab={handleSelectTab} />
+          <Dropdown menu={{ items: accountMenuItems }} placement="bottomRight" trigger={["click"]}>
+            <button type="button" className={styles.headerAccountTrigger}>
               <Avatar className={styles.accountAvatar} size={40}>
                 {currentUser ? currentUser.name.slice(0, 1) : "U"}
               </Avatar>
-              <span className={styles.accountName}>{currentUser?.name ?? "未登录"}</span>
+              <span className={styles.headerAccountName}>{currentUser?.name ?? "未登录"}</span>
             </button>
           </Dropdown>
         </div>
-      </aside>
+      </header>
 
-      <main className={styles.main}>
-        <div className={styles.mainPanel}>
-          <div className={classNames(styles.content, styles.featureContent)}>{renderContent()}</div>
-        </div>
-      </main>
+      <div className={styles.adminBody}>
+        <aside
+          className={classNames(styles.adminSidebar, {
+            [styles.adminSidebarCollapsed]: isSidebarCollapsed,
+          })}
+        >
+          <div className={styles.adminSidebarTop}>
+            <button
+              type="button"
+              className={classNames(styles.adminBackButton, {
+                [styles.adminBackButtonCollapsed]: isSidebarCollapsed,
+              })}
+              onClick={handleBackToWorkspace}
+            >
+              <span className={styles.adminBackIcon}>
+                <ArrowLeftOutlined />
+              </span>
+              <span className={styles.adminBackLabel}>返回工作台</span>
+            </button>
+          </div>
+
+          <div
+            className={classNames(styles.adminSidebarSection, {
+              [styles.adminSidebarSectionCollapsed]: isSidebarCollapsed,
+            })}
+          >
+            {FRONTIS_ADMIN_TABS.map(item => (
+              <button
+                key={item.key}
+                type="button"
+                className={classNames(styles.adminNavButton, {
+                  [styles.adminNavButtonActive]: item.key === activeTabKey,
+                  [styles.adminNavButtonCollapsed]: isSidebarCollapsed,
+                })}
+                onClick={() => handleSelectTab(item.key)}
+              >
+                <span className={styles.tabIcon}>{item.icon}</span>
+                <span className={styles.tabLabel}>{item.label}</span>
+              </button>
+            ))}
+          </div>
+        </aside>
+
+        <main className={styles.adminMain}>
+          <div className={classNames(styles.mainPanel, styles.adminMainPanel)}>
+            <div className={classNames(styles.content, styles.featureContent, styles.adminFeatureContent)}>
+              {hasManagementAccess ? (
+                renderContent()
+              ) : (
+                <div className={styles.emptyPanel}>
+                  <h2 className={styles.emptyPanelTitle}>当前账号无管理后台权限</h2>
+                  <p className={styles.emptyPanelDescription}>
+                    普通员工只能使用对话工作台。请使用企业老板或企业管理员账号进入管理后台。
+                  </p>
+                  <button type="button" className={styles.emptyPanelAction} onClick={handleBackToEmployeeWorkspace}>
+                    返回对话工作台
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </main>
+      </div>
     </div>
   );
 };

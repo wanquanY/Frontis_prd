@@ -125,6 +125,8 @@ export interface ChatMessage {
   timeLabel: string;
   attachments?: AttachmentItem[];
   blocks?: Block[];
+  /** 当前轮回复底部展示的猜你想问列表。 */
+  followupSuggestions?: string[];
 }
 
 /**
@@ -242,6 +244,31 @@ export interface DialogueFocusPersonItem {
   tone?: DialogueGeneratedPanelTone;
 }
 
+export interface DialogueDispatchRecipientItem {
+  id: string;
+  name: string;
+  roleLabel: string;
+  channelLabel: string;
+  statusLabel: string;
+  summary: string;
+  note?: string;
+  tone?: DialogueGeneratedPanelTone;
+}
+
+export interface DialogueDispatchConversationItem {
+  id: string;
+  actorLabel: string;
+  summary: string;
+  detail?: string;
+  avatarLabel?: string;
+  direction?: "incoming" | "outgoing" | "system";
+  timeLabel?: string;
+  statusLabel?: string;
+  tagLabel?: string;
+  edited?: boolean;
+  tone?: DialogueGeneratedPanelTone;
+}
+
 interface DialogueGeneratedPanelBase {
   id: string;
   kind:
@@ -250,7 +277,8 @@ interface DialogueGeneratedPanelBase {
     | "redlineDetect"
     | "benchmarkFind"
     | "scoreRank"
-    | "ceoSynthesis";
+    | "ceoSynthesis"
+    | "dispatchExecution";
   title: string;
   subtitle: string;
   skillName: string;
@@ -334,13 +362,26 @@ export interface DialogueCeoSynthesisPanelState extends DialogueGeneratedPanelBa
   };
 }
 
+export interface DialogueDispatchExecutionPanelState extends DialogueGeneratedPanelBase {
+  kind: "dispatchExecution";
+  payload: {
+    summaryMetrics: DialogueGeneratedMetricItem[];
+    dispatchLabel: string;
+    recipients: DialogueDispatchRecipientItem[];
+    conversationItems: DialogueDispatchConversationItem[];
+    messagePreview: string;
+    actionItems: string[];
+  };
+}
+
 export type DialogueGeneratedPanelState =
   | DialogueSequenceOverviewPanelState
   | DialogueEmployeeAssessPanelState
   | DialogueRedlineDetectPanelState
   | DialogueBenchmarkFindPanelState
   | DialogueScoreRankPanelState
-  | DialogueCeoSynthesisPanelState;
+  | DialogueCeoSynthesisPanelState
+  | DialogueDispatchExecutionPanelState;
 
 /**
  * 对话结果卡片项。
@@ -395,7 +436,7 @@ export interface AutomationTaskItem {
 /**
  * FrontisAI Web 端用户角色。
  */
-export type FrontisUserRole = "admin" | "member";
+export type FrontisUserRole = "boss" | "admin" | "member";
 
 /**
  * FrontisAI Web 端用户状态。
@@ -412,6 +453,7 @@ export interface FrontisWebUserItem {
   role: FrontisUserRole;
   status: FrontisUserStatus;
   assignedAgentIds: string[];
+  assignedWorkspaceIds?: string[];
   lastActiveAt: string;
   dialogueCount: number;
   tokenUsage: number;

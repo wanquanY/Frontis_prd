@@ -50,7 +50,10 @@ export const UserManagementView = ({ employees, users }: UserManagementViewProps
     setSelectedUserId(filteredUsers[0].id);
   }, [filteredUsers, selectedUserId]);
 
-  const adminCount = useMemo(() => users.filter(item => item.role === "admin").length, [users]);
+  const adminCount = useMemo(
+    () => users.filter(item => item.role === "boss" || item.role === "admin").length,
+    [users],
+  );
   const disabledCount = useMemo(
     () => users.filter(item => item.status === "disabled").length,
     [users],
@@ -107,7 +110,8 @@ export const UserManagementView = ({ employees, users }: UserManagementViewProps
               className={styles.filterSelect}
               options={[
                 { label: "全部角色", value: "all" },
-                { label: "企业老板", value: "admin" },
+                { label: "企业老板", value: "boss" },
+                { label: "企业管理员", value: "admin" },
                 { label: "普通员工", value: "member" },
               ]}
               value={roleFilter}
@@ -230,6 +234,8 @@ export const UserManagementView = ({ employees, users }: UserManagementViewProps
                       <span className={styles.infoValue}>
                         {selectedUser.role === "admin"
                           ? "可见管理员扩展模块"
+                          : selectedUser.role === "boss"
+                            ? "可见管理员扩展模块"
                           : "仅可见普通用户能力"}
                       </span>
                     </div>

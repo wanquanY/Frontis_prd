@@ -1370,6 +1370,101 @@
   white-space: pre-wrap;
 }
 
+.toolUseContactList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.toolUseContactItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid #eef1f5;
+
+  &:last-child {
+    padding-bottom: 0;
+    border-bottom: none;
+  }
+}
+
+.toolUseContactAvatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: rgba(43, 128, 255, 0.12);
+  color: #2b80ff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 34px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.toolUseContactAvatarGroup {
+  background: rgba(31, 157, 85, 0.12);
+  color: #1f9d55;
+}
+
+.toolUseContactBody {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.toolUseContactNameRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.toolUseContactName {
+  color: @text-primary;
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 600;
+  white-space: normal;
+}
+
+.toolUseContactType,
+.toolUseContactMatch {
+  display: inline-flex;
+  align-items: center;
+  height: 20px;
+  padding: 0 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  line-height: 20px;
+}
+
+.toolUseContactType {
+  background: #f3f6fa;
+  color: #667085;
+}
+
+.toolUseContactMatch {
+  background: rgba(43, 128, 255, 0.1);
+  color: #2b80ff;
+}
+
+.toolUseContactMeta,
+.toolUseContactNote {
+  color: @text-secondary;
+  font-size: 12px;
+  line-height: 18px;
+  white-space: normal;
+}
+
+.toolUseOutputText {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed #e5e7eb;
+}
+
 .toolUseOutputSection {
   display: flex;
   flex-direction: column;

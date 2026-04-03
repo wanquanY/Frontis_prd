@@ -214,10 +214,6 @@ const OPENCLAW_V2_ADMIN_AGENT_IDS = [
   LIVE_BROADCAST_AGENT_DEMO.id,
   XIAOCANMAMA_IP_AGENT_DEMO.id,
   "employee-writer",
-  "employee-pm",
-  "employee-designer",
-  "employee-research",
-  "employee-ops",
 ] as const;
 
 const OPENCLAW_V2_EMPLOYEE_AGENT_IDS = [
@@ -232,10 +228,6 @@ const OPENCLAW_V2_AGENT_ORDER = [
   ECOMMERCE_AUTOMATION_AGENT_DEMO.id,
   LIVE_BROADCAST_AGENT_DEMO.id,
   XIAOCANMAMA_IP_AGENT_DEMO.id,
-  "employee-pm",
-  "employee-designer",
-  "employee-research",
-  "employee-ops",
 ] as const;
 const OPENCLAW_V2_AGENT_ORDER_MAP = new Map<string, number>(
   OPENCLAW_V2_AGENT_ORDER.map((agentId, index) => [agentId, index]),
@@ -856,6 +848,7 @@ const cloneDialogueSession = (session: DialogueSessionItem): DialogueSessionItem
     ...message,
     attachments: message.attachments?.map(attachment => ({ ...attachment })),
     blocks: message.blocks ? JSON.parse(JSON.stringify(message.blocks)) : undefined,
+    followupSuggestions: message.followupSuggestions ? [...message.followupSuggestions] : undefined,
   })),
 });
 

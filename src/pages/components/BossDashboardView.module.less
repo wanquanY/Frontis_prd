@@ -1,648 +1,160 @@
-/* ── Boss Dashboard — Light Theme ── */
-
-.dashboard {
-  min-height: 100%;
-  padding: 24px;
-  display: flex;
-  flex-direction: column;
-  gap: 28px;
-  background: var(--surface);
-}
-
-/* ── Section 1: Greeting Header ── */
-
-.header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 24px;
-}
-
-.greetingTime {
+.dateLine {
+  margin: 0;
+  color: var(--text-secondary);
   font-size: 13px;
+  line-height: 20px;
+}
+
+.summaryLine {
+  margin: 0;
   color: var(--text-secondary);
-  margin-bottom: 6px;
-}
-
-.greetingName {
-  margin: 0;
-  font-size: 28px;
-  line-height: 38px;
-  font-weight: 700;
-  color: var(--text);
-  margin-bottom: 8px;
-}
-
-.greetingSummary {
-  margin: 0;
   font-size: 14px;
-  line-height: 1.7;
-  color: var(--text-secondary);
+  line-height: 22px;
 }
 
 .highlight {
   color: var(--primary);
-  font-weight: 600;
+  font-weight: 700;
 }
 
-.emphasis {
-  color: #16a34a;
-  font-weight: 600;
-}
-
-.headerRight {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex-shrink: 0;
-  margin-top: 6px;
-}
-
-.statusChipOk,
-.statusChipWarn {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  padding: 6px 14px;
-  border: 1px solid color-mix(in srgb, var(--text) 8%, transparent);
-  border-radius: 20px;
-  font-size: 12px;
-  color: var(--text-secondary);
-  white-space: nowrap;
-}
-
-.statusDotOk,
-.statusDotWarn {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-
-.statusDotOk {
-  background: #16a34a;
-  animation: pulseGreen 2s infinite;
-}
-
-.statusDotWarn {
-  background: #e5484d;
-  animation: pulseRed 2s infinite;
-}
-
-@keyframes pulseGreen {
-  0%, 100% { box-shadow: 0 0 3px #16a34a; }
-  50% { box-shadow: 0 0 9px #16a34a; }
-}
-
-@keyframes pulseRed {
-  0%, 100% { box-shadow: 0 0 3px #e5484d; }
-  50% { box-shadow: 0 0 9px #e5484d; }
-}
-
-.notifyButton {
-  position: relative;
-  width: 40px;
-  height: 40px;
-  border: 1px solid color-mix(in srgb, var(--text) 8%, transparent);
-  border-radius: 50%;
-  background: color-mix(in srgb, var(--text) 3%, var(--surface));
-  color: var(--text-secondary);
-  font-size: 16px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  flex-shrink: 0;
-  transition: border-color 180ms ease, background 180ms ease;
-
-  &:hover {
-    border-color: color-mix(in srgb, var(--primary) 28%, var(--border));
-    background: color-mix(in srgb, var(--primary) 6%, var(--surface));
-  }
-}
-
-.notifyDot {
-  position: absolute;
-  top: 7px;
-  right: 7px;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: #e5484d;
-  border: 2px solid var(--surface);
-}
-
-/* ── Shared section layout ── */
-
-.section {
-  display: flex;
-  flex-direction: column;
-}
-
-.sectionLabel {
-  margin: 0 0 14px;
-  font-size: 12px;
-  color: var(--text-secondary);
-  letter-spacing: 1px;
-}
-
-.sectionHeader {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 14px;
-}
-
-.sectionHeaderTitle {
-  margin: 0;
-  font-size: 14px;
-  font-weight: 600;
+.strongText {
   color: var(--text);
+  font-weight: 700;
 }
 
-/* ── Section 2: 运营概览 ── */
-
-.statsGrid {
+.summaryCardGrid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 14px;
 }
 
-.statCard {
+.summaryCard {
   padding: 22px 20px;
   border: 1px solid color-mix(in srgb, var(--text) 8%, transparent);
   border-radius: 14px;
-  background: color-mix(in srgb, var(--surface) 94%, var(--app-bg));
+  background: color-mix(in srgb, var(--surface) 96%, var(--app-bg));
   box-shadow: var(--shadow-sm);
-  transition: border-color 180ms ease, transform 180ms ease;
-
-  &:hover {
-    border-color: color-mix(in srgb, var(--primary) 22%, var(--border));
-    transform: translateY(-2px);
-  }
+  transition:
+    border-color 180ms ease,
+    transform 180ms ease,
+    box-shadow 180ms ease;
 }
 
-.statIcon {
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
+.summaryCard:hover {
+  border-color: color-mix(in srgb, var(--primary) 22%, var(--border));
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+}
+
+.summaryCardHeader {
   display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.summaryCardIcon {
+  width: 38px;
+  height: 38px;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 18px;
-  margin-bottom: 14px;
-
-  &[data-tone="primary"] { background: rgba(0, 193, 212, 0.1); }
-  &[data-tone="purple"] { background: rgba(124, 58, 237, 0.1); }
-  &[data-tone="success"] { background: rgba(22, 163, 74, 0.1); }
-  &[data-tone="amber"] { background: rgba(217, 119, 6, 0.1); }
-}
-
-.statCardLabel {
-  margin: 0 0 6px;
-  font-size: 12px;
-  color: var(--text-secondary);
-}
-
-.statValue {
-  margin: 0 0 6px;
-  font-size: 30px;
-  line-height: 1;
-  font-weight: 800;
-  letter-spacing: -1px;
-
-  &[data-tone="primary"] { color: #00a8ba; }
-  &[data-tone="purple"] { color: #7c3aed; }
-  &[data-tone="success"] { color: #16a34a; }
-  &[data-tone="amber"] { color: #d97706; }
-}
-
-.statUnit {
-  font-size: 15px;
-  font-weight: 500;
-}
-
-.statSub {
-  margin: 0;
-  font-size: 12px;
-  color: var(--text-secondary);
-  line-height: 1.5;
-}
-
-/* ── Section 3: AI 专家团执行状态 ── */
-
-.teamsGrid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 14px;
-}
-
-.teamCard {
-  padding: 22px;
-  border: 1px solid color-mix(in srgb, var(--text) 8%, transparent);
-  border-radius: 14px;
-  background: color-mix(in srgb, var(--surface) 94%, var(--app-bg));
-  box-shadow: var(--shadow-sm);
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
-  transition: border-color 180ms ease;
-
-  &:hover {
-    border-color: color-mix(in srgb, var(--text) 12%, transparent);
-  }
-}
-
-.teamHeader {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-}
-
-.teamNameRow {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.teamAvatar {
-  width: 44px;
-  height: 44px;
   border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 22px;
+  font-size: 18px;
   flex-shrink: 0;
-
-  &[data-tone="primary"] {
-    background: linear-gradient(135deg, rgba(0, 193, 212, 0.15), rgba(0, 193, 212, 0.06));
-  }
-  &[data-tone="success"] {
-    background: linear-gradient(135deg, rgba(22, 163, 74, 0.15), rgba(22, 163, 74, 0.06));
-  }
 }
 
-.teamName {
+.summaryCardIcon[data-tone="primary"] {
+  background: rgba(0, 193, 212, 0.1);
+}
+
+.summaryCardIcon[data-tone="purple"] {
+  background: rgba(124, 58, 237, 0.1);
+}
+
+.summaryCardIcon[data-tone="success"] {
+  background: rgba(22, 163, 74, 0.1);
+}
+
+.summaryCardIcon[data-tone="amber"] {
+  background: rgba(217, 119, 6, 0.1);
+}
+
+.summaryCardIcon[data-tone="warning"] {
+  background: rgba(245, 158, 11, 0.12);
+}
+
+.summaryCardLabel {
   margin: 0;
-  font-size: 15px;
-  font-weight: 700;
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 20px;
+  font-weight: 600;
+}
+
+.summaryCardValue {
+  margin: 0;
+  font-size: 30px;
+  line-height: 1.1;
+  font-weight: 800;
+  letter-spacing: -0.02em;
   color: var(--text);
 }
 
-.teamDesc {
-  margin: 3px 0 0;
-  font-size: 12px;
-  color: var(--text-secondary);
+.summaryCardValue[data-tone="primary"] {
+  color: #00a8ba;
 }
 
-.badgeRunning,
-.badgeIdle {
-  font-size: 11px;
-  padding: 3px 10px;
-  border-radius: 20px;
-  font-weight: 600;
-  white-space: nowrap;
-  flex-shrink: 0;
+.summaryCardValue[data-tone="purple"] {
+  color: #7c3aed;
 }
 
-.badgeRunning {
-  background: rgba(22, 163, 74, 0.1);
+.summaryCardValue[data-tone="success"] {
   color: #16a34a;
 }
 
-.badgeIdle {
-  background: color-mix(in srgb, var(--text) 6%, var(--surface));
-  color: var(--text-secondary);
+.summaryCardValue[data-tone="amber"] {
+  color: #d97706;
 }
 
-.teamStatsRow {
-  display: flex;
-  border-radius: 10px;
-  overflow: hidden;
-  border: 1px solid color-mix(in srgb, var(--text) 8%, transparent);
-  background: color-mix(in srgb, var(--text) 2%, var(--surface));
+.summaryCardValue[data-tone="warning"] {
+  color: #7c3aed;
 }
 
-.teamStat {
-  flex: 1;
-  padding: 12px 0;
-  text-align: center;
-  border-right: 1px solid color-mix(in srgb, var(--text) 8%, transparent);
-
-  &:last-child {
-    border-right: none;
-  }
-}
-
-.teamStatVal {
-  margin: 0;
-  font-size: 22px;
-  font-weight: 800;
-
-  &[data-tone="primary"] { color: #00a8ba; }
-  &[data-tone="purple"] { color: #7c3aed; }
-  &[data-tone="success"] { color: #16a34a; }
-}
-
-.teamStatLbl {
-  margin: 2px 0 0;
-  font-size: 11px;
-  color: var(--text-secondary);
-}
-
-.expertsTitle {
-  margin: 0 0 10px;
-  font-size: 12px;
-  color: var(--text-secondary);
-}
-
-.expertsDots {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.expertChip {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  padding: 5px 12px;
-  border: 1px solid color-mix(in srgb, var(--text) 8%, transparent);
-  border-radius: 20px;
-  background: color-mix(in srgb, var(--text) 2%, var(--surface));
-  font-size: 12px;
+.tableMainText {
   color: var(--text);
-  transition: border-color 180ms ease;
-
-  &:hover {
-    border-color: color-mix(in srgb, var(--primary) 28%, var(--border));
-  }
+  font-size: 14px;
+  line-height: 22px;
+  font-weight: 700;
 }
 
-.chipDot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  flex-shrink: 0;
-
-  &[data-status="online"] {
-    background: #16a34a;
-    animation: pulseGreen 2s infinite;
-  }
-  &[data-status="waiting"] {
-    background: #3e93d6;
-    animation: pulseBlue 2.5s infinite;
-  }
-  &[data-status="paused"] {
-    background: #94a3b8;
-  }
-}
-
-@keyframes pulseBlue {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.5; transform: scale(1.3); }
-}
-
-.collabSection {
-  border-top: 1px solid color-mix(in srgb, var(--text) 8%, transparent);
-  padding-top: 14px;
-}
-
-.collabTitle {
-  margin: 0 0 10px;
+.tableSubText {
+  margin-top: 2px;
+  color: var(--text-secondary);
   font-size: 12px;
-  color: var(--text-secondary);
+  line-height: 18px;
 }
 
-.collabRow {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.collabInfo {
-  margin: 0;
-  font-size: 13px;
-  color: var(--text-secondary);
-
-  strong {
-    color: var(--primary);
-    font-weight: 600;
-  }
-}
-
-.collabAvatars {
-  display: flex;
-  align-items: center;
-}
-
-.collabAv {
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  border: 2px solid var(--surface);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 11px;
-  font-weight: 700;
-  margin-left: -7px;
-  cursor: default;
-  transition: transform 150ms ease;
-
-  &:first-child {
-    margin-left: 0;
-  }
-
-  &:hover {
-    transform: translateY(-3px);
-    z-index: 1;
-  }
-}
-
-.collabAvMore {
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  border: 2px solid var(--surface);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 10px;
-  font-weight: 700;
-  margin-left: -7px;
-  background: color-mix(in srgb, var(--text) 6%, var(--surface));
-  color: var(--text-secondary);
-}
-
-/* ── Section 4: AI 专家最新动态 ── */
-
-.activityWrap {
-  padding: 20px 22px;
-  border: 1px solid color-mix(in srgb, var(--text) 8%, transparent);
-  border-radius: 14px;
-  background: color-mix(in srgb, var(--surface) 94%, var(--app-bg));
-  box-shadow: var(--shadow-sm);
-}
-
-.activityItem {
-  display: flex;
-  align-items: flex-start;
-  gap: 14px;
-  padding: 14px 0;
-  border-bottom: 1px solid color-mix(in srgb, var(--text) 6%, transparent);
-  transition: background 150ms ease, border-radius 150ms ease;
-
-  &:last-child {
-    border-bottom: none;
-    padding-bottom: 0;
-  }
-
-  &:first-child {
-    padding-top: 0;
-  }
-
-  &:hover {
-    background: color-mix(in srgb, var(--text) 2%, var(--surface));
-    border-radius: 8px;
-    padding-left: 8px;
-    padding-right: 8px;
-    margin-left: -8px;
-    margin-right: -8px;
-  }
-}
-
-.activityTimeCol {
-  flex-shrink: 0;
-  width: 42px;
-  text-align: right;
-  padding-top: 2px;
-}
-
-.activityTime {
-  font-size: 11px;
-  color: var(--text-secondary);
-}
-
-.activityAvatar {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  flex-shrink: 0;
-  background: color-mix(in srgb, var(--primary) 8%, var(--surface));
-}
-
-.activityAvatarFallback {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 15px;
-  background: color-mix(in srgb, var(--primary) 8%, var(--surface));
-  color: var(--primary);
-}
-
-.activityContent {
-  flex: 1;
-  min-width: 0;
-}
-
-.activityAgent {
-  margin: 0 0 3px;
-  font-size: 11px;
-  color: var(--text-secondary);
-}
-
-.activityText {
-  margin: 0;
-  font-size: 13px;
-  color: var(--text);
-  line-height: 1.6;
-
-  strong {
-    font-weight: 600;
-
-    &[data-tone="primary"] { color: var(--primary); }
-    &[data-tone="success"] { color: #16a34a; }
-    &[data-tone="danger"] { color: #e5484d; }
-  }
-}
-
-.activityTag {
-  display: inline-block;
-  font-size: 11px;
-  padding: 1px 8px;
-  border-radius: 10px;
+.timelineTagWrap {
   margin-left: 8px;
+  display: inline-flex;
   vertical-align: middle;
-  font-weight: 600;
-
-  &[data-tone="warn"] {
-    background: rgba(217, 119, 6, 0.1);
-    color: #d97706;
-  }
-  &[data-tone="done"] {
-    background: rgba(22, 163, 74, 0.1);
-    color: #16a34a;
-  }
-  &[data-tone="alert"] {
-    background: rgba(229, 72, 77, 0.1);
-    color: #e5484d;
-  }
 }
 
-/* ── Responsive ── */
-
-@media (max-width: 1280px) {
-  .statsGrid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+@media (max-width: 1440px) {
+  .summaryCardGrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 
 @media (max-width: 960px) {
-  .dashboard {
-    padding: 16px;
-    gap: 22px;
-  }
-
-  .header {
-    flex-direction: column;
-  }
-
-  .headerRight {
-    margin-top: 0;
-  }
-
-  .greetingName {
-    font-size: 24px;
-    line-height: 34px;
-  }
-
-  .statsGrid {
+  .summaryCardGrid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .teamsGrid {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .collabRow {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 8px;
   }
 }
 
 @media (max-width: 640px) {
-  .statsGrid {
+  .summaryCardGrid {
     grid-template-columns: minmax(0, 1fr);
-  }
-
-  .statValue {
-    font-size: 26px;
   }
 }

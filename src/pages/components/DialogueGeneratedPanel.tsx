@@ -19,6 +19,7 @@ import type {
   DialogueBenchmarkFindPanelState,
   DialogueBenchmarkPersonItem,
   DialogueCeoSynthesisPanelState,
+  DialogueDispatchExecutionPanelState,
   DialogueDimensionScoreItem,
   DialogueEmployeeAssessPanelState,
   DialogueFocusPersonItem,
@@ -900,6 +901,121 @@ const renderCeoSynthesis = (panel: DialogueCeoSynthesisPanelState): JSX.Element 
   );
 };
 
+const renderDispatchExecution = (panel: DialogueDispatchExecutionPanelState): JSX.Element => {
+  const isGroupConversation = panel.payload.recipients.length > 1;
+  const primaryRecipient = panel.payload.recipients[0];
+  const headerTitle = isGroupConversation ? "今日经营收口群" : primaryRecipient?.name ?? "飞书会话";
+  const headerSubtitle = isGroupConversation
+    ? `${panel.payload.recipients.map(item => item.name).join("、")} · 近两天消息`
+    : `${primaryRecipient?.roleLabel ?? "负责人"} · 近两天消息`;
+
+  return (
+    <div className={styles.dispatchPanelPage}>
+      <div className={styles.dispatchChatSurface}>
+        <div className={styles.dispatchChatHeader}>
+          <div className={styles.dispatchChatHeaderMain}>
+            <span className={styles.dispatchChatHeaderAvatar}>
+              {isGroupConversation ? "群" : primaryRecipient?.name.slice(0, 1)}
+            </span>
+            <div>
+              <div className={styles.dispatchChatHeaderTitle}>{headerTitle}</div>
+              <div className={styles.dispatchChatHeaderSubtitle}>{headerSubtitle}</div>
+            </div>
+          </div>
+          <span className={styles.dispatchChatHeaderStatus}>
+            {panel.status === "running" ? "发送中" : "已同步"}
+          </span>
+        </div>
+
+        <div className={styles.dispatchConversationList}>
+          {panel.payload.conversationItems.map(item => {
+            if (item.direction === "system") {
+              return (
+                <div key={item.id} className={styles.dispatchChatSystemRow}>
+                  <span className={styles.dispatchChatSystemBadge}>{item.summary}</span>
+                </div>
+              );
+            }
+
+            const isOutgoing = item.direction !== "incoming";
+
+            return (
+              <div
+                key={item.id}
+                className={classNames(styles.dispatchChatMessageRow, {
+                  [styles.dispatchChatMessageRowOutgoing]: isOutgoing,
+                })}
+              >
+                {!isOutgoing ? (
+                  <span className={styles.dispatchChatMessageAvatar}>
+                    {item.avatarLabel ?? item.actorLabel.slice(0, 1)}
+                  </span>
+                ) : null}
+
+                <div
+                  className={classNames(styles.dispatchChatMessageMain, {
+                    [styles.dispatchChatMessageMainOutgoing]: isOutgoing,
+                  })}
+                >
+                  <div
+                    className={classNames(styles.dispatchChatMessageMeta, {
+                      [styles.dispatchChatMessageMetaOutgoing]: isOutgoing,
+                    })}
+                  >
+                    <span className={styles.dispatchChatMessageName}>{item.actorLabel}</span>
+                    {item.tagLabel ? (
+                      <span className={styles.dispatchChatMessageTag}>{item.tagLabel}</span>
+                    ) : null}
+                  </div>
+
+                  <article
+                    className={classNames(styles.dispatchChatMessageBubble, {
+                      [styles.dispatchChatMessageBubbleOutgoing]: isOutgoing,
+                      [styles.dispatchChatMessageBubbleIncoming]: !isOutgoing,
+                    })}
+                  >
+                    <div className={styles.dispatchChatMessageText}>{item.summary}</div>
+                    {item.detail ? (
+                      <div className={styles.dispatchChatMessageDetail}>{item.detail}</div>
+                    ) : null}
+                  </article>
+
+                  <div
+                    className={classNames(styles.dispatchChatMessageFoot, {
+                      [styles.dispatchChatMessageFootOutgoing]: isOutgoing,
+                    })}
+                  >
+                    {item.timeLabel ? (
+                      <span className={styles.dispatchChatMessageTime}>{item.timeLabel}</span>
+                    ) : null}
+                    {item.edited ? (
+                      <span className={styles.dispatchChatMessageEdited}>已编辑</span>
+                    ) : null}
+                    {item.statusLabel ? (
+                      <span className={styles.dispatchChatMessageStatus}>{item.statusLabel}</span>
+                    ) : null}
+                  </div>
+                </div>
+
+                {isOutgoing ? (
+                  <span
+                    className={classNames(
+                      styles.dispatchChatMessageAvatar,
+                      styles.dispatchChatMessageAvatarOutgoing,
+                    )}
+                  >
+                    {item.avatarLabel ?? item.actorLabel.slice(0, 1)}
+                  </span>
+                ) : null}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const renderPanelBody = (
   panel: DialogueGeneratedPanelState,
   onClose?: () => void,
@@ -918,6 +1034,9 @@ const renderPanelBody = (
   }
   if (panel.kind === "scoreRank") {
     return renderScoreRank(panel);
+  }
+  if (panel.kind === "dispatchExecution") {
+    return renderDispatchExecution(panel);
   }
   return renderCeoSynthesis(panel);
 };

@@ -32,6 +32,7 @@ const normalizePhone = (phone: string): string => phone.replace(/\s+/g, "").trim
 export const MOCK_AUTH_ACCOUNTS: MockAuthAccount[] = [
   buildMockAccount("user-member-001", "employee", "普通用户", "123456"),
   buildMockAccount("user-admin-001", "admin", "企业老板", "123456"),
+  buildMockAccount("user-admin-002", "admin", "企业管理员", "123456"),
 ];
 
 /**

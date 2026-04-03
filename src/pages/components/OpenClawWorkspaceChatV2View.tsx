@@ -151,7 +151,6 @@ type OpenClawSidePanelMode = "artifacts" | "results" | null;
  * OpenClaw Tauri 客户端的会话壳布局。
  */
 export const OpenClawWorkspaceChatV2View = ({
-  viewRole,
   currentUser,
   employees,
   initialSessions,
@@ -204,14 +203,9 @@ export const OpenClawWorkspaceChatV2View = ({
   );
 
   const conversationEmployees = useMemo(() => {
-    if (viewRole === "admin") {
-      return employees;
-    }
-
     const assignedAgentIds = new Set(currentUser?.assignedAgentIds ?? []);
-
     return employees.filter(item => assignedAgentIds.has(item.id));
-  }, [currentUser?.assignedAgentIds, employees, viewRole]);
+  }, [currentUser?.assignedAgentIds, employees]);
 
   const activeEmployee = useMemo(
     () =>
@@ -239,7 +233,17 @@ export const OpenClawWorkspaceChatV2View = ({
     );
   }, [activeDialogueSessionId, employeeDialogueSessions, isDialogueHomeActive]);
 
-  const dialogueMessages = activeDialogueSession?.messages ?? [];
+  const dialogueMessages = useMemo(
+    () => activeDialogueSession?.messages ?? [],
+    [activeDialogueSession],
+  );
+  const dialogueFollowupSuggestions = useMemo(() => {
+    const lastMessage = dialogueMessages[dialogueMessages.length - 1];
+    if (!lastMessage || lastMessage.role !== "assistant") {
+      return [];
+    }
+    return lastMessage.followupSuggestions ?? [];
+  }, [dialogueMessages]);
   const activeDialogueArtifacts = useMemo(
     () => (activeDialogueSession ? (dialogueArtifactsBySession[activeDialogueSession.id] ?? []) : []),
     [activeDialogueSession, dialogueArtifactsBySession],
@@ -932,6 +936,7 @@ export const OpenClawWorkspaceChatV2View = ({
               content: firstFrame.preview,
               timeLabel: "刚刚",
               blocks: firstFrame.blocks,
+              followupSuggestions: firstFrame.followupSuggestions,
             },
           ],
         }));
@@ -958,6 +963,7 @@ export const OpenClawWorkspaceChatV2View = ({
                       content: frame.preview,
                       timeLabel: "刚刚",
                       blocks: frame.blocks,
+                      followupSuggestions: frame.followupSuggestions,
                     }
                   : message,
               ),
@@ -1436,6 +1442,7 @@ export const OpenClawWorkspaceChatV2View = ({
                     <WorkspaceChatPanel
                       blocks={chatBlocks}
                       messages={chatMessages}
+                      followupSuggestions={dialogueFollowupSuggestions}
                       actorAvatars={dialogueActorAvatars}
                       currentSessionId={activeDialogueSession?.id ?? activeEmployee.id}
                       isStreaming={isDialogueResponding}
@@ -1443,6 +1450,7 @@ export const OpenClawWorkspaceChatV2View = ({
                       assistantAvatarAlt={activeEmployee.name}
                       workspaceSummary={activeEmployee.summary}
                       greeting="输入消息或上传文件，开始协作"
+                      onFollowupClick={handleSendDialogueHomePrompt}
                       onOpenArtifact={block => {
                         const blockData =
                           block.data && typeof block.data === "object"

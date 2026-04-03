@@ -135,6 +135,17 @@
   flex-direction: column;
 }
 
+.dispatchPanelPage {
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  background:
+    radial-gradient(circle at top right, rgba(220, 232, 255, 0.38), transparent 28%),
+    linear-gradient(180deg, #f8f9fc 0%, #f2f4f8 100%);
+  overflow: hidden;
+}
+
 .mockTopbar {
   min-height: 62px;
   padding: 0 24px;
@@ -511,6 +522,315 @@
   margin-top: auto;
   padding-top: 14px;
   border-top: 1px solid var(--result-border);
+}
+
+.dispatchSurface {
+  padding: 20px;
+  border: 1px solid var(--result-border);
+  border-radius: 18px;
+  background: var(--result-surface);
+  box-shadow: var(--result-shadow);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.dispatchSectionTitle {
+  color: var(--result-text);
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 700;
+}
+
+.dispatchRecipientList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.dispatchConversationList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.dispatchRecipientCard {
+  padding: 16px;
+  border: 1px solid var(--result-border);
+  border-radius: 16px;
+  background: var(--result-surface-soft);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.dispatchRecipientHeader,
+.dispatchRecipientNameRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.dispatchRecipientName {
+  margin: 0;
+  color: var(--result-text);
+  font-size: 15px;
+  line-height: 22px;
+  font-weight: 700;
+}
+
+.dispatchRecipientMeta,
+.dispatchRecipientNote,
+.dispatchActionItem {
+  color: var(--result-text-secondary);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.dispatchRecipientSummary {
+  color: var(--result-text);
+  font-size: 13px;
+  line-height: 20px;
+  font-weight: 600;
+}
+
+.dispatchChatSurface {
+  height: 100%;
+  min-height: 0;
+  background: transparent;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.dispatchChatHeader {
+  min-height: 72px;
+  padding: 0 108px 0 24px;
+  border-bottom: 1px solid rgba(205, 211, 223, 0.7);
+  background: rgba(255, 255, 255, 0.86);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  backdrop-filter: blur(10px);
+}
+
+.dispatchChatHeaderMain {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.dispatchChatHeaderAvatar,
+.dispatchChatMessageAvatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: #dfe8ff;
+  color: #336dff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 700;
+  flex: 0 0 auto;
+}
+
+.dispatchChatHeaderTitle {
+  color: var(--result-text);
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 700;
+}
+
+.dispatchChatHeaderSubtitle {
+  color: var(--result-text-secondary);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.dispatchChatHeaderStatus {
+  min-height: 24px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: #eaf3ff;
+  color: #3772ff;
+  display: inline-flex;
+  align-items: center;
+  font-size: 11px;
+  line-height: 16px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.dispatchConversationList {
+  flex: 1;
+  min-height: 0;
+  padding: 20px 24px 28px;
+  overflow-y: auto;
+  background:
+    radial-gradient(circle at top right, rgba(220, 232, 255, 0.32), transparent 34%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.95) 0%, rgba(246, 247, 251, 0.96) 100%);
+}
+
+.dispatchChatSystemRow {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 6px;
+}
+
+.dispatchChatSystemBadge {
+  min-height: 24px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: rgba(211, 216, 225, 0.8);
+  color: #6d7483;
+  display: inline-flex;
+  align-items: center;
+  font-size: 11px;
+  line-height: 16px;
+  font-weight: 600;
+}
+
+.dispatchChatMessageRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.dispatchChatMessageRow + .dispatchChatMessageRow {
+  margin-top: 12px;
+}
+
+.dispatchChatMessageRowOutgoing {
+  justify-content: flex-end;
+}
+
+.dispatchChatMessageAvatarOutgoing {
+  background: #ffe1ed;
+  color: var(--result-brand);
+}
+
+.dispatchChatMessageMain {
+  max-width: 82%;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.dispatchChatMessageMainOutgoing {
+  align-items: flex-end;
+}
+
+.dispatchChatMessageMeta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.dispatchChatMessageMetaOutgoing {
+  justify-content: flex-end;
+}
+
+.dispatchChatMessageName {
+  color: #636b7a;
+  font-size: 12px;
+  line-height: 18px;
+  font-weight: 700;
+}
+
+.dispatchChatMessageTag {
+  min-height: 20px;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: #eef2f7;
+  color: #6e7786;
+  display: inline-flex;
+  align-items: center;
+  font-size: 11px;
+  line-height: 16px;
+}
+
+.dispatchChatMessageBubble {
+  max-width: 100%;
+  padding: 12px 14px;
+  border-radius: 16px;
+  box-shadow: 0 8px 18px rgba(38, 50, 74, 0.06);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.dispatchChatMessageBubbleIncoming {
+  border-top-left-radius: 6px;
+  background: #ffffff;
+}
+
+.dispatchChatMessageBubbleOutgoing {
+  border-top-right-radius: 6px;
+  background: #cfe4ff;
+}
+
+.dispatchChatMessageText {
+  color: var(--result-text);
+  font-size: 13px;
+  line-height: 21px;
+  font-weight: 600;
+}
+
+.dispatchChatMessageDetail {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed rgba(87, 103, 134, 0.2);
+  color: #6f7785;
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.dispatchChatMessageFoot {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #8a93a3;
+  font-size: 11px;
+  line-height: 16px;
+}
+
+.dispatchChatMessageFootOutgoing {
+  justify-content: flex-end;
+}
+
+.dispatchChatMessageTime {
+  color: #8a93a3;
+}
+
+.dispatchChatMessageEdited,
+.dispatchChatMessageStatus {
+  color: #7c8493;
+}
+
+.dispatchPreview {
+  margin: 0;
+  padding: 16px;
+  border-radius: 16px;
+  background: var(--result-surface-soft);
+  color: var(--result-text);
+  font-size: 13px;
+  line-height: 21px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.dispatchActionList {
+  margin: 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 .sequenceBoardMeta {
@@ -1571,6 +1891,14 @@
 
   .mockPageBody {
     padding: 18px 16px;
+  }
+
+  .dispatchChatHeader {
+    padding: 0 84px 0 16px;
+  }
+
+  .dispatchConversationList {
+    padding: 16px;
   }
 
   .ceoHeroMetaRow,

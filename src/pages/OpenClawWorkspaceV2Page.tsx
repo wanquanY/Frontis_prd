@@ -38,6 +38,8 @@ interface OpenClawWorkspaceV2PageProps {
   viewRole: FrontisWebRole;
 }
 
+const MANAGEMENT_USER_ROLES = new Set(["boss", "admin"]);
+
 interface OpenClawNavItem {
   key: OpenClawV2Section;
   label: string;
@@ -103,7 +105,11 @@ const OpenClawWorkspaceV2Page = ({
   const currentUser = useMemo(
     () =>
       users.find(item => item.id === session?.userId) ??
-      users.find(item => item.role === (viewRole === "admin" ? "admin" : "member")) ??
+      (viewRole === "admin"
+        ? users.find(item => MANAGEMENT_USER_ROLES.has(item.role) && item.status === "active") ??
+          users.find(item => MANAGEMENT_USER_ROLES.has(item.role))
+        : users.find(item => item.role === "member" && item.status === "active") ??
+          users.find(item => item.role === "member")) ??
       null,
     [session?.userId, users, viewRole],
   );
@@ -125,21 +131,16 @@ const OpenClawWorkspaceV2Page = ({
   }, [logout, navigate]);
 
   const handleOpenManagementPortal = useCallback((): void => {
-    const targetUrl = new URL(getAdminManagementPath("v2"), window.location.origin).toString();
-    const openedWindow = window.open(targetUrl, "_blank", "noopener,noreferrer");
-
-    if (!openedWindow) {
-      message.warning("浏览器拦截了新窗口，请允许弹窗后重试。");
-    }
-  }, []);
+    navigate(getAdminManagementPath("v2"));
+  }, [navigate]);
 
   const accountMenuItems: MenuProps["items"] = [
-    ...(viewRole === "admin"
+    ...(currentUser && MANAGEMENT_USER_ROLES.has(currentUser.role)
       ? [
           {
             key: "management",
             icon: <AppstoreOutlined />,
-            label: "企业管理",
+            label: "管理后台",
             onClick: handleOpenManagementPortal,
           },
         ]

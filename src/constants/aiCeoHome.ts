@@ -11,6 +11,13 @@ import {
   XIAOCANMAMA_IP_AGENT_DEMO,
   XIAOCANMAMA_IP_SKILL_DEMOS,
 } from "@/constants/xiaocanMamaIpDemo";
+import benchmarkProductionCover from "@/assets/images/aiCeoScenarioOutputs/benchmark-production-page.png";
+import ceoChatDrawerCover from "@/assets/images/aiCeoScenarioOutputs/ceo-chat-drawer.png";
+import employeeAssessCover from "@/assets/images/aiCeoScenarioOutputs/employee-assess-wangjianguo.png";
+import redlineWarningCover from "@/assets/images/aiCeoScenarioOutputs/redline-warning-panel.png";
+import scoreRankFullListCover from "@/assets/images/aiCeoScenarioOutputs/score-rank-full-list.png";
+import scoreRankOverviewCover from "@/assets/images/aiCeoScenarioOutputs/score-rank-overview.png";
+import sequenceOverviewCover from "@/assets/images/aiCeoScenarioOutputs/sequence-overview-page.png";
 
 /**
  * AI CEO 首页快捷问题定义。
@@ -20,6 +27,35 @@ import {
 export interface AiCeoHomePromptItem {
   id: string;
   question: string;
+}
+
+/**
+ * AI CEO 首页案例回放消息角色。
+ */
+export type AiCeoHomeReplayRole = "user" | "assistant" | "system";
+
+/**
+ * AI CEO 首页案例回放消息。
+ */
+export interface AiCeoHomeReplayMessage {
+  id: string;
+  role: AiCeoHomeReplayRole;
+  actor: string;
+  content: string;
+  delayMs?: number;
+}
+
+/**
+ * AI CEO 首页案例卡片。
+ */
+export interface AiCeoHomeCaseItem {
+  id: string;
+  scene: string;
+  title: string;
+  summary: string;
+  coverImage?: string;
+  replayScenarioQuestion?: string;
+  messages: AiCeoHomeReplayMessage[];
 }
 
 /**
@@ -53,7 +89,353 @@ export interface AiCeoAgentHomeConfig {
   intro: string;
   skillItems: AiCeoHomeSkillItem[];
   promptItems: AiCeoHomePromptItem[];
+  guideLabel?: string;
+  guideTitle?: string;
+  guideItems?: string[];
+  caseItems?: AiCeoHomeCaseItem[];
 }
+
+/**
+ * 按设备生成默认 Agent 时使用的首页配置 ID。
+ */
+export const WORKSPACE_DEFAULT_AGENT_CONFIG_IDS = {
+  "workspace-cloud": "workspace-default-agent-workspace-cloud",
+  "workspace-local": "workspace-default-agent-workspace-local",
+  "workspace-local-sh": "workspace-default-agent-workspace-local-sh",
+  "workspace-local-bj": "workspace-default-agent-workspace-local-bj",
+} as const;
+
+const buildReplayCase = (
+  id: string,
+  scene: string,
+  title: string,
+  summary: string,
+  messages: AiCeoHomeReplayMessage[],
+  coverImage?: string,
+  replayScenarioQuestion?: string,
+): AiCeoHomeCaseItem => ({
+  id,
+  scene,
+  title,
+  summary,
+  coverImage,
+  replayScenarioQuestion,
+  messages,
+});
+
+const CEO_HOME_CASES: AiCeoHomeCaseItem[] = [
+  buildReplayCase(
+    "ceo-case-dispatch",
+    "飞书代发",
+    "老板确认后直接代发收口任务",
+    "先完成经营判断，再把老板确认过的动作口径发给负责人。",
+    [
+      {
+        id: "ceo-case-dispatch-1",
+        role: "user",
+        actor: "老板",
+        content: "管理和销售这两条线今天该怎么收口？",
+        delayMs: 280,
+      },
+      {
+        id: "ceo-case-dispatch-2",
+        role: "assistant",
+        actor: "CEO分身",
+        content:
+          "管理序列先拆 6 个预警来源，销售序列先拉关注区名单，底线问题和连续下滑分开处理。",
+        delayMs: 760,
+      },
+      {
+        id: "ceo-case-dispatch-3",
+        role: "user",
+        actor: "老板",
+        content: "把这段发给负责人。",
+        delayMs: 360,
+      },
+      {
+        id: "ceo-case-dispatch-4",
+        role: "system",
+        actor: "系统",
+        content: "已查询飞书通讯录，锁定陈峰和刘敏。",
+        delayMs: 520,
+      },
+      {
+        id: "ceo-case-dispatch-5",
+        role: "assistant",
+        actor: "CEO分身",
+        content:
+          "已分别发出，并带上回执要求：管理序列 12:00 前，销售序列 17:00 前。",
+        delayMs: 900,
+      },
+    ],
+    ceoChatDrawerCover,
+    "管理和销售这两条线今天该怎么收口？",
+  ),
+  buildReplayCase(
+    "ceo-case-risk",
+    "风险追问",
+    "先看风险，再决定要不要约谈",
+    "老板问风险时，先看证据和级别，再给今天就能执行的动作。",
+    [
+      {
+        id: "ceo-case-risk-1",
+        role: "user",
+        actor: "老板",
+        content: "小张最近有没有触碰红线？",
+        delayMs: 280,
+      },
+      {
+        id: "ceo-case-risk-2",
+        role: "system",
+        actor: "系统",
+        content: "正在拉取最近一周的红黄灯事件和品质安全记录。",
+        delayMs: 480,
+      },
+      {
+        id: "ceo-case-risk-3",
+        role: "assistant",
+        actor: "CEO分身",
+        content:
+          "有风险苗头，但还没到正式红线。我建议今天先约谈，重点核查两次异常处置里的判断逻辑。",
+        delayMs: 880,
+      },
+    ],
+    redlineWarningCover,
+    "小张最近有没有触碰红线？",
+  ),
+];
+
+const CLOUD_WORKSPACE_CASES: AiCeoHomeCaseItem[] = [
+  buildReplayCase(
+    "cloud-case-task",
+    "任务下发",
+    "把会议结论拆成负责人任务",
+    "适合把文档、纪要和待办拆到具体负责人。",
+    [
+      {
+        id: "cloud-case-task-1",
+        role: "user",
+        actor: "你",
+        content: "把这份周会纪要整理成待办，并发给项目负责人。",
+        delayMs: 280,
+      },
+      {
+        id: "cloud-case-task-2",
+        role: "system",
+        actor: "系统",
+        content: "默认Agent 已解析纪要中的负责人、截止时间和风险项。",
+        delayMs: 560,
+      },
+      {
+        id: "cloud-case-task-3",
+        role: "assistant",
+        actor: "产研协作工作站默认Agent",
+        content:
+          "我已经拆成 3 条待办，并生成了可直接发送给项目负责人的任务口径，是否直接代发？",
+        delayMs: 920,
+      },
+      {
+        id: "cloud-case-task-4",
+        role: "user",
+        actor: "你",
+        content: "直接发，并把风险项单独标出来。",
+        delayMs: 360,
+      },
+      {
+        id: "cloud-case-task-5",
+        role: "assistant",
+        actor: "产研协作工作站默认Agent",
+        content: "已发出，同时把阻塞风险单独挂在消息底部，方便负责人直接回执。",
+        delayMs: 820,
+      },
+    ],
+    sequenceOverviewCover,
+  ),
+  buildReplayCase(
+    "cloud-case-summary",
+    "资料整理",
+    "先整理，再给老板一版结论",
+    "适合把多份材料压成一段可直接汇报的摘要。",
+    [
+      {
+        id: "cloud-case-summary-1",
+        role: "user",
+        actor: "你",
+        content: "把客户回访记录、售后表和日报压成一段晨会摘要。",
+        delayMs: 320,
+      },
+      {
+        id: "cloud-case-summary-2",
+        role: "system",
+        actor: "系统",
+        content: "正在比对日报、回访记录和售后表中的高频问题。",
+        delayMs: 560,
+      },
+      {
+        id: "cloud-case-summary-3",
+        role: "assistant",
+        actor: "产研协作工作站默认Agent",
+        content:
+          "我已经压成 3 句：一个主结论、两个风险点、一个今天要跟进的动作，老板可以直接复述。",
+        delayMs: 860,
+      },
+    ],
+    benchmarkProductionCover,
+  ),
+];
+
+const SALES_WORKSPACE_CASES: AiCeoHomeCaseItem[] = [
+  buildReplayCase(
+    "sales-case-send",
+    "任务下发",
+    "销量异常先拆动作，再代发给负责人",
+    "适合销售日报、经营异常、负责人跟进这类动作闭环。",
+    [
+      {
+        id: "sales-case-send-1",
+        role: "user",
+        actor: "你",
+        content: "把今天销量异常和收口动作发给销售负责人。",
+        delayMs: 280,
+      },
+      {
+        id: "sales-case-send-2",
+        role: "system",
+        actor: "系统",
+        content: "默认Agent 已读取设备里的销售日报和关注区名单。",
+        delayMs: 540,
+      },
+      {
+        id: "sales-case-send-3",
+        role: "assistant",
+        actor: "销售增长工作站默认Agent",
+        content:
+          "我已经整理出一版任务口径：先拉关注区名单，再把连续下滑和底线问题分开处理，要我直接发吗？",
+        delayMs: 900,
+      },
+      {
+        id: "sales-case-send-4",
+        role: "user",
+        actor: "你",
+        content: "直接发，要求 17:00 前回执。",
+        delayMs: 360,
+      },
+      {
+        id: "sales-case-send-5",
+        role: "assistant",
+        actor: "销售增长工作站默认Agent",
+        content: "已发给销售负责人，并加上 17:00 回执要求和未回执提醒。",
+        delayMs: 860,
+      },
+    ],
+    scoreRankOverviewCover,
+  ),
+  buildReplayCase(
+    "sales-case-recap",
+    "日报整理",
+    "把一整天的经营数据压成老板口径",
+    "适合先看盘面，再出一段经营快照。",
+    [
+      {
+        id: "sales-case-recap-1",
+        role: "user",
+        actor: "你",
+        content: "把今天的日报压成一段老板能直接听的经营口径。",
+        delayMs: 280,
+      },
+      {
+        id: "sales-case-recap-2",
+        role: "system",
+        actor: "系统",
+        content: "正在按 GMV、退款、关注区和活动转化重新聚合数据。",
+        delayMs: 520,
+      },
+      {
+        id: "sales-case-recap-3",
+        role: "assistant",
+        actor: "销售增长工作站默认Agent",
+        content: "我已经压缩成一段 90 秒汇报口径，并把高风险 SKU 单独列出来了。",
+        delayMs: 860,
+      },
+    ],
+    scoreRankFullListCover,
+  ),
+];
+
+const STORE_WORKSPACE_CASES: AiCeoHomeCaseItem[] = [
+  buildReplayCase(
+    "store-case-shift",
+    "门店协同",
+    "把门店异常直接发给店长和当班负责人",
+    "适合本地盒子里已经沉淀的客流、排班、库存数据。",
+    [
+      {
+        id: "store-case-shift-1",
+        role: "user",
+        actor: "你",
+        content: "把今天客流下滑和库存预警发给店长。",
+        delayMs: 260,
+      },
+      {
+        id: "store-case-shift-2",
+        role: "system",
+        actor: "系统",
+        content: "默认Agent 已读取门店客流、库存和当班排班记录。",
+        delayMs: 520,
+      },
+      {
+        id: "store-case-shift-3",
+        role: "assistant",
+        actor: "上海门店本地盒子默认Agent",
+        content:
+          "我已经整理出一版店长口径：先补货，再调整午后排班，同时关注收银台等待时长。是否直接发送？",
+        delayMs: 860,
+      },
+      {
+        id: "store-case-shift-4",
+        role: "assistant",
+        actor: "上海门店本地盒子默认Agent",
+        content: "已发出，并把今日 18:00 的二次复盘提醒一起挂上了。",
+        delayMs: 780,
+      },
+    ],
+    benchmarkProductionCover,
+  ),
+];
+
+const HQ_WORKSPACE_CASES: AiCeoHomeCaseItem[] = [
+  buildReplayCase(
+    "hq-case-offline",
+    "离线预演",
+    "设备没在线，也能先预演任务流程",
+    "适合在设备离线时先确认消息口径和处理节奏。",
+    [
+      {
+        id: "hq-case-offline-1",
+        role: "user",
+        actor: "你",
+        content: "设备还没恢复，先帮我把总部日报催办口径整理一下。",
+        delayMs: 260,
+      },
+      {
+        id: "hq-case-offline-2",
+        role: "system",
+        actor: "系统",
+        content: "北京总部本地盒子当前离线，已切到离线预演模式。",
+        delayMs: 520,
+      },
+      {
+        id: "hq-case-offline-3",
+        role: "assistant",
+        actor: "北京总部本地盒子默认Agent",
+        content:
+          "我先给你一版可直接发送的催办口径，等设备恢复后可以一键套用到真实发送流程里。",
+        delayMs: 860,
+      },
+    ],
+    employeeAssessCover,
+  ),
+];
 
 /**
  * AI CEO 各 Agent 的首页快捷问题与 Skill 配置。
@@ -181,23 +563,126 @@ export const AI_CEO_AGENT_HOME_CONFIGS: Record<string, AiCeoAgentHomeConfig> = {
     })),
   },
   "employee-writer": {
-    intro: "我是 CEO 分身，你可以直接问我经营判断、人员状态、制度流程和协作安排，我会给你一句到位的建议。",
+    intro:
+      "我是 CEO 分身，你直接提问题就行，我会先判断该调哪项能力，再把结果收口成你能直接继续追问的一轮对话。",
+    guideLabel: "推荐起手式",
+    guideTitle: "先问经营判断，再决定要不要继续追人、追风险、追动作。",
+    guideItems: [
+      "先抛一个经营或人员问题，我来判断该调哪项能力。",
+      "如果你确认了动作，我可以继续模拟飞书触达、追问和回执闭环。",
+      "每轮回答底部都有猜你想问，适合连续往下钻。",
+    ],
     skillItems: [
       { id: "sequence_overview", name: "经营总览", iconKey: "overview" },
       { id: "employee_assess", name: "员工评估", iconKey: "employee" },
       { id: "redline_detect", name: "风险识别", iconKey: "risk" },
       { id: "benchmark_find", name: "标杆识别", iconKey: "benchmark" },
       { id: "score_rank", name: "评分排名", iconKey: "ranking" },
-      { id: "chat_send", name: "制度问答", iconKey: "chat" },
     ],
     promptItems: [
-      { id: "writer-1", question: AI_CEO_AGENT_SCENARIO_QUESTIONS["employee-writer"] },
-      { id: "writer-2", question: "生产部的王建国最近怎么样？" },
+      { id: "writer-1", question: "给我看一下各序列的整体情况，按平均分排序。" },
+      { id: "writer-2", question: "管理和销售这两条线今天该怎么收口？" },
       { id: "writer-3", question: "小张最近有没有触碰红线？" },
       { id: "writer-4", question: "生产序列最近有哪些表现突出的标杆？我想了解一下。" },
       { id: "writer-5", question: "销售序列这季度的人员排名怎么样？有没有需要关注的？" },
-      { id: "writer-6", question: "我想了解一下公司的考勤制度。" },
     ],
+    caseItems: CEO_HOME_CASES,
+  },
+  [WORKSPACE_DEFAULT_AGENT_CONFIG_IDS["workspace-cloud"]]: {
+    intro:
+      "这是绑定在产研协作工作站上的默认 Agent。你把资料整理、任务拆解、负责人触达这类问题直接丢给我，我会先在设备里收集上下文，再给你一版能直接执行的结果。",
+    guideLabel: "设备默认Agent",
+    guideTitle: "适合先让设备帮你收资料、拆任务、生成可直接发送的口径。",
+    guideItems: [
+      "适合纪要整理、待办拆解、负责人催办和文档归纳。",
+      "你可以先问结果，也可以直接说“帮我发给谁”。",
+      "点开案例卡可以先看一遍发送任务和 Agent 回复的回放。",
+    ],
+    skillItems: [
+      { id: "document_digest", name: "资料整理", iconKey: "document" },
+      { id: "task_dispatch", name: "任务拆解", iconKey: "task" },
+      { id: "process_sync", name: "流程同步", iconKey: "process" },
+      { id: "knowledge_lookup", name: "知识检索", iconKey: "database" },
+    ],
+    promptItems: [
+      { id: "workspace-cloud-1", question: "把这份周会纪要整理成待办，并标明负责人。" },
+      { id: "workspace-cloud-2", question: "帮我把需求文档压成一段老板能直接听的摘要。" },
+      { id: "workspace-cloud-3", question: "把这条催办内容整理成可直接发给项目负责人的话。" },
+      { id: "workspace-cloud-4", question: "我给你三份材料，先帮我找出重复和冲突点。" },
+    ],
+    caseItems: CLOUD_WORKSPACE_CASES,
+  },
+  [WORKSPACE_DEFAULT_AGENT_CONFIG_IDS["workspace-local"]]: {
+    intro:
+      "这是绑定在销售增长工作站上的默认 Agent。适合先读取设备里的日报、名单和任务记录，再帮你做经营收口、任务下发和负责人跟进。",
+    guideLabel: "设备默认Agent",
+    guideTitle: "适合销售日报、经营异常、负责人跟进这类需要结合设备数据的场景。",
+    guideItems: [
+      "先让我看当天数据，再决定要不要发消息或者追负责人。",
+      "如果你已经知道要发给谁，可以直接让我整理并代发。",
+      "案例回放里会演示发送任务和 Agent 回复的完整过程。",
+    ],
+    skillItems: [
+      { id: "daily_digest", name: "经营日报", iconKey: "overview" },
+      { id: "task_dispatch", name: "任务下发", iconKey: "task" },
+      { id: "contact_sync", name: "触达协同", iconKey: "chat" },
+      { id: "issue_sort", name: "异常拆解", iconKey: "risk" },
+    ],
+    promptItems: [
+      { id: "workspace-local-1", question: "把今天销量异常和收口动作发给销售负责人。" },
+      { id: "workspace-local-2", question: "帮我把今天的销售日报压成一段老板口径。" },
+      { id: "workspace-local-3", question: "拉一下关注区名单，把连续下滑和底线问题分开。" },
+      { id: "workspace-local-4", question: "把今天要盯的两个 SKU 和原因说给我听。" },
+    ],
+    caseItems: SALES_WORKSPACE_CASES,
+  },
+  [WORKSPACE_DEFAULT_AGENT_CONFIG_IDS["workspace-local-sh"]]: {
+    intro:
+      "这是绑定在上海门店本地盒子上的默认 Agent。它更适合门店客流、库存、排班和当班协同这类本地执行场景。",
+    guideLabel: "设备默认Agent",
+    guideTitle: "适合门店客流异常、排班调整、库存预警和店长通知。",
+    guideItems: [
+      "先让我读设备里的门店数据，再决定今天怎么处理。",
+      "如果要同步店长或当班负责人，我会先整理成可执行动作。",
+      "案例回放更偏门店场景，适合员工第一次上手时照着用。",
+    ],
+    skillItems: [
+      { id: "traffic_watch", name: "客流监控", iconKey: "overview" },
+      { id: "inventory_watch", name: "库存预警", iconKey: "risk" },
+      { id: "shift_adjust", name: "排班协同", iconKey: "process" },
+      { id: "task_dispatch", name: "门店下发", iconKey: "task" },
+    ],
+    promptItems: [
+      { id: "workspace-local-sh-1", question: "把今天客流下滑和库存预警发给店长。" },
+      { id: "workspace-local-sh-2", question: "帮我看一下午后排班要不要调整。" },
+      { id: "workspace-local-sh-3", question: "把门店今天最需要老板过问的问题压成一句话。" },
+      { id: "workspace-local-sh-4", question: "列一下今天晚高峰前必须处理的三个动作。" },
+    ],
+    caseItems: STORE_WORKSPACE_CASES,
+  },
+  [WORKSPACE_DEFAULT_AGENT_CONFIG_IDS["workspace-local-bj"]]: {
+    intro:
+      "这是绑定在北京总部本地盒子上的默认 Agent。当前设备离线时，我会优先给你做流程预演、口径整理和发送草稿；设备恢复后可以继续串真实动作。",
+    guideLabel: "离线设备",
+    guideTitle: "设备离线时先预演流程；设备恢复后再无缝接到真实执行。",
+    guideItems: [
+      "先看口径和动作顺序，不用等设备恢复再开始准备。",
+      "离线状态下更适合做催办文案、日报结构和任务草稿。",
+      "案例回放会直接展示离线预演是怎么走的。",
+    ],
+    skillItems: [
+      { id: "offline_rehearsal", name: "离线预演", iconKey: "task" },
+      { id: "draft_prepare", name: "草稿整理", iconKey: "document" },
+      { id: "workflow_plan", name: "流程规划", iconKey: "process" },
+      { id: "message_sync", name: "消息草拟", iconKey: "chat" },
+    ],
+    promptItems: [
+      { id: "workspace-local-bj-1", question: "设备没恢复前，先帮我把总部日报催办口径整理出来。" },
+      { id: "workspace-local-bj-2", question: "先预演一下发给负责人时的消息结构。" },
+      { id: "workspace-local-bj-3", question: "把今天的总部待办压成一段追进度口径。" },
+      { id: "workspace-local-bj-4", question: "帮我做一版设备恢复后可以直接发送的消息草稿。" },
+    ],
+    caseItems: HQ_WORKSPACE_CASES,
   },
 };
 

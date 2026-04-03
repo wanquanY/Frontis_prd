@@ -6,6 +6,13 @@
   align-items: flex-start;
 }
 
+.headerMeta {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+
 .title {
   margin: 0 0 6px;
   font-size: 24px;
@@ -17,12 +24,6 @@
   margin: 0;
   font-size: 14px;
   color: var(--text-secondary);
-}
-
-.syncRow {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
 }
 
 /* ── Two-column layout ── */
@@ -115,7 +116,7 @@
   color: var(--text);
 }
 
-.treeDeptCount {
+.treeDeptMeta {
   font-size: 13px;
   color: var(--text-secondary);
 }
@@ -218,15 +219,19 @@
   font-size: 13px;
 }
 
+.colRole {
+  flex: 1;
+  min-width: 110px;
+}
+
+.colDepartment {
+  flex: 1.6;
+  min-width: 180px;
+}
+
 .colStatus {
   flex: 0.8;
   min-width: 80px;
-}
-
-.colAdmin {
-  flex: 0.8;
-  min-width: 80px;
-  text-align: right;
 }
 
 /* ── Responsive ── */
@@ -234,5 +239,12 @@
 @media (max-width: 960px) {
   .layout {
     grid-template-columns: 1fr;
+  }
+
+  .memberHead,
+  .memberRow {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
   }
 }

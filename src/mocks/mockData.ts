@@ -1,4 +1,3 @@
-import type { Block } from "@/types/block";
 import type { SynClawArtifactItem, SynClawSpaceItem } from "@/pages/synclaw/types";
 import {
   ECOMMERCE_AUTOMATION_AGENT_DEMO,
@@ -46,93 +45,6 @@ const SKILL_AGENT_AVATAR_URLS: Record<string, string> = {
   "202": getAvatarUrl("employee-designer"),
   "203": getAvatarUrl("employee-research"),
   "204": getAvatarUrl("employee-writer"),
-};
-
-const createAssistantMessageBlock = (id: string, children: Block[]): Block => ({
-  id,
-  kind: "message",
-  data: {
-    role: "assistant",
-  },
-  actorRole: "assistant",
-  children,
-});
-
-const createThinkingBlock = (id: string, content: string): Block => ({
-  id,
-  kind: "thinking",
-  data: {
-    content,
-    status: "completed",
-  },
-  actorRole: "assistant",
-});
-
-const createTextBlock = (
-  id: string,
-  content: string,
-  data?: Partial<{
-    role: "user" | "assistant";
-  }>,
-): Block => ({
-  id,
-  kind: "text",
-  data: {
-    content,
-    status: "completed",
-    role: data?.role ?? "assistant",
-  },
-  actorRole: data?.role ?? "assistant",
-});
-
-interface CreateToolUseBlockOptions {
-  id: string;
-  name: string;
-  displayName: string;
-  purpose?: string;
-  status: string;
-  output?: string;
-  isError?: boolean;
-}
-
-const createToolUseBlock = ({
-  id,
-  name,
-  displayName,
-  purpose,
-  status,
-  output,
-  isError,
-}: CreateToolUseBlockOptions): Block => {
-  const callId = `${id}-call`;
-
-  return {
-    id,
-    kind: "tool_use",
-    data: {
-      name,
-      display_name: displayName,
-      purpose,
-      status,
-      call_id: callId,
-    },
-    actorRole: "assistant",
-    children: output
-      ? [
-          {
-            id: `${id}-result`,
-            kind: "tool_result",
-            parentId: id,
-            data: {
-              call_id: callId,
-              content: output,
-              is_error: isError === true,
-            },
-            actorRole: "assistant",
-          },
-        ]
-      : undefined,
-  };
 };
 
 const createDataUrl = (mimeType: string, content: string): string =>
@@ -213,23 +125,31 @@ export const INITIAL_EMPLOYEES: EmployeeItem[] = [
     id: "employee-designer",
     name: "员工评估专家",
     avatarUrl: getAvatarUrl("employee-designer"),
-    role: "评估具体员工表现与证据",
+    role: "作为内部执行 Agent 承接序列总览、员工评估、红线、标杆与排名任务",
     portalRoles: ["admin"],
     status: "idle",
     workspaceId: "workspace-cloud",
     connectionMode: "cloud",
     model: "gpt-4-turbo",
-    summary: "围绕单个员工的评分、趋势、证据、ERP 表现和风险进行综合判断。",
-    lastAction: "等待新的员工评估与风险校验任务",
+    summary: "作为 CEO 分身下游执行 Agent，负责组织分析类 skill 的执行与结构化结果返回。",
+    lastAction: "等待 CEO 分身下发新的组织分析任务",
     source: "coworker",
     visibility: "bound",
     subAgentModel: "gpt-3.5-turbo",
     agentId: "ceo-employee-assess-01",
     runtimeAgentId: "rt-employee-assess-01",
     boundMembers: ["杨万泉", "陈雪梅"],
-    welcomeMessage: "我会把评分、证据、ERP 指标和风险一起看，不会只给一个空泛判断。",
-    systemPrompt: "你是一名员工评估专家，负责分析单个员工的评分、证据、趋势与风险。",
-    skills: ["employee_assess"],
+    welcomeMessage:
+      "我负责执行组织分析类任务，会把序列、个人、底线和排名结果整理成 CEO 分身可直接整合的结构化输出。",
+    systemPrompt:
+      "你是一名员工评估专家，作为 CEO 分身的下游执行 Agent，负责执行 sequence_overview、employee_assess、redline_detect、benchmark_find 和 score_rank 等组织分析技能。",
+    skills: [
+      "sequence_overview",
+      "employee_assess",
+      "redline_detect",
+      "benchmark_find",
+      "score_rank",
+    ],
   },
   {
     id: "employee-research",
@@ -351,17 +271,28 @@ export const INITIAL_EMPLOYEES: EmployeeItem[] = [
     workspaceId: "workspace-local",
     connectionMode: "cloud",
     model: "gpt-4o",
-    summary: "负责以 CEO 视角编排经营总览、员工评估、红线和制度问答等综合场景。",
-    lastAction: "等待新的 CEO 综合研判与员工提问",
+    summary:
+      "负责接收老板或员工问题，判断要调用哪项 skill，并把员工评估专家返回的结果整合成 CEO 口吻答复。",
+    lastAction: "等待新的老板提问与经营协作任务",
     source: "coworker",
     visibility: "all",
     subAgentModel: "gpt-3.5-turbo",
     agentId: "ceo-chat-send-01",
     runtimeAgentId: "rt-chat-send-01",
     boundMembers: ["王晨", "李婷", "周可", "赵立"],
-    welcomeMessage: "你可以直接问我经营判断、人员状态、制度流程和协作安排，我会以 CEO 口吻给你答复。",
-    systemPrompt: "你是一名 CEO分身，负责编排经营总览、员工评估、红线检测、评分排名和制度问答，并以 CEO 口吻输出。",
-    skills: ["chat_send"],
+    welcomeMessage:
+      "你直接问我经营判断、人员状态和协作安排就行，我会判断该调用哪项能力，再用 CEO 口吻把结果给你说清楚。",
+    systemPrompt:
+      "你是一名 CEO分身，负责识别老板或员工的问题意图，按需调用 sequence_overview、employee_assess、redline_detect、benchmark_find、score_rank、feishu_contact_lookup、feishu_send_message 等技能，并整合成 CEO 口吻输出。",
+    skills: [
+      "sequence_overview",
+      "employee_assess",
+      "redline_detect",
+      "benchmark_find",
+      "score_rank",
+      "feishu_contact_lookup",
+      "feishu_send_message",
+    ],
   },
   {
     id: "employee-sales",
@@ -483,17 +414,13 @@ export const INITIAL_FRONTIS_WEB_USERS: FrontisWebUserItem[] = [
     id: "user-admin-001",
     name: "杨万泉",
     phone: "13800000001",
-    role: "admin",
+    role: "boss",
     status: "active",
+    assignedWorkspaceIds: ["workspace-cloud", "workspace-local-bj"],
     assignedAgentIds: [
-      "employee-pm",
-      "employee-designer",
-      "employee-research",
-      "employee-ops",
       ECOMMERCE_AUTOMATION_AGENT_DEMO.id,
       LIVE_BROADCAST_AGENT_DEMO.id,
       XIAOCANMAMA_IP_AGENT_DEMO.id,
-      "employee-sales",
       "employee-writer",
     ],
     lastActiveAt: "今天 18:20",
@@ -507,15 +434,11 @@ export const INITIAL_FRONTIS_WEB_USERS: FrontisWebUserItem[] = [
     phone: "13800000002",
     role: "admin",
     status: "active",
+    assignedWorkspaceIds: ["workspace-cloud"],
     assignedAgentIds: [
-      "employee-pm",
-      "employee-designer",
-      "employee-research",
-      "employee-ops",
       ECOMMERCE_AUTOMATION_AGENT_DEMO.id,
       LIVE_BROADCAST_AGENT_DEMO.id,
       XIAOCANMAMA_IP_AGENT_DEMO.id,
-      "employee-sales",
       "employee-writer",
     ],
     lastActiveAt: "今天 16:48",
@@ -529,6 +452,7 @@ export const INITIAL_FRONTIS_WEB_USERS: FrontisWebUserItem[] = [
     phone: "13800000011",
     role: "member",
     status: "active",
+    assignedWorkspaceIds: ["workspace-local", "workspace-local-sh"],
     assignedAgentIds: [
       "employee-writer",
       ECOMMERCE_AUTOMATION_AGENT_DEMO.id,
@@ -546,6 +470,7 @@ export const INITIAL_FRONTIS_WEB_USERS: FrontisWebUserItem[] = [
     phone: "13800000012",
     role: "member",
     status: "active",
+    assignedWorkspaceIds: ["workspace-local"],
     assignedAgentIds: [
       "employee-writer",
       ECOMMERCE_AUTOMATION_AGENT_DEMO.id,
@@ -563,6 +488,7 @@ export const INITIAL_FRONTIS_WEB_USERS: FrontisWebUserItem[] = [
     phone: "13800000013",
     role: "member",
     status: "disabled",
+    assignedWorkspaceIds: ["workspace-local-bj"],
     assignedAgentIds: [
       "employee-writer",
       ECOMMERCE_AUTOMATION_AGENT_DEMO.id,
@@ -580,6 +506,7 @@ export const INITIAL_FRONTIS_WEB_USERS: FrontisWebUserItem[] = [
     phone: "13800000014",
     role: "member",
     status: "active",
+    assignedWorkspaceIds: [],
     assignedAgentIds: [
       "employee-writer",
       ECOMMERCE_AUTOMATION_AGENT_DEMO.id,

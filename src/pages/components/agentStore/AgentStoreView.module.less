@@ -28,6 +28,43 @@
   color: var(--text-secondary);
 }
 
+.overviewGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.overviewCard {
+  padding: 18px;
+  border: 1px solid color-mix(in srgb, var(--text) 8%, transparent);
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--surface) 96%, var(--app-bg));
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.overviewLabel {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.overviewValue {
+  margin: 0;
+  font-size: 30px;
+  line-height: 1;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.overviewHint {
+  margin: 0;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--text-secondary);
+}
+
 /* ── Tab Bar ── */
 
 .tabBar {
@@ -616,10 +653,399 @@
   font-size: 12px;
 }
 
+.managementGroups {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.managementGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.managementGroupTitle {
+  margin: 0;
+  color: var(--text);
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 700;
+}
+
+.expertCardGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, 360px);
+  grid-auto-rows: 196px;
+  justify-content: flex-start;
+  gap: 18px;
+}
+
+.managementCardHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.managementCardTitleWrap {
+  min-width: 0;
+}
+
+.managementCardTitle {
+  margin: 0;
+  color: var(--text);
+  font-size: 18px;
+  line-height: 26px;
+  font-weight: 700;
+}
+
+.managementCardDescription {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 20px;
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+.managementCardFooter {
+  margin-top: auto;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.managementAvatarStack {
+  display: inline-flex;
+  align-items: center;
+}
+
+.managementAvatar {
+  margin-left: -10px;
+  border: 2px solid var(--surface);
+  background: color-mix(in srgb, var(--primary) 8%, var(--surface));
+}
+
+.managementAvatar:first-child {
+  margin-left: 0;
+}
+
+.managementAvatarMore {
+  min-width: 34px;
+  height: 34px;
+  margin-left: -10px;
+  padding: 0 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  border: 2px solid var(--surface);
+  background: color-mix(in srgb, var(--text) 6%, var(--surface));
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 18px;
+  font-weight: 600;
+}
+
+.expertSelectCard {
+  height: 100%;
+  padding: 18px 20px;
+  border: 1px solid color-mix(in srgb, var(--text) 8%, transparent);
+  border-radius: 16px;
+  background: var(--surface);
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  cursor: pointer;
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    transform 160ms ease;
+}
+
+.expertSelectCard:hover {
+  border-color: color-mix(in srgb, var(--primary) 24%, var(--border));
+  box-shadow: var(--shadow-sm);
+  transform: translateY(-1px);
+}
+
+.detailWorkspaceLayout {
+  display: grid;
+  grid-template-columns: 280px minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
+}
+
+.detailWorkspaceLayoutSingle {
+  display: block;
+}
+
+.detailAgentRail {
+  padding-right: 24px;
+  border-right: 1px solid color-mix(in srgb, var(--text) 8%, transparent);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.detailAgentRailItem {
+  padding: 14px;
+  border: 1px solid color-mix(in srgb, var(--text) 8%, transparent);
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--surface) 98%, var(--app-bg));
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color 160ms ease,
+    background 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.detailAgentRailItem:hover {
+  border-color: color-mix(in srgb, var(--primary) 22%, var(--border));
+  box-shadow: var(--shadow-sm);
+}
+
+.detailAgentRailItemActive {
+  border-color: color-mix(in srgb, var(--primary) 26%, var(--border));
+  background: color-mix(in srgb, var(--primary) 4%, var(--surface));
+}
+
+.detailAgentRailTop {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.detailAgentRailBody {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.detailAgentRailName {
+  color: var(--text);
+  font-size: 14px;
+  line-height: 22px;
+  font-weight: 700;
+}
+
+.detailAgentRailMeta,
+.detailAgentRailSummary {
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.detailAgentRailSummary {
+  margin: 0;
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.detailAgentRailTags {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.detailAgentPanel {
+  min-width: 0;
+  max-width: 720px;
+}
+
+.expertSelectHeader,
+.expertSelectIdentity,
+.expertConfigPanelHeader {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.expertSelectIdentityBody,
+.expertConfigPanelIdentity {
+  min-width: 0;
+}
+
+.expertConfigPanelIdentity {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.expertSelectTitleRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.expertSelectName {
+  color: var(--text);
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 700;
+}
+
+.expertSelectRole,
+.expertSelectMeta {
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.expertSelectSummary {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 20px;
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+.expertSelectFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: auto;
+}
+
+.expertSelectMeta:last-child {
+  margin-left: auto;
+}
+
+.expertConfigPanel {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.expertConfigPanelSection {
+  padding-top: 16px;
+  border-top: 1px solid color-mix(in srgb, var(--text) 8%, transparent);
+}
+
+.simpleExpertRows {
+  display: flex;
+  flex-direction: column;
+}
+
+.simpleExpertRow {
+  padding: 18px 0;
+  border-top: 1px solid color-mix(in srgb, var(--text) 8%, transparent);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.simpleExpertRow:first-child {
+  padding-top: 0;
+  border-top: 0;
+}
+
+.simpleExpertIdentity {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.simpleExpertIdentityBody {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.simpleExpertTitleRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.simpleExpertName {
+  color: var(--text);
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 700;
+}
+
+.simpleExpertRole {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.simpleExpertGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px 24px;
+}
+
+.simpleExpertBlock {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.simpleExpertBlockLabel {
+  color: var(--text);
+  font-size: 13px;
+  line-height: 20px;
+  font-weight: 700;
+}
+
+.simpleExpertHint {
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 18px;
+}
+
 /* ── Responsive ── */
 
 @media (max-width: 960px) {
+  .overviewGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .expertGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .expertCardGrid {
+    grid-template-columns: 1fr;
+    grid-auto-rows: auto;
+  }
+
+  .detailWorkspaceLayout {
+    grid-template-columns: 1fr;
+  }
+
+  .detailAgentRail {
+    padding-right: 0;
+    padding-bottom: 18px;
+    border-right: 0;
+    border-bottom: 1px solid color-mix(in srgb, var(--text) 8%, transparent);
+  }
+
+  .simpleExpertGrid {
     grid-template-columns: 1fr;
   }
 
@@ -633,5 +1059,11 @@
     flex-direction: row;
     align-items: center;
     gap: 16px;
+  }
+}
+
+@media (max-width: 640px) {
+  .overviewGrid {
+    grid-template-columns: minmax(0, 1fr);
   }
 }

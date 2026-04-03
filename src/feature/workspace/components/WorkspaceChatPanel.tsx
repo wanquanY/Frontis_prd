@@ -46,6 +46,8 @@ export const WorkspaceChatPanel = ({
   onHITLRespond,
   onOpenArtifact,
   onOpenResult,
+  followupSuggestions,
+  onFollowupClick,
   onActorNameClick,
   greeting = DEFAULT_GREETING,
   workspaceSummary,
@@ -428,10 +430,29 @@ export const WorkspaceChatPanel = ({
   const shouldShowSummary = !!normalizedSummary && !!isNewSession && !hasBlocks;
   const shouldShowWelcome =
     !hasBlocks && !hasMessages && (!isNewSession || !normalizedSummary) && !currentSessionId;
+  const visibleFollowupSuggestions = useMemo(
+    () => (followupSuggestions ?? []).filter(Boolean).slice(0, 5),
+    [followupSuggestions],
+  );
+  const shouldShowFollowups =
+    hasBlocks &&
+    !isStreaming &&
+    visibleFollowupSuggestions.length > 0 &&
+    typeof onFollowupClick === "function";
   const scrollPaddingBottom = hasPlanBanner ? Math.max(planBannerHeight, 0) : 0;
   const scrollStyle = hasPlanBanner
     ? ({ paddingBottom: scrollPaddingBottom } as CSSProperties)
     : undefined;
+  const handleToolExpand = useCallback(() => {
+    hasUserScrollInteractionRef.current = true;
+    userScrolledUpRef.current = true;
+    shouldScrollOnSessionChangeRef.current = false;
+    forceStickRef.current = false;
+    historyStickUntilRef.current = 0;
+    restoreBottomActiveRef.current = false;
+    clearRestoreBottomTimer();
+    setShowScrollToBottom(true);
+  }, [clearRestoreBottomTimer]);
 
   const renderedBlocks = useMemo(() => {
     const collectNestedBlockIds = (block: Block): string[] => {
@@ -596,6 +617,7 @@ export const WorkspaceChatPanel = ({
               onHITLRespond={onHITLRespond}
               onOpenArtifact={onOpenArtifact}
               onOpenResult={onOpenResult}
+              onToolExpand={handleToolExpand}
               onDownloadArtifact={onDownloadArtifact}
               onAddArtifactToKnowledge={onAddArtifactToKnowledge}
             />
@@ -646,6 +668,7 @@ export const WorkspaceChatPanel = ({
               onHITLRespond={onHITLRespond}
               onOpenArtifact={onOpenArtifact}
               onOpenResult={onOpenResult}
+              onToolExpand={handleToolExpand}
               onDownloadArtifact={onDownloadArtifact}
               onAddArtifactToKnowledge={onAddArtifactToKnowledge}
               copyContext={copyContextMap[block.id]}
@@ -659,6 +682,7 @@ export const WorkspaceChatPanel = ({
     onHITLRespond,
     onOpenArtifact,
     onOpenResult,
+    handleToolExpand,
     onDownloadArtifact,
     onAddArtifactToKnowledge,
     actorAvatars,
@@ -798,6 +822,29 @@ export const WorkspaceChatPanel = ({
                   <span />
                   <span />
                   <span />
+                </div>
+              </div>
+            ) : null}
+            {shouldShowFollowups ? (
+              <div className={styles.followupRow} aria-label="猜你想问">
+                <div className={styles.assistantBlockAvatarSlot} aria-hidden={true}>
+                  <span className={styles.assistantBlockAvatarPlaceholder} aria-hidden={true} />
+                </div>
+                <div className={styles.followupCard}>
+                  <div className={styles.followupTitle}>猜你想问</div>
+                  <ol className={styles.followupList}>
+                    {visibleFollowupSuggestions.map(item => (
+                      <li key={item} className={styles.followupItem}>
+                        <button
+                          type="button"
+                          className={styles.followupButton}
+                          onClick={() => onFollowupClick?.(item)}
+                        >
+                          {item}
+                        </button>
+                      </li>
+                    ))}
+                  </ol>
                 </div>
               </div>
             ) : null}

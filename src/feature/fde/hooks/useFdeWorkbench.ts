@@ -8,6 +8,7 @@ import {
   FDE_OPERATIONS_CUSTOMERS,
   FDE_OPPORTUNITIES,
   FDE_TEAM_MEMBERS,
+  FDE_VERSION_MANAGEMENT_TASKS,
   FDE_WORKBENCH_TABS,
 } from "@/feature/fde/mockData";
 import type {
@@ -20,6 +21,7 @@ import type {
   FdeOperationsCustomerItem,
   FdeOpportunityItem,
   FdeTeamMemberItem,
+  FdeVersionManagementTaskItem,
   FdeWorkbenchRole,
   FdeWorkbenchTabKey,
   UseFdeWorkbenchResult,
@@ -64,7 +66,7 @@ const createDeliveryOrderFromLead = (lead: FdeLeadItem): FdeDeliveryOrderItem =>
  * FDE 工作台本地状态与交互逻辑。
  */
 export const useFdeWorkbench = (): UseFdeWorkbenchResult => {
-  const [activeTab, setActiveTab] = useState<FdeWorkbenchTabKey>("opportunities");
+  const [activeTab, setActiveTab] = useState<FdeWorkbenchTabKey>("delivery");
   const [activeRole, setActiveRole] = useState<FdeWorkbenchRole>("leader");
   const engineerMembers = useMemo(
     () => FDE_TEAM_MEMBERS.filter(item => item.role === "engineer"),
@@ -77,6 +79,7 @@ export const useFdeWorkbench = (): UseFdeWorkbenchResult => {
   const [operationsCustomers] = useState<FdeOperationsCustomerItem[]>(FDE_OPERATIONS_CUSTOMERS);
   const [feedbackAgents] = useState<FdeFeedbackAgentItem[]>(FDE_FEEDBACK_AGENTS);
   const [evolutionTasks, setEvolutionTasks] = useState<FdeEvolutionTaskItem[]>(FDE_EVOLUTION_TASKS);
+  const [versionTasks] = useState<FdeVersionManagementTaskItem[]>(FDE_VERSION_MANAGEMENT_TASKS);
   const [selectedOpportunityId, setSelectedOpportunityId] = useState<string>(
     FDE_OPPORTUNITIES[0]?.id ?? "",
   );
@@ -92,6 +95,9 @@ export const useFdeWorkbench = (): UseFdeWorkbenchResult => {
   );
   const [selectedEvolutionTaskId, setSelectedEvolutionTaskId] = useState<string>(
     FDE_EVOLUTION_TASKS[0]?.id ?? "",
+  );
+  const [selectedVersionTaskId, setSelectedVersionTaskId] = useState<string>(
+    FDE_VERSION_MANAGEMENT_TASKS[0]?.id ?? "",
   );
 
   const activeMember = useMemo<FdeTeamMemberItem>(
@@ -140,6 +146,10 @@ export const useFdeWorkbench = (): UseFdeWorkbenchResult => {
   const filteredFeedbackAgents = useMemo<FdeFeedbackAgentItem[]>(
     () => filterByPerspective(feedbackAgents),
     [feedbackAgents, filterByPerspective],
+  );
+  const filteredVersionTasks = useMemo<FdeVersionManagementTaskItem[]>(
+    () => filterByPerspective(versionTasks),
+    [filterByPerspective, versionTasks],
   );
   const filteredEvolutionTasks = useMemo<FdeEvolutionTaskItem[]>(
     () => filterByPerspective(evolutionTasks),
@@ -283,12 +293,14 @@ export const useFdeWorkbench = (): UseFdeWorkbenchResult => {
     deliveryOrders,
     evolutionTasks,
     feedbackAgents,
+    versionTasks,
     filteredDeliveryOrders,
     filteredEvolutionTasks,
     filteredFeedbackAgents,
     filteredLeads,
     filteredOpportunities,
     filteredOperationsCustomers,
+    filteredVersionTasks,
     leads,
     opportunities,
     operationsCustomers,
@@ -298,6 +310,7 @@ export const useFdeWorkbench = (): UseFdeWorkbenchResult => {
     selectedLeadId,
     selectedOperationsCustomerId,
     selectedOpportunityId,
+    selectedVersionTaskId,
     setActiveMemberId,
     setActiveRole,
     setActiveTab,
@@ -307,6 +320,7 @@ export const useFdeWorkbench = (): UseFdeWorkbenchResult => {
     setSelectedLeadId,
     setSelectedOperationsCustomerId,
     setSelectedOpportunityId,
+    setSelectedVersionTaskId,
     createLead,
     assignLead,
     updateLeadStatus,

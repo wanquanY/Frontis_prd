@@ -396,6 +396,10 @@ export interface WorkspaceChatPanelProps {
   onOpenArtifact?: (block: Block) => void;
   /** 点击结果卡片后打开生成式结果 */
   onOpenResult?: (resultId: string) => void;
+  /** 当前轮回复底部展示的猜你想问列表。 */
+  followupSuggestions?: string[];
+  /** 点击猜你想问后直接发起下一轮对话。 */
+  onFollowupClick?: (question: string) => void;
   /** 无对话消息时的欢迎语 */
   greeting?: string;
   /** 工作空间摘要（Markdown），用于新会话态展示 */

@@ -290,6 +290,57 @@
   padding: 4px 0 4px 42px;
 }
 
+.followupRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 4px 0 14px;
+}
+
+.followupCard {
+  width: 100%;
+  padding-top: 2px;
+}
+
+.followupTitle {
+  color: var(--text-secondary);
+  font-size: 11px;
+  line-height: 16px;
+  font-weight: 500;
+}
+
+.followupList {
+  margin: 6px 0 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.followupItem {
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.followupButton {
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 18px;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    color 0.2s ease;
+
+  &:hover {
+    color: var(--primary);
+    text-decoration: underline;
+  }
+}
+
 .loadingDots {
   font-size: 24px;
   color: #666;

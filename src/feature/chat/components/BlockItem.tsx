@@ -43,6 +43,7 @@ import type {
   HITLRequestData,
   HITLRespondPayload,
   TextData,
+  ToolContactLookupItem,
   ToolResultData,
   ToolUseData,
   ToolSearchResultItem,
@@ -122,11 +123,24 @@ const buildMentionDisplaySegments = (content: string): MentionDisplaySegment[] =
   return segments;
 };
 
+const resolveContactAvatarLabel = (item: ToolContactLookupItem): string => {
+  if (item.avatarLabel?.trim()) {
+    return item.avatarLabel.trim();
+  }
+
+  if (item.typeLabel.includes("群")) {
+    return "群";
+  }
+
+  return item.name.trim().charAt(0) || "人";
+};
+
 interface BlockItemProps {
   block: Block;
   onHITLRespond?: (payload: HITLRespondPayload) => void; // 使用 blockId 而不是 requestId
   onOpenArtifact?: (block: Block) => void;
   onOpenResult?: (resultId: string) => void;
+  onToolExpand?: () => void;
   onDownloadArtifact?: (url: string) => void;
   onAddArtifactToKnowledge?: (artifactId: string) => void;
   /** 控制复制按钮的显示与复制内容（仅助手 text） */
@@ -293,6 +307,7 @@ export function BlockItem({
   onHITLRespond,
   onOpenArtifact,
   onOpenResult,
+  onToolExpand,
   onDownloadArtifact,
   onAddArtifactToKnowledge,
   copyContext,
@@ -313,10 +328,15 @@ export function BlockItem({
     case "subagent":
     case "sub_agent":
       return (
-        <ToolUseBlock block={block} onHITLRespond={onHITLRespond} onOpenArtifact={onOpenArtifact} />
+        <ToolUseBlock
+          block={block}
+          onHITLRespond={onHITLRespond}
+          onOpenArtifact={onOpenArtifact}
+          onToolExpand={onToolExpand}
+        />
       );
     case "tool_result":
-      return <ToolResultBlock block={block} />;
+      return <ToolResultBlock block={block} onToolExpand={onToolExpand} />;
     // dynamics_workflow_tool 作为 tool_use 的子块渲染，不单独处理
     case "ask_user":
     case "hitl_request":
@@ -342,6 +362,7 @@ export function BlockItem({
           onHITLRespond={onHITLRespond}
           onOpenArtifact={onOpenArtifact}
           onOpenResult={onOpenResult}
+          onToolExpand={onToolExpand}
           onDownloadArtifact={onDownloadArtifact}
           onAddArtifactToKnowledge={onAddArtifactToKnowledge}
           copyContext={copyContext}
@@ -358,6 +379,7 @@ function MessageBlock({
   onHITLRespond,
   onOpenArtifact,
   onOpenResult,
+  onToolExpand,
   onDownloadArtifact,
   onAddArtifactToKnowledge,
   copyContext,
@@ -366,6 +388,7 @@ function MessageBlock({
   onHITLRespond?: (payload: HITLRespondPayload) => void;
   onOpenArtifact?: (block: Block) => void;
   onOpenResult?: (resultId: string) => void;
+  onToolExpand?: () => void;
   onDownloadArtifact?: (url: string) => void;
   onAddArtifactToKnowledge?: (artifactId: string) => void;
   copyContext?: BlockCopyContext;
@@ -457,6 +480,7 @@ function MessageBlock({
                   onHITLRespond={onHITLRespond}
                   onOpenArtifact={onOpenArtifact}
                   onOpenResult={onOpenResult}
+                  onToolExpand={onToolExpand}
                   onDownloadArtifact={onDownloadArtifact}
                   onAddArtifactToKnowledge={onAddArtifactToKnowledge}
                   copyContext={childCopyContextMap[child.id] ?? copyContext}
@@ -869,10 +893,12 @@ function ToolUseBlock({
   block,
   onHITLRespond,
   onOpenArtifact,
+  onToolExpand,
 }: {
   block: Block;
   onHITLRespond?: (payload: HITLRespondPayload) => void;
   onOpenArtifact?: (block: Block) => void;
+  onToolExpand?: () => void;
 }) {
   const data = block.data as unknown as ToolUseData;
 
@@ -973,27 +999,27 @@ function ToolUseBlock({
     () => (data.search_results as ToolSearchResultItem[] | undefined) || [],
     [data.search_results],
   );
+  const contactResults = useMemo(
+    () => (data.contact_results as ToolContactLookupItem[] | undefined) || [],
+    [data.contact_results],
+  );
   const [resultExpanded, setResultExpanded] = useState(false);
   const [resultOverflow, setResultOverflow] = useState(false);
   const resultListRef = useRef<HTMLDivElement | null>(null);
-  const [isOutputExpanded, setIsOutputExpanded] = useState(isRunning);
+  const [isOutputExpanded, setIsOutputExpanded] = useState(false);
   const [outputOverflow, setOutputOverflow] = useState(false);
   const outputRef = useRef<HTMLDivElement | null>(null);
-  const shouldShowOutputToggle = !!resultContent && (outputOverflow || !isRunning);
+  const hasStructuredOutput = contactResults.length > 0 || !!resultContent;
+  const shouldShowOutputToggle =
+    hasStructuredOutput && (contactResults.length > 0 || outputOverflow || !isRunning);
   const handleToggleOutput = useCallback(() => {
     if (!shouldShowOutputToggle) return;
+    const nextExpanded = !isOutputExpanded;
+    if (nextExpanded) {
+      onToolExpand?.();
+    }
     setIsOutputExpanded(value => !value);
-  }, [shouldShowOutputToggle]);
-
-  useEffect(() => {
-    if (isRunning) {
-      setIsOutputExpanded(true);
-      return;
-    }
-    if (isSuccess || isAborted) {
-      setIsOutputExpanded(false);
-    }
-  }, [isAborted, isRunning, isSuccess]);
+  }, [isOutputExpanded, onToolExpand, shouldShowOutputToggle]);
 
   useEffect(() => {
     if (resultExpanded || searchResults.length === 0) {
@@ -1039,6 +1065,7 @@ function ToolUseBlock({
         subagentLabel={subagentLabel}
         onHITLRespond={onHITLRespond}
         onOpenArtifact={onOpenArtifact}
+        onToolExpand={onToolExpand}
       />
     );
   }
@@ -1216,7 +1243,10 @@ function ToolUseBlock({
                 <button
                   type="button"
                   className={styles.toolUseResultsToggleBtn}
-                  onClick={() => setResultExpanded(true)}
+                  onClick={() => {
+                    onToolExpand?.();
+                    setResultExpanded(true);
+                  }}
                   aria-label="展开更多搜索结果"
                 >
                   展开更多
@@ -1226,7 +1256,7 @@ function ToolUseBlock({
           </div>
         ) : null}
 
-        {resultContent ? (
+        {hasStructuredOutput ? (
           <div className={styles.toolUseOutputSection}>
             <div
               className={classNames(styles.toolUseOutputViewport, {
@@ -1241,7 +1271,38 @@ function ToolUseBlock({
                   [styles.toolUseOutputBoxScrollable]: isOutputExpanded,
                 })}
               >
-                {resultContent}
+                {contactResults.length > 0 ? (
+                  <div className={styles.toolUseContactList}>
+                    {contactResults.map(item => (
+                      <div key={item.id} className={styles.toolUseContactItem}>
+                        <span
+                          className={classNames(styles.toolUseContactAvatar, {
+                            [styles.toolUseContactAvatarGroup]: item.typeLabel.includes("群"),
+                          })}
+                          aria-hidden="true"
+                        >
+                          {resolveContactAvatarLabel(item)}
+                        </span>
+                        <div className={styles.toolUseContactBody}>
+                          <div className={styles.toolUseContactNameRow}>
+                            <span className={styles.toolUseContactName}>{item.name}</span>
+                            <span className={styles.toolUseContactType}>{item.typeLabel}</span>
+                            {item.matchLabel ? (
+                              <span className={styles.toolUseContactMatch}>{item.matchLabel}</span>
+                            ) : null}
+                          </div>
+                          <div className={styles.toolUseContactMeta}>
+                            {item.identityLabel} · 飞书 ID：{item.feishuId}
+                          </div>
+                          {item.note ? (
+                            <div className={styles.toolUseContactNote}>{item.note}</div>
+                          ) : null}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
+                {resultContent ? <div className={styles.toolUseOutputText}>{resultContent}</div> : null}
               </div>
             </div>
           </div>
@@ -1255,6 +1316,7 @@ function ToolUseBlock({
               block={hitlChild}
               onHITLRespond={onHITLRespond}
               onOpenArtifact={onOpenArtifact}
+              onToolExpand={onToolExpand}
             />
           </div>
         ) : null}
@@ -1271,6 +1333,7 @@ function SubagentBlock({
   subagentLabel,
   onHITLRespond,
   onOpenArtifact,
+  onToolExpand,
 }: {
   block: Block;
   data: ToolUseData;
@@ -1280,6 +1343,7 @@ function SubagentBlock({
   subagentLabel: string;
   onHITLRespond?: (payload: HITLRespondPayload) => void;
   onOpenArtifact?: (block: Block) => void;
+  onToolExpand?: () => void;
 }) {
   const childBlocks = block.children || [];
   const title = subagentLabel || displayName || "Subagent";
@@ -1345,6 +1409,7 @@ function SubagentBlock({
                     block={child}
                     onHITLRespond={onHITLRespond}
                     onOpenArtifact={onOpenArtifact}
+                    onToolExpand={onToolExpand}
                   />
                 </div>
               ))}
@@ -1356,21 +1421,19 @@ function SubagentBlock({
   );
 }
 
-function ToolResultBlock({ block }: { block: Block }) {
+function ToolResultBlock({
+  block,
+  onToolExpand,
+}: {
+  block: Block;
+  onToolExpand?: () => void;
+}) {
   const data = block.data as unknown as ToolResultData;
   const resultContent = typeof data.content === "string" ? data.content.trim() : "";
-  const [isExpanded, setIsExpanded] = useState(block.isStreaming);
+  const [isExpanded, setIsExpanded] = useState(false);
   const [hasOverflow, setHasOverflow] = useState(false);
   const outputRef = useRef<HTMLDivElement | null>(null);
   const shouldShowToggle = hasOverflow || !block.isStreaming;
-
-  useEffect(() => {
-    if (block.isStreaming) {
-      setIsExpanded(true);
-      return;
-    }
-    setIsExpanded(false);
-  }, [block.isStreaming]);
 
   useEffect(() => {
     if (!resultContent) {
@@ -1399,7 +1462,13 @@ function ToolResultBlock({ block }: { block: Block }) {
                 className={classNames(styles.toolUseChevronBtn, {
                   [styles.toolUseChevronBtnExpanded]: isExpanded,
                 })}
-                onClick={() => setIsExpanded(value => !value)}
+                onClick={() => {
+                  const nextExpanded = !isExpanded;
+                  if (nextExpanded) {
+                    onToolExpand?.();
+                  }
+                  setIsExpanded(value => !value);
+                }}
                 aria-expanded={isExpanded}
                 aria-label={isExpanded ? "收起工具输出" : "展开工具输出"}
               >

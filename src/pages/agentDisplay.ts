@@ -46,6 +46,7 @@ export const mapDialogueSessionForRole = (
         message.role === "assistant" && assistantName ? assistantName : message.author,
       attachments: message.attachments?.map(attachment => ({ ...attachment })),
       blocks: message.blocks ? JSON.parse(JSON.stringify(message.blocks)) : undefined,
+      followupSuggestions: message.followupSuggestions ? [...message.followupSuggestions] : undefined,
     })),
   };
 };
