@@ -1,19 +1,31 @@
 /**
  * FDE 工作台视角。
  */
-export type FdeWorkbenchRole = "leader" | "engineer";
+export type FdeWorkbenchRole = "leader" | "admin" | "member";
 
 /**
  * FDE 工作台一级导航标识。
  */
 export type FdeWorkbenchTabKey =
-  | "opportunities"
-  | "leads"
+  | "dashboard"
+  | "orderManagement"
   | "delivery"
   | "operations"
+  | "teamManagement"
   | "versionManagement"
-  | "feedback"
-  | "evolution"
+  | "agentDev"
+  | "skillMarket"
+  | "agentStore";
+
+/**
+ * FDE 成员模块权限。
+ */
+export type FdeTeamPermissionKey =
+  | "orderManagement"
+  | "delivery"
+  | "operations"
+  | "teamManagement"
+  | "versionManagement"
   | "agentDev"
   | "skillMarket"
   | "agentStore";
@@ -24,14 +36,14 @@ export type FdeWorkbenchTabKey =
 export type FdeMemberStatus = "online" | "busy" | "offline";
 
 /**
+ * FDE 成员账号状态。
+ */
+export type FdeTeamAccountStatus = "enabled" | "disabled";
+
+/**
  * 商机阶段。
  */
 export type FdeOpportunityStage = "初步沟通" | "产品演示" | "方案推荐" | "商务谈判" | "已成交";
-
-/**
- * 线索工单状态。
- */
-export type FdeLeadStatus = "新线索" | "跟进中" | "已成单" | "已放弃";
 
 /**
  * 设备部署方式。
@@ -42,7 +54,6 @@ export type FdeDeviceMode = "云端设备" | "本地设备" | "混合部署";
  * 交付流程步骤键。
  */
 export type FdeDeliveryStepKey =
-  | "customerConfirm"
   | "deviceConfig"
   | "agentConfig"
   | "apiTest"
@@ -52,17 +63,6 @@ export type FdeDeliveryStepKey =
  * 客户运行健康度。
  */
 export type FdeMonitorHealth = "healthy" | "attention" | "risk";
-
-/**
- * Agent 进化任务状态。
- */
-export type FdeEvolutionTaskStatus =
-  | "排队中"
-  | "进化中"
-  | "进化已完成"
-  | "已推送客户审核中"
-  | "客户已采纳"
-  | "客户未采纳";
 
 /**
  * FDE 租户版本推送状态。
@@ -80,16 +80,91 @@ export type FdeVersionManagementStatus =
 export type FdeDeliveryOrderStatus = "待配置" | "配置中" | "已交付";
 
 /**
+ * 配置交付单据类型。
+ */
+export type FdeDeliveryOrderKind = "initial" | "change";
+
+/**
+ * 配置交付变更类型。
+ */
+export type FdeDeliveryChangeType = "追加设备" | "追加Agent" | "追加设备与Agent";
+
+/**
+ * 交付变更记录状态。
+ */
+export type FdeDeliveryChangeStatus =
+  | "待执行"
+  | "执行中"
+  | "已完成"
+  | "已取消";
+
+/**
+ * FDE 订单状态。
+ */
+export type FdeOrderStatus = "待关联租户" | "待履约" | "履约中" | "已完成";
+
+/**
+ * FDE 订单商品类型。
+ */
+export type FdeOrderLineItemKind = "device" | "agent" | "tokens";
+
+/**
+ * 设备商品类型。
+ */
+export type FdeOrderDeviceType = "云端工作站" | "本地工作站" | "本地客户端授权";
+
+/**
+ * 订单履约类型。
+ */
+export type FdeOrderFulfillmentType = "首期配置交付" | "设备追加" | "Agent追加" | "Tokens发放";
+
+/**
+ * 订单履约状态。
+ */
+export type FdeOrderFulfillmentStatus = "待处理" | "处理中" | "已完成";
+
+/**
+ * 专家广场来源范围。
+ */
+export type FdeAgentCatalogScope = "public" | "mine";
+
+/**
  * FDE 团队成员。
  */
 export interface FdeTeamMemberItem {
   id: string;
   name: string;
   title: string;
+  phone: string;
   role: FdeWorkbenchRole;
   status: FdeMemberStatus;
+  accountStatus: FdeTeamAccountStatus;
+  joinedAt: string;
+  permissionKeys: FdeTeamPermissionKey[];
+  sourceLabel: string;
   focusScenes: string[];
   avatarSeed: string;
+}
+
+/**
+ * FDE 成员权限定义。
+ */
+export interface FdeTeamPermissionItem {
+  key: FdeTeamPermissionKey;
+  label: string;
+  description: string;
+}
+
+/**
+ * FDE 成员草稿。
+ */
+export interface FdeTeamMemberDraft {
+  name: string;
+  title: string;
+  phone: string;
+  role: FdeWorkbenchRole;
+  permissionKeys: FdeTeamPermissionKey[];
+  focusScenes: string[];
 }
 
 /**
@@ -139,51 +214,6 @@ export interface FdeOpportunityItem {
 }
 
 /**
- * 跟进进度记录。
- */
-export interface FdeLeadProgressItem {
-  id: string;
-  content: string;
-  createdAt: string;
-  createdBy: string;
-}
-
-/**
- * 线索工单。
- */
-export interface FdeLeadItem {
-  id: string;
-  companyName: string;
-  contactName: string;
-  phone: string;
-  interestedScenes: string[];
-  source: string;
-  createdAt: string;
-  status: FdeLeadStatus;
-  assignedToId: string | null;
-  budgetLabel: string;
-  summary: string;
-  remark: string;
-  progressList: FdeLeadProgressItem[];
-  closedNote?: string;
-}
-
-/**
- * 线索工单创建表单。
- */
-export interface FdeLeadFormState {
-  companyName: string;
-  contactName: string;
-  phone: string;
-  interestedScenes: string[];
-  source: string;
-  budgetLabel: string;
-  summary: string;
-  remark: string;
-  assignedToId: string | null;
-}
-
-/**
  * 设备配置详情。
  */
 export interface FdeDeviceConfigInfo {
@@ -206,19 +236,67 @@ export interface FdeDeliveryStepItem {
 }
 
 /**
+ * 配置交付附件。
+ */
+export interface FdeDeliveryAttachmentItem {
+  id: string;
+  name: string;
+  sizeLabel: string;
+  typeLabel: string;
+  uploadedAt: string;
+}
+
+/**
+ * 交付变更项。
+ */
+export interface FdeDeliveryChangeDetailItem {
+  id: string;
+  label: string;
+  beforeValue?: string;
+  afterValue: string;
+}
+
+/**
+ * 交付额度调整项。
+ */
+export interface FdeDeliveryQuotaAdjustmentItem {
+  label: string;
+  delta: number;
+  unit: string;
+}
+
+/**
  * 交付工单。
  */
 export interface FdeDeliveryOrderItem {
   id: string;
+  tenantId: string;
   leadId: string;
   customerName: string;
   orderNo: string;
   assignedToId: string;
+  orderKind: FdeDeliveryOrderKind;
   industry: string;
   scenarioName: string;
   currentStep: FdeDeliveryStepKey;
   stepProgress: number;
   orderAmount: string;
+  tenantName: string;
+  tenantCode: string;
+  adminName: string;
+  adminPhone: string;
+  attachments: FdeDeliveryAttachmentItem[];
+  linkedOrderIds?: string[];
+  useFullFlow?: boolean;
+  skippedSteps?: FdeDeliveryStepKey[];
+  relatedCustomerId?: string;
+  changeType?: FdeDeliveryChangeType;
+  changeReason?: string;
+  requestedByName?: string;
+  changeDetailItems?: FdeDeliveryChangeDetailItem[];
+  quotaAdjustments?: FdeDeliveryQuotaAdjustmentItem[];
+  deviceAdditions?: FdeDeviceMonitorItem[];
+  agentAdditions?: FdeAgentMonitorItem[];
   sourceLabel?: string;
   tenantStatusLabel?: string;
   deliveryBoundary?: string;
@@ -268,6 +346,25 @@ export interface FdeOperationsCustomerItem {
   devices: FdeDeviceMonitorItem[];
   agents: FdeAgentMonitorItem[];
   alerts: FdeAlertItem[];
+  changeRecords: FdeDeliveryChangeRecordItem[];
+}
+
+/**
+ * 交付变更记录。
+ */
+export interface FdeDeliveryChangeRecordItem {
+  id: string;
+  orderId: string;
+  type: FdeDeliveryChangeType;
+  summary: string;
+  detailItems: string[];
+  statusLabel: FdeDeliveryChangeStatus;
+  requestedByName: string;
+  requestedAt: string;
+  expectedEffectiveAt: string;
+  beforeSnapshot: string[];
+  afterSnapshot: string[];
+  completedAt?: string;
 }
 
 /**
@@ -337,6 +434,164 @@ export interface FdeAgentMonitorItem {
 }
 
 /**
+ * 专家广场商品项。
+ */
+export interface FdeAgentCatalogItem {
+  id: string;
+  name: string;
+  releaseVersion: string;
+  sourceLabel: string;
+  statusLabel: string;
+  permissionHint: string;
+  scope: FdeAgentCatalogScope;
+  sceneCategory: string;
+  description: string;
+}
+
+/**
+ * 订单设备商品行。
+ */
+export interface FdeOrderDeviceLineItem {
+  id: string;
+  kind: "device";
+  deviceType: FdeOrderDeviceType;
+  quantity: number;
+  unitPrice: number;
+  totalAmount: number;
+}
+
+/**
+ * 订单 AI 专家商品行。
+ */
+export interface FdeOrderAgentLineItem {
+  id: string;
+  kind: "agent";
+  agentCatalogId: string;
+  agentName: string;
+  releaseVersion: string;
+  sourceLabel: string;
+  quantity: number;
+  unitPrice: number;
+  totalAmount: number;
+}
+
+/**
+ * 订单 tokens 商品行。
+ */
+export interface FdeOrderTokensLineItem {
+  id: string;
+  kind: "tokens";
+  tokenCount: number;
+  totalAmount: number;
+}
+
+/**
+ * 订单商品行。
+ */
+export type FdeOrderLineItem =
+  | FdeOrderDeviceLineItem
+  | FdeOrderAgentLineItem
+  | FdeOrderTokensLineItem;
+
+/**
+ * 订单履约执行记录。
+ */
+export interface FdeOrderFulfillmentExecutionRecordItem {
+  id: string;
+  actionLabel: string;
+  resultLabel: string;
+  operatorName: string;
+  operatedAt: string;
+}
+
+/**
+ * 订单履约任务。
+ */
+export interface FdeOrderFulfillmentItem {
+  id: string;
+  type: FdeOrderFulfillmentType;
+  summary: string;
+  status: FdeOrderFulfillmentStatus;
+  linkedRecordId?: string;
+  linkedRecordType?: "delivery" | "change" | "recharge";
+  updatedAt: string;
+  executionRecords: FdeOrderFulfillmentExecutionRecordItem[];
+}
+
+/**
+ * 订单条目。
+ */
+export interface FdeOrderItem {
+  id: string;
+  orderNo: string;
+  customerName: string;
+  assignedToId: string;
+  tenantId?: string;
+  tenantName?: string;
+  tenantCode?: string;
+  status: FdeOrderStatus;
+  totalAmount: number;
+  remark: string;
+  lineItems: FdeOrderLineItem[];
+  fulfillmentItems: FdeOrderFulfillmentItem[];
+  createdAt: string;
+}
+
+/**
+ * 创建订单入参。
+ */
+export interface FdeCreateOrderPayload {
+  customerName: string;
+  tenantId?: string;
+  remark: string;
+  lineItems: FdeOrderLineItem[];
+}
+
+/**
+ * 创建订单返回值。
+ */
+export interface FdeCreateOrderResult {
+  orderId: string;
+  shouldPromptCreateTenant: boolean;
+}
+
+/**
+ * 创建设备追加变更单入参。
+ */
+export interface FdeCreateDeviceChangePayload {
+  customerId: string;
+  customerName: string;
+  expectedEffectiveAt: string;
+  reason: string;
+  note: string;
+  cloudWorkbenchCount: number;
+  localWorkbenchCount: number;
+  localClientCount: number;
+}
+
+/**
+ * 创建 Agent 追加变更单入参。
+ */
+export interface FdeCreateAgentChangePayload {
+  customerId: string;
+  customerName: string;
+  expectedEffectiveAt: string;
+  reason: string;
+  note: string;
+  agentName: string;
+  releaseVersion: string;
+  sourceLabel: string;
+  targetMembers: string[];
+}
+
+/**
+ * 创建交付变更单入参。
+ */
+export type FdeCreateDeliveryChangePayload =
+  | ({ type: "追加设备" } & FdeCreateDeviceChangePayload)
+  | ({ type: "追加Agent" } & FdeCreateAgentChangePayload);
+
+/**
  * 交付阶段的 Agent 下发包。
  */
 export interface FdeDeliveryAgentPackageItem {
@@ -367,83 +622,6 @@ export interface FdeAlertItem {
   message: string;
   severity: "low" | "medium" | "high" | "critical";
   time: string;
-}
-
-/**
- * 数据回流 Agent 指标。
- */
-export interface FdeFeedbackAgentItem {
-  id: string;
-  agentName: string;
-  customerName: string;
-  customerId: string;
-  assignedToId: string;
-  scenarioName: string;
-  resolutionRate: number;
-  triggerCount: number;
-  evolutionScore: number;
-  lastEvolvedAt: string;
-  currentVersion: string;
-  skills: FdeAgentSkillItem[];
-  feedbackData: FdeFeedbackDataItem[];
-}
-
-/**
- * Agent 技能项。
- */
-export interface FdeAgentSkillItem {
-  name: string;
-  version: string;
-}
-
-/**
- * 回流数据项。
- */
-export interface FdeFeedbackDataItem {
-  date: string;
-  triggerCount: number;
-  successCount: number;
-  failCount: number;
-  avgResponseTime: number;
-}
-
-/**
- * 技能基准对比结果。
- */
-export interface FdeBenchmarkResult {
-  skillName: string;
-  oldVersion: string;
-  newVersion: string;
-  metrics: Array<{
-    name: string;
-    oldValue: string;
-    newValue: string;
-    improvement: string;
-  }>;
-}
-
-/**
- * 进化任务。
- */
-export interface FdeEvolutionTaskItem {
-  id: string;
-  agentName: string;
-  customerName: string;
-  assignedToId: string;
-  status: FdeEvolutionTaskStatus;
-  progress: number;
-  versionCandidate: string;
-  source: string;
-  startedAt: string;
-  expectedFinishAt: string;
-  changedSkills: string[];
-  summary: string;
-  queuePosition?: number;
-  estimatedTime?: string;
-  benchmarkResults?: FdeBenchmarkResult[];
-  upgradeNotes?: string;
-  currentVersion?: string;
-  rejectionReason?: string;
 }
 
 /**
@@ -491,42 +669,33 @@ export interface UseFdeWorkbenchResult {
   activeTab: FdeWorkbenchTabKey;
   activeMember: FdeTeamMemberItem;
   activeRole: FdeWorkbenchRole;
+  canManageMembers: boolean;
+  orders: FdeOrderItem[];
   deliveryOrders: FdeDeliveryOrderItem[];
-  evolutionTasks: FdeEvolutionTaskItem[];
-  feedbackAgents: FdeFeedbackAgentItem[];
   versionTasks: FdeVersionManagementTaskItem[];
+  filteredOrders: FdeOrderItem[];
   filteredDeliveryOrders: FdeDeliveryOrderItem[];
-  filteredEvolutionTasks: FdeEvolutionTaskItem[];
-  filteredFeedbackAgents: FdeFeedbackAgentItem[];
-  filteredLeads: FdeLeadItem[];
-  filteredOpportunities: FdeOpportunityItem[];
   filteredOperationsCustomers: FdeOperationsCustomerItem[];
   filteredVersionTasks: FdeVersionManagementTaskItem[];
-  leads: FdeLeadItem[];
   opportunities: FdeOpportunityItem[];
   operationsCustomers: FdeOperationsCustomerItem[];
+  selectedOrderManagementId: string;
   selectedDeliveryOrderId: string;
-  selectedEvolutionTaskId: string;
-  selectedFeedbackAgentId: string;
-  selectedLeadId: string;
   selectedOperationsCustomerId: string;
-  selectedOpportunityId: string;
   selectedVersionTaskId: string;
-  setActiveMemberId: (memberId: string) => void;
-  setActiveRole: (role: FdeWorkbenchRole) => void;
   setActiveTab: (tab: FdeWorkbenchTabKey) => void;
+  createOrder: (payload: FdeCreateOrderPayload) => FdeCreateOrderResult;
+  syncDeliveryOrders: (orders: FdeDeliveryOrderItem[]) => void;
+  createDeliveryChangeOrder: (payload: FdeCreateDeliveryChangePayload) => string;
+  setSelectedOrderManagementId: (orderId: string) => void;
   setSelectedDeliveryOrderId: (orderId: string) => void;
-  setSelectedEvolutionTaskId: (taskId: string) => void;
-  setSelectedFeedbackAgentId: (agentId: string) => void;
-  setSelectedLeadId: (leadId: string) => void;
   setSelectedOperationsCustomerId: (customerId: string) => void;
-  setSelectedOpportunityId: (opportunityId: string) => void;
   setSelectedVersionTaskId: (taskId: string) => void;
-  createLead: (payload: FdeLeadFormState) => void;
-  assignLead: (leadId: string, memberId: string | null) => void;
-  updateLeadStatus: (leadId: string, status: FdeLeadStatus, closedNote?: string) => void;
-  addLeadProgress: (leadId: string, content: string) => void;
-  triggerEvolution: (agentId: string) => void;
+  addTeamMember: (payload: FdeTeamMemberDraft) => void;
+  importTeamMembers: (payloads: FdeTeamMemberDraft[]) => void;
+  removeTeamMember: (memberId: string) => void;
+  toggleTeamMemberStatus: (memberId: string) => void;
+  updateTeamMember: (memberId: string, payload: FdeTeamMemberDraft) => void;
   tabs: FdeWorkbenchTabItem[];
   navGroups: FdeWorkbenchNavGroup[];
   teamMembers: FdeTeamMemberItem[];

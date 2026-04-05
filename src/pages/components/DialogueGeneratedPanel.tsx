@@ -1018,7 +1018,6 @@ const renderDispatchExecution = (panel: DialogueDispatchExecutionPanelState): JS
 
 const renderPanelBody = (
   panel: DialogueGeneratedPanelState,
-  onClose?: () => void,
 ): JSX.Element => {
   if (panel.kind === "sequenceOverview") {
     return renderSequenceOverview(panel);
@@ -1066,7 +1065,7 @@ export const DialogueGeneratedPanel = ({
   return (
     <aside className={styles.panel} aria-label="结果面板">
       {renderViewerToolbar(onBack, onClose)}
-      <div className={styles.viewport}>{renderPanelBody(panel, onClose)}</div>
+      <div className={styles.viewport}>{renderPanelBody(panel)}</div>
     </aside>
   );
 };

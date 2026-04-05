@@ -2,20 +2,21 @@ import { FDE_DELIVERY_STEPS } from "@/feature/fde/mockData";
 import type {
   FdeDeliveryStepKey,
   FdeMonitorHealth,
-  FdeOpportunityStage,
   FdeTeamMemberItem,
+  FdeWorkbenchTabKey,
 } from "@/feature/fde/types";
 
-/**
- * 商机阶段顺序。
- */
-export const FDE_OPPORTUNITY_STAGE_ORDER: FdeOpportunityStage[] = [
-  "初步沟通",
-  "产品演示",
-  "方案推荐",
-  "商务谈判",
-  "已成交",
-];
+const FDE_WORKBENCH_ROUTE_SEGMENTS: Record<FdeWorkbenchTabKey, string> = {
+  dashboard: "dashboard",
+  orderManagement: "orders",
+  delivery: "delivery",
+  operations: "operations",
+  teamManagement: "team-management",
+  versionManagement: "version-management",
+  agentDev: "agent-dev",
+  skillMarket: "skill-market",
+  agentStore: "agent-store",
+};
 
 /**
  * 格式化万元金额。
@@ -33,6 +34,29 @@ export const getFdeMemberName = (members: FdeTeamMemberItem[], memberId: string)
  */
 export const getFdeAvatarUrl = (seed: string): string =>
   `https://api.dicebear.com/9.x/notionists/svg?seed=${encodeURIComponent(seed)}`;
+
+/**
+ * 获取 FDE 工作台模块对应的路由路径。
+ */
+export const getFdeWorkbenchPath = (tabKey: FdeWorkbenchTabKey): string =>
+  `/fde/${FDE_WORKBENCH_ROUTE_SEGMENTS[tabKey]}`;
+
+/**
+ * 根据路由片段解析 FDE 工作台模块。
+ */
+export const getFdeWorkbenchTabKeyFromPath = (
+  tabPath?: string,
+): FdeWorkbenchTabKey | null => {
+  if (!tabPath) {
+    return null;
+  }
+
+  const matchedKey = (Object.keys(FDE_WORKBENCH_ROUTE_SEGMENTS) as FdeWorkbenchTabKey[]).find(
+    key => FDE_WORKBENCH_ROUTE_SEGMENTS[key] === tabPath,
+  );
+
+  return matchedKey ?? null;
+};
 
 /**
  * 根据交付步骤获取序号。

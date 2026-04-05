@@ -1,21 +1,23 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import classNames from "classnames";
 import {
   AppstoreOutlined,
   CloudServerOutlined,
   CodeOutlined,
-  DashboardOutlined,
+  HomeOutlined,
   LineChartOutlined,
   LogoutOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
+  ShoppingCartOutlined,
+  TeamOutlined,
   SyncOutlined,
   ThunderboltOutlined,
 } from "@ant-design/icons";
 import type { MenuProps } from "antd";
 import { Avatar, Dropdown, Empty, message } from "antd";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 
 import { useMockAuth } from "@/feature/auth/hooks/useMockAuth";
 import { useFdeWorkbench } from "@/feature/fde/hooks/useFdeWorkbench";
@@ -23,26 +25,32 @@ import type {
   FdeWorkbenchTabItem,
   FdeWorkbenchTabKey,
 } from "@/feature/fde/types";
-import { getFdeAvatarUrl } from "@/feature/fde/utils";
+import {
+  getFdeAvatarUrl,
+  getFdeWorkbenchPath,
+  getFdeWorkbenchTabKeyFromPath,
+} from "@/feature/fde/utils";
 
 import { FdeAgentDevView } from "./FdeAgentDevView";
 import { FdeAgentStoreView } from "./FdeAgentStoreView";
 import { FdeDeliveryWorkbench } from "./FdeDeliveryWorkbench";
+import { FdeLeaderDashboardView } from "./FdeLeaderDashboardView";
 import { FdeOperationsMonitorView } from "./FdeOperationsMonitorView";
+import { FdeOrderManagementView } from "./FdeOrderManagementView";
 import { FdeSkillMarketView } from "./FdeSkillMarketView";
+import { FdeTeamManagementView } from "./FdeTeamManagementView";
 import { FdeVersionManagementView } from "./FdeVersionManagementView";
 import styles from "./FdeWorkbenchView.module.less";
 
 const getWorkbenchTitle = (tab: FdeWorkbenchTabItem): string => `${tab.label}`;
 
 const FDE_TAB_ICONS: Record<FdeWorkbenchTabKey, JSX.Element> = {
-  opportunities: <DashboardOutlined />,
-  leads: <DashboardOutlined />,
+  dashboard: <HomeOutlined />,
+  orderManagement: <ShoppingCartOutlined />,
   delivery: <CloudServerOutlined />,
   operations: <LineChartOutlined />,
+  teamManagement: <TeamOutlined />,
   versionManagement: <SyncOutlined />,
-  feedback: <LineChartOutlined />,
-  evolution: <LineChartOutlined />,
   agentDev: <CodeOutlined />,
   skillMarket: <ThunderboltOutlined />,
   agentStore: <AppstoreOutlined />,
@@ -53,14 +61,53 @@ const FDE_TAB_ICONS: Record<FdeWorkbenchTabKey, JSX.Element> = {
  */
 export const FdeWorkbenchView = (): JSX.Element => {
   const navigate = useNavigate();
-  const { logout } = useMockAuth();
-  const workbench = useFdeWorkbench();
+  const { tabPath } = useParams<{ tabPath?: string }>();
+  const { logout, session } = useMockAuth();
+  const workbench = useFdeWorkbench(session?.userId);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(false);
 
-  const currentTab = useMemo<FdeWorkbenchTabItem>(
-    () => workbench.tabs.find(item => item.key === workbench.activeTab) ?? workbench.tabs[0],
-    [workbench.activeTab, workbench.tabs],
+  const routeTab = useMemo<FdeWorkbenchTabKey | null>(
+    () => getFdeWorkbenchTabKeyFromPath(tabPath),
+    [tabPath],
   );
+  const fallbackTab = useMemo<FdeWorkbenchTabKey>(
+    () => workbench.tabs[0]?.key ?? "delivery",
+    [workbench.tabs],
+  );
+  const visibleTabKeys = useMemo<Set<FdeWorkbenchTabKey>>(
+    () => new Set(workbench.tabs.map(item => item.key)),
+    [workbench.tabs],
+  );
+  const activeTab = routeTab && visibleTabKeys.has(routeTab) ? routeTab : fallbackTab;
+
+  useEffect(() => {
+    if (!workbench.tabs.length) {
+      return;
+    }
+
+    if (!routeTab || !visibleTabKeys.has(routeTab)) {
+      navigate(getFdeWorkbenchPath(fallbackTab), { replace: true });
+      return;
+    }
+
+    if (workbench.activeTab !== routeTab) {
+      workbench.setActiveTab(routeTab);
+    }
+  }, [
+    fallbackTab,
+    navigate,
+    routeTab,
+    visibleTabKeys,
+    workbench.activeTab,
+    workbench.setActiveTab,
+    workbench.tabs.length,
+  ]);
+
+  const currentTab = useMemo<FdeWorkbenchTabItem | null>(
+    () => workbench.tabs.find(item => item.key === activeTab) ?? workbench.tabs[0] ?? null,
+    [activeTab, workbench.tabs],
+  );
+  const workbenchTitle = currentTab ? getWorkbenchTitle(currentTab) : "FDE 工作台";
   const handleLogout = useCallback((): void => {
     logout();
     message.success("已退出模拟登录。");
@@ -74,77 +121,94 @@ export const FdeWorkbenchView = (): JSX.Element => {
       onClick: handleLogout,
     },
   ];
+  const handleNavigateTab = useCallback(
+    (tab: FdeWorkbenchTabKey, replace = false): void => {
+      navigate(getFdeWorkbenchPath(tab), { replace });
+    },
+    [navigate],
+  );
 
-  const activeContent = useMemo<JSX.Element>(() => {
-    if (workbench.activeTab === "delivery") {
-      return (
-        <FdeDeliveryWorkbench
-          items={workbench.filteredDeliveryOrders}
-          members={workbench.teamMembers}
-          currentMemberId={workbench.activeMember.id}
-          selectedOrderId={workbench.selectedDeliveryOrderId}
-          setSelectedOrderId={workbench.setSelectedDeliveryOrderId}
-        />
-      );
-    }
+  let activeContent: JSX.Element = <Empty description="未找到对应的工作台内容" />;
 
-    if (workbench.activeTab === "operations") {
-      return (
-        <FdeOperationsMonitorView
-          items={workbench.filteredOperationsCustomers}
-          selectedCustomerId={workbench.selectedOperationsCustomerId}
-          setSelectedCustomerId={workbench.setSelectedOperationsCustomerId}
-        />
-      );
-    }
-
-    if (workbench.activeTab === "versionManagement") {
-      return (
-        <FdeVersionManagementView
-          items={workbench.filteredVersionTasks}
-          members={workbench.teamMembers}
-          selectedTaskId={workbench.selectedVersionTaskId}
-          setSelectedTaskId={workbench.setSelectedVersionTaskId}
-        />
-      );
-    }
-
-    if (workbench.activeTab === "skillMarket") {
-      return (
-        <FdeSkillMarketView
-          onNavigateToAgentDev={() => workbench.setActiveTab("agentDev")}
-        />
-      );
-    }
-
-    if (workbench.activeTab === "agentStore") {
-      return (
-        <FdeAgentStoreView
-          onNavigateToAgentDev={() => workbench.setActiveTab("agentDev")}
-        />
-      );
-    }
-
-    if (workbench.activeTab === "agentDev") {
-      return <FdeAgentDevView />;
-    }
-
-    return <Empty description="未找到对应的工作台内容" />;
-  }, [
-    workbench.activeTab,
-    workbench.filteredDeliveryOrders,
-    workbench.filteredOperationsCustomers,
-    workbench.filteredVersionTasks,
-    workbench.activeMember.id,
-    workbench.selectedDeliveryOrderId,
-    workbench.selectedOperationsCustomerId,
-    workbench.selectedVersionTaskId,
-    workbench.setSelectedDeliveryOrderId,
-    workbench.setSelectedOperationsCustomerId,
-    workbench.setSelectedVersionTaskId,
-    workbench.setActiveTab,
-    workbench.teamMembers,
-  ]);
+  if (activeTab === "dashboard") {
+    activeContent = (
+      <FdeLeaderDashboardView
+        members={workbench.teamMembers}
+        opportunities={workbench.opportunities}
+        deliveryOrders={workbench.deliveryOrders}
+        operationsCustomers={workbench.operationsCustomers}
+        versionTasks={workbench.versionTasks}
+        onNavigate={handleNavigateTab}
+      />
+    );
+  } else if (activeTab === "orderManagement") {
+    activeContent = (
+      <FdeOrderManagementView
+        items={workbench.filteredOrders}
+        deliveryOrders={workbench.deliveryOrders}
+        selectedOrderId={workbench.selectedOrderManagementId}
+        setSelectedOrderId={workbench.setSelectedOrderManagementId}
+        createOrder={workbench.createOrder}
+        onNavigateToDelivery={() => handleNavigateTab("delivery")}
+      />
+    );
+  } else if (activeTab === "delivery") {
+    activeContent = (
+      <FdeDeliveryWorkbench
+        items={workbench.filteredDeliveryOrders}
+        orderItems={workbench.filteredOrders}
+        members={workbench.teamMembers}
+        currentMemberId={workbench.activeMember.id}
+        selectedOrderId={workbench.selectedDeliveryOrderId}
+        syncOrders={workbench.syncDeliveryOrders}
+        setSelectedOrderId={workbench.setSelectedDeliveryOrderId}
+      />
+    );
+  } else if (activeTab === "operations") {
+    activeContent = (
+      <FdeOperationsMonitorView
+        items={workbench.filteredOperationsCustomers}
+        selectedCustomerId={workbench.selectedOperationsCustomerId}
+        setSelectedCustomerId={workbench.setSelectedOperationsCustomerId}
+      />
+    );
+  } else if (activeTab === "teamManagement") {
+    activeContent = (
+      <FdeTeamManagementView
+        activeMember={workbench.activeMember}
+        items={workbench.teamMembers}
+        canManageMembers={workbench.canManageMembers}
+        addTeamMember={workbench.addTeamMember}
+        importTeamMembers={workbench.importTeamMembers}
+        removeTeamMember={workbench.removeTeamMember}
+        toggleTeamMemberStatus={workbench.toggleTeamMemberStatus}
+        updateTeamMember={workbench.updateTeamMember}
+      />
+    );
+  } else if (activeTab === "versionManagement") {
+    activeContent = (
+      <FdeVersionManagementView
+        items={workbench.filteredVersionTasks}
+        members={workbench.teamMembers}
+        selectedTaskId={workbench.selectedVersionTaskId}
+        setSelectedTaskId={workbench.setSelectedVersionTaskId}
+      />
+    );
+  } else if (activeTab === "skillMarket") {
+    activeContent = (
+      <FdeSkillMarketView
+        onNavigateToAgentDev={() => handleNavigateTab("agentDev")}
+      />
+    );
+  } else if (activeTab === "agentStore") {
+    activeContent = (
+      <FdeAgentStoreView
+        onNavigateToAgentDev={() => handleNavigateTab("agentDev")}
+      />
+    );
+  } else if (activeTab === "agentDev") {
+    activeContent = <FdeAgentDevView />;
+  }
 
   return (
     <div className={styles.root}>
@@ -200,9 +264,9 @@ export const FdeWorkbenchView = (): JSX.Element => {
                   className={classNames(
                     styles.navButton,
                     isSidebarCollapsed && styles.navButtonCollapsed,
-                    workbench.activeTab === item.key && styles.navButtonActive,
+                    activeTab === item.key && styles.navButtonActive,
                   )}
-                  onClick={() => workbench.setActiveTab(item.key)}
+                  onClick={() => handleNavigateTab(item.key)}
                   title={item.label}
                 >
                   <span className={styles.navIcon}>{FDE_TAB_ICONS[item.key]}</span>
@@ -221,9 +285,9 @@ export const FdeWorkbenchView = (): JSX.Element => {
                       className={classNames(
                         styles.navButton,
                         isSidebarCollapsed && styles.navButtonCollapsed,
-                        workbench.activeTab === item.key && styles.navButtonActive,
+                        activeTab === item.key && styles.navButtonActive,
                       )}
-                      onClick={() => workbench.setActiveTab(item.key)}
+                      onClick={() => handleNavigateTab(item.key)}
                       title={item.label}
                     >
                       <span className={styles.navIcon}>{FDE_TAB_ICONS[item.key]}</span>
@@ -236,33 +300,27 @@ export const FdeWorkbenchView = (): JSX.Element => {
           ))}
         </nav>
 
-        <Dropdown menu={{ items: accountMenuItems }} placement="topLeft" trigger={["click"]}>
-          <button
-            type="button"
-            className={classNames(styles.sidebarFooter, {
-              [styles.sidebarFooterCollapsed]: isSidebarCollapsed,
-            })}
-          >
-            <Avatar
-              className={styles.memberAvatar}
-              src={getFdeAvatarUrl(workbench.activeMember.avatarSeed)}
-              size={40}
-            />
-            {isSidebarCollapsed ? null : (
-              <div className={styles.footerCopy}>
-                <div className={styles.footerValue}>{workbench.activeMember.name}</div>
-                <div className={styles.footerHint}>FDE</div>
-              </div>
-            )}
-          </button>
-        </Dropdown>
       </aside>
 
       <main className={styles.main}>
         <div className={styles.mainPanel}>
           <header className={styles.header}>
             <div className={styles.headerIntro}>
-              <h1 className={styles.title}>{getWorkbenchTitle(currentTab)}</h1>
+              <h1 className={styles.title}>{workbenchTitle}</h1>
+            </div>
+            <div className={styles.headerControls}>
+              <Dropdown menu={{ items: accountMenuItems }} placement="bottomRight" trigger={["click"]}>
+                <button type="button" className={styles.accountTrigger}>
+                  <Avatar
+                    className={styles.memberAvatar}
+                    src={getFdeAvatarUrl(workbench.activeMember.avatarSeed)}
+                    size={36}
+                  />
+                  <div>
+                    <div className={styles.memberName}>{workbench.activeMember.name}</div>
+                  </div>
+                </button>
+              </Dropdown>
             </div>
           </header>
 

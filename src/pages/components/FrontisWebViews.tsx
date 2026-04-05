@@ -715,7 +715,6 @@ const buildDistributedSeries = (
 };
 
 export const buildDashboardTimeline = (
-  resultRecords: ResultRecord[],
   timeRange: DashboardTimeRange,
   granularity: DashboardGranularity,
   prdOption: DashboardPrdOption,

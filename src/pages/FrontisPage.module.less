@@ -1262,8 +1262,22 @@
 .dialogueSwitcherList {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 14px;
   padding: 0;
+}
+
+.dialogueSwitcherGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.dialogueSwitcherGroupTitle {
+  padding: 0 6px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 18px;
+  font-weight: 600;
 }
 
 .dialogueSwitcherItemRow {
@@ -1348,6 +1362,13 @@
   font-size: 15px;
   line-height: 22px;
   font-weight: 600;
+}
+
+.dialogueSwitcherItemName {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .dialogueSwitcherItemMeta,

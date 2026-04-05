@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { DownOutlined, RightOutlined } from "@ant-design/icons";
 import classNames from "classnames";
@@ -14,7 +14,7 @@ interface FdeOperationsMonitorViewProps {
   setSelectedCustomerId: (customerId: string) => void;
 }
 
-type FdeAssetDetailTabKey = "recharge" | "devices" | "agents";
+type FdeAssetDetailTabKey = "recharge" | "devices" | "agents" | "changes";
 type FdeAgentAssetRow =
   | {
       kind: "group";
@@ -46,9 +46,7 @@ const getAgentTargetLabel = (item: FdeOperationsCustomerItem["agents"][number]):
   return item.assignedMembers?.join("、") ?? "暂未分配";
 };
 
-const getAgentSourceTags = (
-  item: FdeOperationsCustomerItem["agents"][number],
-): string[] => {
+const getAgentSourceTags = (item: FdeOperationsCustomerItem["agents"][number]): string[] => {
   const tags = item.collectionLabels?.length
     ? item.collectionLabels
     : [item.deliverySourceLabel ?? "单个下发"];
@@ -56,9 +54,21 @@ const getAgentSourceTags = (
   return tags;
 };
 
-const buildAgentAssetRows = (
-  agents: FdeOperationsCustomerItem["agents"],
-): FdeAgentAssetRow[] => {
+const getChangeStatusClassName = (
+  status: FdeOperationsCustomerItem["changeRecords"][number]["statusLabel"],
+): string => {
+  if (status === "已完成") {
+    return styles.changeStatusDone;
+  }
+
+  if (status === "已取消") {
+    return styles.changeStatusCanceled;
+  }
+
+  return styles.changeStatusPending;
+};
+
+const buildAgentAssetRows = (agents: FdeOperationsCustomerItem["agents"]): FdeAgentAssetRow[] => {
   const groupedAgents = new Map<string, FdeOperationsCustomerItem["agents"]>();
 
   agents.forEach(agent => {
@@ -127,8 +137,7 @@ export const FdeOperationsMonitorView = ({
     [items],
   );
   const selectedCustomer = useMemo(
-    () =>
-      deliveredItems.find(item => item.id === selectedCustomerId) ?? deliveredItems[0] ?? null,
+    () => deliveredItems.find(item => item.id === selectedCustomerId) ?? deliveredItems[0] ?? null,
     [deliveredItems, selectedCustomerId],
   );
   const agentAssetRows = useMemo<FdeAgentAssetRow[]>(
@@ -140,13 +149,13 @@ export const FdeOperationsMonitorView = ({
     setExpandedGroupKeys([]);
   }, [selectedCustomer?.id]);
 
-  const handleToggleGroup = (groupKey: string): void => {
+  const handleToggleGroup = useCallback((groupKey: string): void => {
     setExpandedGroupKeys(previous =>
       previous.includes(groupKey)
         ? previous.filter(item => item !== groupKey)
         : [...previous, groupKey],
     );
-  };
+  }, []);
 
   if (!deliveredItems.length) {
     return <Empty description="当前暂无已交付客户资产" />;
@@ -177,7 +186,12 @@ export const FdeOperationsMonitorView = ({
         {selectedCustomer ? (
           <>
             <div className={styles.pageHeader}>
-              <h2 className={styles.pageTitle}>{selectedCustomer.customerName}</h2>
+              <div className={styles.pageHeaderMain}>
+                <h2 className={styles.pageTitle}>{selectedCustomer.customerName}</h2>
+                <div className={styles.pageSubtitle}>
+                  {selectedCustomer.tenantStatusLabel ?? "已交付客户"}
+                </div>
+              </div>
             </div>
 
             <section className={styles.section}>
@@ -193,11 +207,6 @@ export const FdeOperationsMonitorView = ({
                     <div className={styles.cardMeta}>{getQuotaMetaLabel(item)}</div>
                   </div>
                 ))}
-                <div className={styles.overviewCard}>
-                  <div className={styles.cardLabel}>积分余额</div>
-                  <div className={styles.cardValue}>{selectedCustomer.pointsBalanceLabel}</div>
-                  <div className={styles.cardMeta}>当前可用余额</div>
-                </div>
                 <div className={styles.overviewCard}>
                   <div className={styles.cardLabel}>Token 使用情况</div>
                   <div className={styles.cardValue}>{selectedCustomer.tokenUsage.usedLabel}</div>
@@ -242,6 +251,16 @@ export const FdeOperationsMonitorView = ({
                     onClick={() => setActiveDetailTab("agents")}
                   >
                     AI 专家资产
+                  </button>
+                  <button
+                    type="button"
+                    className={classNames(
+                      styles.detailTab,
+                      activeDetailTab === "changes" && styles.detailTabActive,
+                    )}
+                    onClick={() => setActiveDetailTab("changes")}
+                  >
+                    交付变更记录
                   </button>
                 </div>
               </div>
@@ -391,6 +410,49 @@ export const FdeOperationsMonitorView = ({
                     );
                   })}
                 </>
+              ) : null}
+
+              {activeDetailTab === "changes" ? (
+                selectedCustomer.changeRecords.length ? (
+                  <>
+                    <div className={styles.tableHeaderChange}>
+                      <span>变更单号</span>
+                      <span>类型</span>
+                      <span>内容摘要</span>
+                      <span>状态</span>
+                      <span>发起人</span>
+                      <span>计划生效</span>
+                      <span>完成时间</span>
+                    </div>
+                    {selectedCustomer.changeRecords.map(record => (
+                      <div key={record.id} className={styles.tableRowChange}>
+                        <span className={styles.tableStrong}>{record.orderId}</span>
+                        <span>{record.type}</span>
+                        <span className={styles.changeSummaryCell}>
+                          <span className={styles.tableStrong}>{record.summary}</span>
+                          <span className={styles.changeDetailMeta}>
+                            {record.detailItems.length
+                              ? record.detailItems.join(" · ")
+                              : "暂无变更明细"}
+                          </span>
+                        </span>
+                        <span
+                          className={classNames(
+                            styles.changeStatus,
+                            getChangeStatusClassName(record.statusLabel),
+                          )}
+                        >
+                          {record.statusLabel}
+                        </span>
+                        <span>{record.requestedByName}</span>
+                        <span>{record.expectedEffectiveAt}</span>
+                        <span>{record.completedAt ?? "进行中"}</span>
+                      </div>
+                    ))}
+                  </>
+                ) : (
+                  <div className={styles.emptyHint}>当前暂无交付变更记录</div>
+                )
               ) : null}
             </section>
           </>

@@ -60,6 +60,7 @@ import {
   buildWorkspaceChatMessages,
   downloadArtifact,
   getAvatarText,
+  groupConversationEmployees,
   resolveArtifactUrl,
 } from "../utils";
 import { DialogueHomeView } from "./DialogueHomeView";
@@ -227,6 +228,10 @@ export const DialoguePrototypeView = ({
   );
   const hasArtifactPanel = activeDialogueArtifacts.length > 0;
   const hasResultPanel = activeDialogueResults.length > 0;
+  const employeeGroups = useMemo(
+    () => groupConversationEmployees(allEmployees, defaultAgentIds),
+    [allEmployees, defaultAgentIds],
+  );
   const isStackedLayout = viewportWidth <= 1100;
   const isArtifactPanelVisible =
     !isHomeVisible && sidePanelMode === "artifacts" && hasArtifactPanel;
@@ -875,6 +880,7 @@ export const DialoguePrototypeView = ({
               className={styles.dialogueAgentSelectButton}
               aria-expanded={isEmployeeSwitcherOpen}
               aria-label="切换 AI 专家"
+              title={activeEmployee.name}
               onClick={() => setIsEmployeeSwitcherOpen(current => !current)}
             >
               <span className={styles.dialogueAgentSelectCurrent}>
@@ -907,104 +913,112 @@ export const DialoguePrototypeView = ({
             {isEmployeeSwitcherOpen ? (
               <div className={styles.dialogueAgentDropdownMenu}>
                 <div className={styles.dialogueSwitcherList}>
-                  {allEmployees.map(item => {
-                    const isDefaultAgent = defaultAgentIds.includes(item.id);
-                    const isEditingAgent = editingAgentId === item.id;
+                  {employeeGroups.map(group => (
+                    <div key={group.key} className={styles.dialogueSwitcherGroup}>
+                      <div className={styles.dialogueSwitcherGroupTitle}>{group.title}</div>
+                      {group.items.map(item => {
+                        const isDefaultAgent = defaultAgentIds.includes(item.id);
+                        const isEditingAgent = editingAgentId === item.id;
 
-                    return (
-                      <div key={item.id} className={styles.dialogueSwitcherItemRow}>
-                        {isEditingAgent ? (
-                          <div
-                            className={classNames(styles.dialogueSwitcherItem, {
-                              [styles.dialogueSwitcherItemActive]: item.id === activeEmployee.id,
-                              [styles.dialogueSwitcherItemEditing]: true,
-                            })}
-                          >
-                            <span className={styles.employeeAvatarWrap}>
-                              <Avatar src={item.avatarUrl} size={40} className={styles.dialogueHeroAvatar}>
-                                {getAvatarText(item.name)}
-                              </Avatar>
-                              <span
-                                className={classNames(styles.employeeStatusDot, {
-                                  [styles.employeeStatusDotIdle]: item.status === "idle",
-                                  [styles.employeeStatusDotBusy]: item.status === "busy",
-                                  [styles.employeeStatusDotPending]:
-                                    item.status === "pending" ||
-                                    item.status === "paused" ||
-                                    item.status === "draft",
+                        return (
+                          <div key={item.id} className={styles.dialogueSwitcherItemRow}>
+                            {isEditingAgent ? (
+                              <div
+                                className={classNames(styles.dialogueSwitcherItem, {
+                                  [styles.dialogueSwitcherItemActive]: item.id === activeEmployee.id,
+                                  [styles.dialogueSwitcherItemEditing]: true,
                                 })}
-                              />
-                            </span>
-                            <span className={styles.dialogueSwitcherItemBody}>
-                              <span className={styles.dialogueSwitcherAgentEditRow}>
-                                <Input
-                                  ref={agentNameInputRef}
-                                  size="small"
-                                  value={editingAgentName}
-                                  maxLength={24}
-                                  placeholder="输入默认 Agent 名称"
-                                  className={styles.dialogueSwitcherAgentEditInput}
-                                  onChange={event => setEditingAgentName(event.target.value)}
-                                  onPressEnter={handleSubmitRenameAgent}
-                                  onBlur={handleSubmitRenameAgent}
-                                  onKeyDown={event => {
-                                    event.stopPropagation();
-                                    if (event.key === "Escape") {
-                                      handleCancelRenameAgent();
-                                    }
-                                  }}
-                                />
-                              </span>
-                            </span>
+                              >
+                                <span className={styles.employeeAvatarWrap}>
+                                  <Avatar src={item.avatarUrl} size={40} className={styles.dialogueHeroAvatar}>
+                                    {getAvatarText(item.name)}
+                                  </Avatar>
+                                  <span
+                                    className={classNames(styles.employeeStatusDot, {
+                                      [styles.employeeStatusDotIdle]: item.status === "idle",
+                                      [styles.employeeStatusDotBusy]: item.status === "busy",
+                                      [styles.employeeStatusDotPending]:
+                                        item.status === "pending" ||
+                                        item.status === "paused" ||
+                                        item.status === "draft",
+                                    })}
+                                  />
+                                </span>
+                                <span className={styles.dialogueSwitcherItemBody}>
+                                  <span className={styles.dialogueSwitcherAgentEditRow}>
+                                    <Input
+                                      ref={agentNameInputRef}
+                                      size="small"
+                                      value={editingAgentName}
+                                      maxLength={24}
+                                      placeholder="输入默认 Agent 名称"
+                                      className={styles.dialogueSwitcherAgentEditInput}
+                                      onChange={event => setEditingAgentName(event.target.value)}
+                                      onPressEnter={handleSubmitRenameAgent}
+                                      onBlur={handleSubmitRenameAgent}
+                                      onKeyDown={event => {
+                                        event.stopPropagation();
+                                        if (event.key === "Escape") {
+                                          handleCancelRenameAgent();
+                                        }
+                                      }}
+                                    />
+                                  </span>
+                                </span>
+                              </div>
+                            ) : (
+                              <button
+                                type="button"
+                                className={classNames(styles.dialogueSwitcherItem, {
+                                  [styles.dialogueSwitcherItemActive]: item.id === activeEmployee.id,
+                                })}
+                                title={item.name}
+                                onClick={() => {
+                                  onEmployeeSelect(item.id);
+                                  setIsEmployeeSwitcherOpen(false);
+                                }}
+                              >
+                                <span className={styles.employeeAvatarWrap}>
+                                  <Avatar src={item.avatarUrl} size={40} className={styles.dialogueHeroAvatar}>
+                                    {getAvatarText(item.name)}
+                                  </Avatar>
+                                  <span
+                                    className={classNames(styles.employeeStatusDot, {
+                                      [styles.employeeStatusDotIdle]: item.status === "idle",
+                                      [styles.employeeStatusDotBusy]: item.status === "busy",
+                                      [styles.employeeStatusDotPending]:
+                                        item.status === "pending" ||
+                                        item.status === "paused" ||
+                                        item.status === "draft",
+                                    })}
+                                  />
+                                </span>
+                                <span className={styles.dialogueSwitcherItemBody}>
+                                  <span className={styles.dialogueSwitcherItemName} title={item.name}>
+                                    {item.name}
+                                  </span>
+                                </span>
+                              </button>
+                            )}
+
+                            {isDefaultAgent && !isEditingAgent ? (
+                              <button
+                                type="button"
+                                className={styles.dialogueSwitcherAgentAction}
+                                aria-label={`编辑 ${item.name} 名称`}
+                                onClick={event => {
+                                  handleMenuButtonClick(event);
+                                  handleStartRenameAgent(item.id, item.name);
+                                }}
+                              >
+                                <EditOutlined />
+                              </button>
+                            ) : null}
                           </div>
-                        ) : (
-                          <button
-                            type="button"
-                            className={classNames(styles.dialogueSwitcherItem, {
-                              [styles.dialogueSwitcherItemActive]: item.id === activeEmployee.id,
-                            })}
-                            onClick={() => {
-                              onEmployeeSelect(item.id);
-                              setIsEmployeeSwitcherOpen(false);
-                            }}
-                          >
-                            <span className={styles.employeeAvatarWrap}>
-                              <Avatar src={item.avatarUrl} size={40} className={styles.dialogueHeroAvatar}>
-                                {getAvatarText(item.name)}
-                              </Avatar>
-                              <span
-                                className={classNames(styles.employeeStatusDot, {
-                                  [styles.employeeStatusDotIdle]: item.status === "idle",
-                                  [styles.employeeStatusDotBusy]: item.status === "busy",
-                                  [styles.employeeStatusDotPending]:
-                                    item.status === "pending" ||
-                                    item.status === "paused" ||
-                                    item.status === "draft",
-                                })}
-                              />
-                            </span>
-                            <span className={styles.dialogueSwitcherItemBody}>
-                              <span className={styles.dialogueSwitcherItemName}>{item.name}</span>
-                            </span>
-                          </button>
-                        )}
-
-                        {isDefaultAgent && !isEditingAgent ? (
-                          <button
-                            type="button"
-                            className={styles.dialogueSwitcherAgentAction}
-                            aria-label={`编辑 ${item.name} 名称`}
-                            onClick={event => {
-                              handleMenuButtonClick(event);
-                              handleStartRenameAgent(item.id, item.name);
-                            }}
-                          >
-                            <EditOutlined />
-                          </button>
-                        ) : null}
-                      </div>
-                    );
-                  })}
+                        );
+                      })}
+                    </div>
+                  ))}
                 </div>
               </div>
             ) : null}

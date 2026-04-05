@@ -60,7 +60,8 @@
   flex-direction: column;
 }
 
-.agentPrimaryCell {
+.agentPrimaryCell,
+.changeSummaryCell {
   display: flex;
   min-width: 0;
   flex-direction: column;
@@ -74,7 +75,10 @@
   gap: 8px;
 }
 
-.agentGroupMeta {
+.agentGroupMeta,
+.pageSubtitle,
+.changeDetailMeta,
+.emptyHint {
   color: var(--fdeTextSecondary);
   font-size: 13px;
   line-height: 20px;
@@ -114,8 +118,17 @@
 }
 
 .pageHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
   padding-bottom: 16px;
   border-bottom: 1px solid var(--fdeBorder);
+}
+
+.pageHeaderMain {
+  display: flex;
+  flex-direction: column;
 }
 
 .pageTitle {
@@ -156,9 +169,11 @@
 .tableHeaderRecharge,
 .tableHeaderDevice,
 .tableHeaderAgent,
+.tableHeaderChange,
 .tableRowRecharge,
 .tableRowDevice,
-.tableRowAgent {
+.tableRowAgent,
+.tableRowChange {
   color: var(--fdeTextSecondary);
   font-size: 13px;
   line-height: 20px;
@@ -196,7 +211,8 @@
   font-weight: 700;
 }
 
-.deviceStatus {
+.deviceStatus,
+.changeStatus {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -209,14 +225,21 @@
   white-space: nowrap;
 }
 
-.deviceStatusOnline {
+.deviceStatusOnline,
+.changeStatusDone {
   background: rgba(70, 212, 147, 0.12);
   color: var(--fdeSuccess);
 }
 
-.deviceStatusOffline {
+.deviceStatusOffline,
+.changeStatusCanceled {
   background: rgba(255, 103, 103, 0.12);
   color: var(--fdeDanger);
+}
+
+.changeStatusPending {
+  background: color-mix(in srgb, var(--primary) 10%, transparent);
+  color: var(--fdeAccent);
 }
 
 .tableHeaderRecharge,
@@ -240,9 +263,17 @@
   gap: 16px;
 }
 
+.tableHeaderChange,
+.tableRowChange {
+  display: grid;
+  grid-template-columns: 0.9fr 0.8fr 1.5fr 0.8fr 0.8fr 0.9fr 0.9fr;
+  gap: 16px;
+}
+
 .tableHeaderRecharge,
 .tableHeaderDevice,
-.tableHeaderAgent {
+.tableHeaderAgent,
+.tableHeaderChange {
   padding: 12px 0;
   border-bottom: 1px solid var(--fdeBorder);
   color: var(--fdeTextMuted);
@@ -253,7 +284,8 @@
 
 .tableRowRecharge,
 .tableRowDevice,
-.tableRowAgent {
+.tableRowAgent,
+.tableRowChange {
   padding: 14px 0;
   border-bottom: 1px solid color-mix(in srgb, var(--fdeBorder) 86%, transparent);
   align-items: center;
@@ -286,7 +318,8 @@
 
 .tableRowRecharge:last-child,
 .tableRowDevice:last-child,
-.tableRowAgent:last-child {
+.tableRowAgent:last-child,
+.tableRowChange:last-child {
   border-bottom: 0;
 }
 
@@ -307,6 +340,7 @@
 }
 
 @media (max-width: 960px) {
+  .pageHeader,
   .sectionHeader {
     flex-direction: column;
     align-items: flex-start;
@@ -315,9 +349,11 @@
   .tableHeaderRecharge,
   .tableHeaderDevice,
   .tableHeaderAgent,
+  .tableHeaderChange,
   .tableRowRecharge,
   .tableRowDevice,
-  .tableRowAgent {
+  .tableRowAgent,
+  .tableRowChange {
     grid-template-columns: 1fr;
   }
 }

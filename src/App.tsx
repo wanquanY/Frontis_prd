@@ -152,7 +152,22 @@ const App = (): JSX.Element => {
               </AuthRoute>
             }
           />
-          <Route path="/fde" element={<FdeWorkbenchPage />} />
+          <Route
+            path="/fde"
+            element={
+              <AuthRoute allowedRole={["fdeAdmin", "fdeMember"]}>
+                <FdeWorkbenchPage />
+              </AuthRoute>
+            }
+          />
+          <Route
+            path="/fde/:tabPath"
+            element={
+              <AuthRoute allowedRole={["fdeAdmin", "fdeMember"]}>
+                <FdeWorkbenchPage />
+              </AuthRoute>
+            }
+          />
           <Route path="*" element={<Navigate replace to="/portal" />} />
         </Routes>
       </Suspense>

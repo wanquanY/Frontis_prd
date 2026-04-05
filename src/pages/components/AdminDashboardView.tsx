@@ -70,8 +70,8 @@ export const AdminDashboardView = ({
     );
   }, [selectedPrdOption.activityMultiplier, timeRange, users]);
   const dashboardTimeline = useMemo(
-    () => buildDashboardTimeline(resultRecords, timeRange, granularity, selectedPrdOption, users),
-    [granularity, resultRecords, selectedPrdOption, timeRange, users],
+    () => buildDashboardTimeline(timeRange, granularity, selectedPrdOption, users),
+    [granularity, selectedPrdOption, timeRange, users],
   );
   const metricCards = useMemo(
     () =>

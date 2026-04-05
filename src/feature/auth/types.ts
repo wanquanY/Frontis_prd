@@ -1,5 +1,7 @@
 import type { FrontisWebRole } from "@/pages/types";
 
+export type MockAuthRole = FrontisWebRole | "fdeMember" | "fdeAdmin";
+
 /**
  * 模拟登录账号信息。
  */
@@ -7,7 +9,7 @@ export interface MockAuthAccount {
   userId: string;
   name: string;
   phone: string;
-  role: FrontisWebRole;
+  role: MockAuthRole;
   roleLabel: string;
   verificationCode: string;
 }
@@ -19,7 +21,7 @@ export interface MockAuthSession {
   userId: string;
   name: string;
   phone: string;
-  role: FrontisWebRole;
+  role: MockAuthRole;
   loginAt: string;
 }
 

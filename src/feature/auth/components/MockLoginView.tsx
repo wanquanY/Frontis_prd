@@ -6,7 +6,13 @@ import { Button, Input, message } from "antd";
 import { Navigate, useNavigate, useSearchParams } from "react-router-dom";
 
 import { useMockAuth } from "@/feature/auth/hooks/useMockAuth";
-import { MOCK_AUTH_ACCOUNTS, getWorkspacePathByRole } from "@/feature/auth/mockAccounts";
+import {
+  FDE_LEADER_MOCK_ACCOUNT,
+  FDE_MEMBER_MOCK_ACCOUNT,
+  MOCK_AUTH_ACCOUNTS,
+  getWorkspacePathByRole,
+} from "@/feature/auth/mockAccounts";
+import type { MockAuthRole } from "@/feature/auth/types";
 import { useAuthStore } from "@/store/auth";
 
 import styles from "./MockLoginView.module.less";
@@ -118,9 +124,22 @@ export const MockLoginView = (): JSX.Element => {
     [navigate, setSession],
   );
 
-  const handleQuickFdeLogin = useCallback((): void => {
-    navigate("/fde", { replace: true });
-  }, [navigate]);
+  const handleQuickFdeLogin = useCallback(
+    (role: Extract<MockAuthRole, "fdeMember" | "fdeAdmin">): void => {
+      const account = role === "fdeAdmin" ? FDE_LEADER_MOCK_ACCOUNT : FDE_MEMBER_MOCK_ACCOUNT;
+
+      setPendingQuickLoginPath("/fde");
+      setSession({
+        userId: account.userId,
+        name: account.name,
+        phone: account.phone,
+        role: account.role,
+        loginAt: new Date().toISOString(),
+      });
+      navigate("/fde", { replace: true });
+    },
+    [navigate, setSession],
+  );
 
   if (session) {
     return (
@@ -227,7 +246,7 @@ export const MockLoginView = (): JSX.Element => {
               <div className={styles.quickLoginSection}>
                 <p className={styles.quickLoginTitle}>快速体验入口</p>
                 <p className={styles.quickLoginDescription}>
-                  无需验证码，可直接进入员工、企业老板或 FDE 工作台体验原型。
+                  无需验证码，可直接进入员工、企业老板、FDE 成员或 FDE 负责人视角体验原型。
                 </p>
                 <div className={styles.quickLoginButtons}>
                   <button
@@ -265,10 +284,18 @@ export const MockLoginView = (): JSX.Element => {
                   <button
                     type="button"
                     className={styles.quickLoginButton}
-                    onClick={handleQuickFdeLogin}
+                    onClick={() => handleQuickFdeLogin("fdeMember")}
                   >
                     <span className={styles.quickLoginIcon}>🛠</span>
-                    <span>FDE 登录</span>
+                    <span>FDE成员登录</span>
+                  </button>
+                  <button
+                    type="button"
+                    className={styles.quickLoginButton}
+                    onClick={() => handleQuickFdeLogin("fdeAdmin")}
+                  >
+                    <span className={styles.quickLoginIcon}>🧭</span>
+                    <span>FDE负责人登录</span>
                   </button>
                 </div>
               </div>

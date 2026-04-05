@@ -6,12 +6,14 @@ import type {
 } from "@/feature/workspace/types";
 import type { SynClawArtifactItem, SynClawSpaceItem } from "@/pages/synclaw/types";
 
+import { OWNED_EXPERT_TEAMS } from "./components/agentStore/agentStoreData";
 import type {
   AttachmentItem,
   ChannelItem,
   ChatMessage,
   AutomationStatus,
   ConnectionMode,
+  EmployeeItem,
   StatusTone,
   WorkspaceType,
 } from "./types";
@@ -52,11 +54,78 @@ export const EMPLOYEE_AVATAR_PRESETS: string[] = [
   getAvatarUrl("prd-employee-avatar-6"),
 ];
 
+export interface ConversationEmployeeGroupItem {
+  key: string;
+  title: string;
+  items: EmployeeItem[];
+}
+
+const EXPERT_TEAM_NAME_PATTERN = /([A-Za-z0-9\u4e00-\u9fa5]+专家团)/;
+const EMPLOYEE_EXPERT_TEAM_NAME_MAP = new Map(
+  OWNED_EXPERT_TEAMS.flatMap(team => team.memberIds.map(memberId => [memberId, team.name] as const)),
+);
+
+const extractConversationEmployeeGroupTitle = (
+  employee: EmployeeItem,
+  defaultAgentIds: Set<string>,
+): string => {
+  if (defaultAgentIds.has(employee.id) || employee.source === "openclaw") {
+    return "默认专家";
+  }
+
+  const matchedTeamName = EMPLOYEE_EXPERT_TEAM_NAME_MAP.get(employee.id);
+
+  if (matchedTeamName) {
+    return matchedTeamName;
+  }
+
+  const matchedTitle = [
+    employee.role,
+    employee.summary,
+    employee.lastAction,
+    employee.welcomeMessage,
+  ]
+    .map(text => EXPERT_TEAM_NAME_PATTERN.exec(text)?.[1] ?? "")
+    .find(Boolean);
+
+  return matchedTitle || "其他AI专家";
+};
+
 /**
  * 生成原型页本地 ID。
  */
 export const createId = (prefix: string): string =>
   `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
+/**
+ * 按默认专家与可识别的专家团，为对话工作台中的 AI 专家列表分组。
+ */
+export const groupConversationEmployees = (
+  employees: EmployeeItem[],
+  defaultAgentIds: string[] = [],
+): ConversationEmployeeGroupItem[] => {
+  const defaultAgentIdSet = new Set(defaultAgentIds);
+  const groupMap = new Map<string, ConversationEmployeeGroupItem>();
+
+  employees.forEach(employee => {
+    const title = extractConversationEmployeeGroupTitle(employee, defaultAgentIdSet);
+    const groupKey = title === "默认专家" ? "default" : `group-${title}`;
+    const currentGroup = groupMap.get(groupKey);
+
+    if (currentGroup) {
+      currentGroup.items.push(employee);
+      return;
+    }
+
+    groupMap.set(groupKey, {
+      key: groupKey,
+      title,
+      items: [employee],
+    });
+  });
+
+  return Array.from(groupMap.values());
+};
 
 interface WorkspaceActivationInfo {
   activationCode: string;

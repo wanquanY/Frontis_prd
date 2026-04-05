@@ -39,6 +39,42 @@ type ProviderListStatusTone = "success" | "danger";
 
 const DEFAULT_CUSTOM_PROVIDER_DESCRIPTION = "自定义模型供应商";
 const DEFAULT_MODEL_INPUT_MODALITIES: ModelInputModality[] = ["text", "image"];
+const SYSTEM_PROVIDER_KEY = "frontisai";
+const SYSTEM_PROVIDER_OPTION: ProviderOptionItem = {
+  capabilities: ["LLM", "TEXT EMBEDDING", "RERANK", "SPEECH2TEXT", "MODERATION", "TTS"],
+  defaultBaseUrl: "系统内置服务",
+  description: "FrontisAI 系统内置模型服务，仅支持查看模型清单。",
+  inputCost: "系统内置",
+  key: SYSTEM_PROVIDER_KEY,
+  label: "FrontisAI",
+  logoText: "F",
+  monthlyEstimate: "系统内置",
+  outputCost: "系统内置",
+  price: "系统内置",
+};
+const SYSTEM_PROVIDER_CONFIG: ModelProviderConfigState = {
+  apiKey: "__SYSTEM_BUILTIN__",
+  baseUrl: "系统内置服务",
+  connectivityStatus: "success",
+  fetchedModels: ["frontisai-chat", "frontisai-reasoner"],
+  lastCheckedAt: "系统默认",
+};
+const SYSTEM_PROVIDER_MODELS: ProviderModelItem[] = [
+  {
+    id: "frontisai-chat",
+    inputModalities: ["text", "image"],
+    interfaceFormat: "openai",
+    name: "FrontisAI 通用模型",
+    reasoningEnabled: true,
+  },
+  {
+    id: "frontisai-reasoner",
+    inputModalities: ["text", "image"],
+    interfaceFormat: "openai",
+    name: "FrontisAI 深度推理模型",
+    reasoningEnabled: true,
+  },
+];
 
 const MODEL_INTERFACE_FORMAT_OPTIONS: Array<{ label: string; value: ModelInterfaceFormat }> = [
   { label: "OpenAI 格式", value: "openai" },
@@ -85,7 +121,12 @@ const createEmptyProviderConfig = (baseUrl = ""): ModelProviderConfigState => ({
 });
 
 const buildInitialProviderModels = (): Record<string, ProviderModelItem[]> => {
-  const initialModels: Record<string, ProviderModelItem[]> = {};
+  const initialModels: Record<string, ProviderModelItem[]> = {
+    [SYSTEM_PROVIDER_KEY]: SYSTEM_PROVIDER_MODELS.map(model => ({
+      ...model,
+      inputModalities: [...model.inputModalities],
+    })),
+  };
 
   PROVIDER_OPTIONS.forEach(provider => {
     const fetchedModels = INITIAL_PROVIDER_CONFIGS[provider.key]?.fetchedModels ?? [];
@@ -100,6 +141,8 @@ const buildInitialProviderModels = (): Record<string, ProviderModelItem[]> => {
 
   return initialModels;
 };
+
+const isSystemProvider = (providerKey: string): boolean => providerKey === SYSTEM_PROVIDER_KEY;
 
 const buildProviderKey = (providerName: string, existingKeys: string[]): string => {
   const normalizedKey = providerName
@@ -126,9 +169,15 @@ export const ModelConfigurationView = (props: ModelConfigurationViewProps): JSX.
   void props;
 
   const [keyword, setKeyword] = useState<string>("");
-  const [providerOptions, setProviderOptions] = useState<ProviderOptionItem[]>(PROVIDER_OPTIONS);
+  const [providerOptions, setProviderOptions] = useState<ProviderOptionItem[]>([
+    SYSTEM_PROVIDER_OPTION,
+    ...PROVIDER_OPTIONS,
+  ]);
   const [providerConfigs, setProviderConfigs] =
-    useState<Record<string, ModelProviderConfigState>>(INITIAL_PROVIDER_CONFIGS);
+    useState<Record<string, ModelProviderConfigState>>({
+      [SYSTEM_PROVIDER_KEY]: SYSTEM_PROVIDER_CONFIG,
+      ...INITIAL_PROVIDER_CONFIGS,
+    });
   const [providerModels, setProviderModels] =
     useState<Record<string, ProviderModelItem[]>>(buildInitialProviderModels);
   const [providerModalMode, setProviderModalMode] = useState<ProviderModalMode>("add");
@@ -224,6 +273,11 @@ export const ModelConfigurationView = (props: ModelConfigurationViewProps): JSX.
 
   const handleOpenEditProvider = useCallback(
     (providerKey: string): void => {
+      if (isSystemProvider(providerKey)) {
+        message.info("FrontisAI 为系统内置模型服务，不支持编辑。");
+        return;
+      }
+
       const currentProvider = providerOptions.find(provider => provider.key === providerKey);
       const currentConfig =
         providerConfigs[providerKey] ??
@@ -396,6 +450,11 @@ export const ModelConfigurationView = (props: ModelConfigurationViewProps): JSX.
 
   const handleDeleteProvider = useCallback(
     (providerKey: string): void => {
+      if (isSystemProvider(providerKey)) {
+        message.info("FrontisAI 为系统内置模型服务，不支持删除。");
+        return;
+      }
+
       setProviderOptions(current => current.filter(provider => provider.key !== providerKey));
       setProviderConfigs(current => {
         const nextConfigs = { ...current };
@@ -439,6 +498,11 @@ export const ModelConfigurationView = (props: ModelConfigurationViewProps): JSX.
   }, []);
 
   const handleOpenAddModelModal = useCallback((providerKey: string): void => {
+    if (isSystemProvider(providerKey)) {
+      message.info("FrontisAI 为系统内置模型服务，不支持新增模型。");
+      return;
+    }
+
     setIsModelFormVisible(true);
     setModelModalMode("add");
     setModelDraftProviderKey(providerKey);
@@ -451,6 +515,11 @@ export const ModelConfigurationView = (props: ModelConfigurationViewProps): JSX.
   }, []);
 
   const handleOpenEditModelModal = useCallback((providerKey: string, model: ProviderModelItem): void => {
+    if (isSystemProvider(providerKey)) {
+      message.info("FrontisAI 为系统内置模型服务，不支持编辑模型。");
+      return;
+    }
+
     setIsModelFormVisible(true);
     setModelModalMode("edit");
     setModelDraftProviderKey(providerKey);
@@ -464,6 +533,10 @@ export const ModelConfigurationView = (props: ModelConfigurationViewProps): JSX.
 
   const handleSaveModel = useCallback((): void => {
     if (!modelDraftProvider) {
+      return;
+    }
+    if (isSystemProvider(modelDraftProvider.key)) {
+      message.info("FrontisAI 为系统内置模型服务，不支持修改模型。");
       return;
     }
     if (!modelDraftName.trim()) {
@@ -550,6 +623,10 @@ export const ModelConfigurationView = (props: ModelConfigurationViewProps): JSX.
       if (!managedProvider) {
         return;
       }
+      if (isSystemProvider(managedProvider.key)) {
+        message.info("FrontisAI 为系统内置模型服务，不支持编辑模型。");
+        return;
+      }
 
       setProviderModels(current => ({
         ...current,
@@ -570,6 +647,10 @@ export const ModelConfigurationView = (props: ModelConfigurationViewProps): JSX.
   const handleDeleteModel = useCallback(
     (modelId: string): void => {
       if (!managedProvider) {
+        return;
+      }
+      if (isSystemProvider(managedProvider.key)) {
+        message.info("FrontisAI 为系统内置模型服务，不支持删除模型。");
         return;
       }
 
@@ -649,11 +730,12 @@ export const ModelConfigurationView = (props: ModelConfigurationViewProps): JSX.
                   const providerConfig =
                     providerConfigs[provider.key] ?? createEmptyProviderConfig(provider.defaultBaseUrl);
                   const models = providerModels[provider.key] ?? [];
+                  const providerIsSystem = isSystemProvider(provider.key);
 
                   return (
                     <tr key={provider.key}>
                       <td className={adminStyles.consoleHtmlTableStrong}>{provider.label}</td>
-                      <td>{maskApiKey(providerConfig.apiKey)}</td>
+                      <td>{providerIsSystem ? "系统内置" : maskApiKey(providerConfig.apiKey)}</td>
                       <td>{providerConfig.baseUrl || provider.defaultBaseUrl || "未填写"}</td>
                       <td>
                         <span className={getProviderStatusClassName(getProviderListStatusTone(providerConfig))}>
@@ -667,23 +749,27 @@ export const ModelConfigurationView = (props: ModelConfigurationViewProps): JSX.
                           <Button size="small" onClick={() => handleOpenModelManager(provider.key)}>
                             模型管理
                           </Button>
-                          <Button size="small" onClick={() => handleOpenAddModelModal(provider.key)}>
-                            添加模型
-                          </Button>
-                          <Button size="small" onClick={() => handleOpenEditProvider(provider.key)}>
-                            编辑
-                          </Button>
-                          <Popconfirm
-                            title="确认删除该供应商？"
-                            description="删除后会同时移除该供应商下的所有模型。"
-                            onConfirm={() => handleDeleteProvider(provider.key)}
-                            okText="确认"
-                            cancelText="取消"
-                          >
-                            <Button size="small" danger>
-                              删除
-                            </Button>
-                          </Popconfirm>
+                          {providerIsSystem ? null : (
+                            <>
+                              <Button size="small" onClick={() => handleOpenAddModelModal(provider.key)}>
+                                添加模型
+                              </Button>
+                              <Button size="small" onClick={() => handleOpenEditProvider(provider.key)}>
+                                编辑
+                              </Button>
+                              <Popconfirm
+                                title="确认删除该供应商？"
+                                description="删除后会同时移除该供应商下的所有模型。"
+                                onConfirm={() => handleDeleteProvider(provider.key)}
+                                okText="确认"
+                                cancelText="取消"
+                              >
+                                <Button size="small" danger>
+                                  删除
+                                </Button>
+                              </Popconfirm>
+                            </>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -797,29 +883,34 @@ export const ModelConfigurationView = (props: ModelConfigurationViewProps): JSX.
                           <Switch
                             checked={model.reasoningEnabled}
                             checkedChildren="是"
+                            disabled={isSystemProvider(managedProvider.key)}
                             unCheckedChildren="否"
                             onChange={checked => handleToggleModelReasoning(model.id, checked)}
                           />
                         </td>
                         <td>
-                          <div className={adminStyles.consoleActions}>
-                            <Button
-                              size="small"
-                              onClick={() => handleOpenEditModelModal(managedProvider.key, model)}
-                            >
-                              编辑
-                            </Button>
-                            <Popconfirm
-                              title="确认删除该模型？"
-                              onConfirm={() => handleDeleteModel(model.id)}
-                              okText="确认"
-                              cancelText="取消"
-                            >
-                              <Button size="small" danger>
-                                删除
+                          {isSystemProvider(managedProvider.key) ? (
+                            <span>系统内置</span>
+                          ) : (
+                            <div className={adminStyles.consoleActions}>
+                              <Button
+                                size="small"
+                                onClick={() => handleOpenEditModelModal(managedProvider.key, model)}
+                              >
+                                编辑
                               </Button>
-                            </Popconfirm>
-                          </div>
+                              <Popconfirm
+                                title="确认删除该模型？"
+                                onConfirm={() => handleDeleteModel(model.id)}
+                                okText="确认"
+                                cancelText="取消"
+                              >
+                                <Button size="small" danger>
+                                  删除
+                                </Button>
+                              </Popconfirm>
+                            </div>
+                          )}
                         </td>
                       </tr>
                     ))

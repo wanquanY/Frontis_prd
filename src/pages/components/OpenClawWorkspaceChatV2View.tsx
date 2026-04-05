@@ -66,6 +66,7 @@ import {
   createId,
   downloadArtifact,
   getAvatarText,
+  groupConversationEmployees,
   resolveArtifactUrl,
   revokeComposerAttachmentPreview,
 } from "../utils";
@@ -206,6 +207,10 @@ export const OpenClawWorkspaceChatV2View = ({
     const assignedAgentIds = new Set(currentUser?.assignedAgentIds ?? []);
     return employees.filter(item => assignedAgentIds.has(item.id));
   }, [currentUser?.assignedAgentIds, employees]);
+  const conversationEmployeeGroups = useMemo(
+    () => groupConversationEmployees(conversationEmployees),
+    [conversationEmployees],
+  );
 
   const activeEmployee = useMemo(
     () =>
@@ -1257,6 +1262,7 @@ export const OpenClawWorkspaceChatV2View = ({
               className={styles.agentSelectButton}
               aria-expanded={isEmployeeSwitcherOpen}
               aria-label="切换 AI 专家"
+              title={activeEmployee.name}
               onClick={() => setIsEmployeeSwitcherOpen(current => !current)}
             >
               <span className={styles.agentSelectCurrent}>
@@ -1275,23 +1281,31 @@ export const OpenClawWorkspaceChatV2View = ({
             {isEmployeeSwitcherOpen ? (
               <div className={styles.agentDropdownMenu}>
                 <div className={styles.agentOptionList}>
-                  {conversationEmployees.map(item => (
-                    <button
-                      key={item.id}
-                      type="button"
-                      className={classNames(styles.agentOption, {
-                        [styles.agentOptionActive]: item.id === activeEmployee.id,
-                      })}
-                      onClick={() => {
-                        handleSelectEmployee(item.id);
-                        setIsEmployeeSwitcherOpen(false);
-                      }}
-                    >
-                      <Avatar src={item.avatarUrl} size={40} className={styles.agentOptionAvatar}>
-                        {getAvatarText(item.name)}
-                      </Avatar>
-                      <span className={styles.agentOptionName}>{item.name}</span>
-                    </button>
+                  {conversationEmployeeGroups.map(group => (
+                    <div key={group.key} className={styles.agentOptionGroup}>
+                      <div className={styles.agentOptionGroupTitle}>{group.title}</div>
+                      {group.items.map(item => (
+                        <button
+                          key={item.id}
+                          type="button"
+                          className={classNames(styles.agentOption, {
+                            [styles.agentOptionActive]: item.id === activeEmployee.id,
+                          })}
+                          title={item.name}
+                          onClick={() => {
+                            handleSelectEmployee(item.id);
+                            setIsEmployeeSwitcherOpen(false);
+                          }}
+                        >
+                          <Avatar src={item.avatarUrl} size={40} className={styles.agentOptionAvatar}>
+                            {getAvatarText(item.name)}
+                          </Avatar>
+                          <span className={styles.agentOptionName} title={item.name}>
+                            {item.name}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
                   ))}
                 </div>
               </div>

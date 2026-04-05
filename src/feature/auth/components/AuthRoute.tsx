@@ -3,10 +3,10 @@ import type { ReactElement } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 
 import { useMockAuth } from "@/feature/auth/hooks/useMockAuth";
-import type { FrontisWebRole } from "@/pages/types";
+import type { MockAuthRole } from "@/feature/auth/types";
 
 interface AuthRouteProps {
-  allowedRole: FrontisWebRole | FrontisWebRole[];
+  allowedRole: MockAuthRole | MockAuthRole[];
   children: ReactElement;
 }
 

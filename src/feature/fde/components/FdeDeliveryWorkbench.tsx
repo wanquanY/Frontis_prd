@@ -1,16 +1,26 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { Dayjs } from "dayjs";
 
 import { ArrowLeftOutlined, PlusOutlined } from "@ant-design/icons";
 import classNames from "classnames";
-import { Button, Empty, Input, InputNumber, Modal, message } from "antd";
+import { Button, DatePicker, Empty, Input, InputNumber, Modal, Select, message } from "antd";
 
+import { FDE_AGENT_CATALOG_ITEMS } from "@/feature/fde/agentCatalog";
 import { FDE_DELIVERY_STEPS } from "@/feature/fde/mockData";
 import type {
+  FdeAgentCatalogItem,
+  FdeAgentMonitorItem,
   FdeDeliveryAgentGroupItem,
   FdeDeliveryAgentPackageItem,
+  FdeDeliveryChangeType,
   FdeDeliveryOrderItem,
   FdeDeliveryOrderStatus,
+  FdeDeliveryStepItem,
   FdeDeliveryStepKey,
+  FdeDeviceMonitorItem,
+  FdeOrderDeviceLineItem,
+  FdeOrderItem,
+  FdeOrderLineItem,
   FdeTeamMemberItem,
 } from "@/feature/fde/types";
 import { getFdeDeliveryStepIndex, getFdeMemberName } from "@/feature/fde/utils";
@@ -19,9 +29,11 @@ import styles from "./FdeDeliveryWorkbench.module.less";
 
 interface FdeDeliveryWorkbenchProps {
   items: FdeDeliveryOrderItem[];
+  orderItems: FdeOrderItem[];
   members: FdeTeamMemberItem[];
   currentMemberId: string;
   selectedOrderId: string;
+  syncOrders: (orders: FdeDeliveryOrderItem[]) => void;
   setSelectedOrderId: (orderId: string) => void;
 }
 
@@ -32,24 +44,11 @@ interface DeliveryStepGuide {
 
 interface CreateOrderFormState {
   customerName: string;
-  scenarioName: string;
-  orderAmount: string;
-  launchTargetDate: string;
-  industry: string;
+  launchTargetDate: Dayjs | null;
   deliveryNote: string;
-}
-
-interface TenantCreateFormState {
-  tenantName: string;
-  adminName: string;
-  adminPhone: string;
-  tenantSeatCount: number | null;
   tenantCode: string;
-}
-
-interface TenantCreateRecord extends TenantCreateFormState {
-  createdAt: string;
-  isCreated: boolean;
+  tenantSeatCount: number | null;
+  linkedOrderIds: string[];
 }
 
 interface DeviceAllocationFormState {
@@ -69,24 +68,38 @@ interface ExpertGroupFormState {
   description: string;
 }
 
+interface CreateDeliveryRecordFormState {
+  linkedOrderIds: string[];
+  launchTargetDate: Dayjs | null;
+  deliveryNote: string;
+}
+
 type AgentPlazaScope = "public" | "mine";
 type AgentSelectMode = "single" | "group";
-
-interface AgentPlazaItem extends FdeDeliveryAgentPackageItem {
-  id: string;
-  scope: AgentPlazaScope;
-  sceneCategory: string;
-  description: string;
-}
+type DeliveryStatusFilter = "all" | FdeDeliveryOrderStatus;
 
 type DeliveryViewMode = "list" | "detail";
 type DeliveryDetailTabKey = "orderInfo" | FdeDeliveryStepKey;
+type DeliveryOrdersUpdater = (items: FdeDeliveryOrderItem[]) => FdeDeliveryOrderItem[];
+type OrderPreviewFieldItem = {
+  label: string;
+  value: string;
+};
+
+interface LinkedOrderDeliveryDraft {
+  changeType: FdeDeliveryChangeType | null;
+  totalAmount: number;
+  deviceConfig: FdeDeliveryOrderItem["deviceConfig"];
+  expertNames: string[];
+  agentPackages: FdeDeliveryAgentPackageItem[];
+  changeDetailItems: NonNullable<FdeDeliveryOrderItem["changeDetailItems"]>;
+  quotaAdjustments: NonNullable<FdeDeliveryOrderItem["quotaAdjustments"]>;
+  deviceAdditions: FdeDeviceMonitorItem[];
+  agentAdditions: FdeAgentMonitorItem[];
+  summaryLabel: string;
+}
 
 const DELIVERY_STEP_GUIDES: Record<FdeDeliveryStepKey, DeliveryStepGuide> = {
-  customerConfirm: {
-    title: "租户创建",
-    buttonLabel: "完成租户创建",
-  },
   deviceConfig: {
     title: "设备分配",
     buttonLabel: "完成设备分配",
@@ -131,383 +144,6 @@ const DEFAULT_HANDOFF_ITEMS: string[] = [
   "可用 Agent 已完成下发",
 ];
 
-const AGENT_PLAZA_ITEMS: AgentPlazaItem[] = [
-  {
-    id: "agent-public-01",
-    name: "AI CEO 教练",
-    releaseVersion: "v2.4.1",
-    sourceLabel: "公共广场",
-    statusLabel: "待下发",
-    permissionHint: "待企业配置权限范围。",
-    scope: "public",
-    sceneCategory: "经营管理",
-    description: "适合老板经营复盘、管理动作生成和跨部门协同建议。",
-  },
-  {
-    id: "agent-public-02",
-    name: "招聘协同官",
-    releaseVersion: "v1.9.0",
-    sourceLabel: "公共广场",
-    statusLabel: "待下发",
-    permissionHint: "适合 HR 与业务负责人协同使用。",
-    scope: "public",
-    sceneCategory: "组织协同",
-    description: "适合招聘推进、面试反馈归纳和候选人协同。",
-  },
-  {
-    id: "agent-public-03",
-    name: "门店经营日报官",
-    releaseVersion: "v1.8.3",
-    sourceLabel: "公共广场",
-    statusLabel: "待下发",
-    permissionHint: "建议绑定门店经营数据后开放给管理层。",
-    scope: "public",
-    sceneCategory: "经营管理",
-    description: "适合门店营收汇总、日结日报和经营异常提醒。",
-  },
-  {
-    id: "agent-public-04",
-    name: "供应链异常雷达",
-    releaseVersion: "v2.0.2",
-    sourceLabel: "公共广场",
-    statusLabel: "待下发",
-    permissionHint: "建议与库存、采购数据联动后使用。",
-    scope: "public",
-    sceneCategory: "供应链",
-    description: "适合库存预警、交付延迟和补货建议。",
-  },
-  {
-    id: "agent-public-05",
-    name: "财务对账助手",
-    releaseVersion: "v1.6.8",
-    sourceLabel: "公共广场",
-    statusLabel: "待下发",
-    permissionHint: "建议开放给财务负责人和门店会计使用。",
-    scope: "public",
-    sceneCategory: "经营管理",
-    description: "适合账单核对、异常流水归因和门店财务周报整理。",
-  },
-  {
-    id: "agent-public-06",
-    name: "经营波动分析师",
-    releaseVersion: "v1.4.5",
-    sourceLabel: "公共广场",
-    statusLabel: "待下发",
-    permissionHint: "适合经营负责人查看门店波动和原因归纳。",
-    scope: "public",
-    sceneCategory: "经营管理",
-    description: "适合日销、毛利、退货和活动表现波动的结构化分析。",
-  },
-  {
-    id: "agent-public-07",
-    name: "面试复盘官",
-    releaseVersion: "v1.3.9",
-    sourceLabel: "公共广场",
-    statusLabel: "待下发",
-    permissionHint: "建议面试官和 HRBP 协同使用。",
-    scope: "public",
-    sceneCategory: "组织协同",
-    description: "适合沉淀面试纪要、总结面试结论和输出候选人评估摘要。",
-  },
-  {
-    id: "agent-public-08",
-    name: "绩效诊断官",
-    releaseVersion: "v1.2.7",
-    sourceLabel: "公共广场",
-    statusLabel: "待下发",
-    permissionHint: "建议管理层和 HRBP 在绩效评审前使用。",
-    scope: "public",
-    sceneCategory: "组织协同",
-    description: "适合绩效波动诊断、中层表现总结和人员风险预警。",
-  },
-  {
-    id: "agent-public-09",
-    name: "采购补货官",
-    releaseVersion: "v1.7.1",
-    sourceLabel: "公共广场",
-    statusLabel: "待下发",
-    permissionHint: "建议采购与仓配团队配合使用。",
-    scope: "public",
-    sceneCategory: "供应链",
-    description: "适合采购建议、补货节奏安排和缺货风险提前预警。",
-  },
-  {
-    id: "agent-public-10",
-    name: "履约监控官",
-    releaseVersion: "v1.5.6",
-    sourceLabel: "公共广场",
-    statusLabel: "待下发",
-    permissionHint: "适合履约团队做时效巡检和异常分单。",
-    scope: "public",
-    sceneCategory: "供应链",
-    description: "适合订单发货监控、履约延误识别和售后风险提醒。",
-  },
-  {
-    id: "agent-public-11",
-    name: "销售线索官",
-    releaseVersion: "v1.6.2",
-    sourceLabel: "公共广场",
-    statusLabel: "待下发",
-    permissionHint: "适合销售负责人和业务拓展团队使用。",
-    scope: "public",
-    sceneCategory: "销售增长",
-    description: "适合线索分级、客户跟进提醒和成交机会归纳。",
-  },
-  {
-    id: "agent-public-12",
-    name: "复购运营官",
-    releaseVersion: "v1.3.4",
-    sourceLabel: "公共广场",
-    statusLabel: "待下发",
-    permissionHint: "适合会员运营和私域团队联动使用。",
-    scope: "public",
-    sceneCategory: "销售增长",
-    description: "适合老客唤醒、复购活动建议和用户分层运营。",
-  },
-  {
-    id: "agent-public-13",
-    name: "客服质检官",
-    releaseVersion: "v1.4.9",
-    sourceLabel: "公共广场",
-    statusLabel: "待下发",
-    permissionHint: "适合客服主管和售后团队质检使用。",
-    scope: "public",
-    sceneCategory: "客户服务",
-    description: "适合客服会话质检、投诉归因和服务问题归纳。",
-  },
-  {
-    id: "agent-public-14",
-    name: "工单流转官",
-    releaseVersion: "v1.2.6",
-    sourceLabel: "公共广场",
-    statusLabel: "待下发",
-    permissionHint: "适合售后和服务交付团队跟踪工单。",
-    scope: "public",
-    sceneCategory: "客户服务",
-    description: "适合服务工单分派、流转提醒和超时节点追踪。",
-  },
-  {
-    id: "agent-public-15",
-    name: "库存盘点助手",
-    releaseVersion: "v1.1.8",
-    sourceLabel: "公共广场",
-    statusLabel: "待下发",
-    permissionHint: "适合仓库主管和门店盘点负责人使用。",
-    scope: "public",
-    sceneCategory: "供应链",
-    description: "适合盘点差异归纳、库存健康检查和异常门店提示。",
-  },
-  {
-    id: "agent-public-16",
-    name: "经营复盘助手",
-    releaseVersion: "v1.9.4",
-    sourceLabel: "公共广场",
-    statusLabel: "待下发",
-    permissionHint: "适合老板和经营管理层做周期复盘。",
-    scope: "public",
-    sceneCategory: "经营管理",
-    description: "适合周经营复盘、关键指标总结和经营动作建议。",
-  },
-  {
-    id: "agent-public-17",
-    name: "门店巡检助手",
-    releaseVersion: "v1.3.2",
-    sourceLabel: "公共广场",
-    statusLabel: "待下发",
-    permissionHint: "适合区域督导和门店负责人配合使用。",
-    scope: "public",
-    sceneCategory: "经营管理",
-    description: "适合巡店记录沉淀、问题归类和整改动作跟进。",
-  },
-  {
-    id: "agent-public-18",
-    name: "直播复盘官",
-    releaseVersion: "v1.2.9",
-    sourceLabel: "公共广场",
-    statusLabel: "待下发",
-    permissionHint: "适合直播运营和品牌方复盘使用。",
-    scope: "public",
-    sceneCategory: "销售增长",
-    description: "适合直播数据复盘、商品表现归因和下轮排期建议。",
-  },
-  {
-    id: "agent-public-19",
-    name: "售后满意度官",
-    releaseVersion: "v1.1.7",
-    sourceLabel: "公共广场",
-    statusLabel: "待下发",
-    permissionHint: "适合客服主管和服务交付团队使用。",
-    scope: "public",
-    sceneCategory: "客户服务",
-    description: "适合用户评价归纳、售后体验总结和高频问题沉淀。",
-  },
-  {
-    id: "agent-public-20",
-    name: "采购价格观察员",
-    releaseVersion: "v1.0.8",
-    sourceLabel: "公共广场",
-    statusLabel: "待下发",
-    permissionHint: "适合采购团队做价格波动追踪。",
-    scope: "public",
-    sceneCategory: "供应链",
-    description: "适合供应商价格波动识别、比价提醒和进货窗口建议。",
-  },
-  {
-    id: "agent-mine-01",
-    name: "零售试点复盘师",
-    releaseVersion: "v0.9.6",
-    sourceLabel: "我的 Agent",
-    statusLabel: "待下发",
-    permissionHint: "当前 FDE 自定义版本，仅对试点租户开放。",
-    scope: "mine",
-    sceneCategory: "客户专属",
-    description: "适合首批零售试点客户做经营复盘和门店周报。",
-  },
-  {
-    id: "agent-mine-02",
-    name: "组织试点陪跑官",
-    releaseVersion: "v0.8.4",
-    sourceLabel: "我的 Agent",
-    statusLabel: "待下发",
-    permissionHint: "适合组织管理试点客户做专项交付。",
-    scope: "mine",
-    sceneCategory: "交付专属",
-    description: "适合组织管理、招聘协同和部门试点陪跑。",
-  },
-  {
-    id: "agent-mine-03",
-    name: "电商运营陪跑官",
-    releaseVersion: "v0.7.9",
-    sourceLabel: "我的 Agent",
-    statusLabel: "待下发",
-    permissionHint: "适合电商商家试点租户做专项交付。",
-    scope: "mine",
-    sceneCategory: "试点扩展",
-    description: "适合选品、投放、店铺经营试点的专项支持。",
-  },
-  {
-    id: "agent-mine-04",
-    name: "零售晨会陪跑官",
-    releaseVersion: "v0.8.9",
-    sourceLabel: "我的 Agent",
-    statusLabel: "待下发",
-    permissionHint: "适合零售客户日会播报和店长跟进场景。",
-    scope: "mine",
-    sceneCategory: "客户专属",
-    description: "适合串联晨会播报、昨日经营复盘和今日动作提醒。",
-  },
-  {
-    id: "agent-mine-05",
-    name: "招聘面板复盘官",
-    releaseVersion: "v0.8.2",
-    sourceLabel: "我的 Agent",
-    statusLabel: "待下发",
-    permissionHint: "适合招聘专项交付，聚焦岗位漏斗复盘。",
-    scope: "mine",
-    sceneCategory: "交付专属",
-    description: "适合招聘看板搭建、岗位漏斗分析和招聘周报整理。",
-  },
-  {
-    id: "agent-mine-06",
-    name: "店仓补货排班官",
-    releaseVersion: "v0.7.4",
-    sourceLabel: "我的 Agent",
-    statusLabel: "待下发",
-    permissionHint: "适合零售和电商试点客户联动仓配与门店。",
-    scope: "mine",
-    sceneCategory: "试点扩展",
-    description: "适合门店缺货补货、人员排班建议和高峰时段预排。",
-  },
-  {
-    id: "agent-mine-07",
-    name: "财务口径校对官",
-    releaseVersion: "v0.6.8",
-    sourceLabel: "我的 Agent",
-    statusLabel: "待下发",
-    permissionHint: "适合财务试点客户做口径梳理和异常复核。",
-    scope: "mine",
-    sceneCategory: "客户专属",
-    description: "适合财务对账口径校对、跨表差异说明和报表一致性复核。",
-  },
-  {
-    id: "agent-mine-08",
-    name: "门店巡店记录官",
-    releaseVersion: "v0.7.2",
-    sourceLabel: "我的 Agent",
-    statusLabel: "待下发",
-    permissionHint: "适合零售客户巡店和现场问题记录。",
-    scope: "mine",
-    sceneCategory: "客户专属",
-    description: "适合巡店纪要沉淀、现场问题汇总和整改动作同步。",
-  },
-  {
-    id: "agent-mine-09",
-    name: "交付验收陪跑官",
-    releaseVersion: "v0.6.9",
-    sourceLabel: "我的 Agent",
-    statusLabel: "待下发",
-    permissionHint: "适合首期交付客户做验收陪跑和培训。",
-    scope: "mine",
-    sceneCategory: "交付专属",
-    description: "适合交付验收、培训任务梳理和问题闭环记录。",
-  },
-  {
-    id: "agent-mine-10",
-    name: "客服回访陪跑官",
-    releaseVersion: "v0.6.5",
-    sourceLabel: "我的 Agent",
-    statusLabel: "待下发",
-    permissionHint: "适合客户试点期做回访跟进和满意度追踪。",
-    scope: "mine",
-    sceneCategory: "交付专属",
-    description: "适合回访记录、问题归档和试点反馈整理。",
-  },
-  {
-    id: "agent-mine-11",
-    name: "销售跟单陪跑官",
-    releaseVersion: "v0.5.8",
-    sourceLabel: "我的 Agent",
-    statusLabel: "待下发",
-    permissionHint: "适合销售试点客户做跟单提醒和机会归纳。",
-    scope: "mine",
-    sceneCategory: "试点扩展",
-    description: "适合跟单节奏提醒、客户阶段总结和成交机会提示。",
-  },
-  {
-    id: "agent-mine-12",
-    name: "服务质检试点官",
-    releaseVersion: "v0.5.2",
-    sourceLabel: "我的 Agent",
-    statusLabel: "待下发",
-    permissionHint: "适合客服与服务质检试点客户专项交付。",
-    scope: "mine",
-    sceneCategory: "试点扩展",
-    description: "适合会话质检、服务抽检和投诉问题专项分析。",
-  },
-  {
-    id: "agent-mine-13",
-    name: "零售督导陪跑官",
-    releaseVersion: "v0.9.1",
-    sourceLabel: "我的 Agent",
-    statusLabel: "待下发",
-    permissionHint: "适合零售交付客户做督导巡店和整改跟进。",
-    scope: "mine",
-    sceneCategory: "交付专属",
-    description: "适合首批门店试点客户做督导陪跑和现场问题跟踪。",
-  },
-  {
-    id: "agent-mine-14",
-    name: "客服升级试点官",
-    releaseVersion: "v0.8.6",
-    sourceLabel: "我的 Agent",
-    statusLabel: "待下发",
-    permissionHint: "适合服务质检客户做专项交付试点。",
-    scope: "mine",
-    sceneCategory: "试点扩展",
-    description: "适合售后升级项目，辅助梳理工单问题和服务改进动作。",
-  },
-];
-
 const createOrderId = (): string => `delivery-manual-${Date.now().toString(36)}`;
 const createGroupId = (): string => `delivery-group-${Date.now().toString(36)}`;
 
@@ -520,11 +156,11 @@ const createOrderNo = (): string => {
 
 const createInitialOrderForm = (): CreateOrderFormState => ({
   customerName: "",
-  scenarioName: "",
-  orderAmount: "",
-  launchTargetDate: "",
-  industry: "",
+  launchTargetDate: null,
   deliveryNote: "",
+  tenantCode: "",
+  tenantSeatCount: null,
+  linkedOrderIds: [],
 });
 
 const createInitialExpertGroupForm = (): ExpertGroupFormState => ({
@@ -532,14 +168,16 @@ const createInitialExpertGroupForm = (): ExpertGroupFormState => ({
   description: "",
 });
 
+const createInitialDeliveryRecordForm = (): CreateDeliveryRecordFormState => ({
+  linkedOrderIds: [],
+  launchTargetDate: null,
+  deliveryNote: "",
+});
+
 const getStepKeyLabel = (stepKey: FdeDeliveryStepKey): string =>
   FDE_DELIVERY_STEPS.find(item => item.key === stepKey)?.label ?? stepKey;
 
 const getTenantStatusLabel = (stepKey: FdeDeliveryStepKey): string => {
-  if (stepKey === "customerConfirm") {
-    return "待创建租户";
-  }
-
   if (stepKey === "deviceConfig") {
     return "租户已创建";
   }
@@ -556,17 +194,50 @@ const getTenantStatusLabel = (stepKey: FdeDeliveryStepKey): string => {
 };
 
 const getDeliveryStatusLabel = (stepKey: FdeDeliveryStepKey): FdeDeliveryOrderStatus => {
-  if (stepKey === "customerConfirm") {
+  if (stepKey === "deviceConfig") {
     return "待配置";
   }
 
   return "配置中";
 };
 
+const getVisibleDeliverySteps = (order: FdeDeliveryOrderItem): FdeDeliveryStepItem[] => {
+  if (order.orderKind !== "change" || order.useFullFlow) {
+    return FDE_DELIVERY_STEPS;
+  }
+
+  if (order.changeType === "追加设备") {
+    return FDE_DELIVERY_STEPS.filter(
+      step => step.key === "deviceConfig" || step.key === "preflight",
+    );
+  }
+
+  if (order.changeType === "追加Agent") {
+    return FDE_DELIVERY_STEPS.filter(
+      step => step.key === "agentConfig" || step.key === "preflight",
+    );
+  }
+
+  if (order.changeType === "追加设备与Agent") {
+    return FDE_DELIVERY_STEPS.filter(
+      step =>
+        step.key === "deviceConfig" ||
+        step.key === "agentConfig" ||
+        step.key === "preflight",
+    );
+  }
+
+  return FDE_DELIVERY_STEPS;
+};
+
 const getStepStatusLabel = (
   order: FdeDeliveryOrderItem,
   stepKey: FdeDeliveryStepKey,
-): "已完成" | "进行中" | "待处理" => {
+): "已完成" | "已跳过" | "进行中" | "待处理" => {
+  if (order.skippedSteps?.includes(stepKey)) {
+    return "已跳过";
+  }
+
   if (order.completedSteps.includes(stepKey)) {
     return "已完成";
   }
@@ -579,10 +250,14 @@ const getStepStatusLabel = (
 };
 
 const getStepStatusClassName = (
-  status: "已完成" | "进行中" | "待处理",
+  status: "已完成" | "已跳过" | "进行中" | "待处理",
 ): string => {
   if (status === "已完成") {
     return styles.stepStatusDone;
+  }
+
+  if (status === "已跳过") {
+    return styles.stepStatusSkipped;
   }
 
   if (status === "进行中") {
@@ -607,21 +282,27 @@ const getDeliveryItemStatusClassName = (statusLabel: string): string => {
 const isDeliveryItemDelivered = (statusLabel: string): boolean => statusLabel.startsWith("已");
 
 const buildDefaultDeviceRecord = (order: FdeDeliveryOrderItem): DeviceAllocationRecord => {
+  const localClientQuota =
+    order.quotaAdjustments?.find(item => item.label === "本地客户端授权")?.delta ?? 0;
   const isConfigured =
-    order.currentStep !== "customerConfirm" ||
     order.completedSteps.includes("deviceConfig") ||
-    order.deviceConfig.cloudDeviceCount > 0 ||
-    order.deviceConfig.localDeviceCount > 0;
+    getFdeDeliveryStepIndex(order.currentStep) > getFdeDeliveryStepIndex("deviceConfig");
 
   return {
     cloudWorkbenchQuota: order.deviceConfig.cloudDeviceCount || 0,
     localWorkbenchQuota: order.deviceConfig.localDeviceCount || 0,
-    localClientQuota: 0,
+    localClientQuota,
     effectiveAt: order.launchTargetDate || "",
     configuredAt: isConfigured ? order.createdAt : "",
     isConfigured,
   };
 };
+
+const hasPendingDevicePrefill = (record: DeviceAllocationRecord): boolean =>
+  !record.isConfigured &&
+  ((record.cloudWorkbenchQuota ?? 0) > 0 ||
+    (record.localWorkbenchQuota ?? 0) > 0 ||
+    (record.localClientQuota ?? 0) > 0);
 
 const buildDeviceFormState = (record: DeviceAllocationRecord): DeviceAllocationFormState => ({
   cloudWorkbenchQuota: record.cloudWorkbenchQuota,
@@ -630,52 +311,38 @@ const buildDeviceFormState = (record: DeviceAllocationRecord): DeviceAllocationF
   effectiveAt: record.effectiveAt,
 });
 
-const buildDefaultTenantRecord = (order: FdeDeliveryOrderItem): TenantCreateRecord => {
-  const isCreated =
-    order.tenantStatusLabel === "租户已创建" ||
-    order.tenantStatusLabel === "初始化中" ||
-    order.tenantStatusLabel === "Agent 已下发" ||
-    order.tenantStatusLabel === "待交付验收" ||
-    getFdeDeliveryStepIndex(order.currentStep) > 0;
-
-  return {
-    tenantName: `${order.customerName}租户`,
-    adminName: "",
-    adminPhone: "",
-    tenantSeatCount: order.memberCount || null,
-    tenantCode: "",
-    createdAt: isCreated ? order.createdAt : "",
-    isCreated,
-  };
-};
-
-const buildTenantFormState = (record: TenantCreateRecord): TenantCreateFormState => ({
-  tenantName: record.tenantName,
-  adminName: record.adminName,
-  adminPhone: record.adminPhone,
-  tenantSeatCount: record.tenantSeatCount,
-  tenantCode: record.tenantCode,
-});
-
 const buildManualOrder = (
   payload: CreateOrderFormState,
   currentMemberId: string,
+  linkedOrders: FdeOrderItem[],
 ): FdeDeliveryOrderItem => {
-  const scenarioName = payload.scenarioName.trim();
+  const customerName = payload.customerName.trim();
+  const scenarioName = "待配置交付场景";
   const createdAt = new Date().toLocaleString("zh-CN", { hour12: false });
+  const tenantSeatCount = payload.tenantSeatCount ?? 0;
+  const totalAmount = linkedOrders.reduce((total, item) => total + item.totalAmount, 0);
+  const tenantId = createOrderId();
 
   return {
-    id: createOrderId(),
+    id: tenantId,
+    tenantId,
     leadId: "",
-    customerName: payload.customerName.trim(),
+    customerName,
     orderNo: createOrderNo(),
     assignedToId: currentMemberId,
-    industry: payload.industry.trim() || "待确认",
+    orderKind: "initial",
+    industry: "待确认",
     scenarioName,
-    currentStep: "customerConfirm",
+    currentStep: "deviceConfig",
     stepProgress: 0,
-    orderAmount: payload.orderAmount.trim(),
-    tenantStatusLabel: "待创建租户",
+    orderAmount: totalAmount ? `¥ ${totalAmount.toLocaleString("zh-CN")}` : "待确认",
+    tenantName: customerName,
+    tenantCode: payload.tenantCode.trim(),
+    adminName: "",
+    adminPhone: "",
+    attachments: [],
+    linkedOrderIds: payload.linkedOrderIds,
+    tenantStatusLabel: "租户已创建",
     deviceConfig: {
       mode: "云端设备",
       cloudDeviceCount: 0,
@@ -686,13 +353,13 @@ const buildManualOrder = (
       osOwner: "LeDeep OS",
       region: "",
     },
-    expertNames: [scenarioName],
+    expertNames: ["待配置 AI 专家"],
     requiredInputs: DEFAULT_REQUIRED_INPUTS,
     handoffItems: DEFAULT_HANDOFF_ITEMS,
     agentGroups: [],
     agentPackages: [
       {
-        name: scenarioName,
+        name: "待配置 AI 专家",
         releaseVersion: "v1.0.0",
         sourceLabel: "待下发",
         statusLabel: "待配置",
@@ -701,9 +368,9 @@ const buildManualOrder = (
     ],
     adminTodo: DEFAULT_ADMIN_TODO,
     apiTargets: [],
-    memberCount: 0,
+    memberCount: tenantSeatCount,
     createdAt,
-    launchTargetDate: payload.launchTargetDate.trim() || "待确认",
+    launchTargetDate: payload.launchTargetDate?.format("YYYY-MM-DD HH:mm") || "待确认",
     deliveryNote: payload.deliveryNote.trim() || "待补充交付说明",
     preflightChecks: DEFAULT_PREFLIGHT_CHECKS,
     completedSteps: [],
@@ -720,24 +387,244 @@ const getOrderAssignedAgentNames = (order: FdeDeliveryOrderItem): string[] => {
   return Array.from(new Set([...directAgentNames, ...groupAgentNames]));
 };
 
+const isAgentOrderLineItem = (
+  item: FdeOrderLineItem,
+): item is Extract<FdeOrderLineItem, { kind: "agent" }> => item.kind === "agent";
+
+const isDeviceOrderLineItem = (
+  item: FdeOrderLineItem,
+): item is Extract<FdeOrderLineItem, { kind: "device" }> => item.kind === "device";
+
+const isTokensOrderLineItem = (
+  item: FdeOrderLineItem,
+): item is Extract<FdeOrderLineItem, { kind: "tokens" }> => item.kind === "tokens";
+
+const appendUniqueOrderIds = (
+  currentOrderIds: string[] | undefined,
+  nextOrderIds: string[],
+): string[] => Array.from(new Set([...(currentOrderIds ?? []), ...nextOrderIds]));
+
+const appendUniqueStepKeys = (
+  currentStepKeys: FdeDeliveryStepKey[] | undefined,
+  nextStepKey: FdeDeliveryStepKey,
+): FdeDeliveryStepKey[] => Array.from(new Set([...(currentStepKeys ?? []), nextStepKey]));
+
+const getOrderDeviceUnit = (deviceType: FdeOrderDeviceLineItem["deviceType"]): string =>
+  deviceType === "本地客户端授权" ? "个" : "台";
+
+const shouldAllowSkipStep = (
+  order: FdeDeliveryOrderItem,
+  stepKey: FdeDeliveryStepKey,
+): boolean => {
+  if (stepKey === "deviceConfig") {
+    return (
+      order.deviceConfig.cloudDeviceCount === 0 &&
+      order.deviceConfig.localDeviceCount === 0 &&
+      (order.quotaAdjustments?.find(item => item.label === "本地客户端授权")?.delta ?? 0) === 0
+    );
+  }
+
+  if (stepKey === "agentConfig") {
+    return !order.agentGroups?.length && !order.agentPackages?.length;
+  }
+
+  if (stepKey === "apiTest") {
+    return order.orderKind === "change" || Boolean(order.useFullFlow);
+  }
+
+  return false;
+};
+
+const buildLinkedOrderDeliveryDraft = (
+  draftId: string,
+  linkedOrders: FdeOrderItem[],
+  tenantOrder: FdeDeliveryOrderItem,
+): LinkedOrderDeliveryDraft => {
+  const deviceLineItems = linkedOrders.flatMap(item => item.lineItems.filter(isDeviceOrderLineItem));
+  const agentLineItems = linkedOrders.flatMap(item => item.lineItems.filter(isAgentOrderLineItem));
+  const totalAmount = linkedOrders.reduce((total, item) => total + item.totalAmount, 0);
+  const cloudDeviceCount = deviceLineItems
+    .filter(item => item.deviceType === "云端工作站")
+    .reduce((total, item) => total + item.quantity, 0);
+  const localDeviceCount = deviceLineItems
+    .filter(item => item.deviceType === "本地工作站")
+    .reduce((total, item) => total + item.quantity, 0);
+  const localClientCount = deviceLineItems
+    .filter(item => item.deviceType === "本地客户端授权")
+    .reduce((total, item) => total + item.quantity, 0);
+  const expertNames = Array.from(new Set(agentLineItems.map(item => item.agentName)));
+  const agentPackages = Array.from(
+    new Map(
+      agentLineItems.map(item => [
+        item.agentName,
+        {
+          name: item.agentName,
+          releaseVersion: item.releaseVersion,
+          sourceLabel: item.sourceLabel,
+          statusLabel: "待下发",
+          permissionHint: "待确认授权成员",
+        },
+      ]),
+    ).values(),
+  );
+  const hasDevice = Boolean(deviceLineItems.length);
+  const hasAgent = Boolean(agentLineItems.length);
+  const changeType: FdeDeliveryChangeType | null = hasDevice
+    ? hasAgent
+      ? "追加设备与Agent"
+      : "追加设备"
+    : hasAgent
+      ? "追加Agent"
+      : null;
+
+  return {
+    changeType,
+    totalAmount,
+    deviceConfig: {
+      mode:
+        cloudDeviceCount && localDeviceCount
+          ? "混合部署"
+          : localDeviceCount || localClientCount
+            ? "本地设备"
+            : "云端设备",
+      cloudDeviceCount,
+      localDeviceCount,
+      cloudNodeName: cloudDeviceCount ? "云端工作站" : "",
+      localDeviceName: localDeviceCount ? "本地工作站" : "",
+      pairingCode: "",
+      osOwner: tenantOrder.deviceConfig.osOwner,
+      region: tenantOrder.deviceConfig.region,
+    },
+    expertNames,
+    agentPackages,
+    changeDetailItems: [
+      ...deviceLineItems.map(item => ({
+        id: `${draftId}-${item.id}`,
+        label: item.deviceType,
+        afterValue: `${item.quantity} ${getOrderDeviceUnit(item.deviceType)}`,
+      })),
+      ...agentLineItems.map(item => ({
+        id: `${draftId}-${item.id}`,
+        label: "新增 Agent",
+        afterValue: item.agentName,
+      })),
+    ],
+    quotaAdjustments: [
+      { label: "云端设备额度", delta: cloudDeviceCount, unit: "台" },
+      { label: "本地设备额度", delta: localDeviceCount, unit: "台" },
+      { label: "本地客户端授权", delta: localClientCount, unit: "个" },
+    ].filter(item => item.delta > 0),
+    deviceAdditions: deviceLineItems.flatMap(item =>
+      Array.from({ length: item.quantity }).map((_, index) => ({
+        id: `${draftId}-${item.id}-${index + 1}`,
+        name: `${item.deviceType} ${index + 1}`,
+        type: item.deviceType === "云端工作站" ? "cloud" : "local",
+        status: "online" as const,
+        uptime: "0 小时",
+        categoryLabel: item.deviceType,
+        ownerLabel: "订单预分配",
+        assignedEmployeeName: "待客户分配",
+        locationLabel: tenantOrder.deviceConfig.region || "待确认",
+      })),
+    ),
+    agentAdditions: Array.from(
+      new Map(
+        agentLineItems.map(item => [
+          item.agentName,
+          {
+            name: item.agentName,
+            runningHours: 0,
+            completedTasks: 0,
+            currentVersion: item.releaseVersion,
+            latestVersion: item.releaseVersion,
+            deliverySourceLabel: item.sourceLabel,
+            permissionScope: "待确认授权成员",
+            assignedMembers: [],
+            modelLabel: "Frontis 标准模型",
+            deploymentLabel: "待确认",
+          },
+        ]),
+      ).values(),
+    ),
+    summaryLabel: [
+      deviceLineItems.length ? `设备 ${deviceLineItems.length} 项` : "",
+      agentLineItems.length ? `AI 专家 ${expertNames.length} 项` : "",
+    ]
+      .filter(Boolean)
+      .join(" / "),
+  };
+};
+
+const getRelatedBusinessOrders = (
+  deliveryOrder: FdeDeliveryOrderItem,
+  orderItems: FdeOrderItem[],
+): FdeOrderItem[] => {
+  const directLinkedOrders = orderItems.filter(item =>
+    (deliveryOrder.linkedOrderIds ?? []).includes(item.id),
+  );
+
+  if (directLinkedOrders.length) {
+    return directLinkedOrders;
+  }
+
+  if (deliveryOrder.orderKind === "change") {
+    return orderItems.filter(item =>
+      item.fulfillmentItems.some(fulfillment => fulfillment.linkedRecordId === deliveryOrder.id),
+    );
+  }
+
+  return orderItems.filter(item => item.tenantId === deliveryOrder.id);
+};
+
+const getOrderSummaryLabel = (order: FdeOrderItem): string => {
+  const deviceCount = order.lineItems.filter(isDeviceOrderLineItem).length;
+  const agentCount = order.lineItems.filter(isAgentOrderLineItem).length;
+  const tokenCount = order.lineItems.filter(isTokensOrderLineItem).length;
+
+  return [
+    deviceCount ? `设备 ${deviceCount} 项` : "",
+    agentCount ? `AI 专家 ${agentCount} 项` : "",
+    tokenCount ? `tokens ${tokenCount} 项` : "",
+  ]
+    .filter(Boolean)
+    .join(" / ");
+};
+
+const getDeliveryRecordLabel = (order: FdeDeliveryOrderItem): string =>
+  order.orderKind === "initial" ? "首次交付" : order.changeType ?? "交付变更";
+
+const sortTenantDeliveryRecords = (
+  records: FdeDeliveryOrderItem[],
+): FdeDeliveryOrderItem[] =>
+  [...records].sort((left, right) => {
+    if (left.orderKind !== right.orderKind) {
+      return left.orderKind === "initial" ? -1 : 1;
+    }
+
+    return right.createdAt.localeCompare(left.createdAt);
+  });
+
 /**
  * 配置交付视图。
  */
 export const FdeDeliveryWorkbench = ({
   items,
+  orderItems,
   members,
   currentMemberId,
   selectedOrderId,
+  syncOrders,
   setSelectedOrderId,
 }: FdeDeliveryWorkbenchProps): JSX.Element => {
   const [orders, setOrders] = useState<FdeDeliveryOrderItem[]>(items);
-  const [viewMode, setViewMode] = useState<DeliveryViewMode>("list");
+  const [viewMode, setViewMode] = useState<DeliveryViewMode>(() =>
+    items.find(item => item.id === selectedOrderId)?.orderKind === "change" ? "detail" : "list",
+  );
   const [isCreateDrawerOpen, setIsCreateDrawerOpen] = useState<boolean>(false);
-  const [isTenantDrawerOpen, setIsTenantDrawerOpen] = useState<boolean>(false);
+  const [isCreateDeliveryModalOpen, setIsCreateDeliveryModalOpen] = useState<boolean>(false);
   const [isDeviceModalOpen, setIsDeviceModalOpen] = useState<boolean>(false);
   const [isExpertGroupModalOpen, setIsExpertGroupModalOpen] = useState<boolean>(false);
   const [isAgentModalOpen, setIsAgentModalOpen] = useState<boolean>(false);
-  const [tenantDrawerOrderId, setTenantDrawerOrderId] = useState<string>("");
   const [deviceModalOrderId, setDeviceModalOrderId] = useState<string>("");
   const [agentModalOrderId, setAgentModalOrderId] = useState<string>("");
   const [agentSelectMode, setAgentSelectMode] = useState<AgentSelectMode>("single");
@@ -745,35 +632,34 @@ export const FdeDeliveryWorkbench = ({
   const [agentSceneCategory, setAgentSceneCategory] = useState<string>("");
   const [selectedAgentIds, setSelectedAgentIds] = useState<string[]>([]);
   const [selectedDetailTab, setSelectedDetailTab] = useState<DeliveryDetailTabKey>("orderInfo");
+  const [searchKeyword, setSearchKeyword] = useState<string>("");
+  const [deliveryStatusFilter, setDeliveryStatusFilter] = useState<DeliveryStatusFilter>("all");
+  const [previewOrderId, setPreviewOrderId] = useState<string>("");
+  const ordersRef = useRef<FdeDeliveryOrderItem[]>(items);
+  const previousSelectedOrderIdRef = useRef<string>(selectedOrderId);
   const [createOrderForm, setCreateOrderForm] = useState<CreateOrderFormState>(createInitialOrderForm());
+  const [createDeliveryForm, setCreateDeliveryForm] = useState<CreateDeliveryRecordFormState>(
+    createInitialDeliveryRecordForm(),
+  );
   const [expertGroupForm, setExpertGroupForm] = useState<ExpertGroupFormState>(
     createInitialExpertGroupForm(),
   );
-  const [tenantForm, setTenantForm] = useState<TenantCreateFormState>({
-    tenantName: "",
-    adminName: "",
-    adminPhone: "",
-    tenantSeatCount: null,
-    tenantCode: "",
-  });
   const [deviceForm, setDeviceForm] = useState<DeviceAllocationFormState>({
     cloudWorkbenchQuota: 0,
     localWorkbenchQuota: 0,
     localClientQuota: 0,
     effectiveAt: "",
   });
-  const [tenantRecords, setTenantRecords] = useState<Record<string, TenantCreateRecord>>(() =>
-    items.reduce<Record<string, TenantCreateRecord>>((accumulator, item) => {
-      accumulator[item.id] = buildDefaultTenantRecord(item);
-      return accumulator;
-    }, {}),
-  );
   const [deviceRecords, setDeviceRecords] = useState<Record<string, DeviceAllocationRecord>>(() =>
     items.reduce<Record<string, DeviceAllocationRecord>>((accumulator, item) => {
       accumulator[item.id] = buildDefaultDeviceRecord(item);
       return accumulator;
     }, {}),
   );
+
+  useEffect(() => {
+    ordersRef.current = orders;
+  }, [orders]);
 
   useEffect(() => {
     setOrders(previous => {
@@ -783,18 +669,6 @@ export const FdeDeliveryWorkbench = ({
       return [...manualOrders, ...items];
     });
   }, [items]);
-
-  useEffect(() => {
-    setTenantRecords(previous => {
-      const nextRecords = { ...previous };
-      orders.forEach(order => {
-        if (!nextRecords[order.id]) {
-          nextRecords[order.id] = buildDefaultTenantRecord(order);
-        }
-      });
-      return nextRecords;
-    });
-  }, [orders]);
 
   useEffect(() => {
     setDeviceRecords(previous => {
@@ -823,25 +697,169 @@ export const FdeDeliveryWorkbench = ({
     () => orders.find(item => item.id === selectedOrderId) ?? null,
     [orders, selectedOrderId],
   );
-  const selectedTenantRecord = selectedOrder ? tenantRecords[selectedOrder.id] : null;
+  const tenantDeliveryRecords = useMemo<FdeDeliveryOrderItem[]>(
+    () =>
+      selectedOrder
+        ? sortTenantDeliveryRecords(
+            orders.filter(item => item.tenantId === selectedOrder.tenantId),
+          )
+        : [],
+    [orders, selectedOrder],
+  );
+  const selectedTenantOrder = useMemo<FdeDeliveryOrderItem | null>(
+    () => tenantDeliveryRecords.find(item => item.orderKind === "initial") ?? selectedOrder,
+    [selectedOrder, tenantDeliveryRecords],
+  );
+  const selectedTenantCustomerId = useMemo<string | undefined>(
+    () =>
+      tenantDeliveryRecords.find(item => item.relatedCustomerId)?.relatedCustomerId ??
+      selectedOrder?.relatedCustomerId,
+    [selectedOrder, tenantDeliveryRecords],
+  );
   const selectedDeviceRecord = selectedOrder ? deviceRecords[selectedOrder.id] : null;
   const agentSceneCategories = useMemo<string[]>(
     () =>
       Array.from(
         new Set(
-          AGENT_PLAZA_ITEMS.filter(item => item.scope === agentScope).map(item => item.sceneCategory),
+          FDE_AGENT_CATALOG_ITEMS.filter(item => item.scope === agentScope).map(
+            item => item.sceneCategory,
+          ),
         ),
       ),
     [agentScope],
   );
-  const visibleAgentPlazaItems = useMemo<AgentPlazaItem[]>(
+  const visibleAgentPlazaItems = useMemo<FdeAgentCatalogItem[]>(
     () =>
-      AGENT_PLAZA_ITEMS.filter(
+      FDE_AGENT_CATALOG_ITEMS.filter(
         item =>
           item.scope === agentScope &&
           (!agentSceneCategory || item.sceneCategory === agentSceneCategory),
       ),
     [agentSceneCategory, agentScope],
+  );
+  const filteredOrderItems = useMemo<FdeDeliveryOrderItem[]>(
+    () => {
+      const normalizedKeyword = searchKeyword.trim().toLowerCase();
+
+      return orders.filter(item => {
+        const matchesStatus =
+          deliveryStatusFilter === "all" || item.deliveryStatus === deliveryStatusFilter;
+
+        if (!matchesStatus) {
+          return false;
+        }
+
+        if (!normalizedKeyword) {
+          return true;
+        }
+
+        const searchSource = [
+          item.customerName,
+          item.orderNo,
+          item.tenantName,
+          item.tenantCode,
+          item.changeType ?? "",
+        ]
+          .join(" ")
+          .toLowerCase();
+
+        return searchSource.includes(normalizedKeyword);
+      });
+    },
+    [deliveryStatusFilter, orders, searchKeyword],
+  );
+  const selectedPreviewOrder = useMemo<FdeOrderItem | null>(
+    () => orderItems.find(item => item.id === previewOrderId) ?? null,
+    [orderItems, previewOrderId],
+  );
+  const previewLinkedTenant = useMemo<FdeDeliveryOrderItem | null>(
+    () => {
+      if (!selectedPreviewOrder) {
+        return null;
+      }
+
+      return (
+        orders.find(item => item.id === selectedPreviewOrder.tenantId) ??
+        orders.find(item => item.linkedOrderIds?.includes(selectedPreviewOrder.id)) ??
+        null
+      );
+    },
+    [orders, selectedPreviewOrder],
+  );
+  const linkedOrdersInCreateModal = useMemo<FdeOrderItem[]>(
+    () => orderItems.filter(item => createOrderForm.linkedOrderIds.includes(item.id)),
+    [createOrderForm.linkedOrderIds, orderItems],
+  );
+  const linkedOrdersAmountLabel = useMemo<string>(
+    () => {
+      const totalAmount = linkedOrdersInCreateModal.reduce((total, item) => total + item.totalAmount, 0);
+
+      return totalAmount ? `¥ ${totalAmount.toLocaleString("zh-CN")}` : "未关联订单";
+    },
+    [linkedOrdersInCreateModal],
+  );
+  const linkableOrderOptions = useMemo<FdeOrderItem[]>(
+    () => {
+      const normalizedCustomerName = createOrderForm.customerName.trim();
+
+      return orderItems.filter(item => {
+        if (item.tenantId) {
+          return false;
+        }
+
+        if (!normalizedCustomerName) {
+          return true;
+        }
+
+        return item.customerName === normalizedCustomerName;
+      });
+    },
+    [createOrderForm.customerName, orderItems],
+  );
+  const linkedOrdersInDeliveryModal = useMemo<FdeOrderItem[]>(
+    () => orderItems.filter(item => createDeliveryForm.linkedOrderIds.includes(item.id)),
+    [createDeliveryForm.linkedOrderIds, orderItems],
+  );
+  const createDeliveryOrderOptions = useMemo<FdeOrderItem[]>(
+    () => {
+      if (!selectedOrder) {
+        return [];
+      }
+
+      return orderItems.filter(item => {
+        const isSameCustomer = item.customerName === selectedOrder.customerName;
+        const isBoundToCurrentTenant = item.tenantId === selectedOrder.tenantId;
+        const isUnbound = !item.tenantId;
+        const alreadyLinkedToChangeRecord = orders.some(
+          order =>
+            order.orderKind === "change" &&
+            order.tenantId === selectedOrder.tenantId &&
+            order.linkedOrderIds?.includes(item.id),
+        );
+
+        if (!isSameCustomer || alreadyLinkedToChangeRecord) {
+          return false;
+        }
+
+        if (item.status === "已完成") {
+          return false;
+        }
+
+        return isBoundToCurrentTenant || isUnbound;
+      });
+    },
+    [orderItems, orders, selectedOrder],
+  );
+  const createDeliveryDraft = useMemo<LinkedOrderDeliveryDraft | null>(
+    () =>
+      selectedTenantOrder && linkedOrdersInDeliveryModal.length
+        ? buildLinkedOrderDeliveryDraft(
+            `delivery-draft-${selectedTenantOrder.tenantId}`,
+            linkedOrdersInDeliveryModal,
+            selectedTenantOrder,
+          )
+        : null,
+    [linkedOrdersInDeliveryModal, selectedTenantOrder],
   );
 
   useEffect(() => {
@@ -859,6 +877,23 @@ export const FdeDeliveryWorkbench = ({
   }, [selectedOrder?.id]);
 
   useEffect(() => {
+    const hadPreviousSelectedOrderInCurrentList = orders.some(
+      item => item.id === previousSelectedOrderIdRef.current,
+    );
+
+    if (
+      previousSelectedOrderIdRef.current &&
+      hadPreviousSelectedOrderInCurrentList &&
+      previousSelectedOrderIdRef.current !== selectedOrderId &&
+      orders.some(item => item.id === selectedOrderId)
+    ) {
+      setViewMode("detail");
+    }
+
+    previousSelectedOrderIdRef.current = selectedOrderId;
+  }, [orders, selectedOrderId]);
+
+  useEffect(() => {
     if (!agentSceneCategories.length) {
       setAgentSceneCategory("");
       return;
@@ -869,9 +904,63 @@ export const FdeDeliveryWorkbench = ({
     }
   }, [agentSceneCategories, agentSceneCategory]);
 
+  useEffect(() => {
+    if (!createOrderForm.linkedOrderIds.length) {
+      return;
+    }
+
+    const normalizedCustomerName = createOrderForm.customerName.trim();
+    const validLinkedOrderIds = orderItems
+      .filter(
+        item =>
+          createOrderForm.linkedOrderIds.includes(item.id) &&
+          (!normalizedCustomerName || item.customerName === normalizedCustomerName),
+      )
+      .map(item => item.id);
+
+    if (validLinkedOrderIds.length === createOrderForm.linkedOrderIds.length) {
+      return;
+    }
+
+    setCreateOrderForm(previous => ({
+      ...previous,
+      linkedOrderIds: validLinkedOrderIds,
+    }));
+  }, [createOrderForm.customerName, createOrderForm.linkedOrderIds, orderItems]);
+
+  useEffect(() => {
+    if (!createDeliveryForm.linkedOrderIds.length) {
+      return;
+    }
+
+    const validLinkedOrderIds = createDeliveryOrderOptions
+      .filter(item => createDeliveryForm.linkedOrderIds.includes(item.id))
+      .map(item => item.id);
+
+    if (validLinkedOrderIds.length === createDeliveryForm.linkedOrderIds.length) {
+      return;
+    }
+
+    setCreateDeliveryForm(previous => ({
+      ...previous,
+      linkedOrderIds: validLinkedOrderIds,
+    }));
+  }, [createDeliveryForm.linkedOrderIds, createDeliveryOrderOptions]);
+
   const handleOpenAdmin = useCallback((): void => {
     window.open("/web/admin", "_blank", "noopener,noreferrer");
   }, []);
+
+  const commitOrders = useCallback(
+    (updater: DeliveryOrdersUpdater): FdeDeliveryOrderItem[] => {
+      const nextOrders = updater(ordersRef.current);
+      ordersRef.current = nextOrders;
+      setOrders(nextOrders);
+      syncOrders(nextOrders);
+      return nextOrders;
+    },
+    [syncOrders],
+  );
 
   const handleCreateFieldChange = useCallback(
     <TKey extends keyof CreateOrderFormState>(
@@ -895,16 +984,67 @@ export const FdeDeliveryWorkbench = ({
     setIsCreateDrawerOpen(false);
   }, []);
 
-  const handleOpenTenantDrawer = useCallback((order: FdeDeliveryOrderItem): void => {
-    const record = tenantRecords[order.id] ?? buildDefaultTenantRecord(order);
-    setTenantDrawerOrderId(order.id);
-    setTenantForm(buildTenantFormState(record));
-    setIsTenantDrawerOpen(true);
-  }, [tenantRecords]);
+  const handleCreateDeliveryFieldChange = useCallback(
+    <TKey extends keyof CreateDeliveryRecordFormState>(
+      key: TKey,
+      value: CreateDeliveryRecordFormState[TKey],
+    ): void => {
+      setCreateDeliveryForm(previous => ({
+        ...previous,
+        [key]: value,
+      }));
+    },
+    [],
+  );
 
-  const handleCloseTenantDrawer = useCallback((): void => {
-    setIsTenantDrawerOpen(false);
-    setTenantDrawerOrderId("");
+  const handleOpenCreateDeliveryModal = useCallback((): void => {
+    if (!selectedTenantOrder) {
+      return;
+    }
+
+    setCreateDeliveryForm({
+      ...createInitialDeliveryRecordForm(),
+      launchTargetDate: null,
+    });
+    setIsCreateDeliveryModalOpen(true);
+  }, [selectedTenantOrder]);
+
+  const handleCloseCreateDeliveryModal = useCallback((): void => {
+    setIsCreateDeliveryModalOpen(false);
+    setCreateDeliveryForm(createInitialDeliveryRecordForm());
+  }, []);
+
+  const handleOpenOrderPreview = useCallback((orderId: string): void => {
+    setPreviewOrderId(orderId);
+  }, []);
+
+  const handleCloseOrderPreview = useCallback((): void => {
+    setPreviewOrderId("");
+  }, []);
+
+  const handleLinkedOrderIdsChange = useCallback(
+    (nextLinkedOrderIds: string[]): void => {
+      const selectedLinkedOrders = orderItems.filter(item => nextLinkedOrderIds.includes(item.id));
+      const fallbackCustomerName = selectedLinkedOrders[0]?.customerName ?? "";
+      const nextCustomerName = createOrderForm.customerName.trim() || fallbackCustomerName;
+      const validLinkedOrderIds = selectedLinkedOrders
+        .filter(item => !nextCustomerName || item.customerName === nextCustomerName)
+        .map(item => item.id);
+
+      setCreateOrderForm(previous => ({
+        ...previous,
+        customerName: previous.customerName.trim() || fallbackCustomerName,
+        linkedOrderIds: validLinkedOrderIds,
+      }));
+    },
+    [createOrderForm.customerName, orderItems],
+  );
+
+  const handleDeliveryLinkedOrderIdsChange = useCallback((nextLinkedOrderIds: string[]): void => {
+    setCreateDeliveryForm(previous => ({
+      ...previous,
+      linkedOrderIds: nextLinkedOrderIds,
+    }));
   }, []);
 
   const handleOpenDeviceModal = useCallback((order: FdeDeliveryOrderItem): void => {
@@ -963,31 +1103,192 @@ export const FdeDeliveryWorkbench = ({
   const handleCreateOrder = useCallback((): void => {
     if (
       !createOrderForm.customerName.trim() ||
-      !createOrderForm.scenarioName.trim() ||
-      !createOrderForm.orderAmount.trim()
+      createOrderForm.tenantSeatCount === null ||
+      !createOrderForm.launchTargetDate
     ) {
-      message.warning("请先补齐客户名称、场景名称和订单金额。");
+      message.warning("请先补齐客户名称、席位和交付时间。");
       return;
     }
 
-    const nextOrder = buildManualOrder(createOrderForm, currentMemberId || members[0]?.id || "");
+    const linkedOrders = linkedOrdersInCreateModal;
+    const linkedOrderDraft = buildLinkedOrderDeliveryDraft(
+      "create-tenant",
+      linkedOrders,
+      {
+        ...buildManualOrder(createOrderForm, currentMemberId || members[0]?.id || "", []),
+        deviceConfig: {
+          mode: "云端设备",
+          cloudDeviceCount: 0,
+          localDeviceCount: 0,
+          cloudNodeName: "",
+          localDeviceName: "",
+          pairingCode: "",
+          osOwner: "LeDeep OS",
+          region: "待确认地域",
+        },
+      },
+    );
+    const manualOrder = buildManualOrder(
+      createOrderForm,
+      currentMemberId || members[0]?.id || "",
+      linkedOrders,
+    );
+    const nextOrder = {
+      ...manualOrder,
+      deviceConfig:
+        linkedOrderDraft.changeType !== null
+          ? linkedOrderDraft.deviceConfig
+          : manualOrder.deviceConfig,
+      expertNames: linkedOrderDraft.expertNames.length
+        ? linkedOrderDraft.expertNames
+        : manualOrder.expertNames,
+      agentPackages: linkedOrderDraft.agentPackages.length
+        ? linkedOrderDraft.agentPackages
+        : manualOrder.agentPackages,
+      changeDetailItems: linkedOrderDraft.changeDetailItems,
+      quotaAdjustments: linkedOrderDraft.quotaAdjustments,
+      deviceAdditions: linkedOrderDraft.deviceAdditions,
+      agentAdditions: linkedOrderDraft.agentAdditions,
+      deliveryNote: [
+        manualOrder.deliveryNote,
+        linkedOrders.length ? `已关联 ${linkedOrders.length} 笔订单` : "",
+        linkedOrderDraft.summaryLabel ? `已按订单预分配 ${linkedOrderDraft.summaryLabel}` : "",
+      ]
+        .filter(Boolean)
+        .join("；"),
+    };
 
-    setOrders(previous => [nextOrder, ...previous]);
+    commitOrders(previous => [nextOrder, ...previous]);
     setSelectedOrderId(nextOrder.id);
     setViewMode("detail");
     setIsCreateDrawerOpen(false);
-    message.success("订单已创建。");
-  }, [createOrderForm, currentMemberId, members, setSelectedOrderId]);
+    message.success("租户已创建，已进入配置交付。");
+  }, [commitOrders, createOrderForm, currentMemberId, linkedOrdersInCreateModal, members, setSelectedOrderId]);
 
-  const handleTenantFieldChange = useCallback(
-    <TKey extends keyof TenantCreateFormState>(key: TKey, value: TenantCreateFormState[TKey]): void => {
-      setTenantForm(previous => ({
-        ...previous,
-        [key]: value,
-      }));
-    },
-    [],
-  );
+  const handleCreateDelivery = useCallback((): void => {
+    if (!selectedTenantOrder) {
+      return;
+    }
+
+    if (!createDeliveryForm.linkedOrderIds.length) {
+      message.warning("请先关联至少一笔订单。");
+      return;
+    }
+
+    if (!createDeliveryForm.launchTargetDate) {
+      message.warning("请先设置交付时间。");
+      return;
+    }
+
+    if (!createDeliveryDraft?.changeType) {
+      message.warning("所选订单未包含设备或 AI 专家，无需创建交付记录。");
+      return;
+    }
+
+    const now = new Date().toLocaleString("zh-CN", { hour12: false });
+    const currentMemberName =
+      getFdeMemberName(members, currentMemberId) || members[0]?.name || "FDE";
+    const nextOrderId = createOrderId();
+    const relatedOrderNumbers = linkedOrdersInDeliveryModal.map(item => item.orderNo).join("、");
+    const nextOrder: FdeDeliveryOrderItem = {
+      id: nextOrderId,
+      tenantId: selectedTenantOrder.tenantId,
+      leadId: "",
+      customerName: selectedTenantOrder.customerName,
+      orderNo: createOrderNo(),
+      assignedToId: currentMemberId || selectedTenantOrder.assignedToId,
+      orderKind: "change",
+      relatedCustomerId: selectedTenantCustomerId,
+      changeType: createDeliveryDraft.changeType,
+      changeReason: "订单关联新增交付",
+      requestedByName: currentMemberName,
+      industry: selectedTenantOrder.industry,
+      scenarioName: "订单追加交付",
+      currentStep:
+        createDeliveryDraft.changeType === "追加Agent" ? "agentConfig" : "deviceConfig",
+      stepProgress: 0,
+      orderAmount: createDeliveryDraft.totalAmount
+        ? `¥ ${createDeliveryDraft.totalAmount.toLocaleString("zh-CN")}`
+        : "待确认",
+      tenantName: selectedTenantOrder.tenantName,
+      tenantCode: selectedTenantOrder.tenantCode,
+      adminName: "",
+      adminPhone: "",
+      attachments: [],
+      linkedOrderIds: createDeliveryForm.linkedOrderIds,
+      useFullFlow: true,
+      skippedSteps: [],
+      sourceLabel: "订单关联新增交付",
+      tenantStatusLabel: "增量交付执行中",
+      deliveryBoundary: "当前交付记录由订单关联生成，已按订单内容预分配待执行资源。",
+      deliveryNote:
+        createDeliveryForm.deliveryNote.trim() ||
+        `已关联订单 ${relatedOrderNumbers}，设备与 Agent 已按订单内容预分配。`,
+      deviceConfig: createDeliveryDraft.deviceConfig,
+      expertNames: createDeliveryDraft.expertNames,
+      requiredInputs: [
+        "确认订单范围",
+        "确认设备归属与授权对象",
+        "确认生效时间",
+      ],
+      handoffItems: [
+        "订单对应资源已完成交付",
+        "设备归属与授权对象已确认",
+        "客户已收到交付说明",
+      ],
+      agentGroups: [],
+      agentPackages: createDeliveryDraft.agentPackages,
+      adminTodo: ["按订单分配设备归属", "按订单下发 AI 专家", "同步客户交付说明"],
+      apiTargets: [],
+      memberCount: selectedTenantOrder.memberCount,
+      createdAt: now,
+      launchTargetDate: createDeliveryForm.launchTargetDate.format("YYYY-MM-DD HH:mm"),
+      preflightChecks: [
+        "订单资源已全部分配",
+        "设备和 AI 专家已完成下发",
+        "交付说明已同步",
+      ],
+      completedSteps: [],
+      deliveryStatus: "待配置",
+      changeDetailItems: createDeliveryDraft.changeDetailItems,
+      quotaAdjustments: createDeliveryDraft.quotaAdjustments,
+      deviceAdditions: createDeliveryDraft.deviceAdditions,
+      agentAdditions: createDeliveryDraft.agentAdditions,
+    };
+
+    commitOrders(previous =>
+      [
+        nextOrder,
+        ...previous.map(item =>
+          item.id === selectedTenantOrder.id
+            ? {
+                ...item,
+                linkedOrderIds: appendUniqueOrderIds(
+                  item.linkedOrderIds,
+                  createDeliveryForm.linkedOrderIds,
+                ),
+              }
+            : item,
+        ),
+      ],
+    );
+    setSelectedOrderId(nextOrder.id);
+    setViewMode("detail");
+    setSelectedDetailTab("orderInfo");
+    setIsCreateDeliveryModalOpen(false);
+    setCreateDeliveryForm(createInitialDeliveryRecordForm());
+    message.success("新增交付记录已创建，订单中的设备与 AI 专家已预分配。");
+  }, [
+    commitOrders,
+    createDeliveryDraft,
+    createDeliveryForm,
+    currentMemberId,
+    linkedOrdersInDeliveryModal,
+    members,
+    selectedTenantOrder,
+    selectedTenantCustomerId,
+    setSelectedOrderId,
+  ]);
 
   const handleDeviceFieldChange = useCallback(
     <TKey extends keyof DeviceAllocationFormState>(key: TKey, value: DeviceAllocationFormState[TKey]): void => {
@@ -998,49 +1299,6 @@ export const FdeDeliveryWorkbench = ({
     },
     [],
   );
-
-  const handleCreateTenant = useCallback((): void => {
-    if (!tenantDrawerOrderId) {
-      return;
-    }
-
-    if (
-      !tenantForm.tenantName.trim() ||
-      !tenantForm.adminName.trim() ||
-      !tenantForm.adminPhone.trim() ||
-      tenantForm.tenantSeatCount === null
-    ) {
-      message.warning("请先补齐租户名称、管理员姓名、管理员手机号和租户席位。");
-      return;
-    }
-
-    const createdAt = new Date().toLocaleString("zh-CN", { hour12: false });
-
-    setTenantRecords(previous => ({
-      ...previous,
-      [tenantDrawerOrderId]: {
-        ...tenantForm,
-        createdAt,
-        isCreated: true,
-      },
-    }));
-
-    setOrders(previous =>
-      previous.map(item =>
-        item.id === tenantDrawerOrderId
-          ? {
-              ...item,
-              tenantStatusLabel: "租户已创建",
-              memberCount: tenantForm.tenantSeatCount ?? item.memberCount,
-            }
-          : item,
-      ),
-    );
-
-    setIsTenantDrawerOpen(false);
-    setTenantDrawerOrderId("");
-    message.success("租户已创建。");
-  }, [tenantDrawerOrderId, tenantForm]);
 
   const handleSaveDeviceAllocation = useCallback((): void => {
     if (!deviceModalOrderId) {
@@ -1068,7 +1326,7 @@ export const FdeDeliveryWorkbench = ({
       },
     }));
 
-    setOrders(previous =>
+    commitOrders(previous =>
       previous.map(item =>
         item.id === deviceModalOrderId
           ? {
@@ -1092,7 +1350,7 @@ export const FdeDeliveryWorkbench = ({
     setIsDeviceModalOpen(false);
     setDeviceModalOrderId("");
     message.success("设备额度已保存。");
-  }, [deviceForm, deviceModalOrderId]);
+  }, [commitOrders, deviceForm, deviceModalOrderId]);
 
   const handleProceedToGroupAgentSelection = useCallback((): void => {
     if (!agentModalOrderId) {
@@ -1120,14 +1378,14 @@ export const FdeDeliveryWorkbench = ({
     );
   }, []);
 
-  const handleAddAgentToOrder = useCallback((agent: AgentPlazaItem): void => {
+  const handleAddAgentToOrder = useCallback((agent: FdeAgentCatalogItem): void => {
     if (!agentModalOrderId) {
       return;
     }
 
     let hasDuplicate = false;
 
-    setOrders(previous =>
+    commitOrders(previous =>
       previous.map(item => {
         if (item.id !== agentModalOrderId) {
           return item;
@@ -1163,7 +1421,7 @@ export const FdeDeliveryWorkbench = ({
     }
 
     message.success(`已添加 ${agent.name}。`);
-  }, [agentModalOrderId]);
+  }, [agentModalOrderId, commitOrders]);
 
   const handleConfirmAgentGroup = useCallback((): void => {
     if (!agentModalOrderId) {
@@ -1175,10 +1433,10 @@ export const FdeDeliveryWorkbench = ({
       return;
     }
 
-    const selectedAgents = AGENT_PLAZA_ITEMS.filter(item => selectedAgentIds.includes(item.id));
+    const selectedAgents = FDE_AGENT_CATALOG_ITEMS.filter(item => selectedAgentIds.includes(item.id));
     let duplicateCount = 0;
 
-    setOrders(previous =>
+    commitOrders(previous =>
       previous.map(item => {
         if (item.id !== agentModalOrderId) {
           return item;
@@ -1239,10 +1497,10 @@ export const FdeDeliveryWorkbench = ({
         ? `专家团已创建，已自动跳过 ${duplicateCount} 个重复 AI 专家。`
         : "AI 专家团已创建并加入订单。",
     );
-  }, [agentModalOrderId, expertGroupForm.description, expertGroupForm.name, selectedAgentIds]);
+  }, [agentModalOrderId, commitOrders, expertGroupForm.description, expertGroupForm.name, selectedAgentIds]);
 
   const handleDeliverAgentGroup = useCallback((orderId: string, groupId: string): void => {
-    setOrders(previous =>
+    commitOrders(previous =>
       previous.map(item => {
         if (item.id !== orderId) {
           return item;
@@ -1267,10 +1525,10 @@ export const FdeDeliveryWorkbench = ({
     );
 
     message.success("AI 专家团已下发到租户。");
-  }, []);
+  }, [commitOrders]);
 
   const handleDeliverSingleAgent = useCallback((orderId: string, agentName: string): void => {
-    setOrders(previous =>
+    commitOrders(previous =>
       previous.map(item => {
         if (item.id !== orderId) {
           return item;
@@ -1291,7 +1549,7 @@ export const FdeDeliveryWorkbench = ({
     );
 
     message.success(`${agentName} 已下发到租户。`);
-  }, []);
+  }, [commitOrders]);
 
   const handleEnterDetail = useCallback(
     (orderId: string): void => {
@@ -1306,22 +1564,21 @@ export const FdeDeliveryWorkbench = ({
     setViewMode("list");
   }, []);
 
-  const handleAdvanceStep = useCallback((): void => {
+  const handleAdvanceStep = useCallback((skipCurrentStep = false): void => {
     if (!selectedOrder) {
       return;
     }
 
-    if (selectedOrder.currentStep === "customerConfirm" && !selectedTenantRecord?.isCreated) {
-      message.warning("请先在第一步完成租户创建。");
-      return;
-    }
-
-    if (selectedOrder.currentStep === "deviceConfig" && !selectedDeviceRecord?.isConfigured) {
+    if (
+      !skipCurrentStep &&
+      selectedOrder.currentStep === "deviceConfig" &&
+      !selectedDeviceRecord?.isConfigured
+    ) {
       message.warning("请先在设备分配步骤配置设备额度。");
       return;
     }
 
-    if (selectedOrder.currentStep === "agentConfig") {
+    if (!skipCurrentStep && selectedOrder.currentStep === "agentConfig") {
       const groupItems = selectedOrder.agentGroups ?? [];
       const singleItems = selectedOrder.agentPackages ?? [];
       const deliveryItems = [
@@ -1340,20 +1597,29 @@ export const FdeDeliveryWorkbench = ({
       }
     }
 
-    const nextStep = FDE_DELIVERY_STEPS[getFdeDeliveryStepIndex(selectedOrder.currentStep) + 1];
+    const visibleSteps = getVisibleDeliverySteps(selectedOrder);
+    const currentStepIndex = visibleSteps.findIndex(step => step.key === selectedOrder.currentStep);
+    const nextStep = currentStepIndex >= 0 ? visibleSteps[currentStepIndex + 1] : undefined;
 
-    setOrders(previous =>
+    commitOrders(previous =>
       previous.map(item => {
         if (item.id !== selectedOrder.id) {
           return item;
         }
 
-        const completedSteps = Array.from(new Set([...item.completedSteps, item.currentStep]));
+        const completedSteps = skipCurrentStep
+          ? item.completedSteps
+          : appendUniqueStepKeys(item.completedSteps, item.currentStep);
+        const skippedSteps = skipCurrentStep
+          ? appendUniqueStepKeys(item.skippedSteps, item.currentStep)
+          : item.skippedSteps ?? [];
+        const progressedStepCount = new Set([...completedSteps, ...skippedSteps]).size;
 
         if (!nextStep) {
           return {
             ...item,
             completedSteps,
+            skippedSteps,
             currentStep: item.currentStep,
             stepProgress: 100,
             tenantStatusLabel: "已完成初始化",
@@ -1364,8 +1630,9 @@ export const FdeDeliveryWorkbench = ({
         return {
           ...item,
           completedSteps,
+          skippedSteps,
           currentStep: nextStep.key,
-          stepProgress: Math.round((completedSteps.length / FDE_DELIVERY_STEPS.length) * 100),
+          stepProgress: Math.round((progressedStepCount / visibleSteps.length) * 100),
           tenantStatusLabel: getTenantStatusLabel(nextStep.key),
           deliveryStatus: getDeliveryStatusLabel(nextStep.key),
         };
@@ -1373,136 +1640,52 @@ export const FdeDeliveryWorkbench = ({
     );
 
     if (!nextStep) {
-      message.success("已完成交付验收。");
+      message.success(skipCurrentStep ? "已跳过当前步骤并完成交付验收。" : "已完成交付验收。");
       return;
     }
 
-    message.success(`已进入 ${nextStep.label}。`);
-  }, [selectedDeviceRecord?.isConfigured, selectedOrder, selectedTenantRecord?.isCreated]);
+    message.success(
+      skipCurrentStep
+        ? `已跳过 ${getStepKeyLabel(selectedOrder.currentStep)}，进入 ${nextStep.label}。`
+        : `已进入 ${nextStep.label}。`,
+    );
+  }, [commitOrders, selectedDeviceRecord?.isConfigured, selectedOrder]);
 
   const renderStepContent = useCallback(
     (order: FdeDeliveryOrderItem, stepKey: DeliveryDetailTabKey): JSX.Element => {
       if (stepKey === "orderInfo") {
-        return (
-          <section className={styles.section}>
-            <div className={styles.sectionTitle}>订单信息</div>
-            <div className={styles.infoRows}>
-              <div className={styles.infoRow}>
-                <span className={styles.infoLabel}>订单编号</span>
-                <span className={styles.infoValue}>{order.orderNo}</span>
-              </div>
-              <div className={styles.infoRow}>
-                <span className={styles.infoLabel}>客户名称</span>
-                <span className={styles.infoValue}>{order.customerName}</span>
-              </div>
-              <div className={styles.infoRow}>
-                <span className={styles.infoLabel}>场景名称</span>
-                <span className={styles.infoValue}>{order.scenarioName}</span>
-              </div>
-              <div className={styles.infoRow}>
-                <span className={styles.infoLabel}>订单状态</span>
-                <span className={styles.infoValue}>{order.deliveryStatus}</span>
-              </div>
-              <div className={styles.infoRow}>
-                <span className={styles.infoLabel}>当前步骤</span>
-                <span className={styles.infoValue}>
-                  {DELIVERY_STEP_GUIDES[order.currentStep].title}
-                </span>
-              </div>
-              <div className={styles.infoRow}>
-                <span className={styles.infoLabel}>当前负责人</span>
-                <span className={styles.infoValue}>
-                  {getFdeMemberName(members, order.assignedToId)}
-                </span>
-              </div>
-              <div className={styles.infoRow}>
-                <span className={styles.infoLabel}>订单金额</span>
-                <span className={styles.infoValue}>{order.orderAmount}</span>
-              </div>
-              <div className={styles.infoRow}>
-                <span className={styles.infoLabel}>所属行业</span>
-                <span className={styles.infoValue}>{order.industry}</span>
-              </div>
-              <div className={styles.infoRow}>
-                <span className={styles.infoLabel}>计划上线时间</span>
-                <span className={styles.infoValue}>{order.launchTargetDate}</span>
-              </div>
-              <div className={styles.infoRow}>
-                <span className={styles.infoLabel}>创建时间</span>
-                <span className={styles.infoValue}>{order.createdAt}</span>
-              </div>
-              <div className={styles.infoRow}>
-                <span className={styles.infoLabel}>订单备注</span>
-                <span className={styles.infoValue}>{order.deliveryNote}</span>
-              </div>
-            </div>
-          </section>
-        );
-      }
-
-      if (stepKey === "customerConfirm") {
-        const tenantRecord = tenantRecords[order.id] ?? buildDefaultTenantRecord(order);
-        const isCurrentStep = order.currentStep === "customerConfirm";
+        const relatedBusinessOrders = getRelatedBusinessOrders(order, orderItems);
 
         return (
           <section className={styles.section}>
             <div className={styles.sectionHeader}>
-              <div className={styles.sectionTitle}>租户创建与初始化</div>
-              <div className={styles.sectionActions}>
-                <Button onClick={() => handleOpenTenantDrawer(order)}>
-                  {tenantRecord.isCreated ? "编辑租户信息" : "创建租户"}
-                </Button>
-                {isCurrentStep ? (
-                  <Button type="primary" onClick={handleAdvanceStep}>
-                    {DELIVERY_STEP_GUIDES.customerConfirm.buttonLabel}
-                  </Button>
-                ) : null}
+              <div className={styles.sectionTitle}>关联订单列表</div>
+              <div className={styles.deliveryHint}>
+                当前交付单已关联 {relatedBusinessOrders.length} 笔订单
               </div>
             </div>
-            <div className={styles.infoRows}>
-              <div className={styles.infoRow}>
-                <span className={styles.infoLabel}>租户状态</span>
-                <span className={styles.infoValue}>
-                  {tenantRecord.isCreated ? "租户已创建" : "待创建租户"}
-                </span>
-              </div>
-              <div className={styles.infoRow}>
-                <span className={styles.infoLabel}>租户名称</span>
-                <span className={styles.infoValue}>{tenantRecord.tenantName || "待填写"}</span>
-              </div>
-              <div className={styles.infoRow}>
-                <span className={styles.infoLabel}>企业管理员</span>
-                <span className={styles.infoValue}>{tenantRecord.adminName || "待填写"}</span>
-              </div>
-              <div className={styles.infoRow}>
-                <span className={styles.infoLabel}>管理员手机号</span>
-                <span className={styles.infoValue}>{tenantRecord.adminPhone || "待填写"}</span>
-              </div>
-              <div className={styles.infoRow}>
-                <span className={styles.infoLabel}>租户编码</span>
-                <span className={styles.infoValue}>{tenantRecord.tenantCode || "未填写"}</span>
-              </div>
-              <div className={styles.infoRow}>
-                <span className={styles.infoLabel}>租户席位</span>
-                <span className={styles.infoValue}>
-                  {tenantRecord.tenantSeatCount ?? "待填写"}
-                </span>
-              </div>
-              <div className={styles.infoRow}>
-                <span className={styles.infoLabel}>创建时间</span>
-                <span className={styles.infoValue}>{tenantRecord.createdAt || "待创建"}</span>
-              </div>
-            </div>
-            <div className={styles.subSection}>
-              <div className={styles.subSectionTitle}>初始化输入</div>
-              <div className={styles.lineList}>
-                {(order.requiredInputs ?? []).map(item => (
-                  <div key={item} className={styles.lineItem}>
-                    {item}
+            {relatedBusinessOrders.length ? (
+              <div className={styles.relatedOrderList}>
+                {relatedBusinessOrders.map(item => (
+                  <div key={item.id} className={styles.relatedOrderCard}>
+                    <div className={styles.relatedOrderMain}>
+                      <div className={styles.relatedOrderTitleRow}>
+                        <span className={styles.relatedOrderTitle}>{item.orderNo}</span>
+                        <span className={styles.deliveryTypeTag}>{item.status}</span>
+                      </div>
+                      <div className={styles.relatedOrderMeta}>
+                        {item.customerName} · {getOrderSummaryLabel(item)} · ¥{" "}
+                        {item.totalAmount.toLocaleString("zh-CN")}
+                      </div>
+                      <div className={styles.relatedOrderMeta}>创建时间：{item.createdAt}</div>
+                    </div>
+                    <Button onClick={() => handleOpenOrderPreview(item.id)}>查看订单信息</Button>
                   </div>
                 ))}
               </div>
-            </div>
+            ) : (
+              <div className={styles.emptyHint}>当前交付单还没有关联业务订单</div>
+            )}
           </section>
         );
       }
@@ -1510,6 +1693,8 @@ export const FdeDeliveryWorkbench = ({
       if (stepKey === "deviceConfig") {
         const isCurrentStep = order.currentStep === "deviceConfig";
         const deviceRecord = deviceRecords[order.id] ?? buildDefaultDeviceRecord(order);
+        const allowSkipCurrentStep = isCurrentStep && shouldAllowSkipStep(order, "deviceConfig");
+        const hasPendingPrefill = hasPendingDevicePrefill(deviceRecord);
 
         return (
           <section className={styles.section}>
@@ -1517,8 +1702,11 @@ export const FdeDeliveryWorkbench = ({
               <div className={styles.sectionTitle}>设备分配</div>
               <div className={styles.sectionActions}>
                 <Button onClick={() => handleOpenDeviceModal(order)}>配置设备额度</Button>
+                {allowSkipCurrentStep ? (
+                  <Button onClick={() => handleAdvanceStep(true)}>跳过此步骤</Button>
+                ) : null}
                 {isCurrentStep ? (
-                  <Button type="primary" onClick={handleAdvanceStep}>
+                  <Button type="primary" onClick={() => handleAdvanceStep()}>
                     {DELIVERY_STEP_GUIDES.deviceConfig.buttonLabel}
                   </Button>
                 ) : null}
@@ -1528,7 +1716,11 @@ export const FdeDeliveryWorkbench = ({
               <div className={styles.infoRow}>
                 <span className={styles.infoLabel}>分配状态</span>
                 <span className={styles.infoValue}>
-                  {deviceRecord.isConfigured ? "已配置设备额度" : "待配置设备额度"}
+                  {deviceRecord.isConfigured
+                    ? "已配置设备额度"
+                    : hasPendingPrefill
+                      ? "已按订单预填，待确认分配"
+                      : "待配置设备额度"}
                 </span>
               </div>
               <div className={styles.infoRow}>
@@ -1564,6 +1756,7 @@ export const FdeDeliveryWorkbench = ({
 
       if (stepKey === "agentConfig") {
         const isCurrentStep = order.currentStep === "agentConfig";
+        const allowSkipCurrentStep = isCurrentStep && shouldAllowSkipStep(order, "agentConfig");
         const deliveryItems = [
           ...(order.agentGroups ?? []).map(group => ({
             id: group.id,
@@ -1596,8 +1789,11 @@ export const FdeDeliveryWorkbench = ({
                 <Button onClick={() => handleOpenAgentModal(order, "single")}>
                   直接添加单个 AI 专家
                 </Button>
+                {allowSkipCurrentStep ? (
+                  <Button onClick={() => handleAdvanceStep(true)}>跳过此步骤</Button>
+                ) : null}
                 {isCurrentStep ? (
-                  <Button type="primary" onClick={handleAdvanceStep}>
+                  <Button type="primary" onClick={() => handleAdvanceStep()}>
                     {DELIVERY_STEP_GUIDES.agentConfig.buttonLabel}
                   </Button>
                 ) : null}
@@ -1667,6 +1863,7 @@ export const FdeDeliveryWorkbench = ({
 
       if (stepKey === "apiTest") {
         const isCurrentStep = order.currentStep === "apiTest";
+        const allowSkipCurrentStep = isCurrentStep && shouldAllowSkipStep(order, "apiTest");
 
         return (
           <section className={styles.section}>
@@ -1674,8 +1871,11 @@ export const FdeDeliveryWorkbench = ({
               <div className={styles.sectionTitle}>企业后台初始化</div>
               <div className={styles.sectionActions}>
                 <Button onClick={handleOpenAdmin}>进入企业管理后台</Button>
+                {allowSkipCurrentStep ? (
+                  <Button onClick={() => handleAdvanceStep(true)}>跳过此步骤</Button>
+                ) : null}
                 {isCurrentStep ? (
-                  <Button type="primary" onClick={handleAdvanceStep}>
+                  <Button type="primary" onClick={() => handleAdvanceStep()}>
                     {DELIVERY_STEP_GUIDES.apiTest.buttonLabel}
                   </Button>
                 ) : null}
@@ -1706,7 +1906,7 @@ export const FdeDeliveryWorkbench = ({
             <div className={styles.sectionTitle}>交付验收与交接</div>
             <div className={styles.sectionActions}>
               {isCurrentStep ? (
-                <Button type="primary" onClick={handleAdvanceStep}>
+                <Button type="primary" onClick={() => handleAdvanceStep()}>
                   {DELIVERY_STEP_GUIDES.preflight.buttonLabel}
                 </Button>
               ) : null}
@@ -1742,88 +1942,329 @@ export const FdeDeliveryWorkbench = ({
       handleOpenAgentModal,
       handleOpenDeviceModal,
       handleOpenExpertGroupModal,
-      handleOpenTenantDrawer,
+      handleOpenOrderPreview,
       members,
-      tenantRecords,
+      orderItems,
     ],
+  );
+
+  const createTenantModal = (
+    <Modal
+      title="创建租户"
+      open={isCreateDrawerOpen}
+      width={460}
+      rootClassName={styles.createTenantModal}
+      onCancel={handleCloseCreateDrawer}
+      footer={null}
+      destroyOnClose
+    >
+      <div className={styles.createTenantBody}>
+        <div className={styles.drawerForm}>
+          <div className={styles.drawerField}>
+            <div className={styles.drawerLabel}>关联订单</div>
+            <Select
+              mode="multiple"
+              allowClear
+              className={styles.fullWidthSelect}
+              placeholder={
+                createOrderForm.customerName.trim()
+                  ? "选择该客户下未关联租户的订单"
+                  : "可先输入客户名称，再选择要绑定的订单"
+              }
+              value={createOrderForm.linkedOrderIds}
+              options={linkableOrderOptions.map(item => ({
+                label: `${item.orderNo} · ${item.customerName} · ¥ ${item.totalAmount.toLocaleString(
+                  "zh-CN",
+                )}`,
+                value: item.id,
+              }))}
+              onChange={handleLinkedOrderIdsChange}
+            />
+            <div className={styles.deliveryHint}>
+              一个租户可关联多个订单；订单中已明确的设备与 AI 专家会自动预分配到交付流程。
+            </div>
+          </div>
+          <div className={styles.drawerField}>
+            <div className={styles.drawerLabel}>客户名称</div>
+            <Input
+              value={createOrderForm.customerName}
+              placeholder="可手动填写客户 / 租户名称，或通过关联订单自动带出"
+              onChange={event => handleCreateFieldChange("customerName", event.target.value)}
+            />
+          </div>
+          <div className={styles.drawerField}>
+            <div className={styles.drawerLabel}>订单汇总</div>
+            <div className={styles.linkedOrderSummary}>
+              <span>已关联 {linkedOrdersInCreateModal.length} 笔订单</span>
+              <strong>{linkedOrdersAmountLabel}</strong>
+            </div>
+          </div>
+          <div className={styles.drawerField}>
+            <div className={styles.drawerLabel}>租户编码</div>
+            <Input
+              value={createOrderForm.tenantCode}
+              placeholder="请输入租户编码（可选）"
+              onChange={event => handleCreateFieldChange("tenantCode", event.target.value)}
+            />
+          </div>
+          <div className={styles.drawerField}>
+            <div className={styles.drawerLabel}>租户席位</div>
+            <InputNumber
+              className={styles.fullWidthNumberInput}
+              value={createOrderForm.tenantSeatCount}
+              min={0}
+              placeholder="请输入租户席位数量"
+              onChange={value => handleCreateFieldChange("tenantSeatCount", value)}
+            />
+          </div>
+          <div className={styles.drawerField}>
+            <div className={styles.drawerLabel}>交付时间</div>
+            <DatePicker
+              showTime
+              format="YYYY-MM-DD HH:mm"
+              className={styles.fullWidthDatePicker}
+              value={createOrderForm.launchTargetDate}
+              placeholder="请选择交付时间"
+              onChange={value => handleCreateFieldChange("launchTargetDate", value)}
+            />
+          </div>
+          <div className={styles.drawerField}>
+            <div className={styles.drawerLabel}>交付备注</div>
+            <Input.TextArea
+              value={createOrderForm.deliveryNote}
+              rows={4}
+              placeholder="补充交付要求"
+              onChange={event => handleCreateFieldChange("deliveryNote", event.target.value)}
+            />
+          </div>
+          <div className={styles.drawerActions}>
+            <Button onClick={handleCloseCreateDrawer}>取消</Button>
+            <Button type="primary" onClick={handleCreateOrder}>
+              创建租户并进入配置交付
+            </Button>
+          </div>
+        </div>
+      </div>
+    </Modal>
+  );
+  const createDeliveryModal = (
+    <Modal
+      title="新建交付"
+      open={isCreateDeliveryModalOpen}
+      width={520}
+      rootClassName={styles.createTenantModal}
+      onCancel={handleCloseCreateDeliveryModal}
+      footer={null}
+      destroyOnClose
+    >
+      <div className={styles.createTenantBody}>
+        <div className={styles.drawerForm}>
+          <div className={styles.drawerField}>
+            <div className={styles.drawerLabel}>关联订单</div>
+            <Select
+              mode="multiple"
+              allowClear
+              className={styles.fullWidthSelect}
+              placeholder="选择当前租户下的订单，或同客户未绑定租户的订单"
+              value={createDeliveryForm.linkedOrderIds}
+              options={createDeliveryOrderOptions.map(item => ({
+                label: `${item.orderNo} · ${item.customerName} · ¥ ${item.totalAmount.toLocaleString(
+                  "zh-CN",
+                )}`,
+                value: item.id,
+              }))}
+              onChange={handleDeliveryLinkedOrderIdsChange}
+            />
+            <div className={styles.deliveryHint}>
+              支持关联当前租户下的订单，也支持绑定同客户未关联租户的订单。
+            </div>
+          </div>
+          <div className={styles.drawerField}>
+            <div className={styles.drawerLabel}>预分配结果</div>
+            <div className={styles.linkedOrderSummary}>
+              <span>{createDeliveryDraft?.summaryLabel || "暂未识别设备或 AI 专家"}</span>
+              <strong>
+                {createDeliveryDraft?.totalAmount
+                  ? `¥ ${createDeliveryDraft.totalAmount.toLocaleString("zh-CN")}`
+                  : "待选择订单"}
+              </strong>
+            </div>
+          </div>
+          <div className={styles.drawerField}>
+            <div className={styles.drawerLabel}>交付时间</div>
+            <DatePicker
+              showTime
+              format="YYYY-MM-DD HH:mm"
+              className={styles.fullWidthDatePicker}
+              value={createDeliveryForm.launchTargetDate}
+              placeholder="请选择交付时间"
+              onChange={value => handleCreateDeliveryFieldChange("launchTargetDate", value)}
+            />
+          </div>
+          <div className={styles.drawerField}>
+            <div className={styles.drawerLabel}>交付备注</div>
+            <Input.TextArea
+              value={createDeliveryForm.deliveryNote}
+              rows={4}
+              placeholder="补充这次交付的说明"
+              onChange={event =>
+                handleCreateDeliveryFieldChange("deliveryNote", event.target.value)
+              }
+            />
+          </div>
+          <div className={styles.drawerActions}>
+            <Button onClick={handleCloseCreateDeliveryModal}>取消</Button>
+            <Button type="primary" onClick={handleCreateDelivery}>
+              创建交付并进入操作
+            </Button>
+          </div>
+        </div>
+      </div>
+    </Modal>
+  );
+  const previewOrderFields: OrderPreviewFieldItem[] = selectedPreviewOrder
+    ? [
+        { label: "订单编号", value: selectedPreviewOrder.orderNo },
+        { label: "客户名称", value: selectedPreviewOrder.customerName },
+        { label: "订单状态", value: selectedPreviewOrder.status },
+        { label: "总金额", value: `¥ ${selectedPreviewOrder.totalAmount.toLocaleString("zh-CN")}` },
+        { label: "创建时间", value: selectedPreviewOrder.createdAt },
+        { label: "订单备注", value: selectedPreviewOrder.remark || "未填写" },
+      ]
+    : [];
+  const orderPreviewModal = (
+    <Modal
+      title="订单信息"
+      open={Boolean(selectedPreviewOrder)}
+      width={760}
+      rootClassName={styles.orderPreviewModal}
+      onCancel={handleCloseOrderPreview}
+      footer={null}
+      destroyOnClose
+    >
+      {selectedPreviewOrder ? (
+        <div className={styles.orderPreviewBody}>
+          <div className={styles.infoRows}>
+            {previewOrderFields.map(item => (
+              <div key={item.label} className={styles.infoRow}>
+                <span className={styles.infoLabel}>{item.label}</span>
+                <span className={styles.infoValue}>{item.value}</span>
+              </div>
+            ))}
+          </div>
+          <div className={styles.subSection}>
+            <div className={styles.subSectionTitle}>关联租户</div>
+            <div className={styles.infoRows}>
+              <div className={styles.infoRow}>
+                <span className={styles.infoLabel}>租户名称</span>
+                <span className={styles.infoValue}>
+                  {selectedPreviewOrder.tenantName ?? "未关联"}
+                </span>
+              </div>
+              <div className={styles.infoRow}>
+                <span className={styles.infoLabel}>租户编码</span>
+                <span className={styles.infoValue}>
+                  {selectedPreviewOrder.tenantCode ?? "未关联"}
+                </span>
+              </div>
+              <div className={styles.infoRow}>
+                <span className={styles.infoLabel}>交付状态</span>
+                <span className={styles.infoValue}>
+                  {previewLinkedTenant?.deliveryStatus ?? "未关联"}
+                </span>
+              </div>
+            </div>
+          </div>
+          <div className={styles.subSection}>
+            <div className={styles.subSectionTitle}>商品明细</div>
+            <div className={styles.relatedOrderList}>
+              {selectedPreviewOrder.lineItems.map(item => (
+                <div key={item.id} className={styles.relatedOrderCard}>
+                  <div className={styles.relatedOrderMain}>
+                    <div className={styles.relatedOrderTitleRow}>
+                      <span className={styles.relatedOrderTitle}>
+                        {isDeviceOrderLineItem(item)
+                          ? item.deviceType
+                          : isAgentOrderLineItem(item)
+                            ? item.agentName
+                            : "tokens 资源包"}
+                      </span>
+                      <span className={styles.deliveryTypeTag}>
+                        {isDeviceOrderLineItem(item)
+                          ? "设备"
+                          : isAgentOrderLineItem(item)
+                            ? "AI 专家"
+                            : "tokens"}
+                      </span>
+                    </div>
+                    <div className={styles.relatedOrderMeta}>
+                      {isDeviceOrderLineItem(item)
+                        ? `数量 ${item.quantity} / 单价 ¥ ${item.unitPrice.toLocaleString("zh-CN")} / 小计 ¥ ${item.totalAmount.toLocaleString("zh-CN")}`
+                        : isAgentOrderLineItem(item)
+                          ? `${item.releaseVersion} · ${item.sourceLabel} · ¥ ${item.totalAmount.toLocaleString("zh-CN")}`
+                          : `${item.tokenCount.toLocaleString("zh-CN")} tokens · ¥ ${item.totalAmount.toLocaleString("zh-CN")}`}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className={styles.subSection}>
+            <div className={styles.subSectionTitle}>履约任务</div>
+            {selectedPreviewOrder.fulfillmentItems.length ? (
+              <div className={styles.relatedOrderList}>
+                {selectedPreviewOrder.fulfillmentItems.map(item => (
+                  <div key={item.id} className={styles.relatedOrderCard}>
+                    <div className={styles.relatedOrderMain}>
+                      <div className={styles.relatedOrderTitleRow}>
+                        <span className={styles.relatedOrderTitle}>{item.type}</span>
+                        <span className={styles.deliveryTypeTag}>{item.status}</span>
+                      </div>
+                      <div className={styles.relatedOrderMeta}>{item.summary}</div>
+                      <div className={styles.relatedOrderMeta}>最近更新时间：{item.updatedAt}</div>
+                      {item.executionRecords.length ? (
+                        <div className={styles.executionRecordList}>
+                          {item.executionRecords.map(record => (
+                            <div key={record.id} className={styles.executionRecordItem}>
+                              <div className={styles.executionRecordHeader}>
+                                <span className={styles.executionRecordAction}>
+                                  {record.actionLabel}
+                                </span>
+                                <span className={styles.executionRecordResult}>
+                                  {record.resultLabel}
+                                </span>
+                              </div>
+                              <div className={styles.executionRecordMeta}>
+                                {record.operatorName} · {record.operatedAt}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : null}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className={styles.emptyHint}>当前订单还没有履约任务</div>
+            )}
+          </div>
+        </div>
+      ) : null}
+    </Modal>
   );
 
   if (!orders.length) {
     return (
       <div className={styles.layout}>
-        <div className={styles.pageBar}>
-          <h2 className={styles.pageTitle}>订单列表</h2>
+        <div className={styles.pageBarActionsOnly}>
           <Button type="primary" icon={<PlusOutlined />} onClick={handleOpenCreateDrawer}>
-            创建订单
+            创建租户
           </Button>
         </div>
-        <Empty description="当前暂无配置交付订单" />
-        <Modal
-          title="创建订单"
-          open={isCreateDrawerOpen}
-          width={420}
-          onCancel={handleCloseCreateDrawer}
-          footer={null}
-          destroyOnClose
-        >
-          <div className={styles.drawerForm}>
-            <div className={styles.drawerField}>
-              <div className={styles.drawerLabel}>客户名称</div>
-              <Input
-                value={createOrderForm.customerName}
-                placeholder="请输入客户名称"
-                onChange={event => handleCreateFieldChange("customerName", event.target.value)}
-              />
-            </div>
-            <div className={styles.drawerField}>
-              <div className={styles.drawerLabel}>场景名称</div>
-              <Input
-                value={createOrderForm.scenarioName}
-                placeholder="请输入交付场景"
-                onChange={event => handleCreateFieldChange("scenarioName", event.target.value)}
-              />
-            </div>
-            <div className={styles.drawerField}>
-              <div className={styles.drawerLabel}>订单金额</div>
-              <Input
-                value={createOrderForm.orderAmount}
-                placeholder="请输入订单金额"
-                onChange={event => handleCreateFieldChange("orderAmount", event.target.value)}
-              />
-            </div>
-            <div className={styles.drawerField}>
-              <div className={styles.drawerLabel}>计划上线时间</div>
-              <Input
-                value={createOrderForm.launchTargetDate}
-                placeholder="例如 2026-04-20"
-                onChange={event => handleCreateFieldChange("launchTargetDate", event.target.value)}
-              />
-            </div>
-            <div className={styles.drawerField}>
-              <div className={styles.drawerLabel}>所属行业</div>
-              <Input
-                value={createOrderForm.industry}
-                placeholder="请输入行业"
-                onChange={event => handleCreateFieldChange("industry", event.target.value)}
-              />
-            </div>
-            <div className={styles.drawerField}>
-              <div className={styles.drawerLabel}>交付备注</div>
-              <Input.TextArea
-                value={createOrderForm.deliveryNote}
-                rows={4}
-                placeholder="补充交付要求"
-                onChange={event => handleCreateFieldChange("deliveryNote", event.target.value)}
-              />
-            </div>
-            <div className={styles.drawerActions}>
-              <Button onClick={handleCloseCreateDrawer}>取消</Button>
-              <Button type="primary" onClick={handleCreateOrder}>
-                创建订单
-              </Button>
-            </div>
-          </div>
-        </Modal>
+        <Empty description="当前暂无交付单" />
+        {createTenantModal}
+        {orderPreviewModal}
       </div>
     );
   }
@@ -1831,112 +2272,73 @@ export const FdeDeliveryWorkbench = ({
   if (viewMode === "list") {
     return (
       <div className={styles.layout}>
-        <div className={styles.pageBar}>
-          <h2 className={styles.pageTitle}>订单列表</h2>
+        <div className={styles.pageBarActionsOnly}>
           <Button type="primary" icon={<PlusOutlined />} onClick={handleOpenCreateDrawer}>
-            创建订单
+            创建租户
           </Button>
+        </div>
+        <div className={styles.listFilters}>
+          <Input
+            value={searchKeyword}
+            className={styles.searchInput}
+            placeholder="搜索客户名称、交付单号、租户名称或租户编码"
+            onChange={event => setSearchKeyword(event.target.value)}
+          />
+          <Select<DeliveryStatusFilter>
+            value={deliveryStatusFilter}
+            className={styles.filterSelect}
+            options={[
+              { label: "全部状态", value: "all" },
+              { label: "待配置", value: "待配置" },
+              { label: "配置中", value: "配置中" },
+              { label: "已交付", value: "已交付" },
+            ]}
+            onChange={value => setDeliveryStatusFilter(value)}
+          />
         </div>
 
         <div className={styles.listTable}>
           <div className={styles.listHeader}>
             <span>客户名称</span>
-            <span>场景名称</span>
-            <span>状态</span>
-            <span>计划上线时间</span>
+            <span>交付类型</span>
+            <span>内容摘要</span>
+            <span>交付状态</span>
+            <span>交付时间</span>
             <span>当前步骤</span>
             <span>操作</span>
           </div>
-          {orders.map(item => (
-            <button
-              key={item.id}
-              type="button"
-              className={styles.listRow}
-              onClick={() => handleEnterDetail(item.id)}
-            >
-              <span className={styles.tableStrong}>{item.customerName}</span>
-              <span>{item.scenarioName}</span>
-              <span
-                className={classNames(
-                  styles.listStatus,
-                  item.deliveryStatus === "已交付" && styles.listStatusDelivered,
-                )}
+          {filteredOrderItems.length ? (
+            filteredOrderItems.map(item => (
+              <button
+                key={item.id}
+                type="button"
+                className={styles.listRow}
+                onClick={() => handleEnterDetail(item.id)}
               >
-                {item.deliveryStatus}
-              </span>
-              <span>{item.launchTargetDate}</span>
-              <span>{getStepKeyLabel(item.currentStep)}</span>
-              <span className={styles.listAction}>查看详情</span>
-            </button>
-          ))}
+                <span className={styles.tableStrong}>{item.customerName}</span>
+                <span className={styles.deliveryTypeTag}>
+                  {item.orderKind === "change" ? "交付变更" : "初始交付"}
+                </span>
+                <span>{item.orderKind === "change" ? item.changeType ?? "待确认" : item.orderAmount}</span>
+                <span
+                  className={classNames(
+                    styles.listStatus,
+                    item.deliveryStatus === "已交付" && styles.listStatusDelivered,
+                  )}
+                >
+                  {item.deliveryStatus}
+                </span>
+                <span>{item.launchTargetDate}</span>
+                <span>{getStepKeyLabel(item.currentStep)}</span>
+                <span className={styles.listAction}>进入配置交付</span>
+              </button>
+            ))
+          ) : (
+            <div className={styles.listEmpty}>当前筛选条件下暂无交付单</div>
+          )}
         </div>
-
-        <Modal
-          title="创建订单"
-          open={isCreateDrawerOpen}
-          width={420}
-          onCancel={handleCloseCreateDrawer}
-          footer={null}
-          destroyOnClose
-        >
-          <div className={styles.drawerForm}>
-            <div className={styles.drawerField}>
-              <div className={styles.drawerLabel}>客户名称</div>
-              <Input
-                value={createOrderForm.customerName}
-                placeholder="请输入客户名称"
-                onChange={event => handleCreateFieldChange("customerName", event.target.value)}
-              />
-            </div>
-            <div className={styles.drawerField}>
-              <div className={styles.drawerLabel}>场景名称</div>
-              <Input
-                value={createOrderForm.scenarioName}
-                placeholder="请输入交付场景"
-                onChange={event => handleCreateFieldChange("scenarioName", event.target.value)}
-              />
-            </div>
-            <div className={styles.drawerField}>
-              <div className={styles.drawerLabel}>订单金额</div>
-              <Input
-                value={createOrderForm.orderAmount}
-                placeholder="请输入订单金额"
-                onChange={event => handleCreateFieldChange("orderAmount", event.target.value)}
-              />
-            </div>
-            <div className={styles.drawerField}>
-              <div className={styles.drawerLabel}>计划上线时间</div>
-              <Input
-                value={createOrderForm.launchTargetDate}
-                placeholder="例如 2026-04-20"
-                onChange={event => handleCreateFieldChange("launchTargetDate", event.target.value)}
-              />
-            </div>
-            <div className={styles.drawerField}>
-              <div className={styles.drawerLabel}>所属行业</div>
-              <Input
-                value={createOrderForm.industry}
-                placeholder="请输入行业"
-                onChange={event => handleCreateFieldChange("industry", event.target.value)}
-              />
-            </div>
-            <div className={styles.drawerField}>
-              <div className={styles.drawerLabel}>交付备注</div>
-              <Input.TextArea
-                value={createOrderForm.deliveryNote}
-                rows={4}
-                placeholder="补充交付要求"
-                onChange={event => handleCreateFieldChange("deliveryNote", event.target.value)}
-              />
-            </div>
-            <div className={styles.drawerActions}>
-              <Button onClick={handleCloseCreateDrawer}>取消</Button>
-              <Button type="primary" onClick={handleCreateOrder}>
-                创建订单
-              </Button>
-            </div>
-          </div>
-        </Modal>
+        {createTenantModal}
+        {orderPreviewModal}
       </div>
     );
   }
@@ -1953,114 +2355,109 @@ export const FdeDeliveryWorkbench = ({
                 icon={<ArrowLeftOutlined />}
                 onClick={handleBackToList}
               >
-                返回订单列表
+                返回交付列表
               </Button>
               <h2 className={styles.pageTitle}>{selectedOrder.customerName}</h2>
             </div>
           </div>
 
-          <div className={styles.stepNav}>
-            <button
-              type="button"
-              className={classNames(
-                styles.stepButton,
-                selectedDetailTab === "orderInfo" && styles.stepButtonActive,
-              )}
-              onClick={() => setSelectedDetailTab("orderInfo")}
-            >
-              <span>订单信息</span>
-            </button>
-            {FDE_DELIVERY_STEPS.map(step => {
-              const stepStatus = getStepStatusLabel(selectedOrder, step.key);
+          <div className={styles.detailShell}>
+            <aside className={styles.recordSidebar}>
+              <div className={styles.recordSidebarHeader}>
+                <div>
+                  <div className={styles.sectionTitle}>交付记录</div>
+                  <div className={styles.deliveryHint}>
+                    {selectedOrder.tenantName} 当前共有 {tenantDeliveryRecords.length} 条交付记录
+                  </div>
+                </div>
+                <Button type="primary" icon={<PlusOutlined />} onClick={handleOpenCreateDeliveryModal}>
+                  新建交付
+                </Button>
+              </div>
+              <div className={styles.recordSidebarList}>
+                {tenantDeliveryRecords.map(item => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    className={classNames(
+                      styles.recordSidebarItem,
+                      item.id === selectedOrder.id && styles.recordSidebarItemActive,
+                    )}
+                    onClick={() => handleEnterDetail(item.id)}
+                  >
+                    <div className={styles.tenantRecordTitleRow}>
+                      <span className={styles.tenantRecordTitle}>
+                        {getDeliveryRecordLabel(item)}
+                      </span>
+                      <span className={styles.deliveryTypeTag}>{item.deliveryStatus}</span>
+                    </div>
+                    <div className={styles.tenantRecordMeta}>{item.orderNo}</div>
+                    <div className={styles.tenantRecordMeta}>{item.createdAt}</div>
+                    <div className={styles.tenantRecordMeta}>
+                      当前步骤：{getStepKeyLabel(item.currentStep)}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </aside>
 
-              return (
+            <div className={styles.recordMain}>
+              <div className={styles.recordMainHeader}>
+                <div className={styles.sectionTitle}>交付操作</div>
+                <div className={styles.deliveryHint}>
+                  订单内已识别的设备与 AI 专家会先预分配，仍需手动完成各步骤。
+                </div>
+              </div>
+
+              <div className={styles.stepNav}>
                 <button
-                  key={step.key}
                   type="button"
                   className={classNames(
                     styles.stepButton,
-                    step.key === selectedDetailTab && styles.stepButtonActive,
+                    selectedDetailTab === "orderInfo" && styles.stepButtonActive,
                   )}
-                  onClick={() => setSelectedDetailTab(step.key)}
+                  onClick={() => setSelectedDetailTab("orderInfo")}
                 >
-                  <span>{step.label}</span>
-                  <span
-                    className={classNames(
-                      styles.stepStatus,
-                      getStepStatusClassName(stepStatus),
-                    )}
-                  >
-                    {stepStatus}
-                  </span>
+                  <span>关联订单</span>
                 </button>
-              );
-            })}
-          </div>
+                {getVisibleDeliverySteps(selectedOrder).map(step => {
+                  const stepStatus = getStepStatusLabel(selectedOrder, step.key);
 
-          {renderStepContent(selectedOrder, selectedDetailTab)}
+                  return (
+                    <button
+                      key={step.key}
+                      type="button"
+                      className={classNames(
+                        styles.stepButton,
+                        step.key === selectedDetailTab && styles.stepButtonActive,
+                      )}
+                      onClick={() => setSelectedDetailTab(step.key)}
+                    >
+                      <span>{step.label}</span>
+                      <span
+                        className={classNames(
+                          styles.stepStatus,
+                          getStepStatusClassName(stepStatus),
+                        )}
+                      >
+                        {stepStatus}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className={styles.recordMainBody}>
+                {renderStepContent(selectedOrder, selectedDetailTab)}
+              </div>
+            </div>
+          </div>
         </div>
       ) : (
-        <Empty description="请选择订单" />
+        <Empty description="请选择交付单" />
       )}
-      <Modal
-        title="创建租户"
-        open={isTenantDrawerOpen}
-        width={420}
-        onCancel={handleCloseTenantDrawer}
-        footer={null}
-        destroyOnClose
-      >
-        <div className={styles.drawerForm}>
-          <div className={styles.drawerField}>
-            <div className={styles.drawerLabel}>租户名称</div>
-            <Input
-              value={tenantForm.tenantName}
-              placeholder="请输入租户名称"
-              onChange={event => handleTenantFieldChange("tenantName", event.target.value)}
-            />
-          </div>
-          <div className={styles.drawerField}>
-            <div className={styles.drawerLabel}>租户编码</div>
-            <Input
-              value={tenantForm.tenantCode}
-              placeholder="请输入租户编码（可选）"
-              onChange={event => handleTenantFieldChange("tenantCode", event.target.value)}
-            />
-          </div>
-          <div className={styles.drawerField}>
-            <div className={styles.drawerLabel}>企业管理员姓名</div>
-            <Input
-              value={tenantForm.adminName}
-              placeholder="请输入管理员姓名"
-              onChange={event => handleTenantFieldChange("adminName", event.target.value)}
-            />
-          </div>
-          <div className={styles.drawerField}>
-            <div className={styles.drawerLabel}>管理员手机号</div>
-            <Input
-              value={tenantForm.adminPhone}
-              placeholder="请输入管理员手机号"
-              onChange={event => handleTenantFieldChange("adminPhone", event.target.value)}
-            />
-          </div>
-          <div className={styles.drawerField}>
-            <div className={styles.drawerLabel}>租户席位</div>
-            <InputNumber
-              className={styles.fullWidthNumberInput}
-              value={tenantForm.tenantSeatCount}
-              min={0}
-              placeholder="请输入租户席位数量"
-              onChange={value => handleTenantFieldChange("tenantSeatCount", value)}
-            />
-          </div>
-          <div className={styles.drawerActions}>
-            <Button onClick={handleCloseTenantDrawer}>取消</Button>
-            <Button type="primary" onClick={handleCreateTenant}>
-              创建租户
-            </Button>
-          </div>
-        </div>
-      </Modal>
+      {createDeliveryModal}
+      {orderPreviewModal}
       <Modal
         title="配置设备额度"
         open={isDeviceModalOpen}

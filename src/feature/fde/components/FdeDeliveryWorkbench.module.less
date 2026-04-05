@@ -14,6 +14,13 @@
   border-bottom: 1px solid var(--fdeBorder);
 }
 
+.pageBarActionsOnly {
+  display: flex;
+  justify-content: flex-end;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--fdeBorder);
+}
+
 .titleGroup,
 .pageActions {
   display: flex;
@@ -49,6 +56,21 @@
   flex: 1;
 }
 
+.listFilters {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 0;
+}
+
+.searchInput {
+  flex: 1;
+}
+
+.filterSelect {
+  width: 180px;
+}
+
 .listHeader,
 .listRow,
 .tableHeader,
@@ -59,7 +81,7 @@
 
 .listHeader,
 .listRow {
-  grid-template-columns: 1.3fr 1.3fr 0.9fr 1fr 1fr 0.8fr;
+  grid-template-columns: 1.2fr 0.9fr 1.1fr 0.9fr 1fr 1fr 0.8fr;
 }
 
 .listHeader {
@@ -111,10 +133,113 @@
   font-weight: 600;
 }
 
+.listEmpty {
+  padding: 32px 0;
+  color: var(--fdeTextSecondary);
+  font-size: 13px;
+  line-height: 20px;
+  text-align: center;
+  border-bottom: 1px solid var(--fdeBorder);
+}
+
 .detailView {
   display: flex;
   flex: 1;
   flex-direction: column;
+}
+
+.detailShell {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  gap: 24px;
+  padding-top: 18px;
+}
+
+.recordSidebar {
+  display: flex;
+  width: 320px;
+  min-width: 320px;
+  flex-direction: column;
+  gap: 16px;
+  padding-right: 20px;
+  border-right: 1px solid var(--fdeBorder);
+}
+
+.recordSidebarHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.recordSidebarList {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 12px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.recordSidebarItem {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px 16px;
+  border: 1px solid color-mix(in srgb, var(--fdeBorder) 86%, transparent);
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--primary) 3%, transparent);
+  text-align: left;
+  cursor: pointer;
+}
+
+.recordSidebarItemActive {
+  border-color: color-mix(in srgb, var(--primary) 24%, var(--fdeBorder));
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--primary) 10%, transparent);
+}
+
+.recordMain {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.recordMainHeader {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--fdeBorder);
+}
+
+.recordMainBody {
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.tenantRecordTitleRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.tenantRecordTitle {
+  color: var(--fdeText);
+  font-size: 14px;
+  line-height: 22px;
+  font-weight: 700;
+}
+
+.tenantRecordMeta {
+  color: var(--fdeTextSecondary);
+  font-size: 12px;
+  line-height: 18px;
 }
 
 .stepNav {
@@ -166,6 +291,11 @@
 .stepStatusActive {
   background: color-mix(in srgb, var(--primary) 10%, transparent);
   color: var(--fdeAccent);
+}
+
+.stepStatusSkipped {
+  background: color-mix(in srgb, var(--fdeWarning) 14%, transparent);
+  color: var(--fdeWarning);
 }
 
 .stepStatusPending {
@@ -439,8 +569,174 @@
   padding-top: 8px;
 }
 
+.linkedOrderSummary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid color-mix(in srgb, var(--fdeBorder) 86%, transparent);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--primary) 4%, transparent);
+  color: var(--fdeText);
+  font-size: 14px;
+  line-height: 22px;
+}
+
+.relatedOrderList,
+.orderPreviewBody {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.relatedOrderCard {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 16px;
+  border: 1px solid color-mix(in srgb, var(--fdeBorder) 86%, transparent);
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--primary) 3%, transparent);
+}
+
+.relatedOrderMain {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.relatedOrderTitleRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.relatedOrderTitle {
+  color: var(--fdeText);
+  font-size: 15px;
+  line-height: 22px;
+  font-weight: 700;
+}
+
+.relatedOrderMeta {
+  color: var(--fdeTextSecondary);
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.executionRecordList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 6px;
+}
+
+.executionRecordItem {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--surface) 72%, transparent);
+}
+
+.executionRecordHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.executionRecordAction {
+  color: var(--fdeText);
+  font-size: 13px;
+  line-height: 20px;
+  font-weight: 600;
+}
+
+.executionRecordResult {
+  display: inline-flex;
+  align-items: center;
+  min-height: 20px;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--primary) 8%, transparent);
+  color: var(--fdeAccent);
+  font-size: 11px;
+  line-height: 16px;
+  font-weight: 700;
+}
+
+.executionRecordMeta {
+  color: var(--fdeTextSecondary);
+  font-size: 12px;
+  line-height: 18px;
+}
+
 .fullWidthNumberInput {
   width: 100%;
+}
+
+.fullWidthSelect {
+  width: 100%;
+}
+
+.fullWidthDatePicker {
+  width: 100%;
+}
+
+.createTenantModal {
+  :global(.ant-modal-wrap) {
+    overflow: hidden;
+  }
+
+  :global(.ant-modal) {
+    max-width: calc(100vw - 48px);
+    top: 24px;
+    padding-bottom: 0;
+  }
+
+  :global(.ant-modal-content) {
+    height: min(760px, calc(100vh - 72px));
+    max-height: calc(100vh - 48px);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  :global(.ant-modal-header) {
+    flex: 0 0 auto;
+  }
+
+  :global(.ant-modal-body) {
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+    padding-top: 12px;
+  }
+}
+
+.createTenantBody {
+  height: min(680px, calc(100vh - 164px));
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.orderPreviewModal {
+  :global(.ant-modal-content) {
+    max-height: calc(100vh - 96px);
+    overflow: hidden;
+  }
+
+  :global(.ant-modal-body) {
+    max-height: calc(100vh - 180px);
+    overflow-y: auto;
+  }
 }
 
 .agentPlaza {
@@ -626,6 +922,15 @@
 }
 
 @media (max-width: 1200px) {
+  .listFilters {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .filterSelect {
+    width: 100%;
+  }
+
   .listHeader,
   .listRow,
   .tableHeader,
@@ -634,12 +939,22 @@
   .groupTableRow {
     grid-template-columns: 1fr;
   }
+
+  .relatedOrderCard,
+  .linkedOrderSummary {
+    flex-direction: column;
+    align-items: stretch;
+  }
 }
 
 @media (max-width: 960px) {
   .pageBar {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .tenantRecordList {
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .sectionHeader,

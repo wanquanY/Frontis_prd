@@ -1,9 +1,9 @@
 import { useCallback } from "react";
 
 import {
-  getDefaultPathByRole,
+  getDefaultPathByMockRole,
   getMockAccountByPhone,
-  resolvePostLoginPath,
+  resolveMockPostLoginPath,
 } from "@/feature/auth/mockAccounts";
 import type { MockAuthActionResult, MockAuthSession, MockLoginParams } from "@/feature/auth/types";
 import { isValidMarketingPhone } from "@/feature/marketingPortal/utils";
@@ -14,8 +14,8 @@ interface UseMockAuthResult {
   sendVerificationCode: (phone: string) => MockAuthActionResult;
   login: (params: MockLoginParams) => MockAuthActionResult;
   logout: () => void;
-  getDefaultPathByRole: typeof getDefaultPathByRole;
-  resolvePostLoginPath: typeof resolvePostLoginPath;
+  getDefaultPathByRole: typeof getDefaultPathByMockRole;
+  resolvePostLoginPath: typeof resolveMockPostLoginPath;
 }
 
 /**
@@ -89,7 +89,7 @@ export const useMockAuth = (): UseMockAuthResult => {
         role: matchedAccount.role,
         loginAt: new Date().toISOString(),
       };
-      const nextRedirectPath = resolvePostLoginPath(matchedAccount.role, redirectPath);
+      const nextRedirectPath = resolveMockPostLoginPath(matchedAccount.role, redirectPath);
 
       setSession(nextSession);
 
@@ -113,7 +113,7 @@ export const useMockAuth = (): UseMockAuthResult => {
     sendVerificationCode,
     login,
     logout,
-    getDefaultPathByRole,
-    resolvePostLoginPath,
+    getDefaultPathByRole: getDefaultPathByMockRole,
+    resolvePostLoginPath: resolveMockPostLoginPath,
   };
 };
