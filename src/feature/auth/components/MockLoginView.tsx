@@ -54,11 +54,6 @@ export const MockLoginView = (): JSX.Element => {
   }, [countdown]);
 
   const handleBack = useCallback((): void => {
-    if (window.history.length > 1) {
-      navigate(-1);
-      return;
-    }
-
     navigate("/portal");
   }, [navigate]);
 
@@ -155,7 +150,7 @@ export const MockLoginView = (): JSX.Element => {
       <div className={styles.pageToolbar}>
         <button type="button" className={styles.backButton} onClick={handleBack}>
           <ArrowLeftOutlined />
-          返回
+          返回营销门户
         </button>
       </div>
 
