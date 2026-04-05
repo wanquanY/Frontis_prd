@@ -152,9 +152,9 @@ export const MarketingPortalContactView = (): JSX.Element => {
         <section className={styles.heroSection}>
           <div className={styles.heroCopy}>
             <p className={layoutStyles.sectionLabel}>FDE Service</p>
-            <h1 className={styles.heroTitle}>商城里没有你需要的？</h1>
+            <h1 className={styles.heroTitle}>专属 AI 交付顾问，为你的业务量身部署</h1>
             <p className={classNames(layoutStyles.sectionDescription, layoutStyles.darkTextMuted)}>
-              我们的 FDE 专家团队，会基于你的业务场景，为你量身定制一组可交付的 AI 专家。
+              FDE 工程师驻场了解你的流程、数据与团队，为你设计并交付真正跑得起来的 AI 专家团队。
             </p>
           </div>
         </section>

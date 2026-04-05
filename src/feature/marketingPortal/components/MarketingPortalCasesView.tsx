@@ -1,17 +1,107 @@
-import { startTransition, useMemo, useState } from "react";
+import { startTransition, useCallback, useMemo, useState } from "react";
 
 import classNames from "classnames";
-import { ArrowRightOutlined } from "@ant-design/icons";
-import { Link } from "react-router-dom";
+import {
+  CaretRightOutlined,
+  ClockCircleOutlined,
+  CloseOutlined,
+  PlayCircleFilled,
+} from "@ant-design/icons";
 
 import { PORTAL_CASE_STUDIES } from "@/feature/marketingPortal/portalData";
-import { createMarketingContactPath } from "@/feature/marketingPortal/utils";
+import type { MarketingCaseStudyItem } from "@/feature/marketingPortal/types";
 
 import layoutStyles from "./MarketingPortalLayout.module.less";
 import styles from "./MarketingPortalCasesView.module.less";
 
 /**
- * 营销门户案例列表视图。
+ * 视频卡片组件。
+ */
+const VideoCaseCard = ({
+  item,
+  isSpotlight,
+}: {
+  item: MarketingCaseStudyItem;
+  isSpotlight?: boolean;
+}): JSX.Element => {
+  const [playing, setPlaying] = useState(false);
+
+  const handlePlay = useCallback(() => {
+    setPlaying(true);
+  }, []);
+
+  const handleStop = useCallback(() => {
+    setPlaying(false);
+  }, []);
+
+  const coverUrl = item.videoCoverUrl || item.coverImageUrl;
+  const bvid = item.bvid;
+
+  return (
+    <article className={classNames(styles.videoCard, isSpotlight && styles.videoCardSpotlight)}>
+      <div className={styles.videoFrame}>
+        {playing && bvid ? (
+          <div className={styles.iframeWrap}>
+            <iframe
+              className={styles.videoIframe}
+              src={`//player.bilibili.com/player.html?bvid=${bvid}&high_quality=1&autoplay=1&danmaku=0`}
+              allowFullScreen
+              allow="autoplay; fullscreen"
+              sandbox="allow-top-navigation allow-same-origin allow-forms allow-scripts allow-popups"
+            />
+            <button
+              type="button"
+              className={styles.videoCloseBtn}
+              onClick={handleStop}
+              aria-label="关闭视频"
+            >
+              <CloseOutlined />
+            </button>
+          </div>
+        ) : (
+          <button type="button" className={styles.videoCover} onClick={handlePlay}>
+            <img
+              className={styles.videoCoverImage}
+              src={coverUrl}
+              alt={item.title}
+              loading="lazy"
+            />
+            <div className={styles.videoOverlay}>
+              <PlayCircleFilled className={styles.videoPlayIcon} />
+            </div>
+            {item.videoDuration && (
+              <span className={styles.videoDuration}>
+                <ClockCircleOutlined /> {item.videoDuration}
+              </span>
+            )}
+          </button>
+        )}
+      </div>
+
+      <div className={styles.videoMeta}>
+        <div className={styles.videoMetaTop}>
+          <span className={styles.videoIndustryChip}>{item.industry}</span>
+          <span className={styles.videoCustomer}>{item.customerName}</span>
+        </div>
+        <h3 className={styles.videoTitle}>{item.title}</h3>
+        <p className={styles.videoSummary}>{item.summary}</p>
+        {isSpotlight && item.metrics.length > 0 && (
+          <div className={styles.videoMetrics}>
+            {item.metrics.map(m => (
+              <div key={m.label} className={styles.metricChip}>
+                <span className={styles.metricChipValue}>{m.value}</span>
+                <span className={styles.metricChipLabel}>{m.label}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </article>
+  );
+};
+
+/**
+ * 营销门户案例列表视图 — 视频画廊。
  */
 export const MarketingPortalCasesView = (): JSX.Element => {
   const industryFilters = useMemo(
@@ -29,19 +119,19 @@ export const MarketingPortalCasesView = (): JSX.Element => {
   );
 
   const spotlightCase = visibleCases[0] ?? null;
-  const secondaryCases = visibleCases.slice(1);
+  const gridCases = visibleCases.slice(1);
 
   return (
     <div className={styles.page}>
+      {/* Hero */}
       <section className={classNames(layoutStyles.darkSection, styles.heroSection)}>
-        <div>
-          <p className={layoutStyles.sectionLabel}>Client Stories</p>
-          <h1 className={styles.heroTitle}>这些企业已经让 AI 员工进入日常运营</h1>
-          <p className={classNames(layoutStyles.darkTextMuted, styles.heroDescription)}>
-            高端 B2B
-            门户最重要的不是说自己有多少功能，而是让潜在客户看到类似企业已经如何部署、如何获益，以及为什么这件事值得现在开始。
-          </p>
-        </div>
+        <p className={styles.heroEyebrow}>Client Stories</p>
+        <h1 className={styles.heroTitle}>看看这些企业如何用 AI 专家团跑业务</h1>
+        <p className={styles.heroDescription}>
+          不是 PPT 里的概念，是真实企业、真实场景、真实数据。
+          <br />
+          点击播放，用 3 分钟了解一个案例。
+        </p>
 
         <div className={styles.filterRow}>
           {industryFilters.map(item => (
@@ -50,8 +140,8 @@ export const MarketingPortalCasesView = (): JSX.Element => {
               type="button"
               aria-pressed={item === activeIndustry}
               className={classNames(
-                styles.filterButton,
-                item === activeIndustry && styles.isActiveFilterButton,
+                styles.filterBtn,
+                item === activeIndustry && styles.filterBtnActive,
               )}
               onClick={() =>
                 startTransition(() => {
@@ -65,76 +155,23 @@ export const MarketingPortalCasesView = (): JSX.Element => {
         </div>
       </section>
 
-      {spotlightCase ? (
-        <section className={classNames(layoutStyles.lightSection, styles.spotlightSection)}>
-          <div className={styles.sectionHeading}>
-            <div>
-              <p className={layoutStyles.sectionLabel}>Featured Story</p>
-              <h2 className={layoutStyles.sectionTitle}>{spotlightCase.title}</h2>
-              <p className={layoutStyles.sectionDescription}>{spotlightCase.summary}</p>
-            </div>
+      {/* Spotlight */}
+      {spotlightCase && (
+        <section className={styles.spotlightSection}>
+          <VideoCaseCard item={spotlightCase} isSpotlight />
+        </section>
+      )}
 
-            <Link className={layoutStyles.primaryButton} to={`/portal/cases/${spotlightCase.slug}`}>
-              阅读完整案例
-              <ArrowRightOutlined />
-            </Link>
-          </div>
-
-          <div className={styles.spotlightBody}>
-            <div className={styles.spotlightMedia}>
-              <img
-                className={styles.spotlightImage}
-                src={spotlightCase.coverImageUrl}
-                alt={spotlightCase.title}
-              />
-            </div>
-
-            <div className={styles.spotlightContent}>
-              <span className={layoutStyles.chip}>{spotlightCase.industry}</span>
-              <p className={styles.customerName}>{spotlightCase.customerName}</p>
-              <div className={styles.metricGrid}>
-                {spotlightCase.metrics.map(metric => (
-                  <article key={metric.label} className={styles.metricCard}>
-                    <p className={styles.metricValue}>{metric.value}</p>
-                    <p className={styles.metricLabel}>{metric.label}</p>
-                  </article>
-                ))}
-              </div>
-              <Link
-                className={layoutStyles.secondaryButton}
-                to={createMarketingContactPath(spotlightCase.agentNames)}
-              >
-                咨询类似方案
-              </Link>
-            </div>
+      {/* Grid */}
+      {gridCases.length > 0 && (
+        <section className={styles.gridSection}>
+          <div className={styles.videoGrid}>
+            {gridCases.map(item => (
+              <VideoCaseCard key={item.id} item={item} />
+            ))}
           </div>
         </section>
-      ) : null}
-
-      <section className={styles.gridSection}>
-        <div className={styles.caseGrid}>
-          {secondaryCases.map(item => (
-            <article
-              key={item.id}
-              className={classNames(layoutStyles.lightSection, styles.caseCard)}
-            >
-              <img className={styles.caseImage} src={item.coverImageUrl} alt={item.title} />
-              <div className={styles.caseBody}>
-                <div className={styles.caseMeta}>
-                  <span className={layoutStyles.chip}>{item.industry}</span>
-                  <span className={styles.caseCustomer}>{item.customerName}</span>
-                </div>
-                <h3 className={styles.caseTitle}>{item.title}</h3>
-                <p className={styles.caseSummary}>{item.summary}</p>
-                <Link className={styles.caseLink} to={`/portal/cases/${item.slug}`}>
-                  查看案例
-                  <ArrowRightOutlined />
-                </Link>
-              </div>
-            </article>
-          ))}
-        </div>
-      </section>
+      )}
     </div>
   );
 };

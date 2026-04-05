@@ -1,28 +1,27 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
 import classNames from "classnames";
 import {
   ArrowDownOutlined,
   ArrowRightOutlined,
-  CheckCircleFilled,
-  CloseCircleFilled,
+  ThunderboltOutlined,
+  UserOutlined,
 } from "@ant-design/icons";
-import { Avatar } from "antd";
 import { Link } from "react-router-dom";
 
 import {
-  PORTAL_HOME_ANXIETY_MOMENTS,
-  PORTAL_FEATURED_EXPERT_SCENES,
-  PORTAL_HOME_LOGO_WALL_ITEMS,
-  PORTAL_HOME_MINDSET_COMPARISONS,
+  PORTAL_EXPERT_DOMAINS,
   PORTAL_HOME_PACKAGE,
   PORTAL_HOME_PROBLEM_OPTIONS,
   PORTAL_HOME_TRUST_BADGES,
   PORTAL_HOME_TRUST_LINE,
 } from "@/feature/marketingPortal/portalData";
-import { getAvatarText, getAvatarUrl } from "@/pages/utils";
+import type {
+  MarketingExpertDomainItem,
+  MarketingExpertItem,
+  MarketingSubExpertItem,
+} from "@/feature/marketingPortal/types";
 
-import { MarketingExpertCrewExplorer } from "./MarketingExpertCrewExplorer";
 import { MarketingPortalConsultationDrawer } from "./MarketingPortalConsultationDrawer";
 import layoutStyles from "./MarketingPortalLayout.module.less";
 import styles from "./MarketingPortalHomeView.module.less";
@@ -44,38 +43,20 @@ const HOME_SECTIONS: HomeSectionItem[] = [
     navLabel: "Frontis AI",
   },
   {
-    id: "portal-anxiety",
+    id: "portal-experts",
     indexLabel: "02",
-    label: "是否遇到过",
-    navLabel: "Struggling",
-  },
-  {
-    id: "portal-handoff",
-    indexLabel: "03",
     label: "AI专家团",
     navLabel: "Experts",
   },
   {
-    id: "portal-mindset",
-    indexLabel: "04",
-    label: "重新认识",
-    navLabel: "Discover",
-  },
-  {
-    id: "portal-logo",
-    indexLabel: "05",
-    label: "他们都选择",
-    navLabel: "Trusted",
-  },
-  {
     id: "portal-plan",
-    indexLabel: "06",
+    indexLabel: "03",
     label: "优惠",
     navLabel: "Offers",
   },
   {
     id: "portal-cta",
-    indexLabel: "07",
+    indexLabel: "04",
     label: "联系我们",
     navLabel: "Contact",
   },
@@ -107,6 +88,163 @@ const SectionCue = ({ nextSection, tone, onJump }: SectionCueProps): JSX.Element
   );
 };
 
+/* ── 专家展示子组件（桑基图流动式） ── */
+
+interface ExpertShowcaseProps {
+  domains: MarketingExpertDomainItem[];
+}
+
+const ExpertShowcase = ({ domains }: ExpertShowcaseProps): JSX.Element => {
+  const [activeDomainKey, setActiveDomainKey] = useState(domains[0]?.key ?? "");
+  const [activeExpertId, setActiveExpertId] = useState<string | null>(null);
+  const [activeSubExpertId, setActiveSubExpertId] = useState<string | null>(null);
+
+  const activeDomain = domains.find(d => d.key === activeDomainKey) ?? domains[0];
+
+  const handleDomainHover = useCallback((key: string) => {
+    if (key === activeDomainKey) return;
+    setActiveDomainKey(key);
+    setActiveExpertId(null);
+    setActiveSubExpertId(null);
+  }, [activeDomainKey]);
+
+  const handleExpertClick = useCallback((expert: MarketingExpertItem) => {
+    if (activeExpertId === expert.id) {
+      setActiveExpertId(null);
+      setActiveSubExpertId(null);
+    } else {
+      setActiveExpertId(expert.id);
+      setActiveSubExpertId(null);
+    }
+  }, [activeExpertId]);
+
+  const handleSubExpertClick = useCallback((sub: MarketingSubExpertItem) => {
+    setActiveSubExpertId(prev => (prev === sub.id ? null : sub.id));
+  }, []);
+
+  const activeExpert = activeDomain?.experts.find(e => e.id === activeExpertId) ?? null;
+  const activeSubExpert = activeExpert?.subExperts.find(s => s.id === activeSubExpertId) ?? null;
+
+  return (
+    <div className={styles.flowShowcase}>
+      {/* ── Tier 0：领域选择 ── */}
+      <div className={styles.flowTier}>
+        <div className={styles.flowNodeRow}>
+          {domains.map(domain => (
+            <button
+              key={domain.key}
+              type="button"
+              className={classNames(
+                styles.flowDomainNode,
+                activeDomainKey === domain.key && styles.flowDomainNodeActive,
+              )}
+              onMouseEnter={() => handleDomainHover(domain.key)}
+              onClick={() => handleDomainHover(domain.key)}
+            >
+              <span className={styles.flowDomainLabel}>{domain.label}</span>
+              <span className={styles.flowDomainFull}>{domain.fullLabel}</span>
+              <span className={styles.flowDomainCount}>{domain.experts.length} 位专家</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* ── 流动连接线：领域 → 专家 ── */}
+      <div className={styles.flowConnector}>
+        <div className={styles.flowStream} />
+      </div>
+
+      {/* ── Tier 1：专家 ── */}
+      <div className={styles.flowTier} key={`experts-${activeDomainKey}`}>
+        <div className={styles.flowNodeRow}>
+          {activeDomain?.experts.map(expert => (
+            <button
+              key={expert.id}
+              type="button"
+              className={classNames(
+                styles.flowExpertNode,
+                activeExpertId === expert.id && styles.flowExpertNodeActive,
+              )}
+              onClick={() => handleExpertClick(expert)}
+            >
+              <div
+                className={styles.flowExpertAvatar}
+                style={{ background: expert.avatarGradient }}
+              >
+                <UserOutlined />
+              </div>
+              <span className={styles.flowExpertName}>{expert.name}</span>
+              <span className={styles.flowExpertMeta}>{expert.subExperts.length} 位子专家</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* ── 流动连接线：专家 → 子专家 ── */}
+      {activeExpert && (
+        <>
+          <div className={styles.flowConnector}>
+            <div className={styles.flowStream} />
+          </div>
+
+          {/* ── Tier 2：子专家 ── */}
+          <div className={styles.flowTier} key={`subs-${activeExpert.id}`}>
+            <p className={styles.flowTierHint}>
+              <span className={styles.flowTierHintAccent}>{activeExpert.name}</span> 专家团成员
+            </p>
+            <div className={styles.flowNodeRow}>
+              {activeExpert.subExperts.map(sub => (
+                <button
+                  key={sub.id}
+                  type="button"
+                  className={classNames(
+                    styles.flowSubNode,
+                    activeSubExpertId === sub.id && styles.flowSubNodeActive,
+                  )}
+                  onClick={() => handleSubExpertClick(sub)}
+                >
+                  <div className={styles.flowSubIcon}>
+                    <UserOutlined />
+                  </div>
+                  <span className={styles.flowSubName}>{sub.name}</span>
+                  <span className={styles.flowSubMeta}>{sub.skills.length} 项 Skill</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* ── 流动连接线：子专家 → Skill ── */}
+      {activeSubExpert && (
+        <>
+          <div className={styles.flowConnector}>
+            <div className={styles.flowStream} />
+          </div>
+
+          {/* ── Tier 3：Skill 能力 ── */}
+          <div className={styles.flowTier} key={`skills-${activeSubExpert.id}`}>
+            <p className={styles.flowTierHint}>
+              <span className={styles.flowTierHintAccent}>{activeSubExpert.name}</span> 的 Skill 能力
+            </p>
+            <div className={styles.flowSkillRow}>
+              {activeSubExpert.skills.map(skill => (
+                <article key={skill.id} className={styles.flowSkillCard}>
+                  <div className={styles.flowSkillHeader}>
+                    <ThunderboltOutlined className={styles.flowSkillIcon} />
+                    <span className={styles.flowSkillName}>{skill.name}</span>
+                  </div>
+                  <p className={styles.flowSkillDesc}>{skill.description}</p>
+                </article>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+};
+
 /**
  * 营销门户首页视图。
  */
@@ -128,21 +266,7 @@ export const MarketingPortalHomeView = (): JSX.Element => {
       {},
     );
   }, []);
-  const anxietyVoiceRows = useMemo(() => {
-    const rows: Array<Array<(typeof PORTAL_HOME_ANXIETY_MOMENTS)[number]>> = [[], []];
 
-    PORTAL_HOME_ANXIETY_MOMENTS.forEach((item, index) => {
-      rows[index % rows.length]?.push(item);
-    });
-
-    return rows
-      .filter(items => items.length > 0)
-      .map((items, index) => ({
-        id: `voice-row-${index + 1}`,
-        isReverse: index % 2 === 1,
-        items: [...items, ...items],
-      }));
-  }, []);
   useEffect(() => {
     const sectionHostElement = pageRef.current;
 
@@ -249,6 +373,7 @@ export const MarketingPortalHomeView = (): JSX.Element => {
       </aside>
 
       <div ref={pageRef} className={styles.pageViewport}>
+        {/* ── 第一屏：Hero ── */}
         <section
           id="portal-hero"
           data-home-section="true"
@@ -292,261 +417,34 @@ export const MarketingPortalHomeView = (): JSX.Element => {
           ) : null}
         </section>
 
+        {/* ── 第二屏：AI 专家团展示 ── */}
         <section
-          id="portal-anxiety"
+          id="portal-experts"
           data-home-section="true"
-          className={classNames(layoutStyles.darkSection, styles.pageSection, styles.valueSection)}
+          className={classNames(layoutStyles.darkSection, styles.pageSection, styles.expertsSection)}
         >
           <div className={styles.sectionInner}>
             <div className={styles.sectionHeading} style={{ textAlign: "center", maxWidth: "100%", alignSelf: "center" }}>
-              <h2 className={layoutStyles.sectionTitle}>你是不是也有这些时刻</h2>
-            </div>
-
-            <div className={styles.anxietyStage}>
-              <div className={styles.voiceWall} aria-label="用户之声">
-                {anxietyVoiceRows.map(row => (
-                  <div key={row.id} className={styles.voiceRowViewport}>
-                    <div
-                      className={classNames(
-                        styles.voiceRowTrack,
-                        row.isReverse && styles.isReverseVoiceRowTrack,
-                      )}
-                    >
-                      {row.items.map((item, index) => (
-                        <article key={`${item.id}-${index}`} className={styles.voiceCard}>
-                          <div className={styles.voiceCardHeader}>
-                            <div className={styles.voiceIdentity}>
-                              <Avatar
-                                src={getAvatarUrl(`portal-voice-${item.avatarSeed}`)}
-                                className={styles.voiceAvatar}
-                              >
-                                {getAvatarText(item.authorName)}
-                              </Avatar>
-
-                              <div className={styles.voiceIdentityBody}>
-                                <div className={styles.voiceAuthorRow}>
-                                  <span className={styles.voiceAuthorName}>{item.authorName}</span>
-                                  <span className={styles.voiceAuthorRole}>{item.authorRole}</span>
-                                </div>
-                                <p className={styles.voiceAuthorCompany}>{item.authorCompany}</p>
-                              </div>
-                            </div>
-
-                            <span className={styles.voiceIndex}>{item.indexLabel}</span>
-                          </div>
-
-                          <p className={styles.voiceQuote}>“{item.quote}”</p>
-                          <p className={styles.voiceContext}>{item.context}</p>
-                        </article>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <div className={styles.transitionDialogue} aria-label="承接对话">
-                <div className={styles.transitionBubble}>
-                  <span className={styles.transitionBubbleLabel}>老板</span>
-                  <p className={styles.transitionBubbleText}>这些不是你一个人的问题。</p>
-                </div>
-
-                <div
-                  className={classNames(styles.transitionBubble, styles.isAccentTransitionBubble)}
-                >
-                  <span className={styles.transitionBubbleLabel}>fAI</span>
-                  <p className={styles.transitionBubbleText}>
-                    这是所有还在靠“人”撑着的公司，眼下都在经历的事。
-                  </p>
-                </div>
-
-                <div className={classNames(styles.transitionBubble, styles.isSoftTransitionBubble)}>
-                  <p className={styles.transitionBubbleText}>但现在，有另一种选项。</p>
-                </div>
-              </div>
-            </div>
-          </div>
-          {nextSectionMap["portal-anxiety"] ? (
-            <SectionCue
-              nextSection={nextSectionMap["portal-anxiety"]}
-              tone="dark"
-              onJump={handleSectionJump}
-            />
-          ) : null}
-        </section>
-
-        <section
-          id="portal-handoff"
-          data-home-section="true"
-          className={classNames(layoutStyles.darkSection, styles.pageSection, styles.archSection)}
-        >
-          <div className={styles.sectionInner}>
-            <div className={styles.sectionHeading} style={{ textAlign: "center", maxWidth: "100%", alignSelf: "center" }}>
-              <h2 className={styles.archTitle}>
-                AI专家团，实现任务的端到端交付
-              </h2>
-              <p className={classNames(layoutStyles.darkTextMuted, styles.archDescription)} style={{ marginLeft: "auto", marginRight: "auto" }}>
-                不是工具。不是软件。是一批真正懂业务的数字员工，分工协作，随时待命。
-              </p>
-            </div>
-
-            <MarketingExpertCrewExplorer
-              mode="compact"
-              scenes={PORTAL_FEATURED_EXPERT_SCENES}
-              browseCardTo="/portal/agents"
-            />
-          </div>
-          {nextSectionMap["portal-handoff"] ? (
-            <SectionCue
-              nextSection={nextSectionMap["portal-handoff"]}
-              tone="dark"
-              onJump={handleSectionJump}
-            />
-          ) : null}
-        </section>
-
-        <section
-          id="portal-mindset"
-          data-home-section="true"
-          className={classNames(
-            layoutStyles.darkSection,
-            styles.pageSection,
-            styles.scenarioSection,
-          )}
-        >
-          <div className={styles.sectionInner}>
-            <div className={styles.sectionHeading} style={{ textAlign: "center", maxWidth: "100%", alignSelf: "center" }}>
-              <p className={classNames(layoutStyles.darkTextMuted, styles.mindsetSubtitle)}>
-                你以为你在买软件
-              </p>
               <h2 className={layoutStyles.sectionTitle}>
-                但你买到的是一批{" "}
-                <span className={styles.highlightText}>不休假</span>、
-                <span className={styles.highlightText}>不离职</span>、
-                <span className={styles.highlightText}>不要五险一金</span>
-                {" "}的员工
+                <span className={styles.highlightText}>Frontis AI 专家团</span>，覆盖产供销通四大领域
               </h2>
-            </div>
-
-            <div className={styles.mindsetBoard}>
-              <article className={styles.mindsetColumn}>
-                <div className={styles.mindsetColumnHeader}>
-                  <CloseCircleFilled className={styles.mindsetColumnIcon} />
-                  <div>
-                    <h3 className={styles.mindsetColumnTitle}>传统软件</h3>
-                  </div>
-                </div>
-
-                <div className={styles.mindsetColumnList}>
-                  {PORTAL_HOME_MINDSET_COMPARISONS.map(item => (
-                    <article key={item.id} className={styles.mindsetColumnItem}>
-                      <span className={styles.mindsetBullet} />
-                      <p className={styles.mindsetLegacy}>{item.legacyLabel}</p>
-                    </article>
-                  ))}
-                </div>
-              </article>
-
-              <article className={classNames(styles.mindsetColumn, styles.isAccentMindsetColumn)}>
-                <div className={styles.mindsetColumnHeader}>
-                  <CheckCircleFilled className={styles.mindsetColumnIcon} />
-                  <div>
-                    <h3 className={styles.mindsetColumnTitle}>Frontis AI 员工</h3>
-                  </div>
-                </div>
-
-                <div className={styles.mindsetColumnList}>
-                  {PORTAL_HOME_MINDSET_COMPARISONS.map(item => (
-                    <article key={item.id} className={styles.mindsetColumnItem}>
-                      <span className={styles.mindsetBullet} />
-                      <p className={styles.mindsetNext}>{item.nextLabel}</p>
-                    </article>
-                  ))}
-                </div>
-              </article>
-            </div>
-
-            <div className={styles.mindsetHighlights}>
-              <article className={styles.valueCard}>
-                <span className={styles.valueIndex}>数字员工</span>
-                <h3 className={styles.valueTitle}>不是工具，是数字员工</h3>
-                <p className={styles.valueDescription}>
-                  有分工、有协作，能独立完成整件事的 AI 员工团队。
-                </p>
-              </article>
-              <article className={styles.valueCard}>
-                <span className={styles.valueIndex}>开箱即用</span>
-                <h3 className={styles.valueTitle}>不用配置，开箱即用</h3>
-                <p className={styles.valueDescription}>
-                  FDE 工程师全程配置，你的业务场景直接跑通。
-                </p>
-              </article>
-              <article className={styles.valueCard}>
-                <span className={styles.valueIndex}>越用越懂</span>
-                <h3 className={styles.valueTitle}>越用越懂你</h3>
-                <p className={styles.valueDescription}>
-                  在你的业务里跑得越久，越知道你真正想要什么。
-                </p>
-              </article>
-            </div>
-          </div>
-          {nextSectionMap["portal-mindset"] ? (
-            <SectionCue
-              nextSection={nextSectionMap["portal-mindset"]}
-              tone="dark"
-              onJump={handleSectionJump}
-            />
-          ) : null}
-        </section>
-
-        <section
-          id="portal-logo"
-          data-home-section="true"
-          className={classNames(layoutStyles.darkSection, styles.pageSection, styles.caseSection)}
-        >
-          <div className={styles.sectionInner}>
-            <div className={classNames(styles.sectionHeading, styles.logoHeading)} style={{ textAlign: "center", maxWidth: "100%", alignSelf: "center" }}>
-              <h2 className={styles.caseTitle}>他们已经把这些事，交出去了</h2>
-              <p className={classNames(layoutStyles.darkTextMuted, styles.caseDescription)} style={{ marginLeft: "auto", marginRight: "auto" }}>
-                来自不同行业的企业主，正在用 Frontis 的 AI 专家团队跑业务。
+              <p className={classNames(layoutStyles.darkTextMuted, styles.expertsDescription)}>
+                Frontis AI 为企业打造覆盖生产制造、供应链、销售营销、通用管理的 AI 专家团队，覆盖企业 80% 的核心业务。
               </p>
             </div>
 
-            <div className={styles.logoMarquee}>
-              <div className={styles.voiceRowViewport}>
-                <div className={styles.logoRowTrack}>
-                  {[...PORTAL_HOME_LOGO_WALL_ITEMS.slice(0, 6), ...PORTAL_HOME_LOGO_WALL_ITEMS.slice(0, 6)].map((item, index) => (
-                    <article key={`${item.id}-a-${index}`} className={styles.logoCard}>
-                      <img className={styles.logoCardImage} src={item.logoUrl} alt={item.name} />
-                      <span className={styles.logoCardName}>{item.name}</span>
-                    </article>
-                  ))}
-                </div>
-              </div>
-              <div className={styles.voiceRowViewport}>
-                <div className={classNames(styles.logoRowTrack, styles.isReverseLogoRowTrack)}>
-                  {[...PORTAL_HOME_LOGO_WALL_ITEMS.slice(6), ...PORTAL_HOME_LOGO_WALL_ITEMS.slice(6)].map((item, index) => (
-                    <article key={`${item.id}-b-${index}`} className={styles.logoCard}>
-                      <img className={styles.logoCardImage} src={item.logoUrl} alt={item.name} />
-                      <span className={styles.logoCardName}>{item.name}</span>
-                    </article>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            <p className={styles.logoFootnote}>
-              覆盖电商、品牌、服务、制造等多个行业 · 持续增长中
-            </p>
+            <ExpertShowcase domains={PORTAL_EXPERT_DOMAINS} />
           </div>
-          {nextSectionMap["portal-logo"] ? (
+          {nextSectionMap["portal-experts"] ? (
             <SectionCue
-              nextSection={nextSectionMap["portal-logo"]}
+              nextSection={nextSectionMap["portal-experts"]}
               tone="dark"
               onJump={handleSectionJump}
             />
           ) : null}
         </section>
 
+        {/* ── 第三屏：定价 ── */}
         <section
           id="portal-plan"
           data-home-section="true"
@@ -555,7 +453,7 @@ export const MarketingPortalHomeView = (): JSX.Element => {
           <div className={styles.sectionInner}>
             <div className={styles.sectionHeading} style={{ textAlign: "center", maxWidth: "100%", alignSelf: "center" }}>
               <h2 className={layoutStyles.sectionTitle}>
-                一次投入，换一支<span className={styles.highlightText}>永不离职</span>的 AI 员工团队
+                19 万 8，换一支<span className={styles.highlightText}>永不离职</span>的 AI 专家团队
               </h2>
             </div>
 
@@ -605,6 +503,7 @@ export const MarketingPortalHomeView = (): JSX.Element => {
           ) : null}
         </section>
 
+        {/* ── 第四屏：CTA ── */}
         <section
           id="portal-cta"
           data-home-section="true"

@@ -6,22 +6,6 @@ import { PORTAL_NAV_ITEMS } from "@/feature/marketingPortal/portalData";
 
 import styles from "./MarketingPortalLayout.module.less";
 
-const getSessionRoleLabel = (role: string): string => {
-  if (role === "admin") {
-    return "企业老板";
-  }
-
-  if (role === "fdeAdmin") {
-    return "FDE负责人";
-  }
-
-  if (role === "fdeMember") {
-    return "FDE成员";
-  }
-
-  return "普通用户";
-};
-
 /**
  * 营销门户站点级布局。
  */
@@ -64,7 +48,7 @@ export const MarketingPortalLayout = (): JSX.Element => {
                 <span className={styles.sessionHint}>
                   {session.name}
                   <span className={styles.sessionHintDivider}>·</span>
-                  {getSessionRoleLabel(session.role)}
+                  {session.role === "admin" ? "企业老板" : "普通用户"}
                 </span>
               ) : null}
 

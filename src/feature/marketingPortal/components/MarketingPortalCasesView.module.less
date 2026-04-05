@@ -1,208 +1,409 @@
+/* ───────────────────────────────────────────────
+   客户案例 — 视频画廊（暗色电影主题）
+   ─────────────────────────────────────────────── */
+
 .page {
   display: flex;
   flex-direction: column;
-  gap: 22px;
+  gap: 0;
 }
 
-.heroSection,
-.spotlightSection {
-  padding: 32px;
-}
+/* ── Hero ── */
 
 .heroSection {
-  display: grid;
-  gap: 18px;
-  padding-top: calc(var(--portalHeaderDockSpace) + 24px);
+  padding: 32px 40px 40px;
+  padding-top: calc(var(--portalHeaderDockSpace) + 32px);
+  text-align: center;
+}
+
+.heroEyebrow {
+  color: var(--portalAccent);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  line-height: 1.4;
 }
 
 .heroTitle {
-  margin-top: 12px;
-  font-size: clamp(38px, 5vw, 62px);
-  line-height: 1;
+  margin-top: 14px;
+  font-size: clamp(34px, 4.6vw, 56px);
   font-weight: 700;
-  letter-spacing: -0.05em;
+  line-height: 1.08;
+  letter-spacing: -0.04em;
+  color: var(--portalTextPrimary);
 }
 
-.heroDescription,
-.caseSummary {
-  margin-top: 18px;
-  font-size: 17px;
+.heroDescription {
+  margin: 16px auto 0;
+  max-width: 560px;
+  font-size: 16px;
   line-height: 1.85;
+  color: var(--portalTextMuted);
 }
 
-.filterRow,
-.sectionHeading,
-.caseMeta {
+/* ── Filter pills ── */
+
+.filterRow {
   display: flex;
   align-items: center;
-  gap: 12px;
+  justify-content: center;
+  gap: 10px;
   flex-wrap: wrap;
+  margin-top: 28px;
 }
 
-.filterButton {
-  min-height: 42px;
-  padding: 0 16px;
-  border: 1px solid rgba(255, 255, 255, 0.16);
+.filterBtn {
+  min-height: 40px;
+  padding: 0 18px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.04);
-  color: rgba(248, 250, 252, 0.72);
+  color: var(--portalTextMuted);
   font-size: 14px;
   line-height: 1;
+  cursor: pointer;
   transition:
-    background 180ms ease,
-    border-color 180ms ease,
-    color 180ms ease,
-    transform 180ms ease;
+    background 200ms ease,
+    border-color 200ms ease,
+    color 200ms ease,
+    transform 200ms ease;
 
   &:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.22);
+    color: #f8fafc;
     transform: translateY(-1px);
   }
 }
 
-.isActiveFilterButton {
-  background: rgba(125, 226, 241, 0.12);
-  border-color: rgba(125, 226, 241, 0.24);
+.filterBtnActive {
+  background: rgba(125, 226, 241, 0.14);
+  border-color: rgba(125, 226, 241, 0.28);
   color: #f8fafc;
 }
 
-.sectionHeading {
-  justify-content: space-between;
+/* ── Spotlight ── */
+
+.spotlightSection {
+  padding: 40px 32px 0;
 }
 
-.spotlightBody,
-.metricGrid,
-.caseGrid {
-  display: grid;
-  gap: 16px;
-}
+/* ── Video Card ── */
 
-.spotlightBody {
-  margin-top: 22px;
-  grid-template-columns: minmax(0, 1.08fr) minmax(320px, 0.92fr);
-}
-
-.spotlightMedia {
+.videoCard {
+  position: relative;
+  border-radius: 20px;
   overflow: hidden;
-  border-radius: 30px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  transition:
+    transform 320ms cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 320ms ease,
+    box-shadow 320ms ease;
+
+  &:hover {
+    transform: translateY(-6px);
+    border-color: rgba(125, 226, 241, 0.24);
+    box-shadow:
+      0 24px 64px rgba(7, 17, 31, 0.4),
+      0 0 0 1px rgba(125, 226, 241, 0.08);
+  }
 }
 
-.spotlightImage,
-.caseImage {
+.videoCardSpotlight {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(300px, 0.85fr);
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+
+  &:hover {
+    transform: translateY(-4px);
+    border-color: rgba(125, 226, 241, 0.2);
+    box-shadow:
+      0 32px 80px rgba(7, 17, 31, 0.5),
+      0 0 0 1px rgba(125, 226, 241, 0.06);
+  }
+
+  .videoFrame {
+    border-radius: 24px 0 0 24px;
+  }
+
+  .videoMeta {
+    padding: 32px 28px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+
+  .videoTitle {
+    font-size: 24px;
+  }
+
+  .videoSummary {
+    -webkit-line-clamp: 4;
+  }
+}
+
+/* ── Video Frame ── */
+
+.videoFrame {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  background: #0a0f1a;
+}
+
+.iframeWrap {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.videoIframe {
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+.videoCloseBtn {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 5;
+  width: 36px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+  font-size: 14px;
+  cursor: pointer;
+  backdrop-filter: blur(8px);
+  transition:
+    background 180ms ease,
+    transform 180ms ease;
+
+  &:hover {
+    background: rgba(0, 0, 0, 0.82);
+    transform: scale(1.08);
+  }
+}
+
+/* ── Cover / Play ── */
+
+.videoCover {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  overflow: hidden;
+}
+
+.videoCoverImage {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  transition: transform 520ms cubic-bezier(0.22, 1, 0.36, 1);
+
+  .videoCard:hover & {
+    transform: scale(1.05);
+  }
 }
 
-.spotlightContent {
-  padding: 26px;
-  border: 1px solid rgba(15, 23, 42, 0.08);
-  border-radius: 30px;
-  background: rgba(255, 255, 255, 0.72);
+.videoOverlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(
+    180deg,
+    transparent 40%,
+    rgba(7, 17, 31, 0.52) 100%
+  );
+  transition: background 300ms ease;
+
+  .videoCover:hover & {
+    background: linear-gradient(
+      180deg,
+      rgba(7, 17, 31, 0.12) 0%,
+      rgba(7, 17, 31, 0.62) 100%
+    );
+  }
 }
 
-.customerName,
-.caseCustomer,
-.metricLabel {
-  color: rgba(15, 23, 42, 0.62);
-  font-size: 14px;
-  line-height: 1.7;
+.videoPlayIcon {
+  font-size: 56px;
+  color: rgba(255, 255, 255, 0.88);
+  filter: drop-shadow(0 4px 16px rgba(0, 0, 0, 0.4));
+  transition:
+    transform 300ms cubic-bezier(0.22, 1, 0.36, 1),
+    color 300ms ease;
+
+  .videoCover:hover & {
+    transform: scale(1.12);
+    color: #fff;
+  }
 }
 
-.customerName {
-  margin-top: 16px;
-}
-
-.metricGrid {
-  margin: 20px 0 24px;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-}
-
-.metricCard {
-  padding: 18px;
-  border-radius: 22px;
-  border: 1px solid rgba(15, 23, 42, 0.08);
-  background: rgba(15, 23, 42, 0.03);
-}
-
-.metricValue {
-  font-size: 24px;
-  line-height: 1.15;
-  font-weight: 700;
-  letter-spacing: -0.04em;
-}
-
-.gridSection {
-  padding-bottom: 4px;
-}
-
-.caseGrid {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-}
-
-.caseCard {
-  overflow: hidden;
-}
-
-.caseImage {
-  height: 260px;
-}
-
-.caseBody {
-  padding: 22px;
-}
-
-.caseMeta {
-  justify-content: space-between;
-}
-
-.caseTitle {
-  margin-top: 14px;
-  font-size: 28px;
-  line-height: 1.08;
-  font-weight: 700;
-  letter-spacing: -0.04em;
-}
-
-.caseSummary {
-  color: rgba(15, 23, 42, 0.68);
-  font-size: 15px;
-}
-
-.caseLink {
+.videoDuration {
+  position: absolute;
+  bottom: 10px;
+  right: 12px;
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  margin-top: 18px;
-  color: #0f172a;
-  font-size: 14px;
-  font-weight: 600;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.62);
+  backdrop-filter: blur(6px);
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 12px;
+  font-weight: 500;
   line-height: 1.4;
 }
 
-@media (max-width: 1120px) {
-  .spotlightBody,
-  .caseGrid,
-  .metricGrid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
+/* ── Meta ── */
 
-  .spotlightBody {
+.videoMeta {
+  padding: 18px 20px 22px;
+}
+
+.videoMetaTop {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.videoIndustryChip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 26px;
+  padding: 0 10px;
+  border-radius: 6px;
+  background: rgba(125, 226, 241, 0.12);
+  color: var(--portalAccent);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.videoCustomer {
+  color: var(--portalTextMuted);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.videoTitle {
+  margin-top: 10px;
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.3;
+  letter-spacing: -0.02em;
+  color: var(--portalTextPrimary);
+}
+
+.videoSummary {
+  margin-top: 8px;
+  color: var(--portalTextMuted);
+  font-size: 14px;
+  line-height: 1.7;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* ── Metrics (spotlight only) ── */
+
+.videoMetrics {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 20px;
+}
+
+.metricChip {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px 16px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  min-width: 100px;
+}
+
+.metricChipValue {
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.03em;
+  color: var(--portalAccent);
+}
+
+.metricChipLabel {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--portalTextMuted);
+}
+
+/* ── Grid ── */
+
+.gridSection {
+  padding: 32px 32px 48px;
+}
+
+.videoGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+}
+
+/* ── Responsive ── */
+
+@media (max-width: 1060px) {
+  .videoCardSpotlight {
     grid-template-columns: minmax(0, 1fr);
+
+    .videoFrame {
+      border-radius: 24px 24px 0 0;
+    }
   }
 }
 
 @media (max-width: 840px) {
-  .heroSection,
-  .spotlightSection {
-    padding: 22px;
-  }
-
   .heroSection {
-    padding-top: calc(var(--portalHeaderDockSpace) + 18px);
+    padding: 24px 20px 32px;
+    padding-top: calc(var(--portalHeaderDockSpace) + 24px);
   }
 
-  .caseGrid,
-  .metricGrid {
+  .heroTitle {
+    font-size: clamp(28px, 6vw, 42px);
+  }
+
+  .spotlightSection {
+    padding: 28px 20px 0;
+  }
+
+  .gridSection {
+    padding: 24px 20px 40px;
+  }
+
+  .videoGrid {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .videoPlayIcon {
+    font-size: 42px;
   }
 }

@@ -6,6 +6,7 @@ import type {
   MarketingArchitectureStepItem,
   MarketingBundleItem,
   MarketingCaseStudyItem,
+  MarketingExpertDomainItem,
   MarketingExpertSceneItem,
   MarketingHandoffSceneItem,
   MarketingIndustrySignalItem,
@@ -30,11 +31,6 @@ export const PORTAL_NAV_ITEMS: MarketingPortalNavItem[] = [
     to: "/portal",
   },
   {
-    id: "agents",
-    label: "AI 专家团",
-    to: "/portal/agents",
-  },
-  {
     id: "cases",
     label: "客户案例",
     to: "/portal/cases",
@@ -50,7 +46,7 @@ export const PORTAL_NAV_ITEMS: MarketingPortalNavItem[] = [
  * 首页首屏信任锚点。
  */
 export const PORTAL_HOME_TRUST_LINE =
-  "已有多家企业老板，把这些事交给了AI专家团 · 内测名额有限 · 4月15日开放";
+  "已有多家企业老板，把这些事交给了AI专家团 · 4月25日全面开放";
 
 /**
  * 首页焦虑命名卡片。
@@ -423,13 +419,14 @@ export const PORTAL_HOME_LOGO_WALL_ITEMS: MarketingLogoWallItem[] = [
  */
 export const PORTAL_HOME_PACKAGE: MarketingHomePackageItem = {
   name: "企业标准版",
-  price: "¥98,000 / 年",
-  description: "一次投入，换一支永不离职、能持续交付的 AI 员工团队。",
+  price: "¥198,000 / 年",
+  description: "19 万 8，按需购买 AI 专家团，配备硬件工作站，FDE 工程师全程陪跑交付。",
   features: [
-    "若干企业级 AI 员工名额",
-    "FDE 工程师全程配置交付",
-    "可选 LeDeep 硬件盒子",
-    "AI 员工持续迭代升级",
+    "按需购买数个 AI 专家团",
+    "5 个龙虾工作站",
+    "5 个老板智能硬件",
+    "AI 专家团持续进化升级",
+    "FDE 工程师全程陪跑交付",
   ],
   primaryActionLabel: "立即了解详情",
   secondaryActionLabel: "免费咨询",
@@ -637,6 +634,9 @@ export const PORTAL_CASE_STUDIES: MarketingCaseStudyItem[] = [
     slug: "crossborder-content-studio",
     title: "某跨境电商团队用 AI 内容助手做到日产 50 条营销素材",
     customerName: "华南某跨境电商企业",
+    bvid: "BV1GJ411x7h7",
+    videoCoverUrl: "https://images.unsplash.com/photo-1520607162513-77705c0f0d4a?auto=format&fit=crop&w=960&q=80",
+    videoDuration: "04:32",
     industry: "电商",
     summary: "内容、投放与客服三类岗位共用一套 AI 员工组合，把内容节奏和知识沉淀都拉到统一流程里。",
     coverImageUrl:
@@ -681,6 +681,9 @@ export const PORTAL_CASE_STUDIES: MarketingCaseStudyItem[] = [
     slug: "manufacturing-finance-ops",
     title: "制造企业把财务对账和设备日报交给 AI 员工",
     customerName: "华东某零部件制造企业",
+    bvid: "BV1uT4y1P7CX",
+    videoCoverUrl: "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?auto=format&fit=crop&w=960&q=80",
+    videoDuration: "03:18",
     industry: "制造",
     summary:
       "财务对账官与经营看板官协同处理表格、日报和异常项汇总，让老板第一次真正看见 AI 的工作量。",
@@ -726,6 +729,9 @@ export const PORTAL_CASE_STUDIES: MarketingCaseStudyItem[] = [
     slug: "education-enrollment-service",
     title: "教育机构用招生线索官和客服质检官统一管理咨询流程",
     customerName: "华北某职业教育机构",
+    bvid: "BV1Sh411e7Mv",
+    videoCoverUrl: "https://images.unsplash.com/photo-1524178232363-1fb2b075b655?auto=format&fit=crop&w=960&q=80",
+    videoDuration: "05:02",
     industry: "教育",
     summary:
       "从咨询接待到线索跟进，都由岗位化 Agent 承接标准动作，让校区运营第一次拥有统一的线索节奏。",
@@ -762,6 +768,9 @@ export const PORTAL_CASE_STUDIES: MarketingCaseStudyItem[] = [
     slug: "service-chain-expansion",
     title: "服务型企业用招聘助手与经营看板官稳定扩张节奏",
     customerName: "西南某连锁服务企业",
+    bvid: "BV1aE411c7kR",
+    videoCoverUrl: "https://images.unsplash.com/photo-1556761175-5973dc0f32e7?auto=format&fit=crop&w=960&q=80",
+    videoDuration: "03:45",
     industry: "连锁服务",
     summary: "把招聘和经营汇报拆给不同 AI 员工，试点阶段就能形成门店复制能力。",
     coverImageUrl:
@@ -791,6 +800,66 @@ export const PORTAL_CASE_STUDIES: MarketingCaseStudyItem[] = [
         label: "扩店复制",
         value: "按模板交付",
       },
+    ],
+  },
+  {
+    id: "case-retail",
+    slug: "retail-smart-operations",
+    title: "连锁零售品牌用 AI 专家团实现门店经营自动化",
+    customerName: "华中某连锁零售品牌",
+    bvid: "BV1x54y1e7H9",
+    videoCoverUrl: "https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?auto=format&fit=crop&w=960&q=80",
+    videoDuration: "04:15",
+    industry: "零售",
+    summary: "经营收入师、晨报生成师协同工作，门店经营数据实时汇总，店长只需关注异常指标。",
+    coverImageUrl:
+      "https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?auto=format&fit=crop&w=1600&q=80",
+    detailImageUrls: [
+      "https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?auto=format&fit=crop&w=1200&q=80",
+      "https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=1200&q=80",
+      "https://images.unsplash.com/photo-1472851294608-062f824d29cc?auto=format&fit=crop&w=1200&q=80",
+    ],
+    agentNames: ["经营看板官", "内容生产官"],
+    background:
+      "门店数量快速增长，每日经营数据汇总耗时长，店长无法及时获取异常指标预警。",
+    solution:
+      "部署经营看板官自动汇总各门店销售、库存、客流数据，晨报生成师在每日早 8 点推送经营日报给各级管理者。",
+    effect:
+      "管理者从手动汇总数据中解放出来，异常指标响应时间从 2 天缩短到 2 小时。",
+    metrics: [
+      { label: "数据汇总", value: "全自动" },
+      { label: "异常响应", value: "-85%" },
+      { label: "门店覆盖", value: "128 家" },
+    ],
+  },
+  {
+    id: "case-brand",
+    slug: "brand-content-marketing",
+    title: "新消费品牌用 AI 内容营销专家实现全渠道内容覆盖",
+    customerName: "华东某新消费品牌",
+    bvid: "BV1nW411P7GJ",
+    videoCoverUrl: "https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?auto=format&fit=crop&w=960&q=80",
+    videoDuration: "03:55",
+    industry: "品牌",
+    summary: "AI 内容营销专家自动生成多平台文案、短视频脚本和投放素材，内容团队专注策略和创意方向。",
+    coverImageUrl:
+      "https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?auto=format&fit=crop&w=1600&q=80",
+    detailImageUrls: [
+      "https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?auto=format&fit=crop&w=1200&q=80",
+      "https://images.unsplash.com/photo-1432888498266-38ffec3eaf0a?auto=format&fit=crop&w=1200&q=80",
+      "https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=1200&q=80",
+    ],
+    agentNames: ["内容生产官", "销售线索官"],
+    background:
+      "品牌需要在小红书、抖音、公众号等 6 个渠道持续输出内容，内容团队仅 3 人，产能严重不足。",
+    solution:
+      "部署内容生产官负责多平台文案和脚本生成，销售线索官跟踪各渠道互动数据并沉淀高转化内容模版。",
+    effect:
+      "内容发布量从每周 8 篇提升到每周 35 篇，内容团队从执行转向策略把控。",
+    metrics: [
+      { label: "发布量", value: "4.4 倍" },
+      { label: "互动率", value: "+120%" },
+      { label: "人效提升", value: "3x" },
     ],
   },
 ];
@@ -1483,4 +1552,470 @@ export const PORTAL_INDUSTRY_OPTIONS: string[] = [
   "专业服务",
   "医疗健康",
   "其他",
+];
+
+/**
+ * 首页第二屏 — Frontis AI 专家团领域数据。
+ */
+export const PORTAL_EXPERT_DOMAINS: MarketingExpertDomainItem[] = [
+  {
+    key: "production",
+    label: "产",
+    fullLabel: "生产制造",
+    experts: [
+      {
+        id: "exp-product-design",
+        name: "产品设计专家",
+        avatarGradient: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+        subExperts: [
+          {
+            id: "sub-market-analysis",
+            name: "市场分析专家",
+            skills: [
+              { id: "sk-report-gen", name: "分析报告生成", description: "输出结构化的市场分析文档（含执行摘要）" },
+              { id: "sk-opportunity", name: "设计机会清单", description: "明确列出可供产品/设计团队优先跟进的机会点" },
+              { id: "sk-decision", name: "决策建议输出", description: "以产品设计视角给出有据可依的战略建议" },
+            ],
+          },
+          {
+            id: "sub-product-attr",
+            name: "产品属性设计专家",
+            skills: [
+              { id: "sk-attr-plan", name: "属性方案生成", description: "根据市场需求自动生成产品属性配置方案" },
+              { id: "sk-competitor", name: "竞品对标分析", description: "自动抓取和对比同品类竞品的核心属性" },
+              { id: "sk-spec-doc", name: "规格文档输出", description: "生成标准化的产品规格说明文档" },
+            ],
+          },
+          {
+            id: "sub-product-test",
+            name: "产品测试专家",
+            skills: [
+              { id: "sk-test-plan", name: "测试方案设计", description: "自动生成产品测试计划和用例" },
+              { id: "sk-defect-track", name: "缺陷跟踪分析", description: "智能归类和优先级排序产品缺陷" },
+              { id: "sk-quality-report", name: "质量报告生成", description: "输出产品质量评估和改进建议报告" },
+            ],
+          },
+        ],
+      },
+      {
+        id: "exp-production-plan",
+        name: "生产计划专家",
+        avatarGradient: "linear-gradient(135deg, #f093fb 0%, #f5576c 100%)",
+        subExperts: [
+          {
+            id: "sub-capacity-plan",
+            name: "产能规划专家",
+            skills: [
+              { id: "sk-capacity", name: "产能负荷计算", description: "根据订单和设备状态自动计算产能利用率" },
+              { id: "sk-schedule", name: "排产方案生成", description: "智能生成最优排产计划和甘特图" },
+              { id: "sk-bottleneck", name: "瓶颈预警", description: "提前识别产线瓶颈并给出调整建议" },
+            ],
+          },
+          {
+            id: "sub-material-plan",
+            name: "物料计划专家",
+            skills: [
+              { id: "sk-bom", name: "BOM 需求计算", description: "根据生产计划自动展开物料清单需求" },
+              { id: "sk-shortage", name: "缺料预警", description: "提前预测物料短缺风险并建议补货" },
+              { id: "sk-mrp", name: "MRP 报表生成", description: "输出完整的物料需求计划报表" },
+            ],
+          },
+        ],
+      },
+      {
+        id: "exp-safety-inspect",
+        name: "安全巡检专家",
+        avatarGradient: "linear-gradient(135deg, #11998e 0%, #38ef7d 100%)",
+        subExperts: [
+          {
+            id: "sub-risk-assess",
+            name: "风险评估专家",
+            skills: [
+              { id: "sk-risk-scan", name: "隐患排查", description: "基于历史数据和现场信息识别安全隐患" },
+              { id: "sk-risk-grade", name: "风险等级评定", description: "自动对隐患进行分级并生成处置优先级" },
+              { id: "sk-rectify", name: "整改方案生成", description: "为每项隐患输出具体整改措施和责任人" },
+            ],
+          },
+          {
+            id: "sub-compliance",
+            name: "合规检查专家",
+            skills: [
+              { id: "sk-regulation", name: "法规合规比对", description: "自动比对现场操作与行业安全法规的差异" },
+              { id: "sk-inspect-report", name: "巡检报告生成", description: "生成结构化的安全巡检报告" },
+              { id: "sk-drill-plan", name: "应急预案输出", description: "根据风险类型自动生成应急演练方案" },
+            ],
+          },
+        ],
+      },
+      {
+        id: "exp-engineering",
+        name: "工程技术专家",
+        avatarGradient: "linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)",
+        subExperts: [
+          {
+            id: "sub-process-opt",
+            name: "工艺优化专家",
+            skills: [
+              { id: "sk-process-analysis", name: "工艺参数分析", description: "分析产线数据找出工艺优化空间" },
+              { id: "sk-sop", name: "SOP 生成", description: "自动生成标准作业指导书" },
+              { id: "sk-yield", name: "良率提升方案", description: "基于缺陷数据输出良率改进建议" },
+            ],
+          },
+          {
+            id: "sub-equipment",
+            name: "设备维护专家",
+            skills: [
+              { id: "sk-predict-maintain", name: "预测性维保", description: "基于设备运行数据预测故障时间窗口" },
+              { id: "sk-spare-plan", name: "备件计划", description: "自动计算备件库存需求和采购建议" },
+              { id: "sk-downtime", name: "停机分析", description: "统计分析设备停机原因并输出改进策略" },
+            ],
+          },
+        ],
+      },
+    ],
+  },
+  {
+    key: "supply",
+    label: "供",
+    fullLabel: "供应链",
+    experts: [
+      {
+        id: "exp-forecast",
+        name: "销量预测专家",
+        avatarGradient: "linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%)",
+        subExperts: [
+          {
+            id: "sub-demand-model",
+            name: "需求建模专家",
+            skills: [
+              { id: "sk-trend", name: "趋势预测", description: "基于历史销售数据生成未来销量趋势预测" },
+              { id: "sk-seasonal", name: "季节性分析", description: "自动识别品类季节性波动规律" },
+              { id: "sk-new-product", name: "新品预测", description: "结合市场数据为新品生成首批销量预估" },
+            ],
+          },
+          {
+            id: "sub-inventory-opt",
+            name: "库存优化专家",
+            skills: [
+              { id: "sk-safety-stock", name: "安全库存计算", description: "动态计算各 SKU 的最优安全库存水平" },
+              { id: "sk-replenish", name: "补货建议", description: "根据预测结果自动生成补货计划" },
+              { id: "sk-overstock", name: "滞销预警", description: "识别滞销风险商品并建议促销或调拨" },
+            ],
+          },
+        ],
+      },
+      {
+        id: "exp-merchandise",
+        name: "商品运营专家",
+        avatarGradient: "linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%)",
+        subExperts: [
+          {
+            id: "sub-assortment",
+            name: "品类规划专家",
+            skills: [
+              { id: "sk-category", name: "品类结构优化", description: "分析销售数据输出品类宽度和深度建议" },
+              { id: "sk-pricing", name: "定价策略生成", description: "根据竞品和毛利目标生成定价方案" },
+              { id: "sk-promotion", name: "促销方案设计", description: "自动生成促销活动方案和预期 ROI" },
+            ],
+          },
+          {
+            id: "sub-listing",
+            name: "商品上架专家",
+            skills: [
+              { id: "sk-copy", name: "商品文案生成", description: "自动撰写商品标题、卖点和详情描述" },
+              { id: "sk-seo", name: "搜索优化", description: "优化商品关键词提升搜索排名" },
+              { id: "sk-visual", name: "主图建议", description: "分析竞品主图并给出视觉优化建议" },
+            ],
+          },
+        ],
+      },
+      {
+        id: "exp-procurement",
+        name: "采购专家",
+        avatarGradient: "linear-gradient(135deg, #89f7fe 0%, #66a6ff 100%)",
+        subExperts: [
+          {
+            id: "sub-supplier",
+            name: "供应商管理专家",
+            skills: [
+              { id: "sk-supplier-eval", name: "供应商评估", description: "多维度评估供应商的质量、交期和价格表现" },
+              { id: "sk-negotiation", name: "议价策略生成", description: "基于市场行情生成采购议价参考方案" },
+              { id: "sk-supplier-report", name: "供应商报告", description: "输出供应商绩效分析和优化建议报告" },
+            ],
+          },
+          {
+            id: "sub-purchase-exec",
+            name: "采购执行专家",
+            skills: [
+              { id: "sk-po-gen", name: "采购单生成", description: "根据需求计划自动生成采购订单" },
+              { id: "sk-delivery-track", name: "到货跟踪", description: "自动跟踪采购订单到货状态并预警延期" },
+              { id: "sk-cost-analysis", name: "成本分析", description: "输出采购成本结构分析和降本建议" },
+            ],
+          },
+        ],
+      },
+    ],
+  },
+  {
+    key: "sales",
+    label: "销",
+    fullLabel: "销售营销",
+    experts: [
+      {
+        id: "exp-sales-rep",
+        name: "销售专员",
+        avatarGradient: "linear-gradient(135deg, #fa709a 0%, #fee140 100%)",
+        subExperts: [
+          {
+            id: "sub-lead-mgmt",
+            name: "线索管理专家",
+            skills: [
+              { id: "sk-lead-score", name: "线索评分", description: "智能评估线索质量并排列跟进优先级" },
+              { id: "sk-follow-plan", name: "跟进计划生成", description: "为每条线索生成个性化跟进策略和话术" },
+              { id: "sk-conversion", name: "转化分析", description: "分析各环节转化率并给出优化建议" },
+            ],
+          },
+          {
+            id: "sub-deal-close",
+            name: "成单助手",
+            skills: [
+              { id: "sk-proposal", name: "方案输出", description: "根据客户需求自动生成商务方案" },
+              { id: "sk-quote", name: "报价生成", description: "基于定价策略和客户等级生成报价单" },
+              { id: "sk-win-loss", name: "赢单分析", description: "复盘成交/失败案例提炼最佳实践" },
+            ],
+          },
+        ],
+      },
+      {
+        id: "exp-customer-service",
+        name: "客服专家",
+        avatarGradient: "linear-gradient(135deg, #a1c4fd 0%, #c2e9fb 100%)",
+        subExperts: [
+          {
+            id: "sub-auto-reply",
+            name: "智能应答专家",
+            skills: [
+              { id: "sk-intent", name: "意图识别", description: "自动识别客户咨询意图并路由到对应处理流" },
+              { id: "sk-faq-answer", name: "FAQ 自动回复", description: "基于知识库即时回复常见问题" },
+              { id: "sk-escalation", name: "升级预判", description: "识别需要人工介入的复杂问题并及时转接" },
+            ],
+          },
+          {
+            id: "sub-satisfaction",
+            name: "客户体验专家",
+            skills: [
+              { id: "sk-sentiment", name: "情绪分析", description: "实时检测客户情绪变化并触发关怀策略" },
+              { id: "sk-nps", name: "NPS 分析", description: "汇总客户满意度数据并输出改进方向" },
+              { id: "sk-voice-of-cust", name: "客户之声报告", description: "从客服对话中提炼产品和服务改进建议" },
+            ],
+          },
+        ],
+      },
+      {
+        id: "exp-content-marketing",
+        name: "内容营销专家",
+        avatarGradient: "linear-gradient(135deg, #f6d365 0%, #fda085 100%)",
+        subExperts: [
+          {
+            id: "sub-copywriting",
+            name: "文案创作专家",
+            skills: [
+              { id: "sk-article", name: "文章撰写", description: "根据选题自动生成公众号/博客长文" },
+              { id: "sk-short-copy", name: "短文案生成", description: "批量生成广告语、朋友圈文案和标题" },
+              { id: "sk-rewrite", name: "内容改写", description: "将已有内容改写为不同平台和风格的版本" },
+            ],
+          },
+          {
+            id: "sub-content-strategy",
+            name: "内容策略专家",
+            skills: [
+              { id: "sk-topic-plan", name: "选题规划", description: "基于热点和品牌调性生成月度选题日历" },
+              { id: "sk-channel-plan", name: "渠道分发策略", description: "分析各渠道表现并优化内容分发计划" },
+              { id: "sk-content-report", name: "内容效果报告", description: "自动汇总内容阅读、互动数据并输出优化建议" },
+            ],
+          },
+        ],
+      },
+      {
+        id: "exp-ecommerce",
+        name: "电商运营专家",
+        avatarGradient: "linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%)",
+        subExperts: [
+          {
+            id: "sub-store-ops",
+            name: "店铺运营专家",
+            skills: [
+              { id: "sk-traffic", name: "流量分析", description: "分析各渠道流量并输出引流优化方案" },
+              { id: "sk-conversion-opt", name: "转化率优化", description: "诊断商品页转化漏斗并建议改进" },
+              { id: "sk-review-mgmt", name: "评价管理", description: "智能回复买家评价并识别差评预警" },
+            ],
+          },
+          {
+            id: "sub-ad-ops",
+            name: "广告投放专家",
+            skills: [
+              { id: "sk-ad-plan", name: "投放方案生成", description: "根据预算和目标生成广告投放策略" },
+              { id: "sk-roi-analysis", name: "ROI 分析", description: "实时监控广告效果并优化出价策略" },
+              { id: "sk-creative", name: "创意生成", description: "自动生成广告创意文案和素材建议" },
+            ],
+          },
+        ],
+      },
+      {
+        id: "exp-livestream",
+        name: "直播运营专家",
+        avatarGradient: "linear-gradient(135deg, #e0c3fc 0%, #8ec5fc 100%)",
+        subExperts: [
+          {
+            id: "sub-live-plan",
+            name: "直播策划专家",
+            skills: [
+              { id: "sk-script", name: "直播脚本生成", description: "自动生成直播话术脚本和商品讲解要点" },
+              { id: "sk-product-order", name: "选品排序", description: "根据历史数据优化直播间商品上架顺序" },
+              { id: "sk-live-report", name: "直播复盘报告", description: "自动汇总直播数据并输出优化建议" },
+            ],
+          },
+        ],
+      },
+      {
+        id: "exp-bd",
+        name: "BD 专家",
+        avatarGradient: "linear-gradient(135deg, #fbc2eb 0%, #a6c1ee 100%)",
+        subExperts: [
+          {
+            id: "sub-partner-dev",
+            name: "渠道拓展专家",
+            skills: [
+              { id: "sk-partner-profile", name: "合作伙伴画像", description: "基于行业数据生成目标合作伙伴筛选方案" },
+              { id: "sk-pitch-deck", name: "合作方案生成", description: "自动生成定制化的商务合作提案" },
+              { id: "sk-partner-track", name: "合作跟进管理", description: "跟踪合作进展并自动提醒关键节点" },
+            ],
+          },
+        ],
+      },
+      {
+        id: "exp-delivery-mgmt",
+        name: "交付管理专家",
+        avatarGradient: "linear-gradient(135deg, #d4fc79 0%, #96e6a1 100%)",
+        subExperts: [
+          {
+            id: "sub-project-mgmt",
+            name: "项目交付专家",
+            skills: [
+              { id: "sk-milestone", name: "里程碑跟踪", description: "自动跟踪项目里程碑并预警延期风险" },
+              { id: "sk-resource-alloc", name: "资源分配优化", description: "基于项目负荷智能调配交付人员" },
+              { id: "sk-delivery-report", name: "交付报告生成", description: "输出项目交付进展和质量评估报告" },
+            ],
+          },
+        ],
+      },
+    ],
+  },
+  {
+    key: "general",
+    label: "通用",
+    fullLabel: "通用管理",
+    experts: [
+      {
+        id: "exp-ceo-assistant",
+        name: "CEO 助理",
+        avatarGradient: "linear-gradient(135deg, #434343 0%, #000000 100%)",
+        subExperts: [
+          {
+            id: "sub-info-digest",
+            name: "信息整合专家",
+            skills: [
+              { id: "sk-daily-brief", name: "每日简报", description: "自动汇总当日关键业务数据和行业动态" },
+              { id: "sk-meeting-prep", name: "会议准备", description: "自动整理议程、参会人和关联材料" },
+              { id: "sk-decision-memo", name: "决策备忘录", description: "将讨论结果结构化为可执行的决策文档" },
+            ],
+          },
+          {
+            id: "sub-strategy",
+            name: "战略分析专家",
+            skills: [
+              { id: "sk-industry-scan", name: "行业扫描", description: "持续跟踪行业政策、竞品和市场变化" },
+              { id: "sk-biz-review", name: "经营复盘", description: "自动生成月度/季度经营复盘报告" },
+              { id: "sk-initiative-track", name: "战略任务跟踪", description: "追踪公司级战略目标的落地进展" },
+            ],
+          },
+        ],
+      },
+      {
+        id: "exp-hr",
+        name: "HR 专家",
+        avatarGradient: "linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%)",
+        subExperts: [
+          {
+            id: "sub-recruitment",
+            name: "招聘专家",
+            skills: [
+              { id: "sk-jd", name: "JD 生成", description: "根据岗位需求自动撰写职位描述" },
+              { id: "sk-resume-screen", name: "简历筛选", description: "智能匹配候选人简历与岗位要求" },
+              { id: "sk-interview", name: "面试问题生成", description: "针对岗位和候选人背景生成面试问题" },
+            ],
+          },
+          {
+            id: "sub-employee-mgmt",
+            name: "员工管理专家",
+            skills: [
+              { id: "sk-onboarding", name: "入职流程管理", description: "自动生成入职清单和培训计划" },
+              { id: "sk-performance", name: "绩效分析", description: "汇总员工绩效数据并生成评估建议" },
+              { id: "sk-policy-qa", name: "政策问答", description: "基于公司制度库即时解答员工政策疑问" },
+            ],
+          },
+        ],
+      },
+      {
+        id: "exp-finance-legal",
+        name: "财法务专家",
+        avatarGradient: "linear-gradient(135deg, #c3cfe2 0%, #f5f7fa 100%)",
+        subExperts: [
+          {
+            id: "sub-finance",
+            name: "财务分析专家",
+            skills: [
+              { id: "sk-pnl", name: "损益分析", description: "自动生成利润表分析和成本结构解读" },
+              { id: "sk-cashflow", name: "现金流预测", description: "基于收支数据预测未来现金流状况" },
+              { id: "sk-budget", name: "预算偏差分析", description: "对比预算与实际支出并输出偏差原因" },
+            ],
+          },
+          {
+            id: "sub-legal",
+            name: "法务合规专家",
+            skills: [
+              { id: "sk-contract-review", name: "合同审查", description: "自动扫描合同条款并标注风险点" },
+              { id: "sk-compliance-check", name: "合规检查", description: "比对业务操作与法律法规的合规性" },
+              { id: "sk-legal-memo", name: "法律备忘录", description: "针对具体问题生成法律分析意见" },
+            ],
+          },
+        ],
+      },
+      {
+        id: "exp-biz-analyst",
+        name: "经营分析师",
+        avatarGradient: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+        subExperts: [
+          {
+            id: "sub-data-analysis",
+            name: "数据分析专家",
+            skills: [
+              { id: "sk-dashboard", name: "看板生成", description: "根据业务指标自动生成数据看板" },
+              { id: "sk-anomaly", name: "异常检测", description: "自动发现业务数据异常波动并预警" },
+              { id: "sk-insight", name: "洞察报告", description: "从多维数据中提炼关键业务洞察" },
+            ],
+          },
+          {
+            id: "sub-ops-opt",
+            name: "运营优化专家",
+            skills: [
+              { id: "sk-efficiency", name: "效率分析", description: "分析各部门运营效率并识别改进空间" },
+              { id: "sk-benchmark", name: "行业对标", description: "与行业标杆对比核心运营指标" },
+              { id: "sk-action-plan", name: "改进方案输出", description: "基于分析结果输出可执行的优化方案" },
+            ],
+          },
+        ],
+      },
+    ],
+  },
 ];

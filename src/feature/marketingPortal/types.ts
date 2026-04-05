@@ -102,6 +102,44 @@ export interface MarketingHomePackageItem {
 }
 
 /**
+ * AI 专家 Skill 能力。
+ */
+export interface MarketingExpertSkillItem {
+  id: string;
+  name: string;
+  description: string;
+}
+
+/**
+ * AI 子专家。
+ */
+export interface MarketingSubExpertItem {
+  id: string;
+  name: string;
+  skills: MarketingExpertSkillItem[];
+}
+
+/**
+ * AI 专家。
+ */
+export interface MarketingExpertItem {
+  id: string;
+  name: string;
+  avatarGradient: string;
+  subExperts: MarketingSubExpertItem[];
+}
+
+/**
+ * AI 专家领域。
+ */
+export interface MarketingExpertDomainItem {
+  key: string;
+  label: string;
+  fullLabel: string;
+  experts: MarketingExpertItem[];
+}
+
+/**
  * 门户价值支柱。
  */
 export interface MarketingValuePillarItem {
@@ -309,6 +347,12 @@ export interface MarketingCaseStudyItem {
   effect: string;
   metrics: MarketingMetricItem[];
   quote?: MarketingQuoteItem;
+  /** B 站视频 BV 号。 */
+  bvid?: string;
+  /** 视频封面 URL。 */
+  videoCoverUrl?: string;
+  /** 视频时长文案，如 "03:28"。 */
+  videoDuration?: string;
 }
 
 /**

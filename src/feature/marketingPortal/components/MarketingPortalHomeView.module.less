@@ -206,6 +206,7 @@
 .heroSection,
 .archSection,
 .caseSection,
+.expertsSection,
 .ctaSection {
   color: var(--portalTextPrimary);
 }
@@ -258,6 +259,16 @@
     linear-gradient(180deg, #091423 0%, #0e1d31 100%);
 }
 
+.expertsSection {
+  align-items: flex-start;
+  padding-top: calc(var(--portalHeaderDockSpace) + 10px);
+  padding-bottom: 80px;
+  background:
+    radial-gradient(circle at 18% 24%, rgba(125, 226, 241, 0.12), transparent 20%),
+    radial-gradient(circle at 82% 72%, rgba(84, 110, 255, 0.08), transparent 24%),
+    linear-gradient(180deg, #07111f 0%, #0b182b 100%);
+}
+
 .agentSection {
   background:
     radial-gradient(circle at 20% 20%, rgba(125, 226, 241, 0.12), transparent 22%),
@@ -276,6 +287,7 @@
 .valueSection,
 .archSection,
 .scenarioSection,
+.expertsSection,
 .agentSection,
 .ctaSection {
   position: relative;
@@ -284,6 +296,7 @@
 
 .valueSection::before,
 .scenarioSection::before,
+.expertsSection::before,
 .agentSection::before {
   content: "";
   position: absolute;
@@ -354,6 +367,7 @@
 .archSection .sectionInner,
 .scenarioSection .sectionInner,
 .caseSection .sectionInner,
+.expertsSection .sectionInner,
 .agentSection .sectionInner,
 .ctaSection .sectionInner {
   position: relative;
@@ -1640,3 +1654,423 @@
     font-size: 22px;
   }
 }
+
+/* ═══════════════════════════════════════════════════════
+   专家展示区 — 桑基图流动式 (第二屏)
+   ═══════════════════════════════════════════════════════ */
+
+.expertsDescription {
+  margin-top: 8px;
+  font-size: 16px;
+  line-height: 1.7;
+  max-width: 640px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.expertsSection .sectionInner {
+  width: min(1120px, calc(100% - 120px));
+  display: flex;
+  flex-direction: column;
+  gap: 36px;
+  align-items: center;
+}
+
+/* 整体容器 */
+.flowShowcase {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
+
+/* 每一层 */
+.flowTier {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  animation: tierFadeIn 0.4s ease;
+}
+
+@keyframes tierFadeIn {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* 节点行 */
+.flowNodeRow {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 20px;
+}
+
+/* ── 流动连接线 ── */
+.flowConnector {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 56px;
+  position: relative;
+  width: 100%;
+}
+
+.flowStream {
+  width: 2px;
+  height: 100%;
+  border-radius: 2px;
+  position: relative;
+  overflow: hidden;
+  background: rgba(86, 207, 225, 0.12);
+}
+
+.flowStream::before {
+  content: "";
+  position: absolute;
+  top: -100%;
+  left: 0;
+  width: 100%;
+  height: 200%;
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    #56cfe1 30%,
+    #72efdd 50%,
+    #56cfe1 70%,
+    transparent 100%
+  );
+  animation: streamFlow 1.8s ease-in-out infinite;
+}
+
+@keyframes streamFlow {
+  0%   { transform: translateY(-50%); }
+  100% { transform: translateY(50%); }
+}
+
+/* 连接线两侧发散光晕 */
+.flowConnector::before,
+.flowConnector::after {
+  content: "";
+  position: absolute;
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(86, 207, 225, 0.08), transparent 70%);
+  pointer-events: none;
+}
+.flowConnector::before { top: -20px; }
+.flowConnector::after  { bottom: -20px; }
+
+/* ── Tier 0：领域节点 ── */
+.flowDomainNode {
+  all: unset;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 20px 36px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.flowDomainNode::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 16px;
+  background: linear-gradient(135deg, rgba(86, 207, 225, 0.1), rgba(114, 239, 221, 0.05));
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.flowDomainNode:hover::before { opacity: 0.5; }
+.flowDomainNodeActive::before { opacity: 1; }
+
+.flowDomainNode:hover {
+  border-color: rgba(86, 207, 225, 0.2);
+  transform: translateY(-2px);
+}
+
+.flowDomainNodeActive {
+  border-color: rgba(86, 207, 225, 0.4);
+  box-shadow: 0 0 24px rgba(86, 207, 225, 0.12);
+}
+
+.flowDomainLabel {
+  font-size: 28px;
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.5);
+  position: relative;
+  transition: color 0.3s ease;
+}
+
+.flowDomainNodeActive .flowDomainLabel {
+  color: #56cfe1;
+}
+
+.flowDomainFull {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.35);
+  position: relative;
+  transition: color 0.3s ease;
+}
+
+.flowDomainNodeActive .flowDomainFull {
+  color: rgba(86, 207, 225, 0.8);
+}
+
+.flowDomainCount {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.25);
+  position: relative;
+}
+
+.flowDomainNodeActive .flowDomainCount {
+  color: rgba(86, 207, 225, 0.6);
+}
+
+/* ── Tier 1：专家节点 ── */
+.flowExpertNode {
+  all: unset;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 20px 24px;
+  min-width: 130px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  transition: all 0.3s ease;
+  box-sizing: border-box;
+  position: relative;
+}
+
+.flowExpertNode:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.12);
+  transform: translateY(-3px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+}
+
+.flowExpertNodeActive {
+  background: rgba(86, 207, 225, 0.06);
+  border-color: rgba(86, 207, 225, 0.35);
+  box-shadow: 0 0 20px rgba(86, 207, 225, 0.1);
+}
+
+.flowExpertAvatar {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 24px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.flowExpertNode:hover .flowExpertAvatar {
+  transform: scale(1.08);
+  box-shadow: 0 6px 28px rgba(0, 0, 0, 0.4);
+}
+
+.flowExpertNodeActive .flowExpertAvatar {
+  box-shadow: 0 0 0 3px rgba(86, 207, 225, 0.3), 0 6px 28px rgba(0, 0, 0, 0.4);
+}
+
+.flowExpertName {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--portalTextPrimary);
+  text-align: center;
+  white-space: nowrap;
+}
+
+.flowExpertMeta {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.35);
+}
+
+/* ── 层级提示 ── */
+.flowTierHint {
+  margin: 0 0 12px;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.4);
+  text-align: center;
+}
+
+.flowTierHintAccent {
+  color: #56cfe1;
+  font-weight: 600;
+}
+
+/* ── Tier 2：子专家节点 ── */
+.flowSubNode {
+  all: unset;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 18px 24px;
+  min-width: 120px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  transition: all 0.3s ease;
+  box-sizing: border-box;
+}
+
+.flowSubNode:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.12);
+  transform: translateY(-2px);
+}
+
+.flowSubNodeActive {
+  background: rgba(86, 207, 225, 0.06);
+  border-color: rgba(86, 207, 225, 0.3);
+  box-shadow: 0 0 16px rgba(86, 207, 225, 0.08);
+}
+
+.flowSubIcon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, rgba(86, 207, 225, 0.15), rgba(114, 239, 221, 0.1));
+  color: #56cfe1;
+  font-size: 16px;
+  transition: transform 0.3s ease;
+}
+
+.flowSubNode:hover .flowSubIcon {
+  transform: scale(1.1);
+}
+
+.flowSubName {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--portalTextPrimary);
+  text-align: center;
+}
+
+.flowSubMeta {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.3);
+}
+
+/* ── Tier 3：Skill 卡片 ── */
+.flowSkillRow {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.flowSkillCard {
+  padding: 20px 24px;
+  min-width: 200px;
+  max-width: 280px;
+  flex: 1;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.flowSkillCard::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #56cfe1, #72efdd, transparent);
+  animation: skillShimmer 2s ease-in-out infinite;
+}
+
+@keyframes skillShimmer {
+  0%, 100% { opacity: 0.4; }
+  50%      { opacity: 1; }
+}
+
+.flowSkillCard:hover {
+  border-color: rgba(86, 207, 225, 0.2);
+  background: rgba(255, 255, 255, 0.05);
+  transform: translateY(-2px);
+}
+
+.flowSkillHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.flowSkillIcon {
+  font-size: 14px;
+  color: #56cfe1;
+}
+
+.flowSkillName {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--portalTextPrimary);
+}
+
+.flowSkillDesc {
+  margin: 0;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.4);
+  line-height: 1.6;
+}
+
+/* ── 响应式 ── */
+@media (max-width: 768px) {
+  .expertsSection .sectionInner {
+    width: calc(100% - 40px);
+  }
+  .flowNodeRow {
+    gap: 12px;
+  }
+  .flowDomainNode {
+    padding: 14px 20px;
+  }
+  .flowDomainLabel {
+    font-size: 20px;
+  }
+  .flowExpertNode {
+    min-width: 100px;
+    padding: 14px 16px;
+  }
+  .flowExpertAvatar {
+    width: 44px;
+    height: 44px;
+    font-size: 18px;
+  }
+  .flowSkillCard {
+    min-width: 160px;
+  }
+  .flowConnector {
+    height: 40px;
+  }
+}
+
