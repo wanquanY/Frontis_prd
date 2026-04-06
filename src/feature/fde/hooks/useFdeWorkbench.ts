@@ -46,6 +46,7 @@ const FDE_DEVELOPMENT_VISIBLE_KEYS: FdeWorkbenchTabKey[] = [
   "agentDev",
   "skillMarket",
   "agentStore",
+  "opsInsights",
 ];
 
 const getDefaultMemberTitle = (role: FdeTeamMemberDraft["role"]): string => {

@@ -19,6 +19,7 @@ export const FDE_DEVELOPMENT_TAB_KEYS: FdeWorkbenchTabKey[] = [
   "agentDev",
   "skillMarket",
   "agentStore",
+  "opsInsights",
 ];
 
 const FDE_WORKBENCH_ROUTE_SEGMENTS: Record<FdeWorkbenchTabKey, string> = {
@@ -31,6 +32,7 @@ const FDE_WORKBENCH_ROUTE_SEGMENTS: Record<FdeWorkbenchTabKey, string> = {
   agentDev: "agent-dev",
   skillMarket: "skill-market",
   agentStore: "agent-store",
+  opsInsights: "ops-insights",
 };
 
 /**

@@ -4,6 +4,7 @@ import classNames from "classnames";
 import {
   AppstoreOutlined,
   CodeOutlined,
+  EyeOutlined,
   LogoutOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
@@ -16,6 +17,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useMockAuth } from "@/feature/auth/hooks/useMockAuth";
 import { FdeAgentDevView } from "@/feature/fde/components/FdeAgentDevView";
 import { FdeAgentStoreView } from "@/feature/fde/components/FdeAgentStoreView";
+import { FdeOpsInsightsView } from "@/feature/fde/components/FdeOpsInsightsView";
 import { FdeSkillMarketView } from "@/feature/fde/components/FdeSkillMarketView";
 import { useFdeDevWorkbench } from "@/feature/fde-dev/hooks/useFdeDevWorkbench";
 import type {
@@ -34,6 +36,7 @@ const FDE_DEV_TAB_ICONS: Partial<Record<FdeWorkbenchTabKey, JSX.Element>> = {
   agentDev: <CodeOutlined />,
   skillMarket: <ThunderboltOutlined />,
   agentStore: <AppstoreOutlined />,
+  opsInsights: <EyeOutlined />,
 };
 
 const getWorkbenchTitle = (tab: FdeWorkbenchTabItem): string => tab.label;
@@ -119,6 +122,10 @@ export const FdeDevWorkbenchView = (): JSX.Element => {
 
     if (activeTab === "agentStore") {
       return <FdeAgentStoreView onNavigateToAgentDev={() => handleNavigateTab("agentDev")} />;
+    }
+
+    if (activeTab === "opsInsights") {
+      return <FdeOpsInsightsView />;
     }
 
     if (activeTab === "agentDev") {

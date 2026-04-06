@@ -68,12 +68,17 @@ export const FDE_WORKBENCH_TABS: FdeWorkbenchTabItem[] = [
   },
   {
     key: "skillMarket",
-    label: "skill市场",
+    label: "Skill广场",
     description: "",
   },
   {
     key: "agentStore",
-    label: "Agent store",
+    label: "Agent广场",
+    description: "",
+  },
+  {
+    key: "opsInsights",
+    label: "运营洞察",
     description: "",
   },
 ];
@@ -129,12 +134,17 @@ export const FDE_WORKBENCH_NAV_GROUPS: FdeWorkbenchNavGroup[] = [
       },
       {
         key: "skillMarket",
-        label: "skill市场",
+        label: "Skill广场",
         description: "",
       },
       {
         key: "agentStore",
-        label: "Agent store",
+        label: "Agent广场",
+        description: "",
+      },
+      {
+        key: "opsInsights",
+        label: "运营洞察",
         description: "",
       },
     ],
@@ -177,13 +187,18 @@ export const FDE_TEAM_PERMISSIONS: FdeTeamPermissionItem[] = [
   },
   {
     key: "skillMarket",
-    label: "skill市场",
+    label: "Skill广场",
     description: "可浏览和管理团队 skill 资产。",
   },
   {
     key: "agentStore",
-    label: "Agent store",
+    label: "Agent广场",
     description: "可浏览和管理团队 Agent 资产。",
+  },
+  {
+    key: "opsInsights",
+    label: "运营洞察",
+    description: "可查看平台分发效率、调用活跃和企业价值覆盖情况。",
   },
 ];
 

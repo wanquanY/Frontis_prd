@@ -15,7 +15,8 @@ export type FdeWorkbenchTabKey =
   | "versionManagement"
   | "agentDev"
   | "skillMarket"
-  | "agentStore";
+  | "agentStore"
+  | "opsInsights";
 
 /**
  * FDE 成员模块权限。
@@ -28,7 +29,8 @@ export type FdeTeamPermissionKey =
   | "versionManagement"
   | "agentDev"
   | "skillMarket"
-  | "agentStore";
+  | "agentStore"
+  | "opsInsights";
 
 /**
  * FDE 成员状态。

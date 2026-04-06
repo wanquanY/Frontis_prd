@@ -1,739 +1,386 @@
 .root {
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0;
+  --bg: #f4f7fb;
+  --bg-soft: #eef3f9;
+  --panel: #ffffff;
+  --panel-soft: #f8fbff;
+  --line: #dbe4f0;
+  --text: #142235;
+  --text-strong: #0b1220;
+  --text-soft: #5a6a7f;
+  --text-faint: #8a9aaf;
+
+  padding: 24px;
+  background: var(--bg);
+  min-height: 100%;
 }
 
-/* ─── 顶部操作栏 ─── */
-
-.topBar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  flex-wrap: wrap;
-}
-
-.tabList {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 4px;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--text) 4%, transparent);
-}
-
-.tabButton {
-  height: 36px;
-  padding: 0 18px;
-  border: none;
-  border-radius: 999px;
-  background: transparent;
-  color: var(--text-secondary);
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition:
-    background 160ms ease,
-    color 160ms ease;
-
-  &:hover {
-    color: var(--text);
-  }
-}
-
-.tabButtonActive {
-  background: var(--surface);
-  color: var(--text);
-  font-weight: 600;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
-}
-
-.topActions {
+/* 搜索框 */
+.searchBox {
+  position: relative;
+  margin-bottom: 14px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 9px 14px 9px 36px;
   display: flex;
   align-items: center;
-  gap: 12px;
-}
-
-.searchInput {
-  width: 280px;
-
-  :global(.ant-input-affix-wrapper) {
-    height: 38px;
-    padding: 0 12px;
-    border-radius: 12px;
-    border-color: var(--border);
-    background: color-mix(in srgb, var(--app-bg) 78%, var(--surface));
-    box-shadow: none;
-  }
-
-  :global(.ant-input-affix-wrapper:hover),
-  :global(.ant-input-affix-wrapper-focused) {
-    border-color: color-mix(in srgb, var(--primary) 36%, var(--border));
-    background: color-mix(in srgb, var(--app-bg) 88%, var(--surface));
-    box-shadow: none;
-  }
-
-  :global(.ant-input) {
-    color: var(--text);
-    font-size: 14px;
-  }
 }
 
 .searchIcon {
-  color: var(--text-muted);
+  position: absolute;
+  left: 11px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-faint);
+  font-size: 14px;
 }
 
-.createDropdown {
-  :global(.ant-btn) {
-    height: 38px;
-    border-radius: 12px;
-    font-weight: 600;
-    font-size: 14px;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
+.searchInput {
+  flex: 1;
+  border: none;
+  background: transparent;
+  font-size: 13px;
+  color: var(--text);
+  outline: none;
+
+  &::placeholder {
+    color: var(--text-faint);
   }
 }
 
-/* ─── 分类筛选 ─── */
+/* 页面描述 */
+.pageDesc {
+  font-size: 12px;
+  color: var(--text);
+  margin-bottom: 14px;
+}
 
-.filterBar {
+/* 控制栏 */
+.controlsRow {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding-top: 16px;
+  gap: 12px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
 }
 
-.filterPill {
-  height: 34px;
-  padding: 0 14px;
-  border: 1px solid var(--border);
+/* 市场标签 */
+.marketTabs {
+  display: flex;
+  gap: 3px;
+  background: rgba(255, 255, 255, 0.75);
+  padding: 3px;
   border-radius: 999px;
-  background: var(--surface);
-  color: var(--text);
+  border: 1px solid var(--line);
+}
+
+.marketTab {
+  padding: 7px 18px;
+  border-radius: 999px;
   font-size: 13px;
-  font-weight: 500;
   cursor: pointer;
-  transition:
-    border-color 160ms ease,
-    background 160ms ease,
-    color 160ms ease;
+  color: var(--text-soft);
+  transition: all 0.2s;
+  white-space: nowrap;
+  border: none;
+  background: transparent;
 
   &:hover {
-    border-color: color-mix(in srgb, var(--primary) 36%, var(--border));
+    color: var(--text-strong);
+    background: var(--bg-soft);
   }
 }
 
-.filterPillActive {
-  border-color: var(--primary);
-  background: var(--primary-weak);
-  color: var(--primary);
+.marketTabActive {
+  background: rgba(79, 70, 229, 0.08);
+  color: #4f46e5;
   font-weight: 600;
 }
 
-/* ─── 卡片网格 ─── */
-
-.cardGrid {
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-  padding-top: 18px;
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr));
-  align-content: flex-start;
-  align-items: start;
-  gap: 16px;
+/* 子标签 */
+.subTabs {
+  display: flex;
+  gap: 3px;
+  background: rgba(255, 255, 255, 0.75);
+  padding: 3px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
 }
 
-.skillCard {
-  width: 100%;
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  background: var(--surface);
-  padding: 18px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+.subTab {
+  padding: 5px 14px;
+  border-radius: 999px;
+  font-size: 12px;
   cursor: pointer;
-  transition:
-    border-color 200ms ease,
-    box-shadow 200ms ease,
-    transform 200ms ease;
+  color: var(--text-soft);
+  transition: all 0.2s;
+  white-space: nowrap;
+  border: none;
+  background: transparent;
 
   &:hover {
-    border-color: color-mix(in srgb, var(--primary) 24%, var(--border));
-    box-shadow: var(--shadow-sm);
+    color: var(--text-strong);
+    background: var(--bg-soft);
+  }
+}
+
+.subTabActive {
+  background: rgba(79, 70, 229, 0.08);
+  color: #4f46e5;
+  font-weight: 600;
+}
+
+/* 创建按钮 */
+.createBtn {
+  margin-left: auto;
+  background: linear-gradient(135deg, #f97316, #fb923c);
+  border: none;
+  font-weight: 600;
+  padding: 7px 18px;
+  border-radius: 10px;
+  font-size: 13px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s;
+  box-shadow: 0 6px 16px rgba(249, 115, 22, 0.22);
+
+  &:hover {
+    opacity: 0.9;
     transform: translateY(-1px);
   }
 }
 
-/* 卡片头部 */
+/* 空状态 */
+.empty {
+  text-align: center;
+  padding: 48px 0;
+  color: var(--text-faint);
+  font-size: 13px;
+}
 
-.cardHeader {
+/* Skill 卡片网格 */
+.skillGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 14px;
+}
+
+.skillCard {
+  background: rgba(255, 255, 255, 0.88);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  cursor: pointer;
+  transition: all 0.25s;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+
+  &:hover {
+    background: #fff;
+    border-color: rgba(79, 70, 229, 0.24);
+    transform: translateY(-2px);
+    box-shadow: 0 14px 36px rgba(15, 23, 42, 0.08);
+  }
+
+  :global(.ant-card-body) {
+    padding: 18px;
+  }
+}
+
+.cardTop {
   display: flex;
   align-items: flex-start;
   gap: 12px;
+  margin-bottom: 10px;
 }
 
-.cardIcon {
+.skillIcon {
   width: 44px;
   height: 44px;
   border-radius: 12px;
-  flex: 0 0 auto;
-  display: inline-flex;
+  display: flex;
   align-items: center;
   justify-content: center;
+  font-size: 18px;
+  font-weight: 600;
   color: #fff;
-  font-size: 20px;
-  font-weight: 700;
-}
-
-.cardTitleBlock {
-  min-width: 0;
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.cardName {
-  margin: 0;
-  color: var(--text);
-  font-size: 15px;
-  line-height: 22px;
-  font-weight: 700;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  flex-shrink: 0;
 }
 
 .cardMeta {
-  margin: 0;
+  flex: 1;
+  min-width: 0;
+}
+
+.cardTitleLine {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-strong);
   display: flex;
   align-items: center;
-  gap: 6px;
-  color: var(--text-secondary);
-  font-size: 12px;
-  line-height: 18px;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 2px;
 }
 
-.typeBadge {
-  display: inline-block;
-  padding: 1px 6px;
-  border-radius: 6px;
+.cardVersion {
   font-size: 11px;
-  font-weight: 600;
-  line-height: 16px;
+  color: var(--text-faint);
 }
 
-.typeBadgeWorkflow {
-  background: color-mix(in srgb, #667eea 12%, transparent);
+/* 类型标签 */
+.typeBadge {
+  font-size: 10px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-weight: 500;
+}
+
+.typeWorkflow {
+  background: rgba(102, 126, 234, 0.12);
   color: #667eea;
 }
 
-.typeBadgeSkill {
-  background: color-mix(in srgb, var(--primary) 12%, transparent);
-  color: var(--primary);
+.typeSkill {
+  background: rgba(245, 87, 108, 0.12);
+  color: #f5576c;
 }
 
-.typeBadgeModel {
-  background: color-mix(in srgb, #f5ae3c 12%, transparent);
-  color: #d97706;
+.typeModel {
+  background: rgba(17, 153, 142, 0.12);
+  color: #11998e;
 }
 
-.typeBadgeTool {
-  background: color-mix(in srgb, #1677ff 12%, transparent);
+.typeTool {
+  background: rgba(22, 119, 255, 0.12);
   color: #1677ff;
 }
 
-/* 描述 */
-
-.cardDescription {
-  margin: 0;
-  color: var(--text-secondary);
-  font-size: 13px;
-  line-height: 20px;
-  min-height: 60px;
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  line-clamp: 3;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  transition: none;
+/* 可见性标签 */
+.visibilityBadge {
+  font-size: 10px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-weight: 500;
 }
 
-.skillCard:hover .cardDescription {
-  display: block;
-  -webkit-line-clamp: unset;
-  line-clamp: unset;
-  overflow: visible;
+.visPrivate {
+  background: rgba(107, 114, 128, 0.12);
+  color: #6b7280;
+}
+
+.visPublic {
+  background: rgba(5, 150, 105, 0.12);
+  color: #059669;
+}
+
+.visTeam {
+  background: rgba(124, 58, 237, 0.12);
+  color: #7c3aed;
+}
+
+/* 描述 */
+.cardDesc {
+  font-size: 12px;
+  color: var(--text);
+  line-height: 1.7;
+  margin-bottom: 12px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 /* 标签 */
-
-.tagList {
+.cardTags {
   display: flex;
-  align-items: center;
-  gap: 6px;
   flex-wrap: wrap;
-  min-height: 24px;
+  gap: 4px;
+  margin-bottom: 12px;
 }
 
-.tag {
-  padding: 2px 8px;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--primary) 8%, transparent);
-  color: var(--text-secondary);
+.skillTag {
+  padding: 3px 10px;
+  background: var(--panel-soft);
+  border: 1px solid var(--line);
+  border-radius: 6px;
   font-size: 11px;
-  font-weight: 500;
-  line-height: 16px;
+  color: var(--text-soft);
 }
 
 /* 底部 */
-
 .cardFooter {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  padding-top: 8px;
-  border-top: 1px solid color-mix(in srgb, var(--text) 5%, transparent);
-  margin-top: auto;
-  color: var(--text-muted);
-  font-size: 12px;
-  line-height: 18px;
-}
-
-.footerPublisher {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.footerTime {
-  flex: 0 0 auto;
-  white-space: nowrap;
-}
-
-/* 共享标记 */
-
-.shareBadge {
-  padding: 2px 8px;
-  border-radius: 999px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
   font-size: 11px;
-  font-weight: 600;
-  line-height: 16px;
+  color: var(--text-soft);
 }
 
-.shareBadgeToMe {
-  background: color-mix(in srgb, var(--primary) 10%, transparent);
-  color: var(--primary);
-}
-
-.shareBadgeByMe {
-  background: color-mix(in srgb, #7b61ff 10%, transparent);
-  color: #7b61ff;
-}
-
-/* 空状态 */
-
-.emptyState {
-  flex: 1;
-  min-height: 280px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-/* ─── 上传弹窗 ─── */
-
-.uploadGrid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-}
-
-.coverSection {
-  margin-top: 8px;
-}
-
-.coverSectionTitle {
-  margin: 0 0 10px;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--text);
-}
-
-.coverPresetGrid {
-  display: grid;
-  grid-template-columns: repeat(6, 1fr);
-  gap: 8px;
-}
-
-.coverPresetItem {
-  aspect-ratio: 1;
-  border: 2px solid transparent;
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 22px;
-  cursor: pointer;
-  transition:
-    border-color 160ms ease,
-    transform 160ms ease;
-
-  &:hover {
-    transform: scale(1.08);
-  }
-}
-
-.coverPresetItemActive {
-  border-color: var(--primary);
-  box-shadow: 0 0 0 2px var(--primary-weak);
-}
-
-/* ─── 详情页 ─── */
-
-.detailRoot {
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-}
-
-.detailTopBar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding-bottom: 16px;
-  border-bottom: 1px solid color-mix(in srgb, var(--text) 6%, transparent);
-}
-
-.backButton {
-  height: 34px;
-  padding: 0 14px;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  background: var(--surface);
-  color: var(--text-secondary);
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  transition:
-    border-color 160ms ease,
-    color 160ms ease;
-
-  &:hover {
-    border-color: color-mix(in srgb, var(--primary) 36%, var(--border));
-    color: var(--text);
-  }
-}
-
-.detailBody {
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-  display: flex;
-  gap: 28px;
-  padding-top: 20px;
-}
-
-/* 左侧信息面板 */
-
-.detailLeft {
-  flex: 0 0 340px;
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-.detailIconLarge {
-  width: 72px;
-  height: 72px;
-  border-radius: 18px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  color: #fff;
-  font-size: 32px;
-  font-weight: 700;
-  flex: 0 0 auto;
+/* 详情弹窗 */
+.detailContent {
+  padding: 8px 0;
 }
 
 .detailHeader {
   display: flex;
-  align-items: flex-start;
-  gap: 16px;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
 }
 
-.detailHeaderInfo {
-  min-width: 0;
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.detailName {
-  margin: 0;
-  color: var(--text);
-  font-size: 22px;
-  line-height: 30px;
-  font-weight: 700;
-  word-break: break-word;
-}
-
-.detailMetaRow {
+.detailTitle {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-strong);
   display: flex;
   align-items: center;
   gap: 8px;
-  flex-wrap: wrap;
+  margin-bottom: 4px;
 }
 
 .detailVersion {
-  color: var(--text-secondary);
-  font-size: 13px;
-  font-weight: 500;
-}
-
-.detailDescriptionFull {
-  margin: 0;
-  color: var(--text-secondary);
-  font-size: 14px;
-  line-height: 22px;
-}
-
-.detailInfoGrid {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  padding: 16px;
-  border: 1px solid color-mix(in srgb, var(--text) 6%, transparent);
-  border-radius: 14px;
-  background: color-mix(in srgb, var(--app-bg) 60%, var(--surface));
-}
-
-.detailInfoRow {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.detailInfoLabel {
-  flex: 0 0 70px;
-  color: var(--text-muted);
-  font-size: 13px;
-}
-
-.detailInfoValue {
-  flex: 1;
-  min-width: 0;
-  color: var(--text);
-  font-size: 13px;
-  font-weight: 500;
-}
-
-.visibilityBadge {
-  display: inline-block;
-  padding: 2px 8px;
-  border-radius: 999px;
-  font-size: 11px;
-  font-weight: 600;
-  line-height: 16px;
-}
-
-.visibilityPublic {
-  background: color-mix(in srgb, #3cbf7b 10%, transparent);
-  color: #3cbf7b;
-}
-
-.visibilityTeam {
-  background: color-mix(in srgb, var(--primary) 10%, transparent);
-  color: var(--primary);
-}
-
-.visibilityPrivate {
-  background: color-mix(in srgb, var(--text) 8%, transparent);
-  color: var(--text-secondary);
-}
-
-/* 右侧版本时间线 */
-
-.detailRight {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-}
-
-.versionHeader {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding-bottom: 16px;
-}
-
-.versionTitle {
-  margin: 0;
-  color: var(--text);
-  font-size: 16px;
-  line-height: 24px;
-  font-weight: 700;
-}
-
-.versionCount {
-  color: var(--text-muted);
-  font-size: 13px;
-}
-
-.versionTimeline {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-  position: relative;
-  padding-left: 24px;
-
-  &::before {
-    content: "";
-    position: absolute;
-    left: 7px;
-    top: 8px;
-    bottom: 8px;
-    width: 2px;
-    background: color-mix(in srgb, var(--text) 8%, transparent);
-    border-radius: 1px;
-  }
-}
-
-.versionNode {
-  position: relative;
-  padding: 12px 0 12px 16px;
-}
-
-.versionDot {
-  position: absolute;
-  left: -24px;
-  top: 18px;
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  border: 3px solid color-mix(in srgb, var(--text) 12%, var(--surface));
-  background: var(--surface);
-  transition: border-color 160ms ease;
-}
-
-.versionNodeLatest .versionDot {
-  border-color: var(--primary);
-  background: color-mix(in srgb, var(--primary) 14%, var(--surface));
-}
-
-.versionNodeCard {
-  padding: 14px 16px;
-  border: 1px solid color-mix(in srgb, var(--text) 6%, transparent);
-  border-radius: 12px;
-  background: var(--surface);
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  transition:
-    border-color 160ms ease,
-    box-shadow 160ms ease;
-
-  &:hover {
-    border-color: color-mix(in srgb, var(--primary) 18%, var(--border));
-    box-shadow: var(--shadow-sm);
-  }
-}
-
-.versionNodeLatest .versionNodeCard {
-  border-color: color-mix(in srgb, var(--primary) 22%, var(--border));
-}
-
-.versionNodeTop {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.versionLabel {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  color: var(--text);
-  font-size: 15px;
-  font-weight: 700;
-}
-
-.latestTag {
-  padding: 1px 8px;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--primary) 12%, transparent);
-  color: var(--primary);
-  font-size: 11px;
-  font-weight: 600;
-}
-
-.versionDate {
-  color: var(--text-muted);
   font-size: 12px;
-  white-space: nowrap;
+  color: var(--text-faint);
 }
 
-.versionNote {
-  margin: 0;
-  color: var(--text-secondary);
+.detailSection {
+  margin-bottom: 20px;
+}
+
+.detailSectionTitle {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-soft);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--line);
+}
+
+.detailDesc {
   font-size: 13px;
-  line-height: 20px;
+  color: var(--text);
+  line-height: 1.7;
 }
 
-/* ─── 响应式 ─── */
+.detailTags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
 
-@media (max-width: 960px) {
-  .topBar {
-    flex-direction: column;
-    align-items: stretch;
-  }
+.detailRow {
+  display: flex;
+  margin-bottom: 8px;
+  font-size: 13px;
+}
 
-  .topActions {
-    flex-wrap: wrap;
-  }
-
-  .searchInput {
-    width: 100%;
-    flex: 1;
-  }
-
-  .cardGrid {
-    grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr));
-  }
-
-  .uploadGrid {
-    grid-template-columns: 1fr;
-  }
-
-  .coverPresetGrid {
-    grid-template-columns: repeat(6, 1fr);
-  }
-
-  .detailBody {
-    flex-direction: column;
-  }
-
-  .detailLeft {
-    flex: none;
-  }
+.detailLabel {
+  width: 80px;
+  color: var(--text-soft);
+  flex-shrink: 0;
+  font-weight: 500;
 }
