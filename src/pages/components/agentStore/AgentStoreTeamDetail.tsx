@@ -343,6 +343,41 @@ const ExpertConfigPanel = ({
   const selectedOwnerName = selectedOwnerId
     ? users.find(user => user.id === selectedOwnerId)?.name ?? null
     : null;
+  const assignedWorkspaceEntries = useMemo(
+    () =>
+      assignedWorkspaces.map(workspace => {
+        const accessState =
+          accessDraftsByWorkspaceId[workspace.id] ??
+          getDeviceAccessStateForExpert(employee, workspace.id, deploymentState);
+        const ownerId = deviceOwners[workspace.id] ?? null;
+        const ownerName = ownerId ? users.find(user => user.id === ownerId)?.name ?? null : null;
+        const effectiveMembers = getEffectiveMembersForDeviceAccess(accessState, ownerId, users);
+
+        return {
+          accessState,
+          effectiveMembers,
+          ownerName,
+          permissionLabel:
+            accessState.visibility === "all"
+              ? "全公司可用"
+              : `指定 ${effectiveMembers.length} 人可用`,
+          workspace,
+        };
+      }),
+    [accessDraftsByWorkspaceId, assignedWorkspaces, deploymentState, deviceOwners, employee, users],
+  );
+  const selectedWorkspaceEntry = useMemo(
+    () =>
+      assignedWorkspaceEntries.find(entry => entry.workspace.id === selectedAccessWorkspaceId) ?? null,
+    [assignedWorkspaceEntries, selectedAccessWorkspaceId],
+  );
+  const selectedEffectiveMembers = useMemo(() => {
+    if (!selectedAccessWorkspaceId || !selectedAccessState || selectedAccessState.visibility === "all") {
+      return [];
+    }
+
+    return getEffectiveMembersForDeviceAccess(selectedAccessState, selectedOwnerId, users);
+  }, [selectedAccessState, selectedAccessWorkspaceId, selectedOwnerId, users]);
   const selectedAccessSummary = useMemo(() => {
     if (!selectedAccessWorkspaceId || !selectedAccessState) {
       return "请先选择一个已分配设备，再配置该设备上的可用权限。";
@@ -379,6 +414,31 @@ const ExpertConfigPanel = ({
     setDraftWorkspaceId(undefined);
     message.success(`${employee.name} 已新增到该设备`);
   }, [deploymentState, draftWorkspaceId, employee, onAttachEmployeeToDevice]);
+
+  const handleAttachAllWorkspaces = useCallback((): void => {
+    const nextWorkspaceIds = availableWorkspaceOptions.map(option => option.value);
+
+    if (!nextWorkspaceIds.length) {
+      message.info("当前没有可新增分配的设备");
+      return;
+    }
+
+    nextWorkspaceIds.forEach(workspaceId => {
+      onAttachEmployeeToDevice(employee.id, workspaceId);
+    });
+    setAccessDraftsByWorkspaceId(prev => ({
+      ...prev,
+      ...Object.fromEntries(
+        nextWorkspaceIds.map(workspaceId => [
+          workspaceId,
+          getDeviceAccessStateForExpert(employee, workspaceId, deploymentState),
+        ]),
+      ),
+    }));
+    setSelectedAccessWorkspaceId(nextWorkspaceIds[0] ?? null);
+    setDraftWorkspaceId(undefined);
+    message.success(`${employee.name} 已一键分配到 ${nextWorkspaceIds.length} 个设备`);
+  }, [availableWorkspaceOptions, deploymentState, employee, onAttachEmployeeToDevice]);
 
   const handleRemoveWorkspace = useCallback(
     (workspaceId: string): void => {
@@ -497,40 +557,44 @@ const ExpertConfigPanel = ({
       </div>
 
       <div className={styles.expertConfigPanelSection}>
-        <div className={styles.simpleExpertBlock}>
-          <span className={styles.simpleExpertBlockLabel}>设备绑定</span>
-          <div className={styles.deviceBindingActions}>
-            <Select
-              className={adminStyles.consoleControl}
-              placeholder="选择要新增分配的设备"
-              size="small"
-              value={draftWorkspaceId}
-              onChange={value => setDraftWorkspaceId(value)}
-              options={availableWorkspaceOptions}
-            />
-            <Button
-              size="small"
-              type="primary"
-              disabled={!availableWorkspaceOptions.length}
-              onClick={handleAttachWorkspaceClick}
-            >
-              新增分配
-            </Button>
-          </div>
-          <span className={styles.simpleExpertHint}>
-            {isAssigned
-              ? "一个 AI 专家可以同时分配到多个设备，不同设备上的权限可以单独配置。"
-              : "请先为该 AI 专家分配至少一个设备，再继续配置设备权限和模型。"}
-          </span>
-          {assignedWorkspaces.length ? (
-            <div className={styles.assignedWorkspaceList}>
-              {assignedWorkspaces.map(workspace => {
-                const ownerId = deviceOwners[workspace.id] ?? null;
-                const ownerName = ownerId
-                  ? users.find(user => user.id === ownerId)?.name ?? null
-                  : null;
-
-                return (
+        <div className={styles.deviceWorkspaceLayout}>
+          <section className={styles.deviceWorkspacePanel}>
+            <div className={styles.deviceWorkspacePanelHeader}>
+              <div className={styles.deviceWorkspacePanelHead}>
+                <span className={styles.simpleExpertBlockLabel}>设备分配</span>
+                <span className={styles.simpleExpertHint}>
+                  一个 AI 专家可以同时分配到多个设备。先在左侧完成设备分配，再切换右侧管理该设备上的权限。
+                </span>
+              </div>
+              <Button
+                size="small"
+                disabled={!availableWorkspaceOptions.length}
+                onClick={handleAttachAllWorkspaces}
+              >
+                一键全部分配
+              </Button>
+            </div>
+            <div className={styles.deviceBindingActions}>
+              <Select
+                className={adminStyles.consoleControl}
+                placeholder="选择要新增分配的设备"
+                size="small"
+                value={draftWorkspaceId}
+                onChange={value => setDraftWorkspaceId(value)}
+                options={availableWorkspaceOptions}
+              />
+              <Button
+                size="small"
+                type="primary"
+                disabled={!availableWorkspaceOptions.length}
+                onClick={handleAttachWorkspaceClick}
+              >
+                新增分配
+              </Button>
+            </div>
+            {assignedWorkspaceEntries.length ? (
+              <div className={styles.assignedWorkspaceList}>
+                {assignedWorkspaceEntries.map(({ ownerName, permissionLabel, workspace }) => (
                   <div
                     key={workspace.id}
                     className={`${styles.assignedWorkspaceCard} ${
@@ -542,7 +606,10 @@ const ExpertConfigPanel = ({
                       className={styles.assignedWorkspaceMain}
                       onClick={() => setSelectedAccessWorkspaceId(workspace.id)}
                     >
-                      <span className={styles.assignedWorkspaceName}>{workspace.name}</span>
+                      <div className={styles.assignedWorkspaceHeader}>
+                        <span className={styles.assignedWorkspaceName}>{workspace.name}</span>
+                        <span className={styles.assignedWorkspacePermission}>{permissionLabel}</span>
+                      </div>
                       <span className={styles.assignedWorkspaceMeta}>
                         {ownerName ? `设备拥有者：${ownerName}` : "暂未设置设备拥有者"}
                       </span>
@@ -551,74 +618,111 @@ const ExpertConfigPanel = ({
                       移除
                     </Button>
                   </div>
-                );
-              })}
-            </div>
-          ) : null}
-        </div>
-      </div>
+                ))}
+              </div>
+            ) : (
+              <div className={styles.deviceWorkspaceEmpty}>
+                还没有分配设备。你可以先新增单个设备，或者直接一键分配到全部设备。
+              </div>
+            )}
+          </section>
 
-      <div className={styles.expertConfigPanelSection}>
-        <div className={styles.simpleExpertBlock}>
-          <span className={styles.simpleExpertBlockLabel}>设备权限配置</span>
-          {assignedWorkspaces.length ? (
-            <div className={adminStyles.consoleTabs}>
-              {assignedWorkspaces.map(workspace => (
-                <button
-                  key={workspace.id}
-                  type="button"
-                  className={
-                    selectedAccessWorkspaceId === workspace.id
-                      ? `${adminStyles.consoleTabButton} ${adminStyles.consoleTabButtonActive}`
-                      : adminStyles.consoleTabButton
-                  }
-                  onClick={() => setSelectedAccessWorkspaceId(workspace.id)}
-                >
-                  {workspace.name}
-                </button>
-              ))}
+          <section className={styles.deviceWorkspacePanel}>
+            <div className={styles.deviceWorkspacePanelHeader}>
+              <div className={styles.deviceWorkspacePanelHead}>
+                <span className={styles.simpleExpertBlockLabel}>权限管理</span>
+                <span className={styles.simpleExpertHint}>
+                  权限始终按当前选中设备生效，不同设备可以配置不同的可用范围。
+                </span>
+              </div>
             </div>
-          ) : null}
-          <Radio.Group
-            value={selectedAccessState?.visibility}
-            disabled={!selectedAccessWorkspaceId}
-            onChange={event => handleChangeAccessVisibility(event.target.value)}
-            size="small"
-          >
-            <Radio value="all">全公司可用</Radio>
-            <Radio value="bound">指定员工可用</Radio>
-          </Radio.Group>
-          {selectedAccessState?.visibility === "bound" ? (
-            <Select
-              className={adminStyles.consoleControl}
-              mode="multiple"
-              placeholder="选择额外可使用成员"
-              size="small"
-              disabled={!selectedAccessWorkspaceId}
-              value={selectedAccessState.boundMembers}
-              onChange={handleChangeAccessMembers}
-              options={memberNames.map(name => ({ label: name, value: name }))}
-            />
-          ) : null}
-          <span className={styles.simpleExpertHint}>{selectedAccessSummary}</span>
-          {selectedOwnerName ? (
-            <span className={styles.simpleExpertHint}>
-              设备拥有者 {selectedOwnerName} 默认拥有该设备中的 Agent 可用权限。
-            </span>
-          ) : null}
-          {!isAssigned ? (
-            <span className={styles.simpleExpertHint}>设备未分配前，不能配置设备级权限。</span>
-          ) : null}
-          <div className={adminStyles.consoleActions}>
-            <Button
-              size="small"
-              type="primary"
-              disabled={!selectedAccessWorkspaceId}
-              onClick={handleSaveDeviceAccess}
-            >
-              保存权限
-            </Button>
-          </div>
+            {selectedWorkspaceEntry ? (
+              <>
+                <div className={styles.devicePermissionCard}>
+                  <div className={styles.devicePermissionHeader}>
+                    <div className={styles.devicePermissionIdentity}>
+                      <span className={styles.devicePermissionName}>
+                        {selectedWorkspaceEntry.workspace.name}
+                      </span>
+                      <span className={styles.devicePermissionMeta}>
+                        {selectedWorkspaceEntry.workspace.region}
+                        {selectedWorkspaceEntry.ownerName
+                          ? ` · 设备拥有者：${selectedWorkspaceEntry.ownerName}`
+                          : " · 暂未设置设备拥有者"}
+                      </span>
+                    </div>
+                    <span className={styles.devicePermissionStatus}>
+                      {selectedWorkspaceEntry.permissionLabel}
+                    </span>
+                  </div>
+
+                  <div className={styles.devicePermissionControls}>
+                    <Radio.Group
+                      value={selectedAccessState?.visibility}
+                      disabled={!selectedAccessWorkspaceId}
+                      onChange={event => handleChangeAccessVisibility(event.target.value)}
+                      size="small"
+                    >
+                      <Radio value="all">全公司可用</Radio>
+                      <Radio value="bound">指定员工可用</Radio>
+                    </Radio.Group>
+                    {selectedAccessState?.visibility === "bound" ? (
+                      <Select
+                        className={adminStyles.consoleControl}
+                        mode="multiple"
+                        placeholder="选择额外可使用成员"
+                        size="small"
+                        disabled={!selectedAccessWorkspaceId}
+                        value={selectedAccessState.boundMembers}
+                        onChange={handleChangeAccessMembers}
+                        options={memberNames.map(name => ({ label: name, value: name }))}
+                      />
+                    ) : null}
+                  </div>
+
+                  <div className={styles.devicePermissionPreview}>
+                    <span className={styles.devicePermissionPreviewLabel}>可用成员预览</span>
+                    {selectedAccessState?.visibility === "all" ? (
+                      <span className={styles.simpleExpertHint}>
+                        当前设备中的该 Agent 对全公司成员开放。
+                      </span>
+                    ) : selectedEffectiveMembers.length ? (
+                      <div className={styles.devicePermissionMembers}>
+                        {selectedEffectiveMembers.map(name => (
+                          <span key={name} className={styles.devicePermissionMember}>
+                            {name}
+                          </span>
+                        ))}
+                      </div>
+                    ) : (
+                      <span className={styles.simpleExpertHint}>当前还没有可用成员。</span>
+                    )}
+                    <span className={styles.simpleExpertHint}>{selectedAccessSummary}</span>
+                    {selectedOwnerName ? (
+                      <span className={styles.simpleExpertHint}>
+                        设备拥有者 {selectedOwnerName} 默认拥有该设备中的 Agent 可用权限。
+                      </span>
+                    ) : null}
+                  </div>
+
+                  <div className={adminStyles.consoleActions}>
+                    <Button
+                      size="small"
+                      type="primary"
+                      disabled={!selectedAccessWorkspaceId}
+                      onClick={handleSaveDeviceAccess}
+                    >
+                      保存权限
+                    </Button>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div className={styles.deviceWorkspaceEmpty}>
+                请先在左侧选择一个已分配设备，再配置当前设备上的 Agent 权限。
+              </div>
+            )}
+          </section>
         </div>
       </div>
 

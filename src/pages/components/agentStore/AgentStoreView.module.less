@@ -940,6 +940,38 @@
   border-top: 1px solid color-mix(in srgb, var(--text) 8%, transparent);
 }
 
+.deviceWorkspaceLayout {
+  display: grid;
+  grid-template-columns: minmax(0, 340px) minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+
+.deviceWorkspacePanel {
+  min-width: 0;
+  padding: 18px;
+  border: 1px solid color-mix(in srgb, var(--text) 8%, transparent);
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--surface) 98%, var(--app-bg));
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.deviceWorkspacePanelHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.deviceWorkspacePanelHead {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
 .simpleExpertRows {
   display: flex;
   flex-direction: column;
@@ -1060,6 +1092,13 @@
   flex: 1;
 }
 
+.assignedWorkspaceHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
 .assignedWorkspaceName {
   color: var(--text);
   font-size: 13px;
@@ -1067,10 +1106,110 @@
   font-weight: 700;
 }
 
+.assignedWorkspacePermission {
+  flex-shrink: 0;
+  color: var(--primary);
+  font-size: 12px;
+  line-height: 18px;
+  font-weight: 600;
+}
+
 .assignedWorkspaceMeta {
   color: var(--text-secondary);
   font-size: 12px;
   line-height: 18px;
+}
+
+.deviceWorkspaceEmpty {
+  padding: 16px;
+  border: 1px dashed color-mix(in srgb, var(--text) 12%, transparent);
+  border-radius: 14px;
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 20px;
+  background: color-mix(in srgb, var(--surface) 99%, var(--app-bg));
+}
+
+.devicePermissionCard {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.devicePermissionHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.devicePermissionIdentity {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.devicePermissionName {
+  color: var(--text);
+  font-size: 15px;
+  line-height: 22px;
+  font-weight: 700;
+}
+
+.devicePermissionMeta {
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.devicePermissionStatus {
+  flex-shrink: 0;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--primary) 8%, transparent);
+  color: var(--primary);
+  font-size: 12px;
+  line-height: 18px;
+  font-weight: 600;
+}
+
+.devicePermissionControls {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.devicePermissionPreview {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--text) 3%, transparent);
+}
+
+.devicePermissionPreviewLabel {
+  color: var(--text);
+  font-size: 13px;
+  line-height: 20px;
+  font-weight: 700;
+}
+
+.devicePermissionMembers {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.devicePermissionMember {
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--primary) 8%, transparent);
+  color: var(--primary);
+  font-size: 12px;
+  line-height: 18px;
+  font-weight: 500;
 }
 
 /* ── Responsive ── */
@@ -1090,6 +1229,10 @@
   }
 
   .detailWorkspaceLayout {
+    grid-template-columns: 1fr;
+  }
+
+  .deviceWorkspaceLayout {
     grid-template-columns: 1fr;
   }
 
