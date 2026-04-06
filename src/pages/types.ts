@@ -36,6 +36,11 @@ export type StatusTone = "online" | "busy" | "idle" | "pending" | "paused" | "dr
 export type ConnectionMode = "cloud" | "local";
 export type EmployeeSource = "coworker" | "openclaw";
 export type EmployeeVisibility = "all" | "bound";
+/**
+ * AI 专家的配置方式。
+ * `device` 表示仅需绑定设备；`permission` 表示仅需分配可用权限。
+ */
+export type ExpertSetupMode = "device" | "permission";
 
 /**
  * 对话消息角色。
@@ -100,6 +105,8 @@ export interface EmployeeItem {
   welcomeMessage: string;
   systemPrompt: string;
   skills?: string[];
+  /** 管理后台 mock 用的配置要求，不直接对用户展示。 */
+  expertSetupMode?: ExpertSetupMode;
 }
 
 /**

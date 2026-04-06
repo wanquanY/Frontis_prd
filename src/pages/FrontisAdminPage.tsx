@@ -32,6 +32,7 @@ import { AgentStoreView } from "./components/agentStore/AgentStoreView";
 import type { ExpertDeploymentState } from "./components/agentStore/types";
 import {
   buildInitialExpertDeploymentByEmployeeId,
+  doesExpertRequireDeviceBinding,
   hasUserAccessToExpert,
 } from "./components/agentStore/utils";
 import { ModelConfigurationView } from "./components/ModelConfigurationView";
@@ -189,6 +190,27 @@ const FrontisAdminPage = ({
       visibility: EmployeeItem["visibility"],
       boundMembers: string[],
     ): void => {
+      const employee = employees.find(item => item.id === employeeId);
+
+      if (!employee) {
+        return;
+      }
+
+      if (!doesExpertRequireDeviceBinding(employee)) {
+        setEmployees(prev =>
+          prev.map(item =>
+            item.id === employeeId
+              ? {
+                  ...item,
+                  boundMembers,
+                  visibility,
+                }
+              : item,
+          ),
+        );
+        return;
+      }
+
       setDeploymentByEmployeeId(prev => {
         const currentState = prev[employeeId] ?? {
           accessByWorkspaceId: {},
@@ -225,7 +247,7 @@ const FrontisAdminPage = ({
         ),
       );
     },
-    [],
+    [employees],
   );
 
   const handleUpdateEmployeeModel = useCallback((employeeId: string, model: string): void => {

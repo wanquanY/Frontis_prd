@@ -6,6 +6,7 @@ import { Button, Input, Modal, Popconfirm, Select, Switch, message } from "antd"
 import type { FrontisWebUserItem } from "../types";
 import { downloadPrototypeFile } from "../utils";
 import {
+  doesExpertRequireDeviceBinding,
   getAssignedWorkspaceIdsForExpert,
   getDeviceAccessStateForExpert,
   getEffectiveMembersForDeviceAccess,
@@ -65,12 +66,6 @@ const CLIENT_DOWNLOAD_OPTIONS: ClientDownloadItem[] = [
     key: "windows",
     label: "下载 Windows",
     packageName: "FrontisAI-Windows-x64.exe",
-  },
-  {
-    fileName: "FrontisAI-linux-installer.txt",
-    key: "linux",
-    label: "下载 Linux",
-    packageName: "FrontisAI-Linux-x64.AppImage",
   },
 ];
 
@@ -854,6 +849,7 @@ const ExistingDeviceDetail = ({
           ).includes(device.workspace.id),
         )
         .map(employee => {
+          const requiresDeviceBinding = doesExpertRequireDeviceBinding(employee);
           const accessState = getDeviceAccessStateForExpert(
             employee,
             device.workspace.id,
@@ -864,13 +860,16 @@ const ExistingDeviceDetail = ({
             accessState,
             employee,
             memberSummary:
-              accessState.visibility === "all"
-                ? "全公司可用"
-                : getEffectiveMembersForDeviceAccess(accessState, ownerId, users).join("、") ||
-                  "暂未配置可用成员",
+              requiresDeviceBinding
+                ? getOwnerName(ownerId) ?? "待分配设备拥有者"
+                : accessState.visibility === "all"
+                  ? "全公司可用"
+                  : getEffectiveMembersForDeviceAccess(accessState, ownerId, users).join("、") ||
+                    "暂未配置可用成员",
+            requiresDeviceBinding,
           };
         }),
-    [deploymentByEmployeeId, device.workspace.id, employees, ownerId, users],
+    [deploymentByEmployeeId, device.workspace.id, employees, getOwnerName, ownerId, users],
   );
 
   return (
@@ -930,18 +929,22 @@ const ExistingDeviceDetail = ({
         <h3 className={adminStyles.consoleSectionTitle}>部署 AI 专家</h3>
         <div className={adminStyles.consoleRows}>
           {deployedAgents.length ? (
-            deployedAgents.map(({ accessState, employee, memberSummary }) => (
+            deployedAgents.map(({ accessState, employee, memberSummary, requiresDeviceBinding }) => (
               <div key={employee.id} className={adminStyles.consoleInfoRow}>
                 <span className={adminStyles.consoleInfoLabel}>{employee.name}</span>
                 <div className={adminStyles.consoleInfoValue}>
                   <div className={adminStyles.consoleRows}>
                     <span>{memberSummary}</span>
                     <span className={adminStyles.consoleSummaryHint}>
-                      {accessState.visibility === "all"
-                        ? "当前设备中该 Agent 对全公司成员开放。"
-                        : ownerId
-                          ? `设备拥有者 ${getOwnerName(ownerId) ?? "未命名成员"} 默认拥有可用权限。`
-                          : "当前设备中该 Agent 按指定成员生效。"}
+                      {requiresDeviceBinding
+                        ? ownerId
+                          ? `该 AI 专家仅随设备拥有者 ${getOwnerName(ownerId) ?? "未命名成员"} 生效。`
+                          : "该 AI 专家按设备拥有者生效，请先补充设备拥有者。"
+                        : accessState.visibility === "all"
+                          ? "当前设备中该 Agent 对全公司成员开放。"
+                          : ownerId
+                            ? `设备拥有者 ${getOwnerName(ownerId) ?? "未命名成员"} 默认拥有可用权限。`
+                            : "当前设备中该 Agent 按指定成员生效。"}
                     </span>
                   </div>
                 </div>

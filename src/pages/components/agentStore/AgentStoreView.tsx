@@ -8,7 +8,11 @@ import type { AgentStoreViewProps } from "./types";
 import { OWNED_EXPERT_TEAMS, RECOMMENDED_EXPERT_TEAMS } from "./agentStoreData";
 import { RecommendedTeamCard } from "./AgentStoreCards";
 import { AgentStoreTeamDetail, EXPERT_VERSION_INFO } from "./AgentStoreTeamDetail";
-import { getAssignedWorkspaceIdsForExpert } from "./utils";
+import {
+  doesExpertRequireDeviceBinding,
+  getAssignedWorkspaceIdsForExpert,
+  isPermissionAssignmentConfigured,
+} from "./utils";
 
 import adminStyles from "../FrontisAdminViews.module.less";
 import styles from "./AgentStoreView.module.less";
@@ -62,13 +66,34 @@ const getTeamStatus = (
   members: EmployeeItem[],
   deploymentByEmployeeId: AgentStoreViewProps["deploymentByEmployeeId"],
 ): ManagementStatus => {
-  const pendingBindingCount = members.filter(
-    member => !getAssignedWorkspaceIdsForExpert(member, deploymentByEmployeeId[member.id]).length,
+  const pendingDeviceBindingCount = members.filter(
+    member =>
+      doesExpertRequireDeviceBinding(member) &&
+      !getAssignedWorkspaceIdsForExpert(member, deploymentByEmployeeId[member.id]).length,
   ).length;
-  if (pendingBindingCount > 0) {
+  const pendingPermissionCount = members.filter(
+    member => !doesExpertRequireDeviceBinding(member) && !isPermissionAssignmentConfigured(member),
+  ).length;
+
+  if (pendingDeviceBindingCount > 0 || pendingPermissionCount > 0) {
+    let label = `待配置 ${pendingDeviceBindingCount + pendingPermissionCount} 个`;
+
+    if (pendingDeviceBindingCount > 0 && pendingPermissionCount === 0) {
+      label =
+        pendingDeviceBindingCount === members.length
+          ? "待绑定设备"
+          : `待绑定设备 ${pendingDeviceBindingCount} 个`;
+    }
+
+    if (pendingPermissionCount > 0 && pendingDeviceBindingCount === 0) {
+      label =
+        pendingPermissionCount === members.length
+          ? "待分配权限"
+          : `待分配权限 ${pendingPermissionCount} 个`;
+    }
+
     return {
-      label:
-        pendingBindingCount === members.length ? "待分配" : `待分配 ${pendingBindingCount} 个`,
+      label,
       tone: "warning",
     };
   }
@@ -91,9 +116,16 @@ const getSingleStatus = (
   employee: EmployeeItem,
   deploymentByEmployeeId: AgentStoreViewProps["deploymentByEmployeeId"],
 ): ManagementStatus => {
-  if (!getAssignedWorkspaceIdsForExpert(employee, deploymentByEmployeeId[employee.id]).length) {
+  if (doesExpertRequireDeviceBinding(employee)) {
+    if (!getAssignedWorkspaceIdsForExpert(employee, deploymentByEmployeeId[employee.id]).length) {
+      return {
+        label: "待绑定设备",
+        tone: "warning",
+      };
+    }
+  } else if (!isPermissionAssignmentConfigured(employee)) {
     return {
-      label: "待分配",
+      label: "待分配权限",
       tone: "warning",
     };
   }
