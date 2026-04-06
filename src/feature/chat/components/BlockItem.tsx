@@ -14,7 +14,7 @@ import {
 } from "react";
 import classNames from "classnames";
 import { Bubble, Think, Actions } from "@ant-design/x";
-import { Input, InputNumber, Select, DatePicker, Switch, Rate, message } from "antd";
+import { Input, InputNumber, Select, DatePicker, Switch, Rate, Popover, message } from "antd";
 import {
   CheckCircleFilled,
   CheckCircleOutlined,
@@ -179,7 +179,15 @@ const buildCopyActionItems = (copyText: string) => [
   },
 ];
 
-const submitPrototypeFeedback = async (): Promise<{ success: boolean; error?: string }> => {
+interface PrototypeFeedbackPayload {
+  blockId: string;
+  rating: number;
+  comment?: string;
+}
+
+const submitPrototypeFeedback = async (
+  _payload: PrototypeFeedbackPayload,
+): Promise<{ success: boolean; error?: string }> => {
   await new Promise(resolve => {
     window.setTimeout(resolve, 240);
   });
@@ -463,6 +471,15 @@ function MessageBlock({
     if (!messageCopyText) return null;
     return <Actions items={buildCopyActionItems(messageCopyText)} />;
   }, [messageCopyText]);
+  const messageFeedbackAction = messageCopyText ? (
+    <AssistantFeedbackAction blockId={block.id} />
+  ) : null;
+  const messageActions = messageCopyActions || messageFeedbackAction ? (
+    <div className={styles.assistantInlineActions}>
+      {messageCopyActions}
+      {messageFeedbackAction}
+    </div>
+  ) : null;
 
   return (
     <div className={styles.messageBlock}>
@@ -490,8 +507,8 @@ function MessageBlock({
           ))}
         </div>
       ) : null}
-      {messageCopyActions ? (
-        <div className={styles.messageActions}>{messageCopyActions}</div>
+      {messageActions ? (
+        <div className={styles.messageActions}>{messageActions}</div>
       ) : null}
     </div>
   );
@@ -532,6 +549,104 @@ const isAssistantResultImageAttachment = (attachment: MessageAttachment): boolea
   const target = `${attachment.url || ""} ${attachment.thumb_url || ""} ${attachment.name || ""}`;
   return mime.startsWith("image/") || /\.(png|jpe?g|gif|webp|bmp|svg|heic|heif)$/i.test(target);
 };
+
+function AssistantFeedbackAction({ blockId }: { blockId: string }): JSX.Element {
+  const [isOpen, setIsOpen] = useState<boolean>(false);
+  const [submitting, setSubmitting] = useState<boolean>(false);
+  const [submitted, setSubmitted] = useState<boolean>(false);
+  const [rating, setRating] = useState<number>(0);
+  const [feedbackComment, setFeedbackComment] = useState<string>("");
+
+  const handleOpenChange = useCallback(
+    (nextOpen: boolean): void => {
+      if (submitted) {
+        return;
+      }
+      setIsOpen(nextOpen);
+    },
+    [submitted],
+  );
+
+  const handleSubmit = useCallback(async (): Promise<void> => {
+    if (submitting || submitted || rating === 0) {
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+      const response = await submitPrototypeFeedback({
+        blockId,
+        rating,
+        comment: feedbackComment.trim() || undefined,
+      });
+
+      if (response.success) {
+        setSubmitted(true);
+        setIsOpen(false);
+        message.success("反馈提交成功");
+        return;
+      }
+
+      message.error(response.error || "反馈提交失败");
+    } catch {
+      message.error("反馈提交失败，请稍后重试");
+    } finally {
+      setSubmitting(false);
+    }
+  }, [blockId, feedbackComment, rating, submitted, submitting]);
+
+  const feedbackPanel = (
+    <div className={styles.messageFeedbackPanel}>
+      <div className={styles.messageFeedbackTitle}>反馈此条回复</div>
+      <div className={styles.messageFeedbackHint}>请给这条 AI 专家回复打分，最多 5 分。</div>
+      <div className={styles.messageFeedbackRating}>
+        <Rate count={5} value={rating} onChange={setRating} disabled={submitting} />
+        <span className={styles.messageFeedbackRatingText}>
+          {rating > 0 ? `${rating} 分` : "请选择评分"}
+        </span>
+      </div>
+      <Input.TextArea
+        rows={3}
+        value={feedbackComment}
+        disabled={submitting}
+        placeholder="可选：补充具体反馈意见"
+        className={styles.messageFeedbackTextarea}
+        onChange={event => setFeedbackComment(event.target.value)}
+      />
+      <div className={styles.messageFeedbackFooter}>
+        <button
+          type="button"
+          className={styles.messageFeedbackSubmitButton}
+          disabled={submitting || rating === 0}
+          onClick={() => void handleSubmit()}
+        >
+          {submitting ? "提交中..." : "提交反馈"}
+        </button>
+      </div>
+    </div>
+  );
+
+  return (
+    <Popover
+      trigger="click"
+      placement="bottom"
+      open={submitted ? false : isOpen}
+      content={feedbackPanel}
+      onOpenChange={handleOpenChange}
+    >
+      <button
+        type="button"
+        className={classNames(
+          styles.messageFeedbackTrigger,
+          submitted && styles.messageFeedbackTriggerSubmitted,
+        )}
+        disabled={submitted}
+      >
+        {submitted ? "已反馈" : "反馈"}
+      </button>
+    </Popover>
+  );
+}
 
 // ============ Text Block ============
 function TextBlock({
@@ -593,8 +708,18 @@ function TextBlock({
   const actionItems = (text: string) =>
     shouldShowCopy ? buildCopyActionItems(copyText ?? text) : [];
   const copyActions = shouldShowCopy ? <Actions items={actionItems(content)} /> : null;
+  const feedbackAction =
+    !isUser && shouldShowCopy ? <AssistantFeedbackAction blockId={block.id} /> : null;
+  const assistantFooterActions =
+    copyActions || feedbackAction ? (
+      <div className={styles.assistantInlineActions}>
+        {copyActions}
+        {feedbackAction}
+      </div>
+    ) : null;
   const shouldShowProcessButton = typeof processCount === "number" && processCount > 0;
-  const hasAssistantResultActions = Boolean(copyActions) || shouldShowProcessButton;
+  const hasAssistantResultActions =
+    Boolean(copyActions) || Boolean(feedbackAction) || shouldShowProcessButton;
 
   const handleOpenResultAttachment = useCallback((attachment: MessageAttachment) => {
     const targetUrl = attachment.url?.trim() || attachment.thumb_url?.trim() || "";
@@ -676,7 +801,7 @@ function TextBlock({
 
           {hasAssistantResultActions ? (
             <div className={styles.assistantResultActions}>
-              {copyActions}
+              {assistantFooterActions}
               {shouldShowProcessButton ? (
                 <button
                   type="button"
@@ -724,7 +849,7 @@ function TextBlock({
             </MarkdownErrorBoundary>
           }
           variant="borderless"
-          footer={copyActions}
+          footer={assistantFooterActions}
           footerPlacement="outer-start"
         />
       )}
@@ -1788,7 +1913,11 @@ function DynamicsWorkflowBlock({ block }: { block: Block }) {
     if (!feedbackInfo || submitted || rating === 0) return;
     try {
       setSubmitting(true);
-      const resp = await submitPrototypeFeedback();
+      const resp = await submitPrototypeFeedback({
+        blockId: block.id,
+        rating,
+        comment: feedbackComment.trim() || undefined,
+      });
       if (resp.success) {
         setSubmitted(true);
         setSubmittedRating(rating);

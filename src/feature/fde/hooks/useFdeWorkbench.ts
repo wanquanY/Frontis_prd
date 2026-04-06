@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import dayjs from "dayjs";
+
 import {
   FDE_DELIVERY_ORDERS,
   FDE_ORDER_ITEMS,
@@ -12,7 +14,9 @@ import {
   FDE_WORKBENCH_TABS,
 } from "@/feature/fde/mockData";
 import type {
+  FdeAddOpportunityCommentPayload,
   FdeAgentMonitorItem,
+  FdeAssetType,
   FdeCreateOrderPayload,
   FdeCreateOrderResult,
   FdeCreateDeliveryChangePayload,
@@ -29,6 +33,7 @@ import type {
   FdeOrderTokensLineItem,
   FdeOperationsCustomerItem,
   FdeOpportunityItem,
+  FdeRenewAssetPayload,
   FdeTeamMemberDraft,
   FdeTeamMemberItem,
   FdeVersionManagementTaskItem,
@@ -48,6 +53,7 @@ const FDE_DEVELOPMENT_VISIBLE_KEYS: FdeWorkbenchTabKey[] = [
   "agentStore",
   "opsInsights",
 ];
+const DEFAULT_VALIDITY_MONTHS = 12;
 
 const getDefaultMemberTitle = (role: FdeTeamMemberDraft["role"]): string => {
   if (role === "leader") {
@@ -199,11 +205,213 @@ const parseTokenCountLabel = (value: string): number => {
   return Math.round(parseNumberLabel(normalizedValue));
 };
 
+const normalizeDateTime = (value: string): string => dayjs(value).format("YYYY-MM-DD HH:mm");
+
+const resolveDeliveryCompletedAt = (order: FdeDeliveryOrderItem): string =>
+  normalizeDateTime(order.deliveredAt ?? order.launchTargetDate);
+
+const addValidityMonths = (startedAt: string, validityMonths: number): string =>
+  dayjs(startedAt).add(validityMonths, "month").format("YYYY-MM-DD HH:mm");
+
+const getLineItemValidityMonths = (
+  item: FdeOrderDeviceLineItem | FdeOrderAgentLineItem,
+): number => item.validityMonths ?? DEFAULT_VALIDITY_MONTHS;
+
+const buildStableAssetId = (
+  type: FdeAssetType,
+  lineItemId: string,
+  sequence = 1,
+): string => {
+  const normalizedId = lineItemId.replaceAll(/[^a-zA-Z0-9]/g, "").slice(-8).toUpperCase();
+  const prefix = type === "device" ? "AST-DEV" : "AST-AGT";
+  const suffix = type === "device" ? `-${String(sequence).padStart(2, "0")}` : "";
+
+  return `${prefix}-${normalizedId}${suffix}`;
+};
+
+const buildDeviceMonitorType = (deviceType: FdeOrderDeviceLineItem["deviceType"]): "cloud" | "local" =>
+  deviceType === "云端工作站" ? "cloud" : "local";
+
+const buildDefaultDeviceAssetName = (
+  deviceType: FdeOrderDeviceLineItem["deviceType"],
+  sequence: number,
+): string => `${deviceType} ${String(sequence).padStart(2, "0")}`;
+
+const matchesDeviceTemplate = (
+  template: FdeOperationsCustomerItem["devices"][number],
+  deviceType: FdeOrderDeviceLineItem["deviceType"],
+): boolean => {
+  if (deviceType === "云端工作站") {
+    return template.type === "cloud";
+  }
+
+  if (deviceType === "本地客户端授权") {
+    return template.categoryLabel === "本地客户端授权";
+  }
+
+  return template.type === "local" && template.categoryLabel !== "本地客户端授权";
+};
+
+const appendUniqueDeviceAssets = (
+  currentAssets: FdeOperationsCustomerItem["devices"],
+  additions: FdeOperationsCustomerItem["devices"],
+): FdeOperationsCustomerItem["devices"] => {
+  const existingAssetIds = new Set(currentAssets.map(item => item.assetId).filter(Boolean));
+  return [
+    ...currentAssets,
+    ...additions.filter(item => !item.assetId || !existingAssetIds.has(item.assetId)),
+  ];
+};
+
+const appendUniqueAgentAssets = (
+  currentAssets: FdeOperationsCustomerItem["agents"],
+  additions: FdeOperationsCustomerItem["agents"],
+): FdeOperationsCustomerItem["agents"] => {
+  const existingAssetIds = new Set(currentAssets.map(item => item.assetId).filter(Boolean));
+  return [
+    ...currentAssets,
+    ...additions.filter(item => !item.assetId || !existingAssetIds.has(item.assetId)),
+  ];
+};
+
+const buildDeviceAssetsFromLineItem = (
+  order: FdeOrderItem,
+  lineItem: FdeOrderDeviceLineItem,
+  completedAt: string,
+  templates: FdeOperationsCustomerItem["devices"],
+): FdeOperationsCustomerItem["devices"] => {
+  const validityMonths = getLineItemValidityMonths(lineItem);
+  const expiresAt = addValidityMonths(completedAt, validityMonths);
+  const matchedTemplates = templates.filter(item => matchesDeviceTemplate(item, lineItem.deviceType));
+
+  return Array.from({ length: lineItem.quantity }).map((_, index) => {
+    const template = matchedTemplates[index];
+
+    return {
+      ...(template ?? {
+        id: `${lineItem.id}-device-${index + 1}`,
+        name: buildDefaultDeviceAssetName(lineItem.deviceType, index + 1),
+        type: buildDeviceMonitorType(lineItem.deviceType),
+        status: "online",
+        uptime: "0小时",
+        categoryLabel: lineItem.deviceType,
+        ownerLabel: lineItem.deviceType === "云端工作站" ? "FDE 统管" : "企业员工",
+        activationLabel: "已激活",
+        assignedEmployeeName: lineItem.deviceType === "云端工作站" ? undefined : "待客户分配",
+        locationLabel: order.tenantName ?? order.customerName,
+      }),
+      assetId: buildStableAssetId("device", lineItem.id, index + 1),
+      sourceOrderId: order.id,
+      validityMonths,
+      activatedAt: completedAt,
+      expiresAt,
+      categoryLabel: template?.categoryLabel ?? lineItem.deviceType,
+    };
+  });
+};
+
+const buildAgentAssetsFromLineItem = (
+  order: FdeOrderItem,
+  lineItem: FdeOrderAgentLineItem,
+  completedAt: string,
+  templates: FdeOperationsCustomerItem["agents"],
+): FdeOperationsCustomerItem["agents"] => {
+  const validityMonths = getLineItemValidityMonths(lineItem);
+  const expiresAt = addValidityMonths(completedAt, validityMonths);
+  const template = templates[0];
+
+  return [
+    {
+      ...(template ?? {
+        name: lineItem.agentName,
+        runningHours: 0,
+        completedTasks: 0,
+        currentVersion: lineItem.releaseVersion,
+        latestVersion: lineItem.releaseVersion,
+        deliverySourceLabel: lineItem.sourceLabel,
+        modelLabel: "Frontis 标准模型",
+        deploymentLabel: "待企业管理员配置",
+      }),
+      assetId: buildStableAssetId("agent", lineItem.id),
+      sourceOrderId: order.id,
+      validityMonths,
+      activatedAt: completedAt,
+      expiresAt,
+      name: template?.name ?? lineItem.agentName,
+      currentVersion: template?.currentVersion ?? lineItem.releaseVersion,
+      latestVersion: template?.latestVersion ?? lineItem.releaseVersion,
+      deliverySourceLabel: template?.deliverySourceLabel ?? lineItem.sourceLabel,
+    },
+  ];
+};
+
+const resolveRenewalBaseAt = (expiresAt: string | undefined, renewedAt: string): string => {
+  if (!expiresAt) {
+    return renewedAt;
+  }
+
+  return dayjs(expiresAt).isAfter(dayjs(renewedAt)) ? expiresAt : renewedAt;
+};
+
+const resolveDeviceLineTypeFromAsset = (
+  device: FdeOperationsCustomerItem["devices"][number],
+): FdeOrderDeviceLineItem["deviceType"] => {
+  if (device.categoryLabel === "本地客户端授权") {
+    return "本地客户端授权";
+  }
+
+  return device.type === "cloud" ? "云端工作站" : "本地工作站";
+};
+
+const hydrateExistingAssets = (
+  customers: FdeOperationsCustomerItem[],
+  deliveryOrders: FdeDeliveryOrderItem[],
+): FdeOperationsCustomerItem[] =>
+  customers.map(customer => {
+    const linkedTenant = deliveryOrders.find(
+      item => item.orderKind === "initial" && item.customerName === customer.customerName,
+    );
+    const defaultActivatedAt = linkedTenant
+      ? resolveDeliveryCompletedAt(linkedTenant)
+      : new Date().toLocaleString("zh-CN", { hour12: false });
+
+    return {
+      ...customer,
+      devices: customer.devices.map((device, index) => {
+        const activatedAt = device.activatedAt ?? defaultActivatedAt;
+        const validityMonths = device.validityMonths ?? DEFAULT_VALIDITY_MONTHS;
+
+        return {
+          ...device,
+          assetId: device.assetId ?? `AST-DEV-${customer.id.slice(-2).toUpperCase()}-${String(index + 1).padStart(2, "0")}`,
+          validityMonths,
+          activatedAt,
+          expiresAt: device.expiresAt ?? addValidityMonths(activatedAt, validityMonths),
+        };
+      }),
+      agents: customer.agents.map((agent, index) => {
+        const activatedAt = agent.activatedAt ?? defaultActivatedAt;
+        const validityMonths = agent.validityMonths ?? DEFAULT_VALIDITY_MONTHS;
+
+        return {
+          ...agent,
+          assetId: agent.assetId ?? `AST-AGT-${customer.id.slice(-2).toUpperCase()}-${String(index + 1).padStart(2, "0")}`,
+          validityMonths,
+          activatedAt,
+          expiresAt: agent.expiresAt ?? addValidityMonths(activatedAt, validityMonths),
+        };
+      }),
+    };
+  });
+
 const isDeviceLineItem = (item: FdeOrderLineItem): item is FdeOrderDeviceLineItem => item.kind === "device";
 
 const isAgentLineItem = (item: FdeOrderLineItem): item is FdeOrderAgentLineItem => item.kind === "agent";
 
 const isTokensLineItem = (item: FdeOrderLineItem): item is FdeOrderTokensLineItem => item.kind === "tokens";
+
+const hasManualDeliveryLineItem = (order: FdeOrderItem): boolean =>
+  order.lineItems.some(item => isDeviceLineItem(item) || isAgentLineItem(item));
 
 const getTeamMemberNameById = (
   memberId: string,
@@ -226,6 +434,10 @@ const getFulfillmentCreatedActionLabel = (type: FdeOrderFulfillmentType): string
     return "创建Agent追加交付单";
   }
 
+  if (type === "资产续费") {
+    return "创建资产续费订单";
+  }
+
   return "创建Tokens发放任务";
 };
 
@@ -242,6 +454,10 @@ const getFulfillmentStartedActionLabel = (type: FdeOrderFulfillmentType): string
     return "开始执行Agent追加交付";
   }
 
+  if (type === "资产续费") {
+    return "开始处理资产续费";
+  }
+
   return "开始处理Tokens发放";
 };
 
@@ -256,6 +472,10 @@ const getFulfillmentCompletedActionLabel = (type: FdeOrderFulfillmentType): stri
 
   if (type === "Agent追加") {
     return "完成Agent追加交付";
+  }
+
+  if (type === "资产续费") {
+    return "完成资产续费";
   }
 
   return "完成Tokens发放";
@@ -282,13 +502,8 @@ const buildFulfillmentStatusFromDelivery = (
 };
 
 const buildOrderStatus = (
-  tenantId: string | undefined,
   fulfillmentItems: FdeOrderFulfillmentItem[],
 ): FdeOrderItem["status"] => {
-  if (!tenantId) {
-    return "待关联租户";
-  }
-
   if (!fulfillmentItems.length) {
     return "待履约";
   }
@@ -434,7 +649,7 @@ const buildChangeFulfillmentItem = (
       actionLabel: getFulfillmentCompletedActionLabel(type),
       resultLabel: "已完成",
       operatorName,
-      operatedAt: deliveryOrder.launchTargetDate,
+      operatedAt: resolveDeliveryCompletedAt(deliveryOrder),
     });
   }
 
@@ -447,7 +662,7 @@ const buildChangeFulfillmentItem = (
     linkedRecordType: "change",
     updatedAt:
       deliveryOrder.deliveryStatus === "已交付"
-        ? deliveryOrder.launchTargetDate
+        ? resolveDeliveryCompletedAt(deliveryOrder)
         : deliveryOrder.createdAt,
     executionRecords,
   };
@@ -585,7 +800,7 @@ const syncOrdersWithDeliveryState = (
             actionLabel: getFulfillmentCompletedActionLabel(item.type),
             resultLabel: "已完成",
             operatorName: linkedOperatorName,
-            operatedAt: linkedDeliveryOrder.launchTargetDate,
+            operatedAt: resolveDeliveryCompletedAt(linkedDeliveryOrder),
           });
         }
 
@@ -594,7 +809,7 @@ const syncOrdersWithDeliveryState = (
           status: nextStatus,
           updatedAt:
             linkedDeliveryOrder.deliveryStatus === "已交付"
-              ? linkedDeliveryOrder.launchTargetDate
+              ? resolveDeliveryCompletedAt(linkedDeliveryOrder)
               : linkedDeliveryOrder.createdAt,
           executionRecords,
         };
@@ -777,10 +992,114 @@ const syncOrdersWithDeliveryState = (
       }
     }
 
+    const linkedCustomer = nextCustomers.find(item => item.customerName === nextOrder.customerName);
+
+    if (linkedCustomer) {
+      const completedInitialRecord = fulfillmentItems.some(
+        item => item.type === "首期配置交付" && item.status === "已完成",
+      )
+        ? boundTenant
+        : undefined;
+      const completedDeviceChangeRecordId = fulfillmentItems.find(
+        item => item.type === "设备追加" && item.status === "已完成",
+      )?.linkedRecordId;
+      const completedAgentChangeRecordId = fulfillmentItems.find(
+        item => item.type === "Agent追加" && item.status === "已完成",
+      )?.linkedRecordId;
+      const completedDeviceDelivery =
+        linkedChangeOrders.find(item => item.id === completedDeviceChangeRecordId) ??
+        completedInitialRecord;
+      const completedAgentDelivery =
+        linkedChangeOrders.find(item => item.id === completedAgentChangeRecordId) ??
+        completedInitialRecord;
+      let nextCustomer = linkedCustomer;
+      const nextLineItems = nextOrder.lineItems.map(item => {
+        if (
+          isDeviceLineItem(item) &&
+          !item.renewalTargetAssetId &&
+          !item.deliveredAssetIds?.length &&
+          completedDeviceDelivery
+        ) {
+          const completedAt = resolveDeliveryCompletedAt(completedDeviceDelivery);
+          const deviceAssets = buildDeviceAssetsFromLineItem(
+            nextOrder,
+            item,
+            completedAt,
+            completedDeviceDelivery.deviceAdditions ?? [],
+          );
+
+          nextCustomer = {
+            ...nextCustomer,
+            devices: appendUniqueDeviceAssets(nextCustomer.devices, deviceAssets),
+          };
+
+          return {
+            ...item,
+            validityMonths: getLineItemValidityMonths(item),
+            deliveredAssetIds: deviceAssets.map(asset => asset.assetId ?? asset.id),
+            activatedAt: completedAt,
+            expiresAt: deviceAssets[0]?.expiresAt,
+          };
+        }
+
+        if (
+          isAgentLineItem(item) &&
+          !item.renewalTargetAssetId &&
+          !item.deliveredAssetIds?.length &&
+          completedAgentDelivery
+        ) {
+          const completedAt = resolveDeliveryCompletedAt(completedAgentDelivery);
+          const agentAssets = buildAgentAssetsFromLineItem(
+            nextOrder,
+            item,
+            completedAt,
+            completedAgentDelivery.agentAdditions ?? [],
+          );
+
+          nextCustomer = {
+            ...nextCustomer,
+            agents: appendUniqueAgentAssets(nextCustomer.agents, agentAssets),
+          };
+
+          return {
+            ...item,
+            validityMonths: getLineItemValidityMonths(item),
+            deliveredAssetIds: agentAssets.map(asset => asset.assetId ?? asset.name),
+            activatedAt: completedAt,
+            expiresAt: agentAssets[0]?.expiresAt,
+          };
+        }
+
+        return item;
+      });
+
+      if (
+        nextCustomer.devices.length !== linkedCustomer.devices.length ||
+        nextCustomer.agents.length !== linkedCustomer.agents.length
+      ) {
+        nextCustomers = nextCustomers.map(item =>
+          item.id === linkedCustomer.id
+            ? {
+                ...nextCustomer,
+                activeExperts: nextCustomer.agents.length,
+                onlineExperts: nextCustomer.agents.length,
+                deviceSummary: `${nextCustomer.devices.length} 台设备运行中`,
+                assetValueSummary: `累计下发 ${nextCustomer.agents.length} 个 Agent / 设备资产 ${nextCustomer.devices.length} 台`,
+              }
+            : item,
+        );
+      }
+
+      nextOrder = {
+        ...nextOrder,
+        lineItems: nextLineItems,
+      };
+    }
+
     nextOrder = {
       ...nextOrder,
       fulfillmentItems,
-      status: buildOrderStatus(nextOrder.tenantId, fulfillmentItems),
+      status: buildOrderStatus(fulfillmentItems),
     };
 
     return nextOrder;
@@ -792,7 +1111,7 @@ const syncOrdersWithDeliveryState = (
 const INITIAL_FDE_SYNCED_STATE = syncOrdersWithDeliveryState(
   FDE_ORDER_ITEMS,
   FDE_DELIVERY_ORDERS,
-  FDE_OPERATIONS_CUSTOMERS,
+  hydrateExistingAssets(FDE_OPERATIONS_CUSTOMERS, FDE_DELIVERY_ORDERS),
   FDE_TEAM_MEMBERS,
   FDE_TEAM_MEMBERS[0]?.name ?? "FDE",
 );
@@ -806,17 +1125,22 @@ export const useFdeWorkbench = (currentUserId?: string): UseFdeWorkbenchResult =
   );
   const previousUserIdRef = useRef<string | undefined>(currentUserId);
   const [teamMembers, setTeamMembers] = useState<FdeTeamMemberItem[]>(FDE_TEAM_MEMBERS);
-  const [opportunities] = useState<FdeOpportunityItem[]>(FDE_OPPORTUNITIES);
+  const [opportunities, setOpportunities] = useState<FdeOpportunityItem[]>(FDE_OPPORTUNITIES);
   const [orders, setOrders] = useState<FdeOrderItem[]>(INITIAL_FDE_SYNCED_STATE.orders);
   const [deliveryOrders, setDeliveryOrders] = useState<FdeDeliveryOrderItem[]>(FDE_DELIVERY_ORDERS);
   const [operationsCustomers, setOperationsCustomers] =
     useState<FdeOperationsCustomerItem[]>(INITIAL_FDE_SYNCED_STATE.customers);
   const [versionTasks] = useState<FdeVersionManagementTaskItem[]>(FDE_VERSION_MANAGEMENT_TASKS);
+  const [selectedOpportunityId, setSelectedOpportunityId] = useState<string>(
+    FDE_OPPORTUNITIES[0]?.id ?? "",
+  );
   const [selectedOrderManagementId, setSelectedOrderManagementId] = useState<string>(
     INITIAL_FDE_SYNCED_STATE.orders[0]?.id ?? "",
   );
   const [selectedDeliveryOrderId, setSelectedDeliveryOrderId] = useState<string>(
-    FDE_DELIVERY_ORDERS[0]?.id ?? "",
+    INITIAL_FDE_SYNCED_STATE.orders.find(hasManualDeliveryLineItem)?.id ??
+      INITIAL_FDE_SYNCED_STATE.orders[0]?.id ??
+      "",
   );
   const [selectedOperationsCustomerId, setSelectedOperationsCustomerId] = useState<string>(
     FDE_OPERATIONS_CUSTOMERS[0]?.id ?? "",
@@ -931,6 +1255,96 @@ export const useFdeWorkbench = (currentUserId?: string): UseFdeWorkbenchResult =
     () => filterByPerspective(orders),
     [filterByPerspective, orders],
   );
+  const filteredOpportunities = useMemo<FdeOpportunityItem[]>(
+    () => {
+      if (canManageTeamMembers(activeRole)) {
+        return opportunities;
+      }
+
+      return opportunities.filter(item => item.ownerId === activeMember.id);
+    },
+    [activeMember.id, activeRole, opportunities],
+  );
+
+  useEffect(() => {
+    if (!filteredOpportunities.length) {
+      return;
+    }
+
+    if (!filteredOpportunities.some(item => item.id === selectedOpportunityId)) {
+      setSelectedOpportunityId(filteredOpportunities[0].id);
+    }
+  }, [filteredOpportunities, selectedOpportunityId, setSelectedOpportunityId]);
+
+  const assignOpportunity = useCallback((opportunityId: string, memberId: string | null): void => {
+    setOpportunities(previous =>
+      previous.map(item =>
+        item.id === opportunityId
+          ? {
+              ...item,
+              ownerId: memberId,
+            }
+          : item,
+      ),
+    );
+  }, []);
+
+  const updateOpportunityStatus = useCallback(
+    (opportunityId: string, status: FdeOpportunityItem["status"]): void => {
+      setOpportunities(previous =>
+        previous.map(item =>
+          item.id === opportunityId
+            ? {
+                ...item,
+                status,
+                stage: status === "已成单" ? "已成交" : item.stage,
+              }
+            : item,
+        ),
+      );
+    },
+    [],
+  );
+
+  const addOpportunityComment = useCallback(
+    ({ content, opportunityId, replyToCommentId }: FdeAddOpportunityCommentPayload): void => {
+      const normalizedContent = content.trim();
+
+      if (!normalizedContent) {
+        return;
+      }
+
+      const createdAt = new Date().toLocaleString("zh-CN", { hour12: false });
+
+      setOpportunities(previous =>
+        previous.map(item => {
+          if (item.id !== opportunityId) {
+            return item;
+          }
+
+          const replyTarget = replyToCommentId
+            ? item.comments.find(comment => comment.id === replyToCommentId)
+            : undefined;
+
+          return {
+            ...item,
+            comments: [
+              ...item.comments,
+              {
+                id: buildId("opp-comment"),
+                authorId: activeMember.id,
+                content: normalizedContent,
+                createdAt,
+                replyToCommentId,
+                replyToAuthorId: replyTarget?.authorId,
+              },
+            ],
+          };
+        }),
+      );
+    },
+    [activeMember.id],
+  );
   const filteredDeliveryOrders = useMemo<FdeDeliveryOrderItem[]>(
     () => filterByPerspective(deliveryOrders),
     [deliveryOrders, filterByPerspective],
@@ -946,9 +1360,30 @@ export const useFdeWorkbench = (currentUserId?: string): UseFdeWorkbenchResult =
 
   const syncDeliveryOrders = useCallback((updatedOrders: FdeDeliveryOrderItem[]): void => {
     const previousOrders = deliveryOrdersRef.current;
+    const completedAt = new Date().toLocaleString("zh-CN", { hour12: false });
     const updatedOrderIds = new Set(updatedOrders.map(item => item.id));
     const nextDeliveryOrders = [
-      ...updatedOrders,
+      ...updatedOrders.map(item => {
+        const previousOrder = previousOrders.find(previous => previous.id === item.id);
+        const hasJustCompleted =
+          previousOrder?.deliveryStatus !== "已交付" && item.deliveryStatus === "已交付";
+
+        if (hasJustCompleted) {
+          return {
+            ...item,
+            deliveredAt: completedAt,
+          };
+        }
+
+        if (item.deliveryStatus === "已交付" && !item.deliveredAt) {
+          return {
+            ...item,
+            deliveredAt: previousOrder?.deliveredAt ?? completedAt,
+          };
+        }
+
+        return item;
+      }),
       ...previousOrders.filter(item => !updatedOrderIds.has(item.id)),
     ];
 
@@ -973,22 +1408,16 @@ export const useFdeWorkbench = (currentUserId?: string): UseFdeWorkbenchResult =
             item => item.statusLabel === "已完成",
           ).length;
           const nextAssetQuotas = updateQuotaItems(currentCustomer.assetQuotas, order);
-          const nextDevices = order.deviceAdditions?.length
-            ? [...currentCustomer.devices, ...order.deviceAdditions]
-            : currentCustomer.devices;
-          const nextAgents = order.agentAdditions?.length
-            ? appendUniqueAgents(currentCustomer.agents, order.agentAdditions)
-            : currentCustomer.agents;
+          const nextDeviceCount = currentCustomer.devices.length + (order.deviceAdditions?.length ?? 0);
+          const nextAgentCount = currentCustomer.agents.length + (order.agentAdditions?.length ?? 0);
 
           updatedCustomer = {
             ...currentCustomer,
             assetQuotas: nextAssetQuotas,
-            devices: nextDevices,
-            agents: nextAgents,
-            activeExperts: nextAgents.length,
-            onlineExperts: nextAgents.length,
-            deviceSummary: `${nextDevices.length} 台设备运行中`,
-            assetValueSummary: `累计下发 ${nextAgents.length} 个 Agent / 已完成 ${completedChangeCount + 1} 次变更`,
+            activeExperts: nextAgentCount,
+            onlineExperts: nextAgentCount,
+            deviceSummary: `${nextDeviceCount} 台设备运行中`,
+            assetValueSummary: `累计下发 ${nextAgentCount} 个 Agent / 已完成 ${completedChangeCount + 1} 次变更`,
           };
         }
 
@@ -1065,6 +1494,7 @@ export const useFdeWorkbench = (currentUserId?: string): UseFdeWorkbenchResult =
               adminName: "",
               adminPhone: "",
               attachments: [],
+              linkedOrderIds: payload.linkedOrderId ? [payload.linkedOrderId] : [],
               sourceLabel: "已交付客户追加设备",
               tenantStatusLabel: "变更执行中",
               deliveryBoundary: "客户已完成首期交付，当前新增设备变更单进入执行。",
@@ -1161,6 +1591,7 @@ export const useFdeWorkbench = (currentUserId?: string): UseFdeWorkbenchResult =
               adminName: "",
               adminPhone: "",
               attachments: [],
+              linkedOrderIds: payload.linkedOrderId ? [payload.linkedOrderId] : [],
               sourceLabel: "已交付客户追加Agent",
               tenantStatusLabel: "变更执行中",
               deliveryBoundary: "客户已完成首期交付，当前新增 Agent 变更单进入执行。",
@@ -1245,7 +1676,6 @@ export const useFdeWorkbench = (currentUserId?: string): UseFdeWorkbenchResult =
 
       deliveryOrdersRef.current = nextDeliveryOrders;
       operationsCustomersRef.current = nextOperationsCustomers;
-      setSelectedDeliveryOrderId(nextOrder.id);
       setDeliveryOrders(nextDeliveryOrders);
       setOperationsCustomers(nextOperationsCustomers);
 
@@ -1258,10 +1688,11 @@ export const useFdeWorkbench = (currentUserId?: string): UseFdeWorkbenchResult =
     (payload: FdeCreateOrderPayload): FdeCreateOrderResult => {
       const createdAt = new Date().toLocaleString("zh-CN", { hour12: false });
       const nextOrderId = buildId("order");
-      const nextLineItems = payload.lineItems.map(item => {
+      const nextLineItems: FdeOrderLineItem[] = payload.lineItems.map(item => {
         if (isDeviceLineItem(item)) {
           return {
             ...item,
+            validityMonths: getLineItemValidityMonths(item),
             totalAmount: item.quantity * item.unitPrice,
           };
         }
@@ -1270,6 +1701,7 @@ export const useFdeWorkbench = (currentUserId?: string): UseFdeWorkbenchResult =
           return {
             ...item,
             quantity: 1,
+            validityMonths: getLineItemValidityMonths(item),
             totalAmount: item.unitPrice,
           };
         }
@@ -1282,28 +1714,23 @@ export const useFdeWorkbench = (currentUserId?: string): UseFdeWorkbenchResult =
         orderNo: createOrderNo(),
         customerName: payload.customerName.trim(),
         assignedToId: activeMember.id,
-        status: "待关联租户",
+        businessType: "新购",
+        tenantId: payload.tenantId,
+        status: "待履约",
         totalAmount,
         remark: payload.remark.trim(),
         lineItems: nextLineItems,
         fulfillmentItems: [],
         createdAt,
       };
-      const tenantOrder = payload.tenantId
-        ? deliveryOrdersRef.current.find(
-            item => item.id === payload.tenantId && item.orderKind === "initial",
-          )
-        : undefined;
+      const tenantOrder = deliveryOrdersRef.current.find(
+        item => item.id === payload.tenantId && item.orderKind === "initial",
+      );
 
       if (!tenantOrder) {
-        const nextOrders = [initialOrder, ...ordersRef.current];
-        ordersRef.current = nextOrders;
-        setOrders(nextOrders);
-        setSelectedOrderManagementId(nextOrderId);
-
         return {
-          orderId: nextOrderId,
-          shouldPromptCreateTenant: true,
+          orderId: "",
+          shouldPromptCreateTenant: false,
         };
       }
 
@@ -1349,6 +1776,7 @@ export const useFdeWorkbench = (currentUserId?: string): UseFdeWorkbenchResult =
                 item => item.customerName === linkedTenant.customerName,
               )?.id ?? "",
             customerName: linkedTenant.customerName,
+            linkedOrderId: nextOrderId,
             expectedEffectiveAt: linkedTenant.launchTargetDate,
             reason: payload.remark.trim() || "订单追加设备资源",
             note: payload.remark.trim() || "由订单管理自动生成的设备追加单",
@@ -1391,6 +1819,7 @@ export const useFdeWorkbench = (currentUserId?: string): UseFdeWorkbenchResult =
                 customer => customer.customerName === linkedTenant.customerName,
               )?.id ?? "",
             customerName: linkedTenant.customerName,
+            linkedOrderId: nextOrderId,
             agentName: item.agentName,
             releaseVersion: item.releaseVersion,
             sourceLabel: item.sourceLabel,
@@ -1489,7 +1918,7 @@ export const useFdeWorkbench = (currentUserId?: string): UseFdeWorkbenchResult =
         tenantName: linkedTenant.tenantName,
         tenantCode: linkedTenant.tenantCode,
         fulfillmentItems,
-        status: buildOrderStatus(linkedTenant.id, fulfillmentItems),
+        status: buildOrderStatus(fulfillmentItems),
       };
       const nextOrders = [nextOrder, ...ordersRef.current];
       const syncedOrderState = syncOrdersWithDeliveryState(
@@ -1507,6 +1936,7 @@ export const useFdeWorkbench = (currentUserId?: string): UseFdeWorkbenchResult =
       setOperationsCustomers(syncedOrderState.customers);
       setDeliveryOrders(nextDeliveryOrders);
       setSelectedOrderManagementId(nextOrderId);
+      setSelectedDeliveryOrderId(nextOrderId);
 
       return {
         orderId: nextOrderId,
@@ -1514,6 +1944,209 @@ export const useFdeWorkbench = (currentUserId?: string): UseFdeWorkbenchResult =
       };
     },
     [activeMember.id, activeMember.name, createDeliveryChangeOrder, teamMembers],
+  );
+
+  const renewAsset = useCallback(
+    (payload: FdeRenewAssetPayload): FdeCreateOrderResult => {
+      const createdAt = new Date().toLocaleString("zh-CN", { hour12: false });
+      const nextOrderId = buildId("order");
+      const linkedCustomer = operationsCustomersRef.current.find(item => item.id === payload.customerId);
+
+      if (!linkedCustomer) {
+        return {
+          orderId: "",
+          shouldPromptCreateTenant: false,
+        };
+      }
+
+      const linkedTenant =
+        deliveryOrdersRef.current.find(
+          item => item.orderKind === "initial" && item.id === linkedCustomer.id,
+        ) ??
+        deliveryOrdersRef.current.find(
+          item =>
+            item.orderKind === "initial" && item.customerName === linkedCustomer.customerName,
+        );
+
+      if (!linkedTenant) {
+        return {
+          orderId: "",
+          shouldPromptCreateTenant: false,
+        };
+      }
+
+      let nextLineItem: FdeOrderDeviceLineItem | FdeOrderAgentLineItem | null = null;
+      const nextOperationsCustomers = operationsCustomersRef.current.map(customer => {
+        if (customer.id !== payload.customerId) {
+          return customer;
+        }
+
+        if (payload.assetType === "device") {
+          const targetDevice = customer.devices.find(item => item.assetId === payload.assetId);
+
+          if (!targetDevice) {
+            return customer;
+          }
+
+          const shouldExtend = targetDevice.expiresAt
+            ? dayjs(targetDevice.expiresAt).isAfter(dayjs(createdAt))
+            : false;
+          const nextActivatedAt = shouldExtend
+            ? targetDevice.activatedAt ?? createdAt
+            : createdAt;
+          const nextExpiresAt = addValidityMonths(
+            resolveRenewalBaseAt(targetDevice.expiresAt, createdAt),
+            payload.validityMonths,
+          );
+
+          nextLineItem = {
+            id: buildId("order-device"),
+            kind: "device",
+            deviceType: resolveDeviceLineTypeFromAsset(targetDevice),
+            quantity: 1,
+            validityMonths: payload.validityMonths,
+            renewalTargetAssetId: payload.assetId,
+            deliveredAssetIds: [payload.assetId],
+            activatedAt: nextActivatedAt,
+            expiresAt: nextExpiresAt,
+            unitPrice: payload.totalAmount,
+            totalAmount: payload.totalAmount,
+          };
+
+          return {
+            ...customer,
+            devices: customer.devices.map(item =>
+              item.assetId === payload.assetId
+                ? {
+                    ...item,
+                    sourceOrderId: nextOrderId,
+                    validityMonths: payload.validityMonths,
+                    activatedAt: nextActivatedAt,
+                    expiresAt: nextExpiresAt,
+                  }
+                : item,
+            ),
+          };
+        }
+
+        const targetAgent = customer.agents.find(item => item.assetId === payload.assetId);
+
+        if (!targetAgent) {
+          return customer;
+        }
+
+        const shouldExtend = targetAgent.expiresAt
+          ? dayjs(targetAgent.expiresAt).isAfter(dayjs(createdAt))
+          : false;
+        const nextActivatedAt = shouldExtend
+          ? targetAgent.activatedAt ?? createdAt
+          : createdAt;
+        const nextExpiresAt = addValidityMonths(
+          resolveRenewalBaseAt(targetAgent.expiresAt, createdAt),
+          payload.validityMonths,
+        );
+
+        nextLineItem = {
+          id: buildId("order-agent"),
+          kind: "agent",
+          agentCatalogId: payload.assetId,
+          agentName: targetAgent.name,
+          releaseVersion: targetAgent.currentVersion ?? targetAgent.latestVersion ?? "v1.0.0",
+          sourceLabel: targetAgent.deliverySourceLabel ?? "资产续费",
+          quantity: 1,
+          validityMonths: payload.validityMonths,
+          renewalTargetAssetId: payload.assetId,
+          deliveredAssetIds: [payload.assetId],
+          activatedAt: nextActivatedAt,
+          expiresAt: nextExpiresAt,
+          unitPrice: payload.totalAmount,
+          totalAmount: payload.totalAmount,
+        };
+
+        return {
+          ...customer,
+          agents: customer.agents.map(item =>
+            item.assetId === payload.assetId
+              ? {
+                  ...item,
+                  sourceOrderId: nextOrderId,
+                  validityMonths: payload.validityMonths,
+                  activatedAt: nextActivatedAt,
+                  expiresAt: nextExpiresAt,
+                }
+              : item,
+          ),
+        };
+      });
+
+      if (!nextLineItem) {
+        return {
+          orderId: "",
+          shouldPromptCreateTenant: false,
+        };
+      }
+
+      const fulfillmentItems: FdeOrderFulfillmentItem[] = [
+        {
+          id: `${nextOrderId}-fulfillment-renew`,
+          type: "资产续费",
+          summary: `${payload.assetId} 续费 ${payload.validityMonths} 个月`,
+          status: "已完成",
+          updatedAt: createdAt,
+          executionRecords: [
+            {
+              id: `${nextOrderId}-fulfillment-renew-created`,
+              actionLabel: getFulfillmentCreatedActionLabel("资产续费"),
+              resultLabel: "已创建",
+              operatorName: activeMember.name,
+              operatedAt: createdAt,
+            },
+            {
+              id: `${nextOrderId}-fulfillment-renew-completed`,
+              actionLabel: getFulfillmentCompletedActionLabel("资产续费"),
+              resultLabel: "已完成",
+              operatorName: activeMember.name,
+              operatedAt: createdAt,
+            },
+          ],
+        },
+      ];
+      const nextOrder: FdeOrderItem = {
+        id: nextOrderId,
+        orderNo: createOrderNo(),
+        customerName: linkedTenant.customerName,
+        assignedToId: activeMember.id,
+        businessType: "续费",
+        tenantId: linkedTenant.id,
+        tenantName: linkedTenant.tenantName,
+        tenantCode: linkedTenant.tenantCode,
+        status: "已完成",
+        totalAmount: payload.totalAmount,
+        remark: payload.remark.trim(),
+        lineItems: [nextLineItem],
+        fulfillmentItems,
+        createdAt,
+      };
+      const syncedOrderState = syncOrdersWithDeliveryState(
+        [nextOrder, ...ordersRef.current],
+        deliveryOrdersRef.current,
+        nextOperationsCustomers,
+        teamMembers,
+        activeMember.name,
+      );
+
+      ordersRef.current = syncedOrderState.orders;
+      operationsCustomersRef.current = syncedOrderState.customers;
+      setOrders(syncedOrderState.orders);
+      setOperationsCustomers(syncedOrderState.customers);
+      setSelectedOrderManagementId(nextOrderId);
+
+      return {
+        orderId: nextOrderId,
+        shouldPromptCreateTenant: false,
+      };
+    },
+    [activeMember.id, activeMember.name, teamMembers],
   );
 
   const addTeamMember = useCallback(
@@ -1614,20 +2247,27 @@ export const useFdeWorkbench = (currentUserId?: string): UseFdeWorkbenchResult =
     orders,
     deliveryOrders,
     versionTasks,
+    filteredOpportunities,
     filteredOrders,
     filteredDeliveryOrders,
     filteredOperationsCustomers,
     filteredVersionTasks,
     opportunities,
     operationsCustomers,
+    selectedOpportunityId,
     selectedOrderManagementId,
     selectedDeliveryOrderId,
     selectedOperationsCustomerId,
     selectedVersionTaskId,
     setActiveTab,
     createOrder,
+    assignOpportunity,
+    updateOpportunityStatus,
+    addOpportunityComment,
+    renewAsset,
     syncDeliveryOrders,
     createDeliveryChangeOrder,
+    setSelectedOpportunityId,
     setSelectedOrderManagementId,
     setSelectedDeliveryOrderId,
     setSelectedOperationsCustomerId,

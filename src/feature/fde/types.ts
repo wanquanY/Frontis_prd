@@ -7,6 +7,7 @@ export type FdeWorkbenchRole = "leader" | "admin" | "member";
  * FDE 工作台一级导航标识。
  */
 export type FdeWorkbenchTabKey =
+  | "opportunities"
   | "dashboard"
   | "orderManagement"
   | "delivery"
@@ -22,6 +23,7 @@ export type FdeWorkbenchTabKey =
  * FDE 成员模块权限。
  */
 export type FdeTeamPermissionKey =
+  | "opportunities"
   | "orderManagement"
   | "delivery"
   | "operations"
@@ -46,6 +48,11 @@ export type FdeTeamAccountStatus = "enabled" | "disabled";
  * 商机阶段。
  */
 export type FdeOpportunityStage = "初步沟通" | "产品演示" | "方案推荐" | "商务谈判" | "已成交";
+
+/**
+ * 商机状态。
+ */
+export type FdeOpportunityStatus = "未开始" | "对接中" | "已成单" | "异常终止";
 
 /**
  * 设备部署方式。
@@ -103,7 +110,12 @@ export type FdeDeliveryChangeStatus =
 /**
  * FDE 订单状态。
  */
-export type FdeOrderStatus = "待关联租户" | "待履约" | "履约中" | "已完成";
+export type FdeOrderStatus = "待履约" | "履约中" | "已完成";
+
+/**
+ * FDE 订单业务类型。
+ */
+export type FdeOrderBusinessType = "新购" | "续费";
 
 /**
  * FDE 订单商品类型。
@@ -118,7 +130,12 @@ export type FdeOrderDeviceType = "云端工作站" | "本地工作站" | "本地
 /**
  * 订单履约类型。
  */
-export type FdeOrderFulfillmentType = "首期配置交付" | "设备追加" | "Agent追加" | "Tokens发放";
+export type FdeOrderFulfillmentType =
+  | "首期配置交付"
+  | "设备追加"
+  | "Agent追加"
+  | "Tokens发放"
+  | "资产续费";
 
 /**
  * 订单履约状态。
@@ -129,6 +146,11 @@ export type FdeOrderFulfillmentStatus = "待处理" | "处理中" | "已完成";
  * 专家广场来源范围。
  */
 export type FdeAgentCatalogScope = "public" | "mine";
+
+/**
+ * FDE 资产类型。
+ */
+export type FdeAssetType = "device" | "agent";
 
 /**
  * FDE 团队成员。
@@ -200,19 +222,54 @@ export interface FdeWorkbenchNavGroup {
 /**
  * 商机条目。
  */
+export interface FdeOpportunityRequirementInfo {
+  sourceEntryLabel: string;
+  submittedAt: string;
+  submitterName: string;
+  submitterPhone: string;
+  interestedAgents: string[];
+  requirementSummary: string;
+  requirementDetail: string;
+}
+
+/**
+ * 商机评论条目。
+ */
+export interface FdeOpportunityCommentItem {
+  id: string;
+  authorId: string;
+  content: string;
+  createdAt: string;
+  replyToCommentId?: string;
+  replyToAuthorId?: string;
+}
+
+/**
+ * 商机条目。
+ */
 export interface FdeOpportunityItem {
   id: string;
   companyName: string;
   scenarioName: string;
   industry: string;
   stage: FdeOpportunityStage;
+  status: FdeOpportunityStatus;
   amountWan: number;
   winRate: number;
-  ownerId: string;
-  nextAction: string;
-  nextActionDate: string;
+  ownerId: string | null;
   source: string;
   summary: string;
+  requirementInfo: FdeOpportunityRequirementInfo;
+  comments: FdeOpportunityCommentItem[];
+}
+
+/**
+ * 新增商机评论入参。
+ */
+export interface FdeAddOpportunityCommentPayload {
+  opportunityId: string;
+  content: string;
+  replyToCommentId?: string;
 }
 
 /**
@@ -313,6 +370,7 @@ export interface FdeDeliveryOrderItem {
   memberCount: number;
   createdAt: string;
   launchTargetDate: string;
+  deliveredAt?: string;
   deliveryNote: string;
   preflightChecks: string[];
   completedSteps: FdeDeliveryStepKey[];
@@ -411,6 +469,11 @@ export interface FdeDeviceMonitorItem {
   type: "cloud" | "local";
   status: "online" | "offline";
   uptime: string;
+  assetId?: string;
+  sourceOrderId?: string;
+  validityMonths?: number;
+  activatedAt?: string;
+  expiresAt?: string;
   categoryLabel?: string;
   ownerLabel?: string;
   activationLabel?: string;
@@ -422,6 +485,11 @@ export interface FdeDeviceMonitorItem {
  * Agent 监控条目。
  */
 export interface FdeAgentMonitorItem {
+  assetId?: string;
+  sourceOrderId?: string;
+  validityMonths?: number;
+  activatedAt?: string;
+  expiresAt?: string;
   name: string;
   runningHours: number;
   completedTasks: number;
@@ -458,6 +526,11 @@ export interface FdeOrderDeviceLineItem {
   kind: "device";
   deviceType: FdeOrderDeviceType;
   quantity: number;
+  validityMonths?: number;
+  renewalTargetAssetId?: string;
+  deliveredAssetIds?: string[];
+  activatedAt?: string;
+  expiresAt?: string;
   unitPrice: number;
   totalAmount: number;
 }
@@ -473,6 +546,11 @@ export interface FdeOrderAgentLineItem {
   releaseVersion: string;
   sourceLabel: string;
   quantity: number;
+  validityMonths?: number;
+  renewalTargetAssetId?: string;
+  deliveredAssetIds?: string[];
+  activatedAt?: string;
+  expiresAt?: string;
   unitPrice: number;
   totalAmount: number;
 }
@@ -528,6 +606,7 @@ export interface FdeOrderItem {
   orderNo: string;
   customerName: string;
   assignedToId: string;
+  businessType?: FdeOrderBusinessType;
   tenantId?: string;
   tenantName?: string;
   tenantCode?: string;
@@ -544,7 +623,7 @@ export interface FdeOrderItem {
  */
 export interface FdeCreateOrderPayload {
   customerName: string;
-  tenantId?: string;
+  tenantId: string;
   remark: string;
   lineItems: FdeOrderLineItem[];
 }
@@ -558,11 +637,24 @@ export interface FdeCreateOrderResult {
 }
 
 /**
+ * 资产续费入参。
+ */
+export interface FdeRenewAssetPayload {
+  customerId: string;
+  assetId: string;
+  assetType: FdeAssetType;
+  validityMonths: number;
+  totalAmount: number;
+  remark: string;
+}
+
+/**
  * 创建设备追加变更单入参。
  */
 export interface FdeCreateDeviceChangePayload {
   customerId: string;
   customerName: string;
+  linkedOrderId?: string;
   expectedEffectiveAt: string;
   reason: string;
   note: string;
@@ -577,6 +669,7 @@ export interface FdeCreateDeviceChangePayload {
 export interface FdeCreateAgentChangePayload {
   customerId: string;
   customerName: string;
+  linkedOrderId?: string;
   expectedEffectiveAt: string;
   reason: string;
   note: string;
@@ -675,20 +768,27 @@ export interface UseFdeWorkbenchResult {
   orders: FdeOrderItem[];
   deliveryOrders: FdeDeliveryOrderItem[];
   versionTasks: FdeVersionManagementTaskItem[];
+  filteredOpportunities: FdeOpportunityItem[];
   filteredOrders: FdeOrderItem[];
   filteredDeliveryOrders: FdeDeliveryOrderItem[];
   filteredOperationsCustomers: FdeOperationsCustomerItem[];
   filteredVersionTasks: FdeVersionManagementTaskItem[];
   opportunities: FdeOpportunityItem[];
   operationsCustomers: FdeOperationsCustomerItem[];
+  selectedOpportunityId: string;
   selectedOrderManagementId: string;
   selectedDeliveryOrderId: string;
   selectedOperationsCustomerId: string;
   selectedVersionTaskId: string;
   setActiveTab: (tab: FdeWorkbenchTabKey) => void;
   createOrder: (payload: FdeCreateOrderPayload) => FdeCreateOrderResult;
+  assignOpportunity: (opportunityId: string, memberId: string | null) => void;
+  updateOpportunityStatus: (opportunityId: string, status: FdeOpportunityStatus) => void;
+  addOpportunityComment: (payload: FdeAddOpportunityCommentPayload) => void;
+  renewAsset: (payload: FdeRenewAssetPayload) => FdeCreateOrderResult;
   syncDeliveryOrders: (orders: FdeDeliveryOrderItem[]) => void;
   createDeliveryChangeOrder: (payload: FdeCreateDeliveryChangePayload) => string;
+  setSelectedOpportunityId: (opportunityId: string) => void;
   setSelectedOrderManagementId: (orderId: string) => void;
   setSelectedDeliveryOrderId: (orderId: string) => void;
   setSelectedOperationsCustomerId: (customerId: string) => void;

@@ -212,6 +212,7 @@
 }
 
 .deviceStatus,
+.assetStatus,
 .changeStatus {
   display: inline-flex;
   align-items: center;
@@ -242,6 +243,21 @@
   color: var(--fdeAccent);
 }
 
+.assetStatusActive {
+  background: rgba(70, 212, 147, 0.12);
+  color: var(--fdeSuccess);
+}
+
+.assetStatusExpiring {
+  background: rgba(255, 196, 89, 0.14);
+  color: var(--fdeWarning);
+}
+
+.assetStatusExpired {
+  background: rgba(255, 103, 103, 0.12);
+  color: var(--fdeDanger);
+}
+
 .tableHeaderRecharge,
 .tableRowRecharge {
   display: grid;
@@ -252,14 +268,14 @@
 .tableHeaderDevice,
 .tableRowDevice {
   display: grid;
-  grid-template-columns: 1.2fr 1fr 0.8fr 0.9fr 0.9fr 1fr 0.7fr;
+  grid-template-columns: 1fr 1.1fr 0.9fr 0.8fr 1fr 0.9fr 0.7fr;
   gap: 16px;
 }
 
 .tableHeaderAgent,
 .tableRowAgent {
   display: grid;
-  grid-template-columns: 1fr 0.7fr 0.9fr 0.8fr 1.1fr 0.8fr;
+  grid-template-columns: 1fr 1.1fr 0.7fr 1.1fr 1fr 0.8fr 0.7fr;
   gap: 16px;
 }
 
@@ -321,6 +337,29 @@
 .tableRowAgent:last-child,
 .tableRowChange:last-child {
   border-bottom: 0;
+}
+
+.renewModalBody {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.renewInfoRow {
+  display: grid;
+  grid-template-columns: 120px minmax(0, 1fr);
+  gap: 16px;
+  align-items: center;
+}
+
+.renewFormField {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.fullWidthControl {
+  width: 100%;
 }
 
 @media (max-width: 1280px) {

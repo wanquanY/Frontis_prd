@@ -722,21 +722,21 @@ export const FdeAgentStoreView = ({
   };
 
   // 打开性能报告
-  const openBenchmark = (e: MouseEvent<HTMLButtonElement>, agent: Agent) => {
+  const openBenchmark = (e: MouseEvent<HTMLElement>, agent: Agent) => {
     e.stopPropagation();
     setSelectedAgent(agent);
     setIsBenchmarkModalOpen(true);
   };
 
   // 打开风险评估
-  const openRiskReport = (e: MouseEvent<HTMLButtonElement>, agent: Agent) => {
+  const openRiskReport = (e: MouseEvent<HTMLElement>, agent: Agent) => {
     e.stopPropagation();
     setSelectedAgent(agent);
     setIsRiskModalOpen(true);
   };
 
   // 打开审核对话框
-  const openReview = (e: MouseEvent<HTMLButtonElement>, agent: Agent) => {
+  const openReview = (e: MouseEvent<HTMLElement>, agent: Agent) => {
     e.stopPropagation();
     setSelectedAgent(agent);
     setReviewDecision("");

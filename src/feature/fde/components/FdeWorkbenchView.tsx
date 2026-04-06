@@ -5,6 +5,7 @@ import {
   AppstoreOutlined,
   CloudServerOutlined,
   CodeOutlined,
+  DashboardOutlined,
   HomeOutlined,
   LineChartOutlined,
   LogoutOutlined,
@@ -34,6 +35,7 @@ import {
 
 import { FdeDeliveryWorkbench } from "./FdeDeliveryWorkbench";
 import { FdeLeaderDashboardView } from "./FdeLeaderDashboardView";
+import { FdeOpportunityWorkbench } from "./FdeOpportunityWorkbench";
 import { FdeOperationsMonitorView } from "./FdeOperationsMonitorView";
 import { FdeOrderManagementView } from "./FdeOrderManagementView";
 import { FdeTeamManagementView } from "./FdeTeamManagementView";
@@ -43,6 +45,7 @@ import styles from "./FdeWorkbenchView.module.less";
 const getWorkbenchTitle = (tab: FdeWorkbenchTabItem): string => `${tab.label}`;
 
 const FDE_TAB_ICONS: Record<FdeWorkbenchTabKey, JSX.Element> = {
+  opportunities: <DashboardOutlined />,
   dashboard: <HomeOutlined />,
   orderManagement: <ShoppingCartOutlined />,
   delivery: <CloudServerOutlined />,
@@ -52,6 +55,7 @@ const FDE_TAB_ICONS: Record<FdeWorkbenchTabKey, JSX.Element> = {
   agentDev: <CodeOutlined />,
   skillMarket: <ThunderboltOutlined />,
   agentStore: <AppstoreOutlined />,
+  opsInsights: <LineChartOutlined />,
 };
 
 /**
@@ -157,7 +161,20 @@ export const FdeWorkbenchView = (): JSX.Element => {
 
   let activeContent: JSX.Element = <Empty description="未找到对应的工作台内容" />;
 
-  if (activeTab === "dashboard") {
+  if (activeTab === "opportunities") {
+    activeContent = (
+      <FdeOpportunityWorkbench
+        activeRole={workbench.activeRole}
+        items={workbench.filteredOpportunities}
+        members={workbench.teamMembers}
+        selectedOpportunityId={workbench.selectedOpportunityId}
+        setSelectedOpportunityId={workbench.setSelectedOpportunityId}
+        assignOpportunity={workbench.assignOpportunity}
+        updateOpportunityStatus={workbench.updateOpportunityStatus}
+        addOpportunityComment={workbench.addOpportunityComment}
+      />
+    );
+  } else if (activeTab === "dashboard") {
     activeContent = (
       <FdeLeaderDashboardView
         members={workbench.teamMembers}
@@ -186,6 +203,7 @@ export const FdeWorkbenchView = (): JSX.Element => {
         orderItems={workbench.filteredOrders}
         members={workbench.teamMembers}
         currentMemberId={workbench.activeMember.id}
+        createOrder={workbench.createOrder}
         selectedOrderId={workbench.selectedDeliveryOrderId}
         syncOrders={workbench.syncDeliveryOrders}
         setSelectedOrderId={workbench.setSelectedDeliveryOrderId}
@@ -197,6 +215,7 @@ export const FdeWorkbenchView = (): JSX.Element => {
         items={workbench.filteredOperationsCustomers}
         selectedCustomerId={workbench.selectedOperationsCustomerId}
         setSelectedCustomerId={workbench.setSelectedOperationsCustomerId}
+        renewAsset={workbench.renewAsset}
       />
     );
   } else if (activeTab === "teamManagement") {

@@ -47,7 +47,6 @@ type AgentScope = "public" | "mine";
 type TenantFilterValue = string;
 
 const ALL_TENANT_FILTER_VALUE = "__all__";
-const UNLINKED_TENANT_FILTER_VALUE = "__unlinked__";
 
 const DEVICE_TYPE_OPTIONS: Array<{ label: string; value: FdeOrderDeviceType }> = [
   { label: "云端工作站", value: "云端工作站" },
@@ -70,6 +69,9 @@ const formatTokenCount = (value: number): string => {
   return `${value.toLocaleString("zh-CN")} tokens`;
 };
 
+const formatValidityLabel = (months?: number): string =>
+  months && months > 0 ? `${months} 个月` : "未设置";
+
 const getOrderStatusClassName = (status: FdeOrderStatus): string => {
   if (status === "已完成") {
     return styles.orderStatusDone;
@@ -77,10 +79,6 @@ const getOrderStatusClassName = (status: FdeOrderStatus): string => {
 
   if (status === "履约中") {
     return styles.orderStatusProcessing;
-  }
-
-  if (status === "待关联租户") {
-    return styles.orderStatusWaiting;
   }
 
   return styles.orderStatusPending;
@@ -116,6 +114,7 @@ const createDeviceLineItem = (): FdeOrderDeviceLineItem => ({
   kind: "device",
   deviceType: "云端工作站",
   quantity: 1,
+  validityMonths: 12,
   unitPrice: 0,
   totalAmount: 0,
 });
@@ -135,6 +134,7 @@ const createAgentLineItem = (agent: FdeAgentCatalogItem): FdeOrderAgentLineItem 
   releaseVersion: agent.releaseVersion,
   sourceLabel: agent.sourceLabel,
   quantity: 1,
+  validityMonths: 12,
   unitPrice: 0,
   totalAmount: 0,
 });
@@ -241,7 +241,6 @@ export const FdeOrderManagementView = ({
 
       return [
         { label: "全部租户", value: ALL_TENANT_FILTER_VALUE },
-        { label: "未关联租户", value: UNLINKED_TENANT_FILTER_VALUE },
         ...dynamicOptions,
       ];
     },
@@ -255,9 +254,7 @@ export const FdeOrderManagementView = ({
         const matchesTenant =
           tenantFilter === ALL_TENANT_FILTER_VALUE
             ? true
-            : tenantFilter === UNLINKED_TENANT_FILTER_VALUE
-              ? !item.tenantId
-              : item.tenantId === tenantFilter || item.tenantName === tenantFilter;
+            : item.tenantId === tenantFilter || item.tenantName === tenantFilter;
 
         if (!matchesTenant) {
           return false;
@@ -401,6 +398,20 @@ export const FdeOrderManagementView = ({
     }));
   }, []);
 
+  const handleUpdateAgentLineValidity = useCallback((lineItemId: string, validityMonths: number | null): void => {
+    setCreateForm(previous => ({
+      ...previous,
+      lineItems: previous.lineItems.map(item =>
+        isAgentLineItem(item) && item.id === lineItemId
+          ? {
+              ...item,
+              validityMonths: validityMonths ?? 0,
+            }
+          : item,
+      ),
+    }));
+  }, []);
+
   const handleUpdateTokensLine = useCallback(
     <TKey extends keyof FdeOrderTokensLineItem>(
       lineItemId: string,
@@ -460,8 +471,8 @@ export const FdeOrderManagementView = ({
   }, []);
 
   const handleCreateOrder = useCallback((): void => {
-    if (!createForm.customerName.trim()) {
-      message.warning("请先填写客户名称。");
+    if (!createForm.tenantId) {
+      message.warning("请先选择订单所属租户。");
       return;
     }
 
@@ -472,11 +483,16 @@ export const FdeOrderManagementView = ({
 
     const hasInvalidLineItem = createForm.lineItems.some(item => {
       if (isDeviceLineItem(item)) {
-        return item.quantity <= 0 || item.unitPrice <= 0 || item.totalAmount <= 0;
+        return (
+          item.quantity <= 0 ||
+          item.unitPrice <= 0 ||
+          item.totalAmount <= 0 ||
+          (item.validityMonths ?? 0) <= 0
+        );
       }
 
       if (isAgentLineItem(item)) {
-        return item.unitPrice <= 0 || item.totalAmount <= 0;
+        return item.unitPrice <= 0 || item.totalAmount <= 0 || (item.validityMonths ?? 0) <= 0;
       }
 
       return item.tokenCount <= 0 || item.totalAmount <= 0;
@@ -494,23 +510,16 @@ export const FdeOrderManagementView = ({
       lineItems: createForm.lineItems,
     });
 
+    if (!result.orderId) {
+      message.warning("当前租户不存在，请重新选择。");
+      return;
+    }
+
     setSelectedOrderId(result.orderId);
     setViewMode("detail");
     handleCloseCreateModal();
     message.success("订单已创建。");
-
-    if (!result.shouldPromptCreateTenant) {
-      return;
-    }
-
-    Modal.confirm({
-      title: "订单暂未关联租户",
-      content: "当前订单已创建完成，是否现在去创建租户并绑定这笔订单？",
-      okText: "去创建租户",
-      cancelText: "稍后再说",
-      onOk: onNavigateToDelivery,
-    });
-  }, [createForm, createOrder, handleCloseCreateModal, onNavigateToDelivery, setSelectedOrderId]);
+  }, [createForm, createOrder, handleCloseCreateModal, setSelectedOrderId]);
 
   const handleEnterDetail = useCallback(
     (orderId: string): void => {
@@ -540,8 +549,14 @@ export const FdeOrderManagementView = ({
                   <span className={styles.detailTag}>设备</span>
                 </div>
                 <div className={styles.detailMeta}>
-                  数量 {item.quantity} / 单价 {formatAmount(item.unitPrice)} / 小计 {formatAmount(item.totalAmount)}
+                  数量 {item.quantity} / 单价 {formatAmount(item.unitPrice)} / 小计 {formatAmount(item.totalAmount)} / 有效时长{" "}
+                  {formatValidityLabel(item.validityMonths)}
                 </div>
+                {item.deliveredAssetIds?.length ? (
+                  <div className={styles.detailSubMeta}>
+                    资产ID：{item.deliveredAssetIds.join("、")} · 到期时间：{item.expiresAt ?? "待交付后生成"}
+                  </div>
+                ) : null}
               </div>
             );
           }
@@ -554,8 +569,14 @@ export const FdeOrderManagementView = ({
                   <span className={styles.detailTag}>AI 专家</span>
                 </div>
                 <div className={styles.detailMeta}>
-                  {item.releaseVersion} · {item.sourceLabel} · {formatAmount(item.totalAmount)}
+                  {item.releaseVersion} · {item.sourceLabel} · {formatAmount(item.totalAmount)} · 有效时长{" "}
+                  {formatValidityLabel(item.validityMonths)}
                 </div>
+                {item.deliveredAssetIds?.length ? (
+                  <div className={styles.detailSubMeta}>
+                    资产ID：{item.deliveredAssetIds.join("、")} · 到期时间：{item.expiresAt ?? "待交付后生成"}
+                  </div>
+                ) : null}
               </div>
             );
           }
@@ -591,11 +612,10 @@ export const FdeOrderManagementView = ({
           <div className={styles.sectionTitle}>订单信息</div>
           <div className={styles.formGrid}>
             <div className={styles.formField}>
-              <div className={styles.fieldLabel}>关联已有租户</div>
+              <div className={styles.fieldLabel}>关联租户</div>
               <Select
-                allowClear
                 className={styles.fullWidthControl}
-                placeholder="可选，选择后自动带出租户和客户名称"
+                placeholder="请选择订单所属租户"
                 value={createForm.tenantId}
                 options={tenantOptions.map(item => ({
                   label: `${item.tenantName} · ${item.customerName} · ${item.deliveryStatus}`,
@@ -608,9 +628,8 @@ export const FdeOrderManagementView = ({
               <div className={styles.fieldLabel}>客户名称</div>
               <Input
                 value={createForm.customerName}
-                disabled={Boolean(createForm.tenantId)}
-                placeholder="请输入客户名称"
-                onChange={event => handleUpdateForm("customerName", event.target.value)}
+                disabled
+                placeholder="选择租户后自动带出"
               />
             </div>
           </div>
@@ -679,6 +698,17 @@ export const FdeOrderManagementView = ({
                           />
                         </div>
                         <div className={styles.formField}>
+                          <div className={styles.fieldLabel}>有效时长（月）</div>
+                          <InputNumber
+                            className={styles.fullWidthControl}
+                            min={1}
+                            value={item.validityMonths}
+                            onChange={value =>
+                              handleUpdateDeviceLine(item.id, "validityMonths", value ?? 0)
+                            }
+                          />
+                        </div>
+                        <div className={styles.formField}>
                           <div className={styles.fieldLabel}>小计</div>
                           <div className={styles.amountValue}>{formatAmount(item.totalAmount)}</div>
                         </div>
@@ -718,6 +748,15 @@ export const FdeOrderManagementView = ({
                         <div className={styles.formField}>
                           <div className={styles.fieldLabel}>数量</div>
                           <div className={styles.amountValue}>1</div>
+                        </div>
+                        <div className={styles.formField}>
+                          <div className={styles.fieldLabel}>有效时长（月）</div>
+                          <InputNumber
+                            className={styles.fullWidthControl}
+                            min={1}
+                            value={item.validityMonths}
+                            onChange={value => handleUpdateAgentLineValidity(item.id, value)}
+                          />
                         </div>
                         <div className={styles.formField}>
                           <div className={styles.fieldLabel}>小计</div>
@@ -849,7 +888,7 @@ export const FdeOrderManagementView = ({
                 <span className={styles.tableStrong}>{item.customerName}</span>
                 <span>{buildOrderSummary(item.lineItems)}</span>
                 <span>{formatAmount(item.totalAmount)}</span>
-                <span>{item.tenantName ?? "未关联"}</span>
+                <span>{item.tenantName ?? "-"}</span>
                 <span className={classNames(styles.orderStatus, getOrderStatusClassName(item.status))}>
                   {item.status}
                 </span>
@@ -956,9 +995,7 @@ export const FdeOrderManagementView = ({
               </Button>
               <h2 className={styles.pageTitle}>{selectedOrder.customerName}</h2>
             </div>
-            <Button type="primary" onClick={onNavigateToDelivery}>
-              {linkedTenant ? "进入配置交付" : "去创建租户"}
-            </Button>
+            <Button type="primary" onClick={onNavigateToDelivery}>进入配置交付</Button>
           </div>
 
           <section className={styles.section}>
@@ -971,6 +1008,10 @@ export const FdeOrderManagementView = ({
               <div className={styles.infoRow}>
                 <span className={styles.infoLabel}>客户名称</span>
                 <span className={styles.infoValue}>{selectedOrder.customerName}</span>
+              </div>
+              <div className={styles.infoRow}>
+                <span className={styles.infoLabel}>订单类型</span>
+                <span className={styles.infoValue}>{selectedOrder.businessType ?? "新购"}</span>
               </div>
               <div className={styles.infoRow}>
                 <span className={styles.infoLabel}>订单状态</span>
@@ -1001,11 +1042,11 @@ export const FdeOrderManagementView = ({
             <div className={styles.infoGrid}>
               <div className={styles.infoRow}>
                 <span className={styles.infoLabel}>租户名称</span>
-                <span className={styles.infoValue}>{selectedOrder.tenantName ?? "未关联"}</span>
+                <span className={styles.infoValue}>{selectedOrder.tenantName ?? "-"}</span>
               </div>
               <div className={styles.infoRow}>
                 <span className={styles.infoLabel}>租户编码</span>
-                <span className={styles.infoValue}>{selectedOrder.tenantCode ?? "未关联"}</span>
+                <span className={styles.infoValue}>{selectedOrder.tenantCode ?? "-"}</span>
               </div>
               <div className={styles.infoRow}>
                 <span className={styles.infoLabel}>交付状态</span>

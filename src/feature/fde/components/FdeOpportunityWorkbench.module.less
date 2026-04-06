@@ -1,0 +1,401 @@
+.layout {
+  display: flex;
+  flex-direction: column;
+}
+
+.viewTabs {
+  :global(.ant-tabs-nav) {
+    margin-bottom: 12px;
+  }
+}
+
+.panel,
+.metricCard,
+.boardPanel {
+  border: 1px solid var(--fdeBorder);
+  border-radius: 16px;
+  background: var(--fdeSurface);
+}
+
+.panel {
+  padding: 18px;
+}
+
+.panelHeader,
+.detailHeader,
+.commentHeader,
+.commentSubmitRow,
+.replyBar,
+.boardColumnHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.panelTitle,
+.detailTitle {
+  color: var(--fdeText);
+  font-size: 18px;
+  line-height: 28px;
+  font-weight: 700;
+}
+
+.panelHint,
+.detailEyebrow,
+.metricLabel,
+.metricHint,
+.controlLabel,
+.requirementLabel,
+.commentHint,
+.commentTime,
+.commentReplyHint {
+  color: var(--fdeTextMuted);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.tableHeader,
+.tableRow {
+  display: grid;
+  grid-template-columns: 1.1fr 0.8fr 0.9fr 1fr 1.5fr 0.7fr 0.9fr;
+  gap: 12px;
+  align-items: center;
+}
+
+.tableHeader {
+  padding: 0 14px 10px;
+  border-bottom: 1px solid var(--fdeBorder);
+  color: var(--fdeTextMuted);
+  font-size: 12px;
+  line-height: 18px;
+  font-weight: 600;
+}
+
+.tableBody {
+  display: flex;
+  flex-direction: column;
+}
+
+.tableRow {
+  width: 100%;
+  padding: 14px;
+  border: none;
+  border-bottom: 1px solid var(--fdeBorder);
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  transition: background 160ms ease;
+
+  &:hover {
+    background: color-mix(in srgb, var(--primary) 4%, var(--fdeSurface));
+  }
+}
+
+.tableRowActive {
+  background: color-mix(in srgb, var(--primary) 7%, var(--fdeSurface));
+}
+
+.companyCell,
+.boardCardTitle,
+.commentAuthor {
+  color: var(--fdeText);
+  font-size: 13px;
+  line-height: 20px;
+  font-weight: 600;
+}
+
+.summaryCell,
+.detailSubtitle,
+.boardCardSummary,
+.boardCardMeta,
+.requirementValue,
+.requirementDetail,
+.commentContent {
+  color: var(--fdeTextSecondary);
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.summaryCell,
+.boardCardSummary {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.boardLayout {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.metricGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.metricCard {
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.metricValue {
+  color: var(--fdeText);
+  font-size: 20px;
+  line-height: 30px;
+  font-weight: 700;
+}
+
+.boardPanel {
+  padding: 12px;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(240px, 1fr));
+  gap: 12px;
+  overflow: auto;
+}
+
+.boardColumn {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.boardColumnList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.boardCard {
+  padding: 12px;
+  border: 1px solid var(--fdeBorder);
+  border-radius: 12px;
+  background: var(--fdeSurface);
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  cursor: pointer;
+  transition: background 160ms ease;
+
+  &:hover {
+    background: color-mix(in srgb, var(--primary) 4%, var(--fdeSurface));
+  }
+}
+
+.boardCardMeta {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.statusTag {
+  min-width: 76px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  line-height: 18px;
+  font-weight: 600;
+}
+
+.statusPending {
+  background: color-mix(in srgb, var(--primary) 8%, transparent);
+  color: var(--fdeText);
+}
+
+.statusActive {
+  background: color-mix(in srgb, var(--fdeWarning) 14%, transparent);
+  color: var(--fdeWarning);
+}
+
+.statusDone {
+  background: color-mix(in srgb, var(--fdeSuccess) 14%, transparent);
+  color: var(--fdeSuccess);
+}
+
+.statusStopped {
+  background: color-mix(in srgb, var(--fdeDanger) 14%, transparent);
+  color: var(--fdeDanger);
+}
+
+.detailModalWrap {
+  overflow: hidden;
+}
+
+.detailModal {
+  max-width: calc(100vw - 48px);
+  padding-bottom: 0;
+
+  :global(.ant-modal-container) {
+    height: min(600px, calc(100vh - 72px));
+    max-height: calc(100vh - 72px);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  :global(.ant-modal-header) {
+    flex: 0 0 auto;
+  }
+
+  :global(.ant-modal-body) {
+    flex: 1 1 auto;
+    display: flex;
+    min-height: 0;
+    overflow: hidden;
+    padding-top: 12px;
+  }
+}
+
+.detailBody {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.detailLayout {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.detailSection {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.sectionTitle {
+  color: var(--fdeText);
+  font-size: 15px;
+  line-height: 24px;
+  font-weight: 700;
+}
+
+.controlGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.controlBlock,
+.commentCard,
+.requirementRow,
+.requirementRowFull,
+.commentComposer {
+  padding: 12px 14px;
+  border: 1px solid var(--fdeBorder);
+  border-radius: 12px;
+  background: var(--fdeSurface);
+}
+
+.controlBlock,
+.requirementRow,
+.requirementRowFull {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.fullWidthControl {
+  width: 100%;
+}
+
+.requirementGrid,
+.commentList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.tagList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.agentTag {
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--primary) 8%, transparent);
+  color: var(--fdeText);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.requirementDetail {
+  white-space: pre-wrap;
+}
+
+.replyBar {
+  align-items: center;
+}
+
+.commentComposer {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.commentSubmitRow {
+  align-items: center;
+}
+
+.commentCard {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.commentActions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.emptyHint {
+  padding: 20px 0;
+  color: var(--fdeTextMuted);
+  font-size: 13px;
+  line-height: 20px;
+  text-align: center;
+}
+
+@media (max-width: 1440px) {
+  .metricGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .boardPanel {
+    grid-template-columns: repeat(2, minmax(240px, 1fr));
+  }
+}
+
+@media (max-width: 980px) {
+  .metricGrid,
+  .controlGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .tableHeader {
+    display: none;
+  }
+
+  .tableRow {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+
+  .boardPanel {
+    grid-template-columns: 1fr;
+  }
+}
