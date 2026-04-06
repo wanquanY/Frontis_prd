@@ -26,6 +26,7 @@ import styles from "./FdeSkillMarketView.module.less";
 /* ─── 常量 ─── */
 
 const MARKET_TABS: Array<{ key: FdeSkillMarketTab; label: string }> = [
+  { key: "mcp", label: "MCP工具" },
   { key: "public", label: "通用skill市场" },
   { key: "team", label: "团队共享" },
   { key: "mine", label: "我的skill" },
@@ -36,12 +37,14 @@ const CATEGORY_FILTERS: Array<{ key: FdeSkillCategoryFilter; label: string }> = 
   { key: "workflow", label: "workflow类" },
   { key: "skill", label: "skill类" },
   { key: "model", label: "模型类" },
+  { key: "tool", label: "MCP工具" },
 ];
 
 const TYPE_LABEL: Record<FdeSkillType, string> = {
   workflow: "Workflow",
   skill: "Skill",
   model: "模型",
+  tool: "MCP工具",
 };
 
 const VISIBILITY_LABELS: Record<string, string> = {
@@ -100,15 +103,28 @@ export const FdeSkillMarketView = ({
   const [selectedSkillId, setSelectedSkillId] = useState<string | null>(null);
   const [form] = Form.useForm<UploadFormValues>();
 
+  const visibleCategoryFilters = useMemo(
+    () =>
+      activeTab === "mcp"
+        ? CATEGORY_FILTERS.filter(cat => cat.key === "all" || cat.key === "tool")
+        : CATEGORY_FILTERS.filter(cat => cat.key !== "tool"),
+    [activeTab],
+  );
+
   /* 过滤 */
   const filteredSkills = useMemo<FdeSkillItem[]>(() => {
     let items = FDE_SKILL_MARKET_ITEMS;
 
-    if (activeTab === "public") {
+    if (activeTab === "mcp") {
+      items = items.filter(s => s.type === "tool");
+    } else if (activeTab === "public") {
+      items = items.filter(s => s.type !== "tool");
       items = items.filter(s => s.visibility === "public");
     } else if (activeTab === "team") {
+      items = items.filter(s => s.type !== "tool");
       items = items.filter(s => s.visibility === "team");
     } else {
+      items = items.filter(s => s.type !== "tool");
       items = items.filter(s => s.publisher === CURRENT_USER);
     }
 
@@ -202,6 +218,7 @@ export const FdeSkillMarketView = ({
                       [styles.typeBadgeWorkflow]: selectedSkill.type === "workflow",
                       [styles.typeBadgeSkill]: selectedSkill.type === "skill",
                       [styles.typeBadgeModel]: selectedSkill.type === "model",
+                      [styles.typeBadgeTool]: selectedSkill.type === "tool",
                     })}
                   >
                     {TYPE_LABEL[selectedSkill.type]}
@@ -312,7 +329,7 @@ export const FdeSkillMarketView = ({
           <Input
             allowClear
             value={keyword}
-            placeholder="搜索skill..."
+            placeholder={activeTab === "mcp" ? "搜索MCP工具..." : "搜索skill..."}
             prefix={<SearchOutlined className={styles.searchIcon} />}
             className={styles.searchInput}
             onChange={e => setKeyword(e.target.value)}
@@ -333,7 +350,7 @@ export const FdeSkillMarketView = ({
 
       {/* ─── 分类筛选 ─── */}
       <div className={styles.filterBar}>
-        {CATEGORY_FILTERS.map(cat => (
+        {visibleCategoryFilters.map(cat => (
           <button
             key={cat.key}
             type="button"
@@ -351,7 +368,7 @@ export const FdeSkillMarketView = ({
       {/* ─── 卡片网格 ─── */}
       {filteredSkills.length === 0 ? (
         <div className={styles.emptyState}>
-          <Empty description="暂无匹配的 Skill" />
+          <Empty description={activeTab === "mcp" ? "暂无匹配的 MCP 工具" : "暂无匹配的 Skill"} />
         </div>
       ) : (
         <div className={styles.cardGrid}>
@@ -384,6 +401,7 @@ export const FdeSkillMarketView = ({
                         [styles.typeBadgeWorkflow]: skill.type === "workflow",
                         [styles.typeBadgeSkill]: skill.type === "skill",
                         [styles.typeBadgeModel]: skill.type === "model",
+                        [styles.typeBadgeTool]: skill.type === "tool",
                       })}
                     >
                       {TYPE_LABEL[skill.type]}

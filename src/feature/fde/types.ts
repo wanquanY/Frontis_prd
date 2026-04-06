@@ -703,9 +703,9 @@ export interface UseFdeWorkbenchResult {
 
 /* ─── Skill 市场 ─── */
 
-export type FdeSkillType = "workflow" | "skill" | "model";
+export type FdeSkillType = "workflow" | "skill" | "model" | "tool";
 export type FdeSkillVisibility = "public" | "private" | "team";
-export type FdeSkillMarketTab = "public" | "team" | "mine";
+export type FdeSkillMarketTab = "mcp" | "public" | "team" | "mine";
 export type FdeSkillCategoryFilter = "all" | FdeSkillType;
 
 export interface FdeSkillVersionItem {

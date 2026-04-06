@@ -33,6 +33,7 @@ const MarketingPortalContactPage = lazy(
   () => import("@/pages/marketingPortal/MarketingPortalContactPage"),
 );
 const FdeWorkbenchPage = lazy(() => import("@/pages/fde/FdeWorkbenchPage"));
+const FdeDevWorkbenchPage = lazy(() => import("@/pages/fde-dev/FdeDevWorkbenchPage"));
 
 /**
  * App
@@ -165,6 +166,22 @@ const App = (): JSX.Element => {
             element={
               <AuthRoute allowedRole={["fdeAdmin", "fdeMember"]}>
                 <FdeWorkbenchPage />
+              </AuthRoute>
+            }
+          />
+          <Route
+            path="/fde-dev"
+            element={
+              <AuthRoute allowedRole={["fdeAdmin", "fdeMember"]}>
+                <FdeDevWorkbenchPage />
+              </AuthRoute>
+            }
+          />
+          <Route
+            path="/fde-dev/:tabPath"
+            element={
+              <AuthRoute allowedRole={["fdeAdmin", "fdeMember"]}>
+                <FdeDevWorkbenchPage />
               </AuthRoute>
             }
           />

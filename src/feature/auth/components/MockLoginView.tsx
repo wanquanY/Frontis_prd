@@ -101,10 +101,14 @@ export const MockLoginView = (): JSX.Element => {
   );
 
   const handleQuickLogin = useCallback(
-    (role: "employee" | "admin", version: "v1" | "v2" = "v1"): void => {
+    (role: "employee" | "admin"): void => {
       const account = MOCK_AUTH_ACCOUNTS.find(a => a.role === role);
-      if (!account) return;
-      const targetPath = getWorkspacePathByRole(role, version);
+
+      if (!account) {
+        return;
+      }
+
+      const targetPath = getWorkspacePathByRole(role);
 
       setPendingQuickLoginPath(targetPath);
       setSession({
@@ -132,6 +136,23 @@ export const MockLoginView = (): JSX.Element => {
         loginAt: new Date().toISOString(),
       });
       navigate("/fde", { replace: true });
+    },
+    [navigate, setSession],
+  );
+
+  const handleQuickFdeDevLogin = useCallback(
+    (role: Extract<MockAuthRole, "fdeMember" | "fdeAdmin">): void => {
+      const account = role === "fdeAdmin" ? FDE_LEADER_MOCK_ACCOUNT : FDE_MEMBER_MOCK_ACCOUNT;
+
+      setPendingQuickLoginPath("/fde-dev");
+      setSession({
+        userId: account.userId,
+        name: account.name,
+        phone: account.phone,
+        role: account.role,
+        loginAt: new Date().toISOString(),
+      });
+      navigate("/fde-dev", { replace: true });
     },
     [navigate, setSession],
   );
@@ -263,26 +284,10 @@ export const MockLoginView = (): JSX.Element => {
                   <button
                     type="button"
                     className={styles.quickLoginButton}
-                    onClick={() => handleQuickLogin("employee", "v2")}
-                  >
-                    <span className={styles.quickLoginIcon}>🆕</span>
-                    <span>普通员工登录 V2</span>
-                  </button>
-                  <button
-                    type="button"
-                    className={styles.quickLoginButton}
-                    onClick={() => handleQuickLogin("admin", "v2")}
-                  >
-                    <span className={styles.quickLoginIcon}>🚀</span>
-                    <span>企业老板登录 V2</span>
-                  </button>
-                  <button
-                    type="button"
-                    className={styles.quickLoginButton}
                     onClick={() => handleQuickFdeLogin("fdeMember")}
                   >
                     <span className={styles.quickLoginIcon}>🛠</span>
-                    <span>FDE成员登录</span>
+                    <span>FDE成员-业务管理登录</span>
                   </button>
                   <button
                     type="button"
@@ -290,7 +295,23 @@ export const MockLoginView = (): JSX.Element => {
                     onClick={() => handleQuickFdeLogin("fdeAdmin")}
                   >
                     <span className={styles.quickLoginIcon}>🧭</span>
-                    <span>FDE负责人登录</span>
+                    <span>FDE负责人-业务管理登录</span>
+                  </button>
+                  <button
+                    type="button"
+                    className={styles.quickLoginButton}
+                    onClick={() => handleQuickFdeDevLogin("fdeMember")}
+                  >
+                    <span className={styles.quickLoginIcon}>💻</span>
+                    <span>FDE成员-开发管理登录</span>
+                  </button>
+                  <button
+                    type="button"
+                    className={styles.quickLoginButton}
+                    onClick={() => handleQuickFdeDevLogin("fdeAdmin")}
+                  >
+                    <span className={styles.quickLoginIcon}>🔧</span>
+                    <span>FDE负责人-开发管理登录</span>
                   </button>
                 </div>
               </div>

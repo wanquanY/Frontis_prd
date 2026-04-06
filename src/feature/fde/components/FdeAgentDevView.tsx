@@ -15,6 +15,8 @@ import {
   FileMarkdownOutlined,
   FileTextOutlined,
   LoadingOutlined,
+  MenuFoldOutlined,
+  MenuUnfoldOutlined,
   MessageOutlined,
   PaperClipOutlined,
   PlusOutlined,
@@ -26,7 +28,7 @@ import {
   ToolOutlined,
   UploadOutlined,
 } from "@ant-design/icons";
-import { Button, Checkbox, Input, Select, message } from "antd";
+import { Button, Checkbox, Input, Modal, Select, message } from "antd";
 
 import { FDE_AGENT_WORKSPACES } from "@/feature/fde/mockData";
 import type { FdeAgentFramework, FdeAgentWorkspace } from "@/feature/fde/types";
@@ -212,6 +214,39 @@ const FLOW_TAB_LABELS: Record<FlowTab, string> = {
   publish: "发布",
 };
 
+const WORKSPACE_FRAMEWORK_OPTIONS: Array<{
+  label: string;
+  value: FdeAgentFramework;
+}> = [
+  { label: "MetaAgent", value: "MetaAgent" },
+  { label: "Syngent", value: "Syngent" },
+  { label: "OpenClaw", value: "OpenClaw" },
+];
+
+const WORKSPACE_FRAMEWORK_SKILLS: Record<
+  FdeAgentFramework,
+  Array<{ name: string; version: string }>
+> = {
+  MetaAgent: [
+    { name: "智能文案生成", version: "3.0.1" },
+    { name: "多语言翻译引擎", version: "2.4.0" },
+  ],
+  Syngent: [
+    { name: "采购计划生成", version: "2.1.0" },
+    { name: "库存异常监控", version: "1.8.0" },
+  ],
+  OpenClaw: [
+    { name: "数据分析助手", version: "2.0.0" },
+    { name: "SQL 生成器", version: "1.6.0" },
+  ],
+};
+
+const WORKSPACE_FRAMEWORK_ICON_TEXT: Record<FdeAgentFramework, string> = {
+  MetaAgent: "智",
+  Syngent: "协",
+  OpenClaw: "数",
+};
+
 /* ─── 子组件 ─── */
 
 const ToolOpsBlock = ({ count }: { count: number }): JSX.Element => {
@@ -268,10 +303,20 @@ export const FdeAgentDevView = (): JSX.Element => {
   const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string | null>(null);
   const [searchKeyword, setSearchKeyword] = useState("");
   const [inputValue, setInputValue] = useState("");
+  const [customWorkspaces, setCustomWorkspaces] = useState<FdeAgentWorkspace[]>([]);
+  const [isNewWorkspaceModalOpen, setIsNewWorkspaceModalOpen] = useState(false);
+  const [newWorkspaceName, setNewWorkspaceName] = useState("");
+  const [newWorkspaceDescription, setNewWorkspaceDescription] = useState("");
+  const [newWorkspaceFramework, setNewWorkspaceFramework] = useState<FdeAgentFramework | undefined>(undefined);
+
+  const allWorkspaces = useMemo<FdeAgentWorkspace[]>(
+    () => [...FDE_AGENT_WORKSPACES, ...customWorkspaces],
+    [customWorkspaces],
+  );
 
   const selectedWorkspace = useMemo<FdeAgentWorkspace | null>(
-    () => (selectedWorkspaceId ? FDE_AGENT_WORKSPACES.find(w => w.id === selectedWorkspaceId) ?? null : null),
-    [selectedWorkspaceId],
+    () => (selectedWorkspaceId ? allWorkspaces.find(w => w.id === selectedWorkspaceId) ?? null : null),
+    [allWorkspaces, selectedWorkspaceId],
   );
 
   /* ── 左侧面板 ── */
@@ -280,6 +325,7 @@ export const FdeAgentDevView = (): JSX.Element => {
 
   /* ── 右侧资产中心 ── */
   const [rightTab, setRightTab] = useState<"files" | "results">("files");
+  const [isRightPanelCollapsed, setIsRightPanelCollapsed] = useState(false);
 
   /* ── 中间对话面板 ── */
   const [activeFlowTab, setActiveFlowTab] = useState<FlowTab>("research");
@@ -435,6 +481,8 @@ export const FdeAgentDevView = (): JSX.Element => {
     setActiveFlowTab("research");
     setLeftTab("dialogue");
     setShowFeedbackPanel(false);
+    setRightTab("files");
+    setIsRightPanelCollapsed(false);
     setResearchMessages([]);
     setDevPhase("idle");
     setDevMessages([]);
@@ -462,7 +510,58 @@ export const FdeAgentDevView = (): JSX.Element => {
     setStreamScriptIdx(-1);
     setPage("list");
     setSelectedWorkspaceId(null);
+    setIsRightPanelCollapsed(false);
   }, []);
+
+  const handleOpenNewWorkspaceModal = useCallback(() => {
+    setNewWorkspaceName("");
+    setNewWorkspaceDescription("");
+    setNewWorkspaceFramework(undefined);
+    setIsNewWorkspaceModalOpen(true);
+  }, []);
+
+  const handleCloseNewWorkspaceModal = useCallback(() => {
+    setIsNewWorkspaceModalOpen(false);
+  }, []);
+
+  const handleCreateWorkspace = useCallback(() => {
+    const trimmedName = newWorkspaceName.trim();
+    const trimmedDescription = newWorkspaceDescription.trim();
+    const framework = newWorkspaceFramework ?? "MetaAgent";
+
+    if (!trimmedName) {
+      message.warning("请输入工作空间名称");
+      return;
+    }
+
+    const newWorkspace: FdeAgentWorkspace = {
+      id: `ws-custom-${Date.now()}`,
+      name: trimmedName,
+      description: trimmedDescription || `基于 ${framework} 框架创建的智能 Agent 工作空间`,
+      iconColor: FRAMEWORK_COLORS[framework],
+      iconText: WORKSPACE_FRAMEWORK_ICON_TEXT[framework],
+      framework,
+      skillCount: WORKSPACE_FRAMEWORK_SKILLS[framework].length,
+      skills: WORKSPACE_FRAMEWORK_SKILLS[framework],
+      createdAt: new Date().toISOString().slice(0, 10),
+      conversations: [],
+      knowledgeBases: [],
+      feedbackData: [],
+      results: [],
+      fileCount: 0,
+      overviewText: "新创建的工作空间，暂无文件。",
+    };
+
+    setCustomWorkspaces(prev => [...prev, newWorkspace]);
+    setIsNewWorkspaceModalOpen(false);
+    message.success("工作空间已创建");
+    handleOpenWorkspace(newWorkspace);
+  }, [
+    handleOpenWorkspace,
+    newWorkspaceDescription,
+    newWorkspaceFramework,
+    newWorkspaceName,
+  ]);
 
   /* ── 调研发送 ── */
   const handleResearchSend = useCallback(() => {
@@ -669,8 +768,12 @@ export const FdeAgentDevView = (): JSX.Element => {
   /* ═══ 页面一：列表 ═══ */
   if (page === "list") {
     const filtered = searchKeyword.trim()
-      ? FDE_AGENT_WORKSPACES.filter(w => w.name.includes(searchKeyword.trim()) || w.description.includes(searchKeyword.trim()))
-      : FDE_AGENT_WORKSPACES;
+      ? allWorkspaces.filter(
+          w =>
+            w.name.includes(searchKeyword.trim()) ||
+            w.description.includes(searchKeyword.trim()),
+        )
+      : allWorkspaces;
 
     return (
       <div className={styles.listRoot}>
@@ -682,7 +785,14 @@ export const FdeAgentDevView = (): JSX.Element => {
             className={styles.listSearchBox}
             onChange={e => setSearchKeyword(e.target.value)}
           />
-          <Button type="primary" icon={<PlusOutlined />} className={styles.listNewBtn}>新建工作空间</Button>
+          <Button
+            type="primary"
+            icon={<PlusOutlined />}
+            className={styles.listNewBtn}
+            onClick={handleOpenNewWorkspaceModal}
+          >
+            新建工作空间
+          </Button>
         </div>
         <div className={styles.listGrid}>
           {filtered.map(ws => (
@@ -701,6 +811,58 @@ export const FdeAgentDevView = (): JSX.Element => {
             </button>
           ))}
         </div>
+
+        <Modal
+          open={isNewWorkspaceModalOpen}
+          title="新建工作空间"
+          okText="创建工作空间"
+          cancelText="取消"
+          destroyOnHidden
+          onCancel={handleCloseNewWorkspaceModal}
+          onOk={handleCreateWorkspace}
+        >
+          <div className={styles.workspaceModalForm}>
+            <div className={styles.workspaceModalField}>
+              <span className={styles.workspaceModalLabel}>工作空间名称</span>
+              <Input
+                maxLength={80}
+                placeholder="请输入工作空间名称"
+                value={newWorkspaceName}
+                onChange={e => setNewWorkspaceName(e.target.value)}
+              />
+            </div>
+
+            <div className={styles.workspaceModalField}>
+              <span className={styles.workspaceModalLabel}>工作空间描述</span>
+              <Input.TextArea
+                rows={4}
+                maxLength={200}
+                placeholder="可选，简要描述这个工作空间的用途"
+                value={newWorkspaceDescription}
+                onChange={e => setNewWorkspaceDescription(e.target.value)}
+              />
+            </div>
+
+            <div className={styles.workspaceModalField}>
+              <span className={styles.workspaceModalLabel}>Agent 框架</span>
+              <Select
+                allowClear
+                placeholder="可选，默认使用 MetaAgent"
+                options={WORKSPACE_FRAMEWORK_OPTIONS}
+                value={newWorkspaceFramework}
+                onChange={value =>
+                  setNewWorkspaceFramework(
+                    value === "MetaAgent" ||
+                      value === "Syngent" ||
+                      value === "OpenClaw"
+                      ? value
+                      : undefined,
+                  )
+                }
+              />
+            </div>
+          </div>
+        </Modal>
       </div>
     );
   }
@@ -1138,12 +1300,34 @@ export const FdeAgentDevView = (): JSX.Element => {
   );
 
   /* ── 右侧资产中心 ── */
-  const rightPanel = (
+  const rightPanel = isRightPanelCollapsed ? (
+    <aside className={styles.rightPanelCollapsed}>
+      <button
+        type="button"
+        className={styles.rightPanelCollapsedBtn}
+        aria-label="展开右侧面板"
+        onClick={() => setIsRightPanelCollapsed(false)}
+      >
+        <MenuUnfoldOutlined />
+        <span className={styles.rightPanelCollapsedText}>
+          {rightTab === "files" ? "文件" : "成果"}
+        </span>
+      </button>
+    </aside>
+  ) : (
     <aside className={styles.rightPanel}>
       <div className={styles.rightHeader}>
         <FileTextOutlined />
         <span className={styles.rightTitle}>Agent资产中心</span>
         <span className={styles.rightCount}>{totalResults} 个生成结果</span>
+        <button
+          type="button"
+          className={styles.rightToggleBtn}
+          aria-label="收起右侧面板"
+          onClick={() => setIsRightPanelCollapsed(true)}
+        >
+          <MenuFoldOutlined />
+        </button>
       </div>
 
       <div className={styles.rightTabs}>

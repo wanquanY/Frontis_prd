@@ -79,24 +79,21 @@ export const MOCK_AUTH_ACCOUNTS: MockAuthAccount[] = [
 ];
 
 /**
- * 根据角色和版本获取工作台路径。
+ * 根据角色获取默认工作台路径。
  */
-export const getWorkspacePathByRole = (
-  role: FrontisWebRole,
-  version: FrontisWorkspaceVersion = "v1",
-): string => {
+export const getWorkspacePathByRole = (role: FrontisWebRole): string => {
   if (role === "admin") {
-    return version === "v2" ? "/web/admin/v2/workspace" : "/web/admin/workspace";
+    return "/web/admin/workspace";
   }
 
-  return version === "v2" ? "/web/employee/v2" : "/web/employee";
+  return "/web/employee";
 };
 
 /**
  * 根据角色获取默认工作台路径。
  */
 export const getDefaultPathByRole = (role: FrontisWebRole): string =>
-  getWorkspacePathByRole(role, "v1");
+  getWorkspacePathByRole(role);
 
 /**
  * 获取任意模拟角色的默认落地路径。
