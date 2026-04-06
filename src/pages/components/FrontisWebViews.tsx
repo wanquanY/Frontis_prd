@@ -6,6 +6,7 @@ import { Button, Empty, Select, Tag } from "antd";
 
 import { MarkdownRenderer } from "@/components/MarkdownRenderer";
 import type { SynClawArtifactItem } from "@/pages/synclaw/types";
+import type { ExpertDeploymentState } from "@/pages/components/agentStore/types";
 
 import type {
   DialogueSessionItem,
@@ -42,7 +43,11 @@ export interface AdminDashboardViewProps {
 }
 
 export interface DeviceManagementViewProps {
+  deploymentByEmployeeId: Record<string, ExpertDeploymentState>;
+  deviceOwners: Record<string, string | null>;
   employees: EmployeeItem[];
+  onAssignDeviceOwner: (deviceId: string, ownerId: string | null) => void;
+  users: FrontisWebUserItem[];
   workspaces: WorkspaceItem[];
 }
 

@@ -1,27 +1,47 @@
-import type { EmployeeItem, EmployeeVisibility, FrontisWebTabKey, WorkspaceItem } from "../../types";
+import type {
+  EmployeeItem,
+  EmployeeVisibility,
+  FrontisWebTabKey,
+  FrontisWebUserItem,
+  WorkspaceItem,
+} from "../../types";
 
 /**
  * AI 专家团视图组件入参。
  */
 export interface AgentStoreViewProps {
+  deploymentByEmployeeId: Record<string, ExpertDeploymentState>;
+  deviceOwners: Record<string, string | null>;
   employees: EmployeeItem[];
   memberNames: string[];
+  onAttachEmployeeToDevice: (employeeId: string, workspaceId: string) => void;
+  onDetachEmployeeFromDevice: (employeeId: string, workspaceId: string) => void;
   onNavigateToTab: (tabKey: FrontisWebTabKey) => void;
-  onUpdateEmployeeAccess: (
+  onUpdateEmployeeDeviceAccess: (
     employeeId: string,
+    workspaceId: string,
     visibility: EmployeeVisibility,
     boundMembers: string[],
   ) => void;
   onUpdateEmployeeModel: (employeeId: string, model: string) => void;
+  users: FrontisWebUserItem[];
   workspaces: WorkspaceItem[];
+}
+
+/**
+ * AI 专家在单个设备上的权限配置。
+ */
+export interface ExpertDeviceAccessState {
+  boundMembers: string[];
+  visibility: EmployeeVisibility;
 }
 
 /**
  * AI 专家在企业后台中的部署配置。
  */
 export interface ExpertDeploymentState {
-  assignedWorkspaceId: string | null;
-  isDeviceLocked: boolean;
+  accessByWorkspaceId: Record<string, ExpertDeviceAccessState>;
+  assignedWorkspaceIds: string[];
 }
 
 /**

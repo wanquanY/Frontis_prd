@@ -29,6 +29,11 @@ import { AdminNotificationPopover } from "./components/AdminNotificationPopover"
 import { DeviceManagementView } from "./components/DeviceManagementView";
 import { OrganizationManagementView } from "./components/OrganizationManagementView";
 import { AgentStoreView } from "./components/agentStore/AgentStoreView";
+import type { ExpertDeploymentState } from "./components/agentStore/types";
+import {
+  buildInitialExpertDeploymentByEmployeeId,
+  hasUserAccessToExpert,
+} from "./components/agentStore/utils";
 import { ModelConfigurationView } from "./components/ModelConfigurationView";
 import type {
   EmployeeItem,
@@ -41,6 +46,12 @@ import type {
 import styles from "./FrontisPage.module.less";
 
 const MANAGEMENT_USER_ROLES = new Set<FrontisUserRole>(["boss", "admin"]);
+const INITIAL_DEVICE_OWNERS: Record<string, string | null> = {
+  "workspace-cloud": null,
+  "workspace-local": null,
+  "workspace-local-bj": "user-admin-001",
+  "workspace-local-sh": "user-member-001",
+};
 
 const FRONTIS_ADMIN_TABS: FrontisWebTabItem[] = [
   {
@@ -91,27 +102,124 @@ const FrontisAdminPage = ({
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(false);
   const [employees, setEmployees] = useState<EmployeeItem[]>(INITIAL_EMPLOYEES);
   const [users, setUsers] = useState<FrontisWebUserItem[]>(INITIAL_FRONTIS_WEB_USERS);
+  const [deploymentByEmployeeId, setDeploymentByEmployeeId] = useState<Record<string, ExpertDeploymentState>>(
+    () => buildInitialExpertDeploymentByEmployeeId(INITIAL_EMPLOYEES),
+  );
+  const [deviceOwners, setDeviceOwners] = useState<Record<string, string | null>>(INITIAL_DEVICE_OWNERS);
   const dialogueSessions = INITIAL_DIALOGUE_SESSIONS;
   const workspaces = INITIAL_WORKSPACES;
 
-  const currentUser = useMemo(
+  const effectiveUsers = useMemo(
     () =>
-      users.find(item => item.id === session?.userId) ??
-      users.find(item => MANAGEMENT_USER_ROLES.has(item.role) && item.status === "active") ??
-      users.find(item => MANAGEMENT_USER_ROLES.has(item.role)) ??
-      null,
-    [session?.userId, users],
+      users.map(user => ({
+        ...user,
+        assignedAgentIds: employees
+          .filter(employee =>
+            hasUserAccessToExpert(user, employee, deploymentByEmployeeId[employee.id], deviceOwners),
+          )
+          .map(employee => employee.id),
+      })),
+    [deploymentByEmployeeId, deviceOwners, employees, users],
   );
 
-  const handleUpdateEmployeeAccess = useCallback(
-    (employeeId: string, visibility: EmployeeItem["visibility"], boundMembers: string[]): void => {
+  const currentUser = useMemo(
+    () =>
+      effectiveUsers.find(item => item.id === session?.userId) ??
+      effectiveUsers.find(item => MANAGEMENT_USER_ROLES.has(item.role) && item.status === "active") ??
+      effectiveUsers.find(item => MANAGEMENT_USER_ROLES.has(item.role)) ??
+      null,
+    [effectiveUsers, session?.userId],
+  );
+
+  const handleAttachEmployeeToDevice = useCallback(
+    (employeeId: string, workspaceId: string): void => {
+      setDeploymentByEmployeeId(prev => {
+        const currentState = prev[employeeId] ?? {
+          accessByWorkspaceId: {},
+          assignedWorkspaceIds: [],
+        };
+        const employee = employees.find(item => item.id === employeeId);
+
+        if (!employee || currentState.assignedWorkspaceIds.includes(workspaceId)) {
+          return prev;
+        }
+
+        return {
+          ...prev,
+          [employeeId]: {
+            accessByWorkspaceId: {
+              ...currentState.accessByWorkspaceId,
+              [workspaceId]: {
+                boundMembers: [...employee.boundMembers],
+                visibility: employee.visibility,
+              },
+            },
+            assignedWorkspaceIds: [...currentState.assignedWorkspaceIds, workspaceId],
+          },
+        };
+      });
+    },
+    [employees],
+  );
+
+  const handleDetachEmployeeFromDevice = useCallback((employeeId: string, workspaceId: string): void => {
+    setDeploymentByEmployeeId(prev => {
+      const currentState = prev[employeeId];
+      if (!currentState) {
+        return prev;
+      }
+
+      const nextAccessByWorkspaceId = { ...currentState.accessByWorkspaceId };
+      delete nextAccessByWorkspaceId[workspaceId];
+
+      return {
+        ...prev,
+        [employeeId]: {
+          accessByWorkspaceId: nextAccessByWorkspaceId,
+          assignedWorkspaceIds: currentState.assignedWorkspaceIds.filter(id => id !== workspaceId),
+        },
+      };
+    });
+  }, []);
+
+  const handleUpdateEmployeeDeviceAccess = useCallback(
+    (
+      employeeId: string,
+      workspaceId: string,
+      visibility: EmployeeItem["visibility"],
+      boundMembers: string[],
+    ): void => {
+      setDeploymentByEmployeeId(prev => {
+        const currentState = prev[employeeId] ?? {
+          accessByWorkspaceId: {},
+          assignedWorkspaceIds: [],
+        };
+
+        return {
+          ...prev,
+          [employeeId]: {
+            accessByWorkspaceId: {
+              ...currentState.accessByWorkspaceId,
+              [workspaceId]: {
+                boundMembers,
+                visibility,
+              },
+            },
+            assignedWorkspaceIds: currentState.assignedWorkspaceIds.includes(workspaceId)
+              ? currentState.assignedWorkspaceIds
+              : [...currentState.assignedWorkspaceIds, workspaceId],
+          },
+        };
+      });
+
       setEmployees(prev =>
         prev.map(item =>
           item.id === employeeId
             ? {
                 ...item,
-                visibility,
                 boundMembers,
+                visibility,
+                workspaceId: workspaceId || item.workspaceId,
               }
             : item,
         ),
@@ -187,6 +295,29 @@ const FrontisAdminPage = ({
     setUsers(prev => prev.filter(item => item.id !== userId));
   }, []);
 
+  const handleAssignDeviceOwner = useCallback((deviceId: string, ownerId: string | null): void => {
+    setDeviceOwners(prev => ({
+      ...prev,
+      [deviceId]: ownerId,
+    }));
+
+    setUsers(prev =>
+      prev.map(item => {
+        const nextWorkspaceIds = new Set(item.assignedWorkspaceIds ?? []);
+        nextWorkspaceIds.delete(deviceId);
+
+        if (item.id === ownerId) {
+          nextWorkspaceIds.add(deviceId);
+        }
+
+        return {
+          ...item,
+          assignedWorkspaceIds: Array.from(nextWorkspaceIds),
+        };
+      }),
+    );
+  }, []);
+
   const handleLogout = useCallback((): void => {
     logout();
     message.success("已退出模拟登录。");
@@ -227,7 +358,7 @@ const FrontisAdminPage = ({
           dialogueSessions={dialogueSessions}
           employees={employees}
           onNavigateToTab={handleSelectTab}
-          users={users}
+          users={effectiveUsers}
           workspaces={workspaces}
         />
       );
@@ -236,18 +367,32 @@ const FrontisAdminPage = ({
     if (activeTabKey === "store") {
       return (
         <AgentStoreView
+          deploymentByEmployeeId={deploymentByEmployeeId}
+          deviceOwners={deviceOwners}
           employees={employees}
-          memberNames={users.filter(item => item.status === "active").map(item => item.name)}
+          memberNames={effectiveUsers.filter(item => item.status === "active").map(item => item.name)}
+          onAttachEmployeeToDevice={handleAttachEmployeeToDevice}
+          onDetachEmployeeFromDevice={handleDetachEmployeeFromDevice}
           onNavigateToTab={handleSelectTab}
-          onUpdateEmployeeAccess={handleUpdateEmployeeAccess}
+          onUpdateEmployeeDeviceAccess={handleUpdateEmployeeDeviceAccess}
           onUpdateEmployeeModel={handleUpdateEmployeeModel}
+          users={effectiveUsers}
           workspaces={workspaces}
         />
       );
     }
 
     if (activeTabKey === "devices") {
-      return <DeviceManagementView employees={employees} users={users} workspaces={workspaces} />;
+      return (
+        <DeviceManagementView
+          deploymentByEmployeeId={deploymentByEmployeeId}
+          deviceOwners={deviceOwners}
+          employees={employees}
+          onAssignDeviceOwner={handleAssignDeviceOwner}
+          users={effectiveUsers}
+          workspaces={workspaces}
+        />
+      );
     }
 
     if (activeTabKey === "models") {
@@ -268,7 +413,7 @@ const FrontisAdminPage = ({
           onRemoveUser={handleRemoveUser}
           onUpdateUser={handleUpdateUser}
           onUpdateUserStatus={handleUpdateUserStatus}
-          users={users}
+          users={effectiveUsers}
         />
       );
     }
@@ -279,7 +424,7 @@ const FrontisAdminPage = ({
         dialogueSessions={dialogueSessions}
         employees={employees}
         onNavigateToTab={handleSelectTab}
-        users={users}
+        users={effectiveUsers}
         workspaces={workspaces}
       />
     );

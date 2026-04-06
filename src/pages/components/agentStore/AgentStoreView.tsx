@@ -1,17 +1,21 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 
+import { ThunderboltOutlined } from "@ant-design/icons";
 import { Avatar } from "antd";
 
 import type { EmployeeItem } from "../../types";
-import type { AgentStoreViewProps, ExpertDeploymentState } from "./types";
-import { OWNED_EXPERT_TEAMS } from "./agentStoreData";
+import type { AgentStoreViewProps } from "./types";
+import { OWNED_EXPERT_TEAMS, RECOMMENDED_EXPERT_TEAMS } from "./agentStoreData";
+import { RecommendedTeamCard } from "./AgentStoreCards";
 import { AgentStoreTeamDetail, EXPERT_VERSION_INFO } from "./AgentStoreTeamDetail";
+import { getAssignedWorkspaceIdsForExpert } from "./utils";
 
 import adminStyles from "../FrontisAdminViews.module.less";
 import styles from "./AgentStoreView.module.less";
 
 type AgentEntryKind = "single" | "team";
 type AgentFilterKey = "all" | AgentEntryKind;
+type AgentStoreTabKey = "owned" | "recommended";
 
 interface ManagementStatus {
   label: string;
@@ -44,29 +48,10 @@ const FILTER_OPTIONS: Array<{ key: AgentFilterKey; label: string }> = [
   { key: "single", label: "专家" },
 ];
 
-const INITIAL_PENDING_TEAM_EXPERT_IDS = new Set(["employee-research"]);
-
 const getStatusClassName = (tone: "success" | "warning"): string =>
   tone === "success"
     ? `${adminStyles.consoleStatusTag} ${adminStyles.consoleStatusTagSuccess}`
     : `${adminStyles.consoleStatusTag} ${adminStyles.consoleStatusTagWarning}`;
-
-const buildInitialDeploymentState = (
-  employee: EmployeeItem,
-  isStandalone: boolean,
-): ExpertDeploymentState => {
-  if (isStandalone || INITIAL_PENDING_TEAM_EXPERT_IDS.has(employee.id)) {
-    return {
-      assignedWorkspaceId: null,
-      isDeviceLocked: false,
-    };
-  }
-
-  return {
-    assignedWorkspaceId: employee.workspaceId,
-    isDeviceLocked: true,
-  };
-};
 
 const hasPendingUpgrade = (employeeId: string): boolean => {
   const versionInfo = EXPERT_VERSION_INFO[employeeId];
@@ -75,10 +60,10 @@ const hasPendingUpgrade = (employeeId: string): boolean => {
 
 const getTeamStatus = (
   members: EmployeeItem[],
-  deploymentByEmployeeId: Record<string, ExpertDeploymentState>,
+  deploymentByEmployeeId: AgentStoreViewProps["deploymentByEmployeeId"],
 ): ManagementStatus => {
   const pendingBindingCount = members.filter(
-    member => !deploymentByEmployeeId[member.id]?.assignedWorkspaceId,
+    member => !getAssignedWorkspaceIdsForExpert(member, deploymentByEmployeeId[member.id]).length,
   ).length;
   if (pendingBindingCount > 0) {
     return {
@@ -104,9 +89,9 @@ const getTeamStatus = (
 
 const getSingleStatus = (
   employee: EmployeeItem,
-  deploymentByEmployeeId: Record<string, ExpertDeploymentState>,
+  deploymentByEmployeeId: AgentStoreViewProps["deploymentByEmployeeId"],
 ): ManagementStatus => {
-  if (!deploymentByEmployeeId[employee.id]?.assignedWorkspaceId) {
+  if (!getAssignedWorkspaceIdsForExpert(employee, deploymentByEmployeeId[employee.id]).length) {
     return {
       label: "待分配",
       tone: "warning",
@@ -130,13 +115,19 @@ const getSingleStatus = (
  * 企业管理员侧 AI 专家团主视图。
  */
 export const AgentStoreView = ({
+  deploymentByEmployeeId,
+  deviceOwners,
   employees,
   memberNames,
+  onAttachEmployeeToDevice,
+  onDetachEmployeeFromDevice,
   onNavigateToTab,
-  onUpdateEmployeeAccess,
+  onUpdateEmployeeDeviceAccess,
   onUpdateEmployeeModel,
+  users,
   workspaces,
 }: AgentStoreViewProps): JSX.Element => {
+  const [activeTab, setActiveTab] = useState<AgentStoreTabKey>("owned");
   const [activeFilter, setActiveFilter] = useState<AgentFilterKey>("all");
   const [selectedEntry, setSelectedEntry] = useState<{ id: string; kind: AgentEntryKind } | null>(null);
 
@@ -144,33 +135,6 @@ export const AgentStoreView = ({
     () => new Set(OWNED_EXPERT_TEAMS.flatMap(team => team.memberIds)),
     [],
   );
-
-  const [deploymentByEmployeeId, setDeploymentByEmployeeId] = useState<
-    Record<string, ExpertDeploymentState>
-  >(() =>
-    Object.fromEntries(
-      employees.map(employee => [
-        employee.id,
-        buildInitialDeploymentState(employee, !teamMemberIds.has(employee.id)),
-      ]),
-    ),
-  );
-
-  useEffect(() => {
-    setDeploymentByEmployeeId(prev => {
-      const nextState = { ...prev };
-      let changed = false;
-
-      employees.forEach(employee => {
-        if (!nextState[employee.id]) {
-          nextState[employee.id] = buildInitialDeploymentState(employee, !teamMemberIds.has(employee.id));
-          changed = true;
-        }
-      });
-
-      return changed ? nextState : prev;
-    });
-  }, [employees, teamMemberIds]);
 
   const standaloneExperts = useMemo(
     () => employees.filter(employee => !teamMemberIds.has(employee.id)),
@@ -259,28 +223,25 @@ export const AgentStoreView = ({
     setActiveFilter(filterKey);
   }, []);
 
-  const handleBindWorkspace = useCallback((employeeId: string, workspaceId: string): void => {
-    setDeploymentByEmployeeId(prev => ({
-      ...prev,
-      [employeeId]: {
-        assignedWorkspaceId: workspaceId,
-        isDeviceLocked: true,
-      },
-    }));
+  const handleChangeTab = useCallback((tabKey: AgentStoreTabKey): void => {
+    setActiveTab(tabKey);
   }, []);
 
   if (selectedTeam || selectedStandaloneExpert) {
     return (
       <AgentStoreTeamDetail
         deploymentByEmployeeId={deploymentByEmployeeId}
+        deviceOwners={deviceOwners}
         detailTitle={selectedTeam?.name ?? selectedStandaloneExpert?.name ?? ""}
         employees={selectedEmployees}
         memberNames={memberNames}
         onBack={handleBack}
-        onBindWorkspace={handleBindWorkspace}
+        onAttachEmployeeToDevice={onAttachEmployeeToDevice}
+        onDetachEmployeeFromDevice={onDetachEmployeeFromDevice}
         onNavigateToTab={onNavigateToTab}
-        onUpdateAccess={onUpdateEmployeeAccess}
+        onUpdateDeviceAccess={onUpdateEmployeeDeviceAccess}
         onUpdateModel={onUpdateEmployeeModel}
+        users={users}
         workspaces={workspaces}
       />
     );
@@ -290,71 +251,117 @@ export const AgentStoreView = ({
     <div className={adminStyles.consolePage}>
       <header className={adminStyles.consoleHeader}>
         <div className={adminStyles.consoleHeaderMain}>
-          <h1 className={adminStyles.consoleTitle}>我的AI专家团</h1>
+          <h1 className={adminStyles.consoleTitle}>AI专家团</h1>
         </div>
       </header>
 
       <section className={adminStyles.consoleSection}>
         <div className={adminStyles.consoleTabs}>
-          {FILTER_OPTIONS.map(filter => (
-            <button
-              key={filter.key}
-              type="button"
-              className={
-                activeFilter === filter.key
-                  ? `${adminStyles.consoleTabButton} ${adminStyles.consoleTabButtonActive}`
-                  : adminStyles.consoleTabButton
-              }
-              onClick={() => handleChangeFilter(filter.key)}
-            >
-              {filter.label}
-            </button>
-          ))}
+          <button
+            type="button"
+            className={
+              activeTab === "owned"
+                ? `${adminStyles.consoleTabButton} ${adminStyles.consoleTabButtonActive}`
+                : adminStyles.consoleTabButton
+            }
+            onClick={() => handleChangeTab("owned")}
+          >
+            我的AI专家团 ({managementCards.length})
+          </button>
+          <button
+            type="button"
+            className={
+              activeTab === "recommended"
+                ? `${adminStyles.consoleTabButton} ${adminStyles.consoleTabButtonActive}`
+                : adminStyles.consoleTabButton
+            }
+            onClick={() => handleChangeTab("recommended")}
+          >
+            推荐AI专家团 ({RECOMMENDED_EXPERT_TEAMS.length})
+          </button>
         </div>
 
-        <div className={styles.expertCardGrid}>
-          {filteredCards.map(card => (
-            <button
-              key={card.id}
-              type="button"
-              className={styles.expertSelectCard}
-              onClick={() => handleSelectEntry(card.id, card.kind)}
-            >
-              <div className={styles.managementCardHeader}>
-                <div className={styles.managementCardTitleWrap}>
-                  <h3 className={styles.managementCardTitle}>{card.name}</h3>
-                </div>
-                <span className={getStatusClassName(card.status.tone)}>{card.status.label}</span>
-              </div>
-              <p className={styles.managementCardDescription}>{card.description}</p>
-              <div className={styles.managementCardFooter}>
-                <div className={styles.managementAvatarStack}>
-                  {card.kind === "team" ? (
-                    <>
-                      {card.members.slice(0, 4).map(member => (
-                        <Avatar
-                          key={member.id}
-                          className={styles.managementAvatar}
-                          src={member.avatarUrl}
-                          size={34}
-                        >
-                          {member.name.slice(0, 1)}
+        {activeTab === "owned" ? (
+          <>
+            <div className={adminStyles.consoleTabs}>
+              {FILTER_OPTIONS.map(filter => (
+                <button
+                  key={filter.key}
+                  type="button"
+                  className={
+                    activeFilter === filter.key
+                      ? `${adminStyles.consoleTabButton} ${adminStyles.consoleTabButtonActive}`
+                      : adminStyles.consoleTabButton
+                  }
+                  onClick={() => handleChangeFilter(filter.key)}
+                >
+                  {filter.label}
+                </button>
+              ))}
+            </div>
+
+            <div className={styles.expertCardGrid}>
+              {filteredCards.map(card => (
+                <button
+                  key={card.id}
+                  type="button"
+                  className={styles.expertSelectCard}
+                  onClick={() => handleSelectEntry(card.id, card.kind)}
+                >
+                  <div className={styles.managementCardHeader}>
+                    <div className={styles.managementCardTitleWrap}>
+                      <h3 className={styles.managementCardTitle}>{card.name}</h3>
+                    </div>
+                    <span className={getStatusClassName(card.status.tone)}>{card.status.label}</span>
+                  </div>
+                  <p className={styles.managementCardDescription}>{card.description}</p>
+                  <div className={styles.managementCardFooter}>
+                    <div className={styles.managementAvatarStack}>
+                      {card.kind === "team" ? (
+                        <>
+                          {card.members.slice(0, 4).map(member => (
+                            <Avatar
+                              key={member.id}
+                              className={styles.managementAvatar}
+                              src={member.avatarUrl}
+                              size={34}
+                            >
+                              {member.name.slice(0, 1)}
+                            </Avatar>
+                          ))}
+                          {card.members.length > 4 ? (
+                            <span className={styles.managementAvatarMore}>+{card.members.length - 4}</span>
+                          ) : null}
+                        </>
+                      ) : (
+                        <Avatar className={styles.managementAvatar} src={card.employee.avatarUrl} size={34}>
+                          {card.employee.name.slice(0, 1)}
                         </Avatar>
-                      ))}
-                      {card.members.length > 4 ? (
-                        <span className={styles.managementAvatarMore}>+{card.members.length - 4}</span>
-                      ) : null}
-                    </>
-                  ) : (
-                    <Avatar className={styles.managementAvatar} src={card.employee.avatarUrl} size={34}>
-                      {card.employee.name.slice(0, 1)}
-                    </Avatar>
-                  )}
-                </div>
+                      )}
+                    </div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </>
+        ) : (
+          <div className={styles.cardList}>
+            <div className={styles.recBanner}>
+              <ThunderboltOutlined className={styles.recBannerIcon} />
+              <div>
+                <p className={styles.recBannerTitle}>智能推荐</p>
+                <p className={styles.recBannerDesc}>
+                  根据当前已配置的专家组合与常见企业场景，为你补充推荐可协同工作的 AI
+                  专家团。
+                </p>
               </div>
-            </button>
-          ))}
-        </div>
+            </div>
+
+            {RECOMMENDED_EXPERT_TEAMS.map(team => (
+              <RecommendedTeamCard key={team.id} team={team} />
+            ))}
+          </div>
+        )}
       </section>
     </div>
   );

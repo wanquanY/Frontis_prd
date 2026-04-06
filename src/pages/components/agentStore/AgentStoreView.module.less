@@ -1005,6 +1005,13 @@
   gap: 8px;
 }
 
+.deviceBindingActions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
 .simpleExpertBlockLabel {
   color: var(--text);
   font-size: 13px;
@@ -1013,6 +1020,54 @@
 }
 
 .simpleExpertHint {
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.assignedWorkspaceList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.assignedWorkspaceCard {
+  padding: 12px 14px;
+  border: 1px solid color-mix(in srgb, var(--text) 8%, transparent);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--surface) 98%, var(--app-bg));
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.assignedWorkspaceCardActive {
+  border-color: color-mix(in srgb, var(--primary) 22%, var(--border));
+  background: color-mix(in srgb, var(--primary) 5%, var(--surface));
+}
+
+.assignedWorkspaceMain {
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  cursor: pointer;
+  flex: 1;
+}
+
+.assignedWorkspaceName {
+  color: var(--text);
+  font-size: 13px;
+  line-height: 20px;
+  font-weight: 700;
+}
+
+.assignedWorkspaceMeta {
   color: var(--text-secondary);
   font-size: 12px;
   line-height: 18px;

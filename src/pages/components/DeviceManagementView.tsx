@@ -5,6 +5,12 @@ import { Button, Input, Modal, Popconfirm, Select, Switch, message } from "antd"
 
 import type { FrontisWebUserItem } from "../types";
 import { downloadPrototypeFile } from "../utils";
+import {
+  getAssignedWorkspaceIdsForExpert,
+  getDeviceAccessStateForExpert,
+  getEffectiveMembersForDeviceAccess,
+} from "./agentStore/utils";
+import type { ExpertDeploymentState } from "./agentStore/types";
 
 import adminStyles from "./FrontisAdminViews.module.less";
 import {
@@ -12,13 +18,6 @@ import {
   getDeviceDisplayName,
 } from "./FrontisWebViews";
 import type { DeviceManagementViewProps } from "./FrontisWebViews";
-
-const INITIAL_DEVICE_OWNER_IDS: Record<string, string | null> = {
-  "workspace-cloud": null,
-  "workspace-local": null,
-  "workspace-local-bj": "user-admin-001",
-  "workspace-local-sh": "user-member-001",
-};
 
 const COMPANY_MANAGED_DEVICE_TYPES = new Set(["cloud", "edge"]);
 type DeviceKind = "cloud-workstation" | "local-workstation" | "local-client";
@@ -137,10 +136,13 @@ const getPendingDeviceStatus = (): { label: string; tone: "warning" } => ({
 });
 
 export const DeviceManagementView = ({
+  deploymentByEmployeeId,
+  deviceOwners,
   employees,
+  onAssignDeviceOwner,
   workspaces,
   users,
-}: DeviceManagementViewProps & { users: FrontisWebUserItem[] }): JSX.Element => {
+}: DeviceManagementViewProps): JSX.Element => {
   const devices = useMemo(
     () => buildDevicePresentations(workspaces, employees),
     [employees, workspaces],
@@ -166,9 +168,6 @@ export const DeviceManagementView = ({
   const [draftDeviceKind, setDraftDeviceKind] = useState<DeviceKind | null>(null);
   const [deviceLocationOverrides, setDeviceLocationOverrides] = useState<Record<string, string>>({});
   const [deviceNameOverrides, setDeviceNameOverrides] = useState<Record<string, string>>({});
-  const [deviceOwners, setDeviceOwners] = useState<Record<string, string | null>>(
-    INITIAL_DEVICE_OWNER_IDS,
-  );
   const [pendingDevices, setPendingDevices] = useState<PendingDeviceItem[]>([]);
 
   const getOwnerName = useCallback(
@@ -451,14 +450,11 @@ export const DeviceManagementView = ({
           ),
         );
       } else {
-        setDeviceOwners(prev => ({
-          ...prev,
-          [deviceId]: ownerId,
-        }));
+        onAssignDeviceOwner(deviceId, ownerId);
       }
       message.success(ownerId ? "已更新设备归属" : "已清空设备归属");
     },
-    [pendingDevices],
+    [onAssignDeviceOwner, pendingDevices],
   );
 
   const handleRenameExistingDevice = useCallback((deviceId: string, value: string): void => {
@@ -627,7 +623,9 @@ export const DeviceManagementView = ({
                 selectedRecord.item.workspace.id,
                 selectedRecord.item.workspace.name,
               )}
+              deploymentByEmployeeId={deploymentByEmployeeId}
               employees={employees}
+              getOwnerName={getOwnerName}
               handleAssignOwner={handleAssignOwner}
               handleRenameDevice={handleRenameExistingDevice}
               handleRemoveDevice={handleRemoveDevice}
@@ -635,6 +633,7 @@ export const DeviceManagementView = ({
               handleToggleDeviceStatus={handleToggleDeviceStatus}
               handleUpdateDeviceLocation={handleUpdateExistingDeviceLocation}
               resolveOnlineStatus={resolveOnlineStatus}
+              users={users}
               userOptions={userOptions}
             />
           )}
@@ -712,10 +711,7 @@ export const DeviceManagementView = ({
 
                     const online = resolveOnlineStatus(record.item.workspace.id, record.item.workspace.status);
                     const existingStatus = getExistingDeviceStatus(online);
-                    const ownerId =
-                      deviceOwners[record.item.workspace.id] ??
-                      INITIAL_DEVICE_OWNER_IDS[record.item.workspace.id] ??
-                      null;
+                    const ownerId = deviceOwners[record.item.workspace.id] ?? null;
 
                     return (
                       <tr key={record.id}>
@@ -813,7 +809,9 @@ interface ExistingDeviceDetailProps {
   deviceOwners: Record<string, string | null>;
   deviceLocation: string;
   deviceName: string;
+  deploymentByEmployeeId: Record<string, ExpertDeploymentState>;
   employees: DeviceManagementViewProps["employees"];
+  getOwnerName: (ownerId: string | null) => string | null;
   handleAssignOwner: (deviceId: string, ownerId: string | null) => void;
   handleRenameDevice: (deviceId: string, value: string) => void;
   handleRemoveDevice: (deviceId: string, isPending: boolean) => void;
@@ -821,6 +819,7 @@ interface ExistingDeviceDetailProps {
   handleToggleDeviceStatus: (deviceId: string, currentlyOnline: boolean) => void;
   handleUpdateDeviceLocation: (deviceId: string, value: string) => void;
   resolveOnlineStatus: (workspaceId: string, originalStatus: string) => boolean;
+  users: FrontisWebUserItem[];
   userOptions: Array<{ label: string; value: string }>;
 }
 
@@ -829,7 +828,9 @@ const ExistingDeviceDetail = ({
   deviceOwners,
   deviceLocation,
   deviceName,
+  deploymentByEmployeeId,
   employees,
+  getOwnerName,
   handleAssignOwner,
   handleRenameDevice,
   handleRemoveDevice,
@@ -837,12 +838,40 @@ const ExistingDeviceDetail = ({
   handleToggleDeviceStatus,
   handleUpdateDeviceLocation,
   resolveOnlineStatus,
+  users,
   userOptions,
 }: ExistingDeviceDetailProps): JSX.Element => {
   const online = resolveOnlineStatus(device.workspace.id, device.workspace.status);
-  const ownerId = deviceOwners[device.workspace.id] ?? INITIAL_DEVICE_OWNER_IDS[device.workspace.id] ?? null;
-  const agentsOnDevice = employees.filter(employee => employee.workspaceId === device.workspace.id);
+  const ownerId = deviceOwners[device.workspace.id] ?? null;
   const deviceKind = resolveDeviceKind(device.workspace.type);
+  const deployedAgents = useMemo(
+    () =>
+      employees
+        .filter(employee =>
+          getAssignedWorkspaceIdsForExpert(
+            employee,
+            deploymentByEmployeeId[employee.id],
+          ).includes(device.workspace.id),
+        )
+        .map(employee => {
+          const accessState = getDeviceAccessStateForExpert(
+            employee,
+            device.workspace.id,
+            deploymentByEmployeeId[employee.id],
+          );
+
+          return {
+            accessState,
+            employee,
+            memberSummary:
+              accessState.visibility === "all"
+                ? "全公司可用"
+                : getEffectiveMembersForDeviceAccess(accessState, ownerId, users).join("、") ||
+                  "暂未配置可用成员",
+          };
+        }),
+    [deploymentByEmployeeId, device.workspace.id, employees, ownerId, users],
+  );
 
   return (
     <>
@@ -899,12 +928,24 @@ const ExistingDeviceDetail = ({
 
       <section className={adminStyles.consoleSection}>
         <h3 className={adminStyles.consoleSectionTitle}>部署 AI 专家</h3>
-        <div className={adminStyles.consolePillRow}>
-          {agentsOnDevice.length ? (
-            agentsOnDevice.map(agent => (
-              <span key={agent.id} className={adminStyles.consolePill}>
-                {agent.name}
-              </span>
+        <div className={adminStyles.consoleRows}>
+          {deployedAgents.length ? (
+            deployedAgents.map(({ accessState, employee, memberSummary }) => (
+              <div key={employee.id} className={adminStyles.consoleInfoRow}>
+                <span className={adminStyles.consoleInfoLabel}>{employee.name}</span>
+                <div className={adminStyles.consoleInfoValue}>
+                  <div className={adminStyles.consoleRows}>
+                    <span>{memberSummary}</span>
+                    <span className={adminStyles.consoleSummaryHint}>
+                      {accessState.visibility === "all"
+                        ? "当前设备中该 Agent 对全公司成员开放。"
+                        : ownerId
+                          ? `设备拥有者 ${getOwnerName(ownerId) ?? "未命名成员"} 默认拥有可用权限。`
+                          : "当前设备中该 Agent 按指定成员生效。"}
+                    </span>
+                  </div>
+                </div>
+              </div>
             ))
           ) : (
             <span className={adminStyles.consoleEmpty}>暂无已生效的 AI 专家。</span>
