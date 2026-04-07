@@ -65,6 +65,10 @@
 .agentMeta,
 .summaryText,
 .agentCol,
+.pageSubtitle,
+.collectionHint,
+.collectionSourceTag,
+.agentActionTime,
 .versionSummary,
 .drawerCustomer,
 .drawerVersionLine,
@@ -105,6 +109,10 @@
   line-height: 30px;
 }
 
+.pageSubtitle {
+  margin: 4px 0 0;
+}
+
 .drawerTitle {
   font-size: 22px;
   line-height: 32px;
@@ -122,8 +130,67 @@
   flex: 1;
 }
 
+.collectionSection,
 .agentBlock {
   border-bottom: 1px solid var(--fdeBorder);
+}
+
+.collectionSection {
+  padding: 18px 0 12px;
+}
+
+.collectionHeader {
+  padding-bottom: 8px;
+}
+
+.collectionMain,
+.agentActionCol {
+  display: flex;
+  flex-direction: column;
+}
+
+.collectionMain {
+  gap: 6px;
+}
+
+.collectionTitle,
+.agentActionLabel {
+  color: var(--fdeText);
+  font-size: 14px;
+  line-height: 22px;
+  font-weight: 700;
+}
+
+.collectionMeta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.collectionSourceTag {
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--primary) 8%, transparent);
+}
+
+.collectionAgentList {
+  display: flex;
+  flex-direction: column;
+  margin-left: 14px;
+  padding-left: 16px;
+  border-left: 1px solid color-mix(in srgb, var(--primary) 12%, var(--fdeBorder));
+
+  .agentBlock {
+    border-bottom: 1px solid color-mix(in srgb, var(--fdeBorder) 82%, transparent);
+  }
+
+  .agentBlock:last-child {
+    border-bottom: none;
+  }
 }
 
 .agentRow,
@@ -141,7 +208,7 @@
   background: transparent;
   cursor: pointer;
   text-align: left;
-  grid-template-columns: 28px minmax(220px, 1.4fr) 0.8fr 0.8fr 0.7fr 1fr;
+  grid-template-columns: 28px minmax(220px, 1.5fr) minmax(160px, 1fr) auto minmax(180px, 1fr);
 }
 
 .expandIcon {
@@ -160,6 +227,11 @@
 
 .agentCol {
   min-width: 0;
+}
+
+.agentActionCol {
+  min-width: 0;
+  gap: 2px;
 }
 
 .agentTagList {
@@ -359,6 +431,12 @@
   .pageHeader {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .collectionAgentList {
+    margin-left: 0;
+    padding-left: 0;
+    border-left: none;
   }
 
   .agentRow {

@@ -1,6 +1,16 @@
 import type { ArtifactItem } from "@/types/artifact";
 import type { Block } from "@/types/block";
-import { AI_CEO_AGENT_SCENARIO_QUESTIONS } from "@/constants/aiCeoScenarioPrompts";
+import {
+  AI_CEO_AGENT_SCENARIO_QUESTIONS,
+  PRODUCT_MANAGER_BACKLOG_QUESTION,
+  PRODUCT_MANAGER_PRD_QUESTION,
+} from "@/constants/aiCeoScenarioPrompts";
+import {
+  PRODUCT_MANAGER_BACKLOG_DOCUMENT_CONTENT,
+  PRODUCT_MANAGER_BACKLOG_DOCUMENT_NAME,
+  PRODUCT_MANAGER_PRD_DOCUMENT_CONTENT,
+  PRODUCT_MANAGER_PRD_DOCUMENT_NAME,
+} from "@/constants/productManagerDocuments";
 import {
   ECOMMERCE_AUTOMATION_AGENT_DEMO,
   ECOMMERCE_AUTOMATION_SKILL_DEMOS,
@@ -13,6 +23,7 @@ import {
   XIAOCANMAMA_IP_AGENT_DEMO,
   XIAOCANMAMA_IP_SKILL_DEMOS,
 } from "@/constants/xiaocanMamaIpDemo";
+import { formatFileSize } from "@/utils/file";
 
 import type {
   ChatMessage,
@@ -100,6 +111,7 @@ const SCENARIO_SEED_IDS: Record<string, string> = {
   "employee-research": "dialogue-seed-redline-detect",
   "employee-ops": "dialogue-seed-benchmark-find",
   "employee-sales": "dialogue-seed-score-rank",
+  "employee-product-manager": "dialogue-seed-product-manager-prd",
   "employee-writer": "dialogue-seed-ceo-sequence-overview",
 };
 
@@ -125,6 +137,10 @@ const SCENARIO_TOOL_DISPLAY_NAMES: Record<string, string> = {
   score_rank: "评分排名",
   attention_risk_digest: "关注区风险摘要",
   management_plan: "管理动作生成",
+  requirements_summary: "需求摘要",
+  prd_generate: "PRD 生成",
+  backlog_breakdown: "Backlog 拆解",
+  milestone_plan: "里程碑规划",
   feishu_contact_lookup: "飞书通讯录查询",
   feishu_send_message: "飞书消息发送",
   live_brief_ingest: "商品资料整理",
@@ -175,6 +191,20 @@ const CEO_SCORE_RANK_QUESTION = "销售序列这季度的人员排名怎么样�
 const CEO_FEISHU_ENTRY_QUESTION = "管理和销售这两条线今天该怎么收口？";
 const CEO_FEISHU_DISPATCH_QUESTION = "把管理和销售今天要收口的内容发给负责人。";
 const CEO_FEISHU_MANAGEMENT_FOCUS_QUESTION = "把管理序列那段单独发给管理负责人，语气再重一点。";
+
+const PRODUCT_MANAGER_PRD_FOLLOWUPS = [
+  PRODUCT_MANAGER_BACKLOG_QUESTION,
+  "把这版 PRD 的范围边界和不做项再补完整。",
+  "继续给我一版阶段里程碑和评审节奏。",
+  "把用户工作台、企业后台、FDE 三段范围拆成更清晰的小节。",
+];
+
+const PRODUCT_MANAGER_BACKLOG_FOLLOWUPS = [
+  PRODUCT_MANAGER_PRD_QUESTION,
+  "继续把 P0 项补成验收清单。",
+  "把这版 Backlog 再按迭代拆成里程碑。",
+  "帮我单独抽一段本期不做范围。",
+];
 
 const CEO_SEQUENCE_FOLLOWUPS = [
   CEO_EMPLOYEE_ASSESS_QUESTION,
@@ -320,10 +350,7 @@ const estimateTypewriterFrameDelay = (nextContent: string, previousContent: stri
   );
 };
 
-const buildTypewriterProgressSteps = (
-  targetContent: string,
-  currentContent = "",
-): string[] => {
+const buildTypewriterProgressSteps = (targetContent: string, currentContent = ""): string[] => {
   const targetCharacters = Array.from(targetContent);
   const currentLength = Array.from(currentContent).length;
 
@@ -336,13 +363,14 @@ const buildTypewriterProgressSteps = (
     TYPEWRITER_MAX_PROGRESS_STEPS,
     Math.max(3, Math.ceil(remainingLength / TYPEWRITER_TARGET_CHARS_PER_STEP)),
   );
-  const chunkSize = Math.max(
-    TYPEWRITER_BATCH_SIZE * 2,
-    Math.ceil(remainingLength / stepCount),
-  );
+  const chunkSize = Math.max(TYPEWRITER_BATCH_SIZE * 2, Math.ceil(remainingLength / stepCount));
   const steps: string[] = [];
 
-  for (let length = currentLength + chunkSize; length < targetCharacters.length; length += chunkSize) {
+  for (
+    let length = currentLength + chunkSize;
+    length < targetCharacters.length;
+    length += chunkSize
+  ) {
     steps.push(targetCharacters.slice(0, length).join(""));
   }
 
@@ -352,8 +380,7 @@ const buildTypewriterProgressSteps = (
 
 const cloneScenarioBlock = (block: Block): Block => ({
   ...block,
-  data:
-    typeof block.data === "object" && block.data !== null ? { ...block.data } : block.data,
+  data: typeof block.data === "object" && block.data !== null ? { ...block.data } : block.data,
   children: block.children?.map(cloneScenarioBlock),
 });
 
@@ -672,7 +699,10 @@ const expandFramesForTypewriter = (frames: DialogueScenarioFrame[]): DialogueSce
       const finalText = extractScenarioBlockContent(block);
 
       if (!finalText) {
-        accumulatedChildren = upsertScenarioChildBlock(accumulatedChildren, cloneScenarioBlock(block));
+        accumulatedChildren = upsertScenarioChildBlock(
+          accumulatedChildren,
+          cloneScenarioBlock(block),
+        );
         return;
       }
 
@@ -690,13 +720,11 @@ const expandFramesForTypewriter = (frames: DialogueScenarioFrame[]): DialogueSce
 
     if (
       !hasPushedFrame &&
-      (
-        didToolsChange ||
+      (didToolsChange ||
         frame.artifacts?.length ||
         frame.results?.length ||
         finalTextBlocks.length > 0 ||
-        frame.followupSuggestions?.length
-      )
+        frame.followupSuggestions?.length)
     ) {
       pushFrame(
         preview || lastThinkingContent,
@@ -738,11 +766,7 @@ const createThinkingBlock = (id: string, content: string, isStreaming = false): 
   isStreaming,
 });
 
-const createTextBlock = (
-  id: string,
-  content: string,
-  options?: CreateTextBlockOptions,
-): Block => ({
+const createTextBlock = (id: string, content: string, options?: CreateTextBlockOptions): Block => ({
   id,
   kind: "text",
   data: {
@@ -755,10 +779,7 @@ const createTextBlock = (
   isStreaming: options?.isStreaming === true,
 });
 
-const createResultCardsBlock = (
-  id: string,
-  results: DialogueGeneratedResultItem[],
-): Block => ({
+const createResultCardsBlock = (id: string, results: DialogueGeneratedResultItem[]): Block => ({
   id,
   kind: "result_cards",
   data: {
@@ -823,6 +844,9 @@ const createSvgDataUrl = (content: string): string =>
   `data:image/svg+xml;charset=utf-8,${encodeURIComponent(content)}`;
 
 const prettyJson = (value: unknown): string => JSON.stringify(value, null, 2);
+
+const resolveTextArtifactSize = (content: string): string =>
+  formatFileSize(new TextEncoder().encode(content).length);
 
 const createMarkdownArtifact = (
   sessionId: string,
@@ -915,12 +939,9 @@ const createImageArtifact = (
 const getScenarioArtifactBySuffix = (
   artifacts: ArtifactItem[],
   suffix: string,
-): ArtifactItem | undefined =>
-  artifacts.find(item => item.id.endsWith(suffix));
+): ArtifactItem | undefined => artifacts.find(item => item.id.endsWith(suffix));
 
-const buildArtifactGroup = (
-  ...artifacts: Array<ArtifactItem | undefined>
-): ArtifactItem[] =>
+const buildArtifactGroup = (...artifacts: Array<ArtifactItem | undefined>): ArtifactItem[] =>
   artifacts.filter((item): item is ArtifactItem => Boolean(item));
 
 const createSequenceOverviewPanelState = (
@@ -1064,14 +1085,70 @@ const createEmployeeAssessPanelState = (
     trend: "+6",
     zoneLabel: "关注区上沿",
     dimensionScores: [
-      { id: "strategy", label: "战略一致性", weightLabel: "权重 12%", score: "88", delta: "-0.3", tone: "warning" },
-      { id: "culture", label: "文化契合度", weightLabel: "权重 15%", score: "95", delta: "+1.6", tone: "positive" },
-      { id: "execution", label: "执行可行性", weightLabel: "权重 12%", score: "92", delta: "-1.5", tone: "positive" },
-      { id: "risk", label: "风险管控", weightLabel: "权重 12%", score: "94", delta: "+0.7", tone: "positive" },
-      { id: "innovation", label: "创新价值", weightLabel: "权重 9%", score: "85", delta: "+0.9", tone: "warning" },
-      { id: "craft", label: "匠心细节", weightLabel: "权重 13%", score: "95", delta: "+2.1", tone: "positive" },
-      { id: "digital", label: "数字化思维", weightLabel: "权重 13%", score: "82", delta: "+0.4", tone: "warning" },
-      { id: "safety", label: "安全刚性", weightLabel: "权重 14%", score: "90", delta: "+1.2", tone: "positive" },
+      {
+        id: "strategy",
+        label: "战略一致性",
+        weightLabel: "权重 12%",
+        score: "88",
+        delta: "-0.3",
+        tone: "warning",
+      },
+      {
+        id: "culture",
+        label: "文化契合度",
+        weightLabel: "权重 15%",
+        score: "95",
+        delta: "+1.6",
+        tone: "positive",
+      },
+      {
+        id: "execution",
+        label: "执行可行性",
+        weightLabel: "权重 12%",
+        score: "92",
+        delta: "-1.5",
+        tone: "positive",
+      },
+      {
+        id: "risk",
+        label: "风险管控",
+        weightLabel: "权重 12%",
+        score: "94",
+        delta: "+0.7",
+        tone: "positive",
+      },
+      {
+        id: "innovation",
+        label: "创新价值",
+        weightLabel: "权重 9%",
+        score: "85",
+        delta: "+0.9",
+        tone: "warning",
+      },
+      {
+        id: "craft",
+        label: "匠心细节",
+        weightLabel: "权重 13%",
+        score: "95",
+        delta: "+2.1",
+        tone: "positive",
+      },
+      {
+        id: "digital",
+        label: "数字化思维",
+        weightLabel: "权重 13%",
+        score: "82",
+        delta: "+0.4",
+        tone: "warning",
+      },
+      {
+        id: "safety",
+        label: "安全刚性",
+        weightLabel: "权重 14%",
+        score: "90",
+        delta: "+1.2",
+        tone: "positive",
+      },
     ],
     redlineStatuses: [
       {
@@ -1132,9 +1209,7 @@ const createRedlineDetectPanelState = (
   kind: "redlineDetect",
   title: "预警面板",
   subtitle:
-    status === "running"
-      ? "正在回放原始证据并生成约谈动作"
-      : "红线判断与约谈动作已完成收口",
+    status === "running" ? "正在回放原始证据并生成约谈动作" : "红线判断与约谈动作已完成收口",
   skillName: "红线检测",
   updatedAt: "刚刚",
   status,
@@ -1460,7 +1535,12 @@ const createCeoSynthesisPanelState = (
       { id: "seq1", name: "质量序列", summary: "均分最高，盘面最稳。", tone: "positive" },
       { id: "seq2", name: "生产序列", summary: "人数最多且趋势继续向上。", tone: "positive" },
       { id: "seq3", name: "管理序列", summary: "6 个预警，协同执行要立即收口。", tone: "danger" },
-      { id: "seq4", name: "销售序列", summary: "关注区扩大，底线问题需单列处理。", tone: "warning" },
+      {
+        id: "seq4",
+        name: "销售序列",
+        summary: "关注区扩大，底线问题需单列处理。",
+        tone: "warning",
+      },
     ],
     keyPerson: {
       id: "wangjianguo",
@@ -1474,7 +1554,12 @@ const createCeoSynthesisPanelState = (
       tone: "positive",
     },
     risks: [
-      { id: "risk1", name: "李明", summary: "诚信底线已碰线，不能按普通关注区处理。", tone: "danger" },
+      {
+        id: "risk1",
+        name: "李明",
+        summary: "诚信底线已碰线，不能按普通关注区处理。",
+        tone: "danger",
+      },
       { id: "risk2", name: "张伟", summary: "品质安全底线事件，今天必须约谈。", tone: "danger" },
     ],
     actionItems: [
@@ -1489,7 +1574,11 @@ const createCeoSynthesisPanelState = (
       "有什么要了解的，直接问，我给您掰开了揉碎了说。不整虚的。",
       "您可以问我：",
     ],
-    questionSuggestions: ["某个员工最近表现怎么样", "哪个部门需要重点关注", "会议纪要里有什么值得注意的"],
+    questionSuggestions: [
+      "某个员工最近表现怎么样",
+      "哪个部门需要重点关注",
+      "会议纪要里有什么值得注意的",
+    ],
     inputPlaceholder: "输入你的问题...",
   },
 });
@@ -1744,7 +1833,8 @@ const createDispatchExecutionPanelState = (
           timeLabel: "09:20",
           edited: true,
           statusLabel: isRunning ? "发送中" : "已送达",
-          summary: "陈峰，今天先把管理序列 6 个预警来源拆清楚，中午前回我，重点看执行脱节和跨部门协同卡点。",
+          summary:
+            "陈峰，今天先把管理序列 6 个预警来源拆清楚，中午前回我，重点看执行脱节和跨部门协同卡点。",
           detail: "群聊 · 今日经营收口群",
         },
         {
@@ -1756,7 +1846,8 @@ const createDispatchExecutionPanelState = (
           timeLabel: "09:20",
           edited: true,
           statusLabel: isRunning ? "发送中" : "已送达",
-          summary: "刘敏，今天把销售关注区名单拉出来，连续下滑和底线问题分开处理，下午 17:00 前把处理动作回我。",
+          summary:
+            "刘敏，今天把销售关注区名单拉出来，连续下滑和底线问题分开处理，下午 17:00 前把处理动作回我。",
           detail: "群聊 · 今日经营收口群",
         },
       ],
@@ -3642,7 +3733,13 @@ const buildCeoFrames = (sessionId: string): DialogueScenarioFrame[] => {
     ],
   };
   const assessOutput = {
-    employee: { name: "王建国", score: 84, trend: "+6", strongest: "风险预判", weakest: "数字化思维" },
+    employee: {
+      name: "王建国",
+      score: 84,
+      trend: "+6",
+      strongest: "风险预判",
+      weakest: "数字化思维",
+    },
   };
   const redlineOutput = {
     risky_people: [
@@ -4734,6 +4831,186 @@ const buildXiaocanMamaIpFrames = (
   ];
 };
 
+const buildProductManagerArtifacts = (
+  sessionId: string,
+  mode: "prd" | "backlog",
+): ArtifactItem[] => {
+  if (mode === "backlog") {
+    return buildArtifactGroup(
+      createMarkdownArtifact(
+        sessionId,
+        "product-manager-prd",
+        PRODUCT_MANAGER_PRD_DOCUMENT_NAME,
+        "产品经理AI专家",
+        "PRD 草案生成",
+        PRODUCT_MANAGER_PRD_DOCUMENT_CONTENT,
+        "2026-04-08 10:42",
+        resolveTextArtifactSize(PRODUCT_MANAGER_PRD_DOCUMENT_CONTENT),
+      ),
+      createMarkdownArtifact(
+        sessionId,
+        "product-manager-backlog",
+        PRODUCT_MANAGER_BACKLOG_DOCUMENT_NAME,
+        "产品经理AI专家",
+        "Backlog 拆解",
+        PRODUCT_MANAGER_BACKLOG_DOCUMENT_CONTENT,
+        "2026-04-08 10:46",
+        resolveTextArtifactSize(PRODUCT_MANAGER_BACKLOG_DOCUMENT_CONTENT),
+      ),
+    );
+  }
+
+  return buildArtifactGroup(
+    createMarkdownArtifact(
+      sessionId,
+      "product-manager-prd",
+      PRODUCT_MANAGER_PRD_DOCUMENT_NAME,
+      "产品经理AI专家",
+      "PRD 草案生成",
+      PRODUCT_MANAGER_PRD_DOCUMENT_CONTENT,
+      "2026-04-08 10:42",
+      resolveTextArtifactSize(PRODUCT_MANAGER_PRD_DOCUMENT_CONTENT),
+    ),
+  );
+};
+
+const buildProductManagerFrames = (
+  sessionId: string,
+  mode: "prd" | "backlog",
+): DialogueScenarioFrame[] => {
+  const messageId = `${sessionId}-assistant`;
+  const artifacts = buildProductManagerArtifacts(sessionId, mode);
+
+  if (mode === "backlog") {
+    const thinking =
+      "我会沿着刚才的 PRD 继续往下拆，把用户工作台、企业管理后台和 FDE 三段范围拆成 Epic、Feature 和 User Story。";
+    const responseMarkdown = `我已把这版需求继续拆成《Frontis AI · Product Backlog》，现在右侧成果面板里会同时看到仓库里的 PRD 和 Backlog 两份真实文档。
+
+这版 Backlog 先收口了 3 件事：
+1. 把工作台里的产品经理专家、默认 Agent 和模拟对话放到同一条交付链路里。
+2. 把企业后台设备分配、激活码和默认 Agent 触发关系拆成明确故事。
+3. 把 FDE 看板收口和版本管理独立 Agent 的约束同步到执行层。
+
+如果你要继续推进，我下一步建议直接补两项：
+- 把 P0 / P1 再细化成迭代里程碑；
+- 把每条 Story 的验收口径补完整。`;
+    const toolBlocks = [
+      createToolUseBlock({
+        id: `${messageId}-tool-1`,
+        name: "backlog_breakdown",
+        displayName: "Backlog 拆解",
+        purpose: "按 Epic / Feature / User Story 拆分执行项",
+        status: "completed",
+        output: prettyJson({
+          epics: 3,
+          p0Items: 2,
+          p1Items: 3,
+          output: "Frontis AI · Product Backlog.md",
+        }),
+      }),
+      createToolUseBlock({
+        id: `${messageId}-tool-2`,
+        name: "milestone_plan",
+        displayName: "里程碑规划",
+        purpose: "补充后续排期与验收建议",
+        status: "completed",
+        output:
+          "建议先打通产品经理专家与真实 PRD/Backlog 文档链路，再补企业后台与 FDE 端联动说明。",
+      }),
+    ];
+
+    return [
+      buildScenarioMessageFrame(
+        messageId,
+        [createThinkingBlock(`${messageId}-thinking`, thinking, true)],
+        "正在把 PRD 继续拆成 Product Backlog。",
+        860,
+      ),
+      buildScenarioMessageFrame(
+        messageId,
+        [createThinkingBlock(`${messageId}-thinking`, thinking), ...toolBlocks],
+        "Backlog 的 Epic、Feature 和 User Story 已整理完成。",
+        920,
+      ),
+      buildScenarioMessageFrame(
+        messageId,
+        [
+          createThinkingBlock(`${messageId}-thinking`, thinking),
+          ...toolBlocks,
+          createTextBlock(`${messageId}-final`, responseMarkdown),
+        ],
+        "Backlog 已生成，可继续补里程碑和验收口径。",
+        estimateTypewriterDelay(responseMarkdown),
+        artifacts,
+        undefined,
+        undefined,
+        PRODUCT_MANAGER_BACKLOG_FOLLOWUPS,
+      ),
+    ];
+  }
+
+  const thinking =
+    "我先把目标、用户角色、核心范围和本期边界收清楚，再按用户工作台、企业后台、FDE 三段结构输出正式 PRD 草案。";
+  const responseMarkdown = `我已经生成一版《Frontis AI · 正式 PRD》草案，并把核心结构先收好了。
+
+这版 PRD 当前覆盖：
+1. 产品目标、角色和跨系统关系。
+2. 用户工作台、企业管理后台、FDE 业务管理三段范围。
+3. 默认 Agent、激活码、版本管理等最近几轮调整。
+
+右侧成果面板里已经放入仓库里的真实 PRD 文件；如果你继续往下推进，我建议下一步直接拆 Product Backlog，把 Epic、Feature 和 User Story 一次补齐。`;
+  const toolBlocks = [
+    createToolUseBlock({
+      id: `${messageId}-tool-1`,
+      name: "requirements_summary",
+      displayName: "需求摘要",
+      purpose: "收敛目标、角色和范围边界",
+      status: "completed",
+      output: prettyJson({
+        modules: ["用户工作台", "企业管理后台", "FDE 业务管理"],
+        latestAdjustments: ["默认 Agent", "激活码规则", "版本管理收口"],
+      }),
+    }),
+    createToolUseBlock({
+      id: `${messageId}-tool-2`,
+      name: "prd_generate",
+      displayName: "PRD 生成",
+      purpose: "生成正式 PRD 草案文档",
+      status: "completed",
+      output: "已输出仓库里的《Frontis AI · 正式 PRD》文件，并同步最近几轮需求调整。",
+    }),
+  ];
+
+  return [
+    buildScenarioMessageFrame(
+      messageId,
+      [createThinkingBlock(`${messageId}-thinking`, thinking, true)],
+      "正在整理需求背景并生成 PRD 草案。",
+      860,
+    ),
+    buildScenarioMessageFrame(
+      messageId,
+      [createThinkingBlock(`${messageId}-thinking`, thinking), ...toolBlocks],
+      "PRD 的目标、范围和边界已整理完成。",
+      920,
+    ),
+    buildScenarioMessageFrame(
+      messageId,
+      [
+        createThinkingBlock(`${messageId}-thinking`, thinking),
+        ...toolBlocks,
+        createTextBlock(`${messageId}-final`, responseMarkdown),
+      ],
+      "PRD 已生成，可继续拆成 Product Backlog。",
+      estimateTypewriterDelay(responseMarkdown),
+      artifacts,
+      undefined,
+      undefined,
+      PRODUCT_MANAGER_PRD_FOLLOWUPS,
+    ),
+  ];
+};
+
 const SCENARIO_DEFINITIONS: DialogueScenarioDefinition[] = [
   ...ECOMMERCE_AUTOMATION_SKILL_DEMOS.map(item => ({
     employeeId: ECOMMERCE_AUTOMATION_AGENT_DEMO.id,
@@ -4841,6 +5118,25 @@ const SCENARIO_DEFINITIONS: DialogueScenarioDefinition[] = [
     buildFrames: buildScoreRankFrames,
   },
   {
+    employeeId: "employee-product-manager",
+    agentName: "产品经理AI专家",
+    sessionId: SCENARIO_SEED_IDS["employee-product-manager"],
+    title: "Frontis AI PRD 草案",
+    updatedAt: "10:42",
+    triggerQuestion: PRODUCT_MANAGER_PRD_QUESTION,
+    buildFrames: sessionId => buildProductManagerFrames(sessionId, "prd"),
+  },
+  {
+    employeeId: "employee-product-manager",
+    agentName: "产品经理AI专家",
+    sessionId: "dialogue-seed-product-manager-backlog-hidden",
+    title: "Frontis AI Product Backlog",
+    updatedAt: "10:46",
+    triggerQuestion: PRODUCT_MANAGER_BACKLOG_QUESTION,
+    seeded: false,
+    buildFrames: sessionId => buildProductManagerFrames(sessionId, "backlog"),
+  },
+  {
     employeeId: "employee-pm",
     agentName: "序列总览专家",
     sessionId: SCENARIO_SEED_IDS["employee-pm"],
@@ -4916,10 +5212,7 @@ const findScenarioDefinitionByQuestion = (
       normalizeScenarioQuestion(item.triggerQuestion) === normalizeScenarioQuestion(question),
   ) ?? null;
 
-const appendUniqueItems = <TItem extends { id: string }>(
-  target: TItem[],
-  items: TItem[],
-): void => {
+const appendUniqueItems = <TItem extends { id: string }>(target: TItem[], items: TItem[]): void => {
   const existingIds = new Set(target.map(item => item.id));
 
   items.forEach(item => {
@@ -4929,6 +5222,23 @@ const appendUniqueItems = <TItem extends { id: string }>(
 
     target.push(item);
     existingIds.add(item.id);
+  });
+};
+
+const appendUniqueArtifacts = (target: ArtifactItem[], items: ArtifactItem[]): void => {
+  const existingKeys = new Set(
+    target.map(item => `${item.fileName}::${item.canonicalPath}::${item.mimeType}`),
+  );
+
+  items.forEach(item => {
+    const artifactKey = `${item.fileName}::${item.canonicalPath}::${item.mimeType}`;
+
+    if (existingKeys.has(artifactKey)) {
+      return;
+    }
+
+    target.push(item);
+    existingKeys.add(artifactKey);
   });
 };
 
@@ -4951,9 +5261,7 @@ const buildDialogueScenarioReplayRounds = (
     visitedQuestions.add(normalizedQuestion);
 
     const frameScopeId =
-      roundIndex === 0
-        ? frameScopeIdPrefix
-        : `${frameScopeIdPrefix}-round-${roundIndex + 1}`;
+      roundIndex === 0 ? frameScopeIdPrefix : `${frameScopeIdPrefix}-round-${roundIndex + 1}`;
 
     rounds.push({
       agentName: currentDefinition.agentName,
@@ -5020,7 +5328,7 @@ const buildSeedDialogueScenarioBundle = (
     latestUpdatedAt = round.updatedAt;
 
     if (lastFrame.artifacts?.length) {
-      appendUniqueItems(artifacts, lastFrame.artifacts);
+      appendUniqueArtifacts(artifacts, lastFrame.artifacts);
     }
     if (latestResultFrame?.results?.length) {
       appendUniqueItems(results, latestResultFrame.results);
@@ -5135,13 +5443,10 @@ export const buildDialogueScenarioSeedPanels = (): Record<string, DialogueGenera
 export const buildDialogueScenarioSeedResults = (): Record<string, DialogueGeneratedResultItem[]> =>
   SCENARIO_DEFINITIONS.filter(definition => definition.seeded !== false).reduce<
     Record<string, DialogueGeneratedResultItem[]>
-  >(
-    (result, definition) => {
-      const bundle = buildSeedDialogueScenarioBundle(definition);
-      if (bundle.results.length) {
-        result[definition.sessionId] = bundle.results;
-      }
-      return result;
-    },
-    {},
-  );
+  >((result, definition) => {
+    const bundle = buildSeedDialogueScenarioBundle(definition);
+    if (bundle.results.length) {
+      result[definition.sessionId] = bundle.results;
+    }
+    return result;
+  }, {});

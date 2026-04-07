@@ -62,7 +62,9 @@ export interface ConversationEmployeeGroupItem {
 
 const EXPERT_TEAM_NAME_PATTERN = /([A-Za-z0-9\u4e00-\u9fa5]+专家团)/;
 const EMPLOYEE_EXPERT_TEAM_NAME_MAP = new Map(
-  OWNED_EXPERT_TEAMS.flatMap(team => team.memberIds.map(memberId => [memberId, team.name] as const)),
+  OWNED_EXPERT_TEAMS.flatMap(team =>
+    team.memberIds.map(memberId => [memberId, team.name] as const),
+  ),
 );
 
 const extractConversationEmployeeGroupTitle = (
@@ -141,16 +143,16 @@ const createActivationCode = (): string =>
     .toUpperCase()}`;
 
 /**
- * 生成边缘工作站激活码信息。
+ * 生成设备激活码信息，默认 1 天有效。
  */
-export const createWorkspaceActivationInfo = (): WorkspaceActivationInfo => {
-  const activationValidDays = 7;
+export const createWorkspaceActivationInfo = (activationValidDays = 1): WorkspaceActivationInfo => {
+  const normalizedValidDays = activationValidDays > 0 ? activationValidDays : 1;
 
   return {
     activationCode: createActivationCode(),
-    activationExpiresAt: dayjs().add(activationValidDays, "day").toISOString(),
-    activationValidDays,
-    activationHint: "已生成激活码，请在工作站客户端输入后完成激活。",
+    activationExpiresAt: dayjs().add(normalizedValidDays, "day").toISOString(),
+    activationValidDays: normalizedValidDays,
+    activationHint: `激活码默认 ${normalizedValidDays} 天有效，激活成功后立即销毁；未激活前可重新生成新码。`,
   };
 };
 
@@ -408,9 +410,7 @@ export const getConnectionLabel = (mode: ConnectionMode): string =>
 /**
  * 获取状态中文标签。
  */
-export const getStatusLabel = (
-  status: StatusTone | EmployeeStatus | AutomationStatus,
-): string => {
+export const getStatusLabel = (status: StatusTone | EmployeeStatus | AutomationStatus): string => {
   if (status === "online") return "在线";
   if (status === "running") return "运行中";
   if (status === "exception") return "异常";
