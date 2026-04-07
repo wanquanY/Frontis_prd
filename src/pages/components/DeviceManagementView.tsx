@@ -1,9 +1,9 @@
 import { useCallback, useMemo, useState } from "react";
 
 import { ArrowLeftOutlined, DownloadOutlined, PlusOutlined } from "@ant-design/icons";
-import { Button, Input, Modal, Popconfirm, Select, Switch, message } from "antd";
+import { Button, Input, Modal, Popconfirm, Select, message } from "antd";
 
-import type { FrontisWebUserItem } from "../types";
+import type { FrontisWebUserItem, WorkspaceItem } from "../types";
 import { downloadPrototypeFile } from "../utils";
 import {
   doesExpertRequireDeviceBinding,
@@ -78,6 +78,17 @@ interface PendingDeviceItem {
   ownerId: string | null;
 }
 
+const INITIAL_PENDING_DEVICES: PendingDeviceItem[] = [
+  {
+    activationCode: "SC-DEMO-LOCAL-01",
+    deviceKind: "local-client",
+    id: "pending-local-client-01",
+    location: "成都门店 · 收银台",
+    name: "成都门店收银客户端",
+    ownerId: "user-member-001",
+  },
+];
+
 type ExistingDeviceItem = ReturnType<typeof buildDevicePresentations>[number];
 
 interface ExistingDeviceRecord {
@@ -93,8 +104,14 @@ interface PendingDeviceRecord {
 }
 
 type DeviceRecord = ExistingDeviceRecord | PendingDeviceRecord;
+type ExistingDeviceStatusLabel = "待配置" | "待激活" | "在线" | "异常" | "离线";
 
-const isDeviceOnline = (status: string): boolean => ["online", "busy", "idle"].includes(status);
+interface ExistingDeviceStatus {
+  label: ExistingDeviceStatusLabel;
+  tone: "success" | "warning" | "danger";
+}
+
+const isDeviceOnline = (status: string): boolean => ["online", "running"].includes(status);
 
 const resolveDeviceKind = (workspaceType: string): DeviceKind => {
   if (workspaceType === "cloud") {
@@ -120,11 +137,6 @@ const getStatusClassName = (tone: "success" | "warning" | "danger"): string => {
   return `${adminStyles.consoleStatusTag} ${adminStyles.consoleStatusTagDanger}`;
 };
 
-const getExistingDeviceStatus = (online: boolean): { label: string; tone: "success" | "danger" } => ({
-  label: online ? "运行中" : "待处理",
-  tone: online ? "success" : "danger",
-});
-
 const getPendingDeviceStatus = (): { label: string; tone: "warning" } => ({
   label: "待激活",
   tone: "warning",
@@ -134,7 +146,9 @@ export const DeviceManagementView = ({
   deploymentByEmployeeId,
   deviceOwners,
   employees,
+  onAddWorkspace,
   onAssignDeviceOwner,
+  onRemoveWorkspace,
   workspaces,
   users,
 }: DeviceManagementViewProps): JSX.Element => {
@@ -154,16 +168,14 @@ export const DeviceManagementView = ({
   const [activeFilter, setActiveFilter] = useState<DeviceFilterKey>("all");
   const [selectedDeviceId, setSelectedDeviceId] = useState<string>("");
   const [isLocalDeviceModalOpen, setIsLocalDeviceModalOpen] = useState<boolean>(false);
-  const [allowDeviceActivation, setAllowDeviceActivation] = useState<boolean>(true);
   const [deviceStatusOverrides, setDeviceStatusOverrides] = useState<Record<string, boolean>>({});
-  const [removedDeviceIds, setRemovedDeviceIds] = useState<Set<string>>(new Set());
   const [draftDeviceName, setDraftDeviceName] = useState<string>("");
   const [draftDeviceLocation, setDraftDeviceLocation] = useState<string>("");
   const [draftDeviceOwner, setDraftDeviceOwner] = useState<string | null>(null);
   const [draftDeviceKind, setDraftDeviceKind] = useState<DeviceKind | null>(null);
   const [deviceLocationOverrides, setDeviceLocationOverrides] = useState<Record<string, string>>({});
   const [deviceNameOverrides, setDeviceNameOverrides] = useState<Record<string, string>>({});
-  const [pendingDevices, setPendingDevices] = useState<PendingDeviceItem[]>([]);
+  const [pendingDevices, setPendingDevices] = useState<PendingDeviceItem[]>(INITIAL_PENDING_DEVICES);
 
   const getOwnerName = useCallback(
     (ownerId: string | null): string | null => {
@@ -181,6 +193,60 @@ export const DeviceManagementView = ({
         return deviceStatusOverrides[workspaceId];
       }
       return isDeviceOnline(originalStatus);
+    },
+    [deviceStatusOverrides],
+  );
+
+  const resolveExistingDeviceStatus = useCallback(
+    (
+      workspaceId: string,
+      workspaceStatus: WorkspaceItem["status"],
+      ownerId: string | null,
+    ): ExistingDeviceStatus => {
+      if (!ownerId) {
+        return {
+          label: "待配置",
+          tone: "warning",
+        };
+      }
+
+      if (workspaceId in deviceStatusOverrides) {
+        return deviceStatusOverrides[workspaceId]
+          ? {
+              label: "在线",
+              tone: "success",
+            }
+          : {
+              label: "离线",
+              tone: "danger",
+            };
+      }
+
+      if (workspaceStatus === "pending") {
+        return {
+          label: "待激活",
+          tone: "warning",
+        };
+      }
+
+      if (workspaceStatus === "error") {
+        return {
+          label: "异常",
+          tone: "danger",
+        };
+      }
+
+      if (workspaceStatus === "offline" || workspaceStatus === "draft" || workspaceStatus === "paused") {
+        return {
+          label: "离线",
+          tone: "danger",
+        };
+      }
+
+      return {
+        label: "在线",
+        tone: "success",
+      };
     },
     [deviceStatusOverrides],
   );
@@ -207,10 +273,7 @@ export const DeviceManagementView = ({
     [deviceLocationOverrides],
   );
 
-  const visibleDevices = useMemo(
-    () => devices.filter(device => !removedDeviceIds.has(device.workspace.id)),
-    [devices, removedDeviceIds],
-  );
+  const visibleDevices = useMemo(() => devices, [devices]);
 
   const companyManagedDevices = useMemo(
     () =>
@@ -244,10 +307,17 @@ export const DeviceManagementView = ({
 
   const onlineDeviceCount = useMemo(
     () =>
-      visibleDevices.filter(device =>
-        resolveOnlineStatus(device.workspace.id, device.workspace.status),
-      ).length,
-    [resolveOnlineStatus, visibleDevices],
+      visibleDevices.filter(device => {
+        const ownerId = deviceOwners[device.workspace.id] ?? null;
+        return (
+          resolveExistingDeviceStatus(
+            device.workspace.id,
+            device.workspace.status,
+            ownerId,
+          ).label === "在线"
+        );
+      }).length,
+    [deviceOwners, resolveExistingDeviceStatus, visibleDevices],
   );
 
   const abnormalDeviceCount = useMemo(
@@ -256,7 +326,7 @@ export const DeviceManagementView = ({
   );
 
   const activeExpertCount = useMemo(
-    () => employees.filter(employee => ["busy", "idle", "online"].includes(employee.status)).length,
+    () => employees.filter(employee => ["running", "online"].includes(employee.status)).length,
     [employees],
   );
 
@@ -318,11 +388,12 @@ export const DeviceManagementView = ({
       };
     }
 
-    const online = resolveOnlineStatus(
+    const ownerId = deviceOwners[selectedRecord.item.workspace.id] ?? null;
+    const status = resolveExistingDeviceStatus(
       selectedRecord.item.workspace.id,
       selectedRecord.item.workspace.status,
+      ownerId,
     );
-    const status = getExistingDeviceStatus(online);
 
     return {
       statusLabel: status.label,
@@ -331,7 +402,7 @@ export const DeviceManagementView = ({
       title: getExistingDeviceName(selectedRecord.item.workspace.id, selectedRecord.item.workspace.name),
       typeLabel: DEVICE_KIND_LABEL[resolveDeviceKind(selectedRecord.item.workspace.type)],
     };
-  }, [getExistingDeviceName, resolveOnlineStatus, selectedRecord]);
+  }, [deviceOwners, getExistingDeviceName, resolveExistingDeviceStatus, selectedRecord]);
 
   const summaryItems = useMemo(
     () => [
@@ -376,16 +447,12 @@ export const DeviceManagementView = ({
     if (isPending) {
       setPendingDevices(prev => prev.filter(device => device.id !== deviceId));
     } else {
-      setRemovedDeviceIds(prev => new Set([...prev, deviceId]));
+      onRemoveWorkspace(deviceId);
     }
     message.success("设备已移除");
-  }, []);
+  }, [onRemoveWorkspace]);
 
   const handleAddLocalDevice = useCallback((): void => {
-    if (!allowDeviceActivation) {
-      message.warning("当前已关闭设备激活，请先开启激活策略");
-      return;
-    }
     if (!draftDeviceKind) {
       message.warning("请选择设备类型");
       return;
@@ -397,6 +464,30 @@ export const DeviceManagementView = ({
     }
     if (!draftDeviceName.trim()) {
       message.warning("请输入设备名称");
+      return;
+    }
+
+    if (draftDeviceKind === "cloud-workstation") {
+      const nextWorkspaceId = `workspace-cloud-${Date.now()}`;
+      const nextWorkspace: WorkspaceItem = {
+        id: nextWorkspaceId,
+        name: draftDeviceName.trim(),
+        type: "cloud",
+        status: "online",
+        region: draftDeviceLocation.trim() || "云端资源池",
+        summary: "新增的云端工作站，可直接分配 Agent 并接入任务。",
+        runtimeHint: "支持桌面预览、成果文件和扫码辅助。",
+      };
+
+      onAddWorkspace(nextWorkspace, draftDeviceOwner);
+      setSelectedDeviceId(nextWorkspaceId);
+      setActiveFilter("cloud-workstation");
+      setIsLocalDeviceModalOpen(false);
+      setDraftDeviceName("");
+      setDraftDeviceLocation("");
+      setDraftDeviceOwner(null);
+      setDraftDeviceKind(null);
+      message.success("已添加云端设备，当前状态为待配置，请先分配所属人");
       return;
     }
 
@@ -423,12 +514,12 @@ export const DeviceManagementView = ({
     setDraftDeviceKind(null);
     message.success("已创建设备并生成激活码");
   }, [
-    allowDeviceActivation,
     deviceCountByKind,
     draftDeviceKind,
     draftDeviceLocation,
     draftDeviceName,
     draftDeviceOwner,
+    onAddWorkspace,
   ]);
 
   const handleAssignOwner = useCallback(
@@ -548,18 +639,6 @@ export const DeviceManagementView = ({
             <h1 className={adminStyles.consoleTitle}>设备管理</h1>
           )}
         </div>
-        <div className={adminStyles.consoleHeaderSide}>
-          <span className={adminStyles.consoleMetaTag}>
-            设备激活 {allowDeviceActivation ? "已开启" : "已关闭"}
-          </span>
-          <Switch
-            checked={allowDeviceActivation}
-            onChange={checked => {
-              setAllowDeviceActivation(checked);
-              message.success(checked ? "已开启设备激活" : "已关闭设备激活");
-            }}
-          />
-        </div>
       </header>
 
       {!selectedRecord ? (
@@ -599,7 +678,6 @@ export const DeviceManagementView = ({
         <section className={adminStyles.consoleSection}>
           {selectedRecord.kind === "pending" ? (
             <PendingDeviceDetail
-              allowDeviceActivation={allowDeviceActivation}
               device={selectedRecord.item}
               handleAssignOwner={handleAssignOwner}
               handleRemoveDevice={handleRemoveDevice}
@@ -643,7 +721,6 @@ export const DeviceManagementView = ({
               <Button
                 type="primary"
                 icon={<PlusOutlined />}
-                disabled={!allowDeviceActivation}
                 onClick={() => setIsLocalDeviceModalOpen(true)}
               >
                 添加设备
@@ -704,9 +781,12 @@ export const DeviceManagementView = ({
                       );
                     }
 
-                    const online = resolveOnlineStatus(record.item.workspace.id, record.item.workspace.status);
-                    const existingStatus = getExistingDeviceStatus(online);
                     const ownerId = deviceOwners[record.item.workspace.id] ?? null;
+                    const existingStatus = resolveExistingDeviceStatus(
+                      record.item.workspace.id,
+                      record.item.workspace.status,
+                      ownerId,
+                    );
 
                     return (
                       <tr key={record.id}>
@@ -860,12 +940,10 @@ const ExistingDeviceDetail = ({
             accessState,
             employee,
             memberSummary:
-              requiresDeviceBinding
-                ? getOwnerName(ownerId) ?? "待分配设备拥有者"
-                : accessState.visibility === "all"
-                  ? "全公司可用"
-                  : getEffectiveMembersForDeviceAccess(accessState, ownerId, users).join("、") ||
-                    "暂未配置可用成员",
+              accessState.visibility === "all"
+                ? "全公司可用"
+                : getEffectiveMembersForDeviceAccess(accessState, ownerId, users).join("、") ||
+                  (requiresDeviceBinding ? "待分配设备权限" : "暂未配置可用成员"),
             requiresDeviceBinding,
           };
         }),
@@ -983,7 +1061,6 @@ const ExistingDeviceDetail = ({
 };
 
 interface PendingDeviceDetailProps {
-  allowDeviceActivation: boolean;
   device: PendingDeviceItem;
   handleAssignOwner: (deviceId: string, ownerId: string | null) => void;
   handleRemoveDevice: (deviceId: string, isPending: boolean) => void;
@@ -995,7 +1072,6 @@ interface PendingDeviceDetailProps {
 }
 
 const PendingDeviceDetail = ({
-  allowDeviceActivation,
   device,
   handleAssignOwner,
   handleRemoveDevice,
@@ -1049,12 +1125,6 @@ const PendingDeviceDetail = ({
                 onChange={value => handleAssignOwner(device.id, value ?? null)}
               />
             </div>
-          </div>
-          <div className={adminStyles.consoleInfoRow}>
-            <span className={adminStyles.consoleInfoLabel}>激活策略</span>
-            <span className={adminStyles.consoleInfoValue}>
-              {allowDeviceActivation ? "允许设备激活" : "已关闭激活"}
-            </span>
           </div>
         </div>
       </section>

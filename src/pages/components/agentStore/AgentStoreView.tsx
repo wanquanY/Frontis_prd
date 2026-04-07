@@ -10,7 +10,9 @@ import { RecommendedTeamCard } from "./AgentStoreCards";
 import { AgentStoreTeamDetail, EXPERT_VERSION_INFO } from "./AgentStoreTeamDetail";
 import {
   doesExpertRequireDeviceBinding,
+  getPendingPermissionWorkspaceIdsForExpert,
   getAssignedWorkspaceIdsForExpert,
+  isExpertAccessConfigured,
   isPermissionAssignmentConfigured,
 } from "./utils";
 
@@ -72,7 +74,10 @@ const getTeamStatus = (
       !getAssignedWorkspaceIdsForExpert(member, deploymentByEmployeeId[member.id]).length,
   ).length;
   const pendingPermissionCount = members.filter(
-    member => !doesExpertRequireDeviceBinding(member) && !isPermissionAssignmentConfigured(member),
+    member =>
+      !isExpertAccessConfigured(member, deploymentByEmployeeId[member.id]) &&
+      (!doesExpertRequireDeviceBinding(member) ||
+        getAssignedWorkspaceIdsForExpert(member, deploymentByEmployeeId[member.id]).length > 0),
   ).length;
 
   if (pendingDeviceBindingCount > 0 || pendingPermissionCount > 0) {
@@ -117,9 +122,21 @@ const getSingleStatus = (
   deploymentByEmployeeId: AgentStoreViewProps["deploymentByEmployeeId"],
 ): ManagementStatus => {
   if (doesExpertRequireDeviceBinding(employee)) {
-    if (!getAssignedWorkspaceIdsForExpert(employee, deploymentByEmployeeId[employee.id]).length) {
+    const assignedWorkspaceIds = getAssignedWorkspaceIdsForExpert(
+      employee,
+      deploymentByEmployeeId[employee.id],
+    );
+
+    if (!assignedWorkspaceIds.length) {
       return {
         label: "待绑定设备",
+        tone: "warning",
+      };
+    }
+
+    if (getPendingPermissionWorkspaceIdsForExpert(employee, deploymentByEmployeeId[employee.id]).length) {
+      return {
+        label: "待分配权限",
         tone: "warning",
       };
     }

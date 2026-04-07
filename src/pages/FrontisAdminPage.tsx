@@ -43,6 +43,7 @@ import type {
   FrontisWebTabItem,
   FrontisWebTabKey,
   FrontisWebUserItem,
+  WorkspaceItem,
 } from "./types";
 import styles from "./FrontisPage.module.less";
 
@@ -50,8 +51,10 @@ const MANAGEMENT_USER_ROLES = new Set<FrontisUserRole>(["boss", "admin"]);
 const INITIAL_DEVICE_OWNERS: Record<string, string | null> = {
   "workspace-cloud": null,
   "workspace-local": null,
+  "workspace-cloud-gz": "user-admin-002",
   "workspace-local-bj": "user-admin-001",
   "workspace-local-sh": "user-member-001",
+  "workspace-edge-hz": "user-admin-001",
 };
 
 const FRONTIS_ADMIN_TABS: FrontisWebTabItem[] = [
@@ -103,12 +106,12 @@ const FrontisAdminPage = ({
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(false);
   const [employees, setEmployees] = useState<EmployeeItem[]>(INITIAL_EMPLOYEES);
   const [users, setUsers] = useState<FrontisWebUserItem[]>(INITIAL_FRONTIS_WEB_USERS);
+  const [workspaces, setWorkspaces] = useState<WorkspaceItem[]>(INITIAL_WORKSPACES);
   const [deploymentByEmployeeId, setDeploymentByEmployeeId] = useState<Record<string, ExpertDeploymentState>>(
     () => buildInitialExpertDeploymentByEmployeeId(INITIAL_EMPLOYEES),
   );
   const [deviceOwners, setDeviceOwners] = useState<Record<string, string | null>>(INITIAL_DEVICE_OWNERS);
   const dialogueSessions = INITIAL_DIALOGUE_SESSIONS;
-  const workspaces = INITIAL_WORKSPACES;
 
   const effectiveUsers = useMemo(
     () =>
@@ -151,8 +154,12 @@ const FrontisAdminPage = ({
             accessByWorkspaceId: {
               ...currentState.accessByWorkspaceId,
               [workspaceId]: {
-                boundMembers: [...employee.boundMembers],
-                visibility: employee.visibility,
+                boundMembers: doesExpertRequireDeviceBinding(employee)
+                  ? []
+                  : [...employee.boundMembers],
+                visibility: doesExpertRequireDeviceBinding(employee)
+                  ? "bound"
+                  : employee.visibility,
               },
             },
             assignedWorkspaceIds: [...currentState.assignedWorkspaceIds, workspaceId],
@@ -233,6 +240,10 @@ const FrontisAdminPage = ({
           },
         };
       });
+
+      if (doesExpertRequireDeviceBinding(employee)) {
+        return;
+      }
 
       setEmployees(prev =>
         prev.map(item =>
@@ -340,6 +351,74 @@ const FrontisAdminPage = ({
     );
   }, []);
 
+  const handleAddWorkspace = useCallback((workspace: WorkspaceItem, ownerId: string | null): void => {
+    setWorkspaces(prev => {
+      if (prev.some(item => item.id === workspace.id)) {
+        return prev;
+      }
+
+      return [...prev, workspace];
+    });
+
+    setDeviceOwners(prev => ({
+      ...prev,
+      [workspace.id]: ownerId,
+    }));
+
+    setUsers(prev =>
+      prev.map(item => {
+        const nextWorkspaceIds = new Set(item.assignedWorkspaceIds ?? []);
+        nextWorkspaceIds.delete(workspace.id);
+
+        if (item.id === ownerId) {
+          nextWorkspaceIds.add(workspace.id);
+        }
+
+        return {
+          ...item,
+          assignedWorkspaceIds: Array.from(nextWorkspaceIds),
+        };
+      }),
+    );
+  }, []);
+
+  const handleRemoveWorkspace = useCallback((workspaceId: string): void => {
+    setWorkspaces(prev => prev.filter(item => item.id !== workspaceId));
+
+    setDeviceOwners(prev => {
+      const nextOwners = { ...prev };
+      delete nextOwners[workspaceId];
+      return nextOwners;
+    });
+
+    setUsers(prev =>
+      prev.map(item => ({
+        ...item,
+        assignedWorkspaceIds: (item.assignedWorkspaceIds ?? []).filter(id => id !== workspaceId),
+      })),
+    );
+
+    setDeploymentByEmployeeId(prev =>
+      Object.fromEntries(
+        Object.entries(prev).map(([employeeId, deploymentState]) => {
+          const nextAccessByWorkspaceId = { ...deploymentState.accessByWorkspaceId };
+          delete nextAccessByWorkspaceId[workspaceId];
+
+          return [
+            employeeId,
+            {
+              ...deploymentState,
+              accessByWorkspaceId: nextAccessByWorkspaceId,
+              assignedWorkspaceIds: deploymentState.assignedWorkspaceIds.filter(
+                assignedWorkspaceId => assignedWorkspaceId !== workspaceId,
+              ),
+            },
+          ];
+        }),
+      ),
+    );
+  }, []);
+
   const handleLogout = useCallback((): void => {
     logout();
     message.success("已退出模拟登录。");
@@ -410,7 +489,9 @@ const FrontisAdminPage = ({
           deploymentByEmployeeId={deploymentByEmployeeId}
           deviceOwners={deviceOwners}
           employees={employees}
+          onAddWorkspace={handleAddWorkspace}
           onAssignDeviceOwner={handleAssignDeviceOwner}
+          onRemoveWorkspace={handleRemoveWorkspace}
           users={effectiveUsers}
           workspaces={workspaces}
         />
@@ -454,34 +535,6 @@ const FrontisAdminPage = ({
 
   return (
     <div className={styles.adminPage}>
-      <header className={classNames(styles.header, styles.adminHeader)}>
-        <div className={styles.headerLeft}>
-          <div className={styles.employeeHeaderBrand}>
-            <span className={styles.employeeHeaderLogoPlaceholder}>F</span>
-            <span className={styles.employeeHeaderBrandName}>Frontis AI</span>
-            <button
-              type="button"
-              className={styles.employeeHeaderSidebarToggle}
-              aria-label={isSidebarCollapsed ? "展开左侧菜单" : "收起左侧菜单"}
-              onClick={() => setIsSidebarCollapsed(current => !current)}
-            >
-              {isSidebarCollapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
-            </button>
-          </div>
-        </div>
-        <div className={styles.headerRight}>
-          <AdminNotificationPopover onNavigateToTab={handleSelectTab} />
-          <Dropdown menu={{ items: accountMenuItems }} placement="bottomRight" trigger={["click"]}>
-            <button type="button" className={styles.headerAccountTrigger}>
-              <Avatar className={styles.accountAvatar} size={40}>
-                {currentUser ? currentUser.name.slice(0, 1) : "U"}
-              </Avatar>
-              <span className={styles.headerAccountName}>{currentUser?.name ?? "未登录"}</span>
-            </button>
-          </Dropdown>
-        </div>
-      </header>
-
       <div className={styles.adminBody}>
         <aside
           className={classNames(styles.adminSidebar, {
@@ -489,6 +542,34 @@ const FrontisAdminPage = ({
           })}
         >
           <div className={styles.adminSidebarTop}>
+            <div
+              className={classNames(styles.adminSidebarBrandRow, {
+                [styles.adminSidebarBrandRowCollapsed]: isSidebarCollapsed,
+              })}
+            >
+              <div
+                className={classNames(styles.brandCard, {
+                  [styles.brandCardCollapsed]: isSidebarCollapsed,
+                })}
+              >
+                <span className={styles.brandLogo}>F</span>
+                {isSidebarCollapsed ? null : (
+                  <div className={styles.brandCopy}>
+                    <div className={styles.brandTitle}>Frontis AI</div>
+                    <div className={styles.brandSubtitle}>管理后台</div>
+                  </div>
+                )}
+              </div>
+              <button
+                type="button"
+                className={styles.sidebarToggle}
+                aria-label={isSidebarCollapsed ? "展开左侧菜单" : "收起左侧菜单"}
+                onClick={() => setIsSidebarCollapsed(current => !current)}
+              >
+                {isSidebarCollapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
+              </button>
+            </div>
+
             <button
               type="button"
               className={classNames(styles.adminBackButton, {
@@ -522,6 +603,37 @@ const FrontisAdminPage = ({
                 <span className={styles.tabLabel}>{item.label}</span>
               </button>
             ))}
+          </div>
+
+          <div
+            className={classNames(styles.adminSidebarFooter, {
+              [styles.adminSidebarFooterCollapsed]: isSidebarCollapsed,
+            })}
+          >
+            <AdminNotificationPopover onNavigateToTab={handleSelectTab} />
+            <Dropdown
+              menu={{ items: accountMenuItems }}
+              placement={isSidebarCollapsed ? "topRight" : "topLeft"}
+              trigger={["click"]}
+            >
+              <button
+                type="button"
+                className={classNames(styles.accountTrigger, {
+                  [styles.accountTriggerExpanded]: !isSidebarCollapsed,
+                })}
+                aria-label="打开账户菜单"
+              >
+                <Avatar className={styles.accountAvatar} size={36}>
+                  {currentUser ? currentUser.name.slice(0, 1) : "U"}
+                </Avatar>
+                {isSidebarCollapsed ? null : (
+                  <span className={styles.accountBody}>
+                    <span className={styles.accountName}>{currentUser?.name ?? "未登录"}</span>
+                    <span className={styles.accountMeta}>当前登录账号</span>
+                  </span>
+                )}
+              </button>
+            </Dropdown>
           </div>
         </aside>
 

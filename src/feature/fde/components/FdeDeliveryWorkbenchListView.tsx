@@ -3,19 +3,13 @@ import type { JSX } from "react";
 import classNames from "classnames";
 import { Input, Select } from "antd";
 
-import type { FdeDeliveryOrderItem, FdeOrderItem } from "@/feature/fde/types";
+import type { FdeDeliveryOrderItem } from "@/feature/fde/types";
 
-import {
-  type DeliveryStatusFilter,
-  getOrderCurrentStepLabel,
-  getOrderDeliveryStatus,
-  getOrderSummaryLabel,
-} from "./fdeDeliveryWorkbenchUtils";
+import { type DeliveryStatusFilter, getStepKeyLabel } from "./fdeDeliveryWorkbenchUtils";
 import styles from "./FdeDeliveryWorkbench.module.less";
 
 interface FdeDeliveryWorkbenchListViewProps {
-  items: FdeOrderItem[];
-  deliveryItems: FdeDeliveryOrderItem[];
+  items: FdeDeliveryOrderItem[];
   searchKeyword: string;
   deliveryStatusFilter: DeliveryStatusFilter;
   setSearchKeyword: (value: string) => void;
@@ -24,23 +18,22 @@ interface FdeDeliveryWorkbenchListViewProps {
 }
 
 /**
- * FDE 交付工作台订单列表视图。
+ * FDE 配置交付一级列表视图，按租户交付单展示。
  */
 export const FdeDeliveryWorkbenchListView = ({
   items,
-  deliveryItems,
   searchKeyword,
   deliveryStatusFilter,
   setSearchKeyword,
   setDeliveryStatusFilter,
   onEnterDetail,
 }: FdeDeliveryWorkbenchListViewProps): JSX.Element => (
-  <div className={styles.layout}>
+  <>
     <div className={styles.listFilters}>
       <Input
         value={searchKeyword}
         className={styles.searchInput}
-        placeholder="搜索订单编号、客户名称、租户名称或租户编码"
+        placeholder="搜索客户名称、租户名称、租户编码或交付场景"
         onChange={event => setSearchKeyword(event.target.value)}
       />
       <Select<DeliveryStatusFilter>
@@ -58,11 +51,11 @@ export const FdeDeliveryWorkbenchListView = ({
 
     <div className={styles.listTable}>
       <div className={styles.listHeader}>
-        <span>订单编号</span>
         <span>客户名称</span>
         <span>租户名称</span>
-        <span>商品摘要</span>
+        <span>交付场景</span>
         <span>交付状态</span>
+        <span>交付时间</span>
         <span>当前步骤</span>
         <span>操作</span>
       </div>
@@ -74,26 +67,25 @@ export const FdeDeliveryWorkbenchListView = ({
             className={styles.listRow}
             onClick={() => onEnterDetail(item.id)}
           >
-            <span>{item.orderNo}</span>
             <span className={styles.tableStrong}>{item.customerName}</span>
-            <span>{item.tenantName ?? "-"}</span>
-            <span>{getOrderSummaryLabel(item)}</span>
+            <span>{item.tenantName}</span>
+            <span>{item.scenarioName}</span>
             <span
               className={classNames(
                 styles.listStatus,
-                getOrderDeliveryStatus(item, deliveryItems) === "已交付" &&
-                  styles.listStatusDelivered,
+                item.deliveryStatus === "已交付" && styles.listStatusDelivered,
               )}
             >
-              {getOrderDeliveryStatus(item, deliveryItems)}
+              {item.deliveryStatus}
             </span>
-            <span>{getOrderCurrentStepLabel(item, deliveryItems)}</span>
+            <span>{item.launchTargetDate}</span>
+            <span>{getStepKeyLabel(item.currentStep)}</span>
             <span className={styles.listAction}>进入配置交付</span>
           </button>
         ))
       ) : (
-        <div className={styles.listEmpty}>当前筛选条件下暂无订单</div>
+        <div className={styles.listEmpty}>当前筛选条件下暂无交付单</div>
       )}
     </div>
-  </div>
+  </>
 );

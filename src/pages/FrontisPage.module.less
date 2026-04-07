@@ -81,12 +81,44 @@
   border-bottom: 1px solid var(--border);
 }
 
+.adminSidebarBrandRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 4px 12px;
+}
+
+.adminSidebarBrandRowCollapsed {
+  flex-direction: column;
+  padding-left: 0;
+  padding-right: 0;
+}
+
 .adminSidebarSection {
   display: flex;
   flex: 1;
   flex-direction: column;
   gap: 2px;
   padding: 10px 8px 20px;
+}
+
+.adminSidebarFooter {
+  margin-top: auto;
+  padding: 12px 8px 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.adminSidebarFooterCollapsed {
+  flex-direction: column;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.adminSidebarFooter .accountTriggerExpanded {
+  flex: 1;
 }
 
 .adminSidebarSectionCollapsed {
@@ -859,7 +891,7 @@
 }
 
 .dialogueShellSidebarCollapsed {
-  grid-template-columns: minmax(0, 1fr) 422px;
+  grid-template-columns: 72px minmax(0, 1fr) 422px;
 }
 
 .dialogueShellArtifactsHidden {
@@ -867,7 +899,7 @@
 }
 
 .dialogueShellSidebarCollapsed.dialogueShellArtifactsHidden {
-  grid-template-columns: minmax(0, 1fr);
+  grid-template-columns: 72px minmax(0, 1fr);
 }
 
 .dialogueShellRuntimeVisible {
@@ -879,11 +911,11 @@
 }
 
 .dialogueShellRuntimeSidebarCollapsed {
-  grid-template-columns: minmax(0, 1fr) 10px auto 422px;
+  grid-template-columns: 72px minmax(0, 1fr) 10px auto 422px;
 }
 
 .dialogueShellRuntimeSidebarCollapsedArtifactsHidden {
-  grid-template-columns: minmax(0, 1fr) 10px auto;
+  grid-template-columns: 72px minmax(0, 1fr) 10px auto;
 }
 
 .groupShell {
@@ -1019,6 +1051,16 @@
   position: relative;
   overflow-x: hidden;
   overflow-y: auto;
+}
+
+.dialogueSidebarCardCollapsed {
+  padding: 12px 6px;
+  align-items: center;
+}
+
+.dialogueSidebarFooter {
+  margin-top: auto;
+  padding-top: 16px;
 }
 
 .dialogueSidebarTopBar {
@@ -3216,6 +3258,14 @@
   background: #f59e0b;
 }
 
+.employeeStatusDotOffline {
+  background: #cbd5e1;
+}
+
+.employeeStatusDotError {
+  background: #ef4444;
+}
+
 .employeeCardHeader,
 .chatPanelHeader {
   display: flex;
@@ -5285,7 +5335,7 @@
 
   .dialogueShellRuntimeSidebarCollapsed,
   .dialogueShellRuntimeSidebarCollapsedArtifactsHidden {
-    grid-template-columns: minmax(0, 1fr) 10px auto;
+    grid-template-columns: 72px minmax(0, 1fr) 10px auto;
   }
 
   .dialogueShellRuntimeVisible .dialogueArtifactsCard,
@@ -5525,7 +5575,7 @@
 
   .dialogueShellRuntimeSidebarCollapsed,
   .dialogueShellRuntimeSidebarCollapsedArtifactsHidden {
-    grid-template-columns: minmax(0, 1fr) 10px minmax(280px, 34vw);
+    grid-template-columns: 72px minmax(0, 1fr) 10px minmax(280px, 34vw);
   }
 
   .dialogueShellRuntimeVisible .dialogueArtifactsCard,

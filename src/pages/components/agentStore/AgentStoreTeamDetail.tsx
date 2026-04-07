@@ -20,9 +20,12 @@ import {
 import adminStyles from "../FrontisAdminViews.module.less";
 import {
   doesExpertRequireDeviceBinding,
+  getEffectiveMembersForDeviceAccess,
+  getPendingPermissionWorkspaceIdsForExpert,
   getAssignedWorkspaceIdsForExpert,
   getDeviceAccessStateForExpert,
-  isPermissionAssignmentConfigured,
+  isDeviceAccessConfigured,
+  isExpertAccessConfigured,
 } from "./utils";
 
 import styles from "./AgentStoreView.module.less";
@@ -100,6 +103,30 @@ const getPermissionConfiguredLabel = (employee: EmployeeItem): string => {
   return "待分配权限";
 };
 
+const getDeviceConfiguredLabel = (
+  employee: EmployeeItem,
+  deploymentState?: ExpertDeploymentState,
+): string => {
+  const assignedWorkspaceIds = getAssignedWorkspaceIdsForExpert(employee, deploymentState);
+
+  if (!assignedWorkspaceIds.length) {
+    return "待绑定设备";
+  }
+
+  const pendingPermissionWorkspaceIds = getPendingPermissionWorkspaceIdsForExpert(
+    employee,
+    deploymentState,
+  );
+
+  if (!pendingPermissionWorkspaceIds.length) {
+    return `已配置 ${assignedWorkspaceIds.length} 台设备`;
+  }
+
+  return pendingPermissionWorkspaceIds.length === assignedWorkspaceIds.length
+    ? "待分配权限"
+    : `待分配权限 ${pendingPermissionWorkspaceIds.length} 台`;
+};
+
 /**
  * AI 专家团/单个 AI 专家详情视图。
  */
@@ -159,14 +186,11 @@ export const AgentStoreTeamDetail = ({
           {hasSwitcher ? (
             <aside className={styles.detailAgentRail}>
               {employees.map(employee => {
-                const assignedWorkspaceIds = getAssignedWorkspaceIdsForExpert(
+                const requiresDeviceBinding = doesExpertRequireDeviceBinding(employee);
+                const isConfigured = isExpertAccessConfigured(
                   employee,
                   deploymentByEmployeeId[employee.id],
                 );
-                const requiresDeviceBinding = doesExpertRequireDeviceBinding(employee);
-                const isConfigured = requiresDeviceBinding
-                  ? assignedWorkspaceIds.length > 0
-                  : isPermissionAssignmentConfigured(employee);
                 const versionInfo = EXPERT_VERSION_INFO[employee.id] ?? { version: "v1.0" };
                 const hasNewVersion =
                   Boolean(versionInfo.newVersion) && versionInfo.newVersion !== versionInfo.version;
@@ -188,9 +212,7 @@ export const AgentStoreTeamDetail = ({
                         <span className={styles.detailAgentRailName}>{employee.name}</span>
                         <span className={styles.detailAgentRailMeta}>
                           {requiresDeviceBinding
-                            ? assignedWorkspaceIds.length
-                              ? `已分配 ${assignedWorkspaceIds.length} 个设备`
-                              : "待绑定设备"
+                            ? getDeviceConfiguredLabel(employee, deploymentByEmployeeId[employee.id])
                             : getPermissionConfiguredLabel(employee)}
                         </span>
                       </div>
@@ -198,7 +220,11 @@ export const AgentStoreTeamDetail = ({
                     <p className={styles.detailAgentRailSummary}>{employee.summary}</p>
                     <div className={styles.detailAgentRailTags}>
                       <span className={getDeployTagClassName(isConfigured)}>
-                        {isConfigured ? "已配置" : requiresDeviceBinding ? "待绑定设备" : "待分配权限"}
+                        {isConfigured
+                          ? "已配置"
+                          : requiresDeviceBinding
+                            ? getDeviceConfiguredLabel(employee, deploymentByEmployeeId[employee.id])
+                            : "待分配权限"}
                       </span>
                       <span className={getVersionTagClassName(hasNewVersion)}>
                         {hasNewVersion ? `待升级 ${versionInfo.newVersion}` : versionInfo.version}
@@ -295,8 +321,7 @@ const ExpertConfigPanel = ({
   const [currentVersion, setCurrentVersion] = useState<string>(versionInfo.version);
   const requiresDeviceBinding = doesExpertRequireDeviceBinding(employee);
   const isAssigned = assignedWorkspaceIds.length > 0;
-  const isPermissionConfigured = isPermissionAssignmentConfigured(employee);
-  const isConfigured = requiresDeviceBinding ? isAssigned : isPermissionConfigured;
+  const isConfigured = isExpertAccessConfigured(employee, deploymentState);
   const canConfigureModel = requiresDeviceBinding ? isAssigned : true;
 
   useEffect(() => {
@@ -380,14 +405,38 @@ const ExpertConfigPanel = ({
       assignedWorkspaces.map(workspace => {
         const ownerId = deviceOwners[workspace.id] ?? null;
         const ownerName = ownerId ? users.find(user => user.id === ownerId)?.name ?? null : null;
+        const accessState =
+          accessDraftsByWorkspaceId[workspace.id] ??
+          getDeviceAccessStateForExpert(employee, workspace.id, deploymentState);
 
         return {
+          accessState,
           ownerName,
           workspace,
         };
       }),
     [accessDraftsByWorkspaceId, assignedWorkspaces, deploymentState, deviceOwners, employee, users],
   );
+  const selectedAccessWorkspace = useMemo(
+    () =>
+      selectedAccessWorkspaceId
+        ? workspaces.find(workspace => workspace.id === selectedAccessWorkspaceId) ?? null
+        : null,
+    [selectedAccessWorkspaceId, workspaces],
+  );
+  const selectedAccessOwnerId = selectedAccessWorkspaceId
+    ? deviceOwners[selectedAccessWorkspaceId] ?? null
+    : null;
+  const selectedAccessOwnerName = selectedAccessOwnerId
+    ? users.find(user => user.id === selectedAccessOwnerId)?.name ?? null
+    : null;
+  const selectedEffectiveMembers = useMemo(() => {
+    if (!selectedAccessState) {
+      return [];
+    }
+
+    return getEffectiveMembersForDeviceAccess(selectedAccessState, selectedAccessOwnerId, users);
+  }, [selectedAccessOwnerId, selectedAccessState, users]);
   const permissionMemberCount =
     permissionAccessDraft.visibility === "all"
       ? memberNames.length
@@ -402,12 +451,17 @@ const ExpertConfigPanel = ({
     onAttachEmployeeToDevice(employee.id, draftWorkspaceId);
     setAccessDraftsByWorkspaceId(prev => ({
       ...prev,
-      [draftWorkspaceId]: getDeviceAccessStateForExpert(employee, draftWorkspaceId, deploymentState),
+      [draftWorkspaceId]: requiresDeviceBinding
+        ? {
+            boundMembers: [],
+            visibility: "bound",
+          }
+        : getDeviceAccessStateForExpert(employee, draftWorkspaceId, deploymentState),
     }));
     setSelectedAccessWorkspaceId(draftWorkspaceId);
     setDraftWorkspaceId(undefined);
     message.success(`${employee.name} 已新增到该设备`);
-  }, [deploymentState, draftWorkspaceId, employee, onAttachEmployeeToDevice]);
+  }, [deploymentState, draftWorkspaceId, employee, onAttachEmployeeToDevice, requiresDeviceBinding]);
 
   const handleAttachAllWorkspaces = useCallback((): void => {
     const nextWorkspaceIds = availableWorkspaceOptions.map(option => option.value);
@@ -425,14 +479,25 @@ const ExpertConfigPanel = ({
       ...Object.fromEntries(
         nextWorkspaceIds.map(workspaceId => [
           workspaceId,
-          getDeviceAccessStateForExpert(employee, workspaceId, deploymentState),
+          requiresDeviceBinding
+            ? {
+                boundMembers: [],
+                visibility: "bound" as const,
+              }
+            : getDeviceAccessStateForExpert(employee, workspaceId, deploymentState),
         ]),
       ),
     }));
     setSelectedAccessWorkspaceId(nextWorkspaceIds[0] ?? null);
     setDraftWorkspaceId(undefined);
     message.success(`${employee.name} 已一键分配到 ${nextWorkspaceIds.length} 个设备`);
-  }, [availableWorkspaceOptions, deploymentState, employee, onAttachEmployeeToDevice]);
+  }, [
+    availableWorkspaceOptions,
+    deploymentState,
+    employee,
+    onAttachEmployeeToDevice,
+    requiresDeviceBinding,
+  ]);
 
   const handleRemoveWorkspace = useCallback(
     (workspaceId: string): void => {
@@ -586,9 +651,7 @@ const ExpertConfigPanel = ({
             </span>
             <span className={getDeployTagClassName(isConfigured)}>
               {requiresDeviceBinding
-                ? isAssigned
-                  ? `已分配 ${assignedWorkspaceIds.length} 个设备`
-                  : "待绑定设备"
+                ? getDeviceConfiguredLabel(employee, deploymentState)
                 : permissionAccessDraft.visibility === "all"
                   ? "全公司可用"
                   : permissionMemberCount
@@ -621,7 +684,7 @@ const ExpertConfigPanel = ({
                   <div className={styles.deviceWorkspacePanelHead}>
                     <span className={styles.simpleExpertBlockLabel}>设备分配</span>
                     <span className={styles.simpleExpertHint}>
-                      该 AI 专家按绑定设备生效，配置完成后设备拥有者即可直接使用，无需额外分配成员权限。
+                      该 AI 专家需要先绑定设备，再按设备配置可用权限。如已设置设备拥有者，设备拥有者默认可使用，但仍需确认该设备上的权限范围。
                     </span>
                   </div>
                   <Button
@@ -672,6 +735,129 @@ const ExpertConfigPanel = ({
                 ) : (
                   <div className={styles.deviceWorkspaceEmpty}>
                     当前还没有绑定设备。你可以先新增单个设备，或者直接一键分配到全部设备。
+                  </div>
+                )}
+              </div>
+
+              <div className={styles.simpleExpertBlock}>
+                <span className={styles.simpleExpertBlockLabel}>权限管理</span>
+                <span className={styles.simpleExpertHint}>
+                  每个已绑定设备都要单独配置可用范围；如已设置设备拥有者，设备拥有者会默认包含在实际可用成员中。
+                </span>
+                {assignedWorkspaceEntries.length ? (
+                  <>
+                    <div className={styles.assignedWorkspaceList}>
+                      {assignedWorkspaceEntries.map(({ accessState, ownerName, workspace }) => {
+                        const isCurrentWorkspace = selectedAccessWorkspaceId === workspace.id;
+                        const isWorkspaceConfigured = isDeviceAccessConfigured(accessState);
+                        const effectiveMembers = getEffectiveMembersForDeviceAccess(
+                          accessState,
+                          deviceOwners[workspace.id] ?? null,
+                          users,
+                        );
+
+                        return (
+                          <div
+                            key={`${workspace.id}-access`}
+                            className={`${styles.assignedWorkspaceCard} ${
+                              isCurrentWorkspace ? styles.assignedWorkspaceCardActive : ""
+                            }`}
+                          >
+                            <button
+                              type="button"
+                              className={styles.assignedWorkspaceMain}
+                              onClick={() => setSelectedAccessWorkspaceId(workspace.id)}
+                            >
+                              <div className={styles.assignedWorkspaceHeader}>
+                                <span className={styles.assignedWorkspaceName}>{workspace.name}</span>
+                                <span className={styles.assignedWorkspacePermission}>
+                                  {isWorkspaceConfigured ? "权限已配置" : "待分配权限"}
+                                </span>
+                              </div>
+                              <span className={styles.assignedWorkspaceMeta}>
+                                {ownerName ? `设备拥有者：${ownerName}` : "暂未设置设备拥有者"}
+                              </span>
+                              <span className={styles.assignedWorkspaceMeta}>
+                                {accessState.visibility === "all"
+                                  ? "当前对全公司开放"
+                                  : effectiveMembers.length
+                                    ? `当前可用成员：${effectiveMembers.join("、")}`
+                                    : "当前尚未配置可用成员"}
+                              </span>
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {selectedAccessWorkspace && selectedAccessState ? (
+                      <div className={styles.devicePermissionCard}>
+                        <div className={styles.devicePermissionHeader}>
+                          <div className={styles.devicePermissionIdentity}>
+                            <span className={styles.devicePermissionName}>
+                              {selectedAccessWorkspace.name}
+                            </span>
+                            <span className={styles.devicePermissionMeta}>
+                              {selectedAccessOwnerName
+                                ? `设备拥有者：${selectedAccessOwnerName}`
+                                : "暂未设置设备拥有者"}
+                            </span>
+                            <span className={styles.devicePermissionMeta}>
+                              {selectedAccessState.visibility === "all"
+                                ? "当前对全公司开放"
+                                : selectedEffectiveMembers.length
+                                  ? `当前可用成员：${selectedEffectiveMembers.join("、")}`
+                                  : "当前尚未配置可用成员"}
+                            </span>
+                          </div>
+                          <span className={styles.devicePermissionStatus}>
+                            {isDeviceAccessConfigured(selectedAccessState) ? "已配置权限" : "待分配权限"}
+                          </span>
+                        </div>
+
+                        <div className={styles.devicePermissionControls}>
+                          <Radio.Group
+                            value={selectedAccessState.visibility}
+                            onChange={event => handleChangeAccessVisibility(event.target.value)}
+                            size="small"
+                          >
+                            <Radio value="all">全公司可用</Radio>
+                            <Radio value="bound">指定员工可用</Radio>
+                          </Radio.Group>
+                          {selectedAccessState.visibility === "bound" ? (
+                            <Select
+                              className={adminStyles.consoleControl}
+                              mode="multiple"
+                              placeholder="选择当前设备可使用成员"
+                              size="small"
+                              value={selectedAccessState.boundMembers}
+                              onChange={handleChangeAccessMembers}
+                              options={memberNames.map(name => ({ label: name, value: name }))}
+                            />
+                          ) : null}
+                        </div>
+
+                        <span className={styles.simpleExpertHint}>
+                          {selectedAccessState.visibility === "all"
+                            ? "保存后该设备上的此 AI 专家将对全公司开放。"
+                            : selectedAccessState.boundMembers.length
+                              ? `保存后该设备将额外开放给 ${selectedAccessState.boundMembers.length} 名指定成员${selectedAccessOwnerName ? "，设备拥有者默认可用。" : "。"}`
+                              : selectedAccessOwnerName
+                                ? "当前还没有指定成员；保存后仅设备拥有者默认可使用。"
+                                : "当前还没有指定成员，且该设备尚未设置拥有者。"}
+                        </span>
+
+                        <div className={adminStyles.consoleActions}>
+                          <Button size="small" type="primary" onClick={handleSaveExpertAccess}>
+                            保存当前设备权限
+                          </Button>
+                        </div>
+                      </div>
+                    ) : null}
+                  </>
+                ) : (
+                  <div className={styles.deviceWorkspaceEmpty}>
+                    请先完成设备分配，再为每个设备配置可用权限。
                   </div>
                 )}
               </div>

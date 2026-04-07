@@ -1,9 +1,12 @@
+import type { Dayjs } from "dayjs";
+
 import { FDE_DELIVERY_STEPS } from "@/feature/fde/mockData";
 import type {
   FdeDeliveryOrderItem,
   FdeDeliveryOrderStatus,
   FdeDeliveryStepItem,
   FdeDeliveryStepKey,
+  FdeOrderDeviceType,
   FdeOrderItem,
   FdeOrderLineItem,
 } from "@/feature/fde/types";
@@ -26,9 +29,27 @@ export interface DeviceAllocationRecord extends DeviceAllocationFormState {
   isConfigured: boolean;
 }
 
+export interface CreateOrderFormState {
+  customerName: string;
+  launchTargetDate: Dayjs | null;
+  deliveryNote: string;
+  tenantCode: string;
+  tenantSeatCount: number | null;
+}
+
+export interface CreateBusinessOrderFormState {
+  remark: string;
+  lineItems: FdeOrderLineItem[];
+}
+
 export interface ExpertGroupFormState {
   name: string;
   description: string;
+}
+
+export interface OrderPreviewFieldItem {
+  label: string;
+  value: string;
 }
 
 export type AgentPlazaScope = "public" | "mine";
@@ -59,10 +80,30 @@ export const DELIVERY_STEP_GUIDES: Record<FdeDeliveryStepKey, DeliveryStepGuide>
   },
 };
 
+export const BUSINESS_DEVICE_TYPE_OPTIONS: Array<{
+  label: string;
+  value: FdeOrderDeviceType;
+}> = [
+  { label: "云端工作站", value: "云端工作站" },
+  { label: "本地工作站", value: "本地工作站" },
+  { label: "本地客户端授权", value: "本地客户端授权" },
+];
+
 /**
  * 生成交付专家团唯一标识。
  */
 export const createGroupId = (): string => `delivery-group-${Date.now().toString(36)}`;
+
+/**
+ * 创建空的租户创建表单状态。
+ */
+export const createInitialOrderForm = (): CreateOrderFormState => ({
+  customerName: "",
+  launchTargetDate: null,
+  deliveryNote: "",
+  tenantCode: "",
+  tenantSeatCount: null,
+});
 
 /**
  * 创建空的专家团表单状态。
@@ -70,6 +111,14 @@ export const createGroupId = (): string => `delivery-group-${Date.now().toString
 export const createInitialExpertGroupForm = (): ExpertGroupFormState => ({
   name: "",
   description: "",
+});
+
+/**
+ * 创建空的订单创建表单状态。
+ */
+export const createInitialBusinessOrderForm = (): CreateBusinessOrderFormState => ({
+  remark: "",
+  lineItems: [],
 });
 
 /**
@@ -89,6 +138,12 @@ export const formatTokenCount = (value: number): string => {
 
   return `${value.toLocaleString("zh-CN")} tokens`;
 };
+
+/**
+ * 格式化商品有效时长。
+ */
+export const formatValidityLabel = (months?: number): string =>
+  months && months > 0 ? `${months} 个月` : "未设置";
 
 /**
  * 根据步骤键获取交付步骤文案。
@@ -348,13 +403,10 @@ export const getLinkedDeliveryOrder = (
     return deliveryItems.find(item => item.id === linkedRecordId) ?? null;
   }
 
-  if (!order.tenantId) {
-    return null;
-  }
-
   return (
-    deliveryItems.find(item => item.id === order.tenantId && item.orderKind === "initial") ??
-    null
+    deliveryItems.find(
+      item => item.orderKind === "change" && item.linkedOrderIds?.includes(order.id),
+    ) ?? null
   );
 };
 

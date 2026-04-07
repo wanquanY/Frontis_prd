@@ -3,7 +3,7 @@ import type { JSX } from "react";
 import classNames from "classnames";
 import { Button } from "antd";
 
-import type { FdeDeliveryOrderItem, FdeOrderItem } from "@/feature/fde/types";
+import type { FdeDeliveryOrderItem } from "@/feature/fde/types";
 
 import {
   type AgentSelectMode,
@@ -18,14 +18,13 @@ import {
 import styles from "./FdeDeliveryWorkbench.module.less";
 
 interface FdeDeliveryStepPanelProps {
-  order: FdeOrderItem;
-  deliveryOrder: FdeDeliveryOrderItem | null;
+  deliveryOrder: FdeDeliveryOrderItem;
   selectedDetailTab: DeliveryDetailTabKey;
   deviceRecord: DeviceAllocationRecord | null;
-  onOpenDeviceModal: (order: FdeOrderItem) => void;
+  onOpenDeviceModal: (order: FdeDeliveryOrderItem) => void;
   onAdvanceStep: (skipCurrentStep?: boolean) => void;
-  onOpenExpertGroupModal: (order: FdeOrderItem) => void;
-  onOpenAgentModal: (order: FdeOrderItem, mode: AgentSelectMode) => void;
+  onOpenExpertGroupModal: (order: FdeDeliveryOrderItem) => void;
+  onOpenAgentModal: (order: FdeDeliveryOrderItem, mode: AgentSelectMode) => void;
   onDeliverAgentGroup: (deliveryOrderId: string, groupId: string) => void;
   onDeliverSingleAgent: (deliveryOrderId: string, agentName: string) => void;
   onOpenAdmin: () => void;
@@ -44,10 +43,9 @@ const getDeliveryItemStatusClassName = (statusLabel: string): string => {
 };
 
 /**
- * FDE 交付步骤面板。
+ * FDE 配置交付中的步骤内容面板。
  */
 export const FdeDeliveryStepPanel = ({
-  order,
   deliveryOrder,
   selectedDetailTab,
   deviceRecord,
@@ -59,16 +57,11 @@ export const FdeDeliveryStepPanel = ({
   onDeliverSingleAgent,
   onOpenAdmin,
 }: FdeDeliveryStepPanelProps): JSX.Element => {
-  if (!deliveryOrder) {
-    return (
-      <section className={styles.section}>
-        <div className={styles.emptyHint}>当前订单暂未生成可操作的交付流程。</div>
-      </section>
-    );
-  }
-
   if (selectedDetailTab === "deviceConfig") {
     const isCurrentStep = deliveryOrder.currentStep === "deviceConfig";
+    const isReadOnlyStep =
+      deliveryOrder.completedSteps.includes("deviceConfig") ||
+      deliveryOrder.skippedSteps?.includes("deviceConfig");
     const currentDeviceRecord = deviceRecord ?? buildDefaultDeviceRecord(deliveryOrder);
     const allowSkipCurrentStep =
       isCurrentStep && shouldAllowSkipStep(deliveryOrder, "deviceConfig");
@@ -79,7 +72,12 @@ export const FdeDeliveryStepPanel = ({
         <div className={styles.sectionHeader}>
           <div className={styles.sectionTitle}>{DELIVERY_STEP_GUIDES.deviceConfig.title}</div>
           <div className={styles.sectionActions}>
-            <Button onClick={() => onOpenDeviceModal(order)}>配置设备额度</Button>
+            {isReadOnlyStep ? (
+              <span className={styles.deliveryHint}>当前阶段已完成，内容仅供查看。</span>
+            ) : null}
+            {isCurrentStep ? (
+              <Button onClick={() => onOpenDeviceModal(deliveryOrder)}>配置设备额度</Button>
+            ) : null}
             {allowSkipCurrentStep ? (
               <Button onClick={() => onAdvanceStep(true)}>跳过此步骤</Button>
             ) : null}
@@ -134,6 +132,9 @@ export const FdeDeliveryStepPanel = ({
 
   if (selectedDetailTab === "agentConfig") {
     const isCurrentStep = deliveryOrder.currentStep === "agentConfig";
+    const isReadOnlyStep =
+      deliveryOrder.completedSteps.includes("agentConfig") ||
+      deliveryOrder.skippedSteps?.includes("agentConfig");
     const allowSkipCurrentStep =
       isCurrentStep && shouldAllowSkipStep(deliveryOrder, "agentConfig");
     const deliveryEntries = [
@@ -162,10 +163,19 @@ export const FdeDeliveryStepPanel = ({
         <div className={styles.sectionHeader}>
           <div className={styles.sectionTitle}>{DELIVERY_STEP_GUIDES.agentConfig.title}</div>
           <div className={styles.sectionActions}>
-            <Button onClick={() => onOpenExpertGroupModal(order)}>添加 AI 专家团</Button>
-            <Button onClick={() => onOpenAgentModal(order, "single")}>
-              直接添加单个 AI 专家
-            </Button>
+            {isReadOnlyStep ? (
+              <span className={styles.deliveryHint}>当前阶段已完成，内容仅供查看。</span>
+            ) : null}
+            {isCurrentStep ? (
+              <Button onClick={() => onOpenExpertGroupModal(deliveryOrder)}>
+                添加 AI 专家团
+              </Button>
+            ) : null}
+            {isCurrentStep ? (
+              <Button onClick={() => onOpenAgentModal(deliveryOrder, "single")}>
+                直接添加单个 AI 专家
+              </Button>
+            ) : null}
             {allowSkipCurrentStep ? (
               <Button onClick={() => onAdvanceStep(true)}>跳过此步骤</Button>
             ) : null}
@@ -204,7 +214,7 @@ export const FdeDeliveryStepPanel = ({
                     >
                       {item.statusLabel}
                     </span>
-                    {!isDeliveryItemDelivered(item.statusLabel) ? (
+                    {isCurrentStep && !isDeliveryItemDelivered(item.statusLabel) ? (
                       <Button
                         size="small"
                         type="primary"
@@ -232,7 +242,7 @@ export const FdeDeliveryStepPanel = ({
             ))}
           </div>
         ) : (
-          <div className={styles.emptyHint}>当前未添加待下发的 AI 专家记录。</div>
+          <div className={styles.emptyHint}>当前未添加待下发的 AI 专家记录</div>
         )}
       </section>
     );
@@ -240,6 +250,9 @@ export const FdeDeliveryStepPanel = ({
 
   if (selectedDetailTab === "apiTest") {
     const isCurrentStep = deliveryOrder.currentStep === "apiTest";
+    const isReadOnlyStep =
+      deliveryOrder.completedSteps.includes("apiTest") ||
+      deliveryOrder.skippedSteps?.includes("apiTest");
     const allowSkipCurrentStep = isCurrentStep && shouldAllowSkipStep(deliveryOrder, "apiTest");
 
     return (
@@ -247,7 +260,10 @@ export const FdeDeliveryStepPanel = ({
         <div className={styles.sectionHeader}>
           <div className={styles.sectionTitle}>{DELIVERY_STEP_GUIDES.apiTest.title}</div>
           <div className={styles.sectionActions}>
-            <Button onClick={onOpenAdmin}>进入企业管理后台</Button>
+            {isReadOnlyStep ? (
+              <span className={styles.deliveryHint}>当前阶段已完成，内容仅供查看。</span>
+            ) : null}
+            {isCurrentStep ? <Button onClick={onOpenAdmin}>进入企业管理后台</Button> : null}
             {allowSkipCurrentStep ? (
               <Button onClick={() => onAdvanceStep(true)}>跳过此步骤</Button>
             ) : null}
@@ -276,12 +292,18 @@ export const FdeDeliveryStepPanel = ({
   }
 
   const isCurrentStep = deliveryOrder.currentStep === "preflight";
+  const isReadOnlyStep =
+    deliveryOrder.completedSteps.includes("preflight") ||
+    deliveryOrder.skippedSteps?.includes("preflight");
 
   return (
     <section className={styles.section}>
       <div className={styles.sectionHeader}>
         <div className={styles.sectionTitle}>{DELIVERY_STEP_GUIDES.preflight.title}</div>
         <div className={styles.sectionActions}>
+          {isReadOnlyStep ? (
+            <span className={styles.deliveryHint}>当前阶段已完成，内容仅供查看。</span>
+          ) : null}
           {isCurrentStep ? (
             <Button type="primary" onClick={() => onAdvanceStep()}>
               {DELIVERY_STEP_GUIDES.preflight.buttonLabel}

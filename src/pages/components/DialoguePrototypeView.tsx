@@ -10,6 +10,8 @@ import {
   EditOutlined,
   FileTextOutlined,
   FolderOutlined,
+  MenuFoldOutlined,
+  MenuUnfoldOutlined,
   MoreOutlined,
   PlusOutlined,
   CheckCircleOutlined,
@@ -73,6 +75,7 @@ interface DialoguePrototypeViewProps {
   activeDialogueResults: DialogueGeneratedResultItem[];
   activeDialogueSession: DialogueSessionItem | null;
   allEmployees: EmployeeItem[];
+  accountMenuItems: MenuProps["items"];
   defaultAgentIds: string[];
   dialoguePlaceholder: string;
   dialogueAttachments: WorkspaceComposerAttachmentItem[];
@@ -99,6 +102,7 @@ interface DialoguePrototypeViewProps {
   onRemoveAttachment: (attachmentUid: string) => void;
   onSkillSelect: (skillId: string) => void;
   onSendDialogue: () => void;
+  onToggleSidebar: () => void;
   selectedSkillId: string | null;
   onStopDialogue: () => void;
   viewerName: string;
@@ -171,6 +175,7 @@ export const DialoguePrototypeView = ({
   activeDialogueResults,
   activeDialogueSession,
   allEmployees,
+  accountMenuItems,
   defaultAgentIds,
   dialoguePlaceholder,
   dialogueAttachments,
@@ -197,6 +202,7 @@ export const DialoguePrototypeView = ({
   onRemoveAttachment,
   onSkillSelect,
   onSendDialogue,
+  onToggleSidebar,
   selectedSkillId,
   onStopDialogue,
   viewerName,
@@ -260,7 +266,7 @@ export const DialoguePrototypeView = ({
   const getDialogueShellColumns = useCallback(
     (panelWidth: number): string =>
       isSidebarCollapsed
-        ? `minmax(0, 1fr) 10px ${panelWidth}px`
+        ? `72px minmax(0, 1fr) 10px ${panelWidth}px`
         : `252px minmax(0, 1fr) 10px ${panelWidth}px`,
     [isSidebarCollapsed],
   );
@@ -276,7 +282,9 @@ export const DialoguePrototypeView = ({
     }
 
     return {
-      gridTemplateColumns: isSidebarCollapsed ? "minmax(0, 1fr)" : "252px minmax(0, 1fr)",
+      gridTemplateColumns: isSidebarCollapsed
+        ? "72px minmax(0, 1fr)"
+        : "252px minmax(0, 1fr)",
     };
   }, [isSidebarCollapsed, isSidePanelVisible, isStackedLayout, resolvedSidePanelWidth]);
 
@@ -868,251 +876,310 @@ export const DialoguePrototypeView = ({
       })}
       style={dialogueShellStyle}
     >
-      {!isSidebarCollapsed ? (
-        <aside className={styles.dialogueSidebarCard}>
-          <div className={styles.dialogueSidebarTopBar}>
-            <div className={styles.dialogueSidebarSectionTitle}>AI 专家</div>
-          </div>
+      <aside
+        className={classNames(styles.dialogueSidebarCard, {
+          [styles.dialogueSidebarCardCollapsed]: isSidebarCollapsed,
+        })}
+      >
+        {isSidebarCollapsed ? (
+          <>
+            <div className={styles.sidebarTopCollapsed}>
+              <div className={classNames(styles.brandCard, styles.brandCardCollapsed)}>
+                <span className={styles.brandLogo}>F</span>
+              </div>
+              <button
+                type="button"
+                className={styles.sidebarToggle}
+                aria-label="展开左侧面板"
+                onClick={onToggleSidebar}
+              >
+                <MenuUnfoldOutlined />
+              </button>
+            </div>
 
-          <div ref={employeeSwitcherRef} className={styles.dialogueAgentListSection}>
-            <button
-              type="button"
-              className={styles.dialogueAgentSelectButton}
-              aria-expanded={isEmployeeSwitcherOpen}
-              aria-label="切换 AI 专家"
-              title={activeEmployee.name}
-              onClick={() => setIsEmployeeSwitcherOpen(current => !current)}
-            >
-              <span className={styles.dialogueAgentSelectCurrent}>
-                <span className={styles.employeeAvatarWrap}>
-                  <Avatar src={activeEmployee.avatarUrl} size={40} className={styles.dialogueHeroAvatar}>
-                    {getAvatarText(activeEmployee.name)}
+            <div className={classNames(styles.sidebarBottom, styles.dialogueSidebarFooter)}>
+              <Dropdown menu={{ items: accountMenuItems }} placement="topRight" trigger={["click"]}>
+                <button type="button" className={styles.accountTrigger} aria-label="打开账户菜单">
+                  <Avatar className={styles.accountAvatar} size={36}>
+                    {viewerName.slice(0, 1)}
                   </Avatar>
-                  <span
-                    className={classNames(styles.employeeStatusDot, {
-                      [styles.employeeStatusDotIdle]: activeEmployee.status === "idle",
-                      [styles.employeeStatusDotBusy]: activeEmployee.status === "busy",
-                      [styles.employeeStatusDotPending]:
-                        activeEmployee.status === "pending" ||
-                        activeEmployee.status === "paused" ||
-                        activeEmployee.status === "draft",
-                    })}
-                  />
-                </span>
-                <span className={styles.dialogueSwitcherItemBody}>
-                  <span className={styles.dialogueSwitcherItemName}>{activeEmployee.name}</span>
-                </span>
-              </span>
-              <DownOutlined
-                className={classNames(styles.dialogueAgentSelectArrow, {
-                  [styles.dialogueAgentSelectArrowOpen]: isEmployeeSwitcherOpen,
-                })}
-              />
-            </button>
-
-            {isEmployeeSwitcherOpen ? (
-              <div className={styles.dialogueAgentDropdownMenu}>
-                <div className={styles.dialogueSwitcherList}>
-                  {employeeGroups.map(group => (
-                    <div key={group.key} className={styles.dialogueSwitcherGroup}>
-                      <div className={styles.dialogueSwitcherGroupTitle}>{group.title}</div>
-                      {group.items.map(item => {
-                        const isDefaultAgent = defaultAgentIds.includes(item.id);
-                        const isEditingAgent = editingAgentId === item.id;
-
-                        return (
-                          <div key={item.id} className={styles.dialogueSwitcherItemRow}>
-                            {isEditingAgent ? (
-                              <div
-                                className={classNames(styles.dialogueSwitcherItem, {
-                                  [styles.dialogueSwitcherItemActive]: item.id === activeEmployee.id,
-                                  [styles.dialogueSwitcherItemEditing]: true,
-                                })}
-                              >
-                                <span className={styles.employeeAvatarWrap}>
-                                  <Avatar src={item.avatarUrl} size={40} className={styles.dialogueHeroAvatar}>
-                                    {getAvatarText(item.name)}
-                                  </Avatar>
-                                  <span
-                                    className={classNames(styles.employeeStatusDot, {
-                                      [styles.employeeStatusDotIdle]: item.status === "idle",
-                                      [styles.employeeStatusDotBusy]: item.status === "busy",
-                                      [styles.employeeStatusDotPending]:
-                                        item.status === "pending" ||
-                                        item.status === "paused" ||
-                                        item.status === "draft",
-                                    })}
-                                  />
-                                </span>
-                                <span className={styles.dialogueSwitcherItemBody}>
-                                  <span className={styles.dialogueSwitcherAgentEditRow}>
-                                    <Input
-                                      ref={agentNameInputRef}
-                                      size="small"
-                                      value={editingAgentName}
-                                      maxLength={24}
-                                      placeholder="输入默认 Agent 名称"
-                                      className={styles.dialogueSwitcherAgentEditInput}
-                                      onChange={event => setEditingAgentName(event.target.value)}
-                                      onPressEnter={handleSubmitRenameAgent}
-                                      onBlur={handleSubmitRenameAgent}
-                                      onKeyDown={event => {
-                                        event.stopPropagation();
-                                        if (event.key === "Escape") {
-                                          handleCancelRenameAgent();
-                                        }
-                                      }}
-                                    />
-                                  </span>
-                                </span>
-                              </div>
-                            ) : (
-                              <button
-                                type="button"
-                                className={classNames(styles.dialogueSwitcherItem, {
-                                  [styles.dialogueSwitcherItemActive]: item.id === activeEmployee.id,
-                                })}
-                                title={item.name}
-                                onClick={() => {
-                                  onEmployeeSelect(item.id);
-                                  setIsEmployeeSwitcherOpen(false);
-                                }}
-                              >
-                                <span className={styles.employeeAvatarWrap}>
-                                  <Avatar src={item.avatarUrl} size={40} className={styles.dialogueHeroAvatar}>
-                                    {getAvatarText(item.name)}
-                                  </Avatar>
-                                  <span
-                                    className={classNames(styles.employeeStatusDot, {
-                                      [styles.employeeStatusDotIdle]: item.status === "idle",
-                                      [styles.employeeStatusDotBusy]: item.status === "busy",
-                                      [styles.employeeStatusDotPending]:
-                                        item.status === "pending" ||
-                                        item.status === "paused" ||
-                                        item.status === "draft",
-                                    })}
-                                  />
-                                </span>
-                                <span className={styles.dialogueSwitcherItemBody}>
-                                  <span className={styles.dialogueSwitcherItemName} title={item.name}>
-                                    {item.name}
-                                  </span>
-                                </span>
-                              </button>
-                            )}
-
-                            {isDefaultAgent && !isEditingAgent ? (
-                              <button
-                                type="button"
-                                className={styles.dialogueSwitcherAgentAction}
-                                aria-label={`编辑 ${item.name} 名称`}
-                                onClick={event => {
-                                  handleMenuButtonClick(event);
-                                  handleStartRenameAgent(item.id, item.name);
-                                }}
-                              >
-                                <EditOutlined />
-                              </button>
-                            ) : null}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  ))}
+                </button>
+              </Dropdown>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className={styles.sidebarTop}>
+              <div className={styles.brandCard}>
+                <span className={styles.brandLogo}>F</span>
+                <div className={styles.brandCopy}>
+                  <div className={styles.brandTitle}>Frontis AI</div>
+                  <div className={styles.brandSubtitle}>智能工作台</div>
                 </div>
               </div>
-            ) : null}
-          </div>
-
-          <button
-            type="button"
-            className={styles.dialogueNewSessionButton}
-            onClick={onCreateDialogueSession}
-          >
-            <PlusOutlined />
-            <span>新对话</span>
-          </button>
-
-          <div className={styles.dialogueSessionSection}>
-            <div className={styles.dialogueSessionHeading}>最近对话</div>
-            <div className={styles.dialogueSessionList}>
-              {dialogueSessions.length > 0 ? (
-                dialogueSessions.map(item => {
-                  return (
-                    <div
-                      key={item.id}
-                      className={classNames(styles.dialogueSessionItem, {
-                        [styles.dialogueSessionItemActive]: item.id === activeDialogueSession?.id,
-                      })}
-                    >
-                      {editingSessionId === item.id ? (
-                        <div className={styles.dialogueSessionEditor}>
-                          <Input
-                            ref={sessionTitleInputRef}
-                            size="small"
-                            value={editingSessionTitle}
-                            placeholder="输入会话名称"
-                            onClick={event => event.stopPropagation()}
-                            onChange={event => setEditingSessionTitle(event.target.value)}
-                            onPressEnter={() => handleSubmitRenameSession()}
-                          />
-                          <div className={styles.dialogueSessionEditorActions}>
-                            <button
-                              type="button"
-                              className={styles.dialogueSessionEditorButton}
-                              aria-label="保存会话名称"
-                              onClick={handleSubmitRenameSession}
-                            >
-                              <CheckOutlined />
-                            </button>
-                            <button
-                              type="button"
-                              className={styles.dialogueSessionEditorButton}
-                              aria-label="取消重命名"
-                              onClick={handleCancelRenameSession}
-                            >
-                              <CloseOutlined />
-                            </button>
-                          </div>
-                        </div>
-                      ) : (
-                        <>
-                          <button
-                            type="button"
-                            className={styles.dialogueSessionMainButton}
-                            onClick={() => onDialogueSessionSelect(item.id)}
-                          >
-                            <span className={styles.dialogueSessionContent}>
-                              <span className={styles.dialogueSessionTitle}>{item.title}</span>
-                              <span className={styles.dialogueSessionTime}>{item.updatedAt}</span>
-                            </span>
-                          </button>
-                          <Dropdown
-                            menu={{ items: getDialogueSessionMenuItems(item.id, item.title) }}
-                            trigger={["click"]}
-                          >
-                            <button
-                              type="button"
-                              className={styles.dialogueSessionMenuButton}
-                              aria-label="会话操作"
-                              onClick={handleMenuButtonClick}
-                              onKeyDown={handleMenuButtonKeyDown}
-                            >
-                              <MoreOutlined />
-                            </button>
-                          </Dropdown>
-                        </>
-                      )}
-                    </div>
-                  );
-                })
-              ) : (
-                <div className={styles.dialogueSessionEmpty}>当前 AI 专家还没有历史会话</div>
-              )}
+              <button
+                type="button"
+                className={styles.sidebarToggle}
+                aria-label="收起左侧面板"
+                onClick={onToggleSidebar}
+              >
+                <MenuFoldOutlined />
+              </button>
             </div>
-          </div>
-        </aside>
-      ) : null}
+
+            <div className={styles.dialogueSidebarTopBar}>
+              <div className={styles.dialogueSidebarSectionTitle}>AI 专家</div>
+            </div>
+
+            <div ref={employeeSwitcherRef} className={styles.dialogueAgentListSection}>
+              <button
+                type="button"
+                className={styles.dialogueAgentSelectButton}
+                aria-expanded={isEmployeeSwitcherOpen}
+                aria-label="切换 AI 专家"
+                title={activeEmployee.name}
+                onClick={() => setIsEmployeeSwitcherOpen(current => !current)}
+              >
+                <span className={styles.dialogueAgentSelectCurrent}>
+                  <span className={styles.employeeAvatarWrap}>
+                    <Avatar src={activeEmployee.avatarUrl} size={40} className={styles.dialogueHeroAvatar}>
+                      {getAvatarText(activeEmployee.name)}
+                    </Avatar>
+                    <span
+                      className={classNames(styles.employeeStatusDot, {
+                        [styles.employeeStatusDotBusy]: activeEmployee.status === "running",
+                        [styles.employeeStatusDotOffline]: activeEmployee.status === "offline",
+                        [styles.employeeStatusDotError]: activeEmployee.status === "exception",
+                      })}
+                    />
+                  </span>
+                  <span className={styles.dialogueSwitcherItemBody}>
+                    <span className={styles.dialogueSwitcherItemName}>{activeEmployee.name}</span>
+                  </span>
+                </span>
+                <DownOutlined
+                  className={classNames(styles.dialogueAgentSelectArrow, {
+                    [styles.dialogueAgentSelectArrowOpen]: isEmployeeSwitcherOpen,
+                  })}
+                />
+              </button>
+
+              {isEmployeeSwitcherOpen ? (
+                <div className={styles.dialogueAgentDropdownMenu}>
+                  <div className={styles.dialogueSwitcherList}>
+                    {employeeGroups.map(group => (
+                      <div key={group.key} className={styles.dialogueSwitcherGroup}>
+                        <div className={styles.dialogueSwitcherGroupTitle}>{group.title}</div>
+                        {group.items.map(item => {
+                          const isDefaultAgent = defaultAgentIds.includes(item.id);
+                          const isEditingAgent = editingAgentId === item.id;
+
+                          return (
+                            <div key={item.id} className={styles.dialogueSwitcherItemRow}>
+                              {isEditingAgent ? (
+                                <div
+                                  className={classNames(styles.dialogueSwitcherItem, {
+                                    [styles.dialogueSwitcherItemActive]: item.id === activeEmployee.id,
+                                    [styles.dialogueSwitcherItemEditing]: true,
+                                  })}
+                                >
+                                  <span className={styles.employeeAvatarWrap}>
+                                    <Avatar src={item.avatarUrl} size={40} className={styles.dialogueHeroAvatar}>
+                                      {getAvatarText(item.name)}
+                                    </Avatar>
+                                    <span
+                                      className={classNames(styles.employeeStatusDot, {
+                                        [styles.employeeStatusDotBusy]: item.status === "running",
+                                        [styles.employeeStatusDotOffline]: item.status === "offline",
+                                        [styles.employeeStatusDotError]: item.status === "exception",
+                                      })}
+                                    />
+                                  </span>
+                                  <span className={styles.dialogueSwitcherItemBody}>
+                                    <span className={styles.dialogueSwitcherAgentEditRow}>
+                                      <Input
+                                        ref={agentNameInputRef}
+                                        size="small"
+                                        value={editingAgentName}
+                                        maxLength={24}
+                                        placeholder="输入默认 Agent 名称"
+                                        className={styles.dialogueSwitcherAgentEditInput}
+                                        onChange={event => setEditingAgentName(event.target.value)}
+                                        onPressEnter={handleSubmitRenameAgent}
+                                        onBlur={handleSubmitRenameAgent}
+                                        onKeyDown={event => {
+                                          event.stopPropagation();
+                                          if (event.key === "Escape") {
+                                            handleCancelRenameAgent();
+                                          }
+                                        }}
+                                      />
+                                    </span>
+                                  </span>
+                                </div>
+                              ) : (
+                                <button
+                                  type="button"
+                                  className={classNames(styles.dialogueSwitcherItem, {
+                                    [styles.dialogueSwitcherItemActive]: item.id === activeEmployee.id,
+                                  })}
+                                  title={item.name}
+                                  onClick={() => {
+                                    onEmployeeSelect(item.id);
+                                    setIsEmployeeSwitcherOpen(false);
+                                  }}
+                                >
+                                  <span className={styles.employeeAvatarWrap}>
+                                    <Avatar src={item.avatarUrl} size={40} className={styles.dialogueHeroAvatar}>
+                                      {getAvatarText(item.name)}
+                                    </Avatar>
+                                    <span
+                                      className={classNames(styles.employeeStatusDot, {
+                                        [styles.employeeStatusDotBusy]: item.status === "running",
+                                        [styles.employeeStatusDotOffline]: item.status === "offline",
+                                        [styles.employeeStatusDotError]: item.status === "exception",
+                                      })}
+                                    />
+                                  </span>
+                                  <span className={styles.dialogueSwitcherItemBody}>
+                                    <span className={styles.dialogueSwitcherItemName} title={item.name}>
+                                      {item.name}
+                                    </span>
+                                  </span>
+                                </button>
+                              )}
+
+                              {isDefaultAgent && !isEditingAgent ? (
+                                <button
+                                  type="button"
+                                  className={styles.dialogueSwitcherAgentAction}
+                                  aria-label={`编辑 ${item.name} 名称`}
+                                  onClick={event => {
+                                    handleMenuButtonClick(event);
+                                    handleStartRenameAgent(item.id, item.name);
+                                  }}
+                                >
+                                  <EditOutlined />
+                                </button>
+                              ) : null}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+            </div>
+
+            <button
+              type="button"
+              className={styles.dialogueNewSessionButton}
+              onClick={onCreateDialogueSession}
+            >
+              <PlusOutlined />
+              <span>新对话</span>
+            </button>
+
+            <div className={styles.dialogueSessionSection}>
+              <div className={styles.dialogueSessionHeading}>最近对话</div>
+              <div className={styles.dialogueSessionList}>
+                {dialogueSessions.length > 0 ? (
+                  dialogueSessions.map(item => {
+                    return (
+                      <div
+                        key={item.id}
+                        className={classNames(styles.dialogueSessionItem, {
+                          [styles.dialogueSessionItemActive]: item.id === activeDialogueSession?.id,
+                        })}
+                      >
+                        {editingSessionId === item.id ? (
+                          <div className={styles.dialogueSessionEditor}>
+                            <Input
+                              ref={sessionTitleInputRef}
+                              size="small"
+                              value={editingSessionTitle}
+                              placeholder="输入会话名称"
+                              onClick={event => event.stopPropagation()}
+                              onChange={event => setEditingSessionTitle(event.target.value)}
+                              onPressEnter={() => handleSubmitRenameSession()}
+                            />
+                            <div className={styles.dialogueSessionEditorActions}>
+                              <button
+                                type="button"
+                                className={styles.dialogueSessionEditorButton}
+                                aria-label="保存会话名称"
+                                onClick={handleSubmitRenameSession}
+                              >
+                                <CheckOutlined />
+                              </button>
+                              <button
+                                type="button"
+                                className={styles.dialogueSessionEditorButton}
+                                aria-label="取消重命名"
+                                onClick={handleCancelRenameSession}
+                              >
+                                <CloseOutlined />
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <>
+                            <button
+                              type="button"
+                              className={styles.dialogueSessionMainButton}
+                              onClick={() => onDialogueSessionSelect(item.id)}
+                            >
+                              <span className={styles.dialogueSessionContent}>
+                                <span className={styles.dialogueSessionTitle}>{item.title}</span>
+                                <span className={styles.dialogueSessionTime}>{item.updatedAt}</span>
+                              </span>
+                            </button>
+                            <Dropdown
+                              menu={{ items: getDialogueSessionMenuItems(item.id, item.title) }}
+                              trigger={["click"]}
+                            >
+                              <button
+                                type="button"
+                                className={styles.dialogueSessionMenuButton}
+                                aria-label="会话操作"
+                                onClick={handleMenuButtonClick}
+                                onKeyDown={handleMenuButtonKeyDown}
+                              >
+                                <MoreOutlined />
+                              </button>
+                            </Dropdown>
+                          </>
+                        )}
+                      </div>
+                    );
+                  })
+                ) : (
+                  <div className={styles.dialogueSessionEmpty}>当前 AI 专家还没有历史会话</div>
+                )}
+              </div>
+            </div>
+
+            <div className={classNames(styles.sidebarBottom, styles.dialogueSidebarFooter)}>
+              <Dropdown menu={{ items: accountMenuItems }} placement="topLeft" trigger={["click"]}>
+                <button
+                  type="button"
+                  className={classNames(styles.accountTrigger, styles.accountTriggerExpanded)}
+                  aria-label="打开账户菜单"
+                >
+                  <Avatar className={styles.accountAvatar} size={36}>
+                    {viewerName.slice(0, 1)}
+                  </Avatar>
+                  <span className={styles.accountBody}>
+                    <span className={styles.accountName}>{viewerName}</span>
+                    <span className={styles.accountMeta}>当前登录账号</span>
+                  </span>
+                </button>
+              </Dropdown>
+            </div>
+          </>
+        )}
+      </aside>
 
       <section
         className={classNames(styles.dialogueMainCard, {

@@ -24,7 +24,7 @@ export const OwnedTeamCard = ({
   workspace,
 }: OwnedTeamCardProps): JSX.Element => {
   const members = employees.filter(e => team.memberIds.includes(e.id));
-  const isOnline = members.some(e => ["online", "busy", "idle"].includes(e.status));
+  const isOnline = members.some(e => ["online", "running"].includes(e.status));
   const pendingUpgradeCount = team.memberIds.filter(memberId => {
     const versionInfo = EXPERT_VERSION_INFO[memberId];
     return Boolean(versionInfo?.newVersion && versionInfo.newVersion !== versionInfo.version);

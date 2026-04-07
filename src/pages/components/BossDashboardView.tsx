@@ -32,7 +32,6 @@ interface ExpertTeamDef {
 
 interface TimelineSegment {
   text: string;
-  tone?: "primary" | "success" | "danger";
 }
 
 interface TimelineEntryDef {
@@ -41,10 +40,6 @@ interface TimelineEntryDef {
   employeeId: string;
   agentLabel: string;
   segments: TimelineSegment[];
-  tag: {
-    label: string;
-    tone: "alert" | "done" | "warn";
-  };
 }
 
 const EXPERT_TEAMS: ExpertTeamDef[] = [
@@ -76,10 +71,9 @@ const TIMELINE_ENTRIES: TimelineEntryDef[] = [
     agentLabel: "产品策略官 · 产研协作专家团",
     segments: [
       { text: "完成 SynClaw 独立窗口 " },
-      { text: "五 Tab 结构方案", tone: "primary" },
+      { text: "五 Tab 结构方案" },
       { text: "，输出评审文档 1 份，等待你确认后进入下一阶段。" },
     ],
-    tag: { label: "待确认", tone: "warn" },
   },
   {
     id: "tl-2",
@@ -88,10 +82,9 @@ const TIMELINE_ENTRIES: TimelineEntryDef[] = [
     agentLabel: "资料研究员 · 产研协作专家团",
     segments: [
       { text: "完成竞品页面资料同步，梳理出 " },
-      { text: "3 个关键差异点", tone: "success" },
+      { text: "3 个关键差异点" },
       { text: "，建议优先在首屏强化“AI 专家团”概念。" },
     ],
-    tag: { label: "已完成", tone: "done" },
   },
   {
     id: "tl-3",
@@ -100,10 +93,9 @@ const TIMELINE_ENTRIES: TimelineEntryDef[] = [
     agentLabel: "本地内容助理 · 销售增长专家团",
     segments: [
       { text: "整理完成昨日会议纪要摘要，提炼出 " },
-      { text: "7 个功能拆解点", tone: "primary" },
+      { text: "7 个功能拆解点" },
       { text: "，已同步对话记录，等待你继续安排。" },
     ],
-    tag: { label: "已完成", tone: "done" },
   },
   {
     id: "tl-4",
@@ -112,10 +104,9 @@ const TIMELINE_ENTRIES: TimelineEntryDef[] = [
     agentLabel: "销售战报助手 · 销售增长专家团",
     segments: [
       { text: "设备激活码尚未录入，" },
-      { text: "一线销售数据无法回流", tone: "danger" },
+      { text: "一线销售数据无法回流" },
       { text: "，建议尽快完成激活，补齐数据闭环。" },
     ],
-    tag: { label: "需处理", tone: "alert" },
   },
   {
     id: "tl-5",
@@ -124,10 +115,9 @@ const TIMELINE_ENTRIES: TimelineEntryDef[] = [
     agentLabel: "交互设计师 · 产研协作专家团",
     segments: [
       { text: "AI 专家团页面命名方案整理完毕，提供 " },
-      { text: "3 个候选方案", tone: "primary" },
+      { text: "3 个候选方案" },
       { text: " 供选择，确认后立即推进原型设计。" },
     ],
-    tag: { label: "待确认", tone: "warn" },
   },
 ];
 
@@ -155,20 +145,7 @@ const formatDateLine = (): string => {
 };
 
 const isEmployeeActive = (employee: EmployeeItem): boolean =>
-  ["busy", "idle", "online"].includes(employee.status);
-
-const getTimelineTagClassName = (tone: TimelineEntryDef["tag"]["tone"]): string => {
-  switch (tone) {
-    case "done":
-      return `${adminStyles.consoleStatusTag} ${adminStyles.consoleStatusTagSuccess}`;
-    case "warn":
-      return `${adminStyles.consoleStatusTag} ${adminStyles.consoleStatusTagWarning}`;
-    case "alert":
-      return `${adminStyles.consoleStatusTag} ${adminStyles.consoleStatusTagDanger}`;
-    default:
-      return adminStyles.consoleStatusTag;
-  }
-};
+  ["running", "online"].includes(employee.status);
 
 export const BossDashboardView = ({
   currentUserName,
@@ -191,9 +168,8 @@ export const BossDashboardView = ({
   const runtimeHours = useMemo(
     () =>
       employees.reduce((total, employee) => {
-        if (employee.status === "busy") return total + 18;
+        if (employee.status === "running") return total + 18;
         if (employee.status === "online") return total + 14;
-        if (employee.status === "idle") return total + 8;
         return total;
       }, 0),
     [employees],
@@ -398,18 +374,9 @@ export const BossDashboardView = ({
               <div className={adminStyles.consoleTimelineBody}>
                 <p className={adminStyles.consoleTimelineTitle}>{entry.agentLabel}</p>
                 <p className={adminStyles.consoleTimelineText}>
-                  {entry.segments.map((segment, index) =>
-                    segment.tone ? (
-                      <strong key={`${entry.id}-${index}`} data-tone={segment.tone}>
-                        {segment.text}
-                      </strong>
-                    ) : (
-                      <span key={`${entry.id}-${index}`}>{segment.text}</span>
-                    ),
-                  )}
-                  <span className={styles.timelineTagWrap}>
-                    <span className={getTimelineTagClassName(entry.tag.tone)}>{entry.tag.label}</span>
-                  </span>
+                  {entry.segments.map((segment, index) => (
+                    <span key={`${entry.id}-${index}`}>{segment.text}</span>
+                  ))}
                 </p>
               </div>
             </div>

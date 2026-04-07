@@ -2,11 +2,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   AppstoreOutlined,
   LogoutOutlined,
-  MenuFoldOutlined,
-  MenuUnfoldOutlined,
 } from "@ant-design/icons";
 import type { MenuProps } from "antd";
-import { Avatar, Dropdown, Empty, message } from "antd";
+import { Empty, message } from "antd";
 import { useNavigate } from "react-router-dom";
 import type { WorkspaceComposerAttachmentItem } from "@/feature/workspace/types";
 import { getAdminManagementPath } from "@/feature/auth/mockAccounts";
@@ -105,7 +103,7 @@ const buildWorkspaceDefaultAgent = (
     avatarUrl: getAvatarUrl(agentId),
     role: workspace.summary,
     portalRoles: ["admin", "employee"],
-    status: ACTIVE_WORKSPACE_STATUSES.has(workspace.status) ? "idle" : "pending",
+    status: ACTIVE_WORKSPACE_STATUSES.has(workspace.status) ? "online" : "offline",
     workspaceId: workspace.id,
     connectionMode: workspace.type === "cloud" ? "cloud" : "local",
     model: workspace.type === "cloud" ? "gpt-4o" : "local-runtime",
@@ -835,6 +833,7 @@ const FrontisPage = ({ viewRole }: FrontisPageProps): JSX.Element => {
           activeDialogueResults={activeDialogueResults}
           activeDialogueSession={activeDialogueSession}
           allEmployees={conversationEmployees}
+          accountMenuItems={accountMenuItems}
           dialoguePlaceholder={dialoguePlaceholder}
           dialogueAttachments={dialogueAttachments}
           dialogueInputValue={dialogueInputValue}
@@ -861,6 +860,7 @@ const FrontisPage = ({ viewRole }: FrontisPageProps): JSX.Element => {
           onRemoveAttachment={handleRemoveDialogueAttachment}
           onSkillSelect={handleSelectSkill}
           onSendDialogue={handleSendDialogue}
+          onToggleSidebar={() => setIsDialogueSidebarCollapsed(current => !current)}
           selectedSkillId={selectedSkillId}
           onStopDialogue={handleStopDialogue}
           viewerName={currentUser?.name ?? "你"}
@@ -879,32 +879,6 @@ const FrontisPage = ({ viewRole }: FrontisPageProps): JSX.Element => {
     <div className={styles.page}>
       <main className={styles.main}>
         <div className={styles.mainPanel}>
-          <header className={styles.header}>
-            <div className={styles.headerLeft}>
-              <div className={styles.employeeHeaderBrand}>
-                <span className={styles.employeeHeaderLogoPlaceholder}>F</span>
-                <span className={styles.employeeHeaderBrandName}>Frontis AI</span>
-                <button
-                  type="button"
-                  className={styles.employeeHeaderSidebarToggle}
-                  aria-label={isDialogueSidebarCollapsed ? "展开左侧面板" : "收起左侧面板"}
-                  onClick={() => setIsDialogueSidebarCollapsed(current => !current)}
-                >
-                  {isDialogueSidebarCollapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
-                </button>
-              </div>
-            </div>
-            <div className={styles.headerRight}>
-              <Dropdown menu={{ items: accountMenuItems }} placement="bottomRight" trigger={["click"]}>
-                <button type="button" className={styles.headerAccountTrigger}>
-                  <Avatar className={styles.accountAvatar} size={40}>
-                    {currentUser ? currentUser.name.slice(0, 1) : "U"}
-                  </Avatar>
-                  <span className={styles.headerAccountName}>{currentUser?.name ?? "未登录"}</span>
-                </button>
-              </Dropdown>
-            </div>
-          </header>
           <div className={styles.content}>{renderContent()}</div>
         </div>
       </main>
