@@ -41,14 +41,14 @@ import type {
   AiCeoHomeSkillItem,
   AiCeoSkillIconKey,
 } from "@/constants/aiCeoHome";
+import { ArtifactPreviewPanel } from "@/feature/workspace/components/ArtifactPreviewPanel";
 import { WorkspaceChatPanel } from "@/feature/workspace/components/WorkspaceChatPanel";
 import { WorkspaceComposer } from "@/feature/workspace/components/WorkspaceComposer";
 import {
   WORKSPACE_MODEL_OPTIONS,
   type WorkspaceComposerAttachmentItem,
 } from "@/feature/workspace/types";
-import { SynClawArtifactsPanel } from "@/pages/synclaw/components/SynClawArtifactsPanel";
-import type { SynClawArtifactItem } from "@/pages/synclaw/types";
+import type { ArtifactItem } from "@/types/artifact";
 import { CHAT_ATTACHMENT_ACCEPT_ATTR } from "@/utils/chatAttachmentFileTypes";
 
 import type {
@@ -71,7 +71,7 @@ import styles from "../FrontisPage.module.less";
 
 interface DialoguePrototypeViewProps {
   activeEmployee: EmployeeItem;
-  activeDialogueArtifacts: SynClawArtifactItem[];
+  activeDialogueArtifacts: ArtifactItem[];
   activeDialogueResults: DialogueGeneratedResultItem[];
   activeDialogueSession: DialogueSessionItem | null;
   allEmployees: EmployeeItem[];
@@ -1265,7 +1265,7 @@ export const DialoguePrototypeView = ({
           className={styles.dialogueArtifactsCard}
           style={!isStackedLayout ? { borderLeft: 0 } : undefined}
         >
-          <SynClawArtifactsPanel
+          <ArtifactPreviewPanel
             files={activeDialogueArtifacts}
             loading={false}
             error=""

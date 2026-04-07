@@ -90,16 +90,10 @@ const FRONTIS_ADMIN_TABS: FrontisWebTabItem[] = [
   },
 ];
 
-interface FrontisAdminPageProps {
-  workspacePath?: string;
-}
-
 /**
  * 老板后台管理页面。
  */
-const FrontisAdminPage = ({
-  workspacePath = "/web/admin/workspace",
-}: FrontisAdminPageProps): JSX.Element => {
+const FrontisAdminPage = (): JSX.Element => {
   const navigate = useNavigate();
   const { logout, session } = useMockAuth();
   const [activeTabKey, setActiveTabKey] = useState<FrontisWebTabKey>("dashboard");
@@ -442,12 +436,12 @@ const FrontisAdminPage = ({
   );
 
   const handleBackToWorkspace = useCallback((): void => {
-    navigate(workspacePath);
-  }, [navigate, workspacePath]);
+    navigate("/web/admin/workspace");
+  }, [navigate]);
 
   const handleBackToEmployeeWorkspace = useCallback((): void => {
-    navigate(workspacePath.includes("/v2/") ? "/web/employee/v2" : "/web/employee");
-  }, [navigate, workspacePath]);
+    navigate("/web/employee");
+  }, [navigate]);
 
   const hasManagementAccess = currentUser ? MANAGEMENT_USER_ROLES.has(currentUser.role) : true;
 

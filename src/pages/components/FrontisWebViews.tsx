@@ -5,8 +5,8 @@ import { DesktopOutlined, DownloadOutlined } from "@ant-design/icons";
 import { Button, Empty, Select, Tag } from "antd";
 
 import { MarkdownRenderer } from "@/components/MarkdownRenderer";
-import type { SynClawArtifactItem } from "@/pages/synclaw/types";
 import type { ExpertDeploymentState } from "@/pages/components/agentStore/types";
+import type { ArtifactItem } from "@/types/artifact";
 
 import type {
   DialogueSessionItem,
@@ -21,7 +21,7 @@ import styles from "./FrontisWebViews.module.less";
 
 type ResultPreviewKind = "markdown" | "text" | "html" | "image" | "unsupported";
 
-interface ResultRecord extends SynClawArtifactItem {
+interface ResultRecord extends ArtifactItem {
   employeeId: string;
   employeeName: string;
   sessionId: string;
@@ -30,16 +30,9 @@ interface ResultRecord extends SynClawArtifactItem {
 }
 
 interface ResultManagementViewProps {
-  artifactsBySession: Record<string, SynClawArtifactItem[]>;
+  artifactsBySession: Record<string, ArtifactItem[]>;
   dialogueSessions: DialogueSessionItem[];
   employees: EmployeeItem[];
-}
-
-export interface AdminDashboardViewProps {
-  artifactsBySession: Record<string, SynClawArtifactItem[]>;
-  dialogueSessions: DialogueSessionItem[];
-  employees: EmployeeItem[];
-  users: FrontisWebUserItem[];
 }
 
 export interface DeviceManagementViewProps {
@@ -52,19 +45,6 @@ export interface DeviceManagementViewProps {
   users: FrontisWebUserItem[];
   workspaces: WorkspaceItem[];
 }
-
-export interface UserManagementViewProps {
-  employees: EmployeeItem[];
-  users: FrontisWebUserItem[];
-}
-
-export type ScheduledTaskStatus = "active" | "paused";
-export type ScheduledTaskRunStatus = "running" | "success" | "failed";
-export type ScheduledTaskFrequency = "单次" | "每日" | "每周";
-export type DashboardTimeRange = "today" | "week" | "month" | "quarter";
-export type DashboardGranularity = "day" | "week" | "month";
-export type DashboardRankingDimension = "agent" | "user";
-export type DashboardPrdKey = "all" | "frontis-web-v01" | "synclaw-window" | "artifact-panel";
 type ModelProviderCapability =
   | "LLM"
   | "TEXT EMBEDDING"
@@ -79,89 +59,6 @@ interface DevicePresentation {
   code: string;
   location: string;
   workspace: WorkspaceItem;
-}
-
-interface ScheduledTaskRunRecord {
-  id: string;
-  startedAt: string;
-  status: ScheduledTaskRunStatus;
-  summary: string;
-}
-
-export interface ScheduledTaskItem {
-  employeeId: string;
-  frequency: ScheduledTaskFrequency;
-  id: string;
-  instruction: string;
-  lastRunSummary: string;
-  name: string;
-  nextRunAt: string;
-  runs: ScheduledTaskRunRecord[];
-  status: ScheduledTaskStatus;
-}
-
-export interface ScheduledTaskViewProps {
-  employees: EmployeeItem[];
-}
-
-interface DashboardPrdOption {
-  activityMultiplier: number;
-  automationRatio: number;
-  employeeWeights: Record<string, number>;
-  key: DashboardPrdKey;
-  label: string;
-  resultKeywords: string[];
-  tokenMultiplier: number;
-  userWeights: Record<string, number>;
-}
-
-interface DashboardTimelinePoint {
-  automationTasks: number;
-  cost: number;
-  dialogues: number;
-  label: string;
-  results: number;
-  tokens: number;
-}
-
-interface DashboardMetricCardItem {
-  delta: number;
-  hint: string;
-  label: string;
-  value: string;
-}
-
-interface DashboardRankingRow {
-  id: string;
-  label: string;
-  meta: string;
-  value: number;
-  valueLabel: string;
-}
-
-interface DashboardTaskRow {
-  failed: number;
-  id: string;
-  name: string;
-  success: number;
-  total: number;
-}
-
-interface DashboardFunnelStep {
-  hint: string;
-  label: string;
-  value: number;
-}
-
-interface DashboardHeatmapCell {
-  count: number;
-  hourLabel: string;
-  intensity: number;
-}
-
-interface DashboardHeatmapRow {
-  cells: DashboardHeatmapCell[];
-  dayLabel: string;
 }
 
 interface ModelProviderOption {
@@ -274,152 +171,6 @@ export const INITIAL_PROVIDER_CONFIGS: Record<string, ModelProviderConfigState> 
   },
 };
 
-export const DASHBOARD_TIME_RANGE_OPTIONS: Array<{ label: string; value: DashboardTimeRange }> = [
-  { label: "今日", value: "today" },
-  { label: "本周", value: "week" },
-  { label: "本月", value: "month" },
-  { label: "近 3 个月", value: "quarter" },
-];
-
-export const DASHBOARD_GRANULARITY_OPTIONS: Array<{ label: string; value: DashboardGranularity }> =
-  [
-    { label: "按天", value: "day" },
-    { label: "按周", value: "week" },
-    { label: "按月", value: "month" },
-  ];
-
-export const DASHBOARD_PRD_OPTIONS: DashboardPrdOption[] = [
-  {
-    activityMultiplier: 1,
-    automationRatio: 0.26,
-    employeeWeights: {},
-    key: "all",
-    label: "全部 PRD",
-    resultKeywords: [],
-    tokenMultiplier: 1,
-    userWeights: {},
-  },
-  {
-    activityMultiplier: 1.14,
-    automationRatio: 0.34,
-    employeeWeights: {
-      "employee-ops": 1.28,
-      "employee-pm": 1.42,
-      "employee-research": 1.08,
-    },
-    key: "frontis-web-v01",
-    label: "FrontisAI Web PRD v0.1",
-    resultKeywords: ["prd", "需求", "验收", "checklist"],
-    tokenMultiplier: 1.22,
-    userWeights: {
-      "user-admin-001": 1.24,
-      "user-admin-002": 1.12,
-      "user-member-001": 1.06,
-    },
-  },
-  {
-    activityMultiplier: 1.1,
-    automationRatio: 0.22,
-    employeeWeights: {
-      "employee-designer": 1.24,
-      "employee-pm": 1.36,
-      "employee-research": 1.18,
-    },
-    key: "synclaw-window",
-    label: "SynClaw 独立窗口 PRD",
-    resultKeywords: ["独立窗口", "dialogue", "structure", "切换", "layout"],
-    tokenMultiplier: 1.08,
-    userWeights: {
-      "user-admin-001": 1.18,
-      "user-member-001": 1.08,
-      "user-member-002": 1.14,
-    },
-  },
-  {
-    activityMultiplier: 0.92,
-    automationRatio: 0.18,
-    employeeWeights: {
-      "employee-ops": 1.22,
-      "employee-pm": 1.08,
-      "employee-writer": 1.18,
-    },
-    key: "artifact-panel",
-    label: "成果面板接入 PRD",
-    resultKeywords: ["成果", "artifact", "channel", "flow", "panel", "检查"],
-    tokenMultiplier: 0.94,
-    userWeights: {
-      "user-admin-001": 1.08,
-      "user-admin-002": 1.14,
-      "user-member-002": 1.02,
-    },
-  },
-];
-
-export const DASHBOARD_LINE_CHART_WIDTH = 640;
-export const DASHBOARD_LINE_CHART_HEIGHT = 260;
-export const DASHBOARD_LINE_CHART_PADDING = {
-  bottom: 34,
-  left: 16,
-  right: 16,
-  top: 18,
-} as const;
-
-export const DEFAULT_SCHEDULED_TASKS: ScheduledTaskItem[] = [
-  {
-    employeeId: "employee-pm",
-    frequency: "每日",
-    id: "task-frontis-daily-1",
-    instruction: "每天早上 9 点汇总昨天的产品需求变更，并整理成一段摘要。",
-    lastRunSummary: "已输出昨日需求摘要，等待确认优先级。",
-    name: "每日需求摘要",
-    nextRunAt: "明天 09:00",
-    runs: [
-      {
-        id: "task-frontis-daily-1-run-1",
-        startedAt: "今天 09:00",
-        status: "success",
-        summary: "成功生成 1 份需求摘要并同步到当前对话成果面板。",
-      },
-      {
-        id: "task-frontis-daily-1-run-2",
-        startedAt: "昨天 09:00",
-        status: "success",
-        summary: "成功生成昨日需求汇总。",
-      },
-    ],
-    status: "active",
-  },
-  {
-    employeeId: "employee-research",
-    frequency: "每周",
-    id: "task-frontis-weekly-1",
-    instruction: "每周一上午 10 点整理竞品动态，输出本周值得关注的更新。",
-    lastRunSummary: "上周竞品动态已归档，待管理员查看。",
-    name: "每周竞品追踪",
-    nextRunAt: "下周一 10:00",
-    runs: [
-      {
-        id: "task-frontis-weekly-1-run-1",
-        startedAt: "本周一 10:00",
-        status: "success",
-        summary: "成功整理 3 条竞品更新并形成周报。",
-      },
-    ],
-    status: "active",
-  },
-  {
-    employeeId: "employee-writer",
-    frequency: "单次",
-    id: "task-frontis-once-1",
-    instruction: "今晚 7 点整理会议纪要并同步到当前对话成果面板。",
-    lastRunSummary: "等待下一次执行。",
-    name: "整理会议纪要",
-    nextRunAt: "今天 19:00",
-    runs: [],
-    status: "paused",
-  },
-];
-
 const DEVICE_META_BY_WORKSPACE_ID: Record<string, Omit<DevicePresentation, "workspace">> = {
   "workspace-cloud": {
     activatedAt: "2026-03-04 11:20",
@@ -454,7 +205,7 @@ const decodeDataUrlContent = (url?: string): string => {
   return decodeURIComponent(url.slice(commaIndex + 1));
 };
 
-const resolveResultPreviewKind = (artifact: SynClawArtifactItem): ResultPreviewKind => {
+const resolveResultPreviewKind = (artifact: ArtifactItem): ResultPreviewKind => {
   const mimeType = artifact.mimeType?.toLowerCase() ?? "";
   const fileType = artifact.fileType.toLowerCase();
   if (mimeType.includes("markdown") || fileType === "md" || fileType === "markdown") {
@@ -486,15 +237,6 @@ export const getRoleLabel = (role: FrontisUserRole): string =>
 
 export const getUserStatusLabel = (status: FrontisUserStatus): string =>
   status === "active" ? "已启用" : "已禁用";
-
-export const getTaskStatusLabel = (status: ScheduledTaskStatus): string =>
-  status === "active" ? "已启用" : "已暂停";
-
-export const getTaskRunStatusLabel = (status: ScheduledTaskRunStatus): string => {
-  if (status === "running") return "执行中";
-  if (status === "failed") return "执行失败";
-  return "执行成功";
-};
 
 export const sleep = (ms: number): Promise<void> =>
   new Promise(resolve => {
@@ -573,7 +315,7 @@ export const getDeviceManagementHint = (workspace: WorkspaceItem): string => {
 };
 
 export const buildResultRecords = (
-  artifactsBySession: Record<string, SynClawArtifactItem[]>,
+  artifactsBySession: Record<string, ArtifactItem[]>,
   dialogueSessions: DialogueSessionItem[],
   employees: EmployeeItem[],
 ): ResultRecord[] => {
@@ -616,407 +358,6 @@ export const buildDevicePresentations = (
       },
     };
   });
-
-const buildAgentTokenRanking = (
-  employees: EmployeeItem[],
-  dialogueSessions: DialogueSessionItem[],
-  resultRecords: ResultRecord[],
-) =>
-  employees
-    .map((employee, index) => {
-      const sessionCount = dialogueSessions.filter(item => item.employeeId === employee.id).length;
-      const resultCount = resultRecords.filter(item => item.employeeId === employee.id).length;
-      const tokens = sessionCount * 18000 + resultCount * 9500 + (index + 1) * 3200;
-      return {
-        cost: (tokens / 1000) * 0.018,
-        employeeId: employee.id,
-        name: employee.name,
-        resultCount,
-        tokens,
-      };
-    })
-    .sort((left, right) => right.tokens - left.tokens);
-
-const buildUserRanking = (users: FrontisWebUserItem[]) =>
-  [...users].sort((left, right) => right.tokenUsage - left.tokenUsage);
-
-export const resolveDashboardPrdOption = (key: DashboardPrdKey): DashboardPrdOption =>
-  DASHBOARD_PRD_OPTIONS.find(item => item.key === key) ?? DASHBOARD_PRD_OPTIONS[0];
-
-const getDashboardWeight = (weights: Record<string, number>, id: string): number => {
-  if (!Object.keys(weights).length) {
-    return 1;
-  }
-  return weights[id] ?? 0.78;
-};
-
-const resolveDashboardLabels = (
-  timeRange: DashboardTimeRange,
-  granularity: DashboardGranularity,
-): string[] => {
-  if (timeRange === "today") {
-    return ["09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00"];
-  }
-
-  if (timeRange === "week" && granularity === "day") {
-    return ["周一", "周二", "周三", "周四", "周五", "周六", "周日"];
-  }
-
-  if (timeRange === "week" && granularity === "week") {
-    return ["W1", "W2", "W3", "W4", "W5"];
-  }
-
-  if (timeRange === "month" && granularity === "day") {
-    return ["03/01", "03/05", "03/09", "03/13", "03/17", "03/21", "03/25", "03/29"];
-  }
-
-  if (timeRange === "month" && granularity === "week") {
-    return ["第 1 周", "第 2 周", "第 3 周", "第 4 周", "第 5 周"];
-  }
-
-  if (timeRange === "quarter" && granularity === "day") {
-    return ["01/18", "02/01", "02/14", "02/28", "03/10", "03/18", "03/27"];
-  }
-
-  if (timeRange === "quarter" && granularity === "week") {
-    return ["W1", "W3", "W5", "W7", "W9", "W11", "W13"];
-  }
-
-  if (timeRange === "quarter" && granularity === "month") {
-    return ["1 月", "2 月", "3 月"];
-  }
-
-  return ["1 月", "2 月", "3 月", "4 月"];
-};
-
-const buildDistributedSeries = (
-  total: number,
-  pointCount: number,
-  phase: number,
-  emphasisIndex: number,
-): number[] => {
-  if (pointCount <= 0) {
-    return [];
-  }
-
-  const safeTotal = Math.max(0, total);
-  const weights = Array.from({ length: pointCount }, (_, index) => {
-    const position = pointCount === 1 ? 0 : index / (pointCount - 1);
-    const wave = Math.sin(position * Math.PI * 1.4 + phase) * 0.24;
-    const trend = 0.92 + position * 0.28;
-    const spike = index === emphasisIndex ? 0.3 : 0;
-    return Math.max(0.35, trend + wave + spike);
-  });
-  const weightSum = weights.reduce((sum, item) => sum + item, 0);
-  let allocated = 0;
-
-  return weights.map((weight, index) => {
-    if (index === pointCount - 1) {
-      return Math.max(0, safeTotal - allocated);
-    }
-
-    const value = Math.max(0, Math.round((safeTotal * weight) / weightSum));
-    allocated += value;
-    return value;
-  });
-};
-
-export const buildDashboardTimeline = (
-  timeRange: DashboardTimeRange,
-  granularity: DashboardGranularity,
-  prdOption: DashboardPrdOption,
-  users: FrontisWebUserItem[],
-): DashboardTimelinePoint[] => {
-  const labels = resolveDashboardLabels(timeRange, granularity);
-  const emphasisIndex = Math.max(1, Math.floor(labels.length * 0.68));
-  const totalUserTokens = users.reduce((sum, item) => sum + item.tokenUsage, 0);
-  const totalDialogues = users.reduce((sum, item) => sum + item.dialogueCount, 0);
-  const totalResults = users.reduce((sum, item) => sum + item.resultCount, 0);
-  const timeFactorMap: Record<DashboardTimeRange, number> = {
-    month: 1,
-    quarter: 2.25,
-    today: 0.22,
-    week: 0.56,
-  };
-
-  const tokenTotal = Math.max(
-    12000,
-    Math.round(totalUserTokens * timeFactorMap[timeRange] * prdOption.tokenMultiplier),
-  );
-  const dialogueTotal = Math.max(
-    8,
-    Math.round(totalDialogues * timeFactorMap[timeRange] * prdOption.activityMultiplier),
-  );
-  const automationTotal = Math.max(1, Math.round(dialogueTotal * prdOption.automationRatio));
-  const resultTotal = Math.max(
-    1,
-    Math.round(totalResults * timeFactorMap[timeRange] * prdOption.activityMultiplier * 0.52),
-  );
-
-  const tokenSeries = buildDistributedSeries(
-    tokenTotal,
-    labels.length,
-    granularity === "month" ? 0.8 : 0.22,
-    emphasisIndex,
-  );
-  const dialogueSeries = buildDistributedSeries(
-    dialogueTotal,
-    labels.length,
-    0.54,
-    emphasisIndex - 1,
-  );
-  const automationSeries = buildDistributedSeries(automationTotal, labels.length, 1.02, 1);
-  const resultSeries = buildDistributedSeries(resultTotal, labels.length, 0.7, emphasisIndex);
-
-  return labels.map((label, index) => {
-    const tokens = tokenSeries[index] ?? 0;
-    return {
-      automationTasks: automationSeries[index] ?? 0,
-      cost: Number(((tokens / 1000) * 0.018).toFixed(2)),
-      dialogues: dialogueSeries[index] ?? 0,
-      label,
-      results: resultSeries[index] ?? 0,
-      tokens,
-    };
-  });
-};
-
-export const buildDashboardMetricCards = (
-  activeUsers: number,
-  timeRange: DashboardTimeRange,
-  timeline: DashboardTimelinePoint[],
-  totalUsers: number,
-  prdKey: DashboardPrdKey,
-): DashboardMetricCardItem[] => {
-  const totalTokens = timeline.reduce((sum, item) => sum + item.tokens, 0);
-  const totalCost = timeline.reduce((sum, item) => sum + item.cost, 0);
-  const totalDialogues = timeline.reduce((sum, item) => sum + item.dialogues, 0);
-  const totalTasks = timeline.reduce((sum, item) => sum + item.dialogues + item.automationTasks, 0);
-  const adoptionRate = totalUsers > 0 ? Math.round((activeUsers / totalUsers) * 100) : 0;
-  const baseDeltaMap: Record<DashboardTimeRange, number> = {
-    month: 6,
-    quarter: 13,
-    today: 11,
-    week: 8,
-  };
-  const prdDeltaBias: Record<DashboardPrdKey, number> = {
-    all: 0,
-    "artifact-panel": -1,
-    "frontis-web-v01": 3,
-    "synclaw-window": 2,
-  };
-  const baseDelta = baseDeltaMap[timeRange] + prdDeltaBias[prdKey];
-
-  return [
-    {
-      delta: baseDelta + 2,
-      hint: "主看 Token 走势与峰值时段",
-      label: "Token 总消耗",
-      value: totalTokens.toLocaleString(),
-    },
-    {
-      delta: baseDelta + 1,
-      hint: `预估费用 ￥${totalCost.toFixed(1)}`,
-      label: "预估总费用",
-      value: `￥${totalCost.toFixed(1)}`,
-    },
-    {
-      delta: baseDelta - 1,
-      hint: "员工对话和指令轮次汇总",
-      label: "总对话次数",
-      value: totalDialogues.toLocaleString(),
-    },
-    {
-      delta: baseDelta + 4,
-      hint: "对话任务与自动化任务合并统计",
-      label: "任务完成数",
-      value: totalTasks.toLocaleString(),
-    },
-    {
-      delta: Math.max(-3, baseDelta - 4),
-      hint: `${activeUsers}/${totalUsers} 名员工在当前口径下活跃`,
-      label: "活跃员工数",
-      value: activeUsers.toString(),
-    },
-    {
-      delta: Math.max(-2, baseDelta - 3),
-      hint: "有过对话行为的员工占比",
-      label: "AI 采纳率",
-      value: `${adoptionRate}%`,
-    },
-  ];
-};
-
-export const buildDashboardRankingRows = (
-  dimension: DashboardRankingDimension,
-  dialogueSessions: DialogueSessionItem[],
-  employees: EmployeeItem[],
-  prdOption: DashboardPrdOption,
-  resultRecords: ResultRecord[],
-  timeRange: DashboardTimeRange,
-  users: FrontisWebUserItem[],
-): DashboardRankingRow[] => {
-  const timeFactorMap: Record<DashboardTimeRange, number> = {
-    month: 1,
-    quarter: 2.1,
-    today: 0.24,
-    week: 0.58,
-  };
-  const scaleFactor = timeFactorMap[timeRange] * prdOption.tokenMultiplier;
-
-  if (dimension === "user") {
-    return buildUserRanking(users)
-      .map(item => {
-        const weightedTokens = Math.max(
-          0,
-          Math.round(
-            item.tokenUsage * scaleFactor * getDashboardWeight(prdOption.userWeights, item.id),
-          ),
-        );
-        const weightedDialogues = Math.max(
-          0,
-          Math.round(item.dialogueCount * timeFactorMap[timeRange]),
-        );
-
-        return {
-          id: item.id,
-          label: item.name,
-          meta: `${getRoleLabel(item.role)} · ${weightedTokens.toLocaleString()} Tokens`,
-          value: weightedTokens,
-          valueLabel: `${weightedDialogues} 次`,
-        };
-      })
-      .sort((left, right) => right.value - left.value)
-      .slice(0, 5);
-  }
-
-  return buildAgentTokenRanking(employees, dialogueSessions, resultRecords)
-    .map(item => {
-      const weightedTokens = Math.max(
-        0,
-        Math.round(
-          item.tokens *
-            scaleFactor *
-            getDashboardWeight(prdOption.employeeWeights, item.employeeId),
-        ),
-      );
-      return {
-        id: item.employeeId,
-        label: item.name,
-        meta: `${weightedTokens.toLocaleString()} Tokens · 产出 ${item.resultCount} 份成果`,
-        value: weightedTokens,
-        valueLabel: `￥${((weightedTokens / 1000) * 0.018).toFixed(1)}`,
-      };
-    })
-    .sort((left, right) => right.value - left.value)
-    .slice(0, 5);
-};
-
-export const buildDashboardTaskRows = (
-  employees: EmployeeItem[],
-  prdOption: DashboardPrdOption,
-  resultRecords: ResultRecord[],
-  timeRange: DashboardTimeRange,
-): DashboardTaskRow[] => {
-  const timeFactorMap: Record<DashboardTimeRange, number> = {
-    month: 1,
-    quarter: 2.2,
-    today: 0.24,
-    week: 0.58,
-  };
-
-  return employees
-    .map((employee, index) => {
-      const resultCount = resultRecords.filter(item => item.employeeId === employee.id).length;
-      const weight = getDashboardWeight(prdOption.employeeWeights, employee.id);
-      const success = Math.max(
-        1,
-        Math.round((resultCount * 4 + 3 + index) * timeFactorMap[timeRange] * weight),
-      );
-      const failed = Math.max(
-        0,
-        Math.round(
-          ((employee.status === "exception" || employee.status === "offline") ? 2.4 : 0.8) +
-            index * 0.4,
-        ),
-      );
-      return {
-        failed,
-        id: employee.id,
-        name: employee.name,
-        success,
-        total: success + failed,
-      };
-    })
-    .sort((left, right) => right.total - left.total)
-    .slice(0, 4);
-};
-
-export const buildDashboardFunnelSteps = (
-  activeUsers: number,
-  timeRange: DashboardTimeRange,
-  totalUsers: number,
-): DashboardFunnelStep[] => {
-  const loggedInUsers = Math.max(activeUsers, Math.min(totalUsers, totalUsers - 1));
-  const weekActiveDeduction = timeRange === "today" ? 1 : timeRange === "quarter" ? 0 : 1;
-  const weeklyActiveUsers = Math.max(0, Math.min(activeUsers, activeUsers - weekActiveDeduction));
-
-  return [
-    {
-      hint: "租户已开通账号",
-      label: "总员工数",
-      value: totalUsers,
-    },
-    {
-      hint: "至少完成过一次登录",
-      label: "已登录员工",
-      value: loggedInUsers,
-    },
-    {
-      hint: "有过真实对话行为",
-      label: "有对话行为",
-      value: activeUsers,
-    },
-    {
-      hint: "最近一周仍在回访使用",
-      label: "本周活跃",
-      value: weeklyActiveUsers,
-    },
-  ];
-};
-
-export const buildDashboardHeatmap = (
-  activeUsers: number,
-  prdOption: DashboardPrdOption,
-  timeline: DashboardTimelinePoint[],
-): DashboardHeatmapRow[] => {
-  const dayLabels = ["周一", "周二", "周三", "周四", "周五", "周六", "周日"];
-  const totalDialogues = timeline.reduce((sum, item) => sum + item.dialogues, 0);
-  const primaryPeak =
-    prdOption.key === "artifact-panel" ? 14 : prdOption.key === "synclaw-window" ? 11 : 16;
-  const secondaryPeak = prdOption.key === "frontis-web-v01" ? 19 : 10;
-
-  return dayLabels.map((dayLabel, dayIndex) => ({
-    cells: Array.from({ length: 24 }, (_, hour) => {
-      const workdayFactor = dayIndex < 5 ? 1 : 0.58;
-      const hourOffsetPrimary = Math.abs(hour - primaryPeak);
-      const hourOffsetSecondary = Math.abs(hour - secondaryPeak);
-      const baseIntensity =
-        Math.max(0, 1 - hourOffsetPrimary / 8) * 0.68 +
-        Math.max(0, 1 - hourOffsetSecondary / 10) * 0.28;
-      const normalizedIntensity = Math.min(
-        1,
-        Math.max(0.08, baseIntensity * workdayFactor * prdOption.activityMultiplier),
-      );
-      return {
-        count: Math.round((totalDialogues / 34) * normalizedIntensity + activeUsers * 0.3),
-        hourLabel: `${hour.toString().padStart(2, "0")}:00`,
-        intensity: normalizedIntensity,
-      };
-    }),
-    dayLabel,
-  }));
-};
 
 const renderResultPreview = (artifact: ResultRecord): JSX.Element => {
   if (artifact.previewKind === "markdown") {

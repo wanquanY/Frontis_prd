@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
-import type { SynClawArtifactItem } from "@/pages/synclaw/types";
 
-export type SynClawArtifactPreviewType =
+import type { ArtifactItem } from "@/types/artifact";
+
+export type ArtifactPreviewType =
   | "image"
   | "video"
   | "audio"
@@ -13,8 +14,8 @@ export type SynClawArtifactPreviewType =
   | "office"
   | "unknown";
 
-export interface UseSynClawArtifactPreviewResult {
-  previewType: SynClawArtifactPreviewType;
+export interface UseArtifactPreviewResult {
+  previewType: ArtifactPreviewType;
   previewUrl?: string;
   previewBody: string;
   loading: boolean;
@@ -51,7 +52,7 @@ const OFFICE_EXTENSIONS = new Set(["doc", "docx", "xls", "xlsx", "ppt", "pptx"])
 
 const normalizeText = (value?: string): string => (typeof value === "string" ? value.trim() : "");
 
-const resolveExtension = (file?: SynClawArtifactItem): string => {
+const resolveExtension = (file?: ArtifactItem): string => {
   const fileName = normalizeText(file?.fileName || file?.canonicalPath);
   if (!fileName.includes(".")) return normalizeText(file?.fileType).toLowerCase();
   return (
@@ -59,7 +60,7 @@ const resolveExtension = (file?: SynClawArtifactItem): string => {
   );
 };
 
-const resolvePreviewType = (file?: SynClawArtifactItem): SynClawArtifactPreviewType => {
+const resolvePreviewType = (file?: ArtifactItem): ArtifactPreviewType => {
   const mimeType = normalizeText(file?.mimeType).toLowerCase();
   const extension = resolveExtension(file);
 
@@ -81,7 +82,7 @@ const resolvePreviewType = (file?: SynClawArtifactItem): SynClawArtifactPreviewT
   return "unknown";
 };
 
-const requiresTextBody = (previewType: SynClawArtifactPreviewType): boolean =>
+const requiresTextBody = (previewType: ArtifactPreviewType): boolean =>
   previewType === "markdown" ||
   previewType === "html" ||
   previewType === "code" ||
@@ -96,14 +97,14 @@ const fetchArtifactBody = async (url: string): Promise<string> => {
 };
 
 /**
- * useSynClawArtifactPreview
+ * useArtifactPreview
  *
- * 根据当前选中的频道成果文件推断预览类型，并在需要时申请签名 URL 与拉取文本内容。
+ * 根据当前选中的成果文件推断预览类型，并在需要时申请签名 URL 与拉取文本内容。
  */
-export const useSynClawArtifactPreview = (
-  file: SynClawArtifactItem | undefined,
-  resolveFileUrl?: (file: SynClawArtifactItem) => Promise<string>,
-): UseSynClawArtifactPreviewResult => {
+export const useArtifactPreview = (
+  file: ArtifactItem | undefined,
+  resolveFileUrl?: (file: ArtifactItem) => Promise<string>,
+): UseArtifactPreviewResult => {
   const previewType = useMemo(() => resolvePreviewType(file), [file]);
   const [previewUrl, setPreviewUrl] = useState<string>();
   const [previewBody, setPreviewBody] = useState("");
