@@ -8,6 +8,12 @@ import {
   LIVE_BROADCAST_SKILL_DEMOS,
 } from "@/constants/liveBroadcastDemo";
 import {
+  PRODUCT_MANAGER_BACKLOG_DOCUMENT_CONTENT,
+  PRODUCT_MANAGER_BACKLOG_DOCUMENT_NAME,
+  PRODUCT_MANAGER_PRD_DOCUMENT_CONTENT,
+  PRODUCT_MANAGER_PRD_DOCUMENT_NAME,
+} from "@/constants/productManagerDocuments";
+import {
   XIAOCANMAMA_IP_AGENT_DEMO,
   XIAOCANMAMA_IP_SKILL_DEMOS,
 } from "@/constants/xiaocanMamaIpDemo";
@@ -187,7 +193,8 @@ export const INITIAL_EMPLOYEES: EmployeeItem[] = [
     runtimeAgentId: "rt-redline-detect-01",
     boundMembers: ["杨万泉", "陈雪梅"],
     welcomeMessage: "我会逐条判断三条底线，再把触发证据、严重程度和处理建议一起给你。",
-    systemPrompt: "你是一名红线检测专家，负责判断员工是否触碰品质安全、诚信担当和匠心传承三条底线。",
+    systemPrompt:
+      "你是一名红线检测专家，负责判断员工是否触碰品质安全、诚信担当和匠心传承三条底线。",
     skills: ["redline_detect"],
     expertSetupMode: "permission",
   },
@@ -340,6 +347,31 @@ export const INITIAL_EMPLOYEES: EmployeeItem[] = [
     skills: ["score_rank"],
     expertSetupMode: "permission",
   },
+  {
+    id: "employee-product-manager",
+    name: "产品经理AI专家",
+    avatarUrl: getAvatarUrl("employee-product-manager"),
+    role: "负责需求收敛、PRD 撰写、Backlog 拆解和里程碑整理",
+    portalRoles: ["admin", "employee"],
+    status: "online",
+    workspaceId: "workspace-cloud",
+    connectionMode: "cloud",
+    model: "gpt-4o",
+    summary: "面向产品规划场景，输出 PRD、Backlog、边界说明和排期建议。",
+    lastAction: "已生成 Frontis AI 的正式 PRD 与 Product Backlog 文档。",
+    source: "coworker",
+    visibility: "all",
+    subAgentModel: "gpt-4o-mini",
+    agentId: "product-manager-agent-01",
+    runtimeAgentId: "rt-product-manager-01",
+    boundMembers: ["杨万泉", "陈雪梅", "王晨", "李婷", "周可"],
+    welcomeMessage:
+      "你把需求背景和目标告诉我，我会先出一版 PRD，再继续拆成可执行的 Product Backlog。",
+    systemPrompt:
+      "你是一名产品经理AI专家，负责收敛需求背景、生成正式 PRD、拆解 Product Backlog，并补充范围边界、交付说明和里程碑建议。",
+    skills: ["requirements_summary", "prd_generate", "backlog_breakdown", "milestone_plan"],
+    expertSetupMode: "permission",
+  },
 ];
 
 export const INITIAL_EMPLOYEE_DOCUMENTS: Record<string, string[]> = {
@@ -352,6 +384,11 @@ export const INITIAL_EMPLOYEE_DOCUMENTS: Record<string, string[]> = {
   [XIAOCANMAMA_IP_AGENT_DEMO.id]: [...XIAOCANMAMA_IP_AGENT_DEMO.documentNames],
   "employee-writer": ["写作规范.md", "会议纪要模板.md", "归档说明.md"],
   "employee-sales": ["销售日报模板.md", "客户跟进规范.md", "战报汇总.md"],
+  "employee-product-manager": [
+    PRODUCT_MANAGER_PRD_DOCUMENT_NAME,
+    PRODUCT_MANAGER_BACKLOG_DOCUMENT_NAME,
+    "需求澄清纪要.md",
+  ],
   "employee-store-ops": ["门店运营日报.md", "客流分析模板.md", "库存预警规范.md"],
 };
 
@@ -383,8 +420,7 @@ export const INITIAL_EMPLOYEE_DOCUMENT_CONTENTS: Record<string, Record<string, s
   "employee-ops": {
     "上线检查表.md":
       "# 上线检查表\n\n- 卡片切换是否稳定\n- 详情区字段是否完整\n- markdown 文档切换是否正常\n",
-    "回归清单.md":
-      "# 回归清单\n\n- AI 专家广场\n- AI 专家详情\n- 新建/编辑弹窗\n- 技能广场头像\n",
+    "回归清单.md": "# 回归清单\n\n- AI 专家广场\n- AI 专家详情\n- 新建/编辑弹窗\n- 技能广场头像\n",
     "发布说明.md":
       "# 发布说明\n\n当前原型以演示效果为主，允许 mock 数据覆盖业务态，但不能破坏布局一致性。\n",
   },
@@ -413,12 +449,9 @@ export const INITIAL_EMPLOYEE_DOCUMENT_CONTENTS: Record<string, Record<string, s
       "# 返场补货 SOP\n\n1. 先讲清楚为什么返场、为什么还能补到货\n2. 再给价格锚点、库存量和前 N 名福利\n3. 最后按适合人群拆解购买理由，并收口“清完不补”的稀缺感\n",
   },
   "employee-writer": {
-    "写作规范.md":
-      "# 写作规范\n\n- 输出先结论后展开\n- 用词尽量简洁直接\n- 结构优先于修辞\n",
-    "会议纪要模板.md":
-      "# 会议纪要模板\n\n## 结论\n## 待办\n## 风险\n## 下次同步事项\n",
-    "归档说明.md":
-      "# 归档说明\n\n文档命名建议按“模块 + 类型 + 日期”统一，便于后续检索和回看。\n",
+    "写作规范.md": "# 写作规范\n\n- 输出先结论后展开\n- 用词尽量简洁直接\n- 结构优先于修辞\n",
+    "会议纪要模板.md": "# 会议纪要模板\n\n## 结论\n## 待办\n## 风险\n## 下次同步事项\n",
+    "归档说明.md": "# 归档说明\n\n文档命名建议按“模块 + 类型 + 日期”统一，便于后续检索和回看。\n",
   },
   "employee-sales": {
     "销售日报模板.md":
@@ -427,6 +460,12 @@ export const INITIAL_EMPLOYEE_DOCUMENT_CONTENTS: Record<string, Record<string, s
       "# 客户跟进规范\n\n- 跟进结论必须明确\n- 重要节点需要时间戳\n- 风险客户需要单独标记\n",
     "战报汇总.md":
       "# 战报汇总\n\n当前边缘销售工作站仍待激活，正式接入后再承接实时销售战报生成任务。\n",
+  },
+  "employee-product-manager": {
+    [PRODUCT_MANAGER_PRD_DOCUMENT_NAME]: PRODUCT_MANAGER_PRD_DOCUMENT_CONTENT,
+    [PRODUCT_MANAGER_BACKLOG_DOCUMENT_NAME]: PRODUCT_MANAGER_BACKLOG_DOCUMENT_CONTENT,
+    "需求澄清纪要.md":
+      "# 需求澄清纪要\n\n- 本轮以 mock 数据驱动，不接真实接口\n- 文档输出优先覆盖 PRD 与 Backlog 两种产品经理常用交付物\n- 若需求继续收敛，可在当前基础上追加阶段目标和里程碑\n",
   },
 };
 
@@ -446,6 +485,7 @@ export const INITIAL_FRONTIS_WEB_USERS: FrontisWebUserItem[] = [
       LIVE_BROADCAST_AGENT_DEMO.id,
       XIAOCANMAMA_IP_AGENT_DEMO.id,
       "employee-writer",
+      "employee-product-manager",
     ],
     lastActiveAt: "今天 18:20",
     dialogueCount: 42,
@@ -464,6 +504,7 @@ export const INITIAL_FRONTIS_WEB_USERS: FrontisWebUserItem[] = [
       LIVE_BROADCAST_AGENT_DEMO.id,
       XIAOCANMAMA_IP_AGENT_DEMO.id,
       "employee-writer",
+      "employee-product-manager",
     ],
     lastActiveAt: "今天 16:48",
     dialogueCount: 28,
@@ -482,6 +523,7 @@ export const INITIAL_FRONTIS_WEB_USERS: FrontisWebUserItem[] = [
       ECOMMERCE_AUTOMATION_AGENT_DEMO.id,
       LIVE_BROADCAST_AGENT_DEMO.id,
       XIAOCANMAMA_IP_AGENT_DEMO.id,
+      "employee-product-manager",
     ],
     lastActiveAt: "今天 17:36",
     dialogueCount: 21,
@@ -500,6 +542,7 @@ export const INITIAL_FRONTIS_WEB_USERS: FrontisWebUserItem[] = [
       ECOMMERCE_AUTOMATION_AGENT_DEMO.id,
       LIVE_BROADCAST_AGENT_DEMO.id,
       XIAOCANMAMA_IP_AGENT_DEMO.id,
+      "employee-product-manager",
     ],
     lastActiveAt: "今天 15:12",
     dialogueCount: 18,
@@ -518,6 +561,7 @@ export const INITIAL_FRONTIS_WEB_USERS: FrontisWebUserItem[] = [
       ECOMMERCE_AUTOMATION_AGENT_DEMO.id,
       LIVE_BROADCAST_AGENT_DEMO.id,
       XIAOCANMAMA_IP_AGENT_DEMO.id,
+      "employee-product-manager",
     ],
     lastActiveAt: "昨天 20:18",
     dialogueCount: 7,
@@ -536,6 +580,7 @@ export const INITIAL_FRONTIS_WEB_USERS: FrontisWebUserItem[] = [
       ECOMMERCE_AUTOMATION_AGENT_DEMO.id,
       LIVE_BROADCAST_AGENT_DEMO.id,
       XIAOCANMAMA_IP_AGENT_DEMO.id,
+      "employee-product-manager",
     ],
     lastActiveAt: "从未使用",
     dialogueCount: 0,
@@ -1070,8 +1115,18 @@ export const INITIAL_SKILL_INSTALL_STATUS_BY_AGENT_ID = {
       skill_id: 101,
       binding: { target_skill_version_id: 1001, enabled: true, item_revision: 3 },
       job: null,
-      target: { target_id: 1, status: "installed", current_stage: "installed", progress_percent: 100 },
-      inventory: { local_modified: false, install_status: "installed", install_stage: "installed", progress_percent: 100 },
+      target: {
+        target_id: 1,
+        status: "installed",
+        current_stage: "installed",
+        progress_percent: 100,
+      },
+      inventory: {
+        local_modified: false,
+        install_status: "installed",
+        install_stage: "installed",
+        progress_percent: 100,
+      },
     },
     104: {
       runtime_id: "runtime-cloud-1",
@@ -1079,8 +1134,18 @@ export const INITIAL_SKILL_INSTALL_STATUS_BY_AGENT_ID = {
       skill_id: 104,
       binding: { target_skill_version_id: 1004, enabled: true, item_revision: 1 },
       job: null,
-      target: { target_id: 2, status: "installed", current_stage: "installed", progress_percent: 100 },
-      inventory: { local_modified: false, install_status: "installed", install_stage: "installed", progress_percent: 100 },
+      target: {
+        target_id: 2,
+        status: "installed",
+        current_stage: "installed",
+        progress_percent: 100,
+      },
+      inventory: {
+        local_modified: false,
+        install_status: "installed",
+        install_stage: "installed",
+        progress_percent: 100,
+      },
     },
   },
   "202": {
@@ -1089,9 +1154,27 @@ export const INITIAL_SKILL_INSTALL_STATUS_BY_AGENT_ID = {
       agent_id: 202,
       skill_id: 102,
       binding: { target_skill_version_id: 1002, enabled: true, item_revision: 4 },
-      job: { job_id: 10002, status: "error", plan_generation: 1, plan_hash: "hash-202-102", last_error_message: "依赖包校验失败" },
-      target: { target_id: 3, status: "failed", current_stage: "failed", progress_percent: 100, error_message: "依赖包校验失败" },
-      inventory: { local_modified: false, install_status: "failed", install_stage: "failed", progress_percent: 100, error_message: "依赖包校验失败" },
+      job: {
+        job_id: 10002,
+        status: "error",
+        plan_generation: 1,
+        plan_hash: "hash-202-102",
+        last_error_message: "依赖包校验失败",
+      },
+      target: {
+        target_id: 3,
+        status: "failed",
+        current_stage: "failed",
+        progress_percent: 100,
+        error_message: "依赖包校验失败",
+      },
+      inventory: {
+        local_modified: false,
+        install_status: "failed",
+        install_stage: "failed",
+        progress_percent: 100,
+        error_message: "依赖包校验失败",
+      },
     },
   },
   "203": {
@@ -1101,8 +1184,18 @@ export const INITIAL_SKILL_INSTALL_STATUS_BY_AGENT_ID = {
       skill_id: 103,
       binding: { target_skill_version_id: 1003, enabled: true, item_revision: 2 },
       job: null,
-      target: { target_id: 4, status: "installed", current_stage: "installed", progress_percent: 100 },
-      inventory: { local_modified: false, install_status: "installed", install_stage: "installed", progress_percent: 100 },
+      target: {
+        target_id: 4,
+        status: "installed",
+        current_stage: "installed",
+        progress_percent: 100,
+      },
+      inventory: {
+        local_modified: false,
+        install_status: "installed",
+        install_stage: "installed",
+        progress_percent: 100,
+      },
     },
   },
   "204": {},

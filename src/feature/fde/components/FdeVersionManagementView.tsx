@@ -38,6 +38,14 @@ interface VersionDrawerState {
   version: string;
 }
 
+interface VersionTaskSection {
+  key: string;
+  kind: "collection" | "single";
+  label: string;
+  sourceLabel: string;
+  tasks: FdeVersionManagementTaskItem[];
+}
+
 const getStatusClassName = (status: FdeVersionManagementStatus): string => {
   if (status === "当前版本") {
     return styles.statusCurrent;
@@ -171,12 +179,61 @@ const getVersionStatusLabel = (
   return version.statusLabel === "当前线上版本" ? "历史版本" : version.statusLabel;
 };
 
+const getTaskCollectionLabel = (task: FdeVersionManagementTaskItem): string | null => {
+  const collectionLabel = task.collectionLabels?.find(label => label.trim());
+
+  return collectionLabel?.trim() ?? null;
+};
+
 const getTaskSourceTags = (task: FdeVersionManagementTaskItem): string[] => {
-  if (task.collectionLabels?.length) {
-    return task.collectionLabels;
+  const collectionLabel = getTaskCollectionLabel(task);
+
+  if (collectionLabel) {
+    return ["专家团成员"];
   }
 
   return [task.deliverySourceLabel ?? "单个下发"];
+};
+
+const buildTaskSections = (tasks: FdeVersionManagementTaskItem[]): VersionTaskSection[] => {
+  const sections: VersionTaskSection[] = [];
+  const collectionSections = new Map<string, VersionTaskSection>();
+
+  tasks.forEach(task => {
+    const collectionLabel = getTaskCollectionLabel(task);
+
+    if (!collectionLabel) {
+      sections.push({
+        key: task.id,
+        kind: "single",
+        label: task.agentName,
+        sourceLabel: task.deliverySourceLabel ?? "单个下发",
+        tasks: [task],
+      });
+      return;
+    }
+
+    const sectionKey = `${task.customerId}-${collectionLabel}`;
+    const existingSection = collectionSections.get(sectionKey);
+
+    if (existingSection) {
+      existingSection.tasks.push(task);
+      return;
+    }
+
+    const nextSection: VersionTaskSection = {
+      key: sectionKey,
+      kind: "collection",
+      label: collectionLabel,
+      sourceLabel: task.deliverySourceLabel ?? "专家团下发",
+      tasks: [task],
+    };
+
+    collectionSections.set(sectionKey, nextSection);
+    sections.push(nextSection);
+  });
+
+  return sections;
 };
 
 /**
@@ -208,20 +265,32 @@ export const FdeVersionManagementView = ({
       null,
     [customerGroups, selectedCustomerId, selectedTaskId],
   );
-  const selectedCustomerTasks = selectedCustomer?.tasks ?? [];
+  const selectedCustomerTasks = useMemo<FdeVersionManagementTaskItem[]>(
+    () => selectedCustomer?.tasks ?? [],
+    [selectedCustomer],
+  );
+  const selectedCustomerSections = useMemo<VersionTaskSection[]>(
+    () => buildTaskSections(selectedCustomerTasks),
+    [selectedCustomerTasks],
+  );
   const drawerTask = useMemo(
-    () => (drawerState ? taskState.find(item => item.id === drawerState.taskId) ?? null : null),
+    () => (drawerState ? (taskState.find(item => item.id === drawerState.taskId) ?? null) : null),
     [drawerState, taskState],
   );
   const drawerVersion = useMemo(
     () =>
       drawerTask && drawerState
-        ? drawerTask.versionHistory.find(item => item.version === drawerState.version) ?? null
+        ? (drawerTask.versionHistory.find(item => item.version === drawerState.version) ?? null)
         : null,
     [drawerState, drawerTask],
   );
+  const drawerCollectionLabel = useMemo(
+    () => (drawerTask ? getTaskCollectionLabel(drawerTask) : null),
+    [drawerTask],
+  );
   const drawerRollbackTarget = useMemo(
-    () => (drawerTask ? findRollbackTarget(drawerTask.versionHistory, drawerTask.currentVersion) : null),
+    () =>
+      drawerTask ? findRollbackTarget(drawerTask.versionHistory, drawerTask.currentVersion) : null,
     [drawerTask],
   );
 
@@ -241,6 +310,20 @@ export const FdeVersionManagementView = ({
       setExpandedTaskId(customerGroups[0].tasks[0]?.id ?? "");
     }
   }, [customerGroups, selectedCustomer, selectedCustomerId]);
+
+  useEffect(() => {
+    if (!selectedCustomerTasks.length) {
+      return;
+    }
+
+    if (!selectedCustomerTasks.some(item => item.id === selectedTaskId)) {
+      setSelectedTaskId(selectedCustomerTasks[0].id);
+    }
+
+    if (expandedTaskId && !selectedCustomerTasks.some(item => item.id === expandedTaskId)) {
+      setExpandedTaskId(selectedCustomerTasks[0].id);
+    }
+  }, [expandedTaskId, selectedCustomerTasks, selectedTaskId, setSelectedTaskId]);
 
   const resetRollbackDraft = (): void => {
     setShowRollbackForm(false);
@@ -470,6 +553,72 @@ export const FdeVersionManagementView = ({
     return <Empty description="当前视角下暂无 AI 专家版本任务" />;
   }
 
+  const renderTaskBlock = (task: FdeVersionManagementTaskItem): JSX.Element => {
+    const isExpanded = expandedTaskId === task.id;
+
+    return (
+      <div key={task.id} className={styles.agentBlock}>
+        <button type="button" className={styles.agentRow} onClick={() => handleToggleTask(task.id)}>
+          <span className={styles.expandIcon}>
+            {isExpanded ? <DownOutlined /> : <RightOutlined />}
+          </span>
+          <span className={styles.agentColName}>
+            <span className={styles.agentName}>{task.agentName}</span>
+            <span className={styles.agentTagList}>
+              {getTaskSourceTags(task).map(tag => (
+                <span key={tag} className={styles.agentTag}>
+                  {tag}
+                </span>
+              ))}
+            </span>
+          </span>
+          <span className={styles.agentCol}>{task.targetScope}</span>
+          <span className={classNames(styles.statusTag, getStatusClassName(task.status))}>
+            {task.status}
+          </span>
+          <span className={styles.agentActionCol}>
+            <span className={styles.agentActionLabel}>{task.lastActionLabel}</span>
+            <span className={styles.agentActionTime}>{task.lastActionAt}</span>
+          </span>
+        </button>
+
+        {isExpanded ? (
+          <div className={styles.versionList}>
+            <div className={styles.versionHeader}>
+              <span>版本号</span>
+              <span>发布时间</span>
+              <span>状态</span>
+              <span>说明</span>
+              <span>操作</span>
+            </div>
+            {task.versionHistory.map(version => {
+              const versionStatusLabel = getVersionStatusLabel(task, version);
+
+              return (
+                <div key={version.version} className={styles.versionRow}>
+                  <span className={styles.versionValue}>{version.version}</span>
+                  <span className={styles.versionValue}>{version.releaseDate}</span>
+                  <span
+                    className={classNames(
+                      styles.historyStatus,
+                      getVersionStatusClassName(versionStatusLabel),
+                    )}
+                  >
+                    {versionStatusLabel}
+                  </span>
+                  <span className={styles.versionSummary}>{version.summary}</span>
+                  <Button type="link" onClick={() => handleOpenDrawer(task.id, version.version)}>
+                    查看详情
+                  </Button>
+                </div>
+              );
+            })}
+          </div>
+        ) : null}
+      </div>
+    );
+  };
+
   return (
     <>
       <div className={styles.layout}>
@@ -483,7 +632,8 @@ export const FdeVersionManagementView = ({
                   type="button"
                   className={classNames(
                     styles.customerItem,
-                    customer.customerId === selectedCustomer?.customerId && styles.customerItemActive,
+                    customer.customerId === selectedCustomer?.customerId &&
+                      styles.customerItemActive,
                   )}
                   onClick={() => handleSelectCustomer(customer.customerId)}
                 >
@@ -498,76 +648,45 @@ export const FdeVersionManagementView = ({
           {selectedCustomer ? (
             <>
               <div className={styles.pageHeader}>
-                <div className={styles.pageTitle}>{selectedCustomer.customerName}</div>
+                <div>
+                  <div className={styles.pageTitle}>{selectedCustomer.customerName}</div>
+                  <p className={styles.pageSubtitle}>
+                    专家团仅作交付分组展示，升级、忽略和回退都按单个 Agent 独立处理。
+                  </p>
+                </div>
               </div>
 
               <div className={styles.agentList}>
-                {selectedCustomerTasks.map(task => (
-                  <div key={task.id} className={styles.agentBlock}>
-                    <button
-                      type="button"
-                      className={styles.agentRow}
-                      onClick={() => handleToggleTask(task.id)}
-                    >
-                      <span className={styles.expandIcon}>
-                        {expandedTaskId === task.id ? <DownOutlined /> : <RightOutlined />}
-                      </span>
-                      <span className={styles.agentColName}>
-                        <span className={styles.agentName}>{task.agentName}</span>
-                        <span className={styles.agentTagList}>
-                          {getTaskSourceTags(task).map(tag => (
-                            <span key={tag} className={styles.agentTag}>
-                              {tag}
-                            </span>
-                          ))}
-                        </span>
-                      </span>
-                      <span className={styles.agentCol}>{task.currentVersion}</span>
-                      <span className={styles.agentCol}>{task.latestVersion}</span>
-                      <span className={classNames(styles.statusTag, getStatusClassName(task.status))}>
-                        {task.status}
-                      </span>
-                      <span className={styles.agentCol}>{task.lastActionLabel}</span>
-                    </button>
-
-                    {expandedTaskId === task.id ? (
-                      <div className={styles.versionList}>
-                        <div className={styles.versionHeader}>
-                          <span>版本号</span>
-                          <span>发布时间</span>
-                          <span>状态</span>
-                          <span>说明</span>
-                          <span>操作</span>
-                        </div>
-                        {task.versionHistory.map(version => {
-                          const versionStatusLabel = getVersionStatusLabel(task, version);
-
-                          return (
-                            <div key={version.version} className={styles.versionRow}>
-                              <span className={styles.versionValue}>{version.version}</span>
-                              <span className={styles.versionValue}>{version.releaseDate}</span>
-                              <span
-                                className={classNames(
-                                  styles.historyStatus,
-                                  getVersionStatusClassName(versionStatusLabel),
-                                )}
-                              >
-                                {versionStatusLabel}
-                              </span>
-                              <span className={styles.versionSummary}>{version.summary}</span>
-                              <Button
-                                type="link"
-                                onClick={() => handleOpenDrawer(task.id, version.version)}
-                              >
-                                查看详情
-                              </Button>
+                {selectedCustomerSections.length ? (
+                  selectedCustomerSections.map(section => {
+                    if (section.kind === "collection") {
+                      return (
+                        <section key={section.key} className={styles.collectionSection}>
+                          <div className={styles.collectionHeader}>
+                            <div className={styles.collectionMain}>
+                              <div className={styles.collectionTitle}>{section.label}</div>
+                              <div className={styles.collectionMeta}>
+                                <span className={styles.collectionSourceTag}>
+                                  {section.sourceLabel}
+                                </span>
+                                <span className={styles.collectionHint}>
+                                  {section.tasks.length} 个 Agent 独立版本管理
+                                </span>
+                              </div>
                             </div>
-                          );
-                        })}
-                      </div>
-                    ) : null}
-                  </div>
-                ))}
+                          </div>
+                          <div className={styles.collectionAgentList}>
+                            {section.tasks.map(task => renderTaskBlock(task))}
+                          </div>
+                        </section>
+                      );
+                    }
+
+                    return renderTaskBlock(section.tasks[0]);
+                  })
+                ) : (
+                  <Empty description="当前租户暂无 AI 专家版本任务" />
+                )}
               </div>
             </>
           ) : (
@@ -610,8 +729,18 @@ export const FdeVersionManagementView = ({
                 </div>
                 <div className={styles.drawerMetaRow}>
                   <span className={styles.drawerMetaLabel}>来源</span>
-                  <span className={styles.drawerMetaValue}>{getTaskSourceTags(drawerTask).join("、")}</span>
+                  <span className={styles.drawerMetaValue}>
+                    {drawerCollectionLabel
+                      ? "专家团下发"
+                      : (drawerTask.deliverySourceLabel ?? "单个下发")}
+                  </span>
                 </div>
+                {drawerCollectionLabel ? (
+                  <div className={styles.drawerMetaRow}>
+                    <span className={styles.drawerMetaLabel}>所属专家团</span>
+                    <span className={styles.drawerMetaValue}>{drawerCollectionLabel}</span>
+                  </div>
+                ) : null}
                 <div className={styles.drawerMetaRow}>
                   <span className={styles.drawerMetaLabel}>作用范围</span>
                   <span className={styles.drawerMetaValue}>{drawerTask.targetScope}</span>
@@ -650,9 +779,7 @@ export const FdeVersionManagementView = ({
               <div className={styles.drawerSection}>
                 <div className={styles.drawerSectionTitle}>执行回退</div>
                 <div className={styles.rollbackSteps}>
-                  <div className={styles.rollbackStep}>
-                    1. 当前线上版本将回退到该稳定版本
-                  </div>
+                  <div className={styles.rollbackStep}>1. 当前线上版本将回退到该稳定版本</div>
                   <div className={styles.rollbackStep}>2. 选择回退原因</div>
                   <div className={styles.rollbackStep}>3. 备注执行说明后确认回退</div>
                 </div>
@@ -660,7 +787,9 @@ export const FdeVersionManagementView = ({
                   <div className={styles.formField}>
                     <span className={styles.formLabel}>回退版本</span>
                     <div className={styles.rollbackVersionBox}>
-                      <span className={styles.rollbackVersionArrow}>{drawerTask.currentVersion}</span>
+                      <span className={styles.rollbackVersionArrow}>
+                        {drawerTask.currentVersion}
+                      </span>
                       <span className={styles.rollbackVersionArrow}>→</span>
                       <span className={styles.rollbackVersionTarget}>{drawerVersion.version}</span>
                     </div>

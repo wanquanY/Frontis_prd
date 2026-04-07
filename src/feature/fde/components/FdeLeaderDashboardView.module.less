@@ -6,7 +6,6 @@
 
 .metricGrid,
 .summaryGrid,
-.focusMeta,
 .panelActions,
 .summaryStrip,
 .teamHeader,
@@ -50,13 +49,9 @@
 
 .metricLabel,
 .panelDescription,
-.focusDetail,
-.focusOwner,
 .statMeta,
 .summaryLabel,
-.memberRole,
-.teamScenes,
-.emptyBlock {
+.memberRole {
   color: var(--fdeTextSecondary);
   font-size: 13px;
   line-height: 20px;
@@ -64,7 +59,6 @@
 
 .metricValue,
 .panelTitle,
-.focusTitle,
 .summaryValue,
 .memberName {
   color: var(--fdeText);
@@ -130,52 +124,6 @@
     background: color-mix(in srgb, var(--primary) 6%, transparent);
     color: var(--fdeText);
   }
-}
-
-.focusList {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.focusItem {
-  padding: 14px 16px;
-  border: 1px solid var(--fdeBorder);
-  border-radius: 14px;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 12px;
-}
-
-.focusItemHigh {
-  border-color: color-mix(in srgb, var(--fdeDanger) 30%, transparent);
-  background: color-mix(in srgb, var(--fdeDanger) 8%, var(--fdeSurface));
-}
-
-.focusItemMedium {
-  border-color: color-mix(in srgb, var(--fdeWarning) 30%, transparent);
-  background: color-mix(in srgb, var(--fdeWarning) 8%, var(--fdeSurface));
-}
-
-.focusItemNormal {
-  border-color: var(--fdeBorder);
-  background: color-mix(in srgb, var(--primary) 3%, var(--fdeSurface));
-}
-
-.focusMain {
-  min-width: 0;
-}
-
-.focusTitle {
-  font-size: 15px;
-  line-height: 22px;
-}
-
-.focusMeta {
-  flex-direction: column;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 10px;
 }
 
 .summaryGrid {
@@ -281,7 +229,7 @@
 .teamHeader,
 .teamRow {
   display: grid;
-  grid-template-columns: minmax(180px, 1.4fr) 96px 88px 88px 88px 88px minmax(180px, 1.4fr);
+  grid-template-columns: minmax(180px, 1.4fr) 96px 88px 88px 88px;
   gap: 12px;
   align-items: center;
 }
@@ -352,10 +300,6 @@
   color: var(--fdeDanger);
 }
 
-.emptyBlock {
-  padding: 8px 0 0;
-}
-
 @media (max-width: 1280px) {
   .metricGrid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -371,14 +315,6 @@
     display: flex;
     flex-direction: column;
     align-items: stretch;
-  }
-
-  .focusItem {
-    grid-template-columns: 1fr;
-  }
-
-  .focusMeta {
-    align-items: flex-start;
   }
 
   .teamHeader {

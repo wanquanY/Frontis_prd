@@ -1,4 +1,8 @@
-import { AI_CEO_AGENT_SCENARIO_QUESTIONS } from "@/constants/aiCeoScenarioPrompts";
+import {
+  AI_CEO_AGENT_SCENARIO_QUESTIONS,
+  PRODUCT_MANAGER_BACKLOG_QUESTION,
+  PRODUCT_MANAGER_PRD_QUESTION,
+} from "@/constants/aiCeoScenarioPrompts";
 import {
   ECOMMERCE_AUTOMATION_AGENT_DEMO,
   ECOMMERCE_AUTOMATION_SKILL_DEMOS,
@@ -141,8 +145,7 @@ const CEO_HOME_CASES: AiCeoHomeCaseItem[] = [
         id: "ceo-case-dispatch-2",
         role: "assistant",
         actor: "CEO分身",
-        content:
-          "管理序列先拆 6 个预警来源，销售序列先拉关注区名单，底线问题和连续下滑分开处理。",
+        content: "管理序列先拆 6 个预警来源，销售序列先拉关注区名单，底线问题和连续下滑分开处理。",
         delayMs: 760,
       },
       {
@@ -163,8 +166,7 @@ const CEO_HOME_CASES: AiCeoHomeCaseItem[] = [
         id: "ceo-case-dispatch-5",
         role: "assistant",
         actor: "CEO分身",
-        content:
-          "已分别发出，并带上回执要求：管理序列 12:00 前，销售序列 17:00 前。",
+        content: "已分别发出，并带上回执要求：管理序列 12:00 前，销售序列 17:00 前。",
         delayMs: 900,
       },
     ],
@@ -230,8 +232,7 @@ const CLOUD_WORKSPACE_CASES: AiCeoHomeCaseItem[] = [
         id: "cloud-case-task-3",
         role: "assistant",
         actor: "产研协作工作站默认Agent",
-        content:
-          "我已经拆成 3 条待办，并生成了可直接发送给项目负责人的任务口径，是否直接代发？",
+        content: "我已经拆成 3 条待办，并生成了可直接发送给项目负责人的任务口径，是否直接代发？",
         delayMs: 920,
       },
       {
@@ -428,12 +429,76 @@ const HQ_WORKSPACE_CASES: AiCeoHomeCaseItem[] = [
         id: "hq-case-offline-3",
         role: "assistant",
         actor: "北京总部本地盒子默认Agent",
-        content:
-          "我先给你一版可直接发送的催办口径，等设备恢复后可以一键套用到真实发送流程里。",
+        content: "我先给你一版可直接发送的催办口径，等设备恢复后可以一键套用到真实发送流程里。",
         delayMs: 860,
       },
     ],
     employeeAssessCover,
+  ),
+];
+
+const PRODUCT_MANAGER_CASES: AiCeoHomeCaseItem[] = [
+  buildReplayCase(
+    "product-manager-case-prd",
+    "需求梳理",
+    "先出一版 PRD 主文档",
+    "适合先把目标、范围、角色、流程和验收边界收成正式文档骨架。",
+    [
+      {
+        id: "product-manager-case-prd-1",
+        role: "user",
+        actor: "你",
+        content: PRODUCT_MANAGER_PRD_QUESTION,
+        delayMs: 280,
+      },
+      {
+        id: "product-manager-case-prd-2",
+        role: "assistant",
+        actor: "产品经理AI专家",
+        content: "我先收敛目标、角色、流程和功能清单，再输出一版《Frontis AI · 正式 PRD》草案。",
+        delayMs: 840,
+      },
+      {
+        id: "product-manager-case-prd-3",
+        role: "assistant",
+        actor: "产品经理AI专家",
+        content: "PRD 已生成，同时我会把下一步可拆的 Backlog 口径放到猜你想问里。",
+        delayMs: 820,
+      },
+    ],
+    undefined,
+    PRODUCT_MANAGER_PRD_QUESTION,
+  ),
+  buildReplayCase(
+    "product-manager-case-backlog",
+    "执行拆解",
+    "把 PRD 继续拆成 Product Backlog",
+    "适合把已经确认的需求继续落到 Epic、Feature、User Story 与交付说明。",
+    [
+      {
+        id: "product-manager-case-backlog-1",
+        role: "user",
+        actor: "你",
+        content: PRODUCT_MANAGER_BACKLOG_QUESTION,
+        delayMs: 280,
+      },
+      {
+        id: "product-manager-case-backlog-2",
+        role: "assistant",
+        actor: "产品经理AI专家",
+        content: "我会按 Epic、Feature、User Story 和备注字段继续往下拆，方便直接进排期。",
+        delayMs: 860,
+      },
+      {
+        id: "product-manager-case-backlog-3",
+        role: "assistant",
+        actor: "产品经理AI专家",
+        content: "Backlog 已补齐，后面如果需要我可以继续拆里程碑和验收清单。",
+        delayMs: 780,
+      },
+    ],
+    undefined,
+    PRODUCT_MANAGER_BACKLOG_QUESTION,
   ),
 ];
 
@@ -525,6 +590,28 @@ export const AI_CEO_AGENT_HOME_CONFIGS: Record<string, AiCeoAgentHomeConfig> = {
       { id: "sales-5", question: "帮我看一下销售序列第一梯队最近的变化。" },
       { id: "sales-6", question: "把销售序列的排名结构压成一段老板口径。" },
     ],
+  },
+  "employee-product-manager": {
+    intro:
+      "我会先把需求背景、目标、角色、流程和范围收成一版 PRD，再继续拆成可执行的 Product Backlog，方便你直接进评审和排期。",
+    guideLabel: "产品经理助手",
+    guideTitle: "适合先收敛需求，再把文档继续拆成可执行清单。",
+    guideItems: [
+      "先让我出一版正式 PRD，再决定是否继续拆成 Backlog。",
+      "如果你已经有范围边界，我会把不做项和验收口径一并补上。",
+      "需要继续排期时，我可以沿着 Backlog 再拆阶段目标和里程碑。",
+    ],
+    skillItems: [
+      { id: "requirements_summary", name: "需求摘要", iconKey: "overview" },
+      { id: "prd_generate", name: "PRD 生成", iconKey: "document" },
+      { id: "backlog_breakdown", name: "Backlog 拆解", iconKey: "task" },
+      { id: "milestone_plan", name: "里程碑", iconKey: "process" },
+    ],
+    promptItems: [
+      { id: "product-manager-1", question: PRODUCT_MANAGER_PRD_QUESTION },
+      { id: "product-manager-2", question: PRODUCT_MANAGER_BACKLOG_QUESTION },
+    ],
+    caseItems: PRODUCT_MANAGER_CASES,
   },
   [ECOMMERCE_AUTOMATION_AGENT_DEMO.id]: {
     intro: ECOMMERCE_AUTOMATION_AGENT_DEMO.intro,
