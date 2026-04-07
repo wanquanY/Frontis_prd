@@ -4,12 +4,11 @@ import type {
   WorkspaceChatMessage,
   WorkspaceComposerAttachmentItem,
 } from "@/feature/workspace/types";
-import type { SynClawArtifactItem, SynClawSpaceItem } from "@/pages/synclaw/types";
+import type { ArtifactItem } from "@/types/artifact";
 
 import { OWNED_EXPERT_TEAMS } from "./components/agentStore/agentStoreData";
 import type {
   AttachmentItem,
-  ChannelItem,
   ChatMessage,
   AutomationStatus,
   ConnectionMode,
@@ -181,13 +180,13 @@ export const getActivationExpireText = (activationExpiresAt?: string): string =>
 /**
  * 解析原型页成果文件可访问地址。
  */
-export const resolveArtifactUrl = async (file: SynClawArtifactItem): Promise<string> =>
+export const resolveArtifactUrl = async (file: ArtifactItem): Promise<string> =>
   file.canonicalPath ?? "";
 
 /**
  * 触发原型页成果文件下载。
  */
-export const downloadArtifact = (file: SynClawArtifactItem): void => {
+export const downloadArtifact = (file: ArtifactItem): void => {
   if (!file.canonicalPath) {
     return;
   }
@@ -390,23 +389,6 @@ export const buildWorkspaceChatBlocks = (messages: ChatMessage[]): Block[] => {
 /**
  * 根据频道列表构建 SynClaw 空间树数据。
  */
-export const buildSynClawSpacesFromChannels = (channels: ChannelItem[]): SynClawSpaceItem[] => {
-  const grouped = channels.reduce<Map<string, SynClawSpaceItem>>((result, channel) => {
-    const current = result.get(channel.spaceName) ?? {
-      id: channel.spaceName,
-      name: channel.spaceName,
-      channels: [],
-    };
-    current.channels.push({
-      id: channel.id,
-      name: channel.name,
-    });
-    result.set(channel.spaceName, current);
-    return result;
-  }, new Map<string, SynClawSpaceItem>());
-
-  return Array.from(grouped.values());
-};
 
 /**
  * 获取工作站类型中文标签。

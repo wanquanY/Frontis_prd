@@ -1,4 +1,4 @@
-import type { SynClawArtifactItem } from "@/pages/synclaw/types";
+import type { ArtifactItem } from "@/types/artifact";
 import type { Block } from "@/types/block";
 import { AI_CEO_AGENT_SCENARIO_QUESTIONS } from "@/constants/aiCeoScenarioPrompts";
 import {
@@ -53,7 +53,7 @@ export interface DialogueScenarioFrame {
   delayMs: number;
   preview: string;
   blocks: Block[];
-  artifacts?: SynClawArtifactItem[];
+  artifacts?: ArtifactItem[];
   panel?: DialogueGeneratedPanelState;
   results?: DialogueGeneratedResultItem[];
   followupSuggestions?: string[];
@@ -421,7 +421,7 @@ const buildScenarioMessageFrame = (
   children: Block[],
   preview: string,
   delayMs: number,
-  artifacts?: SynClawArtifactItem[],
+  artifacts?: ArtifactItem[],
   panel?: DialogueGeneratedPanelState,
   results?: DialogueGeneratedResultItem[],
   followupSuggestions?: string[],
@@ -460,7 +460,7 @@ const expandFramesForTypewriter = (frames: DialogueScenarioFrame[]): DialogueSce
   const pushFrame = (
     preview: string,
     delayMs: number,
-    artifacts?: SynClawArtifactItem[],
+    artifacts?: ArtifactItem[],
     panel?: DialogueGeneratedPanelState,
     results?: DialogueGeneratedResultItem[],
     followupSuggestions?: string[],
@@ -558,7 +558,7 @@ const expandFramesForTypewriter = (frames: DialogueScenarioFrame[]): DialogueSce
     options: {
       keepStreamingAtEnd: boolean;
       preview: string;
-      artifacts?: SynClawArtifactItem[];
+      artifacts?: ArtifactItem[];
       panel?: DialogueGeneratedPanelState;
       results?: DialogueGeneratedResultItem[];
       followupSuggestions?: string[];
@@ -833,7 +833,7 @@ const createMarkdownArtifact = (
   content: string,
   producedAt: string,
   fileSize: string,
-): SynClawArtifactItem => ({
+): ArtifactItem => ({
   id: `${sessionId}-${suffix}`,
   artifactId: `${sessionId}-${suffix}`,
   fileName,
@@ -855,7 +855,7 @@ const createJsonArtifact = (
   content: string,
   producedAt: string,
   fileSize: string,
-): SynClawArtifactItem => ({
+): ArtifactItem => ({
   id: `${sessionId}-${suffix}`,
   artifactId: `${sessionId}-${suffix}`,
   fileName,
@@ -877,7 +877,7 @@ const createSvgArtifact = (
   content: string,
   producedAt: string,
   fileSize: string,
-): SynClawArtifactItem => ({
+): ArtifactItem => ({
   id: `${sessionId}-${suffix}`,
   artifactId: `${sessionId}-${suffix}`,
   fileName,
@@ -899,7 +899,7 @@ const createImageArtifact = (
   imageUrl: string,
   producedAt: string,
   fileSize: string,
-): SynClawArtifactItem => ({
+): ArtifactItem => ({
   id: `${sessionId}-${suffix}`,
   artifactId: `${sessionId}-${suffix}`,
   fileName,
@@ -913,15 +913,15 @@ const createImageArtifact = (
 });
 
 const getScenarioArtifactBySuffix = (
-  artifacts: SynClawArtifactItem[],
+  artifacts: ArtifactItem[],
   suffix: string,
-): SynClawArtifactItem | undefined =>
+): ArtifactItem | undefined =>
   artifacts.find(item => item.id.endsWith(suffix));
 
 const buildArtifactGroup = (
-  ...artifacts: Array<SynClawArtifactItem | undefined>
-): SynClawArtifactItem[] =>
-  artifacts.filter((item): item is SynClawArtifactItem => Boolean(item));
+  ...artifacts: Array<ArtifactItem | undefined>
+): ArtifactItem[] =>
+  artifacts.filter((item): item is ArtifactItem => Boolean(item));
 
 const createSequenceOverviewPanelState = (
   sessionId: string,
@@ -1900,7 +1900,7 @@ const buildFeishuManagementFocusResults = (sessionId: string): DialogueGenerated
   ),
 ];
 
-const buildSequenceOverviewArtifacts = (sessionId: string): SynClawArtifactItem[] => {
+const buildSequenceOverviewArtifacts = (sessionId: string): ArtifactItem[] => {
   const producerName = "序列总览专家";
   const producedAt = "2026-03-30 09:12";
   const overviewMarkdown = `# 经营总览速记
@@ -1981,7 +1981,7 @@ const buildSequenceOverviewArtifacts = (sessionId: string): SynClawArtifactItem[
   ];
 };
 
-const buildEmployeeAssessArtifacts = (sessionId: string): SynClawArtifactItem[] => {
+const buildEmployeeAssessArtifacts = (sessionId: string): ArtifactItem[] => {
   const producerName = "员工评估专家";
   const producedAt = "2026-03-30 09:28";
   const reportMarkdown = `# 王建国近 30 天评估摘要
@@ -2060,7 +2060,7 @@ const buildEmployeeAssessArtifacts = (sessionId: string): SynClawArtifactItem[] 
   ];
 };
 
-const buildRedlineArtifacts = (sessionId: string): SynClawArtifactItem[] => {
+const buildRedlineArtifacts = (sessionId: string): ArtifactItem[] => {
   const producerName = "红线检测专家";
   const producedAt = "2026-03-30 09:41";
   const interviewMarkdown = `# 张伟约谈准备清单
@@ -2132,7 +2132,7 @@ const buildRedlineArtifacts = (sessionId: string): SynClawArtifactItem[] => {
   ];
 };
 
-const buildBenchmarkArtifacts = (sessionId: string): SynClawArtifactItem[] => {
+const buildBenchmarkArtifacts = (sessionId: string): ArtifactItem[] => {
   const producerName = "标杆识别专家";
   const producedAt = "2026-03-30 09:52";
   const rosterMarkdown = `# 生产序列标杆名册
@@ -2200,7 +2200,7 @@ const buildBenchmarkArtifacts = (sessionId: string): SynClawArtifactItem[] => {
   ];
 };
 
-const buildScoreRankArtifacts = (sessionId: string): SynClawArtifactItem[] => {
+const buildScoreRankArtifacts = (sessionId: string): ArtifactItem[] => {
   const producerName = "评分排名专家";
   const producedAt = "2026-03-30 10:04";
   const focusMarkdown = `# 销售序列关注区名单
@@ -2274,7 +2274,7 @@ const buildScoreRankArtifacts = (sessionId: string): SynClawArtifactItem[] => {
   ];
 };
 
-const buildCeoArtifacts = (sessionId: string): SynClawArtifactItem[] => {
+const buildCeoArtifacts = (sessionId: string): ArtifactItem[] => {
   const producerName = "CEO分身";
   const producedAt = "2026-03-30 10:18";
   const briefMarkdown = `# CEO 晨会简报
@@ -2369,7 +2369,7 @@ const buildCeoArtifacts = (sessionId: string): SynClawArtifactItem[] => {
 const buildFeishuDispatchArtifacts = (
   sessionId: string,
   mode: "overview" | "managementFocus",
-): SynClawArtifactItem[] => {
+): ArtifactItem[] => {
   const producerName = "CEO分身";
   const producedAt = mode === "overview" ? "2026-03-30 09:20" : "2026-03-30 09:26";
 
@@ -4554,7 +4554,7 @@ const buildFeishuManagementFocusFrames = (sessionId: string): DialogueScenarioFr
 const buildLiveBroadcastArtifacts = (
   sessionId: string,
   scenario: (typeof LIVE_BROADCAST_SKILL_DEMOS)[number],
-): SynClawArtifactItem[] =>
+): ArtifactItem[] =>
   buildArtifactGroup(
     createMarkdownArtifact(
       sessionId,
@@ -4615,7 +4615,7 @@ const buildLiveBroadcastFrames = (
 const buildEcommerceAutomationArtifacts = (
   sessionId: string,
   scenario: (typeof ECOMMERCE_AUTOMATION_SKILL_DEMOS)[number],
-): SynClawArtifactItem[] =>
+): ArtifactItem[] =>
   buildArtifactGroup(
     createMarkdownArtifact(
       sessionId,
@@ -4676,7 +4676,7 @@ const buildEcommerceAutomationFrames = (
 const buildXiaocanMamaIpArtifacts = (
   sessionId: string,
   scenario: (typeof XIAOCANMAMA_IP_SKILL_DEMOS)[number],
-): SynClawArtifactItem[] =>
+): ArtifactItem[] =>
   buildArtifactGroup(
     createMarkdownArtifact(
       sessionId,
@@ -4898,7 +4898,7 @@ const SCENARIO_DEFINITIONS: DialogueScenarioDefinition[] = [
 ];
 
 interface SeedDialogueScenarioBundle {
-  artifacts: SynClawArtifactItem[];
+  artifacts: ArtifactItem[];
   messages: ChatMessage[];
   panel?: DialogueGeneratedPanelState;
   preview: string;
@@ -4986,7 +4986,7 @@ const buildSeedDialogueScenarioBundle = (
   definition: DialogueScenarioDefinition,
 ): SeedDialogueScenarioBundle => {
   const messages: ChatMessage[] = [];
-  const artifacts: SynClawArtifactItem[] = [];
+  const artifacts: ArtifactItem[] = [];
   const results: DialogueGeneratedResultItem[] = [];
   let latestPreview = definition.title;
   let latestUpdatedAt = definition.updatedAt;
@@ -5104,9 +5104,9 @@ export const buildDialogueScenarioSeedSessions = (): DialogueSessionItem[] =>
 /**
  * 构建默认单聊场景成果文件。
  */
-export const buildDialogueScenarioSeedArtifacts = (): Record<string, SynClawArtifactItem[]> =>
+export const buildDialogueScenarioSeedArtifacts = (): Record<string, ArtifactItem[]> =>
   SCENARIO_DEFINITIONS.filter(definition => definition.seeded !== false).reduce<
-    Record<string, SynClawArtifactItem[]>
+    Record<string, ArtifactItem[]>
   >((result, definition) => {
     const bundle = buildSeedDialogueScenarioBundle(definition);
     if (bundle.artifacts.length) {

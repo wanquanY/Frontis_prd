@@ -1,16 +1,7 @@
-export interface SynClawChannelItem {
-  id: string;
-  name: string;
-}
-
-export interface SynClawSpaceItem {
-  id: string;
-  name: string;
-  coverUrl?: string;
-  channels: SynClawChannelItem[];
-}
-
-export interface SynClawArtifactItem {
+/**
+ * 成果文件项。
+ */
+export interface ArtifactItem {
   id: string;
   artifactId: string;
   fileName: string;

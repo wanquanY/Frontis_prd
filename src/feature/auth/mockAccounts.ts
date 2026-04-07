@@ -8,8 +8,6 @@ import type { FrontisWebRole } from "@/pages/types";
 
 import type { MockAuthAccount, MockAuthRole } from "@/feature/auth/types";
 
-export type FrontisWorkspaceVersion = "v1" | "v2";
-
 const buildMockAccount = (
   userId: string,
   role: FrontisWebRole,
@@ -109,8 +107,7 @@ export const getDefaultPathByMockRole = (role: MockAuthRole): string => {
 /**
  * 获取企业老板管理后台路径。
  */
-export const getAdminManagementPath = (version: FrontisWorkspaceVersion = "v1"): string =>
-  version === "v2" ? "/web/admin/v2" : "/web/admin";
+export const getAdminManagementPath = (): string => "/web/admin";
 
 /**
  * 根据手机号匹配模拟登录账号。

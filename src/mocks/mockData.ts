@@ -1,4 +1,4 @@
-import type { SynClawArtifactItem, SynClawSpaceItem } from "@/pages/synclaw/types";
+import type { ArtifactItem } from "@/types/artifact";
 import {
   ECOMMERCE_AUTOMATION_AGENT_DEMO,
   ECOMMERCE_AUTOMATION_SKILL_DEMOS,
@@ -15,9 +15,6 @@ import type {
   AdminAiEmployeeListItem,
   CoworkerSkillItem,
   SkillCategoryInfo,
-  SynClawAiEmployee,
-  SynClawTenantMemberOption,
-  SynClawTenantMemberSelection,
 } from "@/types/prdPrototype";
 
 import type {
@@ -555,7 +552,7 @@ export const INITIAL_DIALOGUE_SESSIONS: DialogueSessionItem[] = buildDialogueSce
 /**
  * 原型页默认单聊成果文件。
  */
-export const INITIAL_DIALOGUE_ARTIFACTS: Record<string, SynClawArtifactItem[]> =
+export const INITIAL_DIALOGUE_ARTIFACTS: Record<string, ArtifactItem[]> =
   buildDialogueScenarioSeedArtifacts();
 
 export const INITIAL_DIALOGUE_PANELS: Record<string, DialogueGeneratedPanelState> =
@@ -685,7 +682,7 @@ const PRD_REVIEW_HTML = `<!doctype html>
 
 const PRD_LAYOUT_DIFF_JSON = `{
   "page": "group",
-  "reuse": ["SynClawChatHeader", "WorkspaceChatPanel", "WorkspaceComposer", "SynClawArtifactsPanel"],
+  "reuse": ["WorkspaceChatPanel", "WorkspaceComposer", "ArtifactPreviewPanel"],
   "changes": ["补齐频道成果面板", "接入文件夹入口", "保留正式预览交互"]
 }`;
 
@@ -714,7 +711,7 @@ const PRD_FLOWCHART_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="960" h
 /**
  * 原型页默认频道成果文件。
  */
-export const INITIAL_CHANNEL_ARTIFACTS: Record<string, SynClawArtifactItem[]> = {
+export const INITIAL_CHANNEL_ARTIFACTS: Record<string, ArtifactItem[]> = {
   "channel-prd": [
     {
       id: "artifact-prd-acceptance",
@@ -889,318 +886,6 @@ export const INITIAL_TASKS: AutomationTaskItem[] = [
     summary: "待边缘工作站激活后自动生成销售线索日报。",
   },
 ];
-
-/**
- * 原型页自动化任务的空间绑定选项。
- */
-export const INITIAL_AUTOMATION_SPACES = [
-  {
-    id: "automation-space-rd",
-    name: "SynClaw 研发室",
-  },
-  {
-    id: "automation-space-growth",
-    name: "增长实验室",
-  },
-  {
-    id: "automation-space-delivery",
-    name: "交付服务台",
-  },
-];
-
-/**
- * 原型页自动化任务的频道绑定选项。
- */
-export const INITIAL_AUTOMATION_CHANNEL_OPTIONS = [
-  {
-    id: "channel-prd",
-    spaceId: "automation-space-rd",
-    name: "产品冲刺",
-  },
-  {
-    id: "channel-launch",
-    spaceId: "automation-space-rd",
-    name: "发布排期同步",
-  },
-  {
-    id: "automation-channel-growth",
-    spaceId: "automation-space-growth",
-    name: "转化实验跟进",
-  },
-  {
-    id: "automation-channel-delivery",
-    spaceId: "automation-space-delivery",
-    name: "客户交付日报",
-  },
-];
-
-/**
- * 原型页自动化任务示例。
- */
-export const INITIAL_AUTOMATION_TASK_EXAMPLES = [
-  {
-    taskId: 101,
-    title: "产品方案晨检",
-    description: "每天检查需求变更、设计阻塞和版本边界，并回写到产品 Agent 的历史会话。",
-    executorAgentId: "employee-pm",
-    bindingMode: "session",
-    sessionId: "dialogue-session-pm-1",
-    scheduleKind: "at",
-    scheduleSummary: "每天 09:30",
-    nextRunAt: "2026-03-20T09:30:00+08:00",
-    startTime: "2026-03-20T09:30:00+08:00",
-    status: "active",
-    displayStatus: "running",
-    runCount: 18,
-    lastRunAt: "2026-03-19T09:30:00+08:00",
-    attachments: [
-      {
-        id: "prd-doc",
-        name: "SynClaw独立窗口原型需求文档.md",
-        size: 184320,
-        mimeType: "text/markdown",
-      },
-    ],
-    runs: [
-      {
-        id: "run-101-1",
-        sequence: 18,
-        taskTime: "2026-03-19T09:30:00+08:00",
-        status: "completed",
-        result: "已同步 6 处需求变更，新增 2 个待确认项。",
-      },
-      {
-        id: "run-101-2",
-        sequence: 17,
-        taskTime: "2026-03-18T09:30:00+08:00",
-        status: "completed",
-        result: "PRD 差异已整理并写回会话。",
-      },
-    ],
-  },
-  {
-    taskId: 102,
-    title: "会议纪要自动归档",
-    description: "让内容 Agent 在新会话里整理当天会议纪要，并自动生成待办清单。",
-    executorAgentId: "employee-writer",
-    bindingMode: "newSession",
-    scheduleKind: "every",
-    scheduleSummary: "每 180 分钟",
-    nextRunAt: "2026-03-19T15:00:00+08:00",
-    startTime: "2026-03-19T12:00:00+08:00",
-    status: "active",
-    displayStatus: "pending",
-    runCount: 7,
-    lastRunAt: "2026-03-19T12:00:00+08:00",
-    attachments: [],
-    runs: [
-      {
-        id: "run-102-1",
-        sequence: 7,
-        taskTime: "2026-03-19T12:00:00+08:00",
-        status: "completed",
-        result: "已生成最新会议纪要摘要和 4 条待办。",
-      },
-    ],
-  },
-  {
-    taskId: 103,
-    title: "竞品动态扫描",
-    description: "让资料研究 Agent 每个工作日生成一份竞品更新摘要，并沉淀到新会话。",
-    executorAgentId: "employee-research",
-    bindingMode: "newSession",
-    scheduleKind: "cron",
-    scheduleSummary: "工作日 10:00 / 16:00",
-    nextRunAt: "2026-03-19T16:00:00+08:00",
-    startTime: "2026-03-19T10:00:00+08:00",
-    status: "active",
-    displayStatus: "completed",
-    runCount: 4,
-    lastRunAt: "2026-03-19T10:00:00+08:00",
-    attachments: [
-      {
-        id: "competitor-sheet",
-        name: "竞品采样清单.xlsx",
-        size: 327680,
-        mimeType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      },
-    ],
-    runs: [
-      {
-        id: "run-103-1",
-        sequence: 4,
-        taskTime: "2026-03-19T10:00:00+08:00",
-        status: "completed",
-        result: "已输出 3 条新参考案例。",
-      },
-    ],
-  },
-  {
-    taskId: 104,
-    title: "上线检查回访",
-    description: "绑定运维 Agent 的既有会话，持续跟进盒子状态和上线回归。",
-    executorAgentId: "employee-ops",
-    bindingMode: "session",
-    sessionId: "dialogue-session-ops-1",
-    scheduleKind: "at",
-    scheduleSummary: "单次 03-20 19:30",
-    nextRunAt: "2026-03-20T19:30:00+08:00",
-    startTime: "2026-03-20T19:30:00+08:00",
-    status: "paused",
-    displayStatus: "pending",
-    runCount: 1,
-    lastRunAt: "2026-03-18T20:00:00+08:00",
-    attachments: [],
-    runs: [
-      {
-        id: "run-104-1",
-        sequence: 1,
-        taskTime: "2026-03-18T20:00:00+08:00",
-        status: "failed",
-        result: "待补一份最新巡检截图，任务暂停等待手动恢复。",
-      },
-    ],
-  },
-];
-
-export const INITIAL_GROUP_SPACES: SynClawSpaceItem[] = [
-  {
-    id: "space-rd",
-    name: "SynClaw 研发室",
-    channels: [
-      { id: "channel-prd", name: "产品冲刺" },
-      { id: "channel-launch", name: "发布排期同步" },
-    ],
-  },
-  {
-    id: "space-growth",
-    name: "增长实验室",
-    channels: [{ id: "channel-growth", name: "转化实验跟进" }],
-  },
-];
-
-export const INITIAL_GROUP_AI_EMPLOYEES: SynClawAiEmployee[] = [
-  {
-    id: "201",
-    name: "产品策略官",
-    role: "需求拆解与方案收敛",
-    avatarUrl: getAvatarUrl("group-agent-pm"),
-    runtimeId: "runtime-cloud-1",
-    runtimeName: "云端产品工作站",
-    bindable: true,
-    provisioningStatus: "applied",
-    remoteStatus: "online",
-    runtimeAgentId: "runtime-agent-pm",
-  },
-  {
-    id: "202",
-    name: "交互设计师",
-    role: "页面结构与交互调整",
-    avatarUrl: getAvatarUrl("group-agent-designer"),
-    runtimeId: "runtime-cloud-1",
-    runtimeName: "云端产品工作站",
-    bindable: true,
-    provisioningStatus: "applied",
-    remoteStatus: "executing",
-    runtimeAgentId: "runtime-agent-designer",
-  },
-  {
-    id: "203",
-    name: "资料研究员",
-    role: "补充背景与行业案例",
-    avatarUrl: getAvatarUrl("group-agent-research"),
-    runtimeId: "runtime-cloud-2",
-    runtimeName: "云端研究工作站",
-    bindable: true,
-    provisioningStatus: "applied",
-    remoteStatus: "online",
-    runtimeAgentId: "runtime-agent-research",
-  },
-  {
-    id: "204",
-    name: "本地内容助理",
-    role: "纪要与文档整理",
-    avatarUrl: getAvatarUrl("group-agent-writer"),
-    runtimeId: "runtime-local-1",
-    runtimeName: "本地创作工作站",
-    bindable: true,
-    provisioningStatus: "applied",
-    remoteStatus: "online",
-    runtimeAgentId: "runtime-agent-writer",
-  },
-];
-
-export const INITIAL_GROUP_TENANT_MEMBER_OPTIONS: SynClawTenantMemberOption[] = [
-  { id: "member-you", name: "本地测试用户", subtitle: "当前登录用户" },
-  { id: "member-fe", name: "前端研发", subtitle: "负责页面与交互联调" },
-  { id: "member-design", name: "视觉设计", subtitle: "负责样式与图标" },
-  { id: "member-op", name: "上线协调员", subtitle: "负责排期与验收" },
-  { id: "member-growth", name: "增长负责人", subtitle: "负责增长实验室协作" },
-];
-
-export const INITIAL_GROUP_CHANNEL_AGENT_IDS: Record<string, string[]> = {
-  "channel-prd": ["201", "202", "203"],
-  "channel-launch": ["201", "204"],
-  "channel-growth": ["203"],
-};
-
-export const INITIAL_GROUP_CHANNEL_TENANT_MEMBERS: Record<string, SynClawTenantMemberSelection[]> =
-  {
-    "channel-prd": [
-      { identityId: "member-you", accessRole: "owner" },
-      { identityId: "member-fe", accessRole: "speaker" },
-      { identityId: "member-design", accessRole: "speaker" },
-    ],
-    "channel-launch": [
-      { identityId: "member-you", accessRole: "owner" },
-      { identityId: "member-op", accessRole: "manager" },
-    ],
-    "channel-growth": [
-      { identityId: "member-you", accessRole: "owner" },
-      { identityId: "member-growth", accessRole: "manager" },
-    ],
-  };
-
-export const INITIAL_GROUP_CHANNEL_MESSAGES: Record<string, ChatMessage[]> = {
-  ...INITIAL_CHANNEL_MESSAGES,
-  "channel-growth": [
-    {
-      id: "group-growth-1",
-      role: "assistant",
-      author: "资料研究员",
-      content: "增长实验室这边建议把技能广场的筛选顺序稳定下来，先 Agent，再分类，再关键字。",
-      timeLabel: "14:20",
-    },
-    {
-      id: "group-growth-2",
-      role: "user",
-      author: "你",
-      content: "先按这个方向保留，后面再补筛选组合的边界状态。",
-      timeLabel: "14:21",
-    },
-  ],
-};
-
-export const INITIAL_GROUP_CHANNEL_ARTIFACTS: Record<string, SynClawArtifactItem[]> = {
-  ...INITIAL_CHANNEL_ARTIFACTS,
-  "channel-growth": [
-    {
-      id: "artifact-growth-notes",
-      artifactId: "artifact-growth-notes",
-      fileName: "增长实验记录.md",
-      fileType: "md",
-      producerName: "资料研究员",
-      producedAt: "2026-03-19 14:30",
-      fileSize: "1 KB",
-      taskName: "增长频道复盘",
-      canonicalPath: createDataUrl(
-        "text/markdown",
-        "# 增长实验记录\n\n- 技能广场筛选优先按 Agent 维度组织\n- 频道消息和成果面板保持并列\n",
-      ),
-      mimeType: "text/markdown",
-    },
-  ],
-};
 
 export const INITIAL_SKILL_CATEGORIES: SkillCategoryInfo[] = [
   { category_id: 1, key: "product", name: "产品", sort_order: 1, status: "active" },

@@ -1,19 +1,21 @@
 import { Spin } from "antd";
 import { useCallback, useEffect, useMemo, useState, type ChangeEvent } from "react";
+
 import { MarkdownRenderer } from "@/components/MarkdownRenderer";
-import { useSynClawArtifactPreview } from "@/pages/synclaw/hooks/useSynClawArtifactPreview";
-import type { SynClawArtifactItem } from "@/pages/synclaw/types";
+import { useArtifactPreview } from "@/feature/workspace/hooks/useArtifactPreview";
+import type { ArtifactItem } from "@/types/artifact";
 import { resolveFileLogo } from "@/utils/fileLogo";
 import { DownloadOutlineIcon } from "@/utils/icons";
-import styles from "./SynClawArtifactsPanel.module.less";
 
-interface SynClawArtifactsPanelProps {
-  files: SynClawArtifactItem[];
+import styles from "./ArtifactPreviewPanel.module.less";
+
+interface ArtifactPreviewPanelProps {
+  files: ArtifactItem[];
   loading?: boolean;
   error?: string;
   onClose?: () => void;
-  onDownloadFile?: (file: SynClawArtifactItem) => void;
-  resolveFileUrl?: (file: SynClawArtifactItem) => Promise<string>;
+  onDownloadFile?: (file: ArtifactItem) => void;
+  resolveFileUrl?: (file: ArtifactItem) => Promise<string>;
   onPreviewStateChange?: (previewing: boolean) => void;
   preferredFileId?: string;
 }
@@ -52,11 +54,11 @@ const SearchIcon = ({ className }: { className?: string }): JSX.Element => (
 const normalizeKeyword = (value: string): string => value.trim().toLowerCase();
 
 /**
- * SynClawArtifactsPanel
+ * ArtifactPreviewPanel
  *
- * SynClaw 频道右侧成果文件面板，仅负责展示与本地检索交互。
+ * 通用成果文件面板，仅负责展示与本地检索交互。
  */
-export const SynClawArtifactsPanel = ({
+export const ArtifactPreviewPanel = ({
   files,
   loading = false,
   error,
@@ -65,7 +67,7 @@ export const SynClawArtifactsPanel = ({
   resolveFileUrl,
   onPreviewStateChange,
   preferredFileId,
-}: SynClawArtifactsPanelProps): JSX.Element => {
+}: ArtifactPreviewPanelProps): JSX.Element => {
   const [keyword, setKeyword] = useState("");
   const [selectedFileId, setSelectedFileId] = useState<string>();
 
@@ -87,7 +89,7 @@ export const SynClawArtifactsPanel = ({
     () => files.find(item => item.id === selectedFileId),
     [files, selectedFileId],
   );
-  const previewState = useSynClawArtifactPreview(selectedFile, resolveFileUrl);
+  const previewState = useArtifactPreview(selectedFile, resolveFileUrl);
 
   useEffect(() => {
     if (!preferredFileId) {

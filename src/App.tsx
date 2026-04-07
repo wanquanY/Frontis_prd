@@ -6,7 +6,6 @@ import { AuthRoute } from "@/feature/auth/components/AuthRoute";
 
 const FrontisPage = lazy(() => import("@/pages/FrontisPage"));
 const FrontisAdminPage = lazy(() => import("@/pages/FrontisAdminPage"));
-const OpenClawWorkspaceV2Page = lazy(() => import("@/pages/OpenClawWorkspaceV2Page"));
 const LoginPage = lazy(() => import("@/pages/login/LoginPage"));
 const MarketingPortalShellPage = lazy(
   () => import("@/pages/marketingPortal/MarketingPortalShellPage"),
@@ -74,82 +73,10 @@ const App = (): JSX.Element => {
             }
           />
           <Route
-            path="/web/employee/v2"
-            element={
-              <AuthRoute allowedRole={["employee", "admin"]}>
-                <OpenClawWorkspaceV2Page viewRole="employee" />
-              </AuthRoute>
-            }
-          />
-          <Route
-            path="/web/employee/v2/agents"
-            element={
-              <AuthRoute allowedRole={["employee", "admin"]}>
-                <OpenClawWorkspaceV2Page viewRole="employee" />
-              </AuthRoute>
-            }
-          />
-          <Route
-            path="/web/employee/v2/channels"
-            element={
-              <AuthRoute allowedRole={["employee", "admin"]}>
-                <OpenClawWorkspaceV2Page viewRole="employee" />
-              </AuthRoute>
-            }
-          />
-          <Route
-            path="/web/employee/v2/tasks"
-            element={
-              <AuthRoute allowedRole={["employee", "admin"]}>
-                <OpenClawWorkspaceV2Page viewRole="employee" />
-              </AuthRoute>
-            }
-          />
-          <Route
             path="/web/admin/workspace"
             element={
               <AuthRoute allowedRole="admin">
                 <FrontisPage viewRole="admin" />
-              </AuthRoute>
-            }
-          />
-          <Route
-            path="/web/admin/v2"
-            element={
-              <AuthRoute allowedRole="admin">
-                <FrontisAdminPage workspacePath="/web/admin/v2/workspace" />
-              </AuthRoute>
-            }
-          />
-          <Route
-            path="/web/admin/v2/workspace"
-            element={
-              <AuthRoute allowedRole="admin">
-                <OpenClawWorkspaceV2Page viewRole="admin" />
-              </AuthRoute>
-            }
-          />
-          <Route
-            path="/web/admin/v2/workspace/agents"
-            element={
-              <AuthRoute allowedRole="admin">
-                <OpenClawWorkspaceV2Page viewRole="admin" />
-              </AuthRoute>
-            }
-          />
-          <Route
-            path="/web/admin/v2/workspace/channels"
-            element={
-              <AuthRoute allowedRole="admin">
-                <OpenClawWorkspaceV2Page viewRole="admin" />
-              </AuthRoute>
-            }
-          />
-          <Route
-            path="/web/admin/v2/workspace/tasks"
-            element={
-              <AuthRoute allowedRole="admin">
-                <OpenClawWorkspaceV2Page viewRole="admin" />
               </AuthRoute>
             }
           />

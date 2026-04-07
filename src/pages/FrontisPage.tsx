@@ -9,6 +9,7 @@ import { useNavigate } from "react-router-dom";
 import type { WorkspaceComposerAttachmentItem } from "@/feature/workspace/types";
 import { getAdminManagementPath } from "@/feature/auth/mockAccounts";
 import { useMockAuth } from "@/feature/auth/hooks/useMockAuth";
+import type { ArtifactItem } from "@/types/artifact";
 import { isChatAttachmentFileAllowed } from "@/utils/chatAttachmentFileTypes";
 import {
   AI_CEO_AGENT_HOME_CONFIGS,
@@ -26,7 +27,6 @@ import {
   INITIAL_WORKSPACES,
 } from "@/mocks/mockData";
 import { findDialogueScenario } from "./dialogueScenarioSimulation";
-import type { SynClawArtifactItem } from "@/pages/synclaw/types";
 import type {
   DialogueGeneratedResultItem,
   DialogueSessionItem,
@@ -161,7 +161,7 @@ const FrontisPage = ({ viewRole }: FrontisPageProps): JSX.Element => {
       INITIAL_DIALOGUE_SESSIONS.map(item => mapDialogueSessionForRole(item, viewRole)),
     );
   const [dialogueArtifactsBySession, setDialogueArtifactsBySession] = useState<
-    Record<string, SynClawArtifactItem[]>
+    Record<string, ArtifactItem[]>
   >(INITIAL_DIALOGUE_ARTIFACTS);
   const [dialogueResultsBySession, setDialogueResultsBySession] = useState<
     Record<string, DialogueGeneratedResultItem[]>
@@ -802,7 +802,7 @@ const FrontisPage = ({ viewRole }: FrontisPageProps): JSX.Element => {
   }, [logout, navigate]);
 
   const handleOpenManagementPortal = useCallback((): void => {
-    navigate(getAdminManagementPath("v1"));
+    navigate(getAdminManagementPath());
   }, [navigate]);
 
   const accountMenuItems: MenuProps["items"] = [
