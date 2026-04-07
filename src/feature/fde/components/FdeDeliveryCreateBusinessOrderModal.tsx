@@ -21,7 +21,6 @@ import styles from "./FdeDeliveryWorkbench.module.less";
 
 interface FdeDeliveryCreateBusinessOrderModalProps {
   open: boolean;
-  tenantCustomerName?: string;
   tenantName?: string;
   form: CreateBusinessOrderFormState;
   totalAmount: number;
@@ -51,7 +50,6 @@ interface FdeDeliveryCreateBusinessOrderModalProps {
  */
 export const FdeDeliveryCreateBusinessOrderModal = ({
   open,
-  tenantCustomerName,
   tenantName,
   form,
   totalAmount,
@@ -80,11 +78,7 @@ export const FdeDeliveryCreateBusinessOrderModal = ({
       <div className={styles.drawerForm}>
         <div className={styles.infoRows}>
           <div className={styles.infoRow}>
-            <span className={styles.infoLabel}>客户名称</span>
-            <span className={styles.infoValue}>{tenantCustomerName ?? "-"}</span>
-          </div>
-          <div className={styles.infoRow}>
-            <span className={styles.infoLabel}>关联租户</span>
+            <span className={styles.infoLabel}>租户名称</span>
             <span className={styles.infoValue}>{tenantName ?? "-"}</span>
           </div>
         </div>

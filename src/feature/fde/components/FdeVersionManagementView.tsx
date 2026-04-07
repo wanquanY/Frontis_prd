@@ -474,7 +474,7 @@ export const FdeVersionManagementView = ({
     <>
       <div className={styles.layout}>
         <aside className={styles.customerSidebar}>
-          <div className={styles.sidebarTitle}>客户列表</div>
+          <div className={styles.sidebarTitle}>租户列表</div>
           <div className={styles.customerList}>
             {customerGroups.map(customer => {
               return (
@@ -571,7 +571,7 @@ export const FdeVersionManagementView = ({
               </div>
             </>
           ) : (
-            <Empty description="请选择客户" />
+            <Empty description="请选择租户" />
           )}
         </section>
       </div>
@@ -682,7 +682,7 @@ export const FdeVersionManagementView = ({
                     <Input.TextArea
                       value={rollbackRemark}
                       rows={3}
-                      placeholder="补充客户反馈、异常现象或执行说明"
+                      placeholder="补充租户反馈、异常现象或执行说明"
                       onChange={event => setRollbackRemark(event.target.value)}
                     />
                   </div>

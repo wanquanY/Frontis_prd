@@ -163,6 +163,7 @@ export const FdeWorkbenchView = (): JSX.Element => {
         selectedOpportunityId={workbench.selectedOpportunityId}
         setSelectedOpportunityId={workbench.setSelectedOpportunityId}
         assignOpportunity={workbench.assignOpportunity}
+        createOpportunity={workbench.createOpportunity}
         updateOpportunityStatus={workbench.updateOpportunityStatus}
         addOpportunityComment={workbench.addOpportunityComment}
       />

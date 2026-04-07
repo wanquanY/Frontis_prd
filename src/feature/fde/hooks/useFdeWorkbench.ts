@@ -323,6 +323,7 @@ export const useFdeWorkbench = (currentUserId?: string): UseFdeWorkbenchResult =
     selectedOpportunityId,
     setSelectedOpportunityId,
     assignOpportunity,
+    createOpportunity,
     updateOpportunityStatus,
     addOpportunityComment,
   } = useFdeOpportunityState({
@@ -1065,6 +1066,7 @@ export const useFdeWorkbench = (currentUserId?: string): UseFdeWorkbenchResult =
     setActiveTab,
     createOrder,
     assignOpportunity,
+    createOpportunity,
     updateOpportunityStatus,
     addOpportunityComment,
     renewAsset,

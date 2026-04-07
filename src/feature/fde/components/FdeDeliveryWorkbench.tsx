@@ -410,8 +410,7 @@ export const FdeDeliveryWorkbench = ({
         }
 
         const searchSource = [
-          item.customerName,
-          item.tenantName,
+          item.tenantName || item.customerName,
           item.tenantCode,
           item.scenarioName,
         ]
@@ -757,7 +756,7 @@ export const FdeDeliveryWorkbench = ({
       createOrderForm.tenantSeatCount === null ||
       !createOrderForm.launchTargetDate
     ) {
-      message.warning("请先补齐客户名称、席位和交付时间。");
+      message.warning("请先补齐租户名称、席位和交付时间。");
       return;
     }
 
@@ -1221,7 +1220,6 @@ export const FdeDeliveryWorkbench = ({
   const createBusinessOrderModal = (
     <FdeDeliveryCreateBusinessOrderModal
       open={isCreateBusinessOrderModalOpen}
-      tenantCustomerName={selectedTenantOrder?.customerName}
       tenantName={selectedTenantOrder?.tenantName}
       form={createBusinessOrderForm}
       totalAmount={createBusinessOrderTotalAmount}

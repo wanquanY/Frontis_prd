@@ -277,13 +277,13 @@ export const FdeOperationsMonitorView = ({
   ]);
 
   if (!deliveredItems.length) {
-    return <Empty description="当前暂无已交付客户资产" />;
+    return <Empty description="当前暂无已交付租户资产" />;
   }
 
   return (
     <div className={styles.layout}>
       <aside className={styles.customerSidebar}>
-        <div className={styles.sidebarTitle}>客户列表</div>
+        <div className={styles.sidebarTitle}>租户列表</div>
         <div className={styles.customerList}>
           {deliveredItems.map(item => (
             <button
@@ -308,7 +308,7 @@ export const FdeOperationsMonitorView = ({
               <div className={styles.pageHeaderMain}>
                 <h2 className={styles.pageTitle}>{selectedCustomer.customerName}</h2>
                 <div className={styles.pageSubtitle}>
-                  {selectedCustomer.tenantStatusLabel ?? "已交付客户"}
+                  {selectedCustomer.tenantStatusLabel ?? "已交付租户"}
                 </div>
               </div>
             </div>
@@ -635,10 +635,10 @@ export const FdeOperationsMonitorView = ({
               ) : null}
             </section>
           </>
-        ) : (
-          <Empty description="请选择客户" />
-        )}
-      </section>
+          ) : (
+            <Empty description="请选择租户" />
+          )}
+        </section>
       <Modal
         title="资产续费"
         open={Boolean(renewDraft)}
