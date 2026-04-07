@@ -572,7 +572,6 @@ export const FdeVersionManagementView = ({
               ))}
             </span>
           </span>
-          <span className={styles.agentCol}>{task.targetScope}</span>
           <span className={classNames(styles.statusTag, getStatusClassName(task.status))}>
             {task.status}
           </span>
@@ -741,10 +740,6 @@ export const FdeVersionManagementView = ({
                     <span className={styles.drawerMetaValue}>{drawerCollectionLabel}</span>
                   </div>
                 ) : null}
-                <div className={styles.drawerMetaRow}>
-                  <span className={styles.drawerMetaLabel}>作用范围</span>
-                  <span className={styles.drawerMetaValue}>{drawerTask.targetScope}</span>
-                </div>
                 <div className={styles.drawerMetaRow}>
                   <span className={styles.drawerMetaLabel}>最近操作</span>
                   <span className={styles.drawerMetaValue}>{drawerTask.lastActionLabel}</span>
