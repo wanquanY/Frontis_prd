@@ -569,6 +569,96 @@
   padding-top: 8px;
 }
 
+.fieldLabel,
+.lineItemHint {
+  color: var(--fdeTextSecondary);
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.amountValue {
+  color: var(--fdeText);
+  font-size: 14px;
+  line-height: 22px;
+  font-weight: 700;
+}
+
+.formField {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.fullWidthControl {
+  width: 100%;
+}
+
+.inlineActions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.lineItemList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.lineItemCard {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 16px;
+  border: 1px solid color-mix(in srgb, var(--fdeBorder) 86%, transparent);
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--primary) 3%, transparent);
+}
+
+.lineItemHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.lineItemTitle {
+  color: var(--fdeText);
+  font-size: 15px;
+  line-height: 22px;
+  font-weight: 700;
+}
+
+.lineItemGrid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.summaryBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--primary) 6%, transparent);
+}
+
+.summaryLabel {
+  color: var(--fdeTextSecondary);
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.summaryValue {
+  color: var(--fdeText);
+  font-size: 24px;
+  line-height: 32px;
+  font-weight: 700;
+}
+
 .linkedOrderSummary {
   display: flex;
   align-items: center;

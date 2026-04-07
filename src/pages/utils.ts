@@ -14,6 +14,7 @@ import type {
   AutomationStatus,
   ConnectionMode,
   EmployeeItem,
+  EmployeeStatus,
   StatusTone,
   WorkspaceType,
 } from "./types";
@@ -425,12 +426,18 @@ export const getConnectionLabel = (mode: ConnectionMode): string =>
 /**
  * 获取状态中文标签。
  */
-export const getStatusLabel = (status: StatusTone | AutomationStatus): string => {
+export const getStatusLabel = (
+  status: StatusTone | EmployeeStatus | AutomationStatus,
+): string => {
   if (status === "online") return "在线";
+  if (status === "running") return "运行中";
+  if (status === "exception") return "异常";
   if (status === "busy") return "运行中";
   if (status === "idle") return "空闲";
   if (status === "pending") return "待激活";
   if (status === "paused") return "已暂停";
+  if (status === "offline") return "离线";
+  if (status === "error") return "异常中断";
   return "草稿";
 };
 
@@ -438,14 +445,18 @@ export const getStatusLabel = (status: StatusTone | AutomationStatus): string =>
  * 获取状态对应的样式类名。
  */
 export const getStatusClassName = (
-  status: StatusTone | AutomationStatus,
+  status: StatusTone | EmployeeStatus | AutomationStatus,
   classNames: Record<string, string>,
 ): string => {
+  if (status === "running") return classNames.statusBusy;
+  if (status === "exception") return classNames.statusError;
   if (status === "busy") return classNames.statusBusy;
   if (status === "idle") return classNames.statusIdle;
   if (status === "pending") return classNames.statusPending;
   if (status === "paused") return classNames.statusPaused;
   if (status === "draft") return classNames.statusDraft;
+  if (status === "offline") return classNames.statusOffline;
+  if (status === "error") return classNames.statusError;
   return classNames.statusOnline;
 };
 

@@ -76,6 +76,15 @@ export const INITIAL_WORKSPACES: WorkspaceItem[] = [
     runtimeHint: "支持桌面预览、成果文件和扫码辅助。",
   },
   {
+    id: "workspace-cloud-gz",
+    name: "广州直播云工作站",
+    type: "cloud",
+    status: "online",
+    region: "华南可用区 C / GPU 可用",
+    summary: "用于直播脚本生成、素材整理和监播协作。",
+    runtimeHint: "支持桌面预览、成果文件和扫码辅助。",
+  },
+  {
     id: "workspace-local-sh",
     name: "上海门店本地盒子",
     type: "local",
@@ -93,6 +102,15 @@ export const INITIAL_WORKSPACES: WorkspaceItem[] = [
     summary: "总部本地部署，当前设备离线。",
     runtimeHint: "设备离线中，请联系运维排查。",
   },
+  {
+    id: "workspace-edge-hz",
+    name: "杭州仓配边缘盒子",
+    type: "edge",
+    status: "error",
+    region: "杭州 · 仓配中心",
+    summary: "仓配现场边缘部署，当前设备异常。",
+    runtimeHint: "设备异常中，请联系运维排查。",
+  },
 ];
 
 /**
@@ -105,7 +123,7 @@ export const INITIAL_EMPLOYEES: EmployeeItem[] = [
     avatarUrl: getAvatarUrl("employee-pm"),
     role: "查看公司各序列评分、预警与趋势盘面",
     portalRoles: ["admin"],
-    status: "busy",
+    status: "running",
     workspaceId: "workspace-cloud",
     connectionMode: "cloud",
     model: "gpt-4o",
@@ -120,6 +138,7 @@ export const INITIAL_EMPLOYEES: EmployeeItem[] = [
     welcomeMessage: "我会先看盘面，再把序列均分、预警和趋势翻译成老板可直接复述的经营结论。",
     systemPrompt: "你是一名序列总览专家，负责分析公司各序列的均分、预警、趋势和经营重点。",
     skills: ["sequence_overview"],
+    expertSetupMode: "permission",
   },
   {
     id: "employee-designer",
@@ -127,7 +146,7 @@ export const INITIAL_EMPLOYEES: EmployeeItem[] = [
     avatarUrl: getAvatarUrl("employee-designer"),
     role: "作为内部执行 Agent 承接序列总览、员工评估、红线、标杆与排名任务",
     portalRoles: ["admin"],
-    status: "idle",
+    status: "online",
     workspaceId: "workspace-cloud",
     connectionMode: "cloud",
     model: "gpt-4-turbo",
@@ -150,6 +169,7 @@ export const INITIAL_EMPLOYEES: EmployeeItem[] = [
       "benchmark_find",
       "score_rank",
     ],
+    expertSetupMode: "permission",
   },
   {
     id: "employee-research",
@@ -172,6 +192,7 @@ export const INITIAL_EMPLOYEES: EmployeeItem[] = [
     welcomeMessage: "我会逐条判断三条底线，再把触发证据、严重程度和处理建议一起给你。",
     systemPrompt: "你是一名红线检测专家，负责判断员工是否触碰品质安全、诚信担当和匠心传承三条底线。",
     skills: ["redline_detect"],
+    expertSetupMode: "permission",
   },
   {
     id: "employee-ops",
@@ -179,7 +200,7 @@ export const INITIAL_EMPLOYEES: EmployeeItem[] = [
     avatarUrl: getAvatarUrl("employee-ops"),
     role: "识别高表现员工、典型事迹和培养动作",
     portalRoles: ["admin"],
-    status: "online",
+    status: "exception",
     workspaceId: "workspace-cloud",
     connectionMode: "cloud",
     model: "gpt-4o",
@@ -194,6 +215,7 @@ export const INITIAL_EMPLOYEES: EmployeeItem[] = [
     welcomeMessage: "我会把真正值得表扬、值得培养、值得放大使用的人直接挑出来给你。",
     systemPrompt: "你是一名标杆识别专家，负责筛选高表现员工、提炼典型事迹并输出培养建议。",
     skills: ["benchmark_find"],
+    expertSetupMode: "permission",
   },
   {
     id: ECOMMERCE_AUTOMATION_AGENT_DEMO.id,
@@ -207,15 +229,16 @@ export const INITIAL_EMPLOYEES: EmployeeItem[] = [
     model: "gpt-4o",
     summary: ECOMMERCE_AUTOMATION_AGENT_DEMO.summary,
     lastAction: "已生成货盘比价、商品质检、订单异常监控和运营播报示例。",
-    source: "coworker",
-    visibility: "all",
+    source: "openclaw",
+    visibility: "bound",
     subAgentModel: "gpt-4o-mini",
     agentId: "ecom-ops-agent-01",
     runtimeAgentId: "rt-ecom-ops-01",
-    boundMembers: [...ECOMMERCE_AUTOMATION_AGENT_DEMO.boundMembers],
+    boundMembers: [],
     welcomeMessage: ECOMMERCE_AUTOMATION_AGENT_DEMO.welcomeMessage,
     systemPrompt: ECOMMERCE_AUTOMATION_AGENT_DEMO.systemPrompt,
     skills: ECOMMERCE_AUTOMATION_SKILL_DEMOS.map(item => item.id),
+    expertSetupMode: "device",
   },
   {
     id: LIVE_BROADCAST_AGENT_DEMO.id,
@@ -238,6 +261,7 @@ export const INITIAL_EMPLOYEES: EmployeeItem[] = [
     welcomeMessage: LIVE_BROADCAST_AGENT_DEMO.welcomeMessage,
     systemPrompt: LIVE_BROADCAST_AGENT_DEMO.systemPrompt,
     skills: LIVE_BROADCAST_SKILL_DEMOS.map(item => item.id),
+    expertSetupMode: "permission",
   },
   {
     id: XIAOCANMAMA_IP_AGENT_DEMO.id,
@@ -260,6 +284,7 @@ export const INITIAL_EMPLOYEES: EmployeeItem[] = [
     welcomeMessage: XIAOCANMAMA_IP_AGENT_DEMO.welcomeMessage,
     systemPrompt: XIAOCANMAMA_IP_AGENT_DEMO.systemPrompt,
     skills: XIAOCANMAMA_IP_SKILL_DEMOS.map(item => item.id),
+    expertSetupMode: "permission",
   },
   {
     id: "employee-writer",
@@ -267,7 +292,7 @@ export const INITIAL_EMPLOYEES: EmployeeItem[] = [
     avatarUrl: getAvatarUrl("employee-writer"),
     role: "以 CEO 视角回应员工问题与经营协作咨询",
     portalRoles: ["admin", "employee"],
-    status: "idle",
+    status: "offline",
     workspaceId: "workspace-local",
     connectionMode: "cloud",
     model: "gpt-4o",
@@ -293,6 +318,7 @@ export const INITIAL_EMPLOYEES: EmployeeItem[] = [
       "feishu_contact_lookup",
       "feishu_send_message",
     ],
+    expertSetupMode: "permission",
   },
   {
     id: "employee-sales",
@@ -315,6 +341,7 @@ export const INITIAL_EMPLOYEES: EmployeeItem[] = [
     welcomeMessage: "我会把标杆区、中间区、关注区和名次变化一次性拆给你看。",
     systemPrompt: "你是一名评分排名专家，负责统计序列内的评分排名、分区分布、关注区和变化情况。",
     skills: ["score_rank"],
+    expertSetupMode: "permission",
   },
 ];
 

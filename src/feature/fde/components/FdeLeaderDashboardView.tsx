@@ -115,7 +115,7 @@ export const FdeLeaderDashboardView = ({
   const metrics = useMemo<DashboardMetricItem[]>(() => {
     const totalOpportunityAmount = opportunities.reduce((total, item) => total + item.amountWan, 0);
     const convertedOpportunityAmount = opportunities
-      .filter(item => item.stage === "已成交")
+      .filter(item => item.status === "已成单")
       .reduce((total, item) => total + item.amountWan, 0);
     const activeDeliveryCount = deliveryOrders.filter(item => item.deliveryStatus !== "已交付").length;
     const deliveredCustomerCount = operationsCustomers.filter(item => item.isDelivered).length;

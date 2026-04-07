@@ -2,12 +2,14 @@ import { FDE_DELIVERY_STEPS } from "@/feature/fde/mockData";
 import type {
   FdeDeliveryStepKey,
   FdeMonitorHealth,
+  FdeOpportunityStage,
   FdeTeamMemberItem,
   FdeWorkbenchTabKey,
 } from "@/feature/fde/types";
 
 export const FDE_BUSINESS_TAB_KEYS: FdeWorkbenchTabKey[] = [
   "dashboard",
+  "opportunities",
   "orderManagement",
   "delivery",
   "operations",
@@ -23,6 +25,7 @@ export const FDE_DEVELOPMENT_TAB_KEYS: FdeWorkbenchTabKey[] = [
 ];
 
 const FDE_WORKBENCH_ROUTE_SEGMENTS: Record<FdeWorkbenchTabKey, string> = {
+  opportunities: "opportunities",
   dashboard: "dashboard",
   orderManagement: "orders",
   delivery: "delivery",
@@ -34,6 +37,17 @@ const FDE_WORKBENCH_ROUTE_SEGMENTS: Record<FdeWorkbenchTabKey, string> = {
   agentStore: "agent-store",
   opsInsights: "ops-insights",
 };
+
+/**
+ * 商机阶段顺序。
+ */
+export const FDE_OPPORTUNITY_STAGE_ORDER: FdeOpportunityStage[] = [
+  "初步沟通",
+  "产品演示",
+  "方案推荐",
+  "商务谈判",
+  "已成交",
+];
 
 /**
  * 格式化万元金额。

@@ -21,7 +21,6 @@ import { FdeOpsInsightsView } from "@/feature/fde/components/FdeOpsInsightsView"
 import { FdeSkillMarketView } from "@/feature/fde/components/FdeSkillMarketView";
 import { useFdeDevWorkbench } from "@/feature/fde-dev/hooks/useFdeDevWorkbench";
 import type {
-  FdeWorkbenchTabItem,
   FdeWorkbenchTabKey,
 } from "@/feature/fde/types";
 import {
@@ -38,8 +37,6 @@ const FDE_DEV_TAB_ICONS: Partial<Record<FdeWorkbenchTabKey, JSX.Element>> = {
   agentStore: <AppstoreOutlined />,
   opsInsights: <EyeOutlined />,
 };
-
-const getWorkbenchTitle = (tab: FdeWorkbenchTabItem): string => tab.label;
 
 /**
  * FDE 开发管理工作台主视图。
@@ -87,11 +84,6 @@ export const FdeDevWorkbenchView = (): JSX.Element => {
     workbench.setActiveTab,
     workbench.tabs.length,
   ]);
-
-  const currentTab = useMemo<FdeWorkbenchTabItem | null>(
-    () => workbench.tabs.find(item => item.key === activeTab) ?? workbench.tabs[0] ?? null,
-    [activeTab, workbench.tabs],
-  );
 
   const handleLogout = useCallback((): void => {
     logout();
@@ -228,32 +220,36 @@ export const FdeDevWorkbenchView = (): JSX.Element => {
             </div>
           ))}
         </nav>
+
+        <Dropdown
+          menu={{ items: accountMenuItems }}
+          placement={isSidebarCollapsed ? "topRight" : "topLeft"}
+          trigger={["click"]}
+        >
+          <button
+            type="button"
+            className={classNames(styles.sidebarFooter, {
+              [styles.sidebarFooterCollapsed]: isSidebarCollapsed,
+            })}
+            aria-label="打开账户菜单"
+          >
+            <Avatar
+              className={styles.memberAvatar}
+              src={getFdeAvatarUrl(workbench.activeMember.avatarSeed)}
+              size={36}
+            />
+            {isSidebarCollapsed ? null : (
+              <div className={styles.footerCopy}>
+                <div className={styles.footerValue}>{workbench.activeMember.name}</div>
+                <div className={styles.memberMeta}>当前登录账号</div>
+              </div>
+            )}
+          </button>
+        </Dropdown>
       </aside>
 
       <main className={styles.main}>
         <div className={styles.mainPanel}>
-          <header className={styles.header}>
-            <div className={styles.headerIntro}>
-              <h1 className={styles.title}>
-                {currentTab ? getWorkbenchTitle(currentTab) : "FDE 开发管理"}
-              </h1>
-            </div>
-            <div className={styles.headerControls}>
-              <Dropdown menu={{ items: accountMenuItems }} placement="bottomRight" trigger={["click"]}>
-                <button type="button" className={styles.accountTrigger}>
-                  <Avatar
-                    className={styles.memberAvatar}
-                    src={getFdeAvatarUrl(workbench.activeMember.avatarSeed)}
-                    size={36}
-                  />
-                  <div>
-                    <div className={styles.memberName}>{workbench.activeMember.name}</div>
-                  </div>
-                </button>
-              </Dropdown>
-            </div>
-          </header>
-
           <section className={styles.content}>{activeContent}</section>
         </div>
       </main>

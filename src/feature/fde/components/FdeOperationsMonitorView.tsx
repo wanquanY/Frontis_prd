@@ -1,10 +1,16 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 
+import dayjs from "dayjs";
 import { DownOutlined, RightOutlined } from "@ant-design/icons";
 import classNames from "classnames";
-import { Empty } from "antd";
+import { Button, Empty, Input, InputNumber, Modal, message } from "antd";
 
-import type { FdeAssetQuotaItem, FdeOperationsCustomerItem } from "@/feature/fde/types";
+import type {
+  FdeAssetQuotaItem,
+  FdeCreateOrderResult,
+  FdeOperationsCustomerItem,
+  FdeRenewAssetPayload,
+} from "@/feature/fde/types";
 
 import styles from "./FdeOperationsMonitorView.module.less";
 
@@ -12,6 +18,7 @@ interface FdeOperationsMonitorViewProps {
   items: FdeOperationsCustomerItem[];
   selectedCustomerId: string;
   setSelectedCustomerId: (customerId: string) => void;
+  renewAsset: (payload: FdeRenewAssetPayload) => FdeCreateOrderResult;
 }
 
 type FdeAssetDetailTabKey = "recharge" | "devices" | "agents" | "changes";
@@ -21,7 +28,6 @@ type FdeAgentAssetRow =
       key: string;
       groupName: string;
       agents: FdeOperationsCustomerItem["agents"];
-      completedTasks: number;
     }
   | {
       kind: "single";
@@ -29,9 +35,12 @@ type FdeAgentAssetRow =
       agent: FdeOperationsCustomerItem["agents"][number];
     };
 
-const getDeviceStatusClassName = (status: "online" | "offline"): string => {
-  return status === "online" ? styles.deviceStatusOnline : styles.deviceStatusOffline;
-};
+interface RenewAssetDraft {
+  assetId: string;
+  assetName: string;
+  assetType: "device" | "agent";
+  expiresAt?: string;
+}
 
 const getQuotaMetaLabel = (quota: FdeAssetQuotaItem): string => {
   const remaining = Math.max(quota.total - quota.used, 0);
@@ -66,6 +75,55 @@ const getChangeStatusClassName = (
   }
 
   return styles.changeStatusPending;
+};
+
+const formatDateTimeLabel = (value?: string): string => (value ? dayjs(value).format("YYYY-MM-DD HH:mm") : "-");
+
+const getAssetStatusClassName = (expiresAt?: string): string => {
+  if (!expiresAt) {
+    return styles.assetStatusExpiring;
+  }
+
+  if (dayjs(expiresAt).isBefore(dayjs())) {
+    return styles.assetStatusExpired;
+  }
+
+  if (dayjs(expiresAt).diff(dayjs(), "day") <= 30) {
+    return styles.assetStatusExpiring;
+  }
+
+  return styles.assetStatusActive;
+};
+
+const getAssetStatusLabel = (expiresAt?: string): string => {
+  if (!expiresAt) {
+    return "待确认";
+  }
+
+  if (dayjs(expiresAt).isBefore(dayjs())) {
+    return "已到期";
+  }
+
+  if (dayjs(expiresAt).diff(dayjs(), "day") <= 30) {
+    return "即将到期";
+  }
+
+  return "生效中";
+};
+
+const getAssetRemainingLabel = (expiresAt?: string): string => {
+  if (!expiresAt) {
+    return "待确认";
+  }
+
+  const now = dayjs();
+  const diffDays = dayjs(expiresAt).diff(now, "day");
+
+  if (diffDays < 0) {
+    return `已过期 ${Math.abs(diffDays)} 天`;
+  }
+
+  return `剩余 ${diffDays} 天`;
 };
 
 const buildAgentAssetRows = (agents: FdeOperationsCustomerItem["agents"]): FdeAgentAssetRow[] => {
@@ -116,7 +174,6 @@ const buildAgentAssetRows = (agents: FdeOperationsCustomerItem["agents"]): FdeAg
         key: `group-${groupName}`,
         groupName,
         agents: groupItems,
-        completedTasks: groupItems.reduce((total, item) => total + item.completedTasks, 0),
       },
     ];
   });
@@ -129,9 +186,14 @@ export const FdeOperationsMonitorView = ({
   items,
   selectedCustomerId,
   setSelectedCustomerId,
+  renewAsset,
 }: FdeOperationsMonitorViewProps): JSX.Element => {
   const [activeDetailTab, setActiveDetailTab] = useState<FdeAssetDetailTabKey>("recharge");
   const [expandedGroupKeys, setExpandedGroupKeys] = useState<string[]>([]);
+  const [renewDraft, setRenewDraft] = useState<RenewAssetDraft | null>(null);
+  const [renewValidityMonths, setRenewValidityMonths] = useState<number>(12);
+  const [renewAmount, setRenewAmount] = useState<number>(0);
+  const [renewRemark, setRenewRemark] = useState<string>("");
   const deliveredItems = useMemo<FdeOperationsCustomerItem[]>(
     () => items.filter(item => item.isDelivered),
     [items],
@@ -156,6 +218,51 @@ export const FdeOperationsMonitorView = ({
         : [...previous, groupKey],
     );
   }, []);
+
+  const handleOpenRenewModal = useCallback(
+    (draft: RenewAssetDraft): void => {
+      setRenewDraft(draft);
+      setRenewValidityMonths(12);
+      setRenewAmount(0);
+      setRenewRemark(`${draft.assetName} 续费`);
+    },
+    [],
+  );
+
+  const handleCloseRenewModal = useCallback((): void => {
+    setRenewDraft(null);
+    setRenewValidityMonths(12);
+    setRenewAmount(0);
+    setRenewRemark("");
+  }, []);
+
+  const handleConfirmRenew = useCallback((): void => {
+    if (!selectedCustomer || !renewDraft) {
+      return;
+    }
+
+    if (renewValidityMonths <= 0 || renewAmount <= 0) {
+      message.warning("请先补齐续费时长和金额。");
+      return;
+    }
+
+    const result = renewAsset({
+      customerId: selectedCustomer.id,
+      assetId: renewDraft.assetId,
+      assetType: renewDraft.assetType,
+      validityMonths: renewValidityMonths,
+      totalAmount: renewAmount,
+      remark: renewRemark.trim(),
+    });
+
+    if (!result.orderId) {
+      message.warning("续费创建失败，请刷新后重试。");
+      return;
+    }
+
+    handleCloseRenewModal();
+    message.success("已创建续费订单，并已顺延资产到期时间。");
+  }, [handleCloseRenewModal, renewAmount, renewAsset, renewDraft, renewRemark, renewValidityMonths, selectedCustomer]);
 
   if (!deliveredItems.length) {
     return <Empty description="当前暂无已交付客户资产" />;
@@ -292,29 +399,43 @@ export const FdeOperationsMonitorView = ({
                 <>
                   <div className={styles.tableHeaderDevice}>
                     <span>设备</span>
+                    <span>资产ID</span>
                     <span>类型</span>
                     <span>状态</span>
-                    <span>归属</span>
-                    <span>绑定员工</span>
-                    <span>位置</span>
-                    <span>运行时长</span>
+                    <span>到期时间</span>
+                    <span>剩余时间</span>
+                    <span>操作</span>
                   </div>
                   {selectedCustomer.devices.map(device => (
                     <div key={device.id} className={styles.tableRowDevice}>
                       <span className={styles.tableStrong}>{device.name}</span>
+                      <span>{device.assetId ?? "-"}</span>
                       <span>{device.categoryLabel ?? "待确认"}</span>
                       <span
                         className={classNames(
-                          styles.deviceStatus,
-                          getDeviceStatusClassName(device.status),
+                          styles.assetStatus,
+                          getAssetStatusClassName(device.expiresAt),
                         )}
                       >
-                        {device.status === "online" ? "在线" : "离线"}
+                        {getAssetStatusLabel(device.expiresAt)}
                       </span>
-                      <span>{device.ownerLabel ?? "待确认"}</span>
-                      <span>{device.assignedEmployeeName ?? "暂未绑定"}</span>
-                      <span>{device.locationLabel ?? "待确认"}</span>
-                      <span>{device.uptime}</span>
+                      <span>{formatDateTimeLabel(device.expiresAt)}</span>
+                      <span>{getAssetRemainingLabel(device.expiresAt)}</span>
+                      <span>
+                        <Button
+                          size="small"
+                          onClick={() =>
+                            handleOpenRenewModal({
+                              assetId: device.assetId ?? device.id,
+                              assetName: device.name,
+                              assetType: "device",
+                              expiresAt: device.expiresAt,
+                            })
+                          }
+                        >
+                          续费
+                        </Button>
+                      </span>
                     </div>
                   ))}
                 </>
@@ -324,11 +445,12 @@ export const FdeOperationsMonitorView = ({
                 <>
                   <div className={styles.tableHeaderAgent}>
                     <span>AI 专家</span>
+                    <span>资产ID</span>
                     <span>当前版本</span>
-                    <span>模型</span>
-                    <span>已完成任务</span>
                     <span>授权对象</span>
-                    <span>可用范围</span>
+                    <span>到期时间</span>
+                    <span>状态</span>
+                    <span>操作</span>
                   </div>
                   {agentAssetRows.map(row => {
                     if (row.kind === "group") {
@@ -357,7 +479,8 @@ export const FdeOperationsMonitorView = ({
                             </span>
                             <span>-</span>
                             <span>-</span>
-                            <span>{row.completedTasks} 条</span>
+                            <span>-</span>
+                            <span>-</span>
                             <span>-</span>
                             <span>-</span>
                           </button>
@@ -375,11 +498,33 @@ export const FdeOperationsMonitorView = ({
                                       <span className={styles.tableStrong}>{agent.name}</span>
                                     </span>
                                   </span>
+                                  <span>{agent.assetId ?? "-"}</span>
                                   <span>{agent.currentVersion ?? "待确认"}</span>
-                                  <span>{agent.modelLabel ?? "待配置"}</span>
-                                  <span>{agent.completedTasks} 条</span>
                                   <span>{getAgentTargetLabel(agent)}</span>
-                                  <span>{agent.deploymentLabel ?? "指定范围可用"}</span>
+                                  <span>{formatDateTimeLabel(agent.expiresAt)}</span>
+                                  <span
+                                    className={classNames(
+                                      styles.assetStatus,
+                                      getAssetStatusClassName(agent.expiresAt),
+                                    )}
+                                  >
+                                    {getAssetStatusLabel(agent.expiresAt)}
+                                  </span>
+                                  <span>
+                                    <Button
+                                      size="small"
+                                      onClick={() =>
+                                        handleOpenRenewModal({
+                                          assetId: agent.assetId ?? agent.name,
+                                          assetName: agent.name,
+                                          assetType: "agent",
+                                          expiresAt: agent.expiresAt,
+                                        })
+                                      }
+                                    >
+                                      续费
+                                    </Button>
+                                  </span>
                                 </div>
                               ))
                             : null}
@@ -401,11 +546,33 @@ export const FdeOperationsMonitorView = ({
                             ))}
                           </span>
                         </span>
+                        <span>{agent.assetId ?? "-"}</span>
                         <span>{agent.currentVersion ?? "待确认"}</span>
-                        <span>{agent.modelLabel ?? "待配置"}</span>
-                        <span>{agent.completedTasks} 条</span>
                         <span>{getAgentTargetLabel(agent)}</span>
-                        <span>{agent.deploymentLabel ?? "指定范围可用"}</span>
+                        <span>{formatDateTimeLabel(agent.expiresAt)}</span>
+                        <span
+                          className={classNames(
+                            styles.assetStatus,
+                            getAssetStatusClassName(agent.expiresAt),
+                          )}
+                        >
+                          {getAssetStatusLabel(agent.expiresAt)}
+                        </span>
+                        <span>
+                          <Button
+                            size="small"
+                            onClick={() =>
+                              handleOpenRenewModal({
+                                assetId: agent.assetId ?? agent.name,
+                                assetName: agent.name,
+                                assetType: "agent",
+                                expiresAt: agent.expiresAt,
+                              })
+                            }
+                          >
+                            续费
+                          </Button>
+                        </span>
                       </div>
                     );
                   })}
@@ -460,6 +627,57 @@ export const FdeOperationsMonitorView = ({
           <Empty description="请选择客户" />
         )}
       </section>
+      <Modal
+        title="资产续费"
+        open={Boolean(renewDraft)}
+        onCancel={handleCloseRenewModal}
+        onOk={handleConfirmRenew}
+        okText="创建续费订单"
+        destroyOnClose
+      >
+        {renewDraft ? (
+          <div className={styles.renewModalBody}>
+            <div className={styles.renewInfoRow}>
+              <span className={styles.infoLabel}>资产名称</span>
+              <span className={styles.infoValue}>{renewDraft.assetName}</span>
+            </div>
+            <div className={styles.renewInfoRow}>
+              <span className={styles.infoLabel}>资产ID</span>
+              <span className={styles.infoValue}>{renewDraft.assetId}</span>
+            </div>
+            <div className={styles.renewInfoRow}>
+              <span className={styles.infoLabel}>当前到期</span>
+              <span className={styles.infoValue}>{formatDateTimeLabel(renewDraft.expiresAt)}</span>
+            </div>
+            <div className={styles.renewFormField}>
+              <div className={styles.fieldLabel}>续费时长（月）</div>
+              <InputNumber
+                className={styles.fullWidthControl}
+                min={1}
+                value={renewValidityMonths}
+                onChange={value => setRenewValidityMonths(value ?? 0)}
+              />
+            </div>
+            <div className={styles.renewFormField}>
+              <div className={styles.fieldLabel}>续费金额</div>
+              <InputNumber
+                className={styles.fullWidthControl}
+                min={0}
+                value={renewAmount}
+                onChange={value => setRenewAmount(value ?? 0)}
+              />
+            </div>
+            <div className={styles.renewFormField}>
+              <div className={styles.fieldLabel}>订单备注</div>
+              <Input
+                value={renewRemark}
+                onChange={event => setRenewRemark(event.target.value)}
+                placeholder="补充续费说明"
+              />
+            </div>
+          </div>
+        ) : null}
+      </Modal>
     </div>
   );
 };

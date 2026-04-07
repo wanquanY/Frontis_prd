@@ -28,7 +28,12 @@ export type WorkspaceType = "cloud" | "local" | "edge";
 /**
  * 通用状态色值枚举。
  */
-export type StatusTone = "online" | "busy" | "idle" | "pending" | "paused" | "draft";
+export type StatusTone = "online" | "busy" | "idle" | "pending" | "paused" | "draft" | "offline" | "error";
+
+/**
+ * 用户侧 AI 专家状态。
+ */
+export type EmployeeStatus = "online" | "running" | "exception" | "offline";
 
 /**
  * AI 员工连接模式。
@@ -36,6 +41,11 @@ export type StatusTone = "online" | "busy" | "idle" | "pending" | "paused" | "dr
 export type ConnectionMode = "cloud" | "local";
 export type EmployeeSource = "coworker" | "openclaw";
 export type EmployeeVisibility = "all" | "bound";
+/**
+ * AI 专家的配置方式。
+ * `device` 表示先绑定设备，再按设备分配可用权限；`permission` 表示直接分配可用权限。
+ */
+export type ExpertSetupMode = "device" | "permission";
 
 /**
  * 对话消息角色。
@@ -85,7 +95,7 @@ export interface EmployeeItem {
   role: string;
   /** 可见端范围。 */
   portalRoles: FrontisWebRole[];
-  status: StatusTone;
+  status: EmployeeStatus;
   workspaceId: string;
   connectionMode: ConnectionMode;
   model: string;
@@ -100,6 +110,8 @@ export interface EmployeeItem {
   welcomeMessage: string;
   systemPrompt: string;
   skills?: string[];
+  /** 管理后台 mock 用的配置要求，不直接对用户展示。 */
+  expertSetupMode?: ExpertSetupMode;
 }
 
 /**

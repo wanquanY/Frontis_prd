@@ -5,6 +5,7 @@ import {
   AppstoreOutlined,
   CloudServerOutlined,
   CodeOutlined,
+  DashboardOutlined,
   HomeOutlined,
   LineChartOutlined,
   LogoutOutlined,
@@ -34,15 +35,15 @@ import {
 
 import { FdeDeliveryWorkbench } from "./FdeDeliveryWorkbench";
 import { FdeLeaderDashboardView } from "./FdeLeaderDashboardView";
+import { FdeOpportunityWorkbench } from "./FdeOpportunityWorkbench";
 import { FdeOperationsMonitorView } from "./FdeOperationsMonitorView";
 import { FdeOrderManagementView } from "./FdeOrderManagementView";
 import { FdeTeamManagementView } from "./FdeTeamManagementView";
 import { FdeVersionManagementView } from "./FdeVersionManagementView";
 import styles from "./FdeWorkbenchView.module.less";
 
-const getWorkbenchTitle = (tab: FdeWorkbenchTabItem): string => `${tab.label}`;
-
 const FDE_TAB_ICONS: Record<FdeWorkbenchTabKey, JSX.Element> = {
+  opportunities: <DashboardOutlined />,
   dashboard: <HomeOutlined />,
   orderManagement: <ShoppingCartOutlined />,
   delivery: <CloudServerOutlined />,
@@ -52,6 +53,7 @@ const FDE_TAB_ICONS: Record<FdeWorkbenchTabKey, JSX.Element> = {
   agentDev: <CodeOutlined />,
   skillMarket: <ThunderboltOutlined />,
   agentStore: <AppstoreOutlined />,
+  opsInsights: <LineChartOutlined />,
 };
 
 /**
@@ -130,11 +132,6 @@ export const FdeWorkbenchView = (): JSX.Element => {
     businessTabs.length,
   ]);
 
-  const currentTab = useMemo<FdeWorkbenchTabItem | null>(
-    () => businessTabs.find(item => item.key === activeTab) ?? businessTabs[0] ?? null,
-    [activeTab, businessTabs],
-  );
-  const workbenchTitle = currentTab ? getWorkbenchTitle(currentTab) : "FDE 工作台";
   const handleLogout = useCallback((): void => {
     logout();
     message.success("已退出模拟登录。");
@@ -157,7 +154,20 @@ export const FdeWorkbenchView = (): JSX.Element => {
 
   let activeContent: JSX.Element = <Empty description="未找到对应的工作台内容" />;
 
-  if (activeTab === "dashboard") {
+  if (activeTab === "opportunities") {
+    activeContent = (
+      <FdeOpportunityWorkbench
+        activeRole={workbench.activeRole}
+        items={workbench.filteredOpportunities}
+        members={workbench.teamMembers}
+        selectedOpportunityId={workbench.selectedOpportunityId}
+        setSelectedOpportunityId={workbench.setSelectedOpportunityId}
+        assignOpportunity={workbench.assignOpportunity}
+        updateOpportunityStatus={workbench.updateOpportunityStatus}
+        addOpportunityComment={workbench.addOpportunityComment}
+      />
+    );
+  } else if (activeTab === "dashboard") {
     activeContent = (
       <FdeLeaderDashboardView
         members={workbench.teamMembers}
@@ -186,6 +196,7 @@ export const FdeWorkbenchView = (): JSX.Element => {
         orderItems={workbench.filteredOrders}
         members={workbench.teamMembers}
         currentMemberId={workbench.activeMember.id}
+        createOrder={workbench.createOrder}
         selectedOrderId={workbench.selectedDeliveryOrderId}
         syncOrders={workbench.syncDeliveryOrders}
         setSelectedOrderId={workbench.setSelectedDeliveryOrderId}
@@ -197,6 +208,7 @@ export const FdeWorkbenchView = (): JSX.Element => {
         items={workbench.filteredOperationsCustomers}
         selectedCustomerId={workbench.selectedOperationsCustomerId}
         setSelectedCustomerId={workbench.setSelectedOperationsCustomerId}
+        renewAsset={workbench.renewAsset}
       />
     );
   } else if (activeTab === "teamManagement") {
@@ -313,30 +325,36 @@ export const FdeWorkbenchView = (): JSX.Element => {
           ))}
         </nav>
 
+        <Dropdown
+          menu={{ items: accountMenuItems }}
+          placement={isSidebarCollapsed ? "topRight" : "topLeft"}
+          trigger={["click"]}
+        >
+          <button
+            type="button"
+            className={classNames(styles.sidebarFooter, {
+              [styles.sidebarFooterCollapsed]: isSidebarCollapsed,
+            })}
+            aria-label="打开账户菜单"
+          >
+            <Avatar
+              className={styles.memberAvatar}
+              src={getFdeAvatarUrl(workbench.activeMember.avatarSeed)}
+              size={36}
+            />
+            {isSidebarCollapsed ? null : (
+              <div className={styles.footerCopy}>
+                <div className={styles.footerValue}>{workbench.activeMember.name}</div>
+                <div className={styles.memberMeta}>当前登录账号</div>
+              </div>
+            )}
+          </button>
+        </Dropdown>
+
       </aside>
 
       <main className={styles.main}>
         <div className={styles.mainPanel}>
-          <header className={styles.header}>
-            <div className={styles.headerIntro}>
-              <h1 className={styles.title}>{workbenchTitle}</h1>
-            </div>
-            <div className={styles.headerControls}>
-              <Dropdown menu={{ items: accountMenuItems }} placement="bottomRight" trigger={["click"]}>
-                <button type="button" className={styles.accountTrigger}>
-                  <Avatar
-                    className={styles.memberAvatar}
-                    src={getFdeAvatarUrl(workbench.activeMember.avatarSeed)}
-                    size={36}
-                  />
-                  <div>
-                    <div className={styles.memberName}>{workbench.activeMember.name}</div>
-                  </div>
-                </button>
-              </Dropdown>
-            </div>
-          </header>
-
           <section className={styles.content}>{activeContent}</section>
         </div>
       </main>

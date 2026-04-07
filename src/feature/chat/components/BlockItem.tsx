@@ -9,30 +9,27 @@ import {
   useRef,
   useState,
   useCallback,
-  Component,
-  type ReactNode,
 } from "react";
 import classNames from "classnames";
-import { Bubble, Think, Actions } from "@ant-design/x";
+import { Bubble, Actions } from "@ant-design/x";
 import { Input, InputNumber, Select, DatePicker, Switch, Rate, message } from "antd";
 import {
   CheckCircleFilled,
   CheckCircleOutlined,
   CodeOutlined,
   CloseCircleFilled,
+  DownloadOutlined,
   DownOutlined,
   EditOutlined,
   FileTextOutlined,
   GlobalOutlined,
   LoadingOutlined,
-  DownloadOutlined,
   PaperClipOutlined,
   SearchOutlined,
   ThunderboltOutlined,
   ToolOutlined,
 } from "@ant-design/icons";
 import type {
-  ArtifactData,
   AskUserType,
   Block,
   DynamicsWorkflowNodeData,
@@ -49,24 +46,25 @@ import type {
   ToolSearchResultItem,
   MessageAttachment,
   PlanData,
-  ArtifactImage,
-  ResultCardsData,
 } from "@/types/block";
+import { submitPrototypeFeedback } from "@/feature/chat/utils/prototypeFeedback";
 import { decodeMention, MENTION_DISPLAY_REGEX } from "@/utils/mention";
-import { formatFileSize, getFileExtension } from "@/utils/file";
-import { resolveFileLogo } from "@/utils/fileLogo";
+
+import { AttachmentRow } from "./AttachmentRow";
+import { ArtifactBlock } from "./ArtifactBlock";
+import { AssistantFeedbackAction } from "./AssistantFeedbackAction";
 import { ChatMarkdown } from "./ChatMarkdown";
+import { MarkdownErrorBoundary } from "./MarkdownErrorBoundary";
+import { ResultCardsBlock } from "./ResultCardsBlock";
+import { ThinkingBlock } from "./ThinkingBlock";
+import { useTypewriterText } from "./useTypewriterText";
 import styles from "./BlockItem.module.less";
 import copyIcon from "@/assets/images/copy-icon.png";
 import arrowUpIcon from "@/assets/images/arrow-up.png";
-import thinkIcon from "@/assets/images/think-icon.png";
-import turnLeftIcon from "@/assets/images/turn-left.png";
-import turnRightIcon from "@/assets/images/turn-right.png";
 import processingIcon from "@/assets/images/processing-icon.png";
 import planCompleteIcon from "@/assets/images/planIcon/plan-complete.png";
 import planFailedIcon from "@/assets/images/planIcon/plan-failed.png";
 import planPendingIcon from "@/assets/images/planIcon/plan-pending.png";
-import knowledgeIcon from "@/assets/images/knowledge-icon.png";
 import planIgnoreIcon from "@/assets/images/planIcon/plan-ignore.png";
 
 import fileListIcon from "@/assets/images/toolsIcon/file-list-icon.png";
@@ -150,15 +148,6 @@ interface BlockItemProps {
   };
 }
 
-interface MarkdownErrorBoundaryProps {
-  content: string;
-  children: ReactNode;
-}
-
-interface MarkdownErrorBoundaryState {
-  hasError: boolean;
-}
-
 interface BlockCopyContext {
   showCopy?: boolean;
   copyText?: string;
@@ -178,13 +167,6 @@ const buildCopyActionItems = (copyText: string) => [
     },
   },
 ];
-
-const submitPrototypeFeedback = async (): Promise<{ success: boolean; error?: string }> => {
-  await new Promise(resolve => {
-    window.setTimeout(resolve, 240);
-  });
-  return { success: true };
-};
 
 const TOOL_CONTAINER_KINDS = new Set(["tool_use", "tool", "subagent", "sub_agent"]);
 const MESSAGE_TOOL_SEQUENCE_KINDS = new Set([
@@ -227,80 +209,6 @@ const resolveTextBlockContent = (block: Block): string => {
   const content = (block.data as Partial<TextData>).content;
   return typeof content === "string" ? content.trim() : "";
 };
-
-const normalizeThinkingContent = (value: unknown): string => {
-  if (typeof value !== "string") return "";
-  return value.replace(/^\s*Reasoning:\s*/i, "");
-};
-
-const STREAMING_TEXT_BATCH_SIZE = 3;
-const STREAMING_TEXT_STEP_MS = 28;
-
-const useTypewriterText = (content: string, isStreaming: boolean): string => {
-  const [visibleLength, setVisibleLength] = useState<number>(() =>
-    isStreaming ? 0 : content.length,
-  );
-  const previousContentRef = useRef(content);
-
-  useEffect(() => {
-    if (!isStreaming) {
-      previousContentRef.current = content;
-      setVisibleLength(content.length);
-      return;
-    }
-
-    const previousContent = previousContentRef.current;
-    previousContentRef.current = content;
-
-    setVisibleLength(currentVisibleLength => {
-      if (content.startsWith(previousContent)) {
-        return Math.min(content.length, Math.max(currentVisibleLength, previousContent.length));
-      }
-
-      return 0;
-    });
-  }, [content, isStreaming]);
-
-  useEffect(() => {
-    if (!isStreaming || visibleLength >= content.length) {
-      return;
-    }
-
-    const timerId = window.setTimeout(() => {
-      setVisibleLength(currentVisibleLength =>
-        Math.min(content.length, currentVisibleLength + STREAMING_TEXT_BATCH_SIZE),
-      );
-    }, STREAMING_TEXT_STEP_MS);
-
-    return () => window.clearTimeout(timerId);
-  }, [content, isStreaming, visibleLength]);
-
-  return isStreaming ? content.slice(0, visibleLength) : content;
-};
-
-class MarkdownErrorBoundary extends Component<
-  MarkdownErrorBoundaryProps,
-  MarkdownErrorBoundaryState
-> {
-  state: MarkdownErrorBoundaryState = { hasError: false };
-
-  static getDerivedStateFromError(): MarkdownErrorBoundaryState {
-    return { hasError: true };
-  }
-
-  componentDidUpdate(prevProps: MarkdownErrorBoundaryProps): void {
-    if (prevProps.content !== this.props.content && this.state.hasError) {
-      this.setState({ hasError: false });
-    }
-  }
-
-  render() {
-    if (this.state.hasError) {
-      return <div className={styles.text}>{this.props.content}</div>;
-    }
-    return this.props.children;
-  }
-}
 
 export function BlockItem({
   block,
@@ -463,6 +371,15 @@ function MessageBlock({
     if (!messageCopyText) return null;
     return <Actions items={buildCopyActionItems(messageCopyText)} />;
   }, [messageCopyText]);
+  const messageFeedbackAction = messageCopyText ? (
+    <AssistantFeedbackAction blockId={block.id} />
+  ) : null;
+  const messageActions = messageCopyActions || messageFeedbackAction ? (
+    <div className={styles.assistantInlineActions}>
+      {messageCopyActions}
+      {messageFeedbackAction}
+    </div>
+  ) : null;
 
   return (
     <div className={styles.messageBlock}>
@@ -490,8 +407,8 @@ function MessageBlock({
           ))}
         </div>
       ) : null}
-      {messageCopyActions ? (
-        <div className={styles.messageActions}>{messageCopyActions}</div>
+      {messageActions ? (
+        <div className={styles.messageActions}>{messageActions}</div>
       ) : null}
     </div>
   );
@@ -593,8 +510,18 @@ function TextBlock({
   const actionItems = (text: string) =>
     shouldShowCopy ? buildCopyActionItems(copyText ?? text) : [];
   const copyActions = shouldShowCopy ? <Actions items={actionItems(content)} /> : null;
+  const feedbackAction =
+    !isUser && shouldShowCopy ? <AssistantFeedbackAction blockId={block.id} /> : null;
+  const assistantFooterActions =
+    copyActions || feedbackAction ? (
+      <div className={styles.assistantInlineActions}>
+        {copyActions}
+        {feedbackAction}
+      </div>
+    ) : null;
   const shouldShowProcessButton = typeof processCount === "number" && processCount > 0;
-  const hasAssistantResultActions = Boolean(copyActions) || shouldShowProcessButton;
+  const hasAssistantResultActions =
+    Boolean(copyActions) || Boolean(feedbackAction) || shouldShowProcessButton;
 
   const handleOpenResultAttachment = useCallback((attachment: MessageAttachment) => {
     const targetUrl = attachment.url?.trim() || attachment.thumb_url?.trim() || "";
@@ -676,7 +603,7 @@ function TextBlock({
 
           {hasAssistantResultActions ? (
             <div className={styles.assistantResultActions}>
-              {copyActions}
+              {assistantFooterActions}
               {shouldShowProcessButton ? (
                 <button
                   type="button"
@@ -724,166 +651,10 @@ function TextBlock({
             </MarkdownErrorBoundary>
           }
           variant="borderless"
-          footer={copyActions}
+          footer={assistantFooterActions}
           footerPlacement="outer-start"
         />
       )}
-    </div>
-  );
-}
-
-function AttachmentRow({ attachments }: { attachments: MessageAttachment[] }) {
-  const listRef = useRef<HTMLDivElement | null>(null);
-  const [scrollState, setScrollState] = useState({ canLeft: false, canRight: false });
-
-  const normalized = attachments.slice(0, 10).map(att => {
-    const url = att.url || att.thumb_url || "";
-    const name = att.name || url || "附件";
-    const mime = att.mime_type || "";
-    const ext = getFileExtension(name).toUpperCase();
-    const isImage =
-      mime.startsWith("image/") ||
-      /\.(png|jpe?g|gif|webp|bmp|svg)$/i.test(url) ||
-      /\.(png|jpe?g|gif|webp|bmp|svg)$/i.test(name);
-
-    return { ...att, url, name, mime, ext, isImage };
-  });
-
-  const updateScrollState = useCallback(() => {
-    const el = listRef.current;
-    if (!el) return;
-    const { scrollLeft, scrollWidth, clientWidth } = el;
-    const maxScroll = scrollWidth - clientWidth;
-    setScrollState({
-      canLeft: scrollLeft > 0,
-      canRight: scrollLeft < maxScroll - 1,
-    });
-  }, []);
-
-  useEffect(() => {
-    updateScrollState();
-  }, [updateScrollState, normalized.length]);
-
-  useEffect(() => {
-    const el = listRef.current;
-    if (!el) return;
-    const handler = () => updateScrollState();
-    el.addEventListener("scroll", handler);
-    return () => el.removeEventListener("scroll", handler);
-  }, [updateScrollState]);
-
-  return (
-    <div className={styles.userAttachmentListWrapper}>
-      {scrollState.canLeft ? (
-        <img
-          src={turnLeftIcon}
-          alt="向左滑动附件"
-          className={classNames(styles.userAttachmentScrollBtn, styles.userAttachmentScrollLeft)}
-          onClick={() => {
-            const el = listRef.current;
-            if (!el) return;
-            el.scrollTo({ left: 0, behavior: "smooth" });
-          }}
-        />
-      ) : null}
-
-      <div
-        className={classNames(styles.userAttachmentList, {
-          [styles.userAttachmentMaskLeft]: scrollState.canLeft,
-          [styles.userAttachmentMaskRight]: scrollState.canRight,
-        })}
-        ref={listRef}
-        role="list"
-        aria-label="用户附件"
-      >
-        {normalized.map(att =>
-          att.isImage ? (
-            <div
-              key={att.id}
-              className={styles.userAttachmentThumb}
-              role="listitem"
-              title={att.name}
-            >
-              {att.url ? (
-                <img className={styles.userAttachmentThumbImage} src={att.url} alt={att.name} />
-              ) : (
-                <span className={styles.userAttachmentThumbPlaceholder} aria-hidden="true">
-                  <span className={styles.userAttachmentThumbExt}>{att.ext || "IMG"}</span>
-                </span>
-              )}
-            </div>
-          ) : (
-            <div
-              key={att.id}
-              className={styles.userAttachmentItem}
-              role="listitem"
-              title={att.name}
-            >
-              <span className={styles.userAttachmentIcon} aria-hidden="true">
-                <img
-                  className={styles.userAttachmentIconImage}
-                  src={resolveFileLogo(att.name).src}
-                  alt={resolveFileLogo(att.name).alt}
-                />
-              </span>
-              <span className={styles.userAttachmentInfo}>
-                <span className={styles.userAttachmentName}>{att.name}</span>
-                {typeof att.size === "number" ? (
-                  <span className={styles.userAttachmentMeta}>{formatFileSize(att.size)}</span>
-                ) : null}
-              </span>
-            </div>
-          ),
-        )}
-      </div>
-
-      {scrollState.canRight ? (
-        <img
-          src={turnRightIcon}
-          alt="向右滑动附件"
-          className={classNames(styles.userAttachmentScrollBtn, styles.userAttachmentScrollRight)}
-          onClick={() => {
-            const el = listRef.current;
-            if (!el) return;
-            el.scrollTo({ left: el.scrollWidth, behavior: "smooth" });
-          }}
-        />
-      ) : null}
-    </div>
-  );
-}
-
-// ============ Thinking Block ============
-function ThinkingBlock({ block }: { block: Block }) {
-  const data = block.data as unknown as TextData;
-  const content = normalizeThinkingContent(data.content);
-  const isStreaming = block.isStreaming || data.status === "streaming";
-  const displayContent = useTypewriterText(content, isStreaming);
-  const isComplete = !isStreaming || data.status === "completed";
-  const [expanded, setExpanded] = useState(!isComplete);
-
-  useEffect(() => {
-    setExpanded(!isComplete);
-  }, [isComplete]);
-
-  // Don't render empty thinking blocks
-  if (!content && !block.isStreaming) return null;
-
-  return (
-    <div className={styles.thinkingBlock}>
-      <Think
-        icon={<img src={thinkIcon} alt="think" className={styles.thinkIcon} />}
-        title={isComplete ? "思考完成" : "正在思考中"}
-        expanded={expanded}
-        onExpand={() => setExpanded(!expanded)}
-        blink={!isComplete}
-      >
-        <div className={styles.thinkingMarkdown}>
-          <MarkdownErrorBoundary content={displayContent}>
-            <ChatMarkdown source={displayContent} />
-          </MarkdownErrorBoundary>
-        </div>
-      </Think>
     </div>
   );
 }
@@ -1788,7 +1559,11 @@ function DynamicsWorkflowBlock({ block }: { block: Block }) {
     if (!feedbackInfo || submitted || rating === 0) return;
     try {
       setSubmitting(true);
-      const resp = await submitPrototypeFeedback();
+      const resp = await submitPrototypeFeedback({
+        blockId: block.id,
+        rating,
+        comment: feedbackComment.trim() || undefined,
+      });
       if (resp.success) {
         setSubmitted(true);
         setSubmittedRating(rating);
@@ -2431,230 +2206,6 @@ function HITLRequestBlock({
             </div>
           </>
         )}
-      </div>
-    </div>
-  );
-}
-
-function ResultCardsBlock({
-  block,
-  onOpenResult,
-}: {
-  block: Block;
-  onOpenResult?: (resultId: string) => void;
-}) {
-  const data = block.data as unknown as ResultCardsData;
-  const items = Array.isArray(data.items)
-    ? data.items.filter(item => typeof item.id === "string" && typeof item.title === "string")
-    : [];
-
-  if (!items.length) {
-    return null;
-  }
-
-  return (
-    <div className={styles.resultCardsBlock}>
-      <div className={styles.resultCardsGrid}>
-        {items.map(item => (
-          <button
-            key={item.id}
-            type="button"
-            className={styles.resultCard}
-            onClick={() => onOpenResult?.(item.id)}
-            disabled={!onOpenResult}
-            aria-label={`打开结果：${item.title}`}
-          >
-            <span className={styles.resultCardIcon} aria-hidden={true}>
-              <FileTextOutlined />
-            </span>
-            <span className={styles.resultCardBody}>
-              {item.badge ? <span className={styles.resultCardBadge}>{item.badge}</span> : null}
-              <span className={styles.resultCardTitle}>{item.title}</span>
-              {item.subtitle ? (
-                <span className={styles.resultCardSubtitle}>{item.subtitle}</span>
-              ) : null}
-              {item.created_at ? (
-                <span className={styles.resultCardMeta}>创建时间：{item.created_at}</span>
-              ) : null}
-            </span>
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-// ============ Artifact Block ============
-function ArtifactBlock({
-  block,
-  onOpenArtifact,
-  onDownloadArtifact,
-  onAddArtifactToKnowledge,
-}: {
-  block: Block;
-  onOpenArtifact?: (block: Block) => void;
-  onDownloadArtifact?: (artifactId: string) => void;
-  onAddArtifactToKnowledge?: (artifactId: string) => void;
-  isActive?: boolean;
-}) {
-  const data = block.data as unknown as ArtifactData;
-  const title = typeof data.title === "string" && data.title.trim() ? data.title.trim() : "成果";
-
-  const isImage = data.kind === "image_gallery" || data.kind === "image";
-  const isPpt = data.kind === "ppt";
-  const isVideo = data.kind === "video";
-  const isMarkdown = data.kind === "markdown";
-  const isHtml = data.kind === "html";
-  const artifactId = typeof data.artifact_id === "string" ? data.artifact_id.trim() : "";
-  const status = typeof data.status === "string" ? data.status : "";
-  const isCompleted = status === "completed" || status === "finalized";
-
-  const previewImageUrl = useMemo((): string | undefined => {
-    if (!isImage && !isPpt) return undefined;
-    const payload = data.data;
-    if (!payload || typeof payload !== "object") return undefined;
-    // PPT: 取第一页 slide 的 image_url
-    if (isPpt) {
-      const slides = (payload as { slides?: Array<{ image_url?: string }> }).slides;
-      if (Array.isArray(slides) && slides.length > 0) {
-        return slides[0].image_url;
-      }
-      return undefined;
-    }
-    const images = (payload as { images?: unknown }).images;
-    if (!Array.isArray(images)) return undefined;
-    const first = images.find(
-      (item: { url?: string; index?: number }): item is { url: string } =>
-        typeof item.url === "string" && item.url.trim().length > 0,
-    );
-    return first?.url;
-  }, [data.data, isImage, isPpt]);
-
-  const videoUrl = useMemo((): string | undefined => {
-    if (!isVideo) return undefined;
-    const payload = data.data;
-    if (!payload || typeof payload !== "object") return undefined;
-    const url = (payload as { video_url?: string }).video_url;
-    return typeof url === "string" && url.trim().length > 0 ? url.trim() : undefined;
-  }, [data.data, isVideo]);
-
-  const typeIcon = useMemo(() => {
-    if (isImage || isVideo || isPpt) return null;
-    if (isMarkdown) return resolveFileLogo("artifact.md");
-    if (isHtml) return resolveFileLogo("artifact.html");
-    return resolveFileLogo("artifact.txt");
-  }, [isHtml, isImage, isPpt, isVideo, isMarkdown]);
-
-  const metaText = useMemo((): string => {
-    if (status === "generating" || status === "streaming" || block.isStreaming) return "生成中…";
-    if (isImage) return `${(data.data as { images?: ArtifactImage[] }).images?.length || 0}张图片`;
-    if (isPpt) {
-      const slides = (data.data as { slides?: unknown[] })?.slides;
-      return `${slides?.length || 0}页PPT`;
-    }
-    if (isVideo) {
-      const d = (data.data as { duration?: number })?.duration;
-      return d ? `${d}秒视频` : "视频";
-    }
-    return "点击查看详情";
-  }, [block.isStreaming, status, data.data, isImage, isPpt, isVideo]);
-
-  const handleDownload = useCallback(
-    (event: React.MouseEvent<HTMLButtonElement>) => {
-      event.stopPropagation();
-      if (!isCompleted) return;
-      if (!artifactId) return;
-      onDownloadArtifact?.(artifactId);
-    },
-    [artifactId, isCompleted, onDownloadArtifact],
-  );
-
-  const handleAddToKnowledge = useCallback(
-    (event: React.MouseEvent<HTMLButtonElement>) => {
-      event.stopPropagation();
-      if (!isCompleted) return;
-      if (onAddArtifactToKnowledge && data.artifact_id) {
-        onAddArtifactToKnowledge(data.artifact_id);
-      }
-    },
-    [data.artifact_id, isCompleted, onAddArtifactToKnowledge],
-  );
-
-  // 非图片/视频类（markdown/html）在生成中也允许点击预览
-  const canClickDuringStreaming = !isImage && !isVideo && !isPpt;
-  const isClickable = isCompleted || canClickDuringStreaming;
-
-  return (
-    <div className={styles.artifactBlock}>
-      <div className={styles.artifactWrapper}>
-        <button
-          type="button"
-          className={styles.artifactCard}
-          onClick={() => {
-            if (!isClickable) return;
-            onOpenArtifact?.(block);
-          }}
-          aria-label={`查看成果：${title}`}
-          disabled={!isClickable}
-        >
-          <span className={styles.artifactIconSlot} aria-hidden={true}>
-            {isImage || isPpt ? (
-              previewImageUrl ? (
-                <img className={styles.artifactThumb} src={previewImageUrl} alt="" />
-              ) : (
-                <span className={styles.artifactThumbPlaceholder} aria-hidden={true} />
-              )
-            ) : isVideo ? (
-              videoUrl ? (
-                <span className={styles.artifactVideoThumb}>
-                  <span className={styles.artifactVideoPlayIcon} aria-hidden={true}>
-                    ▶
-                  </span>
-                </span>
-              ) : (
-                <span className={styles.artifactThumbPlaceholder} aria-hidden={true} />
-              )
-            ) : typeIcon ? (
-              <img className={styles.artifactFileIcon} src={typeIcon.src} alt={typeIcon.alt} />
-            ) : null}
-          </span>
-
-          <span className={styles.artifactInfo}>
-            <span className={styles.artifactTitle} title={title}>
-              {title}
-            </span>
-            <span className={styles.artifactMeta} title={metaText}>
-              {metaText}
-            </span>
-          </span>
-
-          {(onDownloadArtifact || onAddArtifactToKnowledge) && (
-            <span className={styles.artifactActions} aria-label="成果操作">
-              {onDownloadArtifact ? (
-                <button
-                  type="button"
-                  className={styles.artifactActionButton}
-                  aria-label="下载成果"
-                  disabled={!isCompleted || !artifactId}
-                  onClick={handleDownload}
-                >
-                  <DownloadOutlined className={styles.artifactActionIcon} />
-                </button>
-              ) : null}
-              {onAddArtifactToKnowledge ? (
-                <button
-                  type="button"
-                  className={styles.artifactActionButton}
-                  aria-label="加入知识库"
-                  disabled={!isCompleted || !artifactId}
-                  onClick={handleAddToKnowledge}
-                >
-                  <img src={knowledgeIcon} alt="" className={styles.artifactActionIcon} />
-                </button>
-              ) : null}
-            </span>
-          )}
-        </button>
       </div>
     </div>
   );

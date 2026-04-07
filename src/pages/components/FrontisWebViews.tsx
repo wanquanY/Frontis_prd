@@ -46,7 +46,9 @@ export interface DeviceManagementViewProps {
   deploymentByEmployeeId: Record<string, ExpertDeploymentState>;
   deviceOwners: Record<string, string | null>;
   employees: EmployeeItem[];
+  onAddWorkspace: (workspace: WorkspaceItem, ownerId: string | null) => void;
   onAssignDeviceOwner: (deviceId: string, ownerId: string | null) => void;
+  onRemoveWorkspace: (workspaceId: string) => void;
   users: FrontisWebUserItem[];
   workspaces: WorkspaceItem[];
 }
@@ -933,7 +935,10 @@ export const buildDashboardTaskRows = (
       );
       const failed = Math.max(
         0,
-        Math.round((employee.status === "paused" ? 2.4 : 0.8) + index * 0.4),
+        Math.round(
+          ((employee.status === "exception" || employee.status === "offline") ? 2.4 : 0.8) +
+            index * 0.4,
+        ),
       );
       return {
         failed,
