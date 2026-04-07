@@ -74,6 +74,8 @@ export const FdeDeliveryStepPanel = ({
           <div className={styles.sectionActions}>
             {isReadOnlyStep ? (
               <span className={styles.deliveryHint}>当前阶段已完成，内容仅供查看。</span>
+            ) : hasPendingPrefill ? (
+              <span className={styles.deliveryHint}>已按订单预填，可直接完成当前阶段。</span>
             ) : null}
             {isCurrentStep ? (
               <Button onClick={() => onOpenDeviceModal(deliveryOrder)}>配置设备额度</Button>

@@ -208,6 +208,7 @@ export const FdeWorkbenchView = (): JSX.Element => {
         items={workbench.filteredOperationsCustomers}
         selectedCustomerId={workbench.selectedOperationsCustomerId}
         setSelectedCustomerId={workbench.setSelectedOperationsCustomerId}
+        onNavigateToDelivery={() => handleNavigateTab("delivery")}
         renewAsset={workbench.renewAsset}
       />
     );

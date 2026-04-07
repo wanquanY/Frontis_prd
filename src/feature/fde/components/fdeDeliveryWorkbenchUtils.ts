@@ -214,6 +214,33 @@ export const getVisibleDeliverySteps = (
     );
   }
 
+  if (order.changeType === "资产续费") {
+    const hasDeviceRenewal =
+      order.deviceConfig.cloudDeviceCount > 0 || order.deviceConfig.localDeviceCount > 0;
+    const hasAgentRenewal = order.expertNames.length > 0;
+
+    if (hasDeviceRenewal && hasAgentRenewal) {
+      return FDE_DELIVERY_STEPS.filter(
+        step =>
+          step.key === "deviceConfig" ||
+          step.key === "agentConfig" ||
+          step.key === "preflight",
+      );
+    }
+
+    if (hasDeviceRenewal) {
+      return FDE_DELIVERY_STEPS.filter(
+        step => step.key === "deviceConfig" || step.key === "preflight",
+      );
+    }
+
+    if (hasAgentRenewal) {
+      return FDE_DELIVERY_STEPS.filter(
+        step => step.key === "agentConfig" || step.key === "preflight",
+      );
+    }
+  }
+
   return FDE_DELIVERY_STEPS;
 };
 

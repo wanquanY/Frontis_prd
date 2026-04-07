@@ -678,6 +678,9 @@ const changeOrderIncludesDevice = (order: FdeDeliveryOrderItem): boolean =>
 const changeOrderIncludesAgent = (order: FdeDeliveryOrderItem): boolean =>
   order.changeType === "追加Agent" || order.changeType === "追加设备与Agent";
 
+const changeOrderIncludesRenewal = (order: FdeDeliveryOrderItem): boolean =>
+  order.changeType === "资产续费";
+
 const getDeviceLineItemSummary = (lineItems: FdeOrderDeviceLineItem[]): string =>
   lineItems
     .map(item => {
@@ -689,9 +692,22 @@ const getDeviceLineItemSummary = (lineItems: FdeOrderDeviceLineItem[]): string =
 const getAgentLineItemSummary = (lineItems: FdeOrderAgentLineItem[]): string =>
   Array.from(new Set(lineItems.map(item => item.agentName))).join(" / ");
 
+const getRenewalLineItemSummary = (
+  lineItems: Array<FdeOrderDeviceLineItem | FdeOrderAgentLineItem>,
+): string =>
+  lineItems
+    .map(item => {
+      if (isDeviceLineItem(item)) {
+        return `${item.deviceType} 续费 ${getLineItemValidityMonths(item)} 个月`;
+      }
+
+      return `${item.agentName} 续费 ${getLineItemValidityMonths(item)} 个月`;
+    })
+    .join(" / ");
+
 const buildChangeFulfillmentItem = (
   orderId: string,
-  type: Extract<FdeOrderFulfillmentType, "设备追加" | "Agent追加">,
+  type: Extract<FdeOrderFulfillmentType, "设备追加" | "Agent追加" | "资产续费">,
   summary: string,
   deliveryOrder: FdeDeliveryOrderItem,
   members: FdeTeamMemberItem[],
@@ -940,6 +956,29 @@ export const syncOrdersWithDeliveryState = (
             ),
           ];
         }
+
+        if (
+          changeOrderIncludesRenewal(changeOrder) &&
+          (deviceLineItems.some(item => Boolean(item.renewalTargetAssetId)) ||
+            agentLineItems.some(item => Boolean(item.renewalTargetAssetId))) &&
+          !fulfillmentItems.some(
+            item => item.linkedRecordId === changeOrder.id && item.type === "资产续费",
+          )
+        ) {
+          fulfillmentItems = [
+            ...fulfillmentItems,
+            buildChangeFulfillmentItem(
+              nextOrder.id,
+              "资产续费",
+              getRenewalLineItemSummary([
+                ...deviceLineItems.filter(item => Boolean(item.renewalTargetAssetId)),
+                ...agentLineItems.filter(item => Boolean(item.renewalTargetAssetId)),
+              ]),
+              changeOrder,
+              members,
+            ),
+          ];
+        }
       });
     }
 
@@ -1086,12 +1125,18 @@ export const syncOrdersWithDeliveryState = (
       const completedAgentChangeRecordId = fulfillmentItems.find(
         item => item.type === "Agent追加" && item.status === "已完成",
       )?.linkedRecordId;
+      const completedRenewalRecordId = fulfillmentItems.find(
+        item => item.type === "资产续费" && item.status === "已完成",
+      )?.linkedRecordId;
       const completedDeviceDelivery =
         linkedChangeOrders.find(item => item.id === completedDeviceChangeRecordId) ??
         completedInitialRecord;
       const completedAgentDelivery =
         linkedChangeOrders.find(item => item.id === completedAgentChangeRecordId) ??
         completedInitialRecord;
+      const completedRenewalDelivery = linkedChangeOrders.find(
+        item => item.id === completedRenewalRecordId,
+      );
       let nextCustomer = linkedCustomer;
       const nextLineItems = nextOrder.lineItems.map(item => {
         if (
@@ -1150,13 +1195,106 @@ export const syncOrdersWithDeliveryState = (
           };
         }
 
+        if (
+          isDeviceLineItem(item) &&
+          item.renewalTargetAssetId &&
+          completedRenewalDelivery
+        ) {
+          const targetDevice = nextCustomer.devices.find(
+            device =>
+              device.assetId === item.renewalTargetAssetId || device.id === item.renewalTargetAssetId,
+          );
+
+          if (!targetDevice) {
+            return item;
+          }
+
+          const completedAt = resolveDeliveryCompletedAt(completedRenewalDelivery);
+          const nextActivatedAt =
+            targetDevice.expiresAt && dayjs(targetDevice.expiresAt).isAfter(dayjs(completedAt))
+            ? targetDevice.activatedAt ?? completedAt
+            : completedAt;
+          const nextExpiresAt = addValidityMonths(
+            resolveRenewalBaseAt(targetDevice.expiresAt, completedAt),
+            getLineItemValidityMonths(item),
+          );
+
+          nextCustomer = {
+            ...nextCustomer,
+            devices: nextCustomer.devices.map(device =>
+              device.assetId === item.renewalTargetAssetId || device.id === item.renewalTargetAssetId
+                ? {
+                    ...device,
+                    sourceOrderId: nextOrder.id,
+                    validityMonths: getLineItemValidityMonths(item),
+                    activatedAt: nextActivatedAt,
+                    expiresAt: nextExpiresAt,
+                  }
+                : device,
+            ),
+          };
+
+          return {
+            ...item,
+            validityMonths: getLineItemValidityMonths(item),
+            deliveredAssetIds: [targetDevice.assetId ?? targetDevice.id],
+            activatedAt: nextActivatedAt,
+            expiresAt: nextExpiresAt,
+          };
+        }
+
+        if (
+          isAgentLineItem(item) &&
+          item.renewalTargetAssetId &&
+          completedRenewalDelivery
+        ) {
+          const targetAgent = nextCustomer.agents.find(
+            agent =>
+              agent.assetId === item.renewalTargetAssetId || agent.name === item.renewalTargetAssetId,
+          );
+
+          if (!targetAgent) {
+            return item;
+          }
+
+          const completedAt = resolveDeliveryCompletedAt(completedRenewalDelivery);
+          const nextActivatedAt =
+            targetAgent.expiresAt && dayjs(targetAgent.expiresAt).isAfter(dayjs(completedAt))
+            ? targetAgent.activatedAt ?? completedAt
+            : completedAt;
+          const nextExpiresAt = addValidityMonths(
+            resolveRenewalBaseAt(targetAgent.expiresAt, completedAt),
+            getLineItemValidityMonths(item),
+          );
+
+          nextCustomer = {
+            ...nextCustomer,
+            agents: nextCustomer.agents.map(agent =>
+              agent.assetId === item.renewalTargetAssetId || agent.name === item.renewalTargetAssetId
+                ? {
+                    ...agent,
+                    sourceOrderId: nextOrder.id,
+                    validityMonths: getLineItemValidityMonths(item),
+                    activatedAt: nextActivatedAt,
+                    expiresAt: nextExpiresAt,
+                  }
+                : agent,
+            ),
+          };
+
+          return {
+            ...item,
+            validityMonths: getLineItemValidityMonths(item),
+            deliveredAssetIds: [targetAgent.assetId ?? targetAgent.name],
+            activatedAt: nextActivatedAt,
+            expiresAt: nextExpiresAt,
+          };
+        }
+
         return item;
       });
 
-      if (
-        nextCustomer.devices.length !== linkedCustomer.devices.length ||
-        nextCustomer.agents.length !== linkedCustomer.agents.length
-      ) {
+      if (nextCustomer !== linkedCustomer) {
         nextCustomers = nextCustomers.map(item =>
           item.id === linkedCustomer.id
             ? {

@@ -18,6 +18,7 @@ interface FdeOperationsMonitorViewProps {
   items: FdeOperationsCustomerItem[];
   selectedCustomerId: string;
   setSelectedCustomerId: (customerId: string) => void;
+  onNavigateToDelivery: () => void;
   renewAsset: (payload: FdeRenewAssetPayload) => FdeCreateOrderResult;
 }
 
@@ -186,6 +187,7 @@ export const FdeOperationsMonitorView = ({
   items,
   selectedCustomerId,
   setSelectedCustomerId,
+  onNavigateToDelivery,
   renewAsset,
 }: FdeOperationsMonitorViewProps): JSX.Element => {
   const [activeDetailTab, setActiveDetailTab] = useState<FdeAssetDetailTabKey>("recharge");
@@ -261,8 +263,18 @@ export const FdeOperationsMonitorView = ({
     }
 
     handleCloseRenewModal();
-    message.success("已创建续费订单，并已顺延资产到期时间。");
-  }, [handleCloseRenewModal, renewAmount, renewAsset, renewDraft, renewRemark, renewValidityMonths, selectedCustomer]);
+    message.success("已创建续费订单，正在进入配置交付。");
+    onNavigateToDelivery();
+  }, [
+    handleCloseRenewModal,
+    onNavigateToDelivery,
+    renewAmount,
+    renewAsset,
+    renewDraft,
+    renewRemark,
+    renewValidityMonths,
+    selectedCustomer,
+  ]);
 
   if (!deliveredItems.length) {
     return <Empty description="当前暂无已交付客户资产" />;
