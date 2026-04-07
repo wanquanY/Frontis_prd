@@ -171,7 +171,7 @@ const FrontisPage = ({ viewRole }: FrontisPageProps): JSX.Element => {
   );
   const [activeDialogueSessionId, setActiveDialogueSessionId] = useState<string>("");
   const [isDialogueHomeActive, setIsDialogueHomeActive] = useState<boolean>(true);
-  const [selectedSkillId, setSelectedSkillId] = useState<string | null>(null);
+  const [selectedSkillIds, setSelectedSkillIds] = useState<string[]>([]);
   const [defaultAgentNameOverrides, setDefaultAgentNameOverrides] = useState<Record<string, string>>(
     {},
   );
@@ -309,19 +309,21 @@ const FrontisPage = ({ viewRole }: FrontisPageProps): JSX.Element => {
         : AI_CEO_DEFAULT_HOME_CONFIG,
     [activeEmployee],
   );
-  const selectedSkill = useMemo(
+  const selectedSkills = useMemo(
     () =>
-      selectedSkillId
-        ? (activeAgentHomeConfig.skillItems.find(item => item.id === selectedSkillId) ?? null)
-        : null,
-    [activeAgentHomeConfig.skillItems, selectedSkillId],
+      activeAgentHomeConfig.skillItems.filter(item => selectedSkillIds.includes(item.id)),
+    [activeAgentHomeConfig.skillItems, selectedSkillIds],
+  );
+  const selectedSkillNamesLabel = useMemo(
+    () => selectedSkills.map(item => item.name).join("、"),
+    [selectedSkills],
   );
   const dialoguePlaceholder = useMemo(
     () =>
-      selectedSkill
-        ? `已选择技能：${selectedSkill.name}，请输入你的具体需求`
+      selectedSkills.length
+        ? `已选择技能：${selectedSkillNamesLabel}，请输入你的具体需求`
         : "输入消息或上传附件",
-    [selectedSkill],
+    [selectedSkillNamesLabel, selectedSkills.length],
   );
 
   useEffect(() => {
@@ -359,14 +361,18 @@ const FrontisPage = ({ viewRole }: FrontisPageProps): JSX.Element => {
   }, [dialogueAttachments]);
 
   useEffect(() => {
-    if (!selectedSkillId) {
+    if (!selectedSkillIds.length) {
       return;
     }
-    if (activeAgentHomeConfig.skillItems.some(item => item.id === selectedSkillId)) {
+    const nextSelectedSkillIds = selectedSkillIds.filter(skillId =>
+      activeAgentHomeConfig.skillItems.some(item => item.id === skillId),
+    );
+
+    if (nextSelectedSkillIds.length === selectedSkillIds.length) {
       return;
     }
-    setSelectedSkillId(null);
-  }, [activeAgentHomeConfig.skillItems, selectedSkillId]);
+    setSelectedSkillIds(nextSelectedSkillIds);
+  }, [activeAgentHomeConfig.skillItems, selectedSkillIds]);
 
   const clearDialogueTimers = useCallback((): void => {
     dialogueTimerRefs.current.forEach(timerId => window.clearTimeout(timerId));
@@ -419,7 +425,7 @@ const FrontisPage = ({ viewRole }: FrontisPageProps): JSX.Element => {
       dialogueAttachments.forEach(revokeComposerAttachmentPreview);
       setDialogueAttachments([]);
       setDialogueInputValue("");
-      setSelectedSkillId(null);
+      setSelectedSkillIds([]);
     },
     [dialogueAttachments, dialogueSessions, isDialogueHomeActive],
   );
@@ -431,7 +437,7 @@ const FrontisPage = ({ viewRole }: FrontisPageProps): JSX.Element => {
       dialogueAttachments.forEach(revokeComposerAttachmentPreview);
       setDialogueAttachments([]);
       setDialogueInputValue("");
-      setSelectedSkillId(null);
+      setSelectedSkillIds([]);
     },
     [dialogueAttachments],
   );
@@ -442,11 +448,15 @@ const FrontisPage = ({ viewRole }: FrontisPageProps): JSX.Element => {
     dialogueAttachments.forEach(revokeComposerAttachmentPreview);
     setDialogueAttachments([]);
     setDialogueInputValue("");
-    setSelectedSkillId(null);
+    setSelectedSkillIds([]);
   }, [dialogueAttachments]);
 
   const handleSelectSkill = useCallback((skillId: string): void => {
-    setSelectedSkillId(current => (current === skillId ? null : skillId));
+    setSelectedSkillIds(current =>
+      current.includes(skillId)
+        ? current.filter(item => item !== skillId)
+        : [...current, skillId],
+    );
   }, []);
 
   const handleRenameDialogueSession = useCallback((sessionId: string, title: string): void => {
@@ -523,14 +533,14 @@ const FrontisPage = ({ viewRole }: FrontisPageProps): JSX.Element => {
       (content.length > 0
         ? content.slice(0, 18)
         : (dialogueAttachments[0]?.name ??
-          (selectedSkill ? `${selectedSkill.name}需求` : "新对话")));
+          (selectedSkills.length ? `${selectedSkills[0]?.name ?? "技能"}需求` : "新对话")));
     const messageAttachments =
       dialogueAttachments.length > 0 ? dialogueAttachments.map(buildAttachmentItem) : undefined;
-    const userMessageContent = selectedSkill
-      ? `技能：${selectedSkill.name}\n需求：${content || fallbackContent}`
+    const userMessageContent = selectedSkills.length
+      ? `技能：${selectedSkillNamesLabel}\n需求：${content || fallbackContent}`
       : (content || fallbackContent);
-    const sessionPreview = selectedSkill
-      ? `${selectedSkill.name} · ${content || fallbackContent}`
+    const sessionPreview = selectedSkills.length
+      ? `${selectedSkillNamesLabel} · ${content || fallbackContent}`
       : (content || fallbackContent);
 
     const nextUserMessage = {
@@ -576,7 +586,7 @@ const FrontisPage = ({ viewRole }: FrontisPageProps): JSX.Element => {
     setActiveDialogueSessionId(targetSessionId);
     setIsDialogueHomeActive(false);
     setDialogueInputValue("");
-    setSelectedSkillId(null);
+    setSelectedSkillIds([]);
     dialogueAttachments.forEach(revokeComposerAttachmentPreview);
     setDialogueAttachments([]);
     setRespondingDialogueSessionId(targetSessionId);
@@ -703,8 +713,8 @@ const FrontisPage = ({ viewRole }: FrontisPageProps): JSX.Element => {
       return;
     }
 
-    const responseText = selectedSkill
-      ? `已按「${selectedSkill.name}」开始处理，我会先聚焦这项能力来回应你的需求。`
+    const responseText = selectedSkills.length
+      ? `已按「${selectedSkillNamesLabel}」开始处理，我会先聚焦这些技能来回应你的需求。`
       : "已继续处理当前任务，结果会直接回流到本轮对话和右侧成果面板；如需管理员或其他角色协同，我会同步提醒。";
 
     const timerId = window.setTimeout(() => {
@@ -739,7 +749,8 @@ const FrontisPage = ({ viewRole }: FrontisPageProps): JSX.Element => {
     activeEmployee,
     clearDialogueTimers,
     dialogueAttachments,
-    selectedSkill,
+    selectedSkillNamesLabel,
+    selectedSkills.length,
     updateDialogueSession,
   ]);
 
@@ -861,7 +872,7 @@ const FrontisPage = ({ viewRole }: FrontisPageProps): JSX.Element => {
           onSkillSelect={handleSelectSkill}
           onSendDialogue={handleSendDialogue}
           onToggleSidebar={() => setIsDialogueSidebarCollapsed(current => !current)}
-          selectedSkillId={selectedSkillId}
+          selectedSkillIds={selectedSkillIds}
           onStopDialogue={handleStopDialogue}
           viewerName={currentUser?.name ?? "你"}
         />

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import dayjs from "dayjs";
 import classNames from "classnames";
-import { Button, Empty, Input, Modal, Progress, Select, Tabs, message } from "antd";
+import { Button, Input, InputNumber, Modal, Progress, Select, Tabs, message } from "antd";
 
 import type {
   FdeAddOpportunityCommentPayload,
@@ -10,6 +10,7 @@ import type {
   FdeOpportunityItem,
   FdeOpportunityStatus,
   FdeTeamMemberItem,
+  FdeCreateOpportunityPayload,
 } from "@/feature/fde/types";
 import { formatWanAmount, getFdeMemberName } from "@/feature/fde/utils";
 
@@ -22,11 +23,26 @@ interface FdeOpportunityWorkbenchProps {
   selectedOpportunityId: string;
   setSelectedOpportunityId: (opportunityId: string) => void;
   assignOpportunity: (opportunityId: string, memberId: string | null) => void;
+  createOpportunity: (payload: FdeCreateOpportunityPayload) => void;
   updateOpportunityStatus: (opportunityId: string, status: FdeOpportunityStatus) => void;
   addOpportunityComment: (payload: FdeAddOpportunityCommentPayload) => void;
 }
 
 type OpportunityViewKey = "list" | "board";
+
+interface CreateOpportunityFormState {
+  companyName: string;
+  scenarioName: string;
+  industry: string;
+  amountWan: number | null;
+  submitterName: string;
+  submitterPhone: string;
+  sourceEntryLabel: string;
+  interestedAgents: string[];
+  requirementSummary: string;
+  requirementDetail: string;
+  ownerId?: string;
+}
 
 const OPPORTUNITY_STATUS_OPTIONS: Array<{ label: string; value: FdeOpportunityStatus }> = [
   { label: "未开始", value: "未开始" },
@@ -53,6 +69,20 @@ const getStatusClassName = (status: FdeOpportunityStatus): string => {
 
 const formatDateTime = (value: string): string => dayjs(value).format("YYYY-MM-DD HH:mm");
 
+const createInitialOpportunityForm = (): CreateOpportunityFormState => ({
+  companyName: "",
+  scenarioName: "",
+  industry: "",
+  amountWan: null,
+  submitterName: "",
+  submitterPhone: "",
+  sourceEntryLabel: "FDE 手动录入",
+  interestedAgents: [],
+  requirementSummary: "",
+  requirementDetail: "",
+  ownerId: undefined,
+});
+
 /**
  * FDE 商机管理视图。
  */
@@ -63,13 +93,18 @@ export const FdeOpportunityWorkbench = ({
   selectedOpportunityId,
   setSelectedOpportunityId,
   assignOpportunity,
+  createOpportunity,
   updateOpportunityStatus,
   addOpportunityComment,
 }: FdeOpportunityWorkbenchProps): JSX.Element => {
   const [activeView, setActiveView] = useState<OpportunityViewKey>("list");
   const [isDetailModalOpen, setIsDetailModalOpen] = useState<boolean>(false);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState<boolean>(false);
   const [commentDraft, setCommentDraft] = useState<string>("");
   const [replyToCommentId, setReplyToCommentId] = useState<string>("");
+  const [createForm, setCreateForm] = useState<CreateOpportunityFormState>(
+    createInitialOpportunityForm(),
+  );
   const selectedOpportunity = useMemo(
     () => items.find(item => item.id === selectedOpportunityId) ?? items[0] ?? null,
     [items, selectedOpportunityId],
@@ -95,7 +130,7 @@ export const FdeOpportunityWorkbench = ({
         {
           label: "商机数量",
           value: `${items.length}`,
-          hint: "每条商机都来自门户客户提交的需求信息",
+          hint: "包含门户提交和手动录入的全部商机",
         },
         {
           label: "已分配商机",
@@ -131,10 +166,30 @@ export const FdeOpportunityWorkbench = ({
   );
   const canAssignOpportunity = activeRole === "leader" || activeRole === "admin";
 
+  const handleCreateFieldChange = <TKey extends keyof CreateOpportunityFormState>(
+    key: TKey,
+    value: CreateOpportunityFormState[TKey],
+  ): void => {
+    setCreateForm(previous => ({
+      ...previous,
+      [key]: value,
+    }));
+  };
+
   useEffect(() => {
     setCommentDraft("");
     setReplyToCommentId("");
   }, [selectedOpportunity?.id, isDetailModalOpen]);
+
+  const handleOpenCreateModal = (): void => {
+    setCreateForm(createInitialOpportunityForm());
+    setIsCreateModalOpen(true);
+  };
+
+  const handleCloseCreateModal = (): void => {
+    setIsCreateModalOpen(false);
+    setCreateForm(createInitialOpportunityForm());
+  };
 
   const handleOpenDetail = (opportunityId: string): void => {
     setSelectedOpportunityId(opportunityId);
@@ -167,6 +222,41 @@ export const FdeOpportunityWorkbench = ({
     message.success("评论已提交。");
   };
 
+  const handleCreateOpportunity = (): void => {
+    if (
+      !createForm.companyName.trim() ||
+      !createForm.scenarioName.trim() ||
+      !createForm.industry.trim() ||
+      !createForm.submitterName.trim() ||
+      !createForm.submitterPhone.trim() ||
+      !createForm.requirementSummary.trim() ||
+      !createForm.requirementDetail.trim() ||
+      !createForm.amountWan ||
+      createForm.amountWan <= 0
+    ) {
+      message.warning("请先补齐商机基础信息和需求内容。");
+      return;
+    }
+
+    createOpportunity({
+      companyName: createForm.companyName.trim(),
+      scenarioName: createForm.scenarioName.trim(),
+      industry: createForm.industry.trim(),
+      amountWan: createForm.amountWan,
+      submitterName: createForm.submitterName.trim(),
+      submitterPhone: createForm.submitterPhone.trim(),
+      sourceEntryLabel: createForm.sourceEntryLabel.trim() || "FDE 手动录入",
+      interestedAgents: createForm.interestedAgents,
+      requirementSummary: createForm.requirementSummary.trim(),
+      requirementDetail: createForm.requirementDetail.trim(),
+      ownerId: canAssignOpportunity ? createForm.ownerId ?? null : undefined,
+    });
+    setIsCreateModalOpen(false);
+    setIsDetailModalOpen(true);
+    setCreateForm(createInitialOpportunityForm());
+    message.success("商机已创建。");
+  };
+
   const renderCommentItem = (comment: FdeOpportunityCommentItem): JSX.Element => {
     const authorName = getFdeMemberName(members, comment.authorId);
     const replyAuthorName = comment.replyToAuthorId
@@ -195,10 +285,7 @@ export const FdeOpportunityWorkbench = ({
   const listView = (
     <section className={styles.panel}>
       <div className={styles.panelHeader}>
-        <div>
-          <div className={styles.panelTitle}>商机列表</div>
-          <div className={styles.panelHint}>每一行都是一条门户客户提交的商机需求。</div>
-        </div>
+        <div className={styles.panelTitle}>商机列表</div>
       </div>
 
       <div className={styles.tableHeader}>
@@ -211,24 +298,31 @@ export const FdeOpportunityWorkbench = ({
         <span>负责人</span>
       </div>
       <div className={styles.tableBody}>
-        {items.map(item => (
-          <button
-            key={item.id}
-            type="button"
-            className={classNames(styles.tableRow, item.id === selectedOpportunity?.id && styles.tableRowActive)}
-            onClick={() => handleOpenDetail(item.id)}
-          >
-            <span className={styles.companyCell}>{item.companyName}</span>
-            <span>{item.requirementInfo.submitterName}</span>
-            <span>{formatDateTime(item.requirementInfo.submittedAt)}</span>
-            <span>{item.requirementInfo.sourceEntryLabel}</span>
-            <span className={styles.summaryCell}>{item.requirementInfo.requirementSummary}</span>
-            <span className={classNames(styles.statusTag, getStatusClassName(item.status))}>
-              {item.status}
-            </span>
-            <span>{getFdeMemberName(members, item.ownerId ?? "")}</span>
-          </button>
-        ))}
+        {items.length ? (
+          items.map(item => (
+            <button
+              key={item.id}
+              type="button"
+              className={classNames(
+                styles.tableRow,
+                item.id === selectedOpportunity?.id && styles.tableRowActive,
+              )}
+              onClick={() => handleOpenDetail(item.id)}
+            >
+              <span className={styles.companyCell}>{item.companyName}</span>
+              <span>{item.requirementInfo.submitterName}</span>
+              <span>{formatDateTime(item.requirementInfo.submittedAt)}</span>
+              <span>{item.requirementInfo.sourceEntryLabel}</span>
+              <span className={styles.summaryCell}>{item.requirementInfo.requirementSummary}</span>
+              <span className={classNames(styles.statusTag, getStatusClassName(item.status))}>
+                {item.status}
+              </span>
+              <span>{getFdeMemberName(members, item.ownerId ?? "")}</span>
+            </button>
+          ))
+        ) : (
+          <div className={styles.emptyHint}>当前暂无商机</div>
+        )}
       </div>
     </section>
   );
@@ -288,15 +382,16 @@ export const FdeOpportunityWorkbench = ({
     </div>
   );
 
-  if (!items.length) {
-    return <Empty description="当前暂无商机数据" />;
-  }
-
   return (
     <div className={styles.layout}>
       <Tabs
         activeKey={activeView}
         className={styles.viewTabs}
+        tabBarExtraContent={
+          <Button type="primary" onClick={handleOpenCreateModal}>
+            手动创建商机
+          </Button>
+        }
         onChange={key => {
           if (key === "list" || key === "board") {
             setActiveView(key);
@@ -317,6 +412,125 @@ export const FdeOpportunityWorkbench = ({
       />
 
       <Modal
+        title="手动创建商机"
+        open={isCreateModalOpen}
+        width={760}
+        onCancel={handleCloseCreateModal}
+        onOk={handleCreateOpportunity}
+        okText="创建商机"
+        cancelText="取消"
+        destroyOnClose
+      >
+        <div className={styles.createForm}>
+          <div className={styles.createFormGrid}>
+            <div className={styles.formBlock}>
+              <div className={styles.controlLabel}>企业名称</div>
+              <Input
+                value={createForm.companyName}
+                placeholder="请输入企业名称"
+                onChange={event => handleCreateFieldChange("companyName", event.target.value)}
+              />
+            </div>
+            <div className={styles.formBlock}>
+              <div className={styles.controlLabel}>业务场景</div>
+              <Input
+                value={createForm.scenarioName}
+                placeholder="请输入业务场景"
+                onChange={event => handleCreateFieldChange("scenarioName", event.target.value)}
+              />
+            </div>
+            <div className={styles.formBlock}>
+              <div className={styles.controlLabel}>行业</div>
+              <Input
+                value={createForm.industry}
+                placeholder="请输入行业"
+                onChange={event => handleCreateFieldChange("industry", event.target.value)}
+              />
+            </div>
+            <div className={styles.formBlock}>
+              <div className={styles.controlLabel}>预计金额（万）</div>
+              <InputNumber
+                className={styles.fullWidthControl}
+                min={1}
+                value={createForm.amountWan}
+                placeholder="请输入预计金额"
+                onChange={value => handleCreateFieldChange("amountWan", value)}
+              />
+            </div>
+            <div className={styles.formBlock}>
+              <div className={styles.controlLabel}>提交人</div>
+              <Input
+                value={createForm.submitterName}
+                placeholder="请输入提交人"
+                onChange={event => handleCreateFieldChange("submitterName", event.target.value)}
+              />
+            </div>
+            <div className={styles.formBlock}>
+              <div className={styles.controlLabel}>联系电话</div>
+              <Input
+                value={createForm.submitterPhone}
+                placeholder="请输入联系电话"
+                onChange={event => handleCreateFieldChange("submitterPhone", event.target.value)}
+              />
+            </div>
+            <div className={styles.formBlock}>
+              <div className={styles.controlLabel}>来源入口</div>
+              <Input
+                value={createForm.sourceEntryLabel}
+                placeholder="请输入来源入口"
+                onChange={event => handleCreateFieldChange("sourceEntryLabel", event.target.value)}
+              />
+            </div>
+            {canAssignOpportunity ? (
+              <div className={styles.formBlock}>
+                <div className={styles.controlLabel}>分配成员</div>
+                <Select<string>
+                  allowClear
+                  className={styles.fullWidthControl}
+                  placeholder="可选，创建后再分配"
+                  value={createForm.ownerId}
+                  options={enabledMemberOptions}
+                  onChange={value => handleCreateFieldChange("ownerId", value)}
+                />
+              </div>
+            ) : null}
+          </div>
+          <div className={styles.formBlock}>
+            <div className={styles.controlLabel}>感兴趣的 AI 专家</div>
+            <Select
+              mode="tags"
+              className={styles.fullWidthControl}
+              value={createForm.interestedAgents}
+              placeholder="输入后回车，可添加多个"
+              onChange={value => handleCreateFieldChange("interestedAgents", value)}
+            />
+          </div>
+          <div className={styles.formBlock}>
+            <div className={styles.controlLabel}>需求摘要</div>
+            <Input.TextArea
+              rows={3}
+              value={createForm.requirementSummary}
+              placeholder="请输入需求摘要"
+              onChange={event =>
+                handleCreateFieldChange("requirementSummary", event.target.value)
+              }
+            />
+          </div>
+          <div className={styles.formBlock}>
+            <div className={styles.controlLabel}>详细需求介绍</div>
+            <Input.TextArea
+              rows={5}
+              value={createForm.requirementDetail}
+              placeholder="请输入详细需求介绍"
+              onChange={event =>
+                handleCreateFieldChange("requirementDetail", event.target.value)
+              }
+            />
+          </div>
+        </div>
+      </Modal>
+
+      <Modal
         title="商机详情"
         open={Boolean(selectedOpportunity) && isDetailModalOpen}
         centered
@@ -332,7 +546,7 @@ export const FdeOpportunityWorkbench = ({
             <div className={styles.detailLayout}>
               <div className={styles.detailHeader}>
                 <div>
-                  <div className={styles.detailEyebrow}>门户需求详情</div>
+                  <div className={styles.detailEyebrow}>商机需求详情</div>
                   <h2 className={styles.detailTitle}>{selectedOpportunity.companyName}</h2>
                   <div className={styles.detailSubtitle}>
                     {selectedOpportunity.scenarioName} · {selectedOpportunity.industry}
@@ -371,7 +585,7 @@ export const FdeOpportunityWorkbench = ({
               </div>
 
               <div className={styles.detailSection}>
-                <div className={styles.sectionTitle}>客户提交需求</div>
+                <div className={styles.sectionTitle}>需求信息</div>
                 <div className={styles.requirementGrid}>
                   <div className={styles.requirementRow}>
                     <span className={styles.requirementLabel}>提交人</span>
@@ -388,7 +602,7 @@ export const FdeOpportunityWorkbench = ({
                     </span>
                   </div>
                   <div className={styles.requirementRow}>
-                    <span className={styles.requirementLabel}>门户入口</span>
+                    <span className={styles.requirementLabel}>来源入口</span>
                     <span className={styles.requirementValue}>{selectedOpportunity.requirementInfo.sourceEntryLabel}</span>
                   </div>
                   <div className={styles.requirementRow}>

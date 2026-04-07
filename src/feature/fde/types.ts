@@ -273,6 +273,23 @@ export interface FdeAddOpportunityCommentPayload {
 }
 
 /**
+ * 手动创建商机入参。
+ */
+export interface FdeCreateOpportunityPayload {
+  companyName: string;
+  scenarioName: string;
+  industry: string;
+  amountWan: number;
+  submitterName: string;
+  submitterPhone: string;
+  sourceEntryLabel: string;
+  interestedAgents: string[];
+  requirementSummary: string;
+  requirementDetail: string;
+  ownerId?: string | null;
+}
+
+/**
  * 设备配置详情。
  */
 export interface FdeDeviceConfigInfo {
@@ -784,6 +801,7 @@ export interface UseFdeWorkbenchResult {
   setActiveTab: (tab: FdeWorkbenchTabKey) => void;
   createOrder: (payload: FdeCreateOrderPayload) => FdeCreateOrderResult;
   assignOpportunity: (opportunityId: string, memberId: string | null) => void;
+  createOpportunity: (payload: FdeCreateOpportunityPayload) => void;
   updateOpportunityStatus: (opportunityId: string, status: FdeOpportunityStatus) => void;
   addOpportunityComment: (payload: FdeAddOpportunityCommentPayload) => void;
   renewAsset: (payload: FdeRenewAssetPayload) => FdeCreateOrderResult;

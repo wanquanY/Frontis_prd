@@ -139,8 +139,8 @@ export const FdeLeaderDashboardView = ({
       },
       {
         actionTab: "operations",
-        hint: "已进入持续运营的客户",
-        label: "已交付客户",
+        hint: "已进入持续运营的租户",
+        label: "已交付租户",
         value: `${deliveredCustomerCount}`,
       },
     ];
@@ -156,7 +156,7 @@ export const FdeLeaderDashboardView = ({
           actionTab: "delivery",
           detail: `${DELIVERY_STEP_LABELS[item.currentStep]}，计划 ${item.launchTargetDate} 上线`,
           ownerName: getFdeMemberName(members, item.assignedToId),
-          title: `${item.customerName} 交付仍未完成`,
+          title: `${item.tenantName || item.customerName} 交付仍未完成`,
           tone: "medium",
       }));
   }, [deliveryOrders, members]);
@@ -309,7 +309,7 @@ export const FdeLeaderDashboardView = ({
             <span>成员</span>
             <span>状态</span>
             <span>配置交付</span>
-            <span>运行客户</span>
+            <span>运行租户</span>
             <span>版本任务</span>
             <span>风险项</span>
             <span>聚焦场景</span>
@@ -336,7 +336,7 @@ export const FdeLeaderDashboardView = ({
                 <span className={styles.teamValue}>{item.activeDeliveryCount}</span>
               </div>
               <div className={styles.teamMetric}>
-                <span className={styles.teamMetricLabel}>运行客户</span>
+                <span className={styles.teamMetricLabel}>运行租户</span>
                 <span className={styles.teamValue}>{item.deliveredCustomerCount}</span>
               </div>
               <div className={styles.teamMetric}>

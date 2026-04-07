@@ -71,8 +71,8 @@ export const DELIVERY_STEP_GUIDES: Record<FdeDeliveryStepKey, DeliveryStepGuide>
     buttonLabel: "完成 Agent 下发",
   },
   apiTest: {
-    title: "企业后台初始化",
-    buttonLabel: "完成后台初始化",
+    title: "企业后台配置",
+    buttonLabel: "完成企业后台配置",
   },
   preflight: {
     title: "交付验收",
@@ -195,13 +195,15 @@ export const getVisibleDeliverySteps = (
 
   if (order.changeType === "追加设备") {
     return FDE_DELIVERY_STEPS.filter(
-      step => step.key === "deviceConfig" || step.key === "preflight",
+      step =>
+        step.key === "deviceConfig" || step.key === "apiTest" || step.key === "preflight",
     );
   }
 
   if (order.changeType === "追加Agent") {
     return FDE_DELIVERY_STEPS.filter(
-      step => step.key === "agentConfig" || step.key === "preflight",
+      step =>
+        step.key === "agentConfig" || step.key === "apiTest" || step.key === "preflight",
     );
   }
 
@@ -210,6 +212,7 @@ export const getVisibleDeliverySteps = (
       step =>
         step.key === "deviceConfig" ||
         step.key === "agentConfig" ||
+        step.key === "apiTest" ||
         step.key === "preflight",
     );
   }
@@ -224,19 +227,22 @@ export const getVisibleDeliverySteps = (
         step =>
           step.key === "deviceConfig" ||
           step.key === "agentConfig" ||
+          step.key === "apiTest" ||
           step.key === "preflight",
       );
     }
 
     if (hasDeviceRenewal) {
       return FDE_DELIVERY_STEPS.filter(
-        step => step.key === "deviceConfig" || step.key === "preflight",
+        step =>
+          step.key === "deviceConfig" || step.key === "apiTest" || step.key === "preflight",
       );
     }
 
     if (hasAgentRenewal) {
       return FDE_DELIVERY_STEPS.filter(
-        step => step.key === "agentConfig" || step.key === "preflight",
+        step =>
+          step.key === "agentConfig" || step.key === "apiTest" || step.key === "preflight",
       );
     }
   }

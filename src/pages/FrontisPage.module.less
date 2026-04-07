@@ -3376,7 +3376,13 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  overflow: hidden;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+}
+
+.dialogueComposerSkillTrack::-webkit-scrollbar {
+  display: none;
 }
 
 .dialogueComposerSkillButton {

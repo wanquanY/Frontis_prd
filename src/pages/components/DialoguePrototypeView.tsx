@@ -103,7 +103,7 @@ interface DialoguePrototypeViewProps {
   onSkillSelect: (skillId: string) => void;
   onSendDialogue: () => void;
   onToggleSidebar: () => void;
-  selectedSkillId: string | null;
+  selectedSkillIds: string[];
   onStopDialogue: () => void;
   viewerName: string;
 }
@@ -203,7 +203,7 @@ export const DialoguePrototypeView = ({
   onSkillSelect,
   onSendDialogue,
   onToggleSidebar,
-  selectedSkillId,
+  selectedSkillIds,
   onStopDialogue,
   viewerName,
 }: DialoguePrototypeViewProps): JSX.Element => {
@@ -293,17 +293,17 @@ export const DialoguePrototypeView = ({
     [dialogueMessages],
   );
   const chatBlocks = useMemo(() => buildWorkspaceChatBlocks(dialogueMessages), [dialogueMessages]);
-  const selectedSkillItem = useMemo(
-    () => homeSkillItems.find(item => item.id === selectedSkillId) ?? null,
-    [homeSkillItems, selectedSkillId],
+  const selectedSkillItems = useMemo(
+    () => homeSkillItems.filter(item => selectedSkillIds.includes(item.id)),
+    [homeSkillItems, selectedSkillIds],
   );
   const availableSkillItems = useMemo(
-    () => homeSkillItems.filter(item => item.id !== selectedSkillId),
-    [homeSkillItems, selectedSkillId],
+    () => homeSkillItems.filter(item => !selectedSkillIds.includes(item.id)),
+    [homeSkillItems, selectedSkillIds],
   );
   const { visibleSkillItems, overflowSkillItems } = useMemo(() => {
     const maxVisibleSkillCount = Math.max(
-      MAX_VISIBLE_SKILL_COUNT - (selectedSkillItem ? 1 : 0),
+      MAX_VISIBLE_SKILL_COUNT - selectedSkillItems.length,
       0,
     );
 
@@ -315,7 +315,10 @@ export const DialoguePrototypeView = ({
     }
 
     const visibleItems: AiCeoHomeSkillItem[] = [];
-    let usedWidth = selectedSkillItem ? getSkillButtonWidth(selectedSkillItem.name, true) : 0;
+    let usedWidth = selectedSkillItems.reduce((total, item, index) => {
+      const nextWidth = getSkillButtonWidth(item.name, true);
+      return total + nextWidth + (index > 0 ? SKILL_BUTTON_GAP : 0);
+    }, 0);
     const moreButtonWidth = getSkillButtonWidth("更多");
 
     for (let index = 0; index < availableSkillItems.length; index += 1) {
@@ -344,7 +347,7 @@ export const DialoguePrototypeView = ({
       visibleSkillItems: visibleItems,
       overflowSkillItems: [],
     };
-  }, [availableSkillItems, selectedSkillItem, skillTrackWidth]);
+  }, [availableSkillItems, selectedSkillItems, skillTrackWidth]);
   const moreSkillMenuItems = useMemo<NonNullable<MenuProps["items"]>>(
     () =>
       overflowSkillItems.map(item => ({
@@ -788,24 +791,22 @@ export const DialoguePrototypeView = ({
           <div className={styles.dialogueComposerSkillBar}>
             <span className={styles.dialogueComposerSkillDivider} aria-hidden={true} />
             <div ref={skillTrackRef} className={styles.dialogueComposerSkillTrack}>
-              {selectedSkillItem ? (
-                <div className={styles.dialogueComposerSkillSelected}>
+              {selectedSkillItems.map(skill => (
+                <div key={skill.id} className={styles.dialogueComposerSkillSelected}>
                   <span className={styles.dialogueComposerSkillIcon}>
-                    {renderSkillIcon(selectedSkillItem.iconKey)}
+                    {renderSkillIcon(skill.iconKey)}
                   </span>
-                  <span className={styles.dialogueComposerSkillLabel}>
-                    {selectedSkillItem.name}
-                  </span>
+                  <span className={styles.dialogueComposerSkillLabel}>{skill.name}</span>
                   <button
                     type="button"
                     className={styles.dialogueComposerSkillClearButton}
-                    aria-label={`取消选择 ${selectedSkillItem.name}`}
-                    onClick={() => onSkillSelect(selectedSkillItem.id)}
+                    aria-label={`取消选择 ${skill.name}`}
+                    onClick={() => onSkillSelect(skill.id)}
                   >
                     <CloseOutlined />
                   </button>
                 </div>
-              ) : null}
+              ))}
               {visibleSkillItems.map(skill => (
                 <button
                   key={skill.id}
@@ -823,8 +824,6 @@ export const DialoguePrototypeView = ({
                 <Dropdown
                   menu={{
                     items: moreSkillMenuItems,
-                    selectable: true,
-                    selectedKeys: selectedSkillId ? [selectedSkillId] : [],
                     onClick: ({ key }) => onSkillSelect(String(key)),
                   }}
                   placement="topLeft"

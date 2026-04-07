@@ -20,9 +20,11 @@ interface FdeDeliveryOrderPreviewModalProps {
   onClose: () => void;
 }
 
+const getTenantDisplayName = (order: FdeOrderItem): string =>
+  order.tenantName?.trim() || order.customerName;
+
 const buildPreviewFields = (order: FdeOrderItem): OrderPreviewFieldItem[] => [
   { label: "订单编号", value: order.orderNo },
-  { label: "客户名称", value: order.customerName },
   { label: "订单类型", value: order.businessType ?? "新购" },
   { label: "订单状态", value: order.status },
   { label: "总金额", value: formatAmount(order.totalAmount) },
@@ -98,11 +100,11 @@ export const FdeDeliveryOrderPreviewModal = ({
           ))}
         </div>
         <div className={styles.subSection}>
-          <div className={styles.subSectionTitle}>关联租户</div>
+          <div className={styles.subSectionTitle}>租户信息</div>
           <div className={styles.infoRows}>
             <div className={styles.infoRow}>
               <span className={styles.infoLabel}>租户名称</span>
-              <span className={styles.infoValue}>{order.tenantName ?? "未关联"}</span>
+              <span className={styles.infoValue}>{getTenantDisplayName(order)}</span>
             </div>
             <div className={styles.infoRow}>
               <span className={styles.infoLabel}>租户编码</span>

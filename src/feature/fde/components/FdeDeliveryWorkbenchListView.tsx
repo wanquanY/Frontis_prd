@@ -17,6 +17,9 @@ interface FdeDeliveryWorkbenchListViewProps {
   onEnterDetail: (orderId: string) => void;
 }
 
+const getTenantDisplayName = (item: FdeDeliveryOrderItem): string =>
+  item.tenantName?.trim() || item.customerName;
+
 /**
  * FDE 配置交付一级列表视图，按租户交付单展示。
  */
@@ -33,7 +36,7 @@ export const FdeDeliveryWorkbenchListView = ({
       <Input
         value={searchKeyword}
         className={styles.searchInput}
-        placeholder="搜索客户名称、租户名称、租户编码或交付场景"
+        placeholder="搜索租户名称、租户编码或交付场景"
         onChange={event => setSearchKeyword(event.target.value)}
       />
       <Select<DeliveryStatusFilter>
@@ -51,7 +54,6 @@ export const FdeDeliveryWorkbenchListView = ({
 
     <div className={styles.listTable}>
       <div className={styles.listHeader}>
-        <span>客户名称</span>
         <span>租户名称</span>
         <span>交付场景</span>
         <span>交付状态</span>
@@ -67,8 +69,7 @@ export const FdeDeliveryWorkbenchListView = ({
             className={styles.listRow}
             onClick={() => onEnterDetail(item.id)}
           >
-            <span className={styles.tableStrong}>{item.customerName}</span>
-            <span>{item.tenantName}</span>
+            <span className={styles.tableStrong}>{getTenantDisplayName(item)}</span>
             <span>{item.scenarioName}</span>
             <span
               className={classNames(

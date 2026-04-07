@@ -36,7 +36,6 @@ interface FdeOrderManagementViewProps {
 }
 
 interface CreateOrderFormState {
-  customerName: string;
   tenantId?: string;
   remark: string;
   lineItems: FdeOrderLineItem[];
@@ -102,8 +101,10 @@ const isAgentLineItem = (item: FdeOrderLineItem): item is FdeOrderAgentLineItem 
 
 const isTokensLineItem = (item: FdeOrderLineItem): item is FdeOrderTokensLineItem => item.kind === "tokens";
 
+const getTenantDisplayName = (item: Pick<FdeOrderItem, "customerName" | "tenantName">): string =>
+  item.tenantName?.trim() || item.customerName;
+
 const createInitialOrderForm = (): CreateOrderFormState => ({
-  customerName: "",
   tenantId: undefined,
   remark: "",
   lineItems: [],
@@ -266,8 +267,7 @@ export const FdeOrderManagementView = ({
 
         const searchSource = [
           item.orderNo,
-          item.customerName,
-          item.tenantName ?? "",
+          getTenantDisplayName(item),
           item.tenantCode ?? "",
           item.status,
         ]
@@ -323,15 +323,12 @@ export const FdeOrderManagementView = ({
 
   const handleTenantChange = useCallback(
     (tenantId?: string): void => {
-      const targetTenant = tenantOptions.find(item => item.id === tenantId);
-
       setCreateForm(previous => ({
         ...previous,
         tenantId,
-        customerName: targetTenant?.customerName ?? previous.customerName,
       }));
     },
-    [tenantOptions],
+    [],
   );
 
   const handleAddDeviceLine = useCallback((): void => {
@@ -476,6 +473,13 @@ export const FdeOrderManagementView = ({
       return;
     }
 
+    const targetTenant = tenantOptions.find(item => item.id === createForm.tenantId);
+
+    if (!targetTenant) {
+      message.warning("当前租户不存在，请重新选择。");
+      return;
+    }
+
     if (!createForm.lineItems.length) {
       message.warning("请先添加至少一个商品明细。");
       return;
@@ -504,7 +508,7 @@ export const FdeOrderManagementView = ({
     }
 
     const result = createOrder({
-      customerName: createForm.customerName.trim(),
+      customerName: targetTenant.customerName.trim(),
       tenantId: createForm.tenantId,
       remark: createForm.remark.trim(),
       lineItems: createForm.lineItems,
@@ -519,7 +523,7 @@ export const FdeOrderManagementView = ({
     setViewMode("detail");
     handleCloseCreateModal();
     message.success("订单已创建。");
-  }, [createForm, createOrder, handleCloseCreateModal, setSelectedOrderId]);
+  }, [createForm, createOrder, handleCloseCreateModal, setSelectedOrderId, tenantOptions]);
 
   const handleEnterDetail = useCallback(
     (orderId: string): void => {
@@ -618,18 +622,10 @@ export const FdeOrderManagementView = ({
                 placeholder="请选择订单所属租户"
                 value={createForm.tenantId}
                 options={tenantOptions.map(item => ({
-                  label: `${item.tenantName} · ${item.customerName} · ${item.deliveryStatus}`,
+                  label: item.tenantName,
                   value: item.id,
                 }))}
                 onChange={value => handleTenantChange(value)}
-              />
-            </div>
-            <div className={styles.formField}>
-              <div className={styles.fieldLabel}>客户名称</div>
-              <Input
-                value={createForm.customerName}
-                disabled
-                placeholder="选择租户后自动带出"
               />
             </div>
           </div>
@@ -856,7 +852,7 @@ export const FdeOrderManagementView = ({
           <Input
             value={searchKeyword}
             className={styles.searchInput}
-            placeholder="搜索订单编号、客户名称、租户名称或租户编码"
+            placeholder="搜索订单编号、租户名称或租户编码"
             onChange={event => setSearchKeyword(event.target.value)}
           />
           <Select<TenantFilterValue>
@@ -869,10 +865,9 @@ export const FdeOrderManagementView = ({
         <div className={styles.listTable}>
           <div className={styles.listHeader}>
             <span>订单编号</span>
-            <span>客户名称</span>
+            <span>租户名称</span>
             <span>商品摘要</span>
             <span>总金额</span>
-            <span>关联租户</span>
             <span>状态</span>
             <span>操作</span>
           </div>
@@ -885,10 +880,9 @@ export const FdeOrderManagementView = ({
                 onClick={() => handleEnterDetail(item.id)}
               >
                 <span>{item.orderNo}</span>
-                <span className={styles.tableStrong}>{item.customerName}</span>
+                <span className={styles.tableStrong}>{getTenantDisplayName(item)}</span>
                 <span>{buildOrderSummary(item.lineItems)}</span>
                 <span>{formatAmount(item.totalAmount)}</span>
-                <span>{item.tenantName ?? "-"}</span>
                 <span className={classNames(styles.orderStatus, getOrderStatusClassName(item.status))}>
                   {item.status}
                 </span>
@@ -993,7 +987,7 @@ export const FdeOrderManagementView = ({
               >
                 返回订单列表
               </Button>
-              <h2 className={styles.pageTitle}>{selectedOrder.customerName}</h2>
+              <h2 className={styles.pageTitle}>{getTenantDisplayName(selectedOrder)}</h2>
             </div>
             <Button type="primary" onClick={onNavigateToDelivery}>进入配置交付</Button>
           </div>
@@ -1004,10 +998,6 @@ export const FdeOrderManagementView = ({
               <div className={styles.infoRow}>
                 <span className={styles.infoLabel}>订单编号</span>
                 <span className={styles.infoValue}>{selectedOrder.orderNo}</span>
-              </div>
-              <div className={styles.infoRow}>
-                <span className={styles.infoLabel}>客户名称</span>
-                <span className={styles.infoValue}>{selectedOrder.customerName}</span>
               </div>
               <div className={styles.infoRow}>
                 <span className={styles.infoLabel}>订单类型</span>
@@ -1038,11 +1028,11 @@ export const FdeOrderManagementView = ({
           </section>
 
           <section className={styles.section}>
-            <div className={styles.sectionTitle}>关联租户</div>
+            <div className={styles.sectionTitle}>租户信息</div>
             <div className={styles.infoGrid}>
               <div className={styles.infoRow}>
                 <span className={styles.infoLabel}>租户名称</span>
-                <span className={styles.infoValue}>{selectedOrder.tenantName ?? "-"}</span>
+                <span className={styles.infoValue}>{getTenantDisplayName(selectedOrder)}</span>
               </div>
               <div className={styles.infoRow}>
                 <span className={styles.infoLabel}>租户编码</span>

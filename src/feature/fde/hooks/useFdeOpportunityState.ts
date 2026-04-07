@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import type {
   FdeAddOpportunityCommentPayload,
+  FdeCreateOpportunityPayload,
   FdeOpportunityItem,
   FdeTeamMemberItem,
 } from "@/feature/fde/types";
@@ -26,6 +27,7 @@ export interface UseFdeOpportunityStateResult {
   selectedOpportunityId: string;
   setSelectedOpportunityId: (opportunityId: string) => void;
   assignOpportunity: (opportunityId: string, memberId: string | null) => void;
+  createOpportunity: (payload: FdeCreateOpportunityPayload) => void;
   updateOpportunityStatus: (
     opportunityId: string,
     status: FdeOpportunityItem["status"],
@@ -82,6 +84,44 @@ export const useFdeOpportunityState = ({
       ),
     );
   }, []);
+
+  const createOpportunity = useCallback(
+    (payload: FdeCreateOpportunityPayload): void => {
+      const createdAt = new Date().toLocaleString("zh-CN", { hour12: false });
+      const normalizedInterestedAgents = payload.interestedAgents
+        .map(item => item.trim())
+        .filter(Boolean);
+      const nextOpportunity: FdeOpportunityItem = {
+        id: buildId("opp"),
+        companyName: payload.companyName.trim(),
+        scenarioName: payload.scenarioName.trim(),
+        industry: payload.industry.trim(),
+        stage: "初步沟通",
+        status: "未开始",
+        amountWan: payload.amountWan,
+        winRate: 35,
+        ownerId: canManageTeamMembers(activeRole)
+          ? payload.ownerId ?? null
+          : activeMemberId,
+        source: "FDE手动创建",
+        summary: payload.requirementSummary.trim(),
+        requirementInfo: {
+          sourceEntryLabel: payload.sourceEntryLabel.trim() || "FDE 手动录入",
+          submittedAt: createdAt,
+          submitterName: payload.submitterName.trim(),
+          submitterPhone: payload.submitterPhone.trim(),
+          interestedAgents: normalizedInterestedAgents,
+          requirementSummary: payload.requirementSummary.trim(),
+          requirementDetail: payload.requirementDetail.trim(),
+        },
+        comments: [],
+      };
+
+      setOpportunities(previous => [nextOpportunity, ...previous]);
+      setSelectedOpportunityId(nextOpportunity.id);
+    },
+    [activeMemberId, activeRole],
+  );
 
   const updateOpportunityStatus = useCallback(
     (opportunityId: string, status: FdeOpportunityItem["status"]): void => {
@@ -146,6 +186,7 @@ export const useFdeOpportunityState = ({
     selectedOpportunityId,
     setSelectedOpportunityId,
     assignOpportunity,
+    createOpportunity,
     updateOpportunityStatus,
     addOpportunityComment,
   };

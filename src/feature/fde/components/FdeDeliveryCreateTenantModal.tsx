@@ -38,10 +38,10 @@ export const FdeDeliveryCreateTenantModal = ({
     <div className={styles.createTenantBody}>
       <div className={styles.drawerForm}>
         <div className={styles.drawerField}>
-          <div className={styles.drawerLabel}>客户名称</div>
+          <div className={styles.drawerLabel}>租户名称</div>
           <Input
             value={form.customerName}
-            placeholder="请输入客户 / 租户名称"
+            placeholder="请输入租户名称"
             onChange={event => onChange("customerName", event.target.value)}
           />
         </div>
