@@ -1993,6 +1993,7 @@ export const FDE_ORDER_ITEMS: FdeOrderItem[] = [
 export const FDE_OPERATIONS_CUSTOMERS: FdeOperationsCustomerItem[] = [
   {
     id: "monitor-01",
+    tenantId: "delivery-01",
     customerName: "百汇零售",
     scenarioName: "门店经营日清 + 财务对账",
     assignedToId: "fde-engineer-chenlan",
@@ -2167,6 +2168,7 @@ export const FDE_OPERATIONS_CUSTOMERS: FdeOperationsCustomerItem[] = [
   },
   {
     id: "monitor-02",
+    tenantId: "delivery-02",
     customerName: "新锐科技",
     scenarioName: "招聘协同 + 组织风险预警",
     assignedToId: "fde-engineer-hejin",
@@ -2287,6 +2289,7 @@ export const FDE_OPERATIONS_CUSTOMERS: FdeOperationsCustomerItem[] = [
   },
   {
     id: "monitor-03",
+    tenantId: "delivery-03",
     customerName: "东岸家居品牌",
     scenarioName: "基于 VOC 的产品创新",
     assignedToId: "fde-engineer-luzhou",
@@ -2409,6 +2412,7 @@ export const FDE_OPERATIONS_CUSTOMERS: FdeOperationsCustomerItem[] = [
   },
   {
     id: "monitor-04",
+    tenantId: "delivery-04",
     customerName: "星澜服饰",
     scenarioName: "商品图内容工厂 + 导购素材分发",
     assignedToId: FDE_PRIMARY_MEMBER_ID,

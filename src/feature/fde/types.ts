@@ -96,7 +96,7 @@ export type FdeDeliveryOrderKind = "initial" | "change";
 /**
  * 配置交付变更类型。
  */
-export type FdeDeliveryChangeType = "追加设备" | "追加Agent" | "追加设备与Agent";
+export type FdeDeliveryChangeType = "追加设备" | "追加Agent" | "追加设备与Agent" | "资产续费";
 
 /**
  * 交付变更记录状态。
@@ -382,6 +382,7 @@ export interface FdeDeliveryOrderItem {
  */
 export interface FdeOperationsCustomerItem {
   id: string;
+  tenantId?: string;
   customerName: string;
   scenarioName: string;
   assignedToId: string;

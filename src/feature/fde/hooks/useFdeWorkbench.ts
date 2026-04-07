@@ -1,7 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import dayjs from "dayjs";
-
 import {
   FDE_DELIVERY_ORDERS,
   FDE_ORDER_ITEMS,
@@ -31,21 +29,17 @@ import type {
 } from "@/feature/fde/types";
 import {
   FDE_DEVELOPMENT_VISIBLE_KEYS,
-  addValidityMonths,
   buildOrderStatus,
   buildChangeRecordFromOrder,
   buildCustomerAssetSnapshot,
   buildId,
   createOrderNo,
-  getFulfillmentCompletedActionLabel,
-  getFulfillmentCreatedActionLabel,
   getLineItemValidityMonths,
   hasManualDeliveryLineItem,
   hydrateExistingAssets,
   isAgentLineItem,
   isDeviceLineItem,
   resolveDeviceLineTypeFromAsset,
-  resolveRenewalBaseAt,
   syncOrdersWithDeliveryState,
   updateQuotaItems,
 } from "./fdeWorkbenchStateUtils";
@@ -81,6 +75,9 @@ const buildOrderLinkedDeliveryRecord = (payload: {
 }): FdeDeliveryOrderItem | null => {
   const deviceLineItems = payload.lineItems.filter(isDeviceLineItem);
   const agentLineItems = payload.lineItems.filter(isAgentLineItem);
+  const isRenewalOrder = [...deviceLineItems, ...agentLineItems].some(item =>
+    Boolean(item.renewalTargetAssetId),
+  );
 
   if (!deviceLineItems.length && !agentLineItems.length) {
     return null;
@@ -98,11 +95,13 @@ const buildOrderLinkedDeliveryRecord = (payload: {
   const expertNames = Array.from(new Set(agentLineItems.map(item => item.agentName)));
   const hasDevice = deviceLineItems.length > 0;
   const hasAgent = agentLineItems.length > 0;
-  const changeType = hasDevice
-    ? hasAgent
-      ? "追加设备与Agent"
-      : "追加设备"
-    : "追加Agent";
+  const changeType = isRenewalOrder
+    ? "资产续费"
+    : hasDevice
+      ? hasAgent
+        ? "追加设备与Agent"
+        : "追加设备"
+      : "追加Agent";
 
   return {
     id: buildId("delivery-order"),
@@ -114,14 +113,18 @@ const buildOrderLinkedDeliveryRecord = (payload: {
     orderKind: "change",
     relatedCustomerId: payload.relatedCustomerId,
     changeType,
-    changeReason: "订单创建后待执行交付",
+    changeReason: isRenewalOrder ? "续费订单创建后待执行交付" : "订单创建后待执行交付",
     requestedByName: payload.requestedByName,
     industry: payload.linkedTenant.industry,
-    scenarioName: hasDevice
-      ? hasAgent
-        ? "订单设备与AI专家交付"
-        : "订单设备交付"
-      : expertNames.join("、") || "订单AI专家交付",
+    scenarioName: isRenewalOrder
+      ? hasDevice
+        ? "订单设备续费交付"
+        : expertNames.join("、") || "订单AI专家续费交付"
+      : hasDevice
+        ? hasAgent
+          ? "订单设备与AI专家交付"
+          : "订单设备交付"
+        : expertNames.join("、") || "订单AI专家交付",
     currentStep: hasDevice ? "deviceConfig" : "agentConfig",
     stepProgress: 0,
     orderAmount: payload.totalAmount
@@ -134,11 +137,15 @@ const buildOrderLinkedDeliveryRecord = (payload: {
     attachments: [],
     linkedOrderIds: [payload.orderId],
     skippedSteps: [],
-    sourceLabel: "订单预填交付",
-    tenantStatusLabel: "待按订单执行交付",
-    deliveryBoundary: "订单商品仅用于预填设备和 AI 专家，步骤完成状态需要人工手动更新。",
-    deliveryNote:
-      payload.remark.trim() || "订单已创建，设备与 AI 专家已按订单内容预填到交付步骤。",
+    sourceLabel: isRenewalOrder ? "订单预填续费交付" : "订单预填交付",
+    tenantStatusLabel: isRenewalOrder ? "待执行资产续费" : "待按订单执行交付",
+    deliveryBoundary: isRenewalOrder
+      ? "续费订单仅用于预填续费资产，步骤完成状态需要人工手动更新。"
+      : "订单商品仅用于预填设备和 AI 专家，步骤完成状态需要人工手动更新。",
+    deliveryNote: payload.remark.trim()
+      || (isRenewalOrder
+        ? "续费订单已创建，请确认续费资产与生效时间后手动完成交付。"
+        : "订单已创建，设备与 AI 专家已按订单内容预填到交付步骤。"),
     deviceConfig: {
       mode:
         cloudDeviceCount && (localDeviceCount || localClientCount)
@@ -155,8 +162,12 @@ const buildOrderLinkedDeliveryRecord = (payload: {
       region: payload.linkedTenant.deviceConfig.region,
     },
     expertNames,
-    requiredInputs: ["确认订单范围", "确认设备归属与授权对象", "确认交付生效时间"],
-    handoffItems: ["订单资源已完成交付", "设备与授权对象已确认", "客户已收到交付说明"],
+    requiredInputs: isRenewalOrder
+      ? ["确认续费资产范围", "确认交付生效时间", "确认续费说明"]
+      : ["确认订单范围", "确认设备归属与授权对象", "确认交付生效时间"],
+    handoffItems: isRenewalOrder
+      ? ["续费资产已完成交付", "新的有效期已确认", "客户已收到续费说明"]
+      : ["订单资源已完成交付", "设备与授权对象已确认", "客户已收到交付说明"],
     agentGroups: [],
     agentPackages: Array.from(
       new Map(
@@ -172,63 +183,77 @@ const buildOrderLinkedDeliveryRecord = (payload: {
         ]),
       ).values(),
     ),
-    adminTodo: ["按订单确认设备归属", "按订单下发 AI 专家", "同步客户交付说明"],
+    adminTodo: isRenewalOrder
+      ? ["确认续费资产与生效时间", "手动推进续费交付步骤", "同步客户续费说明"]
+      : ["按订单确认设备归属", "按订单下发 AI 专家", "同步客户交付说明"],
     apiTargets: [],
     memberCount: payload.linkedTenant.memberCount,
     createdAt: payload.createdAt,
     launchTargetDate: payload.linkedTenant.launchTargetDate,
-    preflightChecks: ["订单资源已全部分配", "设备和 AI 专家已完成下发", "交付说明已同步"],
+    preflightChecks: isRenewalOrder
+      ? ["续费资产已确认", "新的有效期已确认", "续费说明已同步"]
+      : ["订单资源已全部分配", "设备和 AI 专家已完成下发", "交付说明已同步"],
     completedSteps: [],
     deliveryStatus: "待配置",
     changeDetailItems: [
       ...deviceLineItems.map(item => ({
         id: `${payload.orderId}-${item.id}`,
-        label: item.deviceType,
-        afterValue: `${item.quantity} ${getDeviceUnitLabel(item.deviceType)}`,
+        label: isRenewalOrder ? "续费设备" : item.deviceType,
+        afterValue: isRenewalOrder
+          ? `${item.deviceType} · ${getLineItemValidityMonths(item)} 个月`
+          : `${item.quantity} ${getDeviceUnitLabel(item.deviceType)}`,
       })),
       ...agentLineItems.map(item => ({
         id: `${payload.orderId}-${item.id}`,
-        label: "新增 Agent",
-        afterValue: item.agentName,
+        label: isRenewalOrder ? "续费 Agent" : "新增 Agent",
+        afterValue: isRenewalOrder
+          ? `${item.agentName} · ${getLineItemValidityMonths(item)} 个月`
+          : item.agentName,
       })),
     ],
-    quotaAdjustments: [
-      { label: "云端设备额度", delta: cloudDeviceCount, unit: "台" },
-      { label: "本地设备额度", delta: localDeviceCount, unit: "台" },
-      { label: "本地客户端授权", delta: localClientCount, unit: "个" },
-    ].filter(item => item.delta > 0),
-    deviceAdditions: deviceLineItems.flatMap(item =>
-      Array.from({ length: item.quantity }).map((_, index) => ({
-        id: `${payload.orderId}-${item.id}-${index + 1}`,
-        name: `${item.deviceType} ${index + 1}`,
-        type: item.deviceType === "云端工作站" ? "cloud" : "local",
-        status: "online" as const,
-        uptime: "0 小时",
-        categoryLabel: item.deviceType,
-        ownerLabel: "订单预填",
-        assignedEmployeeName: "待客户分配",
-        locationLabel: payload.linkedTenant.deviceConfig.region || "待确认",
-      })),
-    ),
-    agentAdditions: Array.from(
-      new Map(
-        agentLineItems.map(item => [
-          item.agentName,
-          {
-            name: item.agentName,
-            runningHours: 0,
-            completedTasks: 0,
-            currentVersion: item.releaseVersion,
-            latestVersion: item.releaseVersion,
-            deliverySourceLabel: item.sourceLabel,
-            permissionScope: "待确认授权成员",
-            assignedMembers: [],
-            modelLabel: "Frontis 标准模型",
-            deploymentLabel: "待确认",
-          },
-        ]),
-      ).values(),
-    ),
+    quotaAdjustments: isRenewalOrder
+      ? []
+      : [
+          { label: "云端设备额度", delta: cloudDeviceCount, unit: "台" },
+          { label: "本地设备额度", delta: localDeviceCount, unit: "台" },
+          { label: "本地客户端授权", delta: localClientCount, unit: "个" },
+        ].filter(item => item.delta > 0),
+    deviceAdditions: isRenewalOrder
+      ? []
+      : deviceLineItems.flatMap(item =>
+          Array.from({ length: item.quantity }).map((_, index) => ({
+            id: `${payload.orderId}-${item.id}-${index + 1}`,
+            name: `${item.deviceType} ${index + 1}`,
+            type: item.deviceType === "云端工作站" ? "cloud" : "local",
+            status: "online" as const,
+            uptime: "0 小时",
+            categoryLabel: item.deviceType,
+            ownerLabel: "订单预填",
+            assignedEmployeeName: "待客户分配",
+            locationLabel: payload.linkedTenant.deviceConfig.region || "待确认",
+          })),
+        ),
+    agentAdditions: isRenewalOrder
+      ? []
+      : Array.from(
+          new Map(
+            agentLineItems.map(item => [
+              item.agentName,
+              {
+                name: item.agentName,
+                runningHours: 0,
+                completedTasks: 0,
+                currentVersion: item.releaseVersion,
+                latestVersion: item.releaseVersion,
+                deliverySourceLabel: item.sourceLabel,
+                permissionScope: "待确认授权成员",
+                assignedMembers: [],
+                modelLabel: "Frontis 标准模型",
+                deploymentLabel: "待确认",
+              },
+            ]),
+          ).values(),
+        ),
   };
 };
 
@@ -864,45 +889,26 @@ export const useFdeWorkbench = (currentUserId?: string): UseFdeWorkbenchResult =
         };
       }
 
-      const linkedTenant =
-        deliveryOrdersRef.current.find(
-          item => item.orderKind === "initial" && item.id === linkedCustomer.id,
-        ) ??
-        deliveryOrdersRef.current.find(
-          item =>
-            item.orderKind === "initial" && item.customerName === linkedCustomer.customerName,
-        );
-
-      if (!linkedTenant) {
-        return {
-          orderId: "",
-          shouldPromptCreateTenant: false,
-        };
-      }
-
       let nextLineItem: FdeOrderDeviceLineItem | FdeOrderAgentLineItem | null = null;
+      let renewalTenantId = linkedCustomer.tenantId ?? "";
       const nextOperationsCustomers = operationsCustomersRef.current.map(customer => {
         if (customer.id !== payload.customerId) {
           return customer;
         }
 
         if (payload.assetType === "device") {
-          const targetDevice = customer.devices.find(item => item.assetId === payload.assetId);
+          const targetDevice = customer.devices.find(
+            item => item.assetId === payload.assetId || item.id === payload.assetId,
+          );
 
           if (!targetDevice) {
             return customer;
           }
 
-          const shouldExtend = targetDevice.expiresAt
-            ? dayjs(targetDevice.expiresAt).isAfter(dayjs(createdAt))
-            : false;
-          const nextActivatedAt = shouldExtend
-            ? targetDevice.activatedAt ?? createdAt
-            : createdAt;
-          const nextExpiresAt = addValidityMonths(
-            resolveRenewalBaseAt(targetDevice.expiresAt, createdAt),
-            payload.validityMonths,
-          );
+          if (!renewalTenantId && targetDevice.sourceOrderId) {
+            renewalTenantId =
+              ordersRef.current.find(order => order.id === targetDevice.sourceOrderId)?.tenantId ?? "";
+          }
 
           nextLineItem = {
             id: buildId("order-device"),
@@ -910,112 +916,91 @@ export const useFdeWorkbench = (currentUserId?: string): UseFdeWorkbenchResult =
             deviceType: resolveDeviceLineTypeFromAsset(targetDevice),
             quantity: 1,
             validityMonths: payload.validityMonths,
-            renewalTargetAssetId: payload.assetId,
-            deliveredAssetIds: [payload.assetId],
-            activatedAt: nextActivatedAt,
-            expiresAt: nextExpiresAt,
+            renewalTargetAssetId: targetDevice.assetId ?? targetDevice.id,
             unitPrice: payload.totalAmount,
             totalAmount: payload.totalAmount,
           };
 
-          return {
-            ...customer,
-            devices: customer.devices.map(item =>
-              item.assetId === payload.assetId
-                ? {
-                    ...item,
-                    sourceOrderId: nextOrderId,
-                    validityMonths: payload.validityMonths,
-                    activatedAt: nextActivatedAt,
-                    expiresAt: nextExpiresAt,
-                  }
-                : item,
-            ),
-          };
+          return customer;
         }
 
-        const targetAgent = customer.agents.find(item => item.assetId === payload.assetId);
+        const targetAgent = customer.agents.find(
+          item => item.assetId === payload.assetId || item.name === payload.assetId,
+        );
 
         if (!targetAgent) {
           return customer;
         }
 
-        const shouldExtend = targetAgent.expiresAt
-          ? dayjs(targetAgent.expiresAt).isAfter(dayjs(createdAt))
-          : false;
-        const nextActivatedAt = shouldExtend
-          ? targetAgent.activatedAt ?? createdAt
-          : createdAt;
-        const nextExpiresAt = addValidityMonths(
-          resolveRenewalBaseAt(targetAgent.expiresAt, createdAt),
-          payload.validityMonths,
-        );
+        if (!renewalTenantId && targetAgent.sourceOrderId) {
+          renewalTenantId =
+            ordersRef.current.find(order => order.id === targetAgent.sourceOrderId)?.tenantId ?? "";
+        }
 
         nextLineItem = {
           id: buildId("order-agent"),
           kind: "agent",
-          agentCatalogId: payload.assetId,
+          agentCatalogId: targetAgent.assetId ?? payload.assetId,
           agentName: targetAgent.name,
           releaseVersion: targetAgent.currentVersion ?? targetAgent.latestVersion ?? "v1.0.0",
           sourceLabel: targetAgent.deliverySourceLabel ?? "资产续费",
           quantity: 1,
           validityMonths: payload.validityMonths,
-          renewalTargetAssetId: payload.assetId,
-          deliveredAssetIds: [payload.assetId],
-          activatedAt: nextActivatedAt,
-          expiresAt: nextExpiresAt,
+          renewalTargetAssetId: targetAgent.assetId ?? targetAgent.name,
           unitPrice: payload.totalAmount,
           totalAmount: payload.totalAmount,
         };
 
-        return {
-          ...customer,
-          agents: customer.agents.map(item =>
-            item.assetId === payload.assetId
-              ? {
-                  ...item,
-                  sourceOrderId: nextOrderId,
-                  validityMonths: payload.validityMonths,
-                  activatedAt: nextActivatedAt,
-                  expiresAt: nextExpiresAt,
-                }
-              : item,
-          ),
-        };
+        return customer;
       });
 
-      if (!nextLineItem) {
+      const linkedTenant =
+        (renewalTenantId
+          ? deliveryOrdersRef.current.find(
+              item => item.orderKind === "initial" && item.id === renewalTenantId,
+            )
+          : undefined) ??
+        deliveryOrdersRef.current.find(
+          item =>
+            item.orderKind === "initial" && item.customerName === linkedCustomer.customerName,
+        );
+
+      if (!nextLineItem || !linkedTenant) {
         return {
           orderId: "",
           shouldPromptCreateTenant: false,
         };
       }
 
-      const fulfillmentItems: FdeOrderFulfillmentItem[] = [
-        {
-          id: `${nextOrderId}-fulfillment-renew`,
-          type: "资产续费",
-          summary: `${payload.assetId} 续费 ${payload.validityMonths} 个月`,
-          status: "已完成",
-          updatedAt: createdAt,
-          executionRecords: [
-            {
-              id: `${nextOrderId}-fulfillment-renew-created`,
-              actionLabel: getFulfillmentCreatedActionLabel("资产续费"),
-              resultLabel: "已创建",
-              operatorName: activeMember.name,
-              operatedAt: createdAt,
-            },
-            {
-              id: `${nextOrderId}-fulfillment-renew-completed`,
-              actionLabel: getFulfillmentCompletedActionLabel("资产续费"),
-              resultLabel: "已完成",
-              operatorName: activeMember.name,
-              operatedAt: createdAt,
-            },
-          ],
-        },
-      ];
+      const linkedDeliveryOrder = buildOrderLinkedDeliveryRecord({
+        assignedToId: linkedTenant.assignedToId || activeMember.id,
+        createdAt,
+        lineItems: [nextLineItem],
+        linkedTenant,
+        orderId: nextOrderId,
+        relatedCustomerId: linkedCustomer.id,
+        remark: payload.remark,
+        requestedByName: activeMember.name,
+        totalAmount: payload.totalAmount,
+      });
+      const nextDeliveryOrders = linkedDeliveryOrder
+        ? [linkedDeliveryOrder, ...deliveryOrdersRef.current]
+        : deliveryOrdersRef.current;
+      const nextOperationsCustomersWithChanges = linkedDeliveryOrder
+        ? nextOperationsCustomers.map(customer => {
+            if (customer.id !== payload.customerId) {
+              return customer;
+            }
+
+            const snapshot = buildCustomerAssetSnapshot(customer);
+            const nextRecord = buildChangeRecordFromOrder(linkedDeliveryOrder, snapshot, []);
+
+            return {
+              ...customer,
+              changeRecords: [nextRecord, ...customer.changeRecords],
+            };
+          })
+        : nextOperationsCustomers;
       const nextOrder: FdeOrderItem = {
         id: nextOrderId,
         orderNo: createOrderNo(),
@@ -1025,26 +1010,29 @@ export const useFdeWorkbench = (currentUserId?: string): UseFdeWorkbenchResult =
         tenantId: linkedTenant.id,
         tenantName: linkedTenant.tenantName,
         tenantCode: linkedTenant.tenantCode,
-        status: "已完成",
+        status: "待履约",
         totalAmount: payload.totalAmount,
         remark: payload.remark.trim(),
         lineItems: [nextLineItem],
-        fulfillmentItems,
+        fulfillmentItems: [],
         createdAt,
       };
       const syncedOrderState = syncOrdersWithDeliveryState(
         [nextOrder, ...ordersRef.current],
-        deliveryOrdersRef.current,
-        nextOperationsCustomers,
+        nextDeliveryOrders,
+        nextOperationsCustomersWithChanges,
         teamMembers,
         activeMember.name,
       );
 
+      deliveryOrdersRef.current = nextDeliveryOrders;
       ordersRef.current = syncedOrderState.orders;
       operationsCustomersRef.current = syncedOrderState.customers;
+      setDeliveryOrders(nextDeliveryOrders);
       setOrders(syncedOrderState.orders);
       setOperationsCustomers(syncedOrderState.customers);
       setSelectedOrderManagementId(nextOrderId);
+      setSelectedDeliveryOrderId(nextOrderId);
 
       return {
         orderId: nextOrderId,

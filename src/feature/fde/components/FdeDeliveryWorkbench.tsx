@@ -54,6 +54,7 @@ import {
   getStepKeyLabel,
   getTenantStatusLabel,
   getVisibleDeliverySteps,
+  hasPendingDevicePrefill,
   isAgentOrderLineItem,
   isDeliveryItemDelivered,
   isDeviceOrderLineItem,
@@ -353,9 +354,7 @@ export const FdeDeliveryWorkbench = ({
   const tenantBusinessOrders = useMemo<FdeOrderItem[]>(
     () =>
       selectedTenantOrder
-        ? orderItems.filter(
-            item => item.tenantId === selectedTenantOrder.id && item.businessType !== "续费",
-          )
+        ? orderItems.filter(item => item.tenantId === selectedTenantOrder.id)
         : [],
     [orderItems, selectedTenantOrder],
   );
@@ -1118,12 +1117,20 @@ export const FdeDeliveryWorkbench = ({
       return;
     }
 
+    const currentDeviceRecord =
+      selectedDeliveryOrder.currentStep === "deviceConfig"
+        ? selectedDeviceRecord ?? buildDefaultDeviceRecord(selectedDeliveryOrder)
+        : null;
+    const canCompleteDeviceStep =
+      currentDeviceRecord !== null &&
+      (currentDeviceRecord.isConfigured || hasPendingDevicePrefill(currentDeviceRecord));
+
     if (
       !skipCurrentStep &&
       selectedDeliveryOrder.currentStep === "deviceConfig" &&
-      !selectedDeviceRecord?.isConfigured
+      !canCompleteDeviceStep
     ) {
-      message.warning("请先在设备分配步骤配置设备额度。");
+      message.warning("当前订单还没有可确认的设备分配信息。");
       return;
     }
 
@@ -1200,7 +1207,7 @@ export const FdeDeliveryWorkbench = ({
         ? `已跳过 ${getStepKeyLabel(selectedDeliveryOrder.currentStep)}，进入 ${nextStep.label}。`
         : `已进入 ${nextStep.label}。`,
     );
-  }, [commitOrders, selectedDeliveryOrder, selectedDeviceRecord?.isConfigured]);
+  }, [commitOrders, selectedDeliveryOrder, selectedDeviceRecord]);
 
   const createTenantModal = (
     <FdeDeliveryCreateTenantModal
