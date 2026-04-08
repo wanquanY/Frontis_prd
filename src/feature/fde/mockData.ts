@@ -307,14 +307,15 @@ export const FDE_OPPORTUNITIES: FdeOpportunityItem[] = [
     source: "营销门户首页免费咨询",
     summary: "客户希望先用经营日报和门店协同跑通总部到门店的动作闭环。",
     requirementInfo: {
+      sourceType: "自动同步",
       sourceEntryLabel: "营销门户首页免费咨询",
-      submittedAt: "2026-04-05 09:18",
-      submitterName: "周倩",
-      submitterPhone: "13900001231",
+      createdAt: "2026-04-05 09:18",
+      createdByName: "系统同步",
+      contactName: "周倩",
+      contactPhone: "13900001231",
       interestedAgents: ["经营复盘官", "门店巡检官"],
-      requirementSummary: "希望总部每天自动看到门店日报、动作执行和异常提醒。",
-      requirementDetail:
-        "客户在门户提交需求时明确提到，老板和区域经理希望统一看到门店经营日报、排班缺口和缺货风险，并在次日晨会上直接同步到店长执行。",
+      requirementDescription:
+        "希望总部每天自动看到门店日报、动作执行和异常提醒。客户在门户提交需求时明确提到，老板和区域经理希望统一看到门店经营日报、排班缺口和缺货风险，并在次日晨会上直接同步到店长执行。",
     },
     comments: [],
   },
@@ -331,14 +332,15 @@ export const FDE_OPPORTUNITIES: FdeOpportunityItem[] = [
     source: "营销门户场景页咨询",
     summary: "客户想先验证 VOC 汇总、竞品监控和新品会决策链路。",
     requirementInfo: {
+      sourceType: "自动同步",
       sourceEntryLabel: "VOC 创新场景页咨询",
-      submittedAt: "2026-04-04 14:26",
-      submitterName: "林烨",
-      submitterPhone: "13600009128",
+      createdAt: "2026-04-04 14:26",
+      createdByName: "系统同步",
+      contactName: "林烨",
+      contactPhone: "13600009128",
       interestedAgents: ["VOC 洞察官", "新品策划官"],
-      requirementSummary: "需要把评论、客服反馈和竞品动态汇总成新品会输入。",
-      requirementDetail:
-        "客户反馈目前跨境平台评论、客服 VOC 和竞品动态分散在多个系统里，团队希望先做一套每周自动归纳并可直接进入新品会决策的 AI 方案。",
+      requirementDescription:
+        "需要把评论、客服反馈和竞品动态汇总成新品会输入。客户反馈目前跨境平台评论、客服 VOC 和竞品动态分散在多个系统里，团队希望先做一套每周自动归纳并可直接进入新品会决策的 AI 方案。",
     },
     comments: [
       {
@@ -370,14 +372,15 @@ export const FDE_OPPORTUNITIES: FdeOpportunityItem[] = [
     source: "营销门户首页免费咨询",
     summary: "客户聚焦多院区线索跟进分层和日报战报自动分发。",
     requirementInfo: {
+      sourceType: "自动同步",
       sourceEntryLabel: "营销门户首页免费咨询",
-      submittedAt: "2026-04-03 11:42",
-      submitterName: "高洁",
-      submitterPhone: "13700006653",
+      createdAt: "2026-04-03 11:42",
+      createdByName: "系统同步",
+      contactName: "高洁",
+      contactPhone: "13700006653",
       interestedAgents: ["销售线索官", "战报生成官"],
-      requirementSummary: "希望统一看各院区线索质量、销售跟进节奏和日战报。",
-      requirementDetail:
-        "客户在门户表单中描述，目前多院区线索由不同团队维护，跟进标准不一致，希望通过销售线索评分和战报推送先统一管理动作。",
+      requirementDescription:
+        "希望统一看各院区线索质量、销售跟进节奏和日战报。客户在门户表单中描述，目前多院区线索由不同团队维护，跟进标准不一致，希望通过销售线索评分和战报推送先统一管理动作。",
     },
     comments: [
       {
@@ -401,14 +404,15 @@ export const FDE_OPPORTUNITIES: FdeOpportunityItem[] = [
     source: "场景展会扫码",
     summary: "客户已确认试点部门，准备进入订单和配置交付。",
     requirementInfo: {
+      sourceType: "自动同步",
       sourceEntryLabel: "线下活动二维码咨询",
-      submittedAt: "2026-04-01 16:18",
-      submitterName: "赵恒",
-      submitterPhone: "13500004322",
+      createdAt: "2026-04-01 16:18",
+      createdByName: "系统同步",
+      contactName: "赵恒",
+      contactPhone: "13500004322",
       interestedAgents: ["招聘助手", "组织预警官"],
-      requirementSummary: "希望先覆盖招聘协同和组织风险预警两个流程。",
-      requirementDetail:
-        "客户在活动后通过门户提交需求，希望先在人力和部门负责人之间打通招聘需求拆解、简历筛选和组织风险提醒，当前已经确认预算。",
+      requirementDescription:
+        "希望先覆盖招聘协同和组织风险预警两个流程。客户在活动后通过门户提交需求，希望先在人力和部门负责人之间打通招聘需求拆解、简历筛选和组织风险提醒，当前已经确认预算。",
     },
     comments: [
       {
@@ -440,14 +444,15 @@ export const FDE_OPPORTUNITIES: FdeOpportunityItem[] = [
     source: "零售场景页咨询",
     summary: "客户原计划推进门店日清和财务对账，后续因预算冻结中止。",
     requirementInfo: {
+      sourceType: "自动同步",
       sourceEntryLabel: "门店经营场景页咨询",
-      submittedAt: "2026-03-29 13:06",
-      submitterName: "沈雯",
-      submitterPhone: "13800007351",
+      createdAt: "2026-03-29 13:06",
+      createdByName: "系统同步",
+      contactName: "沈雯",
+      contactPhone: "13800007351",
       interestedAgents: ["经营复盘官", "财务对账官"],
-      requirementSummary: "门店经营日清和总部财务对账想做统一自动化。",
-      requirementDetail:
-        "客户通过场景页提交诉求，希望先打通门店经营日报、异常提醒和总部财务对账。但后续在商务沟通中反馈总部预算暂缓，项目当前停止推进。",
+      requirementDescription:
+        "门店经营日清和总部财务对账想做统一自动化。客户通过场景页提交诉求，希望先打通门店经营日报、异常提醒和总部财务对账。但后续在商务沟通中反馈总部预算暂缓，项目当前停止推进。",
     },
     comments: [
       {
@@ -479,14 +484,15 @@ export const FDE_OPPORTUNITIES: FdeOpportunityItem[] = [
     source: "营销门户首页免费咨询",
     summary: "客户需要把采购、库存和履约异常统一成一套供应链预警协作流。",
     requirementInfo: {
+      sourceType: "自动同步",
       sourceEntryLabel: "营销门户首页免费咨询",
-      submittedAt: "2026-04-06 20:15",
-      submitterName: "韩嵩",
-      submitterPhone: "13900005176",
+      createdAt: "2026-04-06 20:15",
+      createdByName: "系统同步",
+      contactName: "韩嵩",
+      contactPhone: "13900005176",
       interestedAgents: ["供应链预警官", "补货建议官"],
-      requirementSummary: "需要库存异常预警、补货建议和履约风险统一联动。",
-      requirementDetail:
-        "客户在门户留言中说明，当前采购、库存和交付异常散在多个系统，希望用供应链异常预警和补位建议 Agent 先覆盖核心门店和仓库。",
+      requirementDescription:
+        "需要库存异常预警、补货建议和履约风险统一联动。客户在门户留言中说明，当前采购、库存和交付异常散在多个系统，希望用供应链异常预警和补位建议 Agent 先覆盖核心门店和仓库。",
     },
     comments: [
       {

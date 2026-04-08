@@ -6,6 +6,7 @@ import type {
   FdeOpportunityItem,
   FdeTeamMemberItem,
 } from "@/feature/fde/types";
+import { buildFdeOpportunitySummary } from "@/feature/fde/utils";
 
 import { buildId, canManageTeamMembers } from "./fdeWorkbenchStateUtils";
 
@@ -14,6 +15,7 @@ import { buildId, canManageTeamMembers } from "./fdeWorkbenchStateUtils";
  */
 export interface UseFdeOpportunityStateParams {
   activeMemberId: string;
+  activeMemberName: string;
   activeRole: FdeTeamMemberItem["role"];
   initialOpportunities: FdeOpportunityItem[];
 }
@@ -40,6 +42,7 @@ export interface UseFdeOpportunityStateResult {
  */
 export const useFdeOpportunityState = ({
   activeMemberId,
+  activeMemberName,
   activeRole,
   initialOpportunities,
 }: UseFdeOpportunityStateParams): UseFdeOpportunityStateResult => {
@@ -91,6 +94,7 @@ export const useFdeOpportunityState = ({
       const normalizedInterestedAgents = payload.interestedAgents
         .map(item => item.trim())
         .filter(Boolean);
+      const normalizedRequirementDescription = payload.requirementDescription.trim();
       const nextOpportunity: FdeOpportunityItem = {
         id: buildId("opp"),
         companyName: payload.companyName.trim(),
@@ -103,16 +107,16 @@ export const useFdeOpportunityState = ({
         ownerId: canManageTeamMembers(activeRole)
           ? payload.ownerId ?? null
           : activeMemberId,
-        source: "FDE手动创建",
-        summary: payload.requirementSummary.trim(),
+        source: "手动创建",
+        summary: buildFdeOpportunitySummary(normalizedRequirementDescription),
         requirementInfo: {
-          sourceEntryLabel: payload.sourceEntryLabel.trim() || "FDE 手动录入",
-          submittedAt: createdAt,
-          submitterName: payload.submitterName.trim(),
-          submitterPhone: payload.submitterPhone.trim(),
+          sourceType: "手动创建",
+          createdAt,
+          createdByName: activeMemberName,
+          contactName: payload.contactName.trim(),
+          contactPhone: payload.contactPhone.trim(),
           interestedAgents: normalizedInterestedAgents,
-          requirementSummary: payload.requirementSummary.trim(),
-          requirementDetail: payload.requirementDetail.trim(),
+          requirementDescription: normalizedRequirementDescription,
         },
         comments: [],
       };
@@ -120,7 +124,7 @@ export const useFdeOpportunityState = ({
       setOpportunities(previous => [nextOpportunity, ...previous]);
       setSelectedOpportunityId(nextOpportunity.id);
     },
-    [activeMemberId, activeRole],
+    [activeMemberId, activeMemberName, activeRole],
   );
 
   const updateOpportunityStatus = useCallback(

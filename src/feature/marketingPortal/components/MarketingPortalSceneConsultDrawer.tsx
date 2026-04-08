@@ -28,7 +28,7 @@ const createInitialMarketingSceneConsultFormState = (
   company: "",
   phone: "",
   interestedAgents: agentNames,
-  remark: "",
+  requirementDescription: "",
 });
 
 /**
@@ -98,8 +98,13 @@ export const MarketingPortalSceneConsultDrawer = ({
     (event: FormEvent<HTMLFormElement>): void => {
       event.preventDefault();
 
-      if (!formState.name.trim() || !formState.company.trim() || !formState.phone.trim()) {
-        message.warning("请补全姓名、公司名和手机号后再提交。");
+      if (
+        !formState.name.trim() ||
+        !formState.company.trim() ||
+        !formState.phone.trim() ||
+        !formState.requirementDescription.trim()
+      ) {
+        message.warning("请补全姓名、公司名、手机号和需求描述后再提交。");
         return;
       }
 
@@ -197,12 +202,14 @@ export const MarketingPortalSceneConsultDrawer = ({
           </div>
 
           <label className={styles.field}>
-            <span className={styles.fieldLabel}>备注</span>
+            <span className={styles.fieldLabel}>需求描述</span>
             <textarea
               className={styles.textarea}
-              value={formState.remark}
-              onChange={event => handleFieldChange("remark", event.target.value)}
-              placeholder="比如你最想先跑通哪个场景、优先看哪一组 AI 专家"
+              value={formState.requirementDescription}
+              onChange={event =>
+                handleFieldChange("requirementDescription", event.target.value)
+              }
+              placeholder="比如你最想先跑通哪个场景、当前最想优先验证哪组 AI 专家"
             />
           </label>
 

@@ -2,7 +2,19 @@
  * MarkdownRenderer - 支持 mermaid 和 infographic 的 Markdown 渲染组件
  */
 
-import { useEffect, useRef, memo, lazy, Suspense, Component, type ReactNode } from "react";
+import { App as AntdApp } from "antd";
+import { toBlob as renderNodeToBlob } from "html-to-image";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  memo,
+  lazy,
+  Suspense,
+  Component,
+  type ReactNode,
+} from "react";
 import { wrapUnfencedDiagrams } from "@/utils/diagramPreprocess";
 import styles from "./MarkdownRenderer.module.less";
 
@@ -16,6 +28,8 @@ const LazyMarkdownPreview = lazy(() =>
 interface MarkdownRendererProps {
   source: string;
   className?: string;
+  enableMermaidActions?: boolean;
+  artifactFileName?: string;
 }
 
 interface MarkdownPreviewBoundaryProps {
@@ -58,48 +72,316 @@ class MarkdownPreviewBoundary extends Component<
 /** 全局自增计数器，确保 mermaid render ID 永远唯一（解决 StrictMode 双重挂载问题） */
 let mermaidRenderSeq = 0;
 
+const normalizeDiagnosticError = (
+  error: unknown,
+): {
+  name: string;
+  message: string;
+  stack?: string;
+} => {
+  if (error instanceof Error) {
+    return {
+      name: error.name,
+      message: error.message,
+      stack: error.stack,
+    };
+  }
+
+  return {
+    name: "UnknownError",
+    message: typeof error === "string" ? error : JSON.stringify(error),
+  };
+};
+
+const logMermaidCopyDiagnostic = (stage: string, detail: Record<string, unknown>): void => {
+  console.error("[MermaidCopy]", stage, detail);
+};
+
+const renderMermaidNodeToPngBlob = async (node: HTMLElement): Promise<Blob> => {
+  const blob = await renderNodeToBlob(node, {
+    cacheBust: true,
+    pixelRatio: Math.max(2, Math.ceil(window.devicePixelRatio || 1)),
+    backgroundColor: "#ffffff",
+  });
+
+  if (!blob) {
+    const error = new Error("Failed to render mermaid node");
+    logMermaidCopyDiagnostic("renderMermaidNodeToPngBlob", {
+      error: normalizeDiagnosticError(error),
+    });
+    throw error;
+  }
+
+  return blob;
+};
+
+const loadSvgImage = (objectUrl: string): Promise<HTMLImageElement> =>
+  new Promise((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => resolve(image);
+    image.onerror = () => {
+      const error = new Error("Failed to load mermaid svg");
+      logMermaidCopyDiagnostic("loadSvgImage", {
+        error: normalizeDiagnosticError(error),
+        objectUrl,
+      });
+      reject(error);
+    };
+    image.src = objectUrl;
+  });
+
+const rasterizeSvgToPngBlob = async (svgMarkup: string): Promise<Blob> => {
+  const svgBlob = new Blob([svgMarkup], { type: "image/svg+xml;charset=utf-8" });
+  const objectUrl = URL.createObjectURL(svgBlob);
+
+  try {
+    const image = await loadSvgImage(objectUrl);
+    const width = Math.max(1, image.naturalWidth || image.width || 1200);
+    const height = Math.max(1, image.naturalHeight || image.height || 800);
+    const scale = Math.max(2, Math.ceil(window.devicePixelRatio || 1));
+    const canvas = document.createElement("canvas");
+    canvas.width = width * scale;
+    canvas.height = height * scale;
+
+    const context = canvas.getContext("2d");
+    if (!context) {
+      const error = new Error("Canvas context is unavailable");
+      logMermaidCopyDiagnostic("canvasContext", {
+        error: normalizeDiagnosticError(error),
+        width,
+        height,
+        scale,
+      });
+      throw error;
+    }
+
+    context.scale(scale, scale);
+    context.clearRect(0, 0, width, height);
+    context.drawImage(image, 0, 0, width, height);
+
+    const pngBlob = await new Promise<Blob>((resolve, reject) => {
+      canvas.toBlob(nextBlob => {
+        if (nextBlob) {
+          resolve(nextBlob);
+          return;
+        }
+
+        const error = new Error("Failed to rasterize mermaid diagram");
+        logMermaidCopyDiagnostic("canvasToBlob", {
+          error: normalizeDiagnosticError(error),
+          width,
+          height,
+          scale,
+        });
+        reject(error);
+      }, "image/png");
+    });
+
+    return pngBlob;
+  } catch (error) {
+    logMermaidCopyDiagnostic("rasterizeSvgToPngBlob", {
+      error: normalizeDiagnosticError(error),
+      svgLength: svgMarkup.length,
+      svgPreview: svgMarkup.slice(0, 200),
+    });
+    throw error;
+  } finally {
+    URL.revokeObjectURL(objectUrl);
+  }
+};
+
 /**
  * Mermaid 图表渲染组件
  */
-const MermaidBlock = memo(({ code, id }: { code: string; id: string }) => {
-  const containerRef = useRef<HTMLDivElement>(null);
+const MermaidBlock = memo(
+  ({
+    code,
+    id,
+    enableActions = false,
+    downloadFileName,
+  }: {
+    code: string;
+    id: string;
+    enableActions?: boolean;
+    downloadFileName?: string;
+  }) => {
+    const { message } = AntdApp.useApp();
+    const diagramRef = useRef<HTMLDivElement>(null);
+    const [svgMarkup, setSvgMarkup] = useState("");
+    const [hasRenderError, setHasRenderError] = useState(false);
 
-  useEffect(() => {
-    if (!containerRef.current || !code.trim()) return;
-
-    let cancelled = false;
-
-    const renderMermaid = async () => {
-      try {
-        const { default: mermaid } = await import("mermaid");
-        if (cancelled) return;
-        mermaid.initialize({
-          startOnLoad: false,
-          theme: "default",
-          securityLevel: "loose",
-        });
-        // 每次调用用唯一 ID，避免 StrictMode 双重挂载时 ID 冲突
-        const renderId = `${id}-${++mermaidRenderSeq}`;
-        const { svg } = await mermaid.render(renderId, code.trim());
-        if (!cancelled && containerRef.current) {
-          containerRef.current.innerHTML = svg;
-        }
-      } catch {
-        if (!cancelled && containerRef.current) {
-          containerRef.current.innerHTML = `<pre class="${styles.diagramError}"><code>${code}</code></pre>`;
-        }
+    useEffect(() => {
+      if (!code.trim()) {
+        setSvgMarkup("");
+        setHasRenderError(false);
+        return;
       }
-    };
 
-    void renderMermaid();
+      let cancelled = false;
 
-    return () => {
-      cancelled = true;
-    };
-  }, [code, id]);
+      setSvgMarkup("");
+      setHasRenderError(false);
 
-  return <div ref={containerRef} className={styles.mermaidContainer} />;
-});
+      const renderMermaid = async () => {
+        try {
+          const { default: mermaid } = await import("mermaid");
+          if (cancelled) return;
+          mermaid.initialize({
+            startOnLoad: false,
+            theme: "default",
+            securityLevel: "loose",
+          });
+          // 每次调用用唯一 ID，避免 StrictMode 双重挂载时 ID 冲突
+          const renderId = `${id}-${++mermaidRenderSeq}`;
+          const { svg } = await mermaid.render(renderId, code.trim());
+          if (!cancelled) {
+            setSvgMarkup(svg);
+            setHasRenderError(false);
+          }
+        } catch {
+          if (!cancelled) {
+            setSvgMarkup("");
+            setHasRenderError(true);
+          }
+        }
+      };
+
+      void renderMermaid();
+
+      return () => {
+        cancelled = true;
+      };
+    }, [code, id]);
+
+    const handleCopyMermaid = useCallback(async (): Promise<void> => {
+      const clipboardItemCtor = typeof window === "undefined" ? undefined : window["ClipboardItem"];
+
+      if (!svgMarkup.trim()) {
+        logMermaidCopyDiagnostic("copyBlocked", {
+          reason: "svgMarkup is empty",
+        });
+        message.error("Mermaid 图尚未渲染完成");
+        return;
+      }
+
+      if (
+        typeof navigator === "undefined" ||
+        !navigator.clipboard ||
+        !clipboardItemCtor ||
+        typeof navigator.clipboard.write !== "function"
+      ) {
+        logMermaidCopyDiagnostic("clipboardUnsupported", {
+          hasNavigator: typeof navigator !== "undefined",
+          hasClipboard: typeof navigator !== "undefined" ? Boolean(navigator.clipboard) : false,
+          hasClipboardWrite:
+            typeof navigator !== "undefined"
+              ? typeof navigator.clipboard?.write === "function"
+              : false,
+          hasClipboardItem: Boolean(clipboardItemCtor),
+        });
+        message.error("当前环境不支持图片复制");
+        return;
+      }
+
+      try {
+        let pngBlob: Blob;
+
+        if (diagramRef.current) {
+          try {
+            pngBlob = await renderMermaidNodeToPngBlob(diagramRef.current);
+          } catch (error) {
+            logMermaidCopyDiagnostic("renderNodeFallback", {
+              error: normalizeDiagnosticError(error),
+            });
+            pngBlob = await rasterizeSvgToPngBlob(svgMarkup);
+          }
+        } else {
+          pngBlob = await rasterizeSvgToPngBlob(svgMarkup);
+        }
+
+        await navigator.clipboard.write([
+          new clipboardItemCtor({
+            "image/png": pngBlob,
+          }),
+        ]);
+        message.success("Mermaid 图片已复制");
+      } catch (error) {
+        logMermaidCopyDiagnostic("handleCopyMermaid", {
+          error: normalizeDiagnosticError(error),
+          hasClipboardWrite: typeof navigator.clipboard.write === "function",
+          hasClipboardItem: Boolean(clipboardItemCtor),
+          svgLength: svgMarkup.length,
+          svgPreview: svgMarkup.slice(0, 200),
+          userAgent: navigator.userAgent,
+        });
+        message.error("复制图片失败，请稍后重试");
+      }
+    }, [message, svgMarkup]);
+
+    const handleDownloadMermaid = useCallback((): void => {
+      if (!svgMarkup.trim()) {
+        message.error("Mermaid 图尚未渲染完成");
+        return;
+      }
+
+      const blob = new Blob([svgMarkup], { type: "image/svg+xml;charset=utf-8" });
+      const objectUrl = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = objectUrl;
+      anchor.download = downloadFileName ?? "mermaid-diagram.svg";
+      anchor.rel = "noreferrer";
+      document.body.appendChild(anchor);
+      anchor.click();
+      document.body.removeChild(anchor);
+      URL.revokeObjectURL(objectUrl);
+      message.success("Mermaid 图已开始下载");
+    }, [downloadFileName, message, svgMarkup]);
+
+    const content = hasRenderError ? (
+      <pre className={styles.diagramError}>
+        <code>{code}</code>
+      </pre>
+    ) : (
+      <div
+        ref={diagramRef}
+        className={styles.mermaidContainer}
+        dangerouslySetInnerHTML={svgMarkup ? { __html: svgMarkup } : undefined}
+      />
+    );
+
+    if (!enableActions) {
+      return content;
+    }
+
+    return (
+      <section className={styles.mermaidCard} aria-label="Mermaid 图表">
+        <div className={styles.mermaidToolbar}>
+          <span className={styles.mermaidToolbarTag}>Mermaid</span>
+          <div className={styles.mermaidToolbarActions}>
+            <button
+              type="button"
+              className={styles.mermaidActionButton}
+              onClick={() => {
+                void handleCopyMermaid();
+              }}
+            >
+              复制
+            </button>
+            <button
+              type="button"
+              className={styles.mermaidActionButton}
+              onClick={handleDownloadMermaid}
+              disabled={!svgMarkup.trim()}
+            >
+              下载
+            </button>
+          </div>
+        </div>
+        {content}
+      </section>
+    );
+  },
+);
 
 MermaidBlock.displayName = "MermaidBlock";
 
@@ -230,12 +512,26 @@ function parseMarkdownWithDiagrams(
   return blocks;
 }
 
+const resolveMermaidDownloadFileName = (
+  artifactFileName: string | undefined,
+  diagramIndex: number,
+): string => {
+  const normalizedBaseName = artifactFileName?.replace(/\.[^.]+$/, "").trim() || "mermaid-diagram";
+  return `${normalizedBaseName}-mermaid-${diagramIndex}.svg`;
+};
+
 /**
  * MarkdownRenderer 主组件
  */
-export function MarkdownRenderer({ source, className }: MarkdownRendererProps) {
+export function MarkdownRenderer({
+  source,
+  className,
+  enableMermaidActions = false,
+  artifactFileName,
+}: MarkdownRendererProps) {
   const blocks = parseMarkdownWithDiagrams(source);
   const idPrefix = useRef(`md-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`);
+  let mermaidIndex = 0;
 
   return (
     <div className={className} data-color-mode="light">
@@ -243,7 +539,17 @@ export function MarkdownRenderer({ source, className }: MarkdownRendererProps) {
         const key = `${idPrefix.current}-${index}`;
 
         if (block.type === "mermaid") {
-          return <MermaidBlock key={key} code={block.content} id={`mermaid-${key}`} />;
+          mermaidIndex += 1;
+
+          return (
+            <MermaidBlock
+              key={key}
+              code={block.content}
+              id={`mermaid-${key}`}
+              enableActions={enableMermaidActions}
+              downloadFileName={resolveMermaidDownloadFileName(artifactFileName, mermaidIndex)}
+            />
+          );
         }
 
         if (block.type === "infographic") {

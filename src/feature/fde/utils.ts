@@ -55,6 +55,22 @@ export const FDE_OPPORTUNITY_STAGE_ORDER: FdeOpportunityStage[] = [
 export const formatWanAmount = (value: number): string => `${value.toFixed(1)} 万`;
 
 /**
+ * 从完整需求描述中提炼商机概述。
+ */
+export const buildFdeOpportunitySummary = (
+  requirementDescription: string,
+  maxLength = 28,
+): string => {
+  const normalizedDescription = requirementDescription.replace(/\s+/g, " ").trim();
+
+  if (normalizedDescription.length <= maxLength) {
+    return normalizedDescription;
+  }
+
+  return `${normalizedDescription.slice(0, maxLength).trim()}...`;
+};
+
+/**
  * 根据成员 id 获取成员名称。
  */
 export const getFdeMemberName = (members: FdeTeamMemberItem[], memberId: string): string =>
