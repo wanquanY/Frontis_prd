@@ -302,6 +302,13 @@ export const DialoguePrototypeView = ({
     [homeSkillItems, selectedSkillIds],
   );
   const { visibleSkillItems, overflowSkillItems } = useMemo(() => {
+    if (selectedSkillItems.length > 0) {
+      return {
+        visibleSkillItems: [],
+        overflowSkillItems: [],
+      };
+    }
+
     const maxVisibleSkillCount = Math.max(
       MAX_VISIBLE_SKILL_COUNT - selectedSkillItems.length,
       0,

@@ -364,11 +364,15 @@ const FrontisPage = ({ viewRole }: FrontisPageProps): JSX.Element => {
     if (!selectedSkillIds.length) {
       return;
     }
-    const nextSelectedSkillIds = selectedSkillIds.filter(skillId =>
-      activeAgentHomeConfig.skillItems.some(item => item.id === skillId),
-    );
+    const nextSelectedSkillIds = selectedSkillIds
+      .filter(skillId => activeAgentHomeConfig.skillItems.some(item => item.id === skillId))
+      .slice(0, 1);
 
-    if (nextSelectedSkillIds.length === selectedSkillIds.length) {
+    const isSameSelection =
+      nextSelectedSkillIds.length === selectedSkillIds.length &&
+      nextSelectedSkillIds.every((skillId, index) => skillId === selectedSkillIds[index]);
+
+    if (isSameSelection) {
       return;
     }
     setSelectedSkillIds(nextSelectedSkillIds);
@@ -452,11 +456,7 @@ const FrontisPage = ({ viewRole }: FrontisPageProps): JSX.Element => {
   }, [dialogueAttachments]);
 
   const handleSelectSkill = useCallback((skillId: string): void => {
-    setSelectedSkillIds(current =>
-      current.includes(skillId)
-        ? current.filter(item => item !== skillId)
-        : [...current, skillId],
-    );
+    setSelectedSkillIds(current => (current[0] === skillId ? [] : [skillId]));
   }, []);
 
   const handleRenameDialogueSession = useCallback((sessionId: string, title: string): void => {
