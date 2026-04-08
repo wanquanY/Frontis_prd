@@ -125,7 +125,7 @@ export type FdeOrderBusinessType = "新购" | "续费";
 /**
  * FDE 订单商品类型。
  */
-export type FdeOrderLineItemKind = "device" | "agent" | "tokens";
+export type FdeOrderLineItemKind = "device" | "agent" | "agentGroup" | "tokens";
 
 /**
  * 设备商品类型。
@@ -578,6 +578,25 @@ export interface FdeOrderAgentLineItem {
 }
 
 /**
+ * 订单 AI 专家团商品行。
+ */
+export interface FdeOrderAgentGroupLineItem {
+  id: string;
+  kind: "agentGroup";
+  groupName: string;
+  groupDescription: string;
+  sourceLabel: string;
+  agents: FdeDeliveryAgentPackageItem[];
+  quantity: number;
+  validityMonths?: number;
+  deliveredAssetIds?: string[];
+  activatedAt?: string;
+  expiresAt?: string;
+  unitPrice: number;
+  totalAmount: number;
+}
+
+/**
  * 订单 tokens 商品行。
  */
 export interface FdeOrderTokensLineItem {
@@ -593,6 +612,7 @@ export interface FdeOrderTokensLineItem {
 export type FdeOrderLineItem =
   | FdeOrderDeviceLineItem
   | FdeOrderAgentLineItem
+  | FdeOrderAgentGroupLineItem
   | FdeOrderTokensLineItem;
 
 /**

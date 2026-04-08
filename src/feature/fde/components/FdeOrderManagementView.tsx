@@ -15,6 +15,7 @@ import type {
   FdeCreateOrderPayload,
   FdeCreateOrderResult,
   FdeDeliveryOrderItem,
+  FdeOrderAgentGroupLineItem,
   FdeOrderAgentLineItem,
   FdeOrderDeviceLineItem,
   FdeOrderDeviceType,
@@ -24,6 +25,14 @@ import type {
   FdeOrderTokensLineItem,
 } from "@/feature/fde/types";
 
+import { FdeDeliveryAgentModal } from "./FdeDeliveryAgentModal";
+import { FdeDeliveryExpertGroupModal } from "./FdeDeliveryExpertGroupModal";
+import {
+  type AgentPlazaScope,
+  type AgentSelectMode,
+  createInitialExpertGroupForm,
+  type ExpertGroupFormState,
+} from "./fdeDeliveryWorkbenchUtils";
 import styles from "./FdeOrderManagementView.module.less";
 
 interface FdeOrderManagementViewProps {
@@ -42,7 +51,6 @@ interface CreateOrderFormState {
 }
 
 type OrderViewMode = "list" | "detail";
-type AgentScope = "public" | "mine";
 type TenantFilterValue = string;
 
 const ALL_TENANT_FILTER_VALUE = "__all__";
@@ -99,6 +107,10 @@ const isDeviceLineItem = (item: FdeOrderLineItem): item is FdeOrderDeviceLineIte
 
 const isAgentLineItem = (item: FdeOrderLineItem): item is FdeOrderAgentLineItem => item.kind === "agent";
 
+const isAgentGroupLineItem = (
+  item: FdeOrderLineItem,
+): item is FdeOrderAgentGroupLineItem => item.kind === "agentGroup";
+
 const isTokensLineItem = (item: FdeOrderLineItem): item is FdeOrderTokensLineItem => item.kind === "tokens";
 
 const getTenantDisplayName = (item: Pick<FdeOrderItem, "customerName" | "tenantName">): string =>
@@ -140,13 +152,37 @@ const createAgentLineItem = (agent: FdeAgentCatalogItem): FdeOrderAgentLineItem 
   totalAmount: 0,
 });
 
+const createAgentGroupLineItem = (
+  form: ExpertGroupFormState,
+  agents: FdeAgentCatalogItem[],
+): FdeOrderAgentGroupLineItem => ({
+  id: createLineId("agent-group"),
+  kind: "agentGroup",
+  groupName: form.name.trim(),
+  groupDescription: form.description.trim(),
+  sourceLabel: "FDE 组合交付",
+  agents: agents.map(agent => ({
+    name: agent.name,
+    releaseVersion: agent.releaseVersion,
+    sourceLabel: agent.sourceLabel,
+    statusLabel: "待下发",
+    permissionHint: agent.permissionHint,
+  })),
+  quantity: 1,
+  validityMonths: 12,
+  unitPrice: 0,
+  totalAmount: 0,
+});
+
 const buildOrderSummary = (lineItems: FdeOrderLineItem[]): string => {
   const deviceCount = lineItems.filter(isDeviceLineItem).length;
   const agentCount = lineItems.filter(isAgentLineItem).length;
+  const agentGroupCount = lineItems.filter(isAgentGroupLineItem).length;
   const tokenCount = lineItems.filter(isTokensLineItem).length;
   const summaryParts = [
     deviceCount ? `设备 ${deviceCount} 项` : "",
     agentCount ? `AI 专家 ${agentCount} 项` : "",
+    agentGroupCount ? `AI 专家团 ${agentGroupCount} 项` : "",
     tokenCount ? `tokens ${tokenCount} 项` : "",
   ].filter(Boolean);
 
@@ -181,12 +217,18 @@ export const FdeOrderManagementView = ({
 }: FdeOrderManagementViewProps): JSX.Element => {
   const [viewMode, setViewMode] = useState<OrderViewMode>("list");
   const [isCreateModalOpen, setIsCreateModalOpen] = useState<boolean>(false);
+  const [isExpertGroupModalOpen, setIsExpertGroupModalOpen] = useState<boolean>(false);
   const [isAgentModalOpen, setIsAgentModalOpen] = useState<boolean>(false);
-  const [agentScope, setAgentScope] = useState<AgentScope>("public");
+  const [agentSelectMode, setAgentSelectMode] = useState<AgentSelectMode>("single");
+  const [agentScope, setAgentScope] = useState<AgentPlazaScope>("public");
   const [agentSceneCategory, setAgentSceneCategory] = useState<string>("");
+  const [selectedAgentIds, setSelectedAgentIds] = useState<string[]>([]);
   const [searchKeyword, setSearchKeyword] = useState<string>("");
   const [tenantFilter, setTenantFilter] = useState<TenantFilterValue>(ALL_TENANT_FILTER_VALUE);
   const [createForm, setCreateForm] = useState<CreateOrderFormState>(createInitialOrderForm());
+  const [expertGroupForm, setExpertGroupForm] = useState<ExpertGroupFormState>(
+    createInitialExpertGroupForm(),
+  );
 
   const selectedOrder = useMemo(
     () => items.find(item => item.id === selectedOrderId) ?? items[0] ?? null,
@@ -308,6 +350,11 @@ export const FdeOrderManagementView = ({
 
   const handleCloseCreateModal = useCallback((): void => {
     setIsCreateModalOpen(false);
+    setIsExpertGroupModalOpen(false);
+    setIsAgentModalOpen(false);
+    setAgentSelectMode("single");
+    setSelectedAgentIds([]);
+    setExpertGroupForm(createInitialExpertGroupForm());
     setCreateForm(createInitialOrderForm());
   }, []);
 
@@ -384,7 +431,7 @@ export const FdeOrderManagementView = ({
     setCreateForm(previous => ({
       ...previous,
       lineItems: previous.lineItems.map(item =>
-        isAgentLineItem(item) && item.id === lineItemId
+        (isAgentLineItem(item) || isAgentGroupLineItem(item)) && item.id === lineItemId
           ? {
               ...item,
               unitPrice: unitPrice ?? 0,
@@ -399,7 +446,7 @@ export const FdeOrderManagementView = ({
     setCreateForm(previous => ({
       ...previous,
       lineItems: previous.lineItems.map(item =>
-        isAgentLineItem(item) && item.id === lineItemId
+        (isAgentLineItem(item) || isAgentGroupLineItem(item)) && item.id === lineItemId
           ? {
               ...item,
               validityMonths: validityMonths ?? 0,
@@ -430,14 +477,58 @@ export const FdeOrderManagementView = ({
     [],
   );
 
-  const handleOpenAgentModal = useCallback((): void => {
+  const handleOpenAgentModal = useCallback((mode: AgentSelectMode = "single"): void => {
+    setAgentSelectMode(mode);
     setAgentScope("public");
     setAgentSceneCategory("");
+    setSelectedAgentIds([]);
     setIsAgentModalOpen(true);
   }, []);
 
   const handleCloseAgentModal = useCallback((): void => {
     setIsAgentModalOpen(false);
+    setAgentSelectMode("single");
+    setSelectedAgentIds([]);
+  }, []);
+
+  const handleOpenExpertGroupModal = useCallback((): void => {
+    setExpertGroupForm(createInitialExpertGroupForm());
+    setSelectedAgentIds([]);
+    setIsExpertGroupModalOpen(true);
+  }, []);
+
+  const handleCloseExpertGroupModal = useCallback((): void => {
+    setIsExpertGroupModalOpen(false);
+    setExpertGroupForm(createInitialExpertGroupForm());
+    setSelectedAgentIds([]);
+  }, []);
+
+  const handleExpertGroupFieldChange = useCallback(
+    <TKey extends keyof ExpertGroupFormState>(key: TKey, value: ExpertGroupFormState[TKey]): void => {
+      setExpertGroupForm(previous => ({
+        ...previous,
+        [key]: value,
+      }));
+    },
+    [],
+  );
+
+  const handleProceedToGroupAgentSelection = useCallback((): void => {
+    if (!expertGroupForm.name.trim() || !expertGroupForm.description.trim()) {
+      message.warning("请先补齐专家团名称和介绍。");
+      return;
+    }
+
+    setIsExpertGroupModalOpen(false);
+    handleOpenAgentModal("group");
+  }, [expertGroupForm.description, expertGroupForm.name, handleOpenAgentModal]);
+
+  const handleToggleAgentSelection = useCallback((agentId: string): void => {
+    setSelectedAgentIds(previous =>
+      previous.includes(agentId)
+        ? previous.filter(item => item !== agentId)
+        : [...previous, agentId],
+    );
   }, []);
 
   const handleAddAgentLine = useCallback((agent: FdeAgentCatalogItem): void => {
@@ -446,7 +537,10 @@ export const FdeOrderManagementView = ({
     setCreateForm(previous => {
       if (
         previous.lineItems.some(
-          item => isAgentLineItem(item) && item.agentCatalogId === agent.id,
+          item =>
+            (isAgentLineItem(item) && item.agentCatalogId === agent.id) ||
+            (isAgentGroupLineItem(item) &&
+              item.agents.some(groupAgent => groupAgent.name === agent.name)),
         )
       ) {
         isDuplicate = true;
@@ -466,6 +560,66 @@ export const FdeOrderManagementView = ({
 
     message.success(`已加入 ${agent.name}。`);
   }, []);
+
+  const handleConfirmAgentGroup = useCallback((): void => {
+    if (!selectedAgentIds.length) {
+      message.warning("请先选择至少一个 AI 专家加入专家团。");
+      return;
+    }
+
+    const selectedAgents = FDE_AGENT_CATALOG_ITEMS.filter(item => selectedAgentIds.includes(item.id));
+    let duplicateCount = 0;
+
+    setCreateForm(previous => {
+      const assignedAgentNames = new Set(
+        previous.lineItems.flatMap(item => {
+          if (isAgentLineItem(item)) {
+            return [item.agentName];
+          }
+
+          if (isAgentGroupLineItem(item)) {
+            return item.agents.map(agent => agent.name);
+          }
+
+          return [];
+        }),
+      );
+      const availableAgents = selectedAgents.filter(agent => {
+        const isDuplicate = assignedAgentNames.has(agent.name);
+        if (isDuplicate) {
+          duplicateCount += 1;
+        }
+        return !isDuplicate;
+      });
+
+      if (!availableAgents.length) {
+        return previous;
+      }
+
+      return {
+        ...previous,
+        lineItems: [
+          ...previous.lineItems,
+          createAgentGroupLineItem(expertGroupForm, availableAgents),
+        ],
+      };
+    });
+
+    if (duplicateCount === selectedAgentIds.length) {
+      message.warning("所选 AI 专家已经全部存在于当前订单中。");
+      return;
+    }
+
+    setIsAgentModalOpen(false);
+    setAgentSelectMode("single");
+    setSelectedAgentIds([]);
+    setExpertGroupForm(createInitialExpertGroupForm());
+    message.success(
+      duplicateCount
+        ? `专家团已创建，已自动跳过 ${duplicateCount} 个重复 AI 专家。`
+        : "AI 专家团已创建并加入订单。",
+    );
+  }, [expertGroupForm, selectedAgentIds]);
 
   const handleCreateOrder = useCallback((): void => {
     if (!createForm.tenantId) {
@@ -497,6 +651,15 @@ export const FdeOrderManagementView = ({
 
       if (isAgentLineItem(item)) {
         return item.unitPrice <= 0 || item.totalAmount <= 0 || (item.validityMonths ?? 0) <= 0;
+      }
+
+      if (isAgentGroupLineItem(item)) {
+        return (
+          !item.agents.length ||
+          item.unitPrice <= 0 ||
+          item.totalAmount <= 0 ||
+          (item.validityMonths ?? 0) <= 0
+        );
       }
 
       return item.tokenCount <= 0 || item.totalAmount <= 0;
@@ -585,6 +748,29 @@ export const FdeOrderManagementView = ({
             );
           }
 
+          if (isAgentGroupLineItem(item)) {
+            return (
+              <div key={item.id} className={styles.detailCard}>
+                <div className={styles.detailTitleRow}>
+                  <span className={styles.detailTitle}>{item.groupName}</span>
+                  <span className={styles.detailTag}>AI 专家团</span>
+                </div>
+                <div className={styles.detailMeta}>
+                  {item.sourceLabel} · {item.agents.length} 个 AI 专家 · {formatAmount(item.totalAmount)} ·
+                  有效时长 {formatValidityLabel(item.validityMonths)}
+                </div>
+                <div className={styles.detailSubMeta}>
+                  包含：{item.agents.map(agent => agent.name).join("、")}
+                </div>
+                {item.deliveredAssetIds?.length ? (
+                  <div className={styles.detailSubMeta}>
+                    资产ID：{item.deliveredAssetIds.join("、")} · 到期时间：{item.expiresAt ?? "待交付后生成"}
+                  </div>
+                ) : null}
+              </div>
+            );
+          }
+
           return (
             <div key={item.id} className={styles.detailCard}>
               <div className={styles.detailTitleRow}>
@@ -645,7 +831,8 @@ export const FdeOrderManagementView = ({
             <div className={styles.sectionTitle}>商品明细</div>
             <div className={styles.inlineActions}>
               <Button onClick={handleAddDeviceLine}>添加设备</Button>
-              <Button onClick={handleOpenAgentModal}>从专家广场添加 AI 专家</Button>
+              <Button onClick={handleOpenExpertGroupModal}>添加 AI 专家团</Button>
+              <Button onClick={() => handleOpenAgentModal("single")}>直接添加单个 AI 专家</Button>
               <Button onClick={handleAddTokensLine}>添加 tokens</Button>
             </div>
           </div>
@@ -763,6 +950,59 @@ export const FdeOrderManagementView = ({
                   );
                 }
 
+                if (isAgentGroupLineItem(item)) {
+                  return (
+                    <div key={item.id} className={styles.lineItemCard}>
+                      <div className={styles.lineItemHeader}>
+                        <div>
+                          <div className={styles.lineItemTitle}>{item.groupName}</div>
+                          <div className={styles.lineItemHint}>
+                            {item.sourceLabel} · {item.agents.length} 个 AI 专家
+                          </div>
+                        </div>
+                        <Button
+                          type="text"
+                          danger
+                          icon={<DeleteOutlined />}
+                          onClick={() => handleRemoveLineItem(item.id)}
+                        />
+                      </div>
+                      <div className={styles.lineItemGrid}>
+                        <div className={styles.formField}>
+                          <div className={styles.fieldLabel}>商品单价</div>
+                          <InputNumber
+                            className={styles.fullWidthControl}
+                            min={0}
+                            value={item.unitPrice}
+                            formatter={value => `${value ?? ""}`}
+                            onChange={value => handleUpdateAgentLinePrice(item.id, value)}
+                          />
+                        </div>
+                        <div className={styles.formField}>
+                          <div className={styles.fieldLabel}>数量</div>
+                          <div className={styles.amountValue}>1</div>
+                        </div>
+                        <div className={styles.formField}>
+                          <div className={styles.fieldLabel}>有效时长（月）</div>
+                          <InputNumber
+                            className={styles.fullWidthControl}
+                            min={1}
+                            value={item.validityMonths}
+                            onChange={value => handleUpdateAgentLineValidity(item.id, value)}
+                          />
+                        </div>
+                        <div className={styles.formField}>
+                          <div className={styles.fieldLabel}>小计</div>
+                          <div className={styles.amountValue}>{formatAmount(item.totalAmount)}</div>
+                        </div>
+                      </div>
+                      <div className={styles.lineItemHint}>
+                        包含：{item.agents.map(agent => agent.name).join("、")}
+                      </div>
+                    </div>
+                  );
+                }
+
                 return (
                   <div key={item.id} className={styles.lineItemCard}>
                     <div className={styles.lineItemHeader}>
@@ -807,7 +1047,7 @@ export const FdeOrderManagementView = ({
               })}
             </div>
           ) : (
-            <div className={styles.emptyHint}>先添加设备、AI 专家或 tokens 商品。</div>
+            <div className={styles.emptyHint}>先添加设备、AI 专家团、AI 专家或 tokens 商品。</div>
           )}
         </div>
 
@@ -825,6 +1065,33 @@ export const FdeOrderManagementView = ({
       </div>
     </Modal>
   );
+  const expertGroupModal = (
+    <FdeDeliveryExpertGroupModal
+      open={isExpertGroupModalOpen}
+      form={expertGroupForm}
+      onClose={handleCloseExpertGroupModal}
+      onNext={handleProceedToGroupAgentSelection}
+      onChange={handleExpertGroupFieldChange}
+    />
+  );
+  const agentModal = (
+    <FdeDeliveryAgentModal
+      open={isAgentModalOpen}
+      agentSelectMode={agentSelectMode}
+      agentScope={agentScope}
+      agentSceneCategory={agentSceneCategory}
+      agentSceneCategories={agentSceneCategories}
+      visibleAgentPlazaItems={visibleAgentItems}
+      selectedAgentIds={selectedAgentIds}
+      expertGroupForm={expertGroupForm}
+      setAgentScope={setAgentScope}
+      setAgentSceneCategory={setAgentSceneCategory}
+      onClose={handleCloseAgentModal}
+      onToggleAgentSelection={handleToggleAgentSelection}
+      onAddAgentToOrder={handleAddAgentLine}
+      onConfirmAgentGroup={handleConfirmAgentGroup}
+    />
+  );
 
   if (!items.length) {
     return (
@@ -836,6 +1103,8 @@ export const FdeOrderManagementView = ({
         </div>
         <Empty description="当前暂无订单" />
         {createOrderModal}
+        {expertGroupModal}
+        {agentModal}
       </div>
     );
   }
@@ -894,77 +1163,8 @@ export const FdeOrderManagementView = ({
           )}
         </div>
         {createOrderModal}
-        <Modal
-          title="专家广场"
-          open={isAgentModalOpen}
-          width={960}
-          rootClassName={styles.agentModal}
-          onCancel={handleCloseAgentModal}
-          footer={null}
-          destroyOnClose
-        >
-          <div className={styles.agentModalBody}>
-            <div className={styles.scopeTabs}>
-              <button
-                type="button"
-                className={classNames(
-                  styles.scopeButton,
-                  agentScope === "public" && styles.scopeButtonActive,
-                )}
-                onClick={() => setAgentScope("public")}
-              >
-                公共
-              </button>
-              <button
-                type="button"
-                className={classNames(
-                  styles.scopeButton,
-                  agentScope === "mine" && styles.scopeButtonActive,
-                )}
-                onClick={() => setAgentScope("mine")}
-              >
-                我的
-              </button>
-            </div>
-            <div className={styles.sceneTabs}>
-              {agentSceneCategories.map(item => (
-                <button
-                  key={item}
-                  type="button"
-                  className={classNames(
-                    styles.sceneButton,
-                    agentSceneCategory === item && styles.sceneButtonActive,
-                  )}
-                  onClick={() => setAgentSceneCategory(item)}
-                >
-                  {item}
-                </button>
-              ))}
-            </div>
-            <div className={styles.agentGrid}>
-              {visibleAgentItems.map(item => (
-                <div key={item.id} className={styles.agentCard}>
-                  <div className={styles.agentCardTop}>
-                    <div className={styles.agentAvatar}>{item.name.slice(0, 1)}</div>
-                    <div>
-                      <div className={styles.agentName}>{item.name}</div>
-                      <div className={styles.agentMeta}>
-                        {item.releaseVersion} · {item.sourceLabel}
-                      </div>
-                    </div>
-                  </div>
-                  <div className={styles.agentDescription}>{item.description}</div>
-                  <div className={styles.agentFooter}>
-                    <span className={styles.agentHint}>{item.permissionHint}</span>
-                    <Button type="primary" onClick={() => handleAddAgentLine(item)}>
-                      添加到订单
-                    </Button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </Modal>
+        {expertGroupModal}
+        {agentModal}
       </div>
     );
   }
@@ -1097,77 +1297,8 @@ export const FdeOrderManagementView = ({
         <Empty description="请选择订单" />
       )}
       {createOrderModal}
-      <Modal
-        title="专家广场"
-        open={isAgentModalOpen}
-        width={960}
-        rootClassName={styles.agentModal}
-        onCancel={handleCloseAgentModal}
-        footer={null}
-        destroyOnClose
-      >
-        <div className={styles.agentModalBody}>
-          <div className={styles.scopeTabs}>
-            <button
-              type="button"
-              className={classNames(
-                styles.scopeButton,
-                agentScope === "public" && styles.scopeButtonActive,
-              )}
-              onClick={() => setAgentScope("public")}
-            >
-              公共
-            </button>
-            <button
-              type="button"
-              className={classNames(
-                styles.scopeButton,
-                agentScope === "mine" && styles.scopeButtonActive,
-              )}
-              onClick={() => setAgentScope("mine")}
-            >
-              我的
-            </button>
-          </div>
-          <div className={styles.sceneTabs}>
-            {agentSceneCategories.map(item => (
-              <button
-                key={item}
-                type="button"
-                className={classNames(
-                  styles.sceneButton,
-                  agentSceneCategory === item && styles.sceneButtonActive,
-                )}
-                onClick={() => setAgentSceneCategory(item)}
-              >
-                {item}
-              </button>
-            ))}
-          </div>
-          <div className={styles.agentGrid}>
-            {visibleAgentItems.map(item => (
-              <div key={item.id} className={styles.agentCard}>
-                <div className={styles.agentCardTop}>
-                  <div className={styles.agentAvatar}>{item.name.slice(0, 1)}</div>
-                  <div>
-                    <div className={styles.agentName}>{item.name}</div>
-                    <div className={styles.agentMeta}>
-                      {item.releaseVersion} · {item.sourceLabel}
-                    </div>
-                  </div>
-                </div>
-                <div className={styles.agentDescription}>{item.description}</div>
-                <div className={styles.agentFooter}>
-                  <span className={styles.agentHint}>{item.permissionHint}</span>
-                  <Button type="primary" onClick={() => handleAddAgentLine(item)}>
-                    添加到订单
-                  </Button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </Modal>
+      {expertGroupModal}
+      {agentModal}
     </div>
   );
 };

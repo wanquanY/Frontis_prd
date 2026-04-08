@@ -57,7 +57,7 @@ export const FdeDeliveryWorkbenchListView = ({
         <span>租户名称</span>
         <span>交付场景</span>
         <span>交付状态</span>
-        <span>交付时间</span>
+        {/* <span>交付时间</span> */}
         <span>当前步骤</span>
         <span>操作</span>
       </div>
