@@ -329,6 +329,7 @@ export const useFdeWorkbench = (currentUserId?: string): UseFdeWorkbenchResult =
     addOpportunityComment,
   } = useFdeOpportunityState({
     activeMemberId: activeMember.id,
+    activeMemberName: activeMember.name,
     activeRole,
     initialOpportunities: FDE_OPPORTUNITIES,
   });

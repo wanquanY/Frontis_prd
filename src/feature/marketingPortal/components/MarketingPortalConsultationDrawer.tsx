@@ -26,7 +26,7 @@ const createInitialConsultationFormState = (
   company: "",
   phone: "",
   interestedAgents,
-  remark: "",
+  requirementDescription: "",
 });
 
 /**
@@ -96,8 +96,13 @@ export const MarketingPortalConsultationDrawer = ({
     (event: FormEvent<HTMLFormElement>): void => {
       event.preventDefault();
 
-      if (!formState.name.trim() || !formState.company.trim() || !formState.phone.trim()) {
-        message.warning("请补全姓名、公司名和手机号后再提交。");
+      if (
+        !formState.name.trim() ||
+        !formState.company.trim() ||
+        !formState.phone.trim() ||
+        !formState.requirementDescription.trim()
+      ) {
+        message.warning("请补全姓名、公司名、手机号和需求描述后再提交。");
         return;
       }
 
@@ -191,12 +196,14 @@ export const MarketingPortalConsultationDrawer = ({
           </div>
 
           <label className={styles.field}>
-            <span className={styles.fieldLabel}>备注</span>
+            <span className={styles.fieldLabel}>需求描述</span>
             <textarea
               className={styles.textarea}
-              value={formState.remark}
-              onChange={event => handleFieldChange("remark", event.target.value)}
-              placeholder="例如你最想先跑通哪个场景、预计什么时候开始试点"
+              value={formState.requirementDescription}
+              onChange={event =>
+                handleFieldChange("requirementDescription", event.target.value)
+              }
+              placeholder="例如你最想先跑通哪个场景、当前最卡的问题、预计什么时候开始试点"
             />
           </label>
 

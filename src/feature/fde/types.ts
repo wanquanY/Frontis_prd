@@ -55,6 +55,11 @@ export type FdeOpportunityStage = "初步沟通" | "产品演示" | "方案推�
 export type FdeOpportunityStatus = "未开始" | "对接中" | "已成单" | "异常终止";
 
 /**
+ * 商机创建方式。
+ */
+export type FdeOpportunitySourceType = "自动同步" | "手动创建";
+
+/**
  * 设备部署方式。
  */
 export type FdeDeviceMode = "云端设备" | "本地设备" | "混合部署";
@@ -223,13 +228,14 @@ export interface FdeWorkbenchNavGroup {
  * 商机条目。
  */
 export interface FdeOpportunityRequirementInfo {
-  sourceEntryLabel: string;
-  submittedAt: string;
-  submitterName: string;
-  submitterPhone: string;
+  sourceType: FdeOpportunitySourceType;
+  sourceEntryLabel?: string;
+  createdAt: string;
+  createdByName: string;
+  contactName: string;
+  contactPhone: string;
   interestedAgents: string[];
-  requirementSummary: string;
-  requirementDetail: string;
+  requirementDescription: string;
 }
 
 /**
@@ -280,12 +286,10 @@ export interface FdeCreateOpportunityPayload {
   scenarioName: string;
   industry: string;
   amountWan: number;
-  submitterName: string;
-  submitterPhone: string;
-  sourceEntryLabel: string;
+  contactName: string;
+  contactPhone: string;
   interestedAgents: string[];
-  requirementSummary: string;
-  requirementDetail: string;
+  requirementDescription: string;
   ownerId?: string | null;
 }
 

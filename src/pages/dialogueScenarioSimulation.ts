@@ -6,10 +6,16 @@ import {
   PRODUCT_MANAGER_PRD_QUESTION,
 } from "@/constants/aiCeoScenarioPrompts";
 import {
+  PRODUCT_MANAGER_ADMIN_PRD_DOCUMENT_CONTENT,
+  PRODUCT_MANAGER_ADMIN_PRD_DOCUMENT_NAME,
   PRODUCT_MANAGER_BACKLOG_DOCUMENT_CONTENT,
   PRODUCT_MANAGER_BACKLOG_DOCUMENT_NAME,
+  PRODUCT_MANAGER_FDE_DELIVERY_PRD_DOCUMENT_CONTENT,
+  PRODUCT_MANAGER_FDE_DELIVERY_PRD_DOCUMENT_NAME,
   PRODUCT_MANAGER_PRD_DOCUMENT_CONTENT,
   PRODUCT_MANAGER_PRD_DOCUMENT_NAME,
+  PRODUCT_MANAGER_WORKSPACE_PRD_DOCUMENT_CONTENT,
+  PRODUCT_MANAGER_WORKSPACE_PRD_DOCUMENT_NAME,
 } from "@/constants/productManagerDocuments";
 import {
   ECOMMERCE_AUTOMATION_AGENT_DEMO,
@@ -4835,18 +4841,52 @@ const buildProductManagerArtifacts = (
   sessionId: string,
   mode: "prd" | "backlog",
 ): ArtifactItem[] => {
+  const prdArtifacts = buildArtifactGroup(
+    createMarkdownArtifact(
+      sessionId,
+      "product-manager-prd",
+      PRODUCT_MANAGER_PRD_DOCUMENT_NAME,
+      "产品经理AI专家",
+      "PRD 总览生成",
+      PRODUCT_MANAGER_PRD_DOCUMENT_CONTENT,
+      "2026-04-08 10:42",
+      resolveTextArtifactSize(PRODUCT_MANAGER_PRD_DOCUMENT_CONTENT),
+    ),
+    createMarkdownArtifact(
+      sessionId,
+      "product-manager-workspace-prd",
+      PRODUCT_MANAGER_WORKSPACE_PRD_DOCUMENT_NAME,
+      "产品经理AI专家",
+      "工作台 PRD 拆分",
+      PRODUCT_MANAGER_WORKSPACE_PRD_DOCUMENT_CONTENT,
+      "2026-04-08 10:43",
+      resolveTextArtifactSize(PRODUCT_MANAGER_WORKSPACE_PRD_DOCUMENT_CONTENT),
+    ),
+    createMarkdownArtifact(
+      sessionId,
+      "product-manager-admin-prd",
+      PRODUCT_MANAGER_ADMIN_PRD_DOCUMENT_NAME,
+      "产品经理AI专家",
+      "企业管理后台 PRD 拆分",
+      PRODUCT_MANAGER_ADMIN_PRD_DOCUMENT_CONTENT,
+      "2026-04-08 10:44",
+      resolveTextArtifactSize(PRODUCT_MANAGER_ADMIN_PRD_DOCUMENT_CONTENT),
+    ),
+    createMarkdownArtifact(
+      sessionId,
+      "product-manager-fde-delivery-prd",
+      PRODUCT_MANAGER_FDE_DELIVERY_PRD_DOCUMENT_NAME,
+      "产品经理AI专家",
+      "FDE配置交付 PRD 拆分",
+      PRODUCT_MANAGER_FDE_DELIVERY_PRD_DOCUMENT_CONTENT,
+      "2026-04-08 10:45",
+      resolveTextArtifactSize(PRODUCT_MANAGER_FDE_DELIVERY_PRD_DOCUMENT_CONTENT),
+    ),
+  );
+
   if (mode === "backlog") {
     return buildArtifactGroup(
-      createMarkdownArtifact(
-        sessionId,
-        "product-manager-prd",
-        PRODUCT_MANAGER_PRD_DOCUMENT_NAME,
-        "产品经理AI专家",
-        "PRD 草案生成",
-        PRODUCT_MANAGER_PRD_DOCUMENT_CONTENT,
-        "2026-04-08 10:42",
-        resolveTextArtifactSize(PRODUCT_MANAGER_PRD_DOCUMENT_CONTENT),
-      ),
+      ...prdArtifacts,
       createMarkdownArtifact(
         sessionId,
         "product-manager-backlog",
@@ -4860,18 +4900,7 @@ const buildProductManagerArtifacts = (
     );
   }
 
-  return buildArtifactGroup(
-    createMarkdownArtifact(
-      sessionId,
-      "product-manager-prd",
-      PRODUCT_MANAGER_PRD_DOCUMENT_NAME,
-      "产品经理AI专家",
-      "PRD 草案生成",
-      PRODUCT_MANAGER_PRD_DOCUMENT_CONTENT,
-      "2026-04-08 10:42",
-      resolveTextArtifactSize(PRODUCT_MANAGER_PRD_DOCUMENT_CONTENT),
-    ),
-  );
+  return prdArtifacts;
 };
 
 const buildProductManagerFrames = (
@@ -4884,7 +4913,7 @@ const buildProductManagerFrames = (
   if (mode === "backlog") {
     const thinking =
       "我会沿着刚才的 PRD 继续往下拆，把用户工作台、企业管理后台和 FDE 三段范围拆成 Epic、Feature 和 User Story。";
-    const responseMarkdown = `我已把这版需求继续拆成《Frontis AI · Product Backlog》，现在右侧成果面板里会同时看到仓库里的 PRD 和 Backlog 两份真实文档。
+    const responseMarkdown = `我已把这版需求继续拆成《Frontis AI · Product Backlog》，现在右侧成果面板里会同时看到总览 PRD、3 份拆分 PRD 和 Backlog 这 5 份真实文档。
 
 这版 Backlog 先收口了 3 件事：
 1. 把工作台里的产品经理专家、默认 Agent 和模拟对话放到同一条交付链路里。
@@ -4958,7 +4987,7 @@ const buildProductManagerFrames = (
 2. 用户工作台、企业管理后台、FDE 业务管理三段范围。
 3. 默认 Agent、激活码、版本管理等最近几轮调整。
 
-右侧成果面板里已经放入仓库里的真实 PRD 文件；如果你继续往下推进，我建议下一步直接拆 Product Backlog，把 Epic、Feature 和 User Story 一次补齐。`;
+右侧成果面板里已经放入仓库里的总览 PRD 和按工作台、企业管理后台、FDE配置交付拆分的 3 份子 PRD；如果你继续往下推进，我建议下一步直接拆 Product Backlog，把 Epic、Feature 和 User Story 一次补齐。`;
   const toolBlocks = [
     createToolUseBlock({
       id: `${messageId}-tool-1`,
@@ -4977,7 +5006,8 @@ const buildProductManagerFrames = (
       displayName: "PRD 生成",
       purpose: "生成正式 PRD 草案文档",
       status: "completed",
-      output: "已输出仓库里的《Frontis AI · 正式 PRD》文件，并同步最近几轮需求调整。",
+      output:
+        "已输出仓库里的《Frontis AI · 正式 PRD》及 3 份拆分 PRD 文件，并同步最近几轮需求调整。",
     }),
   ];
 

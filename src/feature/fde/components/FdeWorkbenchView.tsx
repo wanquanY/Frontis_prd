@@ -157,6 +157,7 @@ export const FdeWorkbenchView = (): JSX.Element => {
   if (activeTab === "opportunities") {
     activeContent = (
       <FdeOpportunityWorkbench
+        activeMemberName={workbench.activeMember.name}
         activeRole={workbench.activeRole}
         items={workbench.filteredOpportunities}
         members={workbench.teamMembers}
