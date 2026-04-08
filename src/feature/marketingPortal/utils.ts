@@ -27,7 +27,7 @@ export const createInitialMarketingLeadFormState = (
   wechat: "",
   industry: "",
   interestedAgents: Array.from(new Set(interestedAgents ?? [])),
-  remark: "",
+  requirementDescription: "",
 });
 
 /**

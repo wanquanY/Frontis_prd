@@ -17,6 +17,7 @@ import { formatWanAmount, getFdeMemberName } from "@/feature/fde/utils";
 import styles from "./FdeOpportunityWorkbench.module.less";
 
 interface FdeOpportunityWorkbenchProps {
+  activeMemberName: string;
   activeRole: FdeTeamMemberItem["role"];
   items: FdeOpportunityItem[];
   members: FdeTeamMemberItem[];
@@ -35,12 +36,10 @@ interface CreateOpportunityFormState {
   scenarioName: string;
   industry: string;
   amountWan: number | null;
-  submitterName: string;
-  submitterPhone: string;
-  sourceEntryLabel: string;
+  contactName: string;
+  contactPhone: string;
   interestedAgents: string[];
-  requirementSummary: string;
-  requirementDetail: string;
+  requirementDescription: string;
   ownerId?: string;
 }
 
@@ -74,12 +73,10 @@ const createInitialOpportunityForm = (): CreateOpportunityFormState => ({
   scenarioName: "",
   industry: "",
   amountWan: null,
-  submitterName: "",
-  submitterPhone: "",
-  sourceEntryLabel: "FDE 手动录入",
+  contactName: "",
+  contactPhone: "",
   interestedAgents: [],
-  requirementSummary: "",
-  requirementDetail: "",
+  requirementDescription: "",
   ownerId: undefined,
 });
 
@@ -87,6 +84,7 @@ const createInitialOpportunityForm = (): CreateOpportunityFormState => ({
  * FDE 商机管理视图。
  */
 export const FdeOpportunityWorkbench = ({
+  activeMemberName,
   activeRole,
   items,
   members,
@@ -121,7 +119,6 @@ export const FdeOpportunityWorkbench = ({
   );
   const metrics = useMemo(
     () => {
-      const totalAmount = items.reduce((total, item) => total + item.amountWan, 0);
       const convertedAmount = items
         .filter(item => item.status === "已成单")
         .reduce((total, item) => total + item.amountWan, 0);
@@ -227,10 +224,9 @@ export const FdeOpportunityWorkbench = ({
       !createForm.companyName.trim() ||
       !createForm.scenarioName.trim() ||
       !createForm.industry.trim() ||
-      !createForm.submitterName.trim() ||
-      !createForm.submitterPhone.trim() ||
-      !createForm.requirementSummary.trim() ||
-      !createForm.requirementDetail.trim() ||
+      !createForm.contactName.trim() ||
+      !createForm.contactPhone.trim() ||
+      !createForm.requirementDescription.trim() ||
       !createForm.amountWan ||
       createForm.amountWan <= 0
     ) {
@@ -243,12 +239,10 @@ export const FdeOpportunityWorkbench = ({
       scenarioName: createForm.scenarioName.trim(),
       industry: createForm.industry.trim(),
       amountWan: createForm.amountWan,
-      submitterName: createForm.submitterName.trim(),
-      submitterPhone: createForm.submitterPhone.trim(),
-      sourceEntryLabel: createForm.sourceEntryLabel.trim() || "FDE 手动录入",
+      contactName: createForm.contactName.trim(),
+      contactPhone: createForm.contactPhone.trim(),
       interestedAgents: createForm.interestedAgents,
-      requirementSummary: createForm.requirementSummary.trim(),
-      requirementDetail: createForm.requirementDetail.trim(),
+      requirementDescription: createForm.requirementDescription.trim(),
       ownerId: canAssignOpportunity ? createForm.ownerId ?? null : undefined,
     });
     setIsCreateModalOpen(false);
@@ -290,10 +284,10 @@ export const FdeOpportunityWorkbench = ({
 
       <div className={styles.tableHeader}>
         <span>企业名称</span>
-        <span>提交人</span>
-        <span>提交时间</span>
-        <span>来源入口</span>
-        <span>需求摘要</span>
+        <span>需求联系人</span>
+        <span>创建时间</span>
+        <span>创建方式</span>
+        <span>需求概述</span>
         <span>状态</span>
         <span>负责人</span>
       </div>
@@ -310,10 +304,10 @@ export const FdeOpportunityWorkbench = ({
               onClick={() => handleOpenDetail(item.id)}
             >
               <span className={styles.companyCell}>{item.companyName}</span>
-              <span>{item.requirementInfo.submitterName}</span>
-              <span>{formatDateTime(item.requirementInfo.submittedAt)}</span>
-              <span>{item.requirementInfo.sourceEntryLabel}</span>
-              <span className={styles.summaryCell}>{item.requirementInfo.requirementSummary}</span>
+              <span>{item.requirementInfo.contactName}</span>
+              <span>{formatDateTime(item.requirementInfo.createdAt)}</span>
+              <span>{item.requirementInfo.sourceType}</span>
+              <span className={styles.summaryCell}>{item.summary}</span>
               <span className={classNames(styles.statusTag, getStatusClassName(item.status))}>
                 {item.status}
               </span>
@@ -358,9 +352,7 @@ export const FdeOpportunityWorkbench = ({
                     onClick={() => handleOpenDetail(item.id)}
                   >
                     <div className={styles.boardCardTitle}>{item.companyName}</div>
-                    <div className={styles.boardCardSummary}>
-                      {item.requirementInfo.requirementSummary}
-                    </div>
+                    <div className={styles.boardCardSummary}>{item.summary}</div>
                     <div className={styles.boardCardMeta}>
                       <span>{formatWanAmount(item.amountWan)}</span>
                       <span>{getFdeMemberName(members, item.ownerId ?? "")}</span>
@@ -458,27 +450,27 @@ export const FdeOpportunityWorkbench = ({
               />
             </div>
             <div className={styles.formBlock}>
-              <div className={styles.controlLabel}>提交人</div>
+              <div className={styles.controlLabel}>创建方式</div>
+              <div className={styles.requirementValue}>手动创建</div>
+            </div>
+            <div className={styles.formBlock}>
+              <div className={styles.controlLabel}>创建人</div>
+              <div className={styles.requirementValue}>{activeMemberName}</div>
+            </div>
+            <div className={styles.formBlock}>
+              <div className={styles.controlLabel}>需求联系人</div>
               <Input
-                value={createForm.submitterName}
-                placeholder="请输入提交人"
-                onChange={event => handleCreateFieldChange("submitterName", event.target.value)}
+                value={createForm.contactName}
+                placeholder="请输入客户侧联系人"
+                onChange={event => handleCreateFieldChange("contactName", event.target.value)}
               />
             </div>
             <div className={styles.formBlock}>
               <div className={styles.controlLabel}>联系电话</div>
               <Input
-                value={createForm.submitterPhone}
-                placeholder="请输入联系电话"
-                onChange={event => handleCreateFieldChange("submitterPhone", event.target.value)}
-              />
-            </div>
-            <div className={styles.formBlock}>
-              <div className={styles.controlLabel}>来源入口</div>
-              <Input
-                value={createForm.sourceEntryLabel}
-                placeholder="请输入来源入口"
-                onChange={event => handleCreateFieldChange("sourceEntryLabel", event.target.value)}
+                value={createForm.contactPhone}
+                placeholder="请输入客户侧联系电话"
+                onChange={event => handleCreateFieldChange("contactPhone", event.target.value)}
               />
             </div>
             {canAssignOpportunity ? (
@@ -506,24 +498,13 @@ export const FdeOpportunityWorkbench = ({
             />
           </div>
           <div className={styles.formBlock}>
-            <div className={styles.controlLabel}>需求摘要</div>
+            <div className={styles.controlLabel}>需求描述</div>
             <Input.TextArea
-              rows={3}
-              value={createForm.requirementSummary}
-              placeholder="请输入需求摘要"
+              rows={6}
+              value={createForm.requirementDescription}
+              placeholder="请输入客户需求描述"
               onChange={event =>
-                handleCreateFieldChange("requirementSummary", event.target.value)
-              }
-            />
-          </div>
-          <div className={styles.formBlock}>
-            <div className={styles.controlLabel}>详细需求介绍</div>
-            <Input.TextArea
-              rows={5}
-              value={createForm.requirementDetail}
-              placeholder="请输入详细需求介绍"
-              onChange={event =>
-                handleCreateFieldChange("requirementDetail", event.target.value)
+                handleCreateFieldChange("requirementDescription", event.target.value)
               }
             />
           </div>
@@ -588,22 +569,34 @@ export const FdeOpportunityWorkbench = ({
                 <div className={styles.sectionTitle}>需求信息</div>
                 <div className={styles.requirementGrid}>
                   <div className={styles.requirementRow}>
-                    <span className={styles.requirementLabel}>提交人</span>
-                    <span className={styles.requirementValue}>{selectedOpportunity.requirementInfo.submitterName}</span>
+                    <span className={styles.requirementLabel}>创建方式</span>
+                    <span className={styles.requirementValue}>{selectedOpportunity.requirementInfo.sourceType}</span>
+                  </div>
+                  <div className={styles.requirementRow}>
+                    <span className={styles.requirementLabel}>创建人</span>
+                    <span className={styles.requirementValue}>{selectedOpportunity.requirementInfo.createdByName}</span>
+                  </div>
+                  <div className={styles.requirementRow}>
+                    <span className={styles.requirementLabel}>创建时间</span>
+                    <span className={styles.requirementValue}>
+                      {formatDateTime(selectedOpportunity.requirementInfo.createdAt)}
+                    </span>
+                  </div>
+                  {selectedOpportunity.requirementInfo.sourceEntryLabel ? (
+                    <div className={styles.requirementRow}>
+                      <span className={styles.requirementLabel}>来源入口</span>
+                      <span className={styles.requirementValue}>
+                        {selectedOpportunity.requirementInfo.sourceEntryLabel}
+                      </span>
+                    </div>
+                  ) : null}
+                  <div className={styles.requirementRow}>
+                    <span className={styles.requirementLabel}>需求联系人</span>
+                    <span className={styles.requirementValue}>{selectedOpportunity.requirementInfo.contactName}</span>
                   </div>
                   <div className={styles.requirementRow}>
                     <span className={styles.requirementLabel}>联系电话</span>
-                    <span className={styles.requirementValue}>{selectedOpportunity.requirementInfo.submitterPhone}</span>
-                  </div>
-                  <div className={styles.requirementRow}>
-                    <span className={styles.requirementLabel}>提交时间</span>
-                    <span className={styles.requirementValue}>
-                      {formatDateTime(selectedOpportunity.requirementInfo.submittedAt)}
-                    </span>
-                  </div>
-                  <div className={styles.requirementRow}>
-                    <span className={styles.requirementLabel}>来源入口</span>
-                    <span className={styles.requirementValue}>{selectedOpportunity.requirementInfo.sourceEntryLabel}</span>
+                    <span className={styles.requirementValue}>{selectedOpportunity.requirementInfo.contactPhone}</span>
                   </div>
                   <div className={styles.requirementRow}>
                     <span className={styles.requirementLabel}>预计金额</span>
@@ -626,15 +619,9 @@ export const FdeOpportunityWorkbench = ({
                     </div>
                   </div>
                   <div className={styles.requirementRowFull}>
-                    <span className={styles.requirementLabel}>需求摘要</span>
-                    <span className={styles.requirementValue}>
-                      {selectedOpportunity.requirementInfo.requirementSummary}
-                    </span>
-                  </div>
-                  <div className={styles.requirementRowFull}>
-                    <span className={styles.requirementLabel}>详细需求介绍</span>
+                    <span className={styles.requirementLabel}>需求描述</span>
                     <div className={styles.requirementDetail}>
-                      {selectedOpportunity.requirementInfo.requirementDetail}
+                      {selectedOpportunity.requirementInfo.requirementDescription}
                     </div>
                   </div>
                 </div>

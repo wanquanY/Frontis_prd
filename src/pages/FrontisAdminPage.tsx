@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import classNames from "classnames";
 import {
@@ -14,7 +14,7 @@ import {
 } from "@ant-design/icons";
 import type { MenuProps } from "antd";
 import { Avatar, Dropdown, message } from "antd";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 
 import { useMockAuth } from "@/feature/auth/hooks/useMockAuth";
 import {
@@ -90,13 +90,25 @@ const FRONTIS_ADMIN_TABS: FrontisWebTabItem[] = [
   },
 ];
 
+const FRONTIS_ADMIN_TAB_KEYS = new Set<FrontisWebTabKey>(
+  FRONTIS_ADMIN_TABS.map(item => item.key),
+);
+
+const resolveFrontisAdminTabKey = (tabKey: string | null): FrontisWebTabKey =>
+  tabKey && FRONTIS_ADMIN_TAB_KEYS.has(tabKey as FrontisWebTabKey)
+    ? (tabKey as FrontisWebTabKey)
+    : "dashboard";
+
 /**
  * 老板后台管理页面。
  */
 const FrontisAdminPage = (): JSX.Element => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { logout, session } = useMockAuth();
-  const [activeTabKey, setActiveTabKey] = useState<FrontisWebTabKey>("dashboard");
+  const [activeTabKey, setActiveTabKey] = useState<FrontisWebTabKey>(() =>
+    resolveFrontisAdminTabKey(searchParams.get("tab")),
+  );
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(false);
   const [employees, setEmployees] = useState<EmployeeItem[]>(INITIAL_EMPLOYEES);
   const [users, setUsers] = useState<FrontisWebUserItem[]>(INITIAL_FRONTIS_WEB_USERS);
@@ -128,6 +140,14 @@ const FrontisAdminPage = (): JSX.Element => {
       null,
     [effectiveUsers, session?.userId],
   );
+
+  useEffect(() => {
+    const nextTabKey = resolveFrontisAdminTabKey(searchParams.get("tab"));
+
+    if (nextTabKey !== activeTabKey) {
+      setActiveTabKey(nextTabKey);
+    }
+  }, [activeTabKey, searchParams]);
 
   const handleAttachEmployeeToDevice = useCallback(
     (employeeId: string, workspaceId: string): void => {
@@ -431,8 +451,11 @@ const FrontisAdminPage = (): JSX.Element => {
   const handleSelectTab = useCallback(
     (tabKey: FrontisWebTabKey): void => {
       setActiveTabKey(tabKey);
+      const nextParams = new URLSearchParams(searchParams);
+      nextParams.set("tab", tabKey);
+      setSearchParams(nextParams);
     },
-    [],
+    [searchParams, setSearchParams],
   );
 
   const handleBackToWorkspace = useCallback((): void => {

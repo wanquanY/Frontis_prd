@@ -36,6 +36,7 @@ import {
   createOrderNo,
   getLineItemValidityMonths,
   hydrateExistingAssets,
+  isAgentGroupLineItem,
   isAgentLineItem,
   isDeviceLineItem,
   resolveDeviceLineTypeFromAsset,
@@ -74,11 +75,12 @@ const buildOrderLinkedDeliveryRecord = (payload: {
 }): FdeDeliveryOrderItem | null => {
   const deviceLineItems = payload.lineItems.filter(isDeviceLineItem);
   const agentLineItems = payload.lineItems.filter(isAgentLineItem);
+  const agentGroupLineItems = payload.lineItems.filter(isAgentGroupLineItem);
   const isRenewalOrder = [...deviceLineItems, ...agentLineItems].some(item =>
     Boolean(item.renewalTargetAssetId),
   );
 
-  if (!deviceLineItems.length && !agentLineItems.length) {
+  if (!deviceLineItems.length && !agentLineItems.length && !agentGroupLineItems.length) {
     return null;
   }
 
@@ -91,9 +93,12 @@ const buildOrderLinkedDeliveryRecord = (payload: {
   const localClientCount = deviceLineItems
     .filter(item => item.deviceType === "本地客户端授权")
     .reduce((total, item) => total + item.quantity, 0);
-  const expertNames = Array.from(new Set(agentLineItems.map(item => item.agentName)));
+  const groupAgentNames = agentGroupLineItems.flatMap(item => item.agents.map(agent => agent.name));
+  const expertNames = Array.from(
+    new Set([...agentLineItems.map(item => item.agentName), ...groupAgentNames]),
+  );
   const hasDevice = deviceLineItems.length > 0;
-  const hasAgent = agentLineItems.length > 0;
+  const hasAgent = agentLineItems.length > 0 || agentGroupLineItems.length > 0;
   const changeType = isRenewalOrder
     ? "资产续费"
     : hasDevice
@@ -123,7 +128,9 @@ const buildOrderLinkedDeliveryRecord = (payload: {
         ? hasAgent
           ? "订单设备与AI专家交付"
           : "订单设备交付"
-        : expertNames.join("、") || "订单AI专家交付",
+        : agentGroupLineItems.length
+          ? agentGroupLineItems.map(item => item.groupName).join("、")
+          : expertNames.join("、") || "订单AI专家交付",
     currentStep: hasDevice ? "deviceConfig" : "agentConfig",
     stepProgress: 0,
     orderAmount: payload.totalAmount
@@ -168,19 +175,31 @@ const buildOrderLinkedDeliveryRecord = (payload: {
     handoffItems: isRenewalOrder
       ? ["续费资产已完成交付", "新的有效期已确认", "客户已收到续费说明"]
       : ["订单资源已完成交付", "设备与授权对象已确认", "客户已收到交付说明"],
-    agentGroups: [],
+    agentGroups: agentGroupLineItems.map(item => ({
+      id: item.id,
+      name: item.groupName,
+      description: item.groupDescription,
+      sourceLabel: item.sourceLabel,
+      statusLabel: "待下发",
+      agents: item.agents.map(agent => ({
+        ...agent,
+        statusLabel: "待下发",
+      })),
+    })),
     agentPackages: Array.from(
       new Map(
-        agentLineItems.map(item => [
-          item.agentName,
-          {
-            name: item.agentName,
-            releaseVersion: item.releaseVersion,
-            sourceLabel: item.sourceLabel,
-            statusLabel: "待下发",
-            permissionHint: "待确认授权成员",
-          },
-        ]),
+        agentLineItems
+          .filter(item => !groupAgentNames.includes(item.agentName))
+          .map(item => [
+            item.agentName,
+            {
+              name: item.agentName,
+              releaseVersion: item.releaseVersion,
+              sourceLabel: item.sourceLabel,
+              statusLabel: "待下发",
+              permissionHint: "待确认授权成员",
+            },
+          ]),
       ).values(),
     ),
     adminTodo: isRenewalOrder
@@ -210,6 +229,11 @@ const buildOrderLinkedDeliveryRecord = (payload: {
           ? `${item.agentName} · ${getLineItemValidityMonths(item)} 个月`
           : item.agentName,
       })),
+      ...agentGroupLineItems.map(item => ({
+        id: `${payload.orderId}-${item.id}`,
+        label: "新增 AI 专家团",
+        afterValue: `${item.groupName} · ${item.agents.length} 个 AI 专家`,
+      })),
     ],
     quotaAdjustments: isRenewalOrder
       ? []
@@ -237,10 +261,23 @@ const buildOrderLinkedDeliveryRecord = (payload: {
       ? []
       : Array.from(
           new Map(
-            agentLineItems.map(item => [
-              item.agentName,
-              {
+            [
+              ...agentLineItems.map(item => ({
                 name: item.agentName,
+                releaseVersion: item.releaseVersion,
+                sourceLabel: item.sourceLabel,
+              })),
+              ...agentGroupLineItems.flatMap(item =>
+                item.agents.map(agent => ({
+                  name: agent.name,
+                  releaseVersion: agent.releaseVersion,
+                  sourceLabel: agent.sourceLabel,
+                })),
+              ),
+            ].map(item => [
+              item.name,
+              {
+                name: item.name,
                 runningHours: 0,
                 completedTasks: 0,
                 currentVersion: item.releaseVersion,
@@ -329,6 +366,7 @@ export const useFdeWorkbench = (currentUserId?: string): UseFdeWorkbenchResult =
     addOpportunityComment,
   } = useFdeOpportunityState({
     activeMemberId: activeMember.id,
+    activeMemberName: activeMember.name,
     activeRole,
     initialOpportunities: FDE_OPPORTUNITIES,
   });
@@ -774,6 +812,15 @@ export const useFdeWorkbench = (currentUserId?: string): UseFdeWorkbenchResult =
         }
 
         if (isAgentLineItem(item)) {
+          return {
+            ...item,
+            quantity: 1,
+            validityMonths: getLineItemValidityMonths(item),
+            totalAmount: item.unitPrice,
+          };
+        }
+
+        if (isAgentGroupLineItem(item)) {
           return {
             ...item,
             quantity: 1,

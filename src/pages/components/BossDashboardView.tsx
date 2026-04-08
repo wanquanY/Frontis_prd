@@ -283,14 +283,14 @@ export const BossDashboardView = ({
           <h1 className={adminStyles.consoleTitle}>
             {getGreetingLabel()}，{getExecutiveTitle(currentUserName)}
           </h1>
-          <p className={styles.summaryLine}>
+          {/* <p className={styles.summaryLine}>
             企业正式配置已经收口到管理后台。当前共有{" "}
             <span className={styles.highlight}>{activeExpertCount} 个活跃 AI 专家</span>
             ，近一轮累计完成 <span className={styles.highlight}>{completedTaskCount} 条任务</span>
             ，估算节省 <span className={styles.strongText}>{savedHours} 小时</span> 人工处理时间。
-          </p>
+          </p> */}
         </div>
-        <div className={adminStyles.consoleHeaderSide}>
+        {/* <div className={adminStyles.consoleHeaderSide}>
           <span
             className={
               isHealthy
@@ -300,7 +300,7 @@ export const BossDashboardView = ({
           >
             {isHealthy ? "配置状态稳定" : `${riskCount} 项配置待处理`}
           </span>
-        </div>
+        </div> */}
       </header>
 
       <div className={styles.summaryCardGrid}>

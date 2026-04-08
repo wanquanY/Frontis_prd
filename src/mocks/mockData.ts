@@ -8,10 +8,16 @@ import {
   LIVE_BROADCAST_SKILL_DEMOS,
 } from "@/constants/liveBroadcastDemo";
 import {
+  PRODUCT_MANAGER_ADMIN_PRD_DOCUMENT_CONTENT,
+  PRODUCT_MANAGER_ADMIN_PRD_DOCUMENT_NAME,
   PRODUCT_MANAGER_BACKLOG_DOCUMENT_CONTENT,
   PRODUCT_MANAGER_BACKLOG_DOCUMENT_NAME,
+  PRODUCT_MANAGER_FDE_DELIVERY_PRD_DOCUMENT_CONTENT,
+  PRODUCT_MANAGER_FDE_DELIVERY_PRD_DOCUMENT_NAME,
   PRODUCT_MANAGER_PRD_DOCUMENT_CONTENT,
   PRODUCT_MANAGER_PRD_DOCUMENT_NAME,
+  PRODUCT_MANAGER_WORKSPACE_PRD_DOCUMENT_CONTENT,
+  PRODUCT_MANAGER_WORKSPACE_PRD_DOCUMENT_NAME,
 } from "@/constants/productManagerDocuments";
 import {
   XIAOCANMAMA_IP_AGENT_DEMO,
@@ -358,7 +364,7 @@ export const INITIAL_EMPLOYEES: EmployeeItem[] = [
     connectionMode: "cloud",
     model: "gpt-4o",
     summary: "面向产品规划场景，输出 PRD、Backlog、边界说明和排期建议。",
-    lastAction: "已生成 Frontis AI 的正式 PRD 与 Product Backlog 文档。",
+    lastAction: "已生成 Frontis AI 的总览 PRD、拆分 PRD 与 Product Backlog 文档。",
     source: "coworker",
     visibility: "all",
     subAgentModel: "gpt-4o-mini",
@@ -386,6 +392,9 @@ export const INITIAL_EMPLOYEE_DOCUMENTS: Record<string, string[]> = {
   "employee-sales": ["销售日报模板.md", "客户跟进规范.md", "战报汇总.md"],
   "employee-product-manager": [
     PRODUCT_MANAGER_PRD_DOCUMENT_NAME,
+    PRODUCT_MANAGER_WORKSPACE_PRD_DOCUMENT_NAME,
+    PRODUCT_MANAGER_ADMIN_PRD_DOCUMENT_NAME,
+    PRODUCT_MANAGER_FDE_DELIVERY_PRD_DOCUMENT_NAME,
     PRODUCT_MANAGER_BACKLOG_DOCUMENT_NAME,
     "需求澄清纪要.md",
   ],
@@ -463,6 +472,10 @@ export const INITIAL_EMPLOYEE_DOCUMENT_CONTENTS: Record<string, Record<string, s
   },
   "employee-product-manager": {
     [PRODUCT_MANAGER_PRD_DOCUMENT_NAME]: PRODUCT_MANAGER_PRD_DOCUMENT_CONTENT,
+    [PRODUCT_MANAGER_WORKSPACE_PRD_DOCUMENT_NAME]: PRODUCT_MANAGER_WORKSPACE_PRD_DOCUMENT_CONTENT,
+    [PRODUCT_MANAGER_ADMIN_PRD_DOCUMENT_NAME]: PRODUCT_MANAGER_ADMIN_PRD_DOCUMENT_CONTENT,
+    [PRODUCT_MANAGER_FDE_DELIVERY_PRD_DOCUMENT_NAME]:
+      PRODUCT_MANAGER_FDE_DELIVERY_PRD_DOCUMENT_CONTENT,
     [PRODUCT_MANAGER_BACKLOG_DOCUMENT_NAME]: PRODUCT_MANAGER_BACKLOG_DOCUMENT_CONTENT,
     "需求澄清纪要.md":
       "# 需求澄清纪要\n\n- 本轮以 mock 数据驱动，不接真实接口\n- 文档输出优先覆盖 PRD 与 Backlog 两种产品经理常用交付物\n- 若需求继续收敛，可在当前基础上追加阶段目标和里程碑\n",

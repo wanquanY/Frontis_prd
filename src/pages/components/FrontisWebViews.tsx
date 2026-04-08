@@ -363,7 +363,11 @@ const renderResultPreview = (artifact: ResultRecord): JSX.Element => {
   if (artifact.previewKind === "markdown") {
     return (
       <div className={styles.markdownShell}>
-        <MarkdownRenderer source={decodeDataUrlContent(artifact.canonicalPath)} />
+        <MarkdownRenderer
+          source={decodeDataUrlContent(artifact.canonicalPath)}
+          enableMermaidActions={true}
+          artifactFileName={artifact.fileName}
+        />
       </div>
     );
   }

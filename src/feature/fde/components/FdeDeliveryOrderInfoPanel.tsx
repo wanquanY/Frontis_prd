@@ -14,6 +14,7 @@ import {
   formatTokenCount,
   formatValidityLabel,
   getOrderSummaryLabel,
+  isAgentGroupOrderLineItem,
   isAgentOrderLineItem,
   isDeviceOrderLineItem,
 } from "./fdeDeliveryWorkbenchUtils";
@@ -39,6 +40,8 @@ const renderOrderLineItems = (lineItems: FdeOrderLineItem[]): JSX.Element => {
               <span className={styles.relatedOrderTitle}>
                 {isDeviceOrderLineItem(item)
                   ? item.deviceType
+                  : isAgentGroupOrderLineItem(item)
+                    ? item.groupName
                   : isAgentOrderLineItem(item)
                     ? item.agentName
                     : "tokens 资源包"}
@@ -46,6 +49,8 @@ const renderOrderLineItems = (lineItems: FdeOrderLineItem[]): JSX.Element => {
               <span className={styles.deliveryTypeTag}>
                 {isDeviceOrderLineItem(item)
                   ? "设备"
+                  : isAgentGroupOrderLineItem(item)
+                    ? "AI 专家团"
                   : isAgentOrderLineItem(item)
                     ? "AI 专家"
                     : "tokens"}
@@ -54,11 +59,20 @@ const renderOrderLineItems = (lineItems: FdeOrderLineItem[]): JSX.Element => {
             <div className={styles.relatedOrderMeta}>
               {isDeviceOrderLineItem(item)
                 ? `数量 ${item.quantity} / 单价 ${formatAmount(item.unitPrice)} / 小计 ${formatAmount(item.totalAmount)} / 有效时长 ${formatValidityLabel(item.validityMonths)}`
+                : isAgentGroupOrderLineItem(item)
+                  ? `${item.sourceLabel} · ${item.agents.length} 个 AI 专家 · ${formatAmount(item.totalAmount)} · 有效时长 ${formatValidityLabel(item.validityMonths)}`
                 : isAgentOrderLineItem(item)
                   ? `${item.releaseVersion} · ${item.sourceLabel} · ${formatAmount(item.totalAmount)} · 有效时长 ${formatValidityLabel(item.validityMonths)}`
                   : `${formatTokenCount(item.tokenCount)} · ${formatAmount(item.totalAmount)}`}
             </div>
-            {(isDeviceOrderLineItem(item) || isAgentOrderLineItem(item)) &&
+            {isAgentGroupOrderLineItem(item) ? (
+              <div className={styles.relatedOrderMeta}>
+                包含：{item.agents.map(agent => agent.name).join("、")}
+              </div>
+            ) : null}
+            {(isDeviceOrderLineItem(item) ||
+              isAgentOrderLineItem(item) ||
+              isAgentGroupOrderLineItem(item)) &&
             item.deliveredAssetIds?.length ? (
               <div className={styles.relatedOrderMeta}>
                 资产ID：{item.deliveredAssetIds.join("、")} · 到期时间：

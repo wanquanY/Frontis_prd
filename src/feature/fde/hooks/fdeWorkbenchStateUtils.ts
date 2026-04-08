@@ -2,11 +2,12 @@ import dayjs from "dayjs";
 
 import { FDE_TEAM_MEMBERS } from "@/feature/fde/mockData";
 import type {
-  FdeAgentMonitorItem,
   FdeAssetType,
   FdeDeliveryChangeRecordItem,
+  FdeDeliveryAgentPackageItem,
   FdeDeliveryChangeStatus,
   FdeDeliveryOrderItem,
+  FdeOrderAgentGroupLineItem,
   FdeOrderAgentLineItem,
   FdeOrderDeviceLineItem,
   FdeOrderFulfillmentExecutionRecordItem,
@@ -159,25 +160,6 @@ export const updateQuotaItems = (
     };
   });
 
-const appendUniqueAgents = (
-  currentAgents: FdeAgentMonitorItem[],
-  additions: FdeAgentMonitorItem[],
-): FdeAgentMonitorItem[] => {
-  const seenNames = new Set(currentAgents.map(item => item.name));
-  const nextAgents = [...currentAgents];
-
-  additions.forEach(agent => {
-    if (seenNames.has(agent.name)) {
-      return;
-    }
-
-    nextAgents.push(agent);
-    seenNames.add(agent.name);
-  });
-
-  return nextAgents;
-};
-
 /**
  * 生成订单编号。
  */
@@ -236,7 +218,7 @@ export const addValidityMonths = (startedAt: string, validityMonths: number): st
  * 获取订单商品有效时长，未填时回落到默认值。
  */
 export const getLineItemValidityMonths = (
-  item: FdeOrderDeviceLineItem | FdeOrderAgentLineItem,
+  item: FdeOrderDeviceLineItem | FdeOrderAgentLineItem | FdeOrderAgentGroupLineItem,
 ): number => item.validityMonths ?? DEFAULT_VALIDITY_MONTHS;
 
 const buildStableAssetId = (
@@ -334,39 +316,58 @@ const buildDeviceAssetsFromLineItem = (
   });
 };
 
+const buildOrderAgentPackages = (
+  lineItem: FdeOrderAgentLineItem | FdeOrderAgentGroupLineItem,
+): FdeDeliveryAgentPackageItem[] =>
+  lineItem.kind === "agent"
+    ? [
+        {
+          name: lineItem.agentName,
+          releaseVersion: lineItem.releaseVersion,
+          sourceLabel: lineItem.sourceLabel,
+          statusLabel: "已下发到租户",
+          permissionHint: "待确认授权成员",
+        },
+      ]
+    : lineItem.agents;
+
 const buildAgentAssetsFromLineItem = (
   order: FdeOrderItem,
-  lineItem: FdeOrderAgentLineItem,
+  lineItem: FdeOrderAgentLineItem | FdeOrderAgentGroupLineItem,
   completedAt: string,
   templates: FdeOperationsCustomerItem["agents"],
 ): FdeOperationsCustomerItem["agents"] => {
   const validityMonths = getLineItemValidityMonths(lineItem);
   const expiresAt = addValidityMonths(completedAt, validityMonths);
-  const template = templates[0];
+  const agentPackages = buildOrderAgentPackages(lineItem);
 
-  return [
-    {
+  return agentPackages.map((agentPackage, index) => {
+    const template =
+      templates.find(item => item.name === agentPackage.name) ??
+      templates[index];
+
+    return {
       ...(template ?? {
-        name: lineItem.agentName,
+        name: agentPackage.name,
         runningHours: 0,
         completedTasks: 0,
-        currentVersion: lineItem.releaseVersion,
-        latestVersion: lineItem.releaseVersion,
-        deliverySourceLabel: lineItem.sourceLabel,
+        currentVersion: agentPackage.releaseVersion,
+        latestVersion: agentPackage.releaseVersion,
+        deliverySourceLabel: agentPackage.sourceLabel,
         modelLabel: "Frontis 标准模型",
         deploymentLabel: "待企业管理员配置",
       }),
-      assetId: buildStableAssetId("agent", lineItem.id),
+      assetId: buildStableAssetId("agent", `${lineItem.id}-${index + 1}`),
       sourceOrderId: order.id,
       validityMonths,
       activatedAt: completedAt,
       expiresAt,
-      name: template?.name ?? lineItem.agentName,
-      currentVersion: template?.currentVersion ?? lineItem.releaseVersion,
-      latestVersion: template?.latestVersion ?? lineItem.releaseVersion,
-      deliverySourceLabel: template?.deliverySourceLabel ?? lineItem.sourceLabel,
-    },
-  ];
+      name: template?.name ?? agentPackage.name,
+      currentVersion: template?.currentVersion ?? agentPackage.releaseVersion,
+      latestVersion: template?.latestVersion ?? agentPackage.releaseVersion,
+      deliverySourceLabel: template?.deliverySourceLabel ?? agentPackage.sourceLabel,
+    };
+  });
 };
 
 /**
@@ -457,6 +458,13 @@ export const isAgentLineItem = (item: FdeOrderLineItem): item is FdeOrderAgentLi
   item.kind === "agent";
 
 /**
+ * 判断订单商品是否为 AI 专家团项。
+ */
+export const isAgentGroupLineItem = (
+  item: FdeOrderLineItem,
+): item is FdeOrderAgentGroupLineItem => item.kind === "agentGroup";
+
+/**
  * 判断订单商品是否为 tokens 项。
  */
 export const isTokensLineItem = (item: FdeOrderLineItem): item is FdeOrderTokensLineItem =>
@@ -466,7 +474,9 @@ export const isTokensLineItem = (item: FdeOrderLineItem): item is FdeOrderTokens
  * 判断订单是否包含需要人工交付的商品。
  */
 export const hasManualDeliveryLineItem = (order: FdeOrderItem): boolean =>
-  order.lineItems.some(item => isDeviceLineItem(item) || isAgentLineItem(item));
+  order.lineItems.some(
+    item => isDeviceLineItem(item) || isAgentLineItem(item) || isAgentGroupLineItem(item),
+  );
 
 const getTeamMemberNameById = (
   memberId: string,
@@ -649,24 +659,24 @@ export const applyTokenRecharges = (
  */
 export const appendUniqueAgentPackages = (
   currentPackages: NonNullable<FdeDeliveryOrderItem["agentPackages"]>,
-  lineItems: FdeOrderAgentLineItem[],
+  lineItems: Array<FdeOrderAgentLineItem | FdeOrderAgentGroupLineItem>,
 ): NonNullable<FdeDeliveryOrderItem["agentPackages"]> => {
   const existingNames = new Set(currentPackages.map(item => item.name));
   const nextPackages = [...currentPackages];
 
   lineItems.forEach(item => {
-    if (existingNames.has(item.agentName)) {
-      return;
-    }
+    buildOrderAgentPackages(item).forEach(agentPackage => {
+      if (existingNames.has(agentPackage.name)) {
+        return;
+      }
 
-    nextPackages.push({
-      name: item.agentName,
-      releaseVersion: item.releaseVersion,
-      sourceLabel: item.sourceLabel,
-      statusLabel: "待下发",
-      permissionHint: "待确认授权成员",
+      nextPackages.push({
+        ...agentPackage,
+        statusLabel: "待下发",
+        permissionHint: "待确认授权成员",
+      });
+      existingNames.add(agentPackage.name);
     });
-    existingNames.add(item.agentName);
   });
 
   return nextPackages;
@@ -689,8 +699,22 @@ const getDeviceLineItemSummary = (lineItems: FdeOrderDeviceLineItem[]): string =
     })
     .join(" / ");
 
-const getAgentLineItemSummary = (lineItems: FdeOrderAgentLineItem[]): string =>
-  Array.from(new Set(lineItems.map(item => item.agentName))).join(" / ");
+const getAgentLineItemNames = (
+  lineItems: Array<FdeOrderAgentLineItem | FdeOrderAgentGroupLineItem>,
+): string[] =>
+  Array.from(
+    new Set(
+      lineItems.flatMap(item =>
+        item.kind === "agent"
+          ? [item.agentName]
+          : item.agents.map(agent => agent.name),
+      ),
+    ),
+  );
+
+const getAgentLineItemSummary = (
+  lineItems: Array<FdeOrderAgentLineItem | FdeOrderAgentGroupLineItem>,
+): string => getAgentLineItemNames(lineItems).join(" / ");
 
 const getRenewalLineItemSummary = (
   lineItems: Array<FdeOrderDeviceLineItem | FdeOrderAgentLineItem>,
@@ -769,19 +793,21 @@ export const buildInitialFulfillmentItems = (
 ): FdeOrderFulfillmentItem[] => {
   const deviceLineItems = order.lineItems.filter(isDeviceLineItem);
   const agentLineItems = order.lineItems.filter(isAgentLineItem);
+  const agentGroupLineItems = order.lineItems.filter(isAgentGroupLineItem);
   const tokenLineItems = order.lineItems.filter(isTokensLineItem);
   const nextItems: FdeOrderFulfillmentItem[] = [];
   const operatorName = getTeamMemberNameById(tenantOrder.assignedToId, members);
   const orderOperatorName = getTeamMemberNameById(order.assignedToId, members);
   const deliveryStatus = buildFulfillmentStatusFromDelivery(tenantOrder);
 
-  if (deviceLineItems.length || agentLineItems.length) {
+  if (deviceLineItems.length || agentLineItems.length || agentGroupLineItems.length) {
     nextItems.push({
       id: `${order.id}-fulfillment-delivery`,
       type: "首期配置交付",
       summary: [
         deviceLineItems.length ? `设备 ${deviceLineItems.length} 项` : "",
         agentLineItems.length ? `AI 专家 ${agentLineItems.length} 项` : "",
+        agentGroupLineItems.length ? `AI 专家团 ${agentGroupLineItems.length} 项` : "",
       ]
         .filter(Boolean)
         .join(" / "),
@@ -917,6 +943,8 @@ export const syncOrdersWithDeliveryState = (
     if (linkedChangeOrders.length) {
       const deviceLineItems = nextOrder.lineItems.filter(isDeviceLineItem);
       const agentLineItems = nextOrder.lineItems.filter(isAgentLineItem);
+      const agentGroupLineItems = nextOrder.lineItems.filter(isAgentGroupLineItem);
+      const manualAgentLineItems = [...agentLineItems, ...agentGroupLineItems];
 
       linkedChangeOrders.forEach(changeOrder => {
         if (
@@ -940,7 +968,7 @@ export const syncOrdersWithDeliveryState = (
 
         if (
           changeOrderIncludesAgent(changeOrder) &&
-          agentLineItems.length &&
+          manualAgentLineItems.length &&
           !fulfillmentItems.some(
             item => item.linkedRecordId === changeOrder.id && item.type === "Agent追加",
           )
@@ -950,7 +978,7 @@ export const syncOrdersWithDeliveryState = (
             buildChangeFulfillmentItem(
               nextOrder.id,
               "Agent追加",
-              getAgentLineItemSummary(agentLineItems),
+              getAgentLineItemSummary(manualAgentLineItems),
               changeOrder,
               members,
             ),
@@ -989,7 +1017,9 @@ export const syncOrdersWithDeliveryState = (
     if (
       linkedInitialDelivery &&
       !fulfillmentItems.some(item => item.type === "首期配置交付") &&
-      nextOrder.lineItems.some(item => isDeviceLineItem(item) || isAgentLineItem(item))
+      nextOrder.lineItems.some(
+        item => isDeviceLineItem(item) || isAgentLineItem(item) || isAgentGroupLineItem(item),
+      )
     ) {
       fulfillmentItems = [
         {
@@ -997,7 +1027,11 @@ export const syncOrdersWithDeliveryState = (
           type: "首期配置交付",
           summary: [
             nextOrder.lineItems.some(isDeviceLineItem) ? "设备交付" : "",
-            nextOrder.lineItems.some(isAgentLineItem) ? "AI 专家下发" : "",
+            nextOrder.lineItems.some(
+              item => isAgentLineItem(item) || isAgentGroupLineItem(item),
+            )
+              ? "AI 专家下发"
+              : "",
           ]
             .filter(Boolean)
             .join(" / "),
@@ -1168,8 +1202,8 @@ export const syncOrdersWithDeliveryState = (
         }
 
         if (
-          isAgentLineItem(item) &&
-          !item.renewalTargetAssetId &&
+          (isAgentLineItem(item) || isAgentGroupLineItem(item)) &&
+          (!isAgentLineItem(item) || !item.renewalTargetAssetId) &&
           !item.deliveredAssetIds?.length &&
           completedAgentDelivery
         ) {
