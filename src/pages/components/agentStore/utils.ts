@@ -1,4 +1,15 @@
-import type { EmployeeItem, ExpertSetupMode, FrontisWebUserItem } from "../../types";
+import {
+  buildAccessScopeSummary,
+  hasUserInAccessScope,
+  resolveUserIdsFromAccessScope,
+} from "@/utils/organizationAccess";
+
+import type {
+  EmployeeItem,
+  ExpertSetupMode,
+  FrontisWebUserItem,
+  OrganizationDepartmentItem,
+} from "../../types";
 import type { ExpertDeploymentState, ExpertDeviceAccessState } from "./types";
 
 /**
@@ -17,13 +28,13 @@ export const doesExpertRequireDeviceBinding = (employee: EmployeeItem): boolean 
  * 判断 AI 专家是否已完成权限分配。
  */
 export const isPermissionAssignmentConfigured = (employee: EmployeeItem): boolean =>
-  employee.visibility === "all" || employee.boundMembers.length > 0;
+  employee.visibility === "all" || employee.accessScopeSubjects.length > 0;
 
 /**
  * 判断单个设备上的权限配置是否已完成。
  */
 export const isDeviceAccessConfigured = (accessState: ExpertDeviceAccessState): boolean =>
-  accessState.visibility === "all" || accessState.boundMembers.length > 0;
+  accessState.visibility === "all" || accessState.accessScopeSubjects.length > 0;
 
 /**
  * 基于当前员工数据，构建 AI 专家的初始设备部署状态。
@@ -43,7 +54,7 @@ export const buildInitialExpertDeploymentByEmployeeId = (
             requiresDeviceBinding && employee.workspaceId
               ? {
                   [employee.workspaceId]: {
-                    boundMembers: [...employee.boundMembers],
+                    accessScopeSubjects: [...employee.accessScopeSubjects],
                     visibility: employee.visibility,
                   },
                 }
@@ -83,7 +94,7 @@ export const getDeviceAccessStateForExpert = (
   deploymentState?: ExpertDeploymentState,
 ): ExpertDeviceAccessState =>
   deploymentState?.accessByWorkspaceId[workspaceId] ?? {
-    boundMembers: [...employee.boundMembers],
+    accessScopeSubjects: [...employee.accessScopeSubjects],
     visibility: employee.visibility,
   };
 
@@ -129,13 +140,23 @@ export const getEffectiveMembersForDeviceAccess = (
   accessState: ExpertDeviceAccessState,
   ownerId: string | null | undefined,
   users: FrontisWebUserItem[],
+  departments: OrganizationDepartmentItem[],
 ): string[] => {
   if (accessState.visibility === "all") {
     return users.map(user => user.name);
   }
 
+  const scopedUserIds = resolveUserIdsFromAccessScope(
+    accessState.accessScopeSubjects,
+    users,
+    departments,
+  );
   const ownerName = ownerId ? users.find(user => user.id === ownerId)?.name ?? null : null;
-  return Array.from(new Set([...(ownerName ? [ownerName] : []), ...accessState.boundMembers]));
+  const scopedUserNames = scopedUserIds
+    .map(userId => users.find(user => user.id === userId)?.name ?? null)
+    .filter((name): name is string => Boolean(name));
+
+  return Array.from(new Set([...(ownerName ? [ownerName] : []), ...scopedUserNames]));
 };
 
 /**
@@ -147,13 +168,15 @@ export const hasUserAccessToExpert = (
   employee: EmployeeItem,
   deploymentState: ExpertDeploymentState | undefined,
   deviceOwners: Record<string, string | null>,
+  users: FrontisWebUserItem[],
+  departments: OrganizationDepartmentItem[],
 ): boolean => {
   if (!doesExpertRequireDeviceBinding(employee)) {
     if (employee.visibility === "all") {
       return true;
     }
 
-    return employee.boundMembers.includes(user.name);
+    return hasUserInAccessScope(user, employee.accessScopeSubjects, users, departments);
   }
 
   const assignedWorkspaceIds = getAssignedWorkspaceIdsForExpert(employee, deploymentState);
@@ -166,7 +189,22 @@ export const hasUserAccessToExpert = (
     }
 
     return (
-      deviceOwners[workspaceId] === user.id || accessState.boundMembers.includes(user.name)
+      deviceOwners[workspaceId] === user.id ||
+      hasUserInAccessScope(user, accessState.accessScopeSubjects, users, departments)
     );
   });
+};
+
+/**
+ * 生成 AI 专家的组织范围摘要。
+ */
+export const getExpertAccessScopeSummary = (
+  visibility: EmployeeItem["visibility"],
+  accessScopeSubjects: EmployeeItem["accessScopeSubjects"],
+): string => {
+  if (visibility === "all") {
+    return "全公司可用";
+  }
+
+  return buildAccessScopeSummary(accessScopeSubjects);
 };

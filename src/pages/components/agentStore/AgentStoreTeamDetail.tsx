@@ -1,13 +1,22 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { ArrowLeftOutlined, CheckCircleOutlined } from "@ant-design/icons";
-import { Avatar, Button, Radio, Select, Tabs, message } from "antd";
+import { Avatar, Button, Radio, Select, Tabs, TreeSelect, message } from "antd";
 
+import {
+  buildAccessScopeSubjectLookup,
+  buildAccessScopeSummary,
+  buildOrganizationTree,
+  normalizeAccessScopeSubjects,
+} from "@/utils/organizationAccess";
 import type {
+  AccessScopeSubject,
   EmployeeItem,
   EmployeeVisibility,
   FrontisWebTabKey,
   FrontisWebUserItem,
+  OrganizationDepartmentItem,
+  OrganizationTreeNode,
   WorkspaceItem,
 } from "../../types";
 import type { ExpertDeploymentState, ExpertDeviceAccessState } from "./types";
@@ -20,6 +29,7 @@ import {
 import adminStyles from "../FrontisAdminViews.module.less";
 import {
   doesExpertRequireDeviceBinding,
+  getExpertAccessScopeSummary,
   getEffectiveMembersForDeviceAccess,
   getPendingPermissionWorkspaceIdsForExpert,
   getAssignedWorkspaceIdsForExpert,
@@ -65,7 +75,7 @@ interface AgentStoreTeamDetailProps {
   deviceOwners: Record<string, string | null>;
   detailTitle: string;
   employees: EmployeeItem[];
-  memberNames: string[];
+  organizationDepartments: OrganizationDepartmentItem[];
   onBack: () => void;
   onAttachEmployeeToDevice: (employeeId: string, workspaceId: string) => void;
   onDetachEmployeeFromDevice: (employeeId: string, workspaceId: string) => void;
@@ -74,12 +84,32 @@ interface AgentStoreTeamDetailProps {
     employeeId: string,
     workspaceId: string,
     visibility: EmployeeVisibility,
-    boundMembers: string[],
+    accessScopeSubjects: AccessScopeSubject[],
   ) => void;
   onUpdateModel: (employeeId: string, model: string) => void;
   users: FrontisWebUserItem[];
   workspaces: WorkspaceItem[];
 }
+
+type OrganizationTreeValue = `${"company" | "department" | "user"}:${string}`;
+type OrganizationTreeSelectValue = { label: string; value: OrganizationTreeValue };
+interface OrganizationTreeSelectNode {
+  children?: OrganizationTreeSelectNode[];
+  key: OrganizationTreeValue;
+  title: string;
+  value: OrganizationTreeValue;
+}
+
+const toTreeValue = (subjectType: AccessScopeSubject["subjectType"], subjectId: string): OrganizationTreeValue =>
+  `${subjectType}:${subjectId}`;
+
+const mapTreeNodesToSelectData = (nodes: OrganizationTreeNode[]): OrganizationTreeSelectNode[] =>
+  nodes.map(node => ({
+    children: node.children ? mapTreeNodesToSelectData(node.children) : undefined,
+    key: toTreeValue(node.type, node.id),
+    title: node.name,
+    value: toTreeValue(node.type, node.id),
+  }));
 
 const getVersionTagClassName = (hasNewVersion: boolean): string =>
   hasNewVersion
@@ -90,18 +120,6 @@ const getDeployTagClassName = (isAssigned: boolean): string =>
   isAssigned
     ? `${adminStyles.consoleStatusTag} ${adminStyles.consoleStatusTagSuccess}`
     : `${adminStyles.consoleStatusTag} ${adminStyles.consoleStatusTagWarning}`;
-
-const getPermissionConfiguredLabel = (employee: EmployeeItem): string => {
-  if (employee.visibility === "all") {
-    return "全公司可用";
-  }
-
-  if (employee.boundMembers.length) {
-    return `已分配 ${employee.boundMembers.length} 人权限`;
-  }
-
-  return "待分配权限";
-};
 
 const getDeviceConfiguredLabel = (
   employee: EmployeeItem,
@@ -135,7 +153,7 @@ export const AgentStoreTeamDetail = ({
   deviceOwners,
   detailTitle,
   employees,
-  memberNames,
+  organizationDepartments,
   onBack,
   onAttachEmployeeToDevice,
   onDetachEmployeeFromDevice,
@@ -191,9 +209,9 @@ export const AgentStoreTeamDetail = ({
                   employee,
                   deploymentByEmployeeId[employee.id],
                 );
-                const versionInfo = EXPERT_VERSION_INFO[employee.id] ?? { version: "v1.0" };
-                const hasNewVersion =
-                  Boolean(versionInfo.newVersion) && versionInfo.newVersion !== versionInfo.version;
+                        const versionInfo = EXPERT_VERSION_INFO[employee.id] ?? { version: "v1.0" };
+                        const hasNewVersion =
+                          Boolean(versionInfo.newVersion) && versionInfo.newVersion !== versionInfo.version;
 
                 return (
                   <button
@@ -213,7 +231,10 @@ export const AgentStoreTeamDetail = ({
                         <span className={styles.detailAgentRailMeta}>
                           {requiresDeviceBinding
                             ? getDeviceConfiguredLabel(employee, deploymentByEmployeeId[employee.id])
-                            : getPermissionConfiguredLabel(employee)}
+                            : getExpertAccessScopeSummary(
+                                employee.visibility,
+                                employee.accessScopeSubjects,
+                              )}
                         </span>
                       </div>
                     </div>
@@ -243,7 +264,7 @@ export const AgentStoreTeamDetail = ({
                 deploymentState={deploymentByEmployeeId[selectedEmployee.id]}
                 deviceOwners={deviceOwners}
                 employee={selectedEmployee}
-                memberNames={memberNames}
+                organizationDepartments={organizationDepartments}
                 onAttachEmployeeToDevice={onAttachEmployeeToDevice}
                 onDetachEmployeeFromDevice={onDetachEmployeeFromDevice}
                 onNavigateToTab={onNavigateToTab}
@@ -264,7 +285,7 @@ interface ExpertConfigPanelProps {
   deploymentState?: ExpertDeploymentState;
   deviceOwners: Record<string, string | null>;
   employee: EmployeeItem;
-  memberNames: string[];
+  organizationDepartments: OrganizationDepartmentItem[];
   onAttachEmployeeToDevice: (employeeId: string, workspaceId: string) => void;
   onDetachEmployeeFromDevice: (employeeId: string, workspaceId: string) => void;
   onNavigateToTab: (tabKey: FrontisWebTabKey) => void;
@@ -272,7 +293,7 @@ interface ExpertConfigPanelProps {
     employeeId: string,
     workspaceId: string,
     visibility: EmployeeVisibility,
-    boundMembers: string[],
+    accessScopeSubjects: AccessScopeSubject[],
   ) => void;
   onUpdateModel: (employeeId: string, model: string) => void;
   users: FrontisWebUserItem[];
@@ -283,7 +304,7 @@ const ExpertConfigPanel = ({
   deploymentState,
   deviceOwners,
   employee,
-  memberNames,
+  organizationDepartments,
   onAttachEmployeeToDevice,
   onDetachEmployeeFromDevice,
   onNavigateToTab,
@@ -309,13 +330,34 @@ const ExpertConfigPanel = ({
       assignedWorkspaceIds.map(workspaceId => [
         workspaceId,
         getDeviceAccessStateForExpert(employee, workspaceId, deploymentState),
-        ]),
-      ),
+      ]),
+    ),
   );
   const [permissionAccessDraft, setPermissionAccessDraft] = useState<ExpertDeviceAccessState>(() => ({
-    boundMembers: [...employee.boundMembers],
+    accessScopeSubjects: [...employee.accessScopeSubjects],
     visibility: employee.visibility,
   }));
+  const organizationTreeData = useMemo(
+    () => mapTreeNodesToSelectData(buildOrganizationTree(organizationDepartments, users)),
+    [organizationDepartments, users],
+  );
+  const accessScopeSubjectLookup = useMemo(
+    () => buildAccessScopeSubjectLookup(organizationDepartments, users),
+    [organizationDepartments, users],
+  );
+  const normalizeTreeValuesToSubjects = useCallback(
+    (nextValues: Array<OrganizationTreeValue | { value: OrganizationTreeValue }>): AccessScopeSubject[] =>
+      normalizeAccessScopeSubjects(
+        nextValues
+          .map(item => {
+            const nextValue = typeof item === "string" ? item : item.value;
+            return accessScopeSubjectLookup[nextValue] ?? null;
+          })
+          .filter((item): item is AccessScopeSubject => Boolean(item)),
+        organizationDepartments,
+      ),
+    [accessScopeSubjectLookup, organizationDepartments],
+  );
   const [versionIgnored, setVersionIgnored] = useState<boolean>(false);
   const versionInfo = EXPERT_VERSION_INFO[employee.id] ?? { version: "v1.0" };
   const [currentVersion, setCurrentVersion] = useState<string>(versionInfo.version);
@@ -340,7 +382,7 @@ const ExpertConfigPanel = ({
 
   useEffect(() => {
     setPermissionAccessDraft({
-      boundMembers: [...employee.boundMembers],
+      accessScopeSubjects: [...employee.accessScopeSubjects],
       visibility: employee.visibility,
     });
   }, [employee]);
@@ -435,12 +477,39 @@ const ExpertConfigPanel = ({
       return [];
     }
 
-    return getEffectiveMembersForDeviceAccess(selectedAccessState, selectedAccessOwnerId, users);
-  }, [selectedAccessOwnerId, selectedAccessState, users]);
-  const permissionMemberCount =
-    permissionAccessDraft.visibility === "all"
-      ? memberNames.length
-      : permissionAccessDraft.boundMembers.length;
+    return getEffectiveMembersForDeviceAccess(
+      selectedAccessState,
+      selectedAccessOwnerId,
+      users,
+      organizationDepartments,
+    );
+  }, [organizationDepartments, selectedAccessOwnerId, selectedAccessState, users]);
+  const permissionAccessSummary = getExpertAccessScopeSummary(
+    permissionAccessDraft.visibility,
+    permissionAccessDraft.accessScopeSubjects,
+  );
+  const permissionTreeValues = useMemo(
+    () =>
+      permissionAccessDraft.accessScopeSubjects.map(subject =>
+        ({
+          label: subject.subjectName,
+          value: toTreeValue(subject.subjectType, subject.subjectId),
+        }),
+      ),
+    [permissionAccessDraft.accessScopeSubjects],
+  );
+  const selectedAccessTreeValues = useMemo(
+    () =>
+      selectedAccessState
+        ? selectedAccessState.accessScopeSubjects.map(subject =>
+            ({
+              label: subject.subjectName,
+              value: toTreeValue(subject.subjectType, subject.subjectId),
+            }),
+          )
+        : [],
+    [selectedAccessState],
+  );
 
   const handleAttachWorkspaceClick = useCallback((): void => {
     if (!draftWorkspaceId) {
@@ -453,7 +522,7 @@ const ExpertConfigPanel = ({
       ...prev,
       [draftWorkspaceId]: requiresDeviceBinding
         ? {
-            boundMembers: [],
+            accessScopeSubjects: [],
             visibility: "bound",
           }
         : getDeviceAccessStateForExpert(employee, draftWorkspaceId, deploymentState),
@@ -481,7 +550,7 @@ const ExpertConfigPanel = ({
           workspaceId,
           requiresDeviceBinding
             ? {
-                boundMembers: [],
+                accessScopeSubjects: [],
                 visibility: "bound" as const,
               }
             : getDeviceAccessStateForExpert(employee, workspaceId, deploymentState),
@@ -523,7 +592,7 @@ const ExpertConfigPanel = ({
         employee.id,
         employee.workspaceId,
         permissionAccessDraft.visibility,
-        permissionAccessDraft.boundMembers,
+        permissionAccessDraft.accessScopeSubjects,
       );
       message.success(`${employee.name} 权限已更新`);
       return;
@@ -538,7 +607,7 @@ const ExpertConfigPanel = ({
       employee.id,
       selectedAccessWorkspaceId,
       selectedAccessState.visibility,
-      selectedAccessState.boundMembers,
+      selectedAccessState.accessScopeSubjects,
     );
     message.success(`${employee.name} 设备权限已更新`);
   }, [
@@ -546,7 +615,7 @@ const ExpertConfigPanel = ({
     employee.name,
     employee.workspaceId,
     onUpdateDeviceAccess,
-    permissionAccessDraft.boundMembers,
+    permissionAccessDraft.accessScopeSubjects,
     permissionAccessDraft.visibility,
     requiresDeviceBinding,
     selectedAccessState,
@@ -570,7 +639,7 @@ const ExpertConfigPanel = ({
       ...prev,
       [selectedAccessWorkspaceId]: {
         ...(prev[selectedAccessWorkspaceId] ?? {
-          boundMembers: [],
+          accessScopeSubjects: [],
           visibility: employee.visibility,
         }),
         visibility: nextVisibility,
@@ -578,30 +647,35 @@ const ExpertConfigPanel = ({
     }));
   }, [employee.visibility, requiresDeviceBinding, selectedAccessWorkspaceId]);
 
-  const handleChangeAccessMembers = useCallback((nextMembers: string[]): void => {
-    if (!requiresDeviceBinding) {
-      setPermissionAccessDraft(prev => ({
+  const handleChangeAccessSubjects = useCallback(
+    (nextSubjects: Array<OrganizationTreeValue | { value: OrganizationTreeValue }>): void => {
+      const normalizedSubjects = normalizeTreeValuesToSubjects(nextSubjects);
+
+      if (!requiresDeviceBinding) {
+        setPermissionAccessDraft(prev => ({
+          ...prev,
+          accessScopeSubjects: normalizedSubjects,
+        }));
+        return;
+      }
+
+      if (!selectedAccessWorkspaceId) {
+        return;
+      }
+
+      setAccessDraftsByWorkspaceId(prev => ({
         ...prev,
-        boundMembers: nextMembers,
+        [selectedAccessWorkspaceId]: {
+          ...(prev[selectedAccessWorkspaceId] ?? {
+            accessScopeSubjects: [],
+            visibility: employee.visibility,
+          }),
+          accessScopeSubjects: normalizedSubjects,
+        },
       }));
-      return;
-    }
-
-    if (!selectedAccessWorkspaceId) {
-      return;
-    }
-
-    setAccessDraftsByWorkspaceId(prev => ({
-      ...prev,
-      [selectedAccessWorkspaceId]: {
-        ...(prev[selectedAccessWorkspaceId] ?? {
-          boundMembers: [],
-          visibility: employee.visibility,
-        }),
-        boundMembers: nextMembers,
-      },
-    }));
-  }, [employee.visibility, requiresDeviceBinding, selectedAccessWorkspaceId]);
+    },
+    [employee.visibility, normalizeTreeValuesToSubjects, requiresDeviceBinding, selectedAccessWorkspaceId],
+  );
 
   const handleModelChange = useCallback(
     (model: string): void => {
@@ -652,11 +726,7 @@ const ExpertConfigPanel = ({
             <span className={getDeployTagClassName(isConfigured)}>
               {requiresDeviceBinding
                 ? getDeviceConfiguredLabel(employee, deploymentState)
-                : permissionAccessDraft.visibility === "all"
-                  ? "全公司可用"
-                  : permissionMemberCount
-                    ? `已分配 ${permissionMemberCount} 人权限`
-                    : "待分配权限"}
+                : permissionAccessSummary}
             </span>
           </div>
           <p className={styles.simpleExpertRole}>{employee.role}</p>
@@ -754,6 +824,7 @@ const ExpertConfigPanel = ({
                           accessState,
                           deviceOwners[workspace.id] ?? null,
                           users,
+                          organizationDepartments,
                         );
 
                         return (
@@ -781,8 +852,8 @@ const ExpertConfigPanel = ({
                                 {accessState.visibility === "all"
                                   ? "当前对全公司开放"
                                   : effectiveMembers.length
-                                    ? `当前可用成员：${effectiveMembers.join("、")}`
-                                    : "当前尚未配置可用成员"}
+                                    ? `当前组织范围：${buildAccessScopeSummary(accessState.accessScopeSubjects)}`
+                                    : "当前尚未配置组织范围"}
                               </span>
                             </button>
                           </div>
@@ -806,8 +877,8 @@ const ExpertConfigPanel = ({
                               {selectedAccessState.visibility === "all"
                                 ? "当前对全公司开放"
                                 : selectedEffectiveMembers.length
-                                  ? `当前可用成员：${selectedEffectiveMembers.join("、")}`
-                                  : "当前尚未配置可用成员"}
+                                  ? `当前组织范围：${buildAccessScopeSummary(selectedAccessState.accessScopeSubjects)}`
+                                  : "当前尚未配置组织范围"}
                             </span>
                           </div>
                           <span className={styles.devicePermissionStatus}>
@@ -822,17 +893,25 @@ const ExpertConfigPanel = ({
                             size="small"
                           >
                             <Radio value="all">全公司可用</Radio>
-                            <Radio value="bound">指定员工可用</Radio>
+                            <Radio value="bound">按组织范围配置</Radio>
                           </Radio.Group>
                           {selectedAccessState.visibility === "bound" ? (
-                            <Select
+                            <TreeSelect
                               className={adminStyles.consoleControl}
-                              mode="multiple"
-                              placeholder="选择当前设备可使用成员"
+                              treeCheckable={true}
+                              treeCheckStrictly={true}
+                              showCheckedStrategy={TreeSelect.SHOW_PARENT}
+                              placeholder="选择当前设备可使用的组织范围"
                               size="small"
-                              value={selectedAccessState.boundMembers}
-                              onChange={handleChangeAccessMembers}
-                              options={memberNames.map(name => ({ label: name, value: name }))}
+                              value={selectedAccessTreeValues}
+                              onChange={value =>
+                                handleChangeAccessSubjects(
+                                  Array.isArray(value) ? value : [],
+                                )
+                              }
+                              treeData={organizationTreeData}
+                              allowClear={true}
+                              showSearch={true}
                             />
                           ) : null}
                         </div>
@@ -840,11 +919,11 @@ const ExpertConfigPanel = ({
                         <span className={styles.simpleExpertHint}>
                           {selectedAccessState.visibility === "all"
                             ? "保存后该设备上的此 AI 专家将对全公司开放。"
-                            : selectedAccessState.boundMembers.length
-                              ? `保存后该设备将额外开放给 ${selectedAccessState.boundMembers.length} 名指定成员${selectedAccessOwnerName ? "，设备拥有者默认可用。" : "。"}`
+                            : selectedAccessState.accessScopeSubjects.length
+                              ? `保存后该设备将开放给 ${buildAccessScopeSummary(selectedAccessState.accessScopeSubjects)}${selectedAccessOwnerName ? "，设备拥有者默认可用。" : "。"}`
                               : selectedAccessOwnerName
-                                ? "当前还没有指定成员；保存后仅设备拥有者默认可使用。"
-                                : "当前还没有指定成员，且该设备尚未设置拥有者。"}
+                                ? "当前还没有配置组织范围；保存后仅设备拥有者默认可使用。"
+                                : "当前还没有配置组织范围，且该设备尚未设置拥有者。"}
                         </span>
 
                         <div className={adminStyles.consoleActions}>
@@ -876,26 +955,32 @@ const ExpertConfigPanel = ({
                     size="small"
                   >
                     <Radio value="all">全公司可用</Radio>
-                    <Radio value="bound">指定员工可用</Radio>
+                    <Radio value="bound">按组织范围配置</Radio>
                   </Radio.Group>
                   {permissionAccessDraft.visibility === "bound" ? (
-                    <Select
+                    <TreeSelect
                       className={adminStyles.consoleControl}
-                      mode="multiple"
-                      placeholder="选择可使用成员"
+                      treeCheckable={true}
+                      treeCheckStrictly={true}
+                      showCheckedStrategy={TreeSelect.SHOW_PARENT}
+                      placeholder="选择可使用的组织范围"
                       size="small"
-                      value={permissionAccessDraft.boundMembers}
-                      onChange={handleChangeAccessMembers}
-                      options={memberNames.map(name => ({ label: name, value: name }))}
+                      value={permissionTreeValues}
+                      onChange={value =>
+                        handleChangeAccessSubjects(Array.isArray(value) ? value : [])
+                      }
+                      treeData={organizationTreeData}
+                      allowClear={true}
+                      showSearch={true}
                     />
                   ) : null}
                 </div>
                 <span className={styles.simpleExpertHint}>
                   {permissionAccessDraft.visibility === "all"
                     ? "保存后将对全公司成员开放。"
-                    : permissionMemberCount
-                      ? `保存后将对 ${permissionMemberCount} 名成员开放。`
-                      : "当前尚未选择任何成员。"}
+                    : permissionAccessDraft.accessScopeSubjects.length
+                      ? `保存后将开放给 ${permissionAccessSummary}。`
+                      : "当前尚未选择任何组织范围。"}
                 </span>
                 <div className={adminStyles.consoleActions}>
                   <Button size="small" type="primary" onClick={handleSaveExpertAccess}>

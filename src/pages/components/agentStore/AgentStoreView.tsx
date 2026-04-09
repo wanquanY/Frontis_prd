@@ -167,7 +167,7 @@ export const AgentStoreView = ({
   deploymentByEmployeeId,
   deviceOwners,
   employees,
-  memberNames,
+  organizationDepartments,
   onAttachEmployeeToDevice,
   onDetachEmployeeFromDevice,
   onNavigateToTab,
@@ -283,7 +283,7 @@ export const AgentStoreView = ({
         deviceOwners={deviceOwners}
         detailTitle={selectedTeam?.name ?? selectedStandaloneExpert?.name ?? ""}
         employees={selectedEmployees}
-        memberNames={memberNames}
+        organizationDepartments={organizationDepartments}
         onBack={handleBack}
         onAttachEmployeeToDevice={onAttachEmployeeToDevice}
         onDetachEmployeeFromDevice={onDetachEmployeeFromDevice}

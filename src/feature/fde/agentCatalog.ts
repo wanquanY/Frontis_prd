@@ -1,9 +1,71 @@
-import type { FdeAgentCatalogItem } from "@/feature/fde/types";
+import type { FdeAgentCatalogItem, FdeAgentCatalogVersionItem } from "@/feature/fde/types";
+
+type FdeAgentCatalogSeedItem = Omit<FdeAgentCatalogItem, "versions">;
+
+const buildPreviousVersion = (releaseVersion: string, offset: number): string => {
+  const matched = releaseVersion.match(/^v(\d+)\.(\d+)\.(\d+)$/);
+
+  if (!matched) {
+    return releaseVersion;
+  }
+
+  const major = Number(matched[1]);
+  let minor = Number(matched[2]);
+  let patch = Number(matched[3]) - offset;
+
+  while (patch < 0 && minor > 0) {
+    minor -= 1;
+    patch += 10;
+  }
+
+  patch = Math.max(patch, 0);
+
+  return `v${major}.${minor}.${patch}`;
+};
+
+/**
+ * 为广场 Agent 生成可选版本列表，默认首项为最新版本。
+ */
+const buildAgentVersions = (
+  releaseVersion: string,
+  description: string,
+): FdeAgentCatalogVersionItem[] => [
+  {
+    releaseVersion,
+    description,
+  },
+  {
+    releaseVersion: buildPreviousVersion(releaseVersion, 1),
+    description: `${description} 适合标准交付场景，强调稳定使用。`,
+  },
+  {
+    releaseVersion: buildPreviousVersion(releaseVersion, 2),
+    description: `${description} 适合存量客户延续使用，功能表达更克制。`,
+  },
+];
+
+/**
+ * 解析 Agent 当前选中的版本信息；未指定时默认返回最新版本。
+ */
+export const resolveAgentCatalogVersion = (
+  agent: FdeAgentCatalogItem,
+  releaseVersion?: string,
+): FdeAgentCatalogVersionItem => {
+  const matchedVersion = agent.versions.find(item => item.releaseVersion === releaseVersion);
+
+  return matchedVersion ?? agent.versions[0];
+};
+
+const withAgentVersions = (items: FdeAgentCatalogSeedItem[]): FdeAgentCatalogItem[] =>
+  items.map(item => ({
+    ...item,
+    versions: buildAgentVersions(item.releaseVersion, item.description),
+  }));
 
 /**
  * FDE 专家广场商品源。
  */
-export const FDE_AGENT_CATALOG_ITEMS: FdeAgentCatalogItem[] = [
+export const FDE_AGENT_CATALOG_ITEMS: FdeAgentCatalogItem[] = withAgentVersions([
   {
     id: "agent-public-01",
     name: "AI CEO 教练",
@@ -378,4 +440,4 @@ export const FDE_AGENT_CATALOG_ITEMS: FdeAgentCatalogItem[] = [
     sceneCategory: "试点扩展",
     description: "适合售后升级项目，辅助梳理工单问题和服务改进动作。",
   },
-];
+]);

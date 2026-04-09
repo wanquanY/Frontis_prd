@@ -81,7 +81,7 @@
 
 .listHeader,
 .listRow {
-  grid-template-columns: 1.2fr 1.1fr 0.9fr 1fr 1fr 0.8fr;
+  grid-template-columns: 1.3fr 0.8fr 1.4fr 1fr 0.8fr;
 }
 
 .listHeader {
@@ -110,27 +110,21 @@
   background: color-mix(in srgb, var(--primary) 3%, transparent);
 }
 
-.listStatus {
-  display: inline-flex;
-  align-items: center;
-  min-height: 22px;
-  padding: 0 10px;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--primary) 10%, transparent);
-  color: var(--fdeAccent);
-  font-size: 12px;
-  line-height: 18px;
-  font-weight: 700;
-}
-
-.listStatusDelivered {
-  background: rgba(70, 212, 147, 0.12);
-  color: var(--fdeSuccess);
-}
-
 .listAction {
   color: var(--fdeAccent);
   font-weight: 600;
+}
+
+.deliveryOverview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.deliveryOverviewItem {
+  color: var(--fdeTextSecondary);
+  font-size: 13px;
+  line-height: 20px;
 }
 
 .listEmpty {
@@ -972,15 +966,41 @@
   line-height: 22px;
 }
 
+.agentCardActions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.agentVersionSelect {
+  min-width: 116px;
+}
+
 .agentAddButton {
   align-self: flex-start;
 }
 
 .groupDraftBar {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
   padding: 14px 16px;
   border: 1px solid var(--fdeBorder);
   border-radius: 12px;
   background: color-mix(in srgb, var(--primary) 4%, transparent);
+}
+
+.groupDraftField {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.groupDraftLabel {
+  color: var(--fdeText);
+  font-size: 13px;
+  line-height: 20px;
+  font-weight: 600;
 }
 
 .groupDraftTitle {

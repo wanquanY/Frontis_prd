@@ -1,7 +1,7 @@
 /**
  * FDE 工作台视角。
  */
-export type FdeWorkbenchRole = "leader" | "admin" | "member";
+export type FdeWorkbenchRole = "leader" | "admin" | "groupLeader" | "member";
 
 /**
  * FDE 工作台一级导航标识。
@@ -104,13 +104,23 @@ export type FdeDeliveryOrderKind = "initial" | "change";
 export type FdeDeliveryChangeType = "追加设备" | "追加Agent" | "追加设备与Agent" | "资产续费";
 
 /**
- * 交付变更记录状态。
+ * 资产变更记录中的资产类型。
  */
-export type FdeDeliveryChangeStatus =
-  | "待执行"
-  | "执行中"
-  | "已完成"
-  | "已取消";
+export type FdeAssetChangeRecordAssetType = "设备" | "AI 专家" | "设备 / AI 专家";
+
+/**
+ * 资产变更记录类型。
+ */
+export type FdeAssetChangeRecordType =
+  | "新增设备"
+  | "新增 AI 专家"
+  | "新增设备与 AI 专家"
+  | "设备续费"
+  | "AI 专家续费"
+  | "AI 专家升级"
+  | "AI 专家回退"
+  | "移除设备"
+  | "移除 AI 专家";
 
 /**
  * FDE 订单状态。
@@ -158,6 +168,21 @@ export type FdeAgentCatalogScope = "public" | "mine";
 export type FdeAssetType = "device" | "agent";
 
 /**
+ * 商机分配对象类型。
+ */
+export type FdeOpportunityAssignmentTargetType = "group" | "member";
+
+/**
+ * FDE 小组条目。
+ */
+export interface FdeTeamGroupItem {
+  id: string;
+  name: string;
+  leadId: string;
+  description: string;
+}
+
+/**
  * FDE 团队成员。
  */
 export interface FdeTeamMemberItem {
@@ -166,6 +191,8 @@ export interface FdeTeamMemberItem {
   title: string;
   phone: string;
   role: FdeWorkbenchRole;
+  groupId?: string;
+  groupName?: string;
   status: FdeMemberStatus;
   accountStatus: FdeTeamAccountStatus;
   joinedAt: string;
@@ -263,6 +290,8 @@ export interface FdeOpportunityItem {
   amountWan: number;
   winRate: number;
   ownerId: string | null;
+  ownerGroupId?: string | null;
+  ownerGroupName?: string;
   source: string;
   summary: string;
   requirementInfo: FdeOpportunityRequirementInfo;
@@ -291,6 +320,15 @@ export interface FdeCreateOpportunityPayload {
   interestedAgents: string[];
   requirementDescription: string;
   ownerId?: string | null;
+  ownerGroupId?: string | null;
+}
+
+/**
+ * 商机分配入参。
+ */
+export interface FdeOpportunityAssignmentPayload {
+  targetId: string | null;
+  targetType: FdeOpportunityAssignmentTargetType | null;
 }
 
 /**
@@ -424,7 +462,8 @@ export interface FdeOperationsCustomerItem {
   assetQuotas: FdeAssetQuotaItem[];
   pointsBalanceLabel: string;
   tokenUsage: FdeTokenUsageInfo;
-  rechargeRecords: FdeRechargeRecordItem[];
+  pointsAddRecords: FdePointsAddRecordItem[];
+  pointsConsumeRecords: FdePointsConsumeRecordItem[];
   devices: FdeDeviceMonitorItem[];
   agents: FdeAgentMonitorItem[];
   alerts: FdeAlertItem[];
@@ -432,21 +471,21 @@ export interface FdeOperationsCustomerItem {
 }
 
 /**
- * 交付变更记录。
+ * 资产变更记录。
  */
 export interface FdeDeliveryChangeRecordItem {
   id: string;
   orderId: string;
-  type: FdeDeliveryChangeType;
+  assetType: FdeAssetChangeRecordAssetType;
+  targetName: string;
+  type: FdeAssetChangeRecordType;
   summary: string;
   detailItems: string[];
-  statusLabel: FdeDeliveryChangeStatus;
   requestedByName: string;
-  requestedAt: string;
-  expectedEffectiveAt: string;
+  changedAt: string;
+  sourceLabel: string;
   beforeSnapshot: string[];
   afterSnapshot: string[];
-  completedAt?: string;
 }
 
 /**
@@ -470,16 +509,27 @@ export interface FdeTokenUsageInfo {
 }
 
 /**
- * 充值记录条目。
+ * 积分添加记录条目。
  */
-export interface FdeRechargeRecordItem {
+export interface FdePointsAddRecordItem {
   id: string;
-  rechargeDate: string;
+  createdAt: string;
   amountLabel: string;
   pointsLabel: string;
   channelLabel: string;
   operatorName: string;
-  statusLabel: string;
+}
+
+/**
+ * 积分消耗记录条目。
+ */
+export interface FdePointsConsumeRecordItem {
+  id: string;
+  createdAt: string;
+  pointsLabel: string;
+  sourceLabel: string;
+  targetName: string;
+  operatorName: string;
 }
 
 /**
@@ -526,6 +576,14 @@ export interface FdeAgentMonitorItem {
 }
 
 /**
+ * 专家广场单个版本信息。
+ */
+export interface FdeAgentCatalogVersionItem {
+  releaseVersion: string;
+  description: string;
+}
+
+/**
  * 专家广场商品项。
  */
 export interface FdeAgentCatalogItem {
@@ -538,6 +596,7 @@ export interface FdeAgentCatalogItem {
   scope: FdeAgentCatalogScope;
   sceneCategory: string;
   description: string;
+  versions: FdeAgentCatalogVersionItem[];
 }
 
 /**
@@ -824,7 +883,10 @@ export interface UseFdeWorkbenchResult {
   selectedVersionTaskId: string;
   setActiveTab: (tab: FdeWorkbenchTabKey) => void;
   createOrder: (payload: FdeCreateOrderPayload) => FdeCreateOrderResult;
-  assignOpportunity: (opportunityId: string, memberId: string | null) => void;
+  assignOpportunity: (
+    opportunityId: string,
+    payload: FdeOpportunityAssignmentPayload,
+  ) => void;
   createOpportunity: (payload: FdeCreateOpportunityPayload) => void;
   updateOpportunityStatus: (opportunityId: string, status: FdeOpportunityStatus) => void;
   addOpportunityComment: (payload: FdeAddOpportunityCommentPayload) => void;
@@ -843,7 +905,9 @@ export interface UseFdeWorkbenchResult {
   updateTeamMember: (memberId: string, payload: FdeTeamMemberDraft) => void;
   tabs: FdeWorkbenchTabItem[];
   navGroups: FdeWorkbenchNavGroup[];
+  teamGroups: FdeTeamGroupItem[];
   teamMembers: FdeTeamMemberItem[];
+  visibleTeamMembers: FdeTeamMemberItem[];
 }
 
 /* ─── Skill 市场 ─── */

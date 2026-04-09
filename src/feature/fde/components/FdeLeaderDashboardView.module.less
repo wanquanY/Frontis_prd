@@ -48,7 +48,6 @@
 }
 
 .metricLabel,
-.panelDescription,
 .statMeta,
 .summaryLabel,
 .memberRole {
@@ -70,12 +69,6 @@
   line-height: 36px;
 }
 
-.metricHint {
-  color: var(--fdeTextMuted);
-  font-size: 12px;
-  line-height: 18px;
-}
-
 .sectionPanel {
   padding: 18px 20px;
   display: flex;
@@ -94,10 +87,6 @@
   margin: 0;
   font-size: 18px;
   line-height: 28px;
-}
-
-.panelDescription {
-  margin: 4px 0 0;
 }
 
 .panelActions {
@@ -229,7 +218,7 @@
 .teamHeader,
 .teamRow {
   display: grid;
-  grid-template-columns: minmax(180px, 1.4fr) 96px 88px 88px 88px;
+  grid-template-columns: minmax(180px, 1.4fr) 88px 88px 88px 120px;
   gap: 12px;
   align-items: center;
 }
@@ -237,6 +226,14 @@
 .teamHeader {
   padding: 0 0 12px;
   border-bottom: 1px solid var(--fdeBorder);
+}
+
+.teamHeader span:first-child {
+  text-align: left;
+}
+
+.teamHeader span:not(:first-child) {
+  text-align: center;
 }
 
 .teamRow {
@@ -258,6 +255,7 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
+  align-items: center;
 }
 
 .teamMetricLabel {
@@ -272,32 +270,8 @@
   line-height: 22px;
 }
 
-.memberStatus {
-  min-height: 26px;
-  padding: 0 10px;
-  border-radius: 999px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 12px;
-  line-height: 18px;
-  font-weight: 700;
-}
-
-.memberStatusOnline {
-  background: color-mix(in srgb, var(--fdeSuccess) 12%, transparent);
-  color: var(--fdeSuccess);
-}
-
-.memberStatusBusy {
-  background: color-mix(in srgb, var(--fdeWarning) 14%, transparent);
-  color: var(--fdeWarning);
-}
-
-.memberStatusOffline,
-.memberStatusDisabled {
-  background: color-mix(in srgb, var(--fdeDanger) 12%, transparent);
-  color: var(--fdeDanger);
+.teamValue {
+  text-align: center;
 }
 
 @media (max-width: 1280px) {

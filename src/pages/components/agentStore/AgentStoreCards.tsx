@@ -1,6 +1,8 @@
+import { buildAccessScopeSummary, normalizeAccessScopeSubjects } from "@/utils/organizationAccess";
+
 import { Button, Tag } from "antd";
 
-import type { EmployeeItem, WorkspaceItem } from "../../types";
+import type { EmployeeItem, OrganizationDepartmentItem, WorkspaceItem } from "../../types";
 import type { OwnedExpertTeam, RecommendedExpertTeam } from "./types";
 import { EXPERT_VERSION_INFO } from "./AgentStoreTeamDetail";
 
@@ -10,7 +12,7 @@ import styles from "./AgentStoreView.module.less";
 
 interface OwnedTeamCardProps {
   employees: EmployeeItem[];
-  memberNames: string[];
+  organizationDepartments: OrganizationDepartmentItem[];
   onView: (teamId: string) => void;
   team: OwnedExpertTeam;
   workspace?: WorkspaceItem;
@@ -18,7 +20,7 @@ interface OwnedTeamCardProps {
 
 export const OwnedTeamCard = ({
   employees,
-  memberNames,
+  organizationDepartments,
   onView,
   team,
   workspace,
@@ -29,15 +31,13 @@ export const OwnedTeamCard = ({
     const versionInfo = EXPERT_VERSION_INFO[memberId];
     return Boolean(versionInfo?.newVersion && versionInfo.newVersion !== versionInfo.version);
   }).length;
-  const allowedNames = Array.from(
-    members.reduce((result, member) => {
-      if (member.visibility === "all") {
-        memberNames.forEach(name => result.add(name));
-        return result;
-      }
-      member.boundMembers.forEach(name => result.add(name));
-      return result;
-    }, new Set<string>()),
+  const accessScopeSummary = buildAccessScopeSummary(
+    normalizeAccessScopeSubjects(
+      members.flatMap(member =>
+        member.visibility === "all" ? [{ subjectId: "company-root", subjectName: "全公司", subjectType: "company" as const }] : member.accessScopeSubjects,
+      ),
+      organizationDepartments,
+    ),
   );
 
   return (
@@ -61,15 +61,7 @@ export const OwnedTeamCard = ({
           </div>
           <p className={styles.cardDesc}>{team.description}</p>
           <div className={styles.subAgentTags}>
-            {allowedNames.length ? (
-              allowedNames.map(name => (
-                <span key={name} className={styles.subAgentTag}>
-                  {name}
-                </span>
-              ))
-            ) : (
-              <span className={styles.subAgentTag}>暂未配置可用成员</span>
-            )}
+            <span className={styles.subAgentTag}>{accessScopeSummary}</span>
           </div>
         </div>
 
@@ -85,8 +77,8 @@ export const OwnedTeamCard = ({
             <span className={styles.cardInfoLabel}>AI 专家</span>
           </div>
           <div className={styles.cardInfoItem}>
-            <span className={styles.cardInfoValue}>{allowedNames.length}</span>
-            <span className={styles.cardInfoLabel}>可用成员</span>
+            <span className={styles.cardInfoValue}>{accessScopeSummary}</span>
+            <span className={styles.cardInfoLabel}>组织范围</span>
           </div>
           <div className={styles.cardInfoItem}>
             <span className={styles.cardInfoLabel}>{workspace?.name ?? "待确认运行环境"}</span>

@@ -3,8 +3,6 @@ import type { JSX } from "react";
 import { Button } from "antd";
 
 import type {
-  FdeDeliveryOrderItem,
-  FdeOrderFulfillmentItem,
   FdeOrderItem,
   FdeOrderLineItem,
 } from "@/feature/fde/types";
@@ -22,7 +20,6 @@ import styles from "./FdeDeliveryWorkbench.module.less";
 
 interface FdeDeliveryOrderInfoPanelProps {
   order: FdeOrderItem | null;
-  deliveryOrder: FdeDeliveryOrderItem | null;
   onOpenPreviewOrder: (orderId: string) => void;
 }
 
@@ -44,7 +41,7 @@ const renderOrderLineItems = (lineItems: FdeOrderLineItem[]): JSX.Element => {
                     ? item.groupName
                   : isAgentOrderLineItem(item)
                     ? item.agentName
-                    : "tokens 资源包"}
+                    : "积分资源包"}
               </span>
               <span className={styles.deliveryTypeTag}>
                 {isDeviceOrderLineItem(item)
@@ -53,7 +50,7 @@ const renderOrderLineItems = (lineItems: FdeOrderLineItem[]): JSX.Element => {
                     ? "AI 专家团"
                   : isAgentOrderLineItem(item)
                     ? "AI 专家"
-                    : "tokens"}
+                    : "积分"}
               </span>
             </div>
             <div className={styles.relatedOrderMeta}>
@@ -86,35 +83,11 @@ const renderOrderLineItems = (lineItems: FdeOrderLineItem[]): JSX.Element => {
   );
 };
 
-const renderFulfillmentItems = (items: FdeOrderFulfillmentItem[]): JSX.Element => {
-  if (!items.length) {
-    return <div className={styles.emptyHint}>当前订单还没有履约任务。</div>;
-  }
-
-  return (
-    <div className={styles.relatedOrderList}>
-      {items.map(item => (
-        <div key={item.id} className={styles.relatedOrderCard}>
-          <div className={styles.relatedOrderMain}>
-            <div className={styles.relatedOrderTitleRow}>
-              <span className={styles.relatedOrderTitle}>{item.type}</span>
-              <span className={styles.deliveryTypeTag}>{item.status}</span>
-            </div>
-            <div className={styles.relatedOrderMeta}>{item.summary}</div>
-            <div className={styles.relatedOrderMeta}>最近更新时间：{item.updatedAt}</div>
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-};
-
 /**
  * FDE 配置交付中的订单信息面板。
  */
 export const FdeDeliveryOrderInfoPanel = ({
   order,
-  deliveryOrder,
   onOpenPreviewOrder,
 }: FdeDeliveryOrderInfoPanelProps): JSX.Element => {
   if (!order) {
@@ -163,14 +136,6 @@ export const FdeDeliveryOrderInfoPanel = ({
           <span className={styles.infoValue}>{order.createdAt}</span>
         </div>
         <div className={styles.infoRow}>
-          <span className={styles.infoLabel}>关联交付</span>
-          <span className={styles.infoValue}>
-            {deliveryOrder
-              ? `${deliveryOrder.orderKind === "initial" ? "首期交付" : deliveryOrder.changeType ?? "交付变更"} · ${deliveryOrder.deliveryStatus}`
-              : "当前订单不涉及人工交付"}
-          </span>
-        </div>
-        <div className={styles.infoRow}>
           <span className={styles.infoLabel}>订单备注</span>
           <span className={styles.infoValue}>{order.remark || "未填写"}</span>
         </div>
@@ -181,10 +146,6 @@ export const FdeDeliveryOrderInfoPanel = ({
           <Button onClick={() => onOpenPreviewOrder(order.id)}>查看完整订单</Button>
         </div>
         {renderOrderLineItems(order.lineItems)}
-      </div>
-      <div className={styles.subSection}>
-        <div className={styles.subSectionTitle}>履约任务</div>
-        {renderFulfillmentItems(order.fulfillmentItems)}
       </div>
     </section>
   );

@@ -33,6 +33,9 @@ const buildPreviewFields = (order: FdeOrderItem): OrderPreviewFieldItem[] => [
   { label: "订单备注", value: order.remark || "未填写" },
 ];
 
+const getFulfillmentDisplayLabel = (value: string): string =>
+  value.replace(/Tokens发放/g, "积分发放");
+
 const renderOrderLineItems = (lineItems: FdeOrderLineItem[]): JSX.Element => (
   <div className={styles.relatedOrderList}>
     {lineItems.map(item => (
@@ -46,7 +49,7 @@ const renderOrderLineItems = (lineItems: FdeOrderLineItem[]): JSX.Element => (
                   ? item.groupName
                 : isAgentOrderLineItem(item)
                   ? item.agentName
-                  : "tokens 资源包"}
+                  : "积分资源包"}
             </span>
             <span className={styles.deliveryTypeTag}>
               {isDeviceOrderLineItem(item)
@@ -55,7 +58,7 @@ const renderOrderLineItems = (lineItems: FdeOrderLineItem[]): JSX.Element => (
                   ? "AI 专家团"
                 : isAgentOrderLineItem(item)
                   ? "AI 专家"
-                  : "tokens"}
+                  : "积分"}
             </span>
           </div>
           <div className={styles.relatedOrderMeta}>
@@ -142,10 +145,14 @@ export const FdeDeliveryOrderPreviewModal = ({
                 <div key={item.id} className={styles.relatedOrderCard}>
                   <div className={styles.relatedOrderMain}>
                     <div className={styles.relatedOrderTitleRow}>
-                      <span className={styles.relatedOrderTitle}>{item.type}</span>
+                      <span className={styles.relatedOrderTitle}>
+                        {getFulfillmentDisplayLabel(item.type)}
+                      </span>
                       <span className={styles.deliveryTypeTag}>{item.status}</span>
                     </div>
-                    <div className={styles.relatedOrderMeta}>{item.summary}</div>
+                    <div className={styles.relatedOrderMeta}>
+                      {getFulfillmentDisplayLabel(item.summary)}
+                    </div>
                     <div className={styles.relatedOrderMeta}>最近更新时间：{item.updatedAt}</div>
                     {item.executionRecords.length ? (
                       <div className={styles.executionRecordList}>
@@ -153,7 +160,7 @@ export const FdeDeliveryOrderPreviewModal = ({
                           <div key={record.id} className={styles.executionRecordItem}>
                             <div className={styles.executionRecordHeader}>
                               <span className={styles.executionRecordAction}>
-                                {record.actionLabel}
+                                {getFulfillmentDisplayLabel(record.actionLabel)}
                               </span>
                               <span className={styles.executionRecordResult}>
                                 {record.resultLabel}

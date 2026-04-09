@@ -1,8 +1,10 @@
 import type {
+  AccessScopeSubject,
   EmployeeItem,
   EmployeeVisibility,
   FrontisWebTabKey,
   FrontisWebUserItem,
+  OrganizationDepartmentItem,
   WorkspaceItem,
 } from "../../types";
 
@@ -13,7 +15,7 @@ export interface AgentStoreViewProps {
   deploymentByEmployeeId: Record<string, ExpertDeploymentState>;
   deviceOwners: Record<string, string | null>;
   employees: EmployeeItem[];
-  memberNames: string[];
+  organizationDepartments: OrganizationDepartmentItem[];
   onAttachEmployeeToDevice: (employeeId: string, workspaceId: string) => void;
   onDetachEmployeeFromDevice: (employeeId: string, workspaceId: string) => void;
   onNavigateToTab: (tabKey: FrontisWebTabKey) => void;
@@ -21,7 +23,7 @@ export interface AgentStoreViewProps {
     employeeId: string,
     workspaceId: string,
     visibility: EmployeeVisibility,
-    boundMembers: string[],
+    accessScopeSubjects: AccessScopeSubject[],
   ) => void;
   onUpdateEmployeeModel: (employeeId: string, model: string) => void;
   users: FrontisWebUserItem[];
@@ -32,7 +34,7 @@ export interface AgentStoreViewProps {
  * AI 专家在单个设备上的权限配置。
  */
 export interface ExpertDeviceAccessState {
-  boundMembers: string[];
+  accessScopeSubjects: AccessScopeSubject[];
   visibility: EmployeeVisibility;
 }
 

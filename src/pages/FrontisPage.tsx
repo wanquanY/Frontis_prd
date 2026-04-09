@@ -10,6 +10,7 @@ import type { WorkspaceComposerAttachmentItem } from "@/feature/workspace/types"
 import { getAdminManagementPath } from "@/feature/auth/mockAccounts";
 import { useMockAuth } from "@/feature/auth/hooks/useMockAuth";
 import type { ArtifactItem } from "@/types/artifact";
+import { hasUserInAccessScope } from "@/utils/organizationAccess";
 import { isChatAttachmentFileAllowed } from "@/utils/chatAttachmentFileTypes";
 import {
   AI_CEO_AGENT_HOME_CONFIGS,
@@ -24,6 +25,7 @@ import {
   INITIAL_DIALOGUE_SESSIONS,
   INITIAL_EMPLOYEES,
   INITIAL_FRONTIS_WEB_USERS,
+  INITIAL_ORGANIZATION_DEPARTMENTS,
   INITIAL_WORKSPACES,
 } from "@/mocks/mockData";
 import { findDialogueScenario } from "./dialogueScenarioSimulation";
@@ -50,7 +52,7 @@ interface FrontisPageProps {
 }
 
 const DEFAULT_CONVERSATION_EMPLOYEE_ID = "employee-writer";
-const MANAGEMENT_USER_ROLES = new Set(["boss", "admin"]);
+const MANAGEMENT_USER_ROLES = new Set(["enterpriseAdmin"]);
 const ACTIVE_WORKSPACE_STATUSES = new Set<StatusTone>(["online", "busy", "idle"]);
 const DEFAULT_WORKSPACE_AGENT_ORDER: string[] = Object.values(WORKSPACE_DEFAULT_AGENT_CONFIG_IDS);
 
@@ -83,6 +85,7 @@ const buildLiveDialogueResults = (
 
 const buildWorkspaceDefaultAgent = (
   workspace: WorkspaceItem,
+  currentUserId?: string,
   currentUserName?: string,
   nameOverride?: string,
 ): EmployeeItem | null => {
@@ -116,6 +119,16 @@ const buildWorkspaceDefaultAgent = (
     subAgentModel: workspace.type === "cloud" ? "gpt-4o-mini" : "device-runtime",
     agentId: `default-agent-${workspace.id}`,
     runtimeAgentId: `default-runtime-${workspace.id}`,
+    accessScopeSubjects:
+      currentUserId && currentUserName
+        ? [
+            {
+              subjectId: currentUserId,
+              subjectName: currentUserName,
+              subjectType: "user",
+            },
+          ]
+        : [],
     boundMembers: currentUserName ? [currentUserName] : [],
     welcomeMessage: homeConfig.intro,
     systemPrompt: `你是绑定在 ${workspace.name} 上的默认 Agent，优先帮助用户结合设备上下文完成任务整理、任务触达和结果收口。`,
@@ -197,8 +210,10 @@ const FrontisPage = ({ viewRole }: FrontisPageProps): JSX.Element => {
             item => MANAGEMENT_USER_ROLES.has(item.role) && item.status === "active",
           ) ??
           INITIAL_FRONTIS_WEB_USERS.find(item => MANAGEMENT_USER_ROLES.has(item.role))
-        : INITIAL_FRONTIS_WEB_USERS.find(item => item.role === "member" && item.status === "active") ??
-          INITIAL_FRONTIS_WEB_USERS.find(item => item.role === "member")) ??
+        : INITIAL_FRONTIS_WEB_USERS.find(
+            item => item.role !== "enterpriseAdmin" && item.status === "active",
+          ) ??
+          INITIAL_FRONTIS_WEB_USERS.find(item => item.role !== "enterpriseAdmin")) ??
       null,
     [session?.userId, viewRole],
   );
@@ -214,6 +229,7 @@ const FrontisPage = ({ viewRole }: FrontisPageProps): JSX.Element => {
           workspace
             ? buildWorkspaceDefaultAgent(
                 workspace,
+                currentUser?.id,
                 currentUser?.name,
                 defaultAgentNameOverrides[
                   WORKSPACE_DEFAULT_AGENT_CONFIG_IDS[
@@ -236,7 +252,17 @@ const FrontisPage = ({ viewRole }: FrontisPageProps): JSX.Element => {
         if (viewRole === "admin") {
           return true;
         }
-        return item.visibility === "all" || item.boundMembers.includes(currentUser?.name ?? "");
+        return (
+          item.visibility === "all" ||
+          (currentUser
+            ? hasUserInAccessScope(
+                currentUser,
+                item.accessScopeSubjects,
+                INITIAL_FRONTIS_WEB_USERS,
+                INITIAL_ORGANIZATION_DEPARTMENTS,
+              )
+            : false)
+        );
       });
 
       const mergedEmployees = [...deviceDefaultAgents, ...assignedEmployees];
@@ -248,6 +274,7 @@ const FrontisPage = ({ viewRole }: FrontisPageProps): JSX.Element => {
     },
     [
       currentUser?.assignedAgentIds,
+      currentUser?.id,
       currentUser?.name,
       deviceDefaultAgents,
       roleVisibleEmployees,
