@@ -1,12 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import dayjs from "dayjs";
-import { DownOutlined, RightOutlined } from "@ant-design/icons";
 import classNames from "classnames";
 import { Button, Empty, Input, InputNumber, Modal, message } from "antd";
 
 import type {
-  FdeAssetQuotaItem,
   FdeCreateOrderResult,
   FdeOperationsCustomerItem,
   FdeRenewAssetPayload,
@@ -22,19 +20,7 @@ interface FdeOperationsMonitorViewProps {
   renewAsset: (payload: FdeRenewAssetPayload) => FdeCreateOrderResult;
 }
 
-type FdeAssetDetailTabKey = "recharge" | "devices" | "agents" | "changes";
-type FdeAgentAssetRow =
-  | {
-      kind: "group";
-      key: string;
-      groupName: string;
-      agents: FdeOperationsCustomerItem["agents"];
-    }
-  | {
-      kind: "single";
-      key: string;
-      agent: FdeOperationsCustomerItem["agents"][number];
-    };
+type FdeAssetDetailTabKey = "devices" | "agents" | "changes";
 
 interface RenewAssetDraft {
   assetId: string;
@@ -42,11 +28,6 @@ interface RenewAssetDraft {
   assetType: "device" | "agent";
   expiresAt?: string;
 }
-
-const getQuotaMetaLabel = (quota: FdeAssetQuotaItem): string => {
-  const remaining = Math.max(quota.total - quota.used, 0);
-  return `已用 ${quota.used}${quota.unit} / 剩余 ${remaining}${quota.unit}`;
-};
 
 const getAgentTargetLabel = (item: FdeOperationsCustomerItem["agents"][number]): string => {
   if (item.deploymentLabel === "全公司可用") {
@@ -57,26 +38,12 @@ const getAgentTargetLabel = (item: FdeOperationsCustomerItem["agents"][number]):
 };
 
 const getAgentSourceTags = (item: FdeOperationsCustomerItem["agents"][number]): string[] => {
-  const tags = item.collectionLabels?.length
-    ? item.collectionLabels
-    : [item.deliverySourceLabel ?? "单个下发"];
-
-  return tags;
+  return [item.deliverySourceLabel ?? "单个下发"];
 };
 
-const getChangeStatusClassName = (
-  status: FdeOperationsCustomerItem["changeRecords"][number]["statusLabel"],
-): string => {
-  if (status === "已完成") {
-    return styles.changeStatusDone;
-  }
-
-  if (status === "已取消") {
-    return styles.changeStatusCanceled;
-  }
-
-  return styles.changeStatusPending;
-};
+const getAssetChangeTypeLabel = (
+  type: FdeOperationsCustomerItem["changeRecords"][number]["type"],
+): string => type;
 
 const formatDateTimeLabel = (value?: string): string => (value ? dayjs(value).format("YYYY-MM-DD HH:mm") : "-");
 
@@ -127,59 +94,6 @@ const getAssetRemainingLabel = (expiresAt?: string): string => {
   return `剩余 ${diffDays} 天`;
 };
 
-const buildAgentAssetRows = (agents: FdeOperationsCustomerItem["agents"]): FdeAgentAssetRow[] => {
-  const groupedAgents = new Map<string, FdeOperationsCustomerItem["agents"]>();
-
-  agents.forEach(agent => {
-    const groupName = agent.collectionLabels?.[0];
-
-    if (!groupName) {
-      return;
-    }
-
-    const existing = groupedAgents.get(groupName);
-
-    if (existing) {
-      existing.push(agent);
-      return;
-    }
-
-    groupedAgents.set(groupName, [agent]);
-  });
-
-  const seenGroups = new Set<string>();
-
-  return agents.flatMap<FdeAgentAssetRow>(agent => {
-    const groupName = agent.collectionLabels?.[0];
-
-    if (!groupName) {
-      return [
-        {
-          kind: "single",
-          key: `agent-${agent.name}`,
-          agent,
-        },
-      ];
-    }
-
-    if (seenGroups.has(groupName)) {
-      return [];
-    }
-
-    seenGroups.add(groupName);
-    const groupItems = groupedAgents.get(groupName) ?? [agent];
-
-    return [
-      {
-        kind: "group",
-        key: `group-${groupName}`,
-        groupName,
-        agents: groupItems,
-      },
-    ];
-  });
-};
-
 /**
  * 客户资产管理视图。
  */
@@ -190,8 +104,7 @@ export const FdeOperationsMonitorView = ({
   onNavigateToDelivery,
   renewAsset,
 }: FdeOperationsMonitorViewProps): JSX.Element => {
-  const [activeDetailTab, setActiveDetailTab] = useState<FdeAssetDetailTabKey>("recharge");
-  const [expandedGroupKeys, setExpandedGroupKeys] = useState<string[]>([]);
+  const [activeDetailTab, setActiveDetailTab] = useState<FdeAssetDetailTabKey>("devices");
   const [renewDraft, setRenewDraft] = useState<RenewAssetDraft | null>(null);
   const [renewValidityMonths, setRenewValidityMonths] = useState<number>(12);
   const [renewAmount, setRenewAmount] = useState<number>(0);
@@ -204,22 +117,10 @@ export const FdeOperationsMonitorView = ({
     () => deliveredItems.find(item => item.id === selectedCustomerId) ?? deliveredItems[0] ?? null,
     [deliveredItems, selectedCustomerId],
   );
-  const agentAssetRows = useMemo<FdeAgentAssetRow[]>(
-    () => (selectedCustomer ? buildAgentAssetRows(selectedCustomer.agents) : []),
+  const agentAssetRows = useMemo(
+    () => selectedCustomer?.agents ?? [],
     [selectedCustomer],
   );
-
-  useEffect(() => {
-    setExpandedGroupKeys([]);
-  }, [selectedCustomer?.id]);
-
-  const handleToggleGroup = useCallback((groupKey: string): void => {
-    setExpandedGroupKeys(previous =>
-      previous.includes(groupKey)
-        ? previous.filter(item => item !== groupKey)
-        : [...previous, groupKey],
-    );
-  }, []);
 
   const handleOpenRenewModal = useCallback(
     (draft: RenewAssetDraft): void => {
@@ -323,16 +224,15 @@ export const FdeOperationsMonitorView = ({
                       {item.used}/{item.total}
                       {item.unit}
                     </div>
-                    <div className={styles.cardMeta}>{getQuotaMetaLabel(item)}</div>
                   </div>
                 ))}
                 <div className={styles.overviewCard}>
-                  <div className={styles.cardLabel}>Token 使用情况</div>
+                  <div className={styles.cardLabel}>积分额度</div>
+                  <div className={styles.cardValue}>{selectedCustomer.pointsBalanceLabel}</div>
+                </div>
+                <div className={styles.overviewCard}>
+                  <div className={styles.cardLabel}>积分消耗</div>
                   <div className={styles.cardValue}>{selectedCustomer.tokenUsage.usedLabel}</div>
-                  <div className={styles.cardMeta}>
-                    {selectedCustomer.tokenUsage.billingCycleLabel} / 上限{" "}
-                    {selectedCustomer.tokenUsage.limitLabel}
-                  </div>
                 </div>
               </div>
             </section>
@@ -341,16 +241,6 @@ export const FdeOperationsMonitorView = ({
               <div className={styles.sectionHeader}>
                 <div className={styles.sectionTitle}>资产明细</div>
                 <div className={styles.detailTabs}>
-                  <button
-                    type="button"
-                    className={classNames(
-                      styles.detailTab,
-                      activeDetailTab === "recharge" && styles.detailTabActive,
-                    )}
-                    onClick={() => setActiveDetailTab("recharge")}
-                  >
-                    充值记录
-                  </button>
                   <button
                     type="button"
                     className={classNames(
@@ -379,33 +269,10 @@ export const FdeOperationsMonitorView = ({
                     )}
                     onClick={() => setActiveDetailTab("changes")}
                   >
-                    交付变更记录
+                    资产变更记录
                   </button>
                 </div>
               </div>
-
-              {activeDetailTab === "recharge" ? (
-                <>
-                  <div className={styles.tableHeaderRecharge}>
-                    <span>充值时间</span>
-                    <span>充值金额</span>
-                    <span>积分变动</span>
-                    <span>充值渠道</span>
-                    <span>操作人</span>
-                    <span>状态</span>
-                  </div>
-                  {selectedCustomer.rechargeRecords.map(record => (
-                    <div key={record.id} className={styles.tableRowRecharge}>
-                      <span>{record.rechargeDate}</span>
-                      <span className={styles.tableStrong}>{record.amountLabel}</span>
-                      <span>{record.pointsLabel}</span>
-                      <span>{record.channelLabel}</span>
-                      <span>{record.operatorName}</span>
-                      <span>{record.statusLabel}</span>
-                    </div>
-                  ))}
-                </>
-              ) : null}
 
               {activeDetailTab === "devices" ? (
                 <>
@@ -464,90 +331,9 @@ export const FdeOperationsMonitorView = ({
                     <span>状态</span>
                     <span>操作</span>
                   </div>
-                  {agentAssetRows.map(row => {
-                    if (row.kind === "group") {
-                      const isExpanded = expandedGroupKeys.includes(row.key);
-
-                      return (
-                        <div key={row.key} className={styles.agentGroupBlock}>
-                          <button
-                            type="button"
-                            className={classNames(styles.tableRowAgent, styles.tableRowAgentButton)}
-                            onClick={() => handleToggleGroup(row.key)}
-                          >
-                            <span className={styles.agentPrimaryCell}>
-                              <span className={styles.agentGroupTitle}>
-                                <span className={styles.expandIcon}>
-                                  {isExpanded ? <DownOutlined /> : <RightOutlined />}
-                                </span>
-                                <span className={styles.tableStrong}>{row.groupName}</span>
-                              </span>
-                              <span className={styles.agentGroupMeta}>
-                                包含 {row.agents.length} 个 AI 专家
-                              </span>
-                              <span className={styles.agentSourceTags}>
-                                <span className={styles.agentSourceTag}>专家团</span>
-                              </span>
-                            </span>
-                            <span>-</span>
-                            <span>-</span>
-                            <span>-</span>
-                            <span>-</span>
-                            <span>-</span>
-                            <span>-</span>
-                          </button>
-                          {isExpanded
-                            ? row.agents.map(agent => (
-                                <div
-                                  key={`${row.key}-${agent.name}`}
-                                  className={classNames(
-                                    styles.tableRowAgent,
-                                    styles.tableRowAgentChild,
-                                  )}
-                                >
-                                  <span className={styles.agentPrimaryCell}>
-                                    <span className={styles.agentChildTitle}>
-                                      <span className={styles.tableStrong}>{agent.name}</span>
-                                    </span>
-                                  </span>
-                                  <span>{agent.assetId ?? "-"}</span>
-                                  <span>{agent.currentVersion ?? "待确认"}</span>
-                                  <span>{getAgentTargetLabel(agent)}</span>
-                                  <span>{formatDateTimeLabel(agent.expiresAt)}</span>
-                                  <span
-                                    className={classNames(
-                                      styles.assetStatus,
-                                      getAssetStatusClassName(agent.expiresAt),
-                                    )}
-                                  >
-                                    {getAssetStatusLabel(agent.expiresAt)}
-                                  </span>
-                                  <span>
-                                    <Button
-                                      size="small"
-                                      onClick={() =>
-                                        handleOpenRenewModal({
-                                          assetId: agent.assetId ?? agent.name,
-                                          assetName: agent.name,
-                                          assetType: "agent",
-                                          expiresAt: agent.expiresAt,
-                                        })
-                                      }
-                                    >
-                                      续费
-                                    </Button>
-                                  </span>
-                                </div>
-                              ))
-                            : null}
-                        </div>
-                      );
-                    }
-
-                    const agent = row.agent;
-
+                  {agentAssetRows.map(agent => {
                     return (
-                      <div key={row.key} className={styles.tableRowAgent}>
+                      <div key={`${agent.assetId ?? agent.name}`} className={styles.tableRowAgent}>
                         <span className={styles.agentPrimaryCell}>
                           <span className={styles.tableStrong}>{agent.name}</span>
                           <span className={styles.agentSourceTags}>
@@ -595,42 +381,26 @@ export const FdeOperationsMonitorView = ({
                 selectedCustomer.changeRecords.length ? (
                   <>
                     <div className={styles.tableHeaderChange}>
-                      <span>变更单号</span>
-                      <span>类型</span>
-                      <span>内容摘要</span>
-                      <span>状态</span>
-                      <span>发起人</span>
-                      <span>计划生效</span>
-                      <span>完成时间</span>
+                      <span>变更时间</span>
+                      <span>资产类型</span>
+                      <span>变更对象</span>
+                      <span>变更类型</span>
+                      <span>操作人</span>
+                      <span>来源</span>
                     </div>
                     {selectedCustomer.changeRecords.map(record => (
                       <div key={record.id} className={styles.tableRowChange}>
-                        <span className={styles.tableStrong}>{record.orderId}</span>
-                        <span>{record.type}</span>
-                        <span className={styles.changeSummaryCell}>
-                          <span className={styles.tableStrong}>{record.summary}</span>
-                          <span className={styles.changeDetailMeta}>
-                            {record.detailItems.length
-                              ? record.detailItems.join(" · ")
-                              : "暂无变更明细"}
-                          </span>
-                        </span>
-                        <span
-                          className={classNames(
-                            styles.changeStatus,
-                            getChangeStatusClassName(record.statusLabel),
-                          )}
-                        >
-                          {record.statusLabel}
-                        </span>
+                        <span>{formatDateTimeLabel(record.changedAt)}</span>
+                        <span>{record.assetType}</span>
+                        <span className={styles.tableStrong}>{record.targetName}</span>
+                        <span>{getAssetChangeTypeLabel(record.type)}</span>
                         <span>{record.requestedByName}</span>
-                        <span>{record.expectedEffectiveAt}</span>
-                        <span>{record.completedAt ?? "进行中"}</span>
+                        <span>{record.sourceLabel}</span>
                       </div>
                     ))}
                   </>
                 ) : (
-                  <div className={styles.emptyHint}>当前暂无交付变更记录</div>
+                  <div className={styles.emptyHint}>当前暂无资产变更记录</div>
                 )
               ) : null}
             </section>

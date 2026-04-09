@@ -2,7 +2,9 @@ import { FDE_DELIVERY_STEPS } from "@/feature/fde/mockData";
 import type {
   FdeDeliveryStepKey,
   FdeMonitorHealth,
+  FdeOpportunityItem,
   FdeOpportunityStage,
+  FdeTeamGroupItem,
   FdeTeamMemberItem,
   FdeWorkbenchTabKey,
 } from "@/feature/fde/types";
@@ -10,10 +12,8 @@ import type {
 export const FDE_BUSINESS_TAB_KEYS: FdeWorkbenchTabKey[] = [
   "dashboard",
   "opportunities",
-  "orderManagement",
   "delivery",
   "operations",
-  "teamManagement",
   "versionManagement",
 ];
 
@@ -75,6 +75,31 @@ export const buildFdeOpportunitySummary = (
  */
 export const getFdeMemberName = (members: FdeTeamMemberItem[], memberId: string): string =>
   members.find(item => item.id === memberId)?.name ?? "待分配";
+
+/**
+ * 根据小组 id 获取小组名称。
+ */
+export const getFdeGroupName = (groups: FdeTeamGroupItem[], groupId?: string | null): string =>
+  groups.find(item => item.id === groupId)?.name ?? "待分配";
+
+/**
+ * 获取商机当前归属对象标签。
+ */
+export const getFdeOpportunityOwnerLabel = (
+  members: FdeTeamMemberItem[],
+  groups: FdeTeamGroupItem[],
+  opportunity: FdeOpportunityItem,
+): string => {
+  if (opportunity.ownerId) {
+    return getFdeMemberName(members, opportunity.ownerId);
+  }
+
+  if (opportunity.ownerGroupId) {
+    return opportunity.ownerGroupName || getFdeGroupName(groups, opportunity.ownerGroupId);
+  }
+
+  return "待分配";
+};
 
 /**
  * 生成 FDE 成员头像地址。

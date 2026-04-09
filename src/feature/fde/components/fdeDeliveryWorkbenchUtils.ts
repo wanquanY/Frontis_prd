@@ -127,16 +127,16 @@ export const createInitialBusinessOrderForm = (): CreateBusinessOrderFormState =
 export const formatAmount = (value: number): string => `¥ ${value.toLocaleString("zh-CN")}`;
 
 /**
- * 格式化 tokens 数量。
+ * 格式化积分数量。
  */
 export const formatTokenCount = (value: number): string => {
   if (value >= 10000) {
     const normalizedValue = value / 10000;
 
-    return `${Number.isInteger(normalizedValue) ? normalizedValue.toFixed(0) : normalizedValue.toFixed(1)} 万 tokens`;
+    return `${Number.isInteger(normalizedValue) ? normalizedValue.toFixed(0) : normalizedValue.toFixed(1)} 万积分`;
   }
 
-  return `${value.toLocaleString("zh-CN")} tokens`;
+  return `${value.toLocaleString("zh-CN")} 积分`;
 };
 
 /**
@@ -416,7 +416,7 @@ export const getOrderSummaryLabel = (order: FdeOrderItem): string => {
     deviceCount ? `设备 ${deviceCount} 项` : "",
     agentCount ? `AI 专家 ${agentCount} 项` : "",
     agentGroupCount ? `AI 专家团 ${agentGroupCount} 项` : "",
-    tokenCount ? `tokens ${tokenCount} 项` : "",
+    tokenCount ? `积分 ${tokenCount} 项` : "",
   ]
     .filter(Boolean)
     .join(" / ");

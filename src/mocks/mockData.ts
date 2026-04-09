@@ -30,6 +30,7 @@ import type {
 } from "@/types/prdPrototype";
 
 import type {
+  AccessScopeSubject,
   AutomationTaskItem,
   ChannelItem,
   ChatMessage,
@@ -38,6 +39,7 @@ import type {
   DialogueSessionItem,
   EmployeeItem,
   FrontisWebUserItem,
+  OrganizationDepartmentItem,
   SkillItem,
   WorkspaceItem,
 } from "@/pages/types";
@@ -61,6 +63,60 @@ const createDataUrl = (mimeType: string, content: string): string =>
 
 const createSvgDataUrl = (content: string): string =>
   `data:image/svg+xml;charset=utf-8,${encodeURIComponent(content)}`;
+
+const createDepartmentScope = (
+  subjectId: string,
+  subjectName: string,
+): AccessScopeSubject => ({
+  subjectId,
+  subjectName,
+  subjectType: "department",
+});
+
+const createUserScope = (subjectId: string, subjectName: string): AccessScopeSubject => ({
+  subjectId,
+  subjectName,
+  subjectType: "user",
+});
+
+const COMPANY_SCOPE: AccessScopeSubject = {
+  subjectId: "company-root",
+  subjectName: "全公司",
+  subjectType: "company",
+};
+
+export const INITIAL_ORGANIZATION_DEPARTMENTS: OrganizationDepartmentItem[] = [
+  {
+    id: "dept-default",
+    name: "默认一级部门",
+    parentId: null,
+  },
+  {
+    id: "dept-management",
+    name: "经营管理部",
+    parentId: "dept-default",
+  },
+  {
+    id: "dept-sales",
+    name: "销售增长部",
+    parentId: "dept-default",
+  },
+  {
+    id: "dept-store-ops",
+    name: "门店运营部",
+    parentId: "dept-default",
+  },
+  {
+    id: "dept-rnd",
+    name: "产研协同部",
+    parentId: "dept-default",
+  },
+  {
+    id: "dept-live",
+    name: "直播运营组",
+    parentId: "dept-sales",
+  },
+];
 
 /**
  * 原型页默认工作站列表。
@@ -143,6 +199,7 @@ export const INITIAL_EMPLOYEES: EmployeeItem[] = [
     subAgentModel: "gpt-3.5-turbo",
     agentId: "ceo-sequence-overview-01",
     runtimeAgentId: "rt-sequence-overview-01",
+    accessScopeSubjects: [createDepartmentScope("dept-management", "经营管理部")],
     boundMembers: ["杨万泉", "陈雪梅"],
     welcomeMessage: "我会先看盘面，再把序列均分、预警和趋势翻译成老板可直接复述的经营结论。",
     systemPrompt: "你是一名序列总览专家，负责分析公司各序列的均分、预警、趋势和经营重点。",
@@ -166,6 +223,7 @@ export const INITIAL_EMPLOYEES: EmployeeItem[] = [
     subAgentModel: "gpt-3.5-turbo",
     agentId: "ceo-employee-assess-01",
     runtimeAgentId: "rt-employee-assess-01",
+    accessScopeSubjects: [createDepartmentScope("dept-management", "经营管理部")],
     boundMembers: ["杨万泉", "陈雪梅"],
     welcomeMessage:
       "我负责执行组织分析类任务，会把序列、个人、底线和排名结果整理成 CEO 分身可直接整合的结构化输出。",
@@ -197,6 +255,7 @@ export const INITIAL_EMPLOYEES: EmployeeItem[] = [
     subAgentModel: "gpt-3.5-turbo",
     agentId: "ceo-redline-detect-01",
     runtimeAgentId: "rt-redline-detect-01",
+    accessScopeSubjects: [createDepartmentScope("dept-management", "经营管理部")],
     boundMembers: ["杨万泉", "陈雪梅"],
     welcomeMessage: "我会逐条判断三条底线，再把触发证据、严重程度和处理建议一起给你。",
     systemPrompt:
@@ -221,6 +280,7 @@ export const INITIAL_EMPLOYEES: EmployeeItem[] = [
     subAgentModel: "gpt-3.5-turbo",
     agentId: "ceo-benchmark-find-01",
     runtimeAgentId: "rt-benchmark-find-01",
+    accessScopeSubjects: [createDepartmentScope("dept-management", "经营管理部")],
     boundMembers: ["杨万泉", "陈雪梅"],
     welcomeMessage: "我会把真正值得表扬、值得培养、值得放大使用的人直接挑出来给你。",
     systemPrompt: "你是一名标杆识别专家，负责筛选高表现员工、提炼典型事迹并输出培养建议。",
@@ -244,6 +304,7 @@ export const INITIAL_EMPLOYEES: EmployeeItem[] = [
     subAgentModel: "gpt-4o-mini",
     agentId: "ecom-ops-agent-01",
     runtimeAgentId: "rt-ecom-ops-01",
+    accessScopeSubjects: [createDepartmentScope("dept-sales", "销售增长部")],
     boundMembers: [],
     welcomeMessage: ECOMMERCE_AUTOMATION_AGENT_DEMO.welcomeMessage,
     systemPrompt: ECOMMERCE_AUTOMATION_AGENT_DEMO.systemPrompt,
@@ -267,6 +328,7 @@ export const INITIAL_EMPLOYEES: EmployeeItem[] = [
     subAgentModel: "gpt-4o-mini",
     agentId: "live-ops-agent-01",
     runtimeAgentId: "rt-live-ops-01",
+    accessScopeSubjects: [COMPANY_SCOPE],
     boundMembers: [...LIVE_BROADCAST_AGENT_DEMO.boundMembers],
     welcomeMessage: LIVE_BROADCAST_AGENT_DEMO.welcomeMessage,
     systemPrompt: LIVE_BROADCAST_AGENT_DEMO.systemPrompt,
@@ -290,6 +352,7 @@ export const INITIAL_EMPLOYEES: EmployeeItem[] = [
     subAgentModel: "gpt-4o-mini",
     agentId: "xiaocanmama-ip-agent-01",
     runtimeAgentId: "rt-xiaocanmama-ip-01",
+    accessScopeSubjects: [COMPANY_SCOPE],
     boundMembers: [...XIAOCANMAMA_IP_AGENT_DEMO.boundMembers],
     welcomeMessage: XIAOCANMAMA_IP_AGENT_DEMO.welcomeMessage,
     systemPrompt: XIAOCANMAMA_IP_AGENT_DEMO.systemPrompt,
@@ -314,6 +377,7 @@ export const INITIAL_EMPLOYEES: EmployeeItem[] = [
     subAgentModel: "gpt-3.5-turbo",
     agentId: "ceo-chat-send-01",
     runtimeAgentId: "rt-chat-send-01",
+    accessScopeSubjects: [COMPANY_SCOPE],
     boundMembers: ["王晨", "李婷", "周可", "赵立"],
     welcomeMessage:
       "你直接问我经营判断、人员状态和协作安排就行，我会判断该调用哪项能力，再用 CEO 口吻把结果给你说清楚。",
@@ -347,6 +411,7 @@ export const INITIAL_EMPLOYEES: EmployeeItem[] = [
     subAgentModel: "gpt-3.5-turbo",
     agentId: "ceo-score-rank-01",
     runtimeAgentId: "rt-score-rank-01",
+    accessScopeSubjects: [createDepartmentScope("dept-management", "经营管理部")],
     boundMembers: ["杨万泉", "陈雪梅"],
     welcomeMessage: "我会把标杆区、中间区、关注区和名次变化一次性拆给你看。",
     systemPrompt: "你是一名评分排名专家，负责统计序列内的评分排名、分区分布、关注区和变化情况。",
@@ -370,6 +435,10 @@ export const INITIAL_EMPLOYEES: EmployeeItem[] = [
     subAgentModel: "gpt-4o-mini",
     agentId: "product-manager-agent-01",
     runtimeAgentId: "rt-product-manager-01",
+    accessScopeSubjects: [
+      createDepartmentScope("dept-rnd", "产研协同部"),
+      createUserScope("user-admin-001", "杨万泉"),
+    ],
     boundMembers: ["杨万泉", "陈雪梅", "王晨", "李婷", "周可"],
     welcomeMessage:
       "你把需求背景和目标告诉我，我会先出一版 PRD，再继续拆成可执行的 Product Backlog。",
@@ -487,10 +556,11 @@ export const INITIAL_EMPLOYEE_DOCUMENT_CONTENTS: Record<string, Record<string, s
  */
 export const INITIAL_FRONTIS_WEB_USERS: FrontisWebUserItem[] = [
   {
+    departmentId: "dept-management",
     id: "user-admin-001",
     name: "杨万泉",
     phone: "13800000001",
-    role: "boss",
+    role: "enterpriseAdmin",
     status: "active",
     assignedWorkspaceIds: ["workspace-cloud", "workspace-local-bj"],
     assignedAgentIds: [
@@ -506,10 +576,11 @@ export const INITIAL_FRONTIS_WEB_USERS: FrontisWebUserItem[] = [
     resultCount: 17,
   },
   {
+    departmentId: "dept-management",
     id: "user-admin-002",
     name: "陈雪梅",
     phone: "13800000002",
-    role: "admin",
+    role: "departmentLead",
     status: "active",
     assignedWorkspaceIds: ["workspace-cloud"],
     assignedAgentIds: [
@@ -525,10 +596,11 @@ export const INITIAL_FRONTIS_WEB_USERS: FrontisWebUserItem[] = [
     resultCount: 9,
   },
   {
+    departmentId: "dept-sales",
     id: "user-member-001",
     name: "王晨",
     phone: "13800000011",
-    role: "member",
+    role: "employee",
     status: "active",
     assignedWorkspaceIds: ["workspace-local", "workspace-local-sh"],
     assignedAgentIds: [
@@ -544,10 +616,11 @@ export const INITIAL_FRONTIS_WEB_USERS: FrontisWebUserItem[] = [
     resultCount: 11,
   },
   {
+    departmentId: "dept-store-ops",
     id: "user-member-002",
     name: "李婷",
     phone: "13800000012",
-    role: "member",
+    role: "employee",
     status: "active",
     assignedWorkspaceIds: ["workspace-local"],
     assignedAgentIds: [
@@ -563,10 +636,11 @@ export const INITIAL_FRONTIS_WEB_USERS: FrontisWebUserItem[] = [
     resultCount: 6,
   },
   {
+    departmentId: "dept-rnd",
     id: "user-member-003",
     name: "赵立",
     phone: "13800000013",
-    role: "member",
+    role: "employee",
     status: "disabled",
     assignedWorkspaceIds: ["workspace-local-bj"],
     assignedAgentIds: [
@@ -582,10 +656,11 @@ export const INITIAL_FRONTIS_WEB_USERS: FrontisWebUserItem[] = [
     resultCount: 2,
   },
   {
+    departmentId: "dept-live",
     id: "user-member-004",
     name: "周可",
     phone: "13800000014",
-    role: "member",
+    role: "employee",
     status: "active",
     assignedWorkspaceIds: [],
     assignedAgentIds: [

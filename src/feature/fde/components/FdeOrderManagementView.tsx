@@ -70,10 +70,10 @@ const formatTokenCount = (value: number): string => {
   if (value >= 10000) {
     const wanValue = value / 10000;
     const normalizedValue = Number.isInteger(wanValue) ? wanValue.toFixed(0) : wanValue.toFixed(1);
-    return `${normalizedValue} 万 tokens`;
+    return `${normalizedValue} 万积分`;
   }
 
-  return `${value.toLocaleString("zh-CN")} tokens`;
+  return `${value.toLocaleString("zh-CN")} 积分`;
 };
 
 const formatValidityLabel = (months?: number): string =>
@@ -102,6 +102,9 @@ const getFulfillmentStatusClassName = (status: FdeOrderItem["fulfillmentItems"][
 
   return styles.fulfillmentStatusPending;
 };
+
+const getFulfillmentDisplayLabel = (value: string): string =>
+  value.replace(/Tokens发放/g, "积分发放");
 
 const isDeviceLineItem = (item: FdeOrderLineItem): item is FdeOrderDeviceLineItem => item.kind === "device";
 
@@ -183,7 +186,7 @@ const buildOrderSummary = (lineItems: FdeOrderLineItem[]): string => {
     deviceCount ? `设备 ${deviceCount} 项` : "",
     agentCount ? `AI 专家 ${agentCount} 项` : "",
     agentGroupCount ? `AI 专家团 ${agentGroupCount} 项` : "",
-    tokenCount ? `tokens ${tokenCount} 项` : "",
+    tokenCount ? `积分 ${tokenCount} 项` : "",
   ].filter(Boolean);
 
   return summaryParts.join(" / ") || "未添加商品";
@@ -482,6 +485,9 @@ export const FdeOrderManagementView = ({
     setAgentScope("public");
     setAgentSceneCategory("");
     setSelectedAgentIds([]);
+    if (mode === "single") {
+      setExpertGroupForm(createInitialExpertGroupForm());
+    }
     setIsAgentModalOpen(true);
   }, []);
 
@@ -561,13 +567,11 @@ export const FdeOrderManagementView = ({
     message.success(`已加入 ${agent.name}。`);
   }, []);
 
-  const handleConfirmAgentGroup = useCallback((): void => {
-    if (!selectedAgentIds.length) {
+  const handleConfirmAgentGroup = useCallback((selectedAgents: FdeAgentCatalogItem[]): void => {
+    if (!selectedAgents.length) {
       message.warning("请先选择至少一个 AI 专家加入专家团。");
       return;
     }
-
-    const selectedAgents = FDE_AGENT_CATALOG_ITEMS.filter(item => selectedAgentIds.includes(item.id));
     let duplicateCount = 0;
 
     setCreateForm(previous => {
@@ -605,7 +609,7 @@ export const FdeOrderManagementView = ({
       };
     });
 
-    if (duplicateCount === selectedAgentIds.length) {
+    if (duplicateCount === selectedAgents.length) {
       message.warning("所选 AI 专家已经全部存在于当前订单中。");
       return;
     }
@@ -619,7 +623,7 @@ export const FdeOrderManagementView = ({
         ? `专家团已创建，已自动跳过 ${duplicateCount} 个重复 AI 专家。`
         : "AI 专家团已创建并加入订单。",
     );
-  }, [expertGroupForm, selectedAgentIds]);
+  }, [expertGroupForm]);
 
   const handleCreateOrder = useCallback((): void => {
     if (!createForm.tenantId) {
@@ -774,8 +778,8 @@ export const FdeOrderManagementView = ({
           return (
             <div key={item.id} className={styles.detailCard}>
               <div className={styles.detailTitleRow}>
-                <span className={styles.detailTitle}>tokens 资源包</span>
-                <span className={styles.detailTag}>tokens</span>
+                <span className={styles.detailTitle}>积分资源包</span>
+                <span className={styles.detailTag}>积分</span>
               </div>
               <div className={styles.detailMeta}>
                 {formatTokenCount(item.tokenCount)} · {formatAmount(item.totalAmount)}
@@ -833,7 +837,7 @@ export const FdeOrderManagementView = ({
               <Button onClick={handleAddDeviceLine}>添加设备</Button>
               <Button onClick={handleOpenExpertGroupModal}>添加 AI 专家团</Button>
               <Button onClick={() => handleOpenAgentModal("single")}>直接添加单个 AI 专家</Button>
-              <Button onClick={handleAddTokensLine}>添加 tokens</Button>
+              <Button onClick={handleAddTokensLine}>添加积分</Button>
             </div>
           </div>
           {createForm.lineItems.length ? (
@@ -1007,7 +1011,7 @@ export const FdeOrderManagementView = ({
                   <div key={item.id} className={styles.lineItemCard}>
                     <div className={styles.lineItemHeader}>
                       <div>
-                        <div className={styles.lineItemTitle}>tokens 资源包</div>
+                        <div className={styles.lineItemTitle}>积分资源包</div>
                         <div className={styles.lineItemHint}>独立记录数量与金额</div>
                       </div>
                       <Button
@@ -1019,7 +1023,7 @@ export const FdeOrderManagementView = ({
                     </div>
                     <div className={styles.lineItemGrid}>
                       <div className={styles.formField}>
-                        <div className={styles.fieldLabel}>tokens 数量</div>
+                        <div className={styles.fieldLabel}>积分数量</div>
                         <InputNumber
                           className={styles.fullWidthControl}
                           min={0}
@@ -1047,7 +1051,7 @@ export const FdeOrderManagementView = ({
               })}
             </div>
           ) : (
-            <div className={styles.emptyHint}>先添加设备、AI 专家团、AI 专家或 tokens 商品。</div>
+            <div className={styles.emptyHint}>先添加设备、AI 专家团、AI 专家或积分商品。</div>
           )}
         </div>
 
@@ -1081,6 +1085,7 @@ export const FdeOrderManagementView = ({
       agentScope={agentScope}
       agentSceneCategory={agentSceneCategory}
       agentSceneCategories={agentSceneCategories}
+      agentPlazaItems={FDE_AGENT_CATALOG_ITEMS}
       visibleAgentPlazaItems={visibleAgentItems}
       selectedAgentIds={selectedAgentIds}
       expertGroupForm={expertGroupForm}
@@ -1252,7 +1257,9 @@ export const FdeOrderManagementView = ({
                 {selectedOrder.fulfillmentItems.map(item => (
                   <div key={item.id} className={styles.detailCard}>
                     <div className={styles.detailTitleRow}>
-                      <span className={styles.detailTitle}>{item.type}</span>
+                      <span className={styles.detailTitle}>
+                        {getFulfillmentDisplayLabel(item.type)}
+                      </span>
                       <span
                         className={classNames(
                           styles.fulfillmentStatus,
@@ -1262,7 +1269,9 @@ export const FdeOrderManagementView = ({
                         {item.status}
                       </span>
                     </div>
-                    <div className={styles.detailMeta}>{item.summary}</div>
+                    <div className={styles.detailMeta}>
+                      {getFulfillmentDisplayLabel(item.summary)}
+                    </div>
                     <div className={styles.detailSubMeta}>最近更新时间：{item.updatedAt}</div>
                     {item.executionRecords.length ? (
                       <div className={styles.executionRecordList}>
@@ -1270,7 +1279,7 @@ export const FdeOrderManagementView = ({
                           <div key={record.id} className={styles.executionRecordItem}>
                             <div className={styles.executionRecordHeader}>
                               <span className={styles.executionRecordAction}>
-                                {record.actionLabel}
+                                {getFulfillmentDisplayLabel(record.actionLabel)}
                               </span>
                               <span className={styles.executionRecordResult}>
                                 {record.resultLabel}

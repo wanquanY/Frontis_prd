@@ -2,10 +2,11 @@ import dayjs from "dayjs";
 
 import { FDE_TEAM_MEMBERS } from "@/feature/fde/mockData";
 import type {
+  FdeAssetChangeRecordAssetType,
+  FdeAssetChangeRecordType,
   FdeAssetType,
   FdeDeliveryChangeRecordItem,
   FdeDeliveryAgentPackageItem,
-  FdeDeliveryChangeStatus,
   FdeDeliveryOrderItem,
   FdeOrderAgentGroupLineItem,
   FdeOrderAgentLineItem,
@@ -44,6 +45,12 @@ export const canManageTeamMembers = (role: FdeTeamMemberItem["role"]): boolean =
   role === "leader" || role === "admin";
 
 /**
+ * 判断当前角色是否展示 FDE 首页看板。
+ */
+export const canViewFdeDashboard = (role: FdeTeamMemberItem["role"]): boolean =>
+  role === "leader" || role === "admin" || role === "groupLeader";
+
+/**
  * 根据成员角色生成默认职务名称。
  */
 export const getDefaultMemberTitle = (role: FdeTeamMemberDraft["role"]): string => {
@@ -53,6 +60,10 @@ export const getDefaultMemberTitle = (role: FdeTeamMemberDraft["role"]): string 
 
   if (role === "admin") {
     return "FDE 团队管理员";
+  }
+
+  if (role === "groupLeader") {
+    return "FDE 小组负责人";
   }
 
   return "FDE 成员";
@@ -79,16 +90,111 @@ export const buildTeamMember = (
   avatarSeed: payload.name.trim() || `fde-${Date.now()}`,
 });
 
-const buildChangeRecordStatusLabel = (order: FdeDeliveryOrderItem): FdeDeliveryChangeStatus => {
-  if (order.deliveryStatus === "已交付") {
-    return "已完成";
+const resolveAssetChangeRecordAssetType = (
+  order: FdeDeliveryOrderItem,
+): FdeAssetChangeRecordAssetType => {
+  if (order.changeType === "追加设备与Agent") {
+    return "设备 / AI 专家";
   }
 
-  if (order.completedSteps.length || order.currentStep !== "deviceConfig") {
-    return "执行中";
+  if (order.changeType === "追加Agent") {
+    return "AI 专家";
   }
 
-  return "待执行";
+  if (order.changeType === "资产续费") {
+    const containsAgentRenewal = (order.changeDetailItems ?? []).some(item =>
+      item.label.includes("Agent"),
+    );
+
+    return containsAgentRenewal ? "AI 专家" : "设备";
+  }
+
+  return "设备";
+};
+
+const stripValidityLabel = (value: string): string => value.replace(/\s*·\s*\d+\s*个月$/, "").trim();
+
+const resolveAssetChangeRecordTargetName = (order: FdeDeliveryOrderItem): string => {
+  const deviceTargets = Array.from(
+    new Set(
+      (order.deviceAdditions ?? []).map(item => item.categoryLabel ?? item.name).filter(Boolean),
+    ),
+  );
+  const agentTargets = Array.from(
+    new Set((order.agentAdditions ?? []).map(item => item.name).filter(Boolean)),
+  );
+  const fallbackTargets = Array.from(
+    new Set(
+      (order.changeDetailItems ?? []).map(item => stripValidityLabel(item.afterValue)).filter(Boolean),
+    ),
+  );
+
+  const targets = [...deviceTargets, ...agentTargets];
+
+  if (targets.length) {
+    return targets.join("、");
+  }
+
+  if (fallbackTargets.length) {
+    return fallbackTargets.join("、");
+  }
+
+  return order.scenarioName || order.tenantName;
+};
+
+const resolveAssetChangeRecordSourceLabel = (order: FdeDeliveryOrderItem): string => {
+  if (order.changeType === "资产续费") {
+    return "续费交付";
+  }
+
+  if (order.linkedOrderIds?.length) {
+    return "订单交付";
+  }
+
+  return "配置交付";
+};
+
+const resolveAssetChangeRecordType = (
+  order: FdeDeliveryOrderItem,
+  assetType: FdeAssetChangeRecordAssetType,
+): FdeAssetChangeRecordType => {
+  if (order.changeType === "资产续费") {
+    return assetType === "AI 专家" ? "AI 专家续费" : "设备续费";
+  }
+
+  if (order.changeType === "追加设备与Agent") {
+    return "新增设备与 AI 专家";
+  }
+
+  if (order.changeType === "追加Agent") {
+    return "新增 AI 专家";
+  }
+
+  return "新增设备";
+};
+
+const resolveAssetChangeRecordSummary = (
+  order: FdeDeliveryOrderItem,
+  changeType: FdeAssetChangeRecordType,
+  targetName: string,
+): string => {
+  if (changeType === "设备续费" || changeType === "AI 专家续费") {
+    return `${targetName} 已完成续费并更新有效期。`;
+  }
+
+  if (changeType === "新增设备") {
+    return `${targetName} 已完成新增并进入租户资产。`;
+  }
+
+  if (changeType === "新增 AI 专家") {
+    return `${targetName} 已完成下发并开放到租户资产。`;
+  }
+
+  if (changeType === "新增设备与 AI 专家") {
+    return `设备与 AI 专家已按订单内容完成新增并写入租户资产。`;
+  }
+
+  return order.deliveryNote.trim() || `${targetName} 资产已完成变更。`;
 };
 
 /**
@@ -109,35 +215,37 @@ export const buildCustomerAssetSnapshot = (
 };
 
 /**
- * 根据交付单生成客户变更记录。
+ * 根据已完成的交付结果生成资产变更记录。
  */
 export const buildChangeRecordFromOrder = (
   order: FdeDeliveryOrderItem,
   beforeSnapshot: string[],
   afterSnapshot: string[],
-  completedAt?: string,
-): FdeDeliveryChangeRecordItem => ({
-  id: order.id,
-  orderId: order.orderNo,
-  type: order.changeType ?? "追加设备",
-  summary: order.deliveryNote,
-  detailItems: (order.changeDetailItems ?? []).map(item =>
-    item.beforeValue
-      ? `${item.label}：${item.beforeValue} -> ${item.afterValue}`
-      : `${item.label}：${item.afterValue}`,
-  ),
-  statusLabel: buildChangeRecordStatusLabel(order),
-  requestedByName: order.requestedByName ?? "FDE 发起",
-  requestedAt: order.createdAt,
-  expectedEffectiveAt: order.launchTargetDate,
-  beforeSnapshot,
-  afterSnapshot,
-  completedAt:
-    completedAt ??
-    (order.deliveryStatus === "已交付"
-      ? new Date().toLocaleString("zh-CN", { hour12: false })
-      : undefined),
-});
+  changedAt: string,
+): FdeDeliveryChangeRecordItem => {
+  const assetType = resolveAssetChangeRecordAssetType(order);
+  const targetName = resolveAssetChangeRecordTargetName(order);
+  const type = resolveAssetChangeRecordType(order, assetType);
+
+  return {
+    id: order.id,
+    orderId: order.orderNo,
+    assetType,
+    targetName,
+    type,
+    summary: resolveAssetChangeRecordSummary(order, type, targetName),
+    detailItems: (order.changeDetailItems ?? []).map(item =>
+      item.beforeValue
+        ? `${item.label}：${item.beforeValue} -> ${item.afterValue}`
+        : `${item.label}：${item.afterValue}`,
+    ),
+    requestedByName: order.requestedByName ?? "FDE 发起",
+    changedAt,
+    sourceLabel: resolveAssetChangeRecordSourceLabel(order),
+    beforeSnapshot,
+    afterSnapshot,
+  };
+};
 
 /**
  * 按交付变更更新客户额度快照。
@@ -602,7 +710,7 @@ export const appendUniqueOrderIds = (
 ): string[] => Array.from(new Set([...(currentOrderIds ?? []), orderId]));
 
 /**
- * 将 tokens 充值结果回写到客户资产快照。
+ * 将积分添加结果回写到客户资产快照。
  */
 export const applyTokenRecharges = (
   customers: FdeOperationsCustomerItem[],
@@ -623,7 +731,7 @@ export const applyTokenRecharges = (
     }
 
     return targetDrafts.reduce<FdeOperationsCustomerItem>((currentCustomer, draft) => {
-      if (currentCustomer.rechargeRecords.some(item => item.id === draft.recordId)) {
+      if (currentCustomer.pointsAddRecords.some(item => item.id === draft.recordId)) {
         return currentCustomer;
       }
 
@@ -638,17 +746,16 @@ export const applyTokenRecharges = (
           ...currentCustomer.tokenUsage,
           limitLabel: formatTokenCountLabel(nextLimitCount),
         },
-        rechargeRecords: [
+        pointsAddRecords: [
           {
             id: draft.recordId,
-            rechargeDate: draft.createdAt,
+            createdAt: draft.createdAt,
             amountLabel: formatAmountLabel(draft.amount),
             pointsLabel: `+${formatTokenCountLabel(draft.tokenCount)}`,
             channelLabel: "订单发放",
             operatorName: draft.operatorName,
-            statusLabel: "已到账",
           },
-          ...currentCustomer.rechargeRecords,
+          ...currentCustomer.pointsAddRecords,
         ],
       };
     }, customer);
@@ -806,8 +913,9 @@ export const buildInitialFulfillmentItems = (
       type: "首期配置交付",
       summary: [
         deviceLineItems.length ? `设备 ${deviceLineItems.length} 项` : "",
-        agentLineItems.length ? `AI 专家 ${agentLineItems.length} 项` : "",
-        agentGroupLineItems.length ? `AI 专家团 ${agentGroupLineItems.length} 项` : "",
+        agentLineItems.length || agentGroupLineItems.length
+          ? `AI 专家 ${agentLineItems.length + agentGroupLineItems.reduce((total, item) => total + item.agents.length, 0)} 项`
+          : "",
       ]
         .filter(Boolean)
         .join(" / "),

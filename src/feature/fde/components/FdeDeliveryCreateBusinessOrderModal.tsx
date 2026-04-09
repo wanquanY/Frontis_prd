@@ -105,7 +105,7 @@ export const FdeDeliveryCreateBusinessOrderModal = ({
               <Button onClick={onAddDeviceLine}>添加设备</Button>
               <Button onClick={onOpenExpertGroupModal}>添加 AI 专家团</Button>
               <Button onClick={onOpenAgentModal}>直接添加单个 AI 专家</Button>
-              <Button onClick={onAddTokensLine}>添加 tokens</Button>
+              <Button onClick={onAddTokensLine}>添加积分</Button>
             </div>
           </div>
         </div>
@@ -286,7 +286,7 @@ export const FdeDeliveryCreateBusinessOrderModal = ({
                 <div key={item.id} className={styles.lineItemCard}>
                   <div className={styles.lineItemHeader}>
                     <div>
-                      <div className={styles.lineItemTitle}>tokens 资源包</div>
+                      <div className={styles.lineItemTitle}>积分资源包</div>
                       <div className={styles.lineItemHint}>独立记录数量与金额</div>
                     </div>
                     <Button
@@ -298,7 +298,7 @@ export const FdeDeliveryCreateBusinessOrderModal = ({
                   </div>
                   <div className={styles.lineItemGrid}>
                     <div className={styles.formField}>
-                      <div className={styles.fieldLabel}>tokens 数量</div>
+                      <div className={styles.fieldLabel}>积分数量</div>
                       <InputNumber
                         className={styles.fullWidthControl}
                         min={0}
@@ -326,7 +326,7 @@ export const FdeDeliveryCreateBusinessOrderModal = ({
             })}
           </div>
         ) : (
-          <div className={styles.emptyHint}>先添加设备、AI 专家团、AI 专家或 tokens 商品。</div>
+          <div className={styles.emptyHint}>先添加设备、AI 专家团、AI 专家或积分商品。</div>
         )}
         <div className={styles.summaryBar}>
           <div className={styles.summaryLabel}>订单总金额</div>

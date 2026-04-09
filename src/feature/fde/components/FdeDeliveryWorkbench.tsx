@@ -428,8 +428,13 @@ export const FdeDeliveryWorkbench = ({
       const normalizedKeyword = searchKeyword.trim().toLowerCase();
 
       return tenantListItems.filter(item => {
+        const relatedOrders = orderItems.filter(order => order.tenantId === item.id);
+        const relatedDeliveryOrders = relatedOrders
+          .map(order => getLinkedDeliveryOrder(order, orders))
+          .filter((order): order is FdeDeliveryOrderItem => Boolean(order));
         const matchesStatus =
-          deliveryStatusFilter === "all" || item.deliveryStatus === deliveryStatusFilter;
+          deliveryStatusFilter === "all" ||
+          relatedDeliveryOrders.some(order => order.deliveryStatus === deliveryStatusFilter);
 
         if (!matchesStatus) {
           return false;
@@ -439,19 +444,52 @@ export const FdeDeliveryWorkbench = ({
           return true;
         }
 
-        const searchSource = [
-          item.tenantName || item.customerName,
-          item.tenantCode,
-          item.scenarioName,
-        ]
+        const searchSource = [item.tenantName || item.customerName, item.tenantCode]
           .join(" ")
           .toLowerCase();
 
         return searchSource.includes(normalizedKeyword);
       });
     },
-    [deliveryStatusFilter, searchKeyword, tenantListItems],
+    [deliveryStatusFilter, orderItems, orders, searchKeyword, tenantListItems],
   );
+  const tenantSummaryMap = useMemo<
+    Record<
+      string,
+      {
+        deliveredOrders: number;
+        latestUpdatedAt: string;
+        pendingOrders: number;
+        processingOrders: number;
+        totalOrders: number;
+      }
+    >
+  >(() => {
+    return tenantListItems.reduce<Record<string, {
+      deliveredOrders: number;
+      latestUpdatedAt: string;
+      pendingOrders: number;
+      processingOrders: number;
+      totalOrders: number;
+    }>>((accumulator, item) => {
+      const relatedOrders = orderItems.filter(order => order.tenantId === item.id);
+      const relatedDeliveryOrders = relatedOrders
+        .map(order => getLinkedDeliveryOrder(order, orders))
+        .filter((order): order is FdeDeliveryOrderItem => Boolean(order));
+      const latestUpdatedAt = [...relatedOrders.map(order => order.createdAt), item.createdAt]
+        .sort((left, right) => right.localeCompare(left))[0];
+
+      accumulator[item.id] = {
+        deliveredOrders: relatedDeliveryOrders.filter(order => order.deliveryStatus === "已交付").length,
+        latestUpdatedAt,
+        pendingOrders: relatedDeliveryOrders.filter(order => order.deliveryStatus === "待配置").length,
+        processingOrders: relatedDeliveryOrders.filter(order => order.deliveryStatus === "配置中").length,
+        totalOrders: relatedOrders.length,
+      };
+
+      return accumulator;
+    }, {});
+  }, [orderItems, orders, tenantListItems]);
   const selectedPreviewOrder = useMemo<FdeOrderItem | null>(
     () => orderItems.find(item => item.id === previewOrderId) ?? null,
     [orderItems, previewOrderId],
@@ -619,6 +657,9 @@ export const FdeDeliveryWorkbench = ({
     setAgentScope("public");
     setAgentSceneCategory("");
     setBusinessSelectedAgentIds([]);
+    if (mode === "single") {
+      setBusinessExpertGroupForm(createInitialExpertGroupForm());
+    }
     setIsBusinessAgentModalOpen(true);
   }, []);
 
@@ -699,15 +740,11 @@ export const FdeDeliveryWorkbench = ({
     }
   }, []);
 
-  const handleConfirmBusinessAgentGroup = useCallback((): void => {
-    if (!businessSelectedAgentIds.length) {
+  const handleConfirmBusinessAgentGroup = useCallback((selectedAgents: FdeAgentCatalogItem[]): void => {
+    if (!selectedAgents.length) {
       message.warning("请先选择至少一个 AI 专家加入专家团。");
       return;
     }
-
-    const selectedAgents = FDE_AGENT_CATALOG_ITEMS.filter(item =>
-      businessSelectedAgentIds.includes(item.id),
-    );
     let duplicateCount = 0;
 
     setCreateBusinessOrderForm(previous => {
@@ -745,7 +782,7 @@ export const FdeDeliveryWorkbench = ({
       };
     });
 
-    if (duplicateCount === businessSelectedAgentIds.length) {
+    if (duplicateCount === selectedAgents.length) {
       message.warning("所选 AI 专家已经全部存在于当前订单中。");
       return;
     }
@@ -759,7 +796,7 @@ export const FdeDeliveryWorkbench = ({
         ? `专家团已创建，已自动跳过 ${duplicateCount} 个重复 AI 专家。`
         : "AI 专家团已创建并加入订单。",
     );
-  }, [businessExpertGroupForm, businessSelectedAgentIds]);
+  }, [businessExpertGroupForm]);
 
   const handleRemoveBusinessLineItem = useCallback((lineItemId: string): void => {
     setCreateBusinessOrderForm(previous => ({
@@ -928,7 +965,9 @@ export const FdeDeliveryWorkbench = ({
     setAgentScope("public");
     setAgentSceneCategory("");
     setSelectedAgentIds([]);
-    setExpertGroupForm(createInitialExpertGroupForm());
+    if (mode === "single") {
+      setExpertGroupForm(createInitialExpertGroupForm());
+    }
     setIsAgentModalOpen(true);
   }, []);
 
@@ -1169,17 +1208,15 @@ export const FdeDeliveryWorkbench = ({
     message.success(`已添加 ${agent.name}。`);
   }, [agentModalOrderId, commitOrders]);
 
-  const handleConfirmAgentGroup = useCallback((): void => {
+  const handleConfirmAgentGroup = useCallback((selectedAgents: FdeAgentCatalogItem[]): void => {
     if (!agentModalOrderId) {
       return;
     }
 
-    if (!selectedAgentIds.length) {
+    if (!selectedAgents.length) {
       message.warning("请先选择至少一个 AI 专家加入专家团。");
       return;
     }
-
-    const selectedAgents = FDE_AGENT_CATALOG_ITEMS.filter(item => selectedAgentIds.includes(item.id));
     let duplicateCount = 0;
 
     commitOrders(previous =>
@@ -1228,7 +1265,7 @@ export const FdeDeliveryWorkbench = ({
       }),
     );
 
-    if (duplicateCount === selectedAgentIds.length) {
+    if (duplicateCount === selectedAgents.length) {
       message.warning("所选 AI 专家已经全部存在于当前订单中。");
       return;
     }
@@ -1243,7 +1280,7 @@ export const FdeDeliveryWorkbench = ({
         ? `专家团已创建，已自动跳过 ${duplicateCount} 个重复 AI 专家。`
         : "AI 专家团已创建并加入订单。",
     );
-  }, [agentModalOrderId, commitOrders, expertGroupForm.description, expertGroupForm.name, selectedAgentIds]);
+  }, [agentModalOrderId, commitOrders, expertGroupForm.description, expertGroupForm.name]);
 
   const handleDeliverAgentGroup = useCallback((orderId: string, groupId: string): void => {
     commitOrders(previous =>
@@ -1454,6 +1491,7 @@ export const FdeDeliveryWorkbench = ({
       agentScope={agentScope}
       agentSceneCategory={agentSceneCategory}
       agentSceneCategories={agentSceneCategories}
+      agentPlazaItems={FDE_AGENT_CATALOG_ITEMS}
       visibleAgentPlazaItems={visibleAgentPlazaItems}
       selectedAgentIds={businessSelectedAgentIds}
       expertGroupForm={businessExpertGroupForm}
@@ -1498,6 +1536,7 @@ export const FdeDeliveryWorkbench = ({
         </div>
         <FdeDeliveryWorkbenchListView
           items={filteredOrderItems}
+          summaryMap={tenantSummaryMap}
           searchKeyword={searchKeyword}
           deliveryStatusFilter={deliveryStatusFilter}
           setSearchKeyword={setSearchKeyword}
@@ -1528,7 +1567,6 @@ export const FdeDeliveryWorkbench = ({
           {selectedDetailTab === "orderInfo" || !selectedDeliveryOrder ? (
             <FdeDeliveryOrderInfoPanel
               order={activeBusinessOrder}
-              deliveryOrder={selectedDeliveryOrder}
               onOpenPreviewOrder={handleOpenOrderPreview}
             />
           ) : (
@@ -1573,6 +1611,7 @@ export const FdeDeliveryWorkbench = ({
         agentScope={agentScope}
         agentSceneCategory={agentSceneCategory}
         agentSceneCategories={agentSceneCategories}
+        agentPlazaItems={FDE_AGENT_CATALOG_ITEMS}
         visibleAgentPlazaItems={visibleAgentPlazaItems}
         selectedAgentIds={selectedAgentIds}
         expertGroupForm={expertGroupForm}

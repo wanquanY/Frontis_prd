@@ -14,6 +14,7 @@ import type {
   FrontisUserRole,
   FrontisUserStatus,
   FrontisWebUserItem,
+  OrganizationDepartmentItem,
   WorkspaceItem,
 } from "../types";
 import { downloadArtifact } from "../utils";
@@ -39,6 +40,7 @@ export interface DeviceManagementViewProps {
   deploymentByEmployeeId: Record<string, ExpertDeploymentState>;
   deviceOwners: Record<string, string | null>;
   employees: EmployeeItem[];
+  organizationDepartments: OrganizationDepartmentItem[];
   onAddWorkspace: (workspace: WorkspaceItem, ownerId: string | null) => void;
   onAssignDeviceOwner: (deviceId: string, ownerId: string | null) => void;
   onRemoveWorkspace: (workspaceId: string) => void;
@@ -233,7 +235,11 @@ const resolveResultTypeLabel = (artifact: ResultRecord): string => {
 };
 
 export const getRoleLabel = (role: FrontisUserRole): string =>
-  role === "boss" ? "企业老板" : role === "admin" ? "企业管理员" : "普通员工";
+  role === "enterpriseAdmin"
+    ? "企业管理员"
+    : role === "departmentLead"
+      ? "部门负责人"
+      : "普通员工";
 
 export const getUserStatusLabel = (status: FrontisUserStatus): string =>
   status === "active" ? "已启用" : "已禁用";

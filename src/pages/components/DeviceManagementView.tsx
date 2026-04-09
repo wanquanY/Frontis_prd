@@ -1,9 +1,15 @@
 import { useCallback, useMemo, useState } from "react";
 
 import { ArrowLeftOutlined, DownloadOutlined, PlusOutlined } from "@ant-design/icons";
-import { Button, Input, Modal, Popconfirm, Select, message } from "antd";
+import { Button, Input, Modal, Popconfirm, Select, TreeSelect, message } from "antd";
 
-import type { FrontisWebUserItem, WorkspaceItem } from "../types";
+import { buildAccessScopeSummary } from "@/utils/organizationAccess";
+import type {
+  FrontisWebUserItem,
+  OrganizationDepartmentItem,
+  OrganizationTreeNode,
+  WorkspaceItem,
+} from "../types";
 import {
   createWorkspaceActivationInfo,
   downloadPrototypeFile,
@@ -14,7 +20,6 @@ import {
   doesExpertRequireDeviceBinding,
   getAssignedWorkspaceIdsForExpert,
   getDeviceAccessStateForExpert,
-  getEffectiveMembersForDeviceAccess,
 } from "./agentStore/utils";
 import type { ExpertDeploymentState } from "./agentStore/types";
 
@@ -70,6 +75,13 @@ const CLIENT_DOWNLOAD_OPTIONS: ClientDownloadItem[] = [
     packageName: "FrontisAI-Windows-x64.exe",
   },
 ];
+
+interface OrganizationUserTreeNode {
+  children?: OrganizationUserTreeNode[];
+  selectable?: boolean;
+  title: string;
+  value: string;
+}
 
 interface PendingDeviceItem {
   activationCode: string;
@@ -135,6 +147,61 @@ const resolveDeviceKind = (workspaceType: string): DeviceKind => {
   return "local-client";
 };
 
+const buildOrganizationUserTree = (
+  departments: OrganizationDepartmentItem[],
+  users: FrontisWebUserItem[],
+): OrganizationTreeNode[] => {
+  const departmentChildrenMap = new Map<string | null, OrganizationDepartmentItem[]>();
+  const departmentUsersMap = new Map<string, FrontisWebUserItem[]>();
+
+  departments.forEach(department => {
+    const siblings = departmentChildrenMap.get(department.parentId) ?? [];
+    siblings.push(department);
+    departmentChildrenMap.set(department.parentId, siblings);
+  });
+
+  users.forEach(user => {
+    const departmentUsers = departmentUsersMap.get(user.departmentId) ?? [];
+    departmentUsers.push(user);
+    departmentUsersMap.set(user.departmentId, departmentUsers);
+  });
+
+  const buildDepartmentNode = (department: OrganizationDepartmentItem): OrganizationTreeNode => ({
+    children: [
+      ...(departmentChildrenMap.get(department.id) ?? []).map(buildDepartmentNode),
+      ...(departmentUsersMap.get(department.id) ?? []).map(user => ({
+        id: user.id,
+        name: user.name,
+        type: "user" as const,
+      })),
+    ],
+    id: department.id,
+    name: department.name,
+    type: "department",
+  });
+
+  return (departmentChildrenMap.get(null) ?? []).map(buildDepartmentNode);
+};
+
+const mapOrganizationNodesToUserSelectData = (
+  nodes: OrganizationTreeNode[],
+): OrganizationUserTreeNode[] =>
+  nodes.map(node => {
+    if (node.type === "user") {
+      return {
+        title: node.name,
+        value: node.id,
+      };
+    }
+
+    return {
+      children: node.children ? mapOrganizationNodesToUserSelectData(node.children) : undefined,
+      selectable: false,
+      title: node.name,
+      value: node.id,
+    };
+  });
+
 const getStatusClassName = (tone: "success" | "warning" | "danger"): string => {
   if (tone === "success") {
     return `${adminStyles.consoleStatusTag} ${adminStyles.consoleStatusTagSuccess}`;
@@ -172,6 +239,7 @@ export const DeviceManagementView = ({
   deploymentByEmployeeId,
   deviceOwners,
   employees,
+  organizationDepartments,
   onAddWorkspace,
   onAssignDeviceOwner,
   onRemoveWorkspace,
@@ -183,9 +251,12 @@ export const DeviceManagementView = ({
     [employees, workspaces],
   );
   const activeUsers = useMemo(() => users.filter(user => user.status === "active"), [users]);
-  const userOptions = useMemo(
-    () => activeUsers.map(user => ({ label: user.name, value: user.id })),
-    [activeUsers],
+  const userTreeData = useMemo(
+    () =>
+      mapOrganizationNodesToUserSelectData(
+        buildOrganizationUserTree(organizationDepartments, activeUsers),
+      ),
+    [activeUsers, organizationDepartments],
   );
 
   const [activeFilter, setActiveFilter] = useState<DeviceFilterKey>("all");
@@ -350,11 +421,6 @@ export const DeviceManagementView = ({
     [onlineDeviceCount, pendingDevices.length, visibleDevices.length],
   );
 
-  const activeExpertCount = useMemo(
-    () => employees.filter(employee => ["running", "online"].includes(employee.status)).length,
-    [employees],
-  );
-
   const allRecords = useMemo<DeviceRecord[]>(
     () => [
       ...companyManagedDevices.map<DeviceRecord>(item => ({
@@ -437,27 +503,23 @@ export const DeviceManagementView = ({
   const summaryItems = useMemo(
     () => [
       {
-        hint: `已用 ${deviceCountByKind["cloud-workstation"]} 台 / 总额 ${DEVICE_KIND_QUOTA["cloud-workstation"]} 台`,
         label: "云端工作站额度",
         value: `${deviceCountByKind["cloud-workstation"]}/${DEVICE_KIND_QUOTA["cloud-workstation"]}`,
       },
       {
-        hint: `已用 ${deviceCountByKind["local-workstation"]} 台 / 总额 ${DEVICE_KIND_QUOTA["local-workstation"]} 台`,
         label: "本地工作站额度",
         value: `${deviceCountByKind["local-workstation"]}/${DEVICE_KIND_QUOTA["local-workstation"]}`,
       },
       {
-        hint: `已用 ${deviceCountByKind["local-client"]} 台 / 总额 ${DEVICE_KIND_QUOTA["local-client"]} 台`,
         label: "本地客户端额度",
         value: `${deviceCountByKind["local-client"]}/${DEVICE_KIND_QUOTA["local-client"]}`,
       },
       {
-        hint: `当前支撑 ${activeExpertCount} 个活跃 AI 专家`,
         label: "待处理设备",
         value: `${abnormalDeviceCount} 台`,
       },
     ],
-    [abnormalDeviceCount, activeExpertCount, deviceCountByKind],
+    [abnormalDeviceCount, deviceCountByKind],
   );
 
   const handleRepair = useCallback((): void => {
@@ -699,7 +761,6 @@ export const DeviceManagementView = ({
               <div key={item.label} className={adminStyles.consoleSummaryItem}>
                 <span className={adminStyles.consoleSummaryLabel}>{item.label}</span>
                 <strong className={adminStyles.consoleSummaryValue}>{item.value}</strong>
-                <span className={adminStyles.consoleSummaryHint}>{item.hint}</span>
               </div>
             ))}
           </div>
@@ -734,7 +795,7 @@ export const DeviceManagementView = ({
               handleRegeneratePendingActivation={handleRegeneratePendingActivation}
               handleRemoveDevice={handleRemoveDevice}
               handleUpdatePendingDevice={handleUpdatePendingDevice}
-              userOptions={userOptions}
+              userTreeData={userTreeData}
             />
           ) : (
             <ExistingDeviceDetail
@@ -757,9 +818,10 @@ export const DeviceManagementView = ({
               handleRepair={handleRepair}
               handleToggleDeviceStatus={handleToggleDeviceStatus}
               handleUpdateDeviceLocation={handleUpdateExistingDeviceLocation}
+              organizationDepartments={organizationDepartments}
               resolveOnlineStatus={resolveOnlineStatus}
               users={users}
-              userOptions={userOptions}
+              userTreeData={userTreeData}
             />
           )}
         </section>
@@ -930,13 +992,15 @@ export const DeviceManagementView = ({
           </div>
           <div className={adminStyles.consoleInfoRow}>
             <span className={adminStyles.consoleInfoLabel}>所属员工</span>
-            <Select
+            <TreeSelect
               className={adminStyles.consoleControl}
               allowClear
               placeholder="选择所属员工（可选）"
-              options={userOptions}
+              treeData={userTreeData}
               value={draftDeviceOwner ?? undefined}
               onChange={value => setDraftDeviceOwner(value ?? null)}
+              showSearch={true}
+              treeDefaultExpandAll={true}
             />
           </div>
         </div>
@@ -959,9 +1023,10 @@ interface ExistingDeviceDetailProps {
   handleRepair: () => void;
   handleToggleDeviceStatus: (deviceId: string, currentlyOnline: boolean) => void;
   handleUpdateDeviceLocation: (deviceId: string, value: string) => void;
+  organizationDepartments: DeviceManagementViewProps["organizationDepartments"];
   resolveOnlineStatus: (workspaceId: string, originalStatus: string) => boolean;
   users: FrontisWebUserItem[];
-  userOptions: Array<{ label: string; value: string }>;
+  userTreeData: OrganizationUserTreeNode[];
 }
 
 const ExistingDeviceDetail = ({
@@ -971,6 +1036,7 @@ const ExistingDeviceDetail = ({
   deviceName,
   deploymentByEmployeeId,
   employees,
+  organizationDepartments,
   getOwnerName,
   handleAssignOwner,
   handleRenameDevice,
@@ -980,7 +1046,7 @@ const ExistingDeviceDetail = ({
   handleUpdateDeviceLocation,
   resolveOnlineStatus,
   users,
-  userOptions,
+  userTreeData,
 }: ExistingDeviceDetailProps): JSX.Element => {
   const online = resolveOnlineStatus(device.workspace.id, device.workspace.status);
   const ownerId = deviceOwners[device.workspace.id] ?? null;
@@ -1007,12 +1073,12 @@ const ExistingDeviceDetail = ({
             memberSummary:
               accessState.visibility === "all"
                 ? "全公司可用"
-                : getEffectiveMembersForDeviceAccess(accessState, ownerId, users).join("、") ||
-                  (requiresDeviceBinding ? "待分配设备权限" : "暂未配置可用成员"),
+                : buildAccessScopeSummary(accessState.accessScopeSubjects) ||
+                  (requiresDeviceBinding ? "待配置组织范围" : "暂未配置组织范围"),
             requiresDeviceBinding,
           };
         }),
-    [deploymentByEmployeeId, device.workspace.id, employees, ownerId, users],
+    [deploymentByEmployeeId, device.workspace.id, employees, organizationDepartments, ownerId, users],
   );
 
   return (
@@ -1055,13 +1121,15 @@ const ExistingDeviceDetail = ({
           <div className={adminStyles.consoleInfoRow}>
             <span className={adminStyles.consoleInfoLabel}>所属员工</span>
             <div className={adminStyles.consoleInfoValue}>
-              <Select
+              <TreeSelect
                 className={adminStyles.consoleControl}
                 allowClear
                 placeholder="选择员工（可选）"
-                options={userOptions}
+                treeData={userTreeData}
                 value={ownerId ?? undefined}
                 onChange={value => handleAssignOwner(device.workspace.id, value ?? null)}
+                showSearch={true}
+                treeDefaultExpandAll={true}
               />
             </div>
           </div>
@@ -1085,10 +1153,10 @@ const ExistingDeviceDetail = ({
                             ? `该 AI 专家仅随设备拥有者 ${getOwnerName(ownerId) ?? "未命名成员"} 生效。`
                             : "该 AI 专家按设备拥有者生效，请先补充设备拥有者。"
                           : accessState.visibility === "all"
-                            ? "当前设备中该 Agent 对全公司成员开放。"
+                            ? "当前设备中该 Agent 对全公司开放。"
                             : ownerId
-                              ? `设备拥有者 ${getOwnerName(ownerId) ?? "未命名成员"} 默认拥有可用权限。`
-                              : "当前设备中该 Agent 按指定成员生效。"}
+                              ? `设备拥有者 ${getOwnerName(ownerId) ?? "未命名成员"} 默认拥有可用权限，其他成员按组织范围生效。`
+                              : "当前设备中该 Agent 按组织范围生效。"}
                       </span>
                     </div>
                   </div>
@@ -1136,7 +1204,7 @@ interface PendingDeviceDetailProps {
     deviceId: string,
     updates: Partial<Pick<PendingDeviceItem, "location" | "name">>,
   ) => void;
-  userOptions: Array<{ label: string; value: string }>;
+  userTreeData: OrganizationUserTreeNode[];
 }
 
 const PendingDeviceDetail = ({
@@ -1145,7 +1213,7 @@ const PendingDeviceDetail = ({
   handleRegeneratePendingActivation,
   handleRemoveDevice,
   handleUpdatePendingDevice,
-  userOptions,
+  userTreeData,
 }: PendingDeviceDetailProps): JSX.Element => {
   const activationExpireText = getActivationExpireText(device.activationExpiresAt);
   const activationExpired = isPendingDeviceActivationExpired(device);
@@ -1205,13 +1273,15 @@ const PendingDeviceDetail = ({
           <div className={adminStyles.consoleInfoRow}>
             <span className={adminStyles.consoleInfoLabel}>所属员工</span>
             <div className={adminStyles.consoleInfoValue}>
-              <Select
+              <TreeSelect
                 className={adminStyles.consoleControl}
                 allowClear
                 placeholder="选择员工（可选）"
-                options={userOptions}
+                treeData={userTreeData}
                 value={device.ownerId ?? undefined}
                 onChange={value => handleAssignOwner(device.id, value ?? null)}
+                showSearch={true}
+                treeDefaultExpandAll={true}
               />
             </div>
           </div>

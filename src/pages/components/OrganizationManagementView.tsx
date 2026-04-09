@@ -34,21 +34,17 @@ interface DraftUserForm {
 const DEFAULT_DRAFT_USER: DraftUserForm = {
   name: "",
   phone: "",
-  role: "member",
+  role: "employee",
 };
 
 const ROLE_OPTIONS: Array<{ label: string; value: FrontisUserRole }> = [
-  { label: "企业老板", value: "boss" },
-  { label: "企业管理员", value: "admin" },
-  { label: "普通员工", value: "member" },
+  { label: "企业管理员", value: "enterpriseAdmin" },
+  { label: "部门负责人", value: "departmentLead" },
+  { label: "普通员工", value: "employee" },
 ];
 
 const buildRoleScopeLabel = (role: FrontisUserRole): string => {
-  if (role === "boss") {
-    return "可进入管理后台和对话工作台";
-  }
-
-  if (role === "admin") {
+  if (role === "enterpriseAdmin") {
     return "可进入管理后台和对话工作台";
   }
 
@@ -60,7 +56,7 @@ const buildAssignedAgentIds = (
   employees: EmployeeItem[],
   existingAgentIds?: string[],
 ): string[] => {
-  if (role === "member") {
+  if (role !== "enterpriseAdmin") {
     return existingAgentIds ?? employees.map(item => item.id);
   }
 
@@ -140,6 +136,7 @@ export const OrganizationManagementView = ({
     onAddUsers([
       {
         assignedAgentIds: buildAssignedAgentIds(draftUser.role, employees),
+        departmentId: "dept-default",
         dialogueCount: 0,
         id: `user-${Date.now()}`,
         lastActiveAt: "从未使用",
@@ -169,14 +166,19 @@ export const OrganizationManagementView = ({
     }
 
     const nextUsers: FrontisWebUserItem[] = rows.map((row, index) => {
-      const [name = "", phone = "", roleValue = "member"] = row.split(",").map(item => item.trim());
+      const [name = "", phone = "", roleValue = "employee"] = row
+        .split(",")
+        .map(item => item.trim());
       const normalizedRole =
-        roleValue === "boss" || roleValue === "admin" || roleValue === "member"
+        roleValue === "enterpriseAdmin" ||
+        roleValue === "departmentLead" ||
+        roleValue === "employee"
           ? roleValue
-          : "member";
+          : "employee";
 
       return {
         assignedAgentIds: buildAssignedAgentIds(normalizedRole, employees),
+        departmentId: "dept-default",
         dialogueCount: 0,
         id: `imported-user-${Date.now()}-${index}`,
         lastActiveAt: "从未使用",

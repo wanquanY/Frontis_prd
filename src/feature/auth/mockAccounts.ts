@@ -1,4 +1,5 @@
 import {
+  FDE_PRIMARY_GROUP_LEADER_MEMBER_ID,
   FDE_PRIMARY_LEADER_MEMBER_ID,
   FDE_PRIMARY_MEMBER_ID,
   FDE_TEAM_MEMBERS,
@@ -68,11 +69,19 @@ export const FDE_LEADER_MOCK_ACCOUNT: MockAuthAccount = buildFdeMockAccount(
   "123456",
 );
 
+export const FDE_GROUP_LEADER_MOCK_ACCOUNT: MockAuthAccount = buildFdeMockAccount(
+  FDE_PRIMARY_GROUP_LEADER_MEMBER_ID,
+  "fdeMember",
+  "FDE小组负责人",
+  "123456",
+);
+
 export const MOCK_AUTH_ACCOUNTS: MockAuthAccount[] = [
-  buildMockAccount("user-member-001", "employee", "普通用户", "123456"),
-  buildMockAccount("user-admin-001", "admin", "企业老板", "123456"),
-  buildMockAccount("user-admin-002", "admin", "企业管理员", "123456"),
+  buildMockAccount("user-member-001", "employee", "普通员工", "123456"),
+  buildMockAccount("user-admin-001", "admin", "企业管理员", "123456"),
+  buildMockAccount("user-admin-002", "employee", "部门负责人", "123456"),
   FDE_LEADER_MOCK_ACCOUNT,
+  FDE_GROUP_LEADER_MOCK_ACCOUNT,
   FDE_MEMBER_MOCK_ACCOUNT,
 ];
 
@@ -105,7 +114,7 @@ export const getDefaultPathByMockRole = (role: MockAuthRole): string => {
 };
 
 /**
- * 获取企业老板管理后台路径。
+ * 获取企业管理员后台路径。
  */
 export const getAdminManagementPath = (): string => "/web/admin";
 
