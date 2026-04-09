@@ -73,12 +73,6 @@ export const getFdeWorkbenchPath = (tabKey: FdeWorkbenchTabKey): string =>
   `/fde/${FDE_WORKBENCH_ROUTE_SEGMENTS[tabKey]}`;
 
 /**
- * 获取 FDE 开发管理工作台模块对应的路由路径。
- */
-export const getFdeDevWorkbenchPath = (tabKey: FdeWorkbenchTabKey): string =>
-  `/fde-dev/${FDE_WORKBENCH_ROUTE_SEGMENTS[tabKey]}`;
-
-/**
  * 根据路由片段解析 FDE 工作台模块。
  */
 export const getFdeWorkbenchTabKeyFromPath = (

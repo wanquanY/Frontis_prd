@@ -23,21 +23,23 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useMockAuth } from "@/feature/auth/hooks/useMockAuth";
 import { useFdeWorkbench } from "@/feature/fde/hooks/useFdeWorkbench";
 import type {
-  FdeWorkbenchTabItem,
   FdeWorkbenchTabKey,
 } from "@/feature/fde/types";
 import {
-  FDE_BUSINESS_TAB_KEYS,
   getFdeAvatarUrl,
   getFdeWorkbenchPath,
   getFdeWorkbenchTabKeyFromPath,
 } from "@/feature/fde/utils";
 
+import { FdeAgentDevView } from "./FdeAgentDevView";
+import { FdeAgentStoreView } from "./FdeAgentStoreView";
 import { FdeDeliveryWorkbench } from "./FdeDeliveryWorkbench";
 import { FdeLeaderDashboardView } from "./FdeLeaderDashboardView";
+import { FdeOpsInsightsView } from "./FdeOpsInsightsView";
 import { FdeOpportunityWorkbench } from "./FdeOpportunityWorkbench";
 import { FdeOperationsMonitorView } from "./FdeOperationsMonitorView";
 import { FdeOrderManagementView } from "./FdeOrderManagementView";
+import { FdeSkillMarketView } from "./FdeSkillMarketView";
 import { FdeTeamManagementView } from "./FdeTeamManagementView";
 import { FdeVersionManagementView } from "./FdeVersionManagementView";
 import styles from "./FdeWorkbenchView.module.less";
@@ -65,51 +67,23 @@ export const FdeWorkbenchView = (): JSX.Element => {
   const { logout, session } = useMockAuth();
   const workbench = useFdeWorkbench(session?.userId);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(false);
-  const businessTabKeys = useMemo<Set<FdeWorkbenchTabKey>>(
-    () => new Set(FDE_BUSINESS_TAB_KEYS),
-    [],
-  );
-  const businessTabs = useMemo<FdeWorkbenchTabItem[]>(
-    () => workbench.tabs.filter(item => businessTabKeys.has(item.key)),
-    [businessTabKeys, workbench.tabs],
-  );
-  const businessNavGroups = useMemo(
-    () =>
-      workbench.navGroups
-        .map(group => ({
-          ...group,
-          items: group.items.filter(item => businessTabKeys.has(item.key)),
-          subGroups: group.subGroups
-            ?.map(sub => ({
-              ...sub,
-              items: sub.items.filter(item => businessTabKeys.has(item.key)),
-            }))
-            .filter(sub => sub.items.length),
-        }))
-        .filter(group => group.items.length || group.subGroups?.length),
-    [businessTabKeys, workbench.navGroups],
-  );
 
   const routeTab = useMemo<FdeWorkbenchTabKey | null>(
     () => getFdeWorkbenchTabKeyFromPath(tabPath),
     [tabPath],
   );
   const fallbackTab = useMemo<FdeWorkbenchTabKey>(
-    () => businessTabs[0]?.key ?? "delivery",
-    [businessTabs],
+    () => workbench.tabs[0]?.key ?? "delivery",
+    [workbench.tabs],
   );
   const visibleTabKeys = useMemo<Set<FdeWorkbenchTabKey>>(
-    () => new Set(businessTabs.map(item => item.key)),
-    [businessTabs],
+    () => new Set(workbench.tabs.map(item => item.key)),
+    [workbench.tabs],
   );
   const activeTab = routeTab && visibleTabKeys.has(routeTab) ? routeTab : fallbackTab;
 
   useEffect(() => {
     if (!workbench.tabs.length) {
-      return;
-    }
-
-    if (!businessTabs.length) {
       return;
     }
 
@@ -129,7 +103,6 @@ export const FdeWorkbenchView = (): JSX.Element => {
     workbench.activeTab,
     workbench.setActiveTab,
     workbench.tabs.length,
-    businessTabs.length,
   ]);
 
   const handleLogout = useCallback((): void => {
@@ -235,6 +208,14 @@ export const FdeWorkbenchView = (): JSX.Element => {
         setSelectedTaskId={workbench.setSelectedVersionTaskId}
       />
     );
+  } else if (activeTab === "agentDev") {
+    activeContent = <FdeAgentDevView />;
+  } else if (activeTab === "skillMarket") {
+    activeContent = <FdeSkillMarketView onNavigateToAgentDev={() => handleNavigateTab("agentDev")} />;
+  } else if (activeTab === "agentStore") {
+    activeContent = <FdeAgentStoreView onNavigateToAgentDev={() => handleNavigateTab("agentDev")} />;
+  } else if (activeTab === "opsInsights") {
+    activeContent = <FdeOpsInsightsView />;
   }
 
   return (
@@ -257,8 +238,7 @@ export const FdeWorkbenchView = (): JSX.Element => {
             <div className={styles.brandIcon}>F</div>
             {isSidebarCollapsed ? null : (
               <div className={styles.brandCopy}>
-                <div className={styles.brandTitle}>Frontis FDE</div>
-                <div className={styles.brandDescription}>专家交付工作台</div>
+                <div className={styles.brandTitle}>FDE工作台</div>
               </div>
             )}
           </div>
@@ -279,7 +259,7 @@ export const FdeWorkbenchView = (): JSX.Element => {
           })}
           aria-label="FDE 工作台导航"
         >
-          {businessNavGroups.map(group => (
+          {workbench.navGroups.map(group => (
             <div key={group.groupKey} className={styles.navGroup}>
               {isSidebarCollapsed ? null : (
                 <div className={styles.navGroupLabel}>{group.groupLabel}</div>

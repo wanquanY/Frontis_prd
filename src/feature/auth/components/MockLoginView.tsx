@@ -140,22 +140,6 @@ export const MockLoginView = (): JSX.Element => {
     [navigate, setSession],
   );
 
-  const handleQuickFdeDevLogin = useCallback(
-    (role: Extract<MockAuthRole, "fdeMember" | "fdeAdmin">): void => {
-      const account = role === "fdeAdmin" ? FDE_LEADER_MOCK_ACCOUNT : FDE_MEMBER_MOCK_ACCOUNT;
-
-      setPendingQuickLoginPath("/fde-dev");
-      setSession({
-        userId: account.userId,
-        name: account.name,
-        phone: account.phone,
-        role: account.role,
-        loginAt: new Date().toISOString(),
-      });
-      navigate("/fde-dev", { replace: true });
-    },
-    [navigate, setSession],
-  );
 
   if (session) {
     return (
@@ -287,7 +271,7 @@ export const MockLoginView = (): JSX.Element => {
                     onClick={() => handleQuickFdeLogin("fdeMember")}
                   >
                     <span className={styles.quickLoginIcon}>🛠</span>
-                    <span>FDE成员-业务管理登录</span>
+                    <span>FDE成员登录</span>
                   </button>
                   <button
                     type="button"
@@ -295,23 +279,7 @@ export const MockLoginView = (): JSX.Element => {
                     onClick={() => handleQuickFdeLogin("fdeAdmin")}
                   >
                     <span className={styles.quickLoginIcon}>🧭</span>
-                    <span>FDE负责人-业务管理登录</span>
-                  </button>
-                  <button
-                    type="button"
-                    className={styles.quickLoginButton}
-                    onClick={() => handleQuickFdeDevLogin("fdeMember")}
-                  >
-                    <span className={styles.quickLoginIcon}>💻</span>
-                    <span>FDE成员-开发管理登录</span>
-                  </button>
-                  <button
-                    type="button"
-                    className={styles.quickLoginButton}
-                    onClick={() => handleQuickFdeDevLogin("fdeAdmin")}
-                  >
-                    <span className={styles.quickLoginIcon}>🔧</span>
-                    <span>FDE负责人-开发管理登录</span>
+                    <span>FDE负责人登录</span>
                   </button>
                 </div>
               </div>
