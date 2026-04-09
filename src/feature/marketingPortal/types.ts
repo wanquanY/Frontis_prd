@@ -378,7 +378,7 @@ export interface MarketingLeadFormState {
   wechat: string;
   industry: string;
   interestedAgents: string[];
-  remark: string;
+  requirementDescription: string;
 }
 
 /**
@@ -389,5 +389,5 @@ export interface MarketingSceneConsultFormState {
   company: string;
   phone: string;
   interestedAgents: string[];
-  remark: string;
+  requirementDescription: string;
 }

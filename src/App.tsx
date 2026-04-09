@@ -66,7 +66,7 @@ const App = (): JSX.Element => {
           <Route
             path="/web/admin"
             element={
-              <AuthRoute allowedRole="admin">
+              <AuthRoute allowedRole={["admin", "fdeAdmin", "fdeMember"]}>
                 <FrontisAdminPage />
               </AuthRoute>
             }
@@ -74,7 +74,7 @@ const App = (): JSX.Element => {
           <Route
             path="/web/admin/workspace"
             element={
-              <AuthRoute allowedRole="admin">
+              <AuthRoute allowedRole={["admin", "fdeAdmin", "fdeMember"]}>
                 <FrontisPage viewRole="admin" />
               </AuthRoute>
             }

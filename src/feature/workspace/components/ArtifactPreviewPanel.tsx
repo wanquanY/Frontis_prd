@@ -195,7 +195,11 @@ export const ArtifactPreviewPanel = ({
       return previewState.previewBody.trim() ? (
         <div className={styles.markdownStage}>
           <div className={styles.markdownCard}>
-            <MarkdownRenderer source={previewState.previewBody} />
+            <MarkdownRenderer
+              source={previewState.previewBody}
+              enableMermaidActions={true}
+              artifactFileName={selectedFile.fileName}
+            />
           </div>
         </div>
       ) : (

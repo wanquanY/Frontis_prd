@@ -265,7 +265,7 @@ export const FdeDeliveryStepPanel = ({
             {isReadOnlyStep ? (
               <span className={styles.deliveryHint}>当前阶段已完成，内容仅供查看。</span>
             ) : null}
-            {isCurrentStep ? <Button onClick={onOpenAdmin}>进入企业管理后台</Button> : null}
+            <Button onClick={onOpenAdmin}>进入企业管理后台</Button>
             {allowSkipCurrentStep ? (
               <Button onClick={() => onAdvanceStep(true)}>跳过此步骤</Button>
             ) : null}

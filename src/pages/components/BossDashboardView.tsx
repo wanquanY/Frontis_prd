@@ -2,6 +2,8 @@ import { useMemo } from "react";
 
 import { Button } from "antd";
 
+import { INITIAL_ORGANIZATION_DEPARTMENTS } from "@/mocks/mockData";
+import { buildAccessScopeSummary, normalizeAccessScopeSubjects } from "@/utils/organizationAccess";
 import type {
   DialogueSessionItem,
   EmployeeItem,
@@ -16,12 +18,10 @@ interface BossDashboardViewProps {
   currentUserName?: string;
   dialogueSessions: DialogueSessionItem[];
   employees: EmployeeItem[];
-  onNavigateToTab: (tabKey: "devices" | "models" | "organization" | "store") => void;
+  onNavigateToTab: (tabKey: "devices" | "models" | "store") => void;
   users: FrontisWebUserItem[];
   workspaces: WorkspaceItem[];
 }
-
-const DAY_NAMES = ["星期日", "星期一", "星期二", "星期三", "星期四", "星期五", "星期六"];
 
 interface ExpertTeamDef {
   id: string;
@@ -137,13 +137,6 @@ const getExecutiveTitle = (name?: string): string => {
   return `${normalizedName.slice(0, 1)}总`;
 };
 
-const formatDateLine = (): string => {
-  const now = new Date();
-  return `${now.getFullYear()}年${now.getMonth() + 1}月${now.getDate()}日 · ${
-    DAY_NAMES[now.getDay()]
-  } · ${getGreetingLabel()}`;
-};
-
 const isEmployeeActive = (employee: EmployeeItem): boolean =>
   ["running", "online"].includes(employee.status);
 
@@ -185,11 +178,6 @@ export const BossDashboardView = ({
     [employees],
   );
 
-  const activeUserNames = useMemo(
-    () => users.filter(user => user.status === "active").map(user => user.name),
-    [users],
-  );
-
   const pendingUpgradeCount = useMemo(
     () => employees.filter(employee => VERSION_UPGRADE_MAP[employee.id]).length,
     [employees],
@@ -211,16 +199,19 @@ export const BossDashboardView = ({
     () =>
       EXPERT_TEAMS.map(team => {
         const members = employees.filter(employee => team.memberIds.includes(employee.id));
-        const allowedNames = new Set<string>();
         const workspaceNames = new Set<string>();
+        const accessScopeSummary = buildAccessScopeSummary(
+          normalizeAccessScopeSubjects(
+            members.flatMap(member =>
+              member.visibility === "all"
+                ? [{ subjectId: "company-root", subjectName: "全公司", subjectType: "company" as const }]
+                : member.accessScopeSubjects,
+            ),
+            INITIAL_ORGANIZATION_DEPARTMENTS,
+          ),
+        );
 
         members.forEach(member => {
-          if (member.visibility === "all") {
-            activeUserNames.forEach(name => allowedNames.add(name));
-          } else {
-            member.boundMembers.forEach(name => allowedNames.add(name));
-          }
-
           const workspaceName = workspaces.find(item => item.id === member.workspaceId)?.name;
           if (workspaceName) {
             workspaceNames.add(workspaceName);
@@ -229,14 +220,14 @@ export const BossDashboardView = ({
 
         return {
           activeCount: members.filter(member => isEmployeeActive(member)).length,
-          allowedNames: Array.from(allowedNames),
+          accessScopeSummary,
           memberCount: members.length,
           runtimeLabel: Array.from(workspaceNames).join("、") || "后台统一配置",
           teamPendingUpgradeCount: members.filter(member => VERSION_UPGRADE_MAP[member.id]).length,
           ...team,
         };
       }),
-    [activeUserNames, employees, workspaces],
+    [employees, workspaces],
   );
 
   const summaryItems = useMemo(
@@ -279,18 +270,17 @@ export const BossDashboardView = ({
     <div className={adminStyles.consolePage}>
       <header className={adminStyles.consoleHeader}>
         <div className={adminStyles.consoleHeaderMain}>
-          <p className={styles.dateLine}>{formatDateLine()}</p>
           <h1 className={adminStyles.consoleTitle}>
             {getGreetingLabel()}，{getExecutiveTitle(currentUserName)}
           </h1>
-          <p className={styles.summaryLine}>
+          {/* <p className={styles.summaryLine}>
             企业正式配置已经收口到管理后台。当前共有{" "}
             <span className={styles.highlight}>{activeExpertCount} 个活跃 AI 专家</span>
             ，近一轮累计完成 <span className={styles.highlight}>{completedTaskCount} 条任务</span>
             ，估算节省 <span className={styles.strongText}>{savedHours} 小时</span> 人工处理时间。
-          </p>
+          </p> */}
         </div>
-        <div className={adminStyles.consoleHeaderSide}>
+        {/* <div className={adminStyles.consoleHeaderSide}>
           <span
             className={
               isHealthy
@@ -300,7 +290,7 @@ export const BossDashboardView = ({
           >
             {isHealthy ? "配置状态稳定" : `${riskCount} 项配置待处理`}
           </span>
-        </div>
+        </div> */}
       </header>
 
       <div className={styles.summaryCardGrid}>
@@ -349,7 +339,7 @@ export const BossDashboardView = ({
                     <div className={styles.tableSubText}>{team.description}</div>
                   </td>
                   <td>{team.memberCount} 个</td>
-                  <td>{team.allowedNames.length ? team.allowedNames.join("、") : "暂未分配"}</td>
+                  <td>{team.accessScopeSummary}</td>
                   <td>{team.activeCount} 个</td>
                   <td>{team.teamPendingUpgradeCount} 个</td>
                   <td>{team.runtimeLabel}</td>

@@ -41,11 +41,40 @@ export type EmployeeStatus = "online" | "running" | "exception" | "offline";
 export type ConnectionMode = "cloud" | "local";
 export type EmployeeSource = "coworker" | "openclaw";
 export type EmployeeVisibility = "all" | "bound";
+export type OrganizationSubjectType = "company" | "department" | "user";
 /**
  * AI 专家的配置方式。
  * `device` 表示先绑定设备，再按设备分配可用权限；`permission` 表示直接分配可用权限。
  */
 export type ExpertSetupMode = "device" | "permission";
+
+/**
+ * AI 专家组织范围授权主体。
+ */
+export interface AccessScopeSubject {
+  subjectId: string;
+  subjectName: string;
+  subjectType: OrganizationSubjectType;
+}
+
+/**
+ * 企业组织部门节点。
+ */
+export interface OrganizationDepartmentItem {
+  id: string;
+  name: string;
+  parentId: string | null;
+}
+
+/**
+ * 企业组织树节点。
+ */
+export interface OrganizationTreeNode {
+  children?: OrganizationTreeNode[];
+  id: string;
+  name: string;
+  type: OrganizationSubjectType;
+}
 
 /**
  * 对话消息角色。
@@ -106,6 +135,7 @@ export interface EmployeeItem {
   subAgentModel?: string;
   agentId: string;
   runtimeAgentId: string;
+  accessScopeSubjects: AccessScopeSubject[];
   boundMembers: string[];
   welcomeMessage: string;
   systemPrompt: string;
@@ -448,7 +478,7 @@ export interface AutomationTaskItem {
 /**
  * FrontisAI Web 端用户角色。
  */
-export type FrontisUserRole = "boss" | "admin" | "member";
+export type FrontisUserRole = "enterpriseAdmin" | "departmentLead" | "employee";
 
 /**
  * FrontisAI Web 端用户状态。
@@ -460,6 +490,7 @@ export type FrontisUserStatus = "active" | "disabled";
  */
 export interface FrontisWebUserItem {
   id: string;
+  departmentId: string;
   name: string;
   phone: string;
   role: FrontisUserRole;

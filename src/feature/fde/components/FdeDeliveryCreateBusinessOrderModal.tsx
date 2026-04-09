@@ -14,6 +14,7 @@ import {
   type CreateBusinessOrderFormState,
   formatAmount,
   formatTokenCount,
+  isAgentGroupOrderLineItem,
   isAgentOrderLineItem,
   isDeviceOrderLineItem,
 } from "./fdeDeliveryWorkbenchUtils";
@@ -28,6 +29,7 @@ interface FdeDeliveryCreateBusinessOrderModalProps {
   onSubmit: () => void;
   onUpdateRemark: (value: string) => void;
   onAddDeviceLine: () => void;
+  onOpenExpertGroupModal: () => void;
   onOpenAgentModal: () => void;
   onAddTokensLine: () => void;
   onRemoveLineItem: (lineItemId: string) => void;
@@ -38,6 +40,8 @@ interface FdeDeliveryCreateBusinessOrderModalProps {
   ) => void;
   onUpdateAgentLinePrice: (lineItemId: string, value: number | null) => void;
   onUpdateAgentLineValidity: (lineItemId: string, value: number | null) => void;
+  onUpdateAgentGroupLinePrice: (lineItemId: string, value: number | null) => void;
+  onUpdateAgentGroupLineValidity: (lineItemId: string, value: number | null) => void;
   onUpdateTokensLine: <TKey extends keyof FdeOrderTokensLineItem>(
     lineItemId: string,
     key: TKey,
@@ -57,12 +61,15 @@ export const FdeDeliveryCreateBusinessOrderModal = ({
   onSubmit,
   onUpdateRemark,
   onAddDeviceLine,
+  onOpenExpertGroupModal,
   onOpenAgentModal,
   onAddTokensLine,
   onRemoveLineItem,
   onUpdateDeviceLine,
   onUpdateAgentLinePrice,
   onUpdateAgentLineValidity,
+  onUpdateAgentGroupLinePrice,
+  onUpdateAgentGroupLineValidity,
   onUpdateTokensLine,
 }: FdeDeliveryCreateBusinessOrderModalProps): JSX.Element => (
   <Modal
@@ -96,8 +103,9 @@ export const FdeDeliveryCreateBusinessOrderModal = ({
             <div className={styles.drawerLabel}>商品明细</div>
             <div className={styles.inlineActions}>
               <Button onClick={onAddDeviceLine}>添加设备</Button>
-              <Button onClick={onOpenAgentModal}>从专家广场添加 AI 专家</Button>
-              <Button onClick={onAddTokensLine}>添加 tokens</Button>
+              <Button onClick={onOpenExpertGroupModal}>添加 AI 专家团</Button>
+              <Button onClick={onOpenAgentModal}>直接添加单个 AI 专家</Button>
+              <Button onClick={onAddTokensLine}>添加积分</Button>
             </div>
           </div>
         </div>
@@ -221,11 +229,64 @@ export const FdeDeliveryCreateBusinessOrderModal = ({
                 );
               }
 
+              if (isAgentGroupOrderLineItem(item)) {
+                return (
+                  <div key={item.id} className={styles.lineItemCard}>
+                    <div className={styles.lineItemHeader}>
+                      <div>
+                        <div className={styles.lineItemTitle}>{item.groupName}</div>
+                        <div className={styles.lineItemHint}>
+                          {item.sourceLabel} · {item.agents.length} 个 AI 专家
+                        </div>
+                      </div>
+                      <Button
+                        type="text"
+                        danger
+                        icon={<DeleteOutlined />}
+                        onClick={() => onRemoveLineItem(item.id)}
+                      />
+                    </div>
+                    <div className={styles.lineItemGrid}>
+                      <div className={styles.formField}>
+                        <div className={styles.fieldLabel}>商品单价</div>
+                        <InputNumber
+                          className={styles.fullWidthControl}
+                          min={0}
+                          value={item.unitPrice}
+                          formatter={value => `${value ?? ""}`}
+                          onChange={value => onUpdateAgentGroupLinePrice(item.id, value)}
+                        />
+                      </div>
+                      <div className={styles.formField}>
+                        <div className={styles.fieldLabel}>数量</div>
+                        <div className={styles.amountValue}>1</div>
+                      </div>
+                      <div className={styles.formField}>
+                        <div className={styles.fieldLabel}>有效时长（月）</div>
+                        <InputNumber
+                          className={styles.fullWidthControl}
+                          min={1}
+                          value={item.validityMonths}
+                          onChange={value => onUpdateAgentGroupLineValidity(item.id, value)}
+                        />
+                      </div>
+                      <div className={styles.formField}>
+                        <div className={styles.fieldLabel}>小计</div>
+                        <div className={styles.amountValue}>{formatAmount(item.totalAmount)}</div>
+                      </div>
+                    </div>
+                    <div className={styles.lineItemHint}>
+                      包含：{item.agents.map(agent => agent.name).join("、")}
+                    </div>
+                  </div>
+                );
+              }
+
               return (
                 <div key={item.id} className={styles.lineItemCard}>
                   <div className={styles.lineItemHeader}>
                     <div>
-                      <div className={styles.lineItemTitle}>tokens 资源包</div>
+                      <div className={styles.lineItemTitle}>积分资源包</div>
                       <div className={styles.lineItemHint}>独立记录数量与金额</div>
                     </div>
                     <Button
@@ -237,7 +298,7 @@ export const FdeDeliveryCreateBusinessOrderModal = ({
                   </div>
                   <div className={styles.lineItemGrid}>
                     <div className={styles.formField}>
-                      <div className={styles.fieldLabel}>tokens 数量</div>
+                      <div className={styles.fieldLabel}>积分数量</div>
                       <InputNumber
                         className={styles.fullWidthControl}
                         min={0}
@@ -265,7 +326,7 @@ export const FdeDeliveryCreateBusinessOrderModal = ({
             })}
           </div>
         ) : (
-          <div className={styles.emptyHint}>先添加设备、AI 专家或 tokens 商品。</div>
+          <div className={styles.emptyHint}>先添加设备、AI 专家团、AI 专家或积分商品。</div>
         )}
         <div className={styles.summaryBar}>
           <div className={styles.summaryLabel}>订单总金额</div>

@@ -3,9 +3,12 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import type {
   FdeAddOpportunityCommentPayload,
   FdeCreateOpportunityPayload,
+  FdeOpportunityAssignmentPayload,
   FdeOpportunityItem,
+  FdeTeamGroupItem,
   FdeTeamMemberItem,
 } from "@/feature/fde/types";
+import { buildFdeOpportunitySummary } from "@/feature/fde/utils";
 
 import { buildId, canManageTeamMembers } from "./fdeWorkbenchStateUtils";
 
@@ -14,8 +17,12 @@ import { buildId, canManageTeamMembers } from "./fdeWorkbenchStateUtils";
  */
 export interface UseFdeOpportunityStateParams {
   activeMemberId: string;
+  activeMemberGroupId?: string;
+  activeMemberName: string;
   activeRole: FdeTeamMemberItem["role"];
   initialOpportunities: FdeOpportunityItem[];
+  teamGroups: FdeTeamGroupItem[];
+  teamMembers: FdeTeamMemberItem[];
 }
 
 /**
@@ -26,7 +33,7 @@ export interface UseFdeOpportunityStateResult {
   filteredOpportunities: FdeOpportunityItem[];
   selectedOpportunityId: string;
   setSelectedOpportunityId: (opportunityId: string) => void;
-  assignOpportunity: (opportunityId: string, memberId: string | null) => void;
+  assignOpportunity: (opportunityId: string, payload: FdeOpportunityAssignmentPayload) => void;
   createOpportunity: (payload: FdeCreateOpportunityPayload) => void;
   updateOpportunityStatus: (
     opportunityId: string,
@@ -40,8 +47,12 @@ export interface UseFdeOpportunityStateResult {
  */
 export const useFdeOpportunityState = ({
   activeMemberId,
+  activeMemberGroupId,
+  activeMemberName,
   activeRole,
   initialOpportunities,
+  teamGroups,
+  teamMembers,
 }: UseFdeOpportunityStateParams): UseFdeOpportunityStateResult => {
   const [opportunities, setOpportunities] = useState<FdeOpportunityItem[]>(initialOpportunities);
   const [selectedOpportunityId, setSelectedOpportunityId] = useState<string>(
@@ -54,9 +65,21 @@ export const useFdeOpportunityState = ({
         return opportunities;
       }
 
+      if (activeRole === "groupLeader" && activeMemberGroupId) {
+        const groupMemberIds = new Set(
+          teamMembers.filter(item => item.groupId === activeMemberGroupId).map(item => item.id),
+        );
+
+        return opportunities.filter(
+          item =>
+            item.ownerGroupId === activeMemberGroupId ||
+            (item.ownerId ? groupMemberIds.has(item.ownerId) : false),
+        );
+      }
+
       return opportunities.filter(item => item.ownerId === activeMemberId);
     },
-    [activeMemberId, activeRole, opportunities],
+    [activeMemberGroupId, activeMemberId, activeRole, opportunities, teamMembers],
   );
 
   useEffect(() => {
@@ -72,18 +95,47 @@ export const useFdeOpportunityState = ({
     }
   }, [filteredOpportunities, selectedOpportunityId]);
 
-  const assignOpportunity = useCallback((opportunityId: string, memberId: string | null): void => {
-    setOpportunities(previous =>
-      previous.map(item =>
-        item.id === opportunityId
-          ? {
+  const assignOpportunity = useCallback(
+    (opportunityId: string, payload: FdeOpportunityAssignmentPayload): void => {
+      setOpportunities(previous =>
+        previous.map(item => {
+          if (item.id !== opportunityId) {
+            return item;
+          }
+
+          if (!payload.targetId || !payload.targetType) {
+            return {
               ...item,
-              ownerId: memberId,
-            }
-          : item,
-      ),
-    );
-  }, []);
+              ownerId: null,
+              ownerGroupId: null,
+              ownerGroupName: undefined,
+            };
+          }
+
+          if (payload.targetType === "group") {
+            const targetGroup = teamGroups.find(group => group.id === payload.targetId);
+
+            return {
+              ...item,
+              ownerId: null,
+              ownerGroupId: payload.targetId,
+              ownerGroupName: targetGroup?.name,
+            };
+          }
+
+          const targetMember = teamMembers.find(member => member.id === payload.targetId);
+
+          return {
+            ...item,
+            ownerId: payload.targetId,
+            ownerGroupId: targetMember?.groupId ?? null,
+            ownerGroupName: targetMember?.groupName,
+          };
+        }),
+      );
+    },
+    [teamGroups, teamMembers],
+  );
 
   const createOpportunity = useCallback(
     (payload: FdeCreateOpportunityPayload): void => {
@@ -91,6 +143,24 @@ export const useFdeOpportunityState = ({
       const normalizedInterestedAgents = payload.interestedAgents
         .map(item => item.trim())
         .filter(Boolean);
+      const normalizedRequirementDescription = payload.requirementDescription.trim();
+      const explicitOwnerId = payload.ownerId ?? null;
+      const explicitOwnerMember = explicitOwnerId
+        ? teamMembers.find(item => item.id === explicitOwnerId)
+        : undefined;
+      const resolvedOwnerId = canManageTeamMembers(activeRole)
+        ? explicitOwnerId
+        : activeRole === "groupLeader"
+          ? explicitOwnerId
+          : activeMemberId;
+      const resolvedOwnerGroupId = canManageTeamMembers(activeRole)
+        ? payload.ownerGroupId ?? explicitOwnerMember?.groupId ?? null
+        : activeRole === "groupLeader"
+          ? payload.ownerGroupId ?? explicitOwnerMember?.groupId ?? activeMemberGroupId ?? null
+          : explicitOwnerMember?.groupId ?? activeMemberGroupId ?? null;
+      const resolvedOwnerGroupName = resolvedOwnerGroupId
+        ? teamGroups.find(item => item.id === resolvedOwnerGroupId)?.name
+        : undefined;
       const nextOpportunity: FdeOpportunityItem = {
         id: buildId("opp"),
         companyName: payload.companyName.trim(),
@@ -100,19 +170,19 @@ export const useFdeOpportunityState = ({
         status: "未开始",
         amountWan: payload.amountWan,
         winRate: 35,
-        ownerId: canManageTeamMembers(activeRole)
-          ? payload.ownerId ?? null
-          : activeMemberId,
-        source: "FDE手动创建",
-        summary: payload.requirementSummary.trim(),
+        ownerId: resolvedOwnerId,
+        ownerGroupId: resolvedOwnerGroupId,
+        ownerGroupName: resolvedOwnerGroupName,
+        source: "手动创建",
+        summary: buildFdeOpportunitySummary(normalizedRequirementDescription),
         requirementInfo: {
-          sourceEntryLabel: payload.sourceEntryLabel.trim() || "FDE 手动录入",
-          submittedAt: createdAt,
-          submitterName: payload.submitterName.trim(),
-          submitterPhone: payload.submitterPhone.trim(),
+          sourceType: "手动创建",
+          createdAt,
+          createdByName: activeMemberName,
+          contactName: payload.contactName.trim(),
+          contactPhone: payload.contactPhone.trim(),
           interestedAgents: normalizedInterestedAgents,
-          requirementSummary: payload.requirementSummary.trim(),
-          requirementDetail: payload.requirementDetail.trim(),
+          requirementDescription: normalizedRequirementDescription,
         },
         comments: [],
       };
@@ -120,7 +190,7 @@ export const useFdeOpportunityState = ({
       setOpportunities(previous => [nextOpportunity, ...previous]);
       setSelectedOpportunityId(nextOpportunity.id);
     },
-    [activeMemberId, activeRole],
+    [activeMemberGroupId, activeMemberId, activeMemberName, activeRole, teamGroups, teamMembers],
   );
 
   const updateOpportunityStatus = useCallback(

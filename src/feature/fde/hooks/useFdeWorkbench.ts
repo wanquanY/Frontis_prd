@@ -5,7 +5,7 @@ import {
   FDE_ORDER_ITEMS,
   FDE_OPERATIONS_CUSTOMERS,
   FDE_OPPORTUNITIES,
-  FDE_PRIMARY_LEADER_MEMBER_ID,
+  FDE_TEAM_GROUPS,
   FDE_TEAM_MEMBERS,
   FDE_VERSION_MANAGEMENT_TASKS,
   FDE_WORKBENCH_NAV_GROUPS,
@@ -23,6 +23,7 @@ import type {
   FdeOrderLineItem,
   FdeOperationsCustomerItem,
   FdeRenewAssetPayload,
+  FdeTeamMemberItem,
   FdeVersionManagementTaskItem,
   FdeWorkbenchTabKey,
   UseFdeWorkbenchResult,
@@ -33,9 +34,11 @@ import {
   buildChangeRecordFromOrder,
   buildCustomerAssetSnapshot,
   buildId,
+  canViewFdeDashboard,
   createOrderNo,
   getLineItemValidityMonths,
   hydrateExistingAssets,
+  isAgentGroupLineItem,
   isAgentLineItem,
   isDeviceLineItem,
   resolveDeviceLineTypeFromAsset,
@@ -74,11 +77,12 @@ const buildOrderLinkedDeliveryRecord = (payload: {
 }): FdeDeliveryOrderItem | null => {
   const deviceLineItems = payload.lineItems.filter(isDeviceLineItem);
   const agentLineItems = payload.lineItems.filter(isAgentLineItem);
+  const agentGroupLineItems = payload.lineItems.filter(isAgentGroupLineItem);
   const isRenewalOrder = [...deviceLineItems, ...agentLineItems].some(item =>
     Boolean(item.renewalTargetAssetId),
   );
 
-  if (!deviceLineItems.length && !agentLineItems.length) {
+  if (!deviceLineItems.length && !agentLineItems.length && !agentGroupLineItems.length) {
     return null;
   }
 
@@ -91,9 +95,12 @@ const buildOrderLinkedDeliveryRecord = (payload: {
   const localClientCount = deviceLineItems
     .filter(item => item.deviceType === "本地客户端授权")
     .reduce((total, item) => total + item.quantity, 0);
-  const expertNames = Array.from(new Set(agentLineItems.map(item => item.agentName)));
+  const groupAgentNames = agentGroupLineItems.flatMap(item => item.agents.map(agent => agent.name));
+  const expertNames = Array.from(
+    new Set([...agentLineItems.map(item => item.agentName), ...groupAgentNames]),
+  );
   const hasDevice = deviceLineItems.length > 0;
-  const hasAgent = agentLineItems.length > 0;
+  const hasAgent = agentLineItems.length > 0 || agentGroupLineItems.length > 0;
   const changeType = isRenewalOrder
     ? "资产续费"
     : hasDevice
@@ -120,9 +127,9 @@ const buildOrderLinkedDeliveryRecord = (payload: {
         ? "订单设备续费交付"
         : expertNames.join("、") || "订单AI专家续费交付"
       : hasDevice
-        ? hasAgent
-          ? "订单设备与AI专家交付"
-          : "订单设备交付"
+      ? hasAgent
+        ? "订单设备与AI专家交付"
+        : "订单设备交付"
         : expertNames.join("、") || "订单AI专家交付",
     currentStep: hasDevice ? "deviceConfig" : "agentConfig",
     stepProgress: 0,
@@ -168,19 +175,31 @@ const buildOrderLinkedDeliveryRecord = (payload: {
     handoffItems: isRenewalOrder
       ? ["续费资产已完成交付", "新的有效期已确认", "客户已收到续费说明"]
       : ["订单资源已完成交付", "设备与授权对象已确认", "客户已收到交付说明"],
-    agentGroups: [],
+    agentGroups: agentGroupLineItems.map(item => ({
+      id: item.id,
+      name: item.groupName,
+      description: item.groupDescription,
+      sourceLabel: item.sourceLabel,
+      statusLabel: "待下发",
+      agents: item.agents.map(agent => ({
+        ...agent,
+        statusLabel: "待下发",
+      })),
+    })),
     agentPackages: Array.from(
       new Map(
-        agentLineItems.map(item => [
-          item.agentName,
-          {
-            name: item.agentName,
-            releaseVersion: item.releaseVersion,
-            sourceLabel: item.sourceLabel,
-            statusLabel: "待下发",
-            permissionHint: "待确认授权成员",
-          },
-        ]),
+        agentLineItems
+          .filter(item => !groupAgentNames.includes(item.agentName))
+          .map(item => [
+            item.agentName,
+            {
+              name: item.agentName,
+              releaseVersion: item.releaseVersion,
+              sourceLabel: item.sourceLabel,
+              statusLabel: "待下发",
+              permissionHint: "待确认授权成员",
+            },
+          ]),
       ).values(),
     ),
     adminTodo: isRenewalOrder
@@ -210,6 +229,11 @@ const buildOrderLinkedDeliveryRecord = (payload: {
           ? `${item.agentName} · ${getLineItemValidityMonths(item)} 个月`
           : item.agentName,
       })),
+      ...agentGroupLineItems.map(item => ({
+        id: `${payload.orderId}-${item.id}`,
+        label: "新增 AI 专家",
+        afterValue: item.agents.map(agent => agent.name).join("、"),
+      })),
     ],
     quotaAdjustments: isRenewalOrder
       ? []
@@ -237,10 +261,23 @@ const buildOrderLinkedDeliveryRecord = (payload: {
       ? []
       : Array.from(
           new Map(
-            agentLineItems.map(item => [
-              item.agentName,
-              {
+            [
+              ...agentLineItems.map(item => ({
                 name: item.agentName,
+                releaseVersion: item.releaseVersion,
+                sourceLabel: item.sourceLabel,
+              })),
+              ...agentGroupLineItems.flatMap(item =>
+                item.agents.map(agent => ({
+                  name: agent.name,
+                  releaseVersion: agent.releaseVersion,
+                  sourceLabel: agent.sourceLabel,
+                })),
+              ),
+            ].map(item => [
+              item.name,
+              {
+                name: item.name,
                 runningHours: 0,
                 completedTasks: 0,
                 currentVersion: item.releaseVersion,
@@ -261,8 +298,10 @@ const buildOrderLinkedDeliveryRecord = (payload: {
  * FDE 工作台本地状态与交互逻辑。
  */
 export const useFdeWorkbench = (currentUserId?: string): UseFdeWorkbenchResult => {
+  const initialActiveRole =
+    FDE_TEAM_MEMBERS.find(item => item.id === currentUserId)?.role ?? FDE_TEAM_MEMBERS[0]?.role;
   const [activeTab, setActiveTab] = useState<FdeWorkbenchTabKey>(
-    currentUserId === FDE_PRIMARY_LEADER_MEMBER_ID ? "dashboard" : "delivery",
+    initialActiveRole && canViewFdeDashboard(initialActiveRole) ? "dashboard" : "delivery",
   );
   const previousUserIdRef = useRef<string | undefined>(currentUserId);
   const [orders, setOrders] = useState<FdeOrderItem[]>(INITIAL_FDE_SYNCED_STATE.orders);
@@ -304,6 +343,17 @@ export const useFdeWorkbench = (currentUserId?: string): UseFdeWorkbenchResult =
     currentUserId,
     initialTeamMembers: FDE_TEAM_MEMBERS,
   });
+  const visibleTeamMembers = useMemo<FdeTeamMemberItem[]>(() => {
+    if (canManageMembers) {
+      return teamMembers;
+    }
+
+    if (activeRole === "groupLeader" && activeMember.groupId) {
+      return teamMembers.filter(item => item.groupId === activeMember.groupId);
+    }
+
+    return teamMembers.filter(item => item.id === activeMember.id);
+  }, [activeMember.groupId, activeMember.id, activeRole, canManageMembers, teamMembers]);
 
   useEffect(() => {
     ordersRef.current = orders;
@@ -317,7 +367,7 @@ export const useFdeWorkbench = (currentUserId?: string): UseFdeWorkbenchResult =
     operationsCustomersRef.current = operationsCustomers;
   }, [operationsCustomers]);
 
-  const shouldShowLeaderDashboard = activeRole === "leader";
+  const shouldShowLeaderDashboard = canViewFdeDashboard(activeRole);
   const {
     opportunities,
     filteredOpportunities,
@@ -329,42 +379,42 @@ export const useFdeWorkbench = (currentUserId?: string): UseFdeWorkbenchResult =
     addOpportunityComment,
   } = useFdeOpportunityState({
     activeMemberId: activeMember.id,
+    activeMemberGroupId: activeMember.groupId,
+    activeMemberName: activeMember.name,
     activeRole,
     initialOpportunities: FDE_OPPORTUNITIES,
+    teamGroups: FDE_TEAM_GROUPS,
+    teamMembers,
   });
   const tabs = useMemo(() => {
     if (canManageMembers) {
-      return shouldShowLeaderDashboard
-        ? FDE_WORKBENCH_TABS
-        : FDE_WORKBENCH_TABS.filter(item => item.key !== "dashboard");
+      return FDE_WORKBENCH_TABS;
     }
 
     const visibleKeys = new Set<string>([
       ...activeMember.permissionKeys,
       ...FDE_DEVELOPMENT_VISIBLE_KEYS,
     ]);
+
+    if (shouldShowLeaderDashboard) {
+      visibleKeys.add("dashboard");
+    }
+
     return FDE_WORKBENCH_TABS.filter(item => visibleKeys.has(item.key));
   }, [activeMember.permissionKeys, canManageMembers, shouldShowLeaderDashboard]);
   const navGroups = useMemo(() => {
     if (canManageMembers) {
-      return shouldShowLeaderDashboard
-        ? FDE_WORKBENCH_NAV_GROUPS
-        : FDE_WORKBENCH_NAV_GROUPS.map(group => ({
-            ...group,
-            items: group.items.filter(item => item.key !== "dashboard"),
-            subGroups: group.subGroups
-              ?.map(sub => ({
-                ...sub,
-                items: sub.items.filter(item => item.key !== "dashboard"),
-              }))
-              .filter(sub => sub.items.length),
-          })).filter(group => group.items.length || group.subGroups?.length);
+      return FDE_WORKBENCH_NAV_GROUPS;
     }
 
     const visibleKeys = new Set<string>([
       ...activeMember.permissionKeys,
       ...FDE_DEVELOPMENT_VISIBLE_KEYS,
     ]);
+
+    if (shouldShowLeaderDashboard) {
+      visibleKeys.add("dashboard");
+    }
 
     return FDE_WORKBENCH_NAV_GROUPS.map(group => ({
       ...group,
@@ -384,8 +434,8 @@ export const useFdeWorkbench = (currentUserId?: string): UseFdeWorkbenchResult =
     }
 
     previousUserIdRef.current = currentUserId;
-    setActiveTab(currentUserId === FDE_PRIMARY_LEADER_MEMBER_ID ? "dashboard" : "delivery");
-  }, [currentUserId]);
+    setActiveTab(canViewFdeDashboard(activeRole) ? "dashboard" : "delivery");
+  }, [activeRole, currentUserId]);
 
   useEffect(() => {
     if (tabs.length && !tabs.some(item => item.key === activeTab)) {
@@ -399,9 +449,17 @@ export const useFdeWorkbench = (currentUserId?: string): UseFdeWorkbenchResult =
         return items;
       }
 
+      if (activeRole === "groupLeader" && activeMember.groupId) {
+        const groupMemberIds = new Set(
+          teamMembers.filter(item => item.groupId === activeMember.groupId).map(item => item.id),
+        );
+
+        return items.filter(item => groupMemberIds.has(item.assignedToId));
+      }
+
       return items.filter(item => item.assignedToId === activeMember.id);
     },
-    [activeMember.id, canManageMembers],
+    [activeMember.groupId, activeMember.id, activeRole, canManageMembers, teamMembers],
   );
 
   const filteredOrders = useMemo<FdeOrderItem[]>(
@@ -464,41 +522,33 @@ export const useFdeWorkbench = (currentUserId?: string): UseFdeWorkbenchResult =
           const previousOrder = previousOrders.find(item => item.id === order.id);
           const hasJustCompleted =
             previousOrder?.deliveryStatus !== "已交付" && order.deliveryStatus === "已交付";
-          let updatedCustomer = currentCustomer;
-          const existingRecord = currentCustomer.changeRecords.find(item => item.id === order.id);
-
-          if (hasJustCompleted) {
-            const completedChangeCount = currentCustomer.changeRecords.filter(
-              item => item.statusLabel === "已完成",
-            ).length;
-            const nextAssetQuotas = updateQuotaItems(currentCustomer.assetQuotas, order);
-            const nextDeviceCount =
-              currentCustomer.devices.length + (order.deviceAdditions?.length ?? 0);
-            const nextAgentCount =
-              currentCustomer.agents.length + (order.agentAdditions?.length ?? 0);
-
-            updatedCustomer = {
-              ...currentCustomer,
-              assetQuotas: nextAssetQuotas,
-              activeExperts: nextAgentCount,
-              onlineExperts: nextAgentCount,
-              deviceSummary: `${nextDeviceCount} 台设备运行中`,
-              assetValueSummary: `累计下发 ${nextAgentCount} 个 Agent / 已完成 ${completedChangeCount + 1} 次变更`,
-            };
+          if (!hasJustCompleted) {
+            return currentCustomer;
           }
 
-          const beforeSnapshot =
-            previousOrder?.deliveryStatus === "已交付"
-              ? (existingRecord?.beforeSnapshot ?? buildCustomerAssetSnapshot(currentCustomer))
-              : buildCustomerAssetSnapshot(currentCustomer);
-          const afterSnapshot = hasJustCompleted
-            ? buildCustomerAssetSnapshot(updatedCustomer)
-            : (existingRecord?.afterSnapshot ?? []);
+          const completedAt = new Date().toLocaleString("zh-CN", { hour12: false });
+          const existingRecord = currentCustomer.changeRecords.find(item => item.id === order.id);
+          const completedChangeCount = currentCustomer.changeRecords.length;
+          const beforeSnapshot = existingRecord?.beforeSnapshot ?? buildCustomerAssetSnapshot(currentCustomer);
+          const nextAssetQuotas = updateQuotaItems(currentCustomer.assetQuotas, order);
+          const nextDeviceCount =
+            currentCustomer.devices.length + (order.deviceAdditions?.length ?? 0);
+          const nextAgentCount =
+            currentCustomer.agents.length + (order.agentAdditions?.length ?? 0);
+          const updatedCustomer = {
+            ...currentCustomer,
+            assetQuotas: nextAssetQuotas,
+            activeExperts: nextAgentCount,
+            onlineExperts: nextAgentCount,
+            deviceSummary: `${nextDeviceCount} 台设备运行中`,
+            assetValueSummary: `累计下发 ${nextAgentCount} 个 Agent / 已完成 ${completedChangeCount + 1} 次变更`,
+          };
+          const afterSnapshot = buildCustomerAssetSnapshot(updatedCustomer);
           const nextRecord = buildChangeRecordFromOrder(
             order,
             beforeSnapshot,
             afterSnapshot,
-            hasJustCompleted ? undefined : existingRecord?.completedAt,
+            completedAt,
           );
 
           return {
@@ -736,19 +786,7 @@ export const useFdeWorkbench = (currentUserId?: string): UseFdeWorkbenchResult =
             };
 
       const nextDeliveryOrders = [nextOrder, ...deliveryOrdersRef.current];
-      const nextOperationsCustomers = operationsCustomersRef.current.map(customer => {
-        if (customer.id !== payload.customerId) {
-          return customer;
-        }
-
-        const snapshot = buildCustomerAssetSnapshot(customer);
-        const nextRecord = buildChangeRecordFromOrder(nextOrder, snapshot, []);
-
-        return {
-          ...customer,
-          changeRecords: [nextRecord, ...customer.changeRecords],
-        };
-      });
+      const nextOperationsCustomers = operationsCustomersRef.current;
 
       deliveryOrdersRef.current = nextDeliveryOrders;
       operationsCustomersRef.current = nextOperationsCustomers;
@@ -774,6 +812,15 @@ export const useFdeWorkbench = (currentUserId?: string): UseFdeWorkbenchResult =
         }
 
         if (isAgentLineItem(item)) {
+          return {
+            ...item,
+            quantity: 1,
+            validityMonths: getLineItemValidityMonths(item),
+            totalAmount: item.unitPrice,
+          };
+        }
+
+        if (isAgentGroupLineItem(item)) {
           return {
             ...item,
             quantity: 1,
@@ -833,21 +880,6 @@ export const useFdeWorkbench = (currentUserId?: string): UseFdeWorkbenchResult =
 
       if (linkedDeliveryOrder) {
         nextDeliveryOrders = [linkedDeliveryOrder, ...deliveryOrdersRef.current];
-        if (linkedCustomerId) {
-          nextOperationsCustomers = operationsCustomersRef.current.map(customer => {
-            if (customer.id !== linkedCustomerId) {
-              return customer;
-            }
-
-            const snapshot = buildCustomerAssetSnapshot(customer);
-            const nextRecord = buildChangeRecordFromOrder(linkedDeliveryOrder, snapshot, []);
-
-            return {
-              ...customer,
-              changeRecords: [nextRecord, ...customer.changeRecords],
-            };
-          });
-        }
       }
 
       const nextOrder: FdeOrderItem = {
@@ -997,21 +1029,6 @@ export const useFdeWorkbench = (currentUserId?: string): UseFdeWorkbenchResult =
       const nextDeliveryOrders = linkedDeliveryOrder
         ? [linkedDeliveryOrder, ...deliveryOrdersRef.current]
         : deliveryOrdersRef.current;
-      const nextOperationsCustomersWithChanges = linkedDeliveryOrder
-        ? nextOperationsCustomers.map(customer => {
-            if (customer.id !== payload.customerId) {
-              return customer;
-            }
-
-            const snapshot = buildCustomerAssetSnapshot(customer);
-            const nextRecord = buildChangeRecordFromOrder(linkedDeliveryOrder, snapshot, []);
-
-            return {
-              ...customer,
-              changeRecords: [nextRecord, ...customer.changeRecords],
-            };
-          })
-        : nextOperationsCustomers;
       const nextOrder: FdeOrderItem = {
         id: nextOrderId,
         orderNo: createOrderNo(),
@@ -1031,7 +1048,7 @@ export const useFdeWorkbench = (currentUserId?: string): UseFdeWorkbenchResult =
       const syncedOrderState = syncOrdersWithDeliveryState(
         [nextOrder, ...ordersRef.current],
         nextDeliveryOrders,
-        nextOperationsCustomersWithChanges,
+        nextOperationsCustomers,
         teamMembers,
         activeMember.name,
       );
@@ -1094,6 +1111,8 @@ export const useFdeWorkbench = (currentUserId?: string): UseFdeWorkbenchResult =
     updateTeamMember,
     tabs,
     navGroups,
+    teamGroups: FDE_TEAM_GROUPS,
     teamMembers,
+    visibleTeamMembers,
   };
 };

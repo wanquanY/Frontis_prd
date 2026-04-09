@@ -127,16 +127,16 @@ export const createInitialBusinessOrderForm = (): CreateBusinessOrderFormState =
 export const formatAmount = (value: number): string => `¥ ${value.toLocaleString("zh-CN")}`;
 
 /**
- * 格式化 tokens 数量。
+ * 格式化积分数量。
  */
 export const formatTokenCount = (value: number): string => {
   if (value >= 10000) {
     const normalizedValue = value / 10000;
 
-    return `${Number.isInteger(normalizedValue) ? normalizedValue.toFixed(0) : normalizedValue.toFixed(1)} 万 tokens`;
+    return `${Number.isInteger(normalizedValue) ? normalizedValue.toFixed(0) : normalizedValue.toFixed(1)} 万积分`;
   }
 
-  return `${value.toLocaleString("zh-CN")} tokens`;
+  return `${value.toLocaleString("zh-CN")} 积分`;
 };
 
 /**
@@ -356,6 +356,13 @@ export const isAgentOrderLineItem = (
 ): item is Extract<FdeOrderLineItem, { kind: "agent" }> => item.kind === "agent";
 
 /**
+ * 判断订单行是否为 AI 专家团商品。
+ */
+export const isAgentGroupOrderLineItem = (
+  item: FdeOrderLineItem,
+): item is Extract<FdeOrderLineItem, { kind: "agentGroup" }> => item.kind === "agentGroup";
+
+/**
  * 判断订单行是否为设备商品。
  */
 export const isDeviceOrderLineItem = (
@@ -402,12 +409,14 @@ export const shouldAllowSkipStep = (
 export const getOrderSummaryLabel = (order: FdeOrderItem): string => {
   const deviceCount = order.lineItems.filter(isDeviceOrderLineItem).length;
   const agentCount = order.lineItems.filter(isAgentOrderLineItem).length;
+  const agentGroupCount = order.lineItems.filter(isAgentGroupOrderLineItem).length;
   const tokenCount = order.lineItems.filter(isTokensOrderLineItem).length;
 
   return [
     deviceCount ? `设备 ${deviceCount} 项` : "",
     agentCount ? `AI 专家 ${agentCount} 项` : "",
-    tokenCount ? `tokens ${tokenCount} 项` : "",
+    agentGroupCount ? `AI 专家团 ${agentGroupCount} 项` : "",
+    tokenCount ? `积分 ${tokenCount} 项` : "",
   ]
     .filter(Boolean)
     .join(" / ");
@@ -417,7 +426,12 @@ export const getOrderSummaryLabel = (order: FdeOrderItem): string => {
  * 判断订单是否需要进入交付流程。
  */
 export const isDeliverableOrder = (order: FdeOrderItem): boolean =>
-  order.lineItems.some(item => isDeviceOrderLineItem(item) || isAgentOrderLineItem(item));
+  order.lineItems.some(
+    item =>
+      isDeviceOrderLineItem(item) ||
+      isAgentOrderLineItem(item) ||
+      isAgentGroupOrderLineItem(item),
+  );
 
 /**
  * 根据订单查找对应的交付单。

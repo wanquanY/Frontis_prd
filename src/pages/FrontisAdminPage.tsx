@@ -1,8 +1,7 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import classNames from "classnames";
 import {
-  ApartmentOutlined,
   ArrowLeftOutlined,
   CloudServerOutlined,
   ControlOutlined,
@@ -14,20 +13,19 @@ import {
 } from "@ant-design/icons";
 import type { MenuProps } from "antd";
 import { Avatar, Dropdown, message } from "antd";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 
 import { useMockAuth } from "@/feature/auth/hooks/useMockAuth";
 import {
   INITIAL_DIALOGUE_SESSIONS,
   INITIAL_EMPLOYEES,
   INITIAL_FRONTIS_WEB_USERS,
+  INITIAL_ORGANIZATION_DEPARTMENTS,
   INITIAL_WORKSPACES,
 } from "@/mocks/mockData";
 
 import { BossDashboardView } from "./components/BossDashboardView";
-import { AdminNotificationPopover } from "./components/AdminNotificationPopover";
 import { DeviceManagementView } from "./components/DeviceManagementView";
-import { OrganizationManagementView } from "./components/OrganizationManagementView";
 import { AgentStoreView } from "./components/agentStore/AgentStoreView";
 import type { ExpertDeploymentState } from "./components/agentStore/types";
 import {
@@ -37,6 +35,7 @@ import {
 } from "./components/agentStore/utils";
 import { ModelConfigurationView } from "./components/ModelConfigurationView";
 import type {
+  AccessScopeSubject,
   EmployeeItem,
   FrontisUserRole,
   FrontisUserStatus,
@@ -47,7 +46,7 @@ import type {
 } from "./types";
 import styles from "./FrontisPage.module.less";
 
-const MANAGEMENT_USER_ROLES = new Set<FrontisUserRole>(["boss", "admin"]);
+const MANAGEMENT_USER_ROLES = new Set<FrontisUserRole>(["enterpriseAdmin"]);
 const INITIAL_DEVICE_OWNERS: Record<string, string | null> = {
   "workspace-cloud": null,
   "workspace-local": null,
@@ -82,21 +81,27 @@ const FRONTIS_ADMIN_TABS: FrontisWebTabItem[] = [
     icon: <ControlOutlined />,
     roles: ["admin"],
   },
-  {
-    key: "organization",
-    label: "人员管理",
-    icon: <ApartmentOutlined />,
-    roles: ["admin"],
-  },
 ];
+
+const FRONTIS_ADMIN_TAB_KEYS = new Set<FrontisWebTabKey>(
+  FRONTIS_ADMIN_TABS.map(item => item.key),
+);
+
+const resolveFrontisAdminTabKey = (tabKey: string | null): FrontisWebTabKey =>
+  tabKey && FRONTIS_ADMIN_TAB_KEYS.has(tabKey as FrontisWebTabKey)
+    ? (tabKey as FrontisWebTabKey)
+    : "dashboard";
 
 /**
  * 老板后台管理页面。
  */
 const FrontisAdminPage = (): JSX.Element => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { logout, session } = useMockAuth();
-  const [activeTabKey, setActiveTabKey] = useState<FrontisWebTabKey>("dashboard");
+  const [activeTabKey, setActiveTabKey] = useState<FrontisWebTabKey>(() =>
+    resolveFrontisAdminTabKey(searchParams.get("tab")),
+  );
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(false);
   const [employees, setEmployees] = useState<EmployeeItem[]>(INITIAL_EMPLOYEES);
   const [users, setUsers] = useState<FrontisWebUserItem[]>(INITIAL_FRONTIS_WEB_USERS);
@@ -113,7 +118,14 @@ const FrontisAdminPage = (): JSX.Element => {
         ...user,
         assignedAgentIds: employees
           .filter(employee =>
-            hasUserAccessToExpert(user, employee, deploymentByEmployeeId[employee.id], deviceOwners),
+            hasUserAccessToExpert(
+              user,
+              employee,
+              deploymentByEmployeeId[employee.id],
+              deviceOwners,
+              users,
+              INITIAL_ORGANIZATION_DEPARTMENTS,
+            ),
           )
           .map(employee => employee.id),
       })),
@@ -128,6 +140,14 @@ const FrontisAdminPage = (): JSX.Element => {
       null,
     [effectiveUsers, session?.userId],
   );
+
+  useEffect(() => {
+    const nextTabKey = resolveFrontisAdminTabKey(searchParams.get("tab"));
+
+    if (nextTabKey !== activeTabKey) {
+      setActiveTabKey(nextTabKey);
+    }
+  }, [activeTabKey, searchParams]);
 
   const handleAttachEmployeeToDevice = useCallback(
     (employeeId: string, workspaceId: string): void => {
@@ -148,9 +168,9 @@ const FrontisAdminPage = (): JSX.Element => {
             accessByWorkspaceId: {
               ...currentState.accessByWorkspaceId,
               [workspaceId]: {
-                boundMembers: doesExpertRequireDeviceBinding(employee)
+                accessScopeSubjects: doesExpertRequireDeviceBinding(employee)
                   ? []
-                  : [...employee.boundMembers],
+                  : [...employee.accessScopeSubjects],
                 visibility: doesExpertRequireDeviceBinding(employee)
                   ? "bound"
                   : employee.visibility,
@@ -189,7 +209,7 @@ const FrontisAdminPage = (): JSX.Element => {
       employeeId: string,
       workspaceId: string,
       visibility: EmployeeItem["visibility"],
-      boundMembers: string[],
+      accessScopeSubjects: AccessScopeSubject[],
     ): void => {
       const employee = employees.find(item => item.id === employeeId);
 
@@ -203,7 +223,7 @@ const FrontisAdminPage = (): JSX.Element => {
             item.id === employeeId
               ? {
                   ...item,
-                  boundMembers,
+                  accessScopeSubjects,
                   visibility,
                 }
               : item,
@@ -224,7 +244,7 @@ const FrontisAdminPage = (): JSX.Element => {
             accessByWorkspaceId: {
               ...currentState.accessByWorkspaceId,
               [workspaceId]: {
-                boundMembers,
+                accessScopeSubjects,
                 visibility,
               },
             },
@@ -234,23 +254,6 @@ const FrontisAdminPage = (): JSX.Element => {
           },
         };
       });
-
-      if (doesExpertRequireDeviceBinding(employee)) {
-        return;
-      }
-
-      setEmployees(prev =>
-        prev.map(item =>
-          item.id === employeeId
-            ? {
-                ...item,
-                boundMembers,
-                visibility,
-                workspaceId: workspaceId || item.workspaceId,
-              }
-            : item,
-        ),
-      );
     },
     [employees],
   );
@@ -291,7 +294,7 @@ const FrontisAdminPage = (): JSX.Element => {
             ? {
                 ...item,
                 assignedAgentIds:
-                  updates.role === "member"
+                  updates.role !== "enterpriseAdmin"
                     ? item.assignedAgentIds
                     : employees.map(employee => employee.id),
                 name: updates.name,
@@ -431,8 +434,11 @@ const FrontisAdminPage = (): JSX.Element => {
   const handleSelectTab = useCallback(
     (tabKey: FrontisWebTabKey): void => {
       setActiveTabKey(tabKey);
+      const nextParams = new URLSearchParams(searchParams);
+      nextParams.set("tab", tabKey);
+      setSearchParams(nextParams);
     },
-    [],
+    [searchParams, setSearchParams],
   );
 
   const handleBackToWorkspace = useCallback((): void => {
@@ -465,7 +471,7 @@ const FrontisAdminPage = (): JSX.Element => {
           deploymentByEmployeeId={deploymentByEmployeeId}
           deviceOwners={deviceOwners}
           employees={employees}
-          memberNames={effectiveUsers.filter(item => item.status === "active").map(item => item.name)}
+          organizationDepartments={INITIAL_ORGANIZATION_DEPARTMENTS}
           onAttachEmployeeToDevice={handleAttachEmployeeToDevice}
           onDetachEmployeeFromDevice={handleDetachEmployeeFromDevice}
           onNavigateToTab={handleSelectTab}
@@ -483,6 +489,7 @@ const FrontisAdminPage = (): JSX.Element => {
           deploymentByEmployeeId={deploymentByEmployeeId}
           deviceOwners={deviceOwners}
           employees={employees}
+          organizationDepartments={INITIAL_ORGANIZATION_DEPARTMENTS}
           onAddWorkspace={handleAddWorkspace}
           onAssignDeviceOwner={handleAssignDeviceOwner}
           onRemoveWorkspace={handleRemoveWorkspace}
@@ -498,19 +505,6 @@ const FrontisAdminPage = (): JSX.Element => {
           employees={employees}
           onApplyGlobalModel={handleApplyGlobalModel}
           onUpdateEmployeeModel={handleUpdateEmployeeModel}
-        />
-      );
-    }
-
-    if (activeTabKey === "organization") {
-      return (
-        <OrganizationManagementView
-          employees={employees}
-          onAddUsers={handleAddUsers}
-          onRemoveUser={handleRemoveUser}
-          onUpdateUser={handleUpdateUser}
-          onUpdateUserStatus={handleUpdateUserStatus}
-          users={effectiveUsers}
         />
       );
     }
@@ -604,7 +598,6 @@ const FrontisAdminPage = (): JSX.Element => {
               [styles.adminSidebarFooterCollapsed]: isSidebarCollapsed,
             })}
           >
-            <AdminNotificationPopover onNavigateToTab={handleSelectTab} />
             <Dropdown
               menu={{ items: accountMenuItems }}
               placement={isSidebarCollapsed ? "topRight" : "topLeft"}

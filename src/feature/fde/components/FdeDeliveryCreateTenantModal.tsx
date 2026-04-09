@@ -63,7 +63,7 @@ export const FdeDeliveryCreateTenantModal = ({
             onChange={value => onChange("tenantSeatCount", value)}
           />
         </div>
-        <div className={styles.drawerField}>
+        {/* <div className={styles.drawerField}>
           <div className={styles.drawerLabel}>交付时间</div>
           <DatePicker
             showTime
@@ -73,7 +73,7 @@ export const FdeDeliveryCreateTenantModal = ({
             placeholder="请选择交付时间"
             onChange={value => onChange("launchTargetDate", value)}
           />
-        </div>
+        </div> */}
         <div className={styles.drawerField}>
           <div className={styles.drawerLabel}>交付备注</div>
           <Input.TextArea

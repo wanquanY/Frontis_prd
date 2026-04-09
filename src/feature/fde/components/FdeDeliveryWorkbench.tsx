@@ -12,6 +12,7 @@ import type {
   FdeDeliveryAgentPackageItem,
   FdeDeliveryOrderItem,
   FdeDeliveryStepKey,
+  FdeOrderAgentGroupLineItem,
   FdeOrderAgentLineItem,
   FdeOrderDeviceLineItem,
   FdeOrderDeviceType,
@@ -55,6 +56,7 @@ import {
   getTenantStatusLabel,
   getVisibleDeliverySteps,
   hasPendingDevicePrefill,
+  isAgentGroupOrderLineItem,
   isAgentOrderLineItem,
   isDeliveryItemDelivered,
   isDeviceOrderLineItem,
@@ -198,6 +200,28 @@ const createBusinessAgentLineItem = (agent: FdeAgentCatalogItem): FdeOrderAgentL
   totalAmount: 0,
 });
 
+const createBusinessAgentGroupLineItem = (
+  form: ExpertGroupFormState,
+  agents: FdeAgentCatalogItem[],
+): FdeOrderAgentGroupLineItem => ({
+  id: createBusinessOrderLineId("agent-group"),
+  kind: "agentGroup",
+  groupName: form.name.trim(),
+  groupDescription: form.description.trim(),
+  sourceLabel: "FDE 组合交付",
+  agents: agents.map(agent => ({
+    name: agent.name,
+    releaseVersion: agent.releaseVersion,
+    sourceLabel: agent.sourceLabel,
+    statusLabel: "待下发",
+    permissionHint: agent.permissionHint,
+  })),
+  quantity: 1,
+  validityMonths: 12,
+  unitPrice: 0,
+  totalAmount: 0,
+});
+
 const appendUniqueStepKeys = (
   currentStepKeys: FdeDeliveryStepKey[] | undefined,
   nextStepKey: FdeDeliveryStepKey,
@@ -237,7 +261,13 @@ export const FdeDeliveryWorkbench = ({
   const [isCreateDrawerOpen, setIsCreateDrawerOpen] = useState<boolean>(false);
   const [isCreateBusinessOrderModalOpen, setIsCreateBusinessOrderModalOpen] =
     useState<boolean>(false);
+  const [isBusinessExpertGroupModalOpen, setIsBusinessExpertGroupModalOpen] =
+    useState<boolean>(false);
   const [isBusinessAgentModalOpen, setIsBusinessAgentModalOpen] = useState<boolean>(false);
+  const [businessAgentSelectMode, setBusinessAgentSelectMode] = useState<AgentSelectMode>("single");
+  const [businessSelectedAgentIds, setBusinessSelectedAgentIds] = useState<string[]>([]);
+  const [businessExpertGroupForm, setBusinessExpertGroupForm] =
+    useState<ExpertGroupFormState>(createInitialExpertGroupForm());
   const [isDeviceModalOpen, setIsDeviceModalOpen] = useState<boolean>(false);
   const [isExpertGroupModalOpen, setIsExpertGroupModalOpen] = useState<boolean>(false);
   const [isAgentModalOpen, setIsAgentModalOpen] = useState<boolean>(false);
@@ -398,8 +428,13 @@ export const FdeDeliveryWorkbench = ({
       const normalizedKeyword = searchKeyword.trim().toLowerCase();
 
       return tenantListItems.filter(item => {
+        const relatedOrders = orderItems.filter(order => order.tenantId === item.id);
+        const relatedDeliveryOrders = relatedOrders
+          .map(order => getLinkedDeliveryOrder(order, orders))
+          .filter((order): order is FdeDeliveryOrderItem => Boolean(order));
         const matchesStatus =
-          deliveryStatusFilter === "all" || item.deliveryStatus === deliveryStatusFilter;
+          deliveryStatusFilter === "all" ||
+          relatedDeliveryOrders.some(order => order.deliveryStatus === deliveryStatusFilter);
 
         if (!matchesStatus) {
           return false;
@@ -409,19 +444,52 @@ export const FdeDeliveryWorkbench = ({
           return true;
         }
 
-        const searchSource = [
-          item.tenantName || item.customerName,
-          item.tenantCode,
-          item.scenarioName,
-        ]
+        const searchSource = [item.tenantName || item.customerName, item.tenantCode]
           .join(" ")
           .toLowerCase();
 
         return searchSource.includes(normalizedKeyword);
       });
     },
-    [deliveryStatusFilter, searchKeyword, tenantListItems],
+    [deliveryStatusFilter, orderItems, orders, searchKeyword, tenantListItems],
   );
+  const tenantSummaryMap = useMemo<
+    Record<
+      string,
+      {
+        deliveredOrders: number;
+        latestUpdatedAt: string;
+        pendingOrders: number;
+        processingOrders: number;
+        totalOrders: number;
+      }
+    >
+  >(() => {
+    return tenantListItems.reduce<Record<string, {
+      deliveredOrders: number;
+      latestUpdatedAt: string;
+      pendingOrders: number;
+      processingOrders: number;
+      totalOrders: number;
+    }>>((accumulator, item) => {
+      const relatedOrders = orderItems.filter(order => order.tenantId === item.id);
+      const relatedDeliveryOrders = relatedOrders
+        .map(order => getLinkedDeliveryOrder(order, orders))
+        .filter((order): order is FdeDeliveryOrderItem => Boolean(order));
+      const latestUpdatedAt = [...relatedOrders.map(order => order.createdAt), item.createdAt]
+        .sort((left, right) => right.localeCompare(left))[0];
+
+      accumulator[item.id] = {
+        deliveredOrders: relatedDeliveryOrders.filter(order => order.deliveryStatus === "已交付").length,
+        latestUpdatedAt,
+        pendingOrders: relatedDeliveryOrders.filter(order => order.deliveryStatus === "待配置").length,
+        processingOrders: relatedDeliveryOrders.filter(order => order.deliveryStatus === "配置中").length,
+        totalOrders: relatedOrders.length,
+      };
+
+      return accumulator;
+    }, {});
+  }, [orderItems, orders, tenantListItems]);
   const selectedPreviewOrder = useMemo<FdeOrderItem | null>(
     () => orderItems.find(item => item.id === previewOrderId) ?? null,
     [orderItems, previewOrderId],
@@ -447,7 +515,7 @@ export const FdeDeliveryWorkbench = ({
   }, [selectedTenantOrder, viewMode]);
 
   useEffect(() => {
-    if (!activeBusinessOrder) {
+    if (!activeBusinessOrder?.id) {
       return;
     }
 
@@ -491,8 +559,14 @@ export const FdeDeliveryWorkbench = ({
   }, [agentSceneCategories, agentSceneCategory]);
 
   const handleOpenAdmin = useCallback((): void => {
-    window.open("/web/admin", "_blank", "noopener,noreferrer");
-  }, []);
+    const adminTab =
+      selectedDeliveryOrder &&
+      ((selectedDeliveryOrder.agentGroups?.length ?? 0) > 0 ||
+        (selectedDeliveryOrder.agentPackages?.length ?? 0) > 0)
+        ? "store"
+        : "devices";
+    window.open(`/web/admin?tab=${adminTab}`, "_blank", "noopener,noreferrer");
+  }, [selectedDeliveryOrder]);
 
   const commitOrders = useCallback(
     (updater: DeliveryOrdersUpdater): FdeDeliveryOrderItem[] => {
@@ -533,12 +607,19 @@ export const FdeDeliveryWorkbench = ({
     }
 
     setCreateBusinessOrderForm(createInitialBusinessOrderForm());
+    setBusinessExpertGroupForm(createInitialExpertGroupForm());
+    setBusinessSelectedAgentIds([]);
+    setBusinessAgentSelectMode("single");
     setIsCreateBusinessOrderModalOpen(true);
   }, [selectedTenantOrder]);
 
   const handleCloseCreateBusinessOrderModal = useCallback((): void => {
     setIsCreateBusinessOrderModalOpen(false);
+    setIsBusinessExpertGroupModalOpen(false);
     setIsBusinessAgentModalOpen(false);
+    setBusinessAgentSelectMode("single");
+    setBusinessSelectedAgentIds([]);
+    setBusinessExpertGroupForm(createInitialExpertGroupForm());
     setCreateBusinessOrderForm(createInitialBusinessOrderForm());
   }, []);
 
@@ -571,14 +652,64 @@ export const FdeDeliveryWorkbench = ({
     }));
   }, []);
 
-  const handleOpenBusinessAgentModal = useCallback((): void => {
+  const handleOpenBusinessAgentModal = useCallback((mode: AgentSelectMode = "single"): void => {
+    setBusinessAgentSelectMode(mode);
     setAgentScope("public");
     setAgentSceneCategory("");
+    setBusinessSelectedAgentIds([]);
+    if (mode === "single") {
+      setBusinessExpertGroupForm(createInitialExpertGroupForm());
+    }
     setIsBusinessAgentModalOpen(true);
   }, []);
 
   const handleCloseBusinessAgentModal = useCallback((): void => {
     setIsBusinessAgentModalOpen(false);
+    setBusinessAgentSelectMode("single");
+    setBusinessSelectedAgentIds([]);
+  }, []);
+
+  const handleOpenBusinessExpertGroupModal = useCallback((): void => {
+    setBusinessExpertGroupForm(createInitialExpertGroupForm());
+    setBusinessSelectedAgentIds([]);
+    setIsBusinessExpertGroupModalOpen(true);
+  }, []);
+
+  const handleCloseBusinessExpertGroupModal = useCallback((): void => {
+    setIsBusinessExpertGroupModalOpen(false);
+    setBusinessExpertGroupForm(createInitialExpertGroupForm());
+    setBusinessSelectedAgentIds([]);
+  }, []);
+
+  const handleBusinessExpertGroupFieldChange = useCallback(
+    <TKey extends keyof ExpertGroupFormState>(key: TKey, value: ExpertGroupFormState[TKey]): void => {
+      setBusinessExpertGroupForm(previous => ({
+        ...previous,
+        [key]: value,
+      }));
+    },
+    [],
+  );
+
+  const handleProceedToBusinessGroupAgentSelection = useCallback((): void => {
+    if (
+      !businessExpertGroupForm.name.trim() ||
+      !businessExpertGroupForm.description.trim()
+    ) {
+      message.warning("请先补齐专家团名称和介绍。");
+      return;
+    }
+
+    setIsBusinessExpertGroupModalOpen(false);
+    handleOpenBusinessAgentModal("group");
+  }, [businessExpertGroupForm.description, businessExpertGroupForm.name, handleOpenBusinessAgentModal]);
+
+  const handleToggleBusinessAgentSelection = useCallback((agentId: string): void => {
+    setBusinessSelectedAgentIds(previous =>
+      previous.includes(agentId)
+        ? previous.filter(item => item !== agentId)
+        : [...previous, agentId],
+    );
   }, []);
 
   const handleAddBusinessAgentLine = useCallback((targetAgent: FdeAgentCatalogItem): void => {
@@ -587,7 +718,10 @@ export const FdeDeliveryWorkbench = ({
     setCreateBusinessOrderForm(previous => {
       if (
         previous.lineItems.some(
-          item => isAgentOrderLineItem(item) && item.agentCatalogId === targetAgent.id,
+          item =>
+            (isAgentOrderLineItem(item) && item.agentCatalogId === targetAgent.id) ||
+            (isAgentGroupOrderLineItem(item) &&
+              item.agents.some(groupAgent => groupAgent.name === targetAgent.name)),
         )
       ) {
         hasDuplicate = true;
@@ -605,6 +739,64 @@ export const FdeDeliveryWorkbench = ({
       return;
     }
   }, []);
+
+  const handleConfirmBusinessAgentGroup = useCallback((selectedAgents: FdeAgentCatalogItem[]): void => {
+    if (!selectedAgents.length) {
+      message.warning("请先选择至少一个 AI 专家加入专家团。");
+      return;
+    }
+    let duplicateCount = 0;
+
+    setCreateBusinessOrderForm(previous => {
+      const assignedAgentNames = new Set(
+        previous.lineItems.flatMap(item => {
+          if (isAgentOrderLineItem(item)) {
+            return [item.agentName];
+          }
+
+          if (isAgentGroupOrderLineItem(item)) {
+            return item.agents.map(agent => agent.name);
+          }
+
+          return [];
+        }),
+      );
+      const availableAgents = selectedAgents.filter(agent => {
+        const isDuplicate = assignedAgentNames.has(agent.name);
+        if (isDuplicate) {
+          duplicateCount += 1;
+        }
+        return !isDuplicate;
+      });
+
+      if (!availableAgents.length) {
+        return previous;
+      }
+
+      return {
+        ...previous,
+        lineItems: [
+          ...previous.lineItems,
+          createBusinessAgentGroupLineItem(businessExpertGroupForm, availableAgents),
+        ],
+      };
+    });
+
+    if (duplicateCount === selectedAgents.length) {
+      message.warning("所选 AI 专家已经全部存在于当前订单中。");
+      return;
+    }
+
+    setIsBusinessAgentModalOpen(false);
+    setBusinessAgentSelectMode("single");
+    setBusinessSelectedAgentIds([]);
+    setBusinessExpertGroupForm(createInitialExpertGroupForm());
+    message.success(
+      duplicateCount
+        ? `专家团已创建，已自动跳过 ${duplicateCount} 个重复 AI 专家。`
+        : "AI 专家团已创建并加入订单。",
+    );
+  }, [businessExpertGroupForm]);
 
   const handleRemoveBusinessLineItem = useCallback((lineItemId: string): void => {
     setCreateBusinessOrderForm(previous => ({
@@ -665,6 +857,41 @@ export const FdeDeliveryWorkbench = ({
         ...previous,
         lineItems: previous.lineItems.map(item =>
           isAgentOrderLineItem(item) && item.id === lineItemId
+            ? {
+                ...item,
+                validityMonths: validityMonths ?? 0,
+              }
+            : item,
+        ),
+      }));
+    },
+    [],
+  );
+
+  const handleUpdateBusinessAgentGroupLinePrice = useCallback(
+    (lineItemId: string, unitPrice: number | null): void => {
+      setCreateBusinessOrderForm(previous => ({
+        ...previous,
+        lineItems: previous.lineItems.map(item =>
+          isAgentGroupOrderLineItem(item) && item.id === lineItemId
+            ? {
+                ...item,
+                unitPrice: unitPrice ?? 0,
+                totalAmount: unitPrice ?? 0,
+              }
+            : item,
+        ),
+      }));
+    },
+    [],
+  );
+
+  const handleUpdateBusinessAgentGroupLineValidity = useCallback(
+    (lineItemId: string, validityMonths: number | null): void => {
+      setCreateBusinessOrderForm(previous => ({
+        ...previous,
+        lineItems: previous.lineItems.map(item =>
+          isAgentGroupOrderLineItem(item) && item.id === lineItemId
             ? {
                 ...item,
                 validityMonths: validityMonths ?? 0,
@@ -738,7 +965,9 @@ export const FdeDeliveryWorkbench = ({
     setAgentScope("public");
     setAgentSceneCategory("");
     setSelectedAgentIds([]);
-    setExpertGroupForm(createInitialExpertGroupForm());
+    if (mode === "single") {
+      setExpertGroupForm(createInitialExpertGroupForm());
+    }
     setIsAgentModalOpen(true);
   }, []);
 
@@ -751,14 +980,14 @@ export const FdeDeliveryWorkbench = ({
   }, []);
 
   const handleCreateOrder = useCallback((): void => {
-    if (
-      !createOrderForm.customerName.trim() ||
-      createOrderForm.tenantSeatCount === null ||
-      !createOrderForm.launchTargetDate
-    ) {
-      message.warning("请先补齐租户名称、席位和交付时间。");
-      return;
-    }
+    // if (
+    //   !createOrderForm.customerName.trim() ||
+    //   createOrderForm.tenantSeatCount === null ||
+    //   !createOrderForm.launchTargetDate
+    // ) {
+    //   message.warning("请先补齐租户名称、席位和交付时间。");
+    //   return;
+    // }
 
     const nextOrder = buildManualOrder(
       createOrderForm,
@@ -801,6 +1030,15 @@ export const FdeDeliveryWorkbench = ({
 
       if (isAgentOrderLineItem(item)) {
         return item.unitPrice <= 0 || item.totalAmount <= 0 || (item.validityMonths ?? 0) <= 0;
+      }
+
+      if (isAgentGroupOrderLineItem(item)) {
+        return (
+          !item.agents.length ||
+          item.unitPrice <= 0 ||
+          item.totalAmount <= 0 ||
+          (item.validityMonths ?? 0) <= 0
+        );
       }
 
       return item.tokenCount <= 0 || item.totalAmount <= 0;
@@ -970,17 +1208,15 @@ export const FdeDeliveryWorkbench = ({
     message.success(`已添加 ${agent.name}。`);
   }, [agentModalOrderId, commitOrders]);
 
-  const handleConfirmAgentGroup = useCallback((): void => {
+  const handleConfirmAgentGroup = useCallback((selectedAgents: FdeAgentCatalogItem[]): void => {
     if (!agentModalOrderId) {
       return;
     }
 
-    if (!selectedAgentIds.length) {
+    if (!selectedAgents.length) {
       message.warning("请先选择至少一个 AI 专家加入专家团。");
       return;
     }
-
-    const selectedAgents = FDE_AGENT_CATALOG_ITEMS.filter(item => selectedAgentIds.includes(item.id));
     let duplicateCount = 0;
 
     commitOrders(previous =>
@@ -1029,7 +1265,7 @@ export const FdeDeliveryWorkbench = ({
       }),
     );
 
-    if (duplicateCount === selectedAgentIds.length) {
+    if (duplicateCount === selectedAgents.length) {
       message.warning("所选 AI 专家已经全部存在于当前订单中。");
       return;
     }
@@ -1044,7 +1280,7 @@ export const FdeDeliveryWorkbench = ({
         ? `专家团已创建，已自动跳过 ${duplicateCount} 个重复 AI 专家。`
         : "AI 专家团已创建并加入订单。",
     );
-  }, [agentModalOrderId, commitOrders, expertGroupForm.description, expertGroupForm.name, selectedAgentIds]);
+  }, [agentModalOrderId, commitOrders, expertGroupForm.description, expertGroupForm.name]);
 
   const handleDeliverAgentGroup = useCallback((orderId: string, groupId: string): void => {
     commitOrders(previous =>
@@ -1227,31 +1463,44 @@ export const FdeDeliveryWorkbench = ({
       onSubmit={handleCreateBusinessOrder}
       onUpdateRemark={handleUpdateBusinessOrderRemark}
       onAddDeviceLine={() => handleAddBusinessDeviceLine("云端工作站")}
-      onOpenAgentModal={handleOpenBusinessAgentModal}
+      onOpenExpertGroupModal={handleOpenBusinessExpertGroupModal}
+      onOpenAgentModal={() => handleOpenBusinessAgentModal("single")}
       onAddTokensLine={handleAddBusinessTokensLine}
       onRemoveLineItem={handleRemoveBusinessLineItem}
       onUpdateDeviceLine={handleUpdateBusinessDeviceLine}
       onUpdateAgentLinePrice={handleUpdateBusinessAgentLinePrice}
       onUpdateAgentLineValidity={handleUpdateBusinessAgentLineValidity}
+      onUpdateAgentGroupLinePrice={handleUpdateBusinessAgentGroupLinePrice}
+      onUpdateAgentGroupLineValidity={handleUpdateBusinessAgentGroupLineValidity}
       onUpdateTokensLine={handleUpdateBusinessTokensLine}
+    />
+  );
+  const businessExpertGroupModal = (
+    <FdeDeliveryExpertGroupModal
+      open={isBusinessExpertGroupModalOpen}
+      form={businessExpertGroupForm}
+      onClose={handleCloseBusinessExpertGroupModal}
+      onNext={handleProceedToBusinessGroupAgentSelection}
+      onChange={handleBusinessExpertGroupFieldChange}
     />
   );
   const businessAgentModal = (
     <FdeDeliveryAgentModal
       open={isBusinessAgentModalOpen}
-      agentSelectMode="single"
+      agentSelectMode={businessAgentSelectMode}
       agentScope={agentScope}
       agentSceneCategory={agentSceneCategory}
       agentSceneCategories={agentSceneCategories}
+      agentPlazaItems={FDE_AGENT_CATALOG_ITEMS}
       visibleAgentPlazaItems={visibleAgentPlazaItems}
-      selectedAgentIds={[]}
-      expertGroupForm={expertGroupForm}
+      selectedAgentIds={businessSelectedAgentIds}
+      expertGroupForm={businessExpertGroupForm}
       setAgentScope={setAgentScope}
       setAgentSceneCategory={setAgentSceneCategory}
       onClose={handleCloseBusinessAgentModal}
-      onToggleAgentSelection={handleToggleAgentSelection}
+      onToggleAgentSelection={handleToggleBusinessAgentSelection}
       onAddAgentToOrder={handleAddBusinessAgentLine}
-      onConfirmAgentGroup={handleConfirmAgentGroup}
+      onConfirmAgentGroup={handleConfirmBusinessAgentGroup}
     />
   );
   const orderPreviewModal = (
@@ -1287,6 +1536,7 @@ export const FdeDeliveryWorkbench = ({
         </div>
         <FdeDeliveryWorkbenchListView
           items={filteredOrderItems}
+          summaryMap={tenantSummaryMap}
           searchKeyword={searchKeyword}
           deliveryStatusFilter={deliveryStatusFilter}
           setSearchKeyword={setSearchKeyword}
@@ -1317,7 +1567,6 @@ export const FdeDeliveryWorkbench = ({
           {selectedDetailTab === "orderInfo" || !selectedDeliveryOrder ? (
             <FdeDeliveryOrderInfoPanel
               order={activeBusinessOrder}
-              deliveryOrder={selectedDeliveryOrder}
               onOpenPreviewOrder={handleOpenOrderPreview}
             />
           ) : (
@@ -1339,6 +1588,7 @@ export const FdeDeliveryWorkbench = ({
         <Empty description="请选择租户" />
       )}
       {createBusinessOrderModal}
+      {businessExpertGroupModal}
       {businessAgentModal}
       {orderPreviewModal}
       <FdeDeliveryDeviceModal
@@ -1361,6 +1611,7 @@ export const FdeDeliveryWorkbench = ({
         agentScope={agentScope}
         agentSceneCategory={agentSceneCategory}
         agentSceneCategories={agentSceneCategories}
+        agentPlazaItems={FDE_AGENT_CATALOG_ITEMS}
         visibleAgentPlazaItems={visibleAgentPlazaItems}
         selectedAgentIds={selectedAgentIds}
         expertGroupForm={expertGroupForm}

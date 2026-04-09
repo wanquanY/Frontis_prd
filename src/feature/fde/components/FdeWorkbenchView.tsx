@@ -130,9 +130,13 @@ export const FdeWorkbenchView = (): JSX.Element => {
   if (activeTab === "opportunities") {
     activeContent = (
       <FdeOpportunityWorkbench
+        activeMemberGroupId={workbench.activeMember.groupId}
+        activeMemberId={workbench.activeMember.id}
+        activeMemberName={workbench.activeMember.name}
         activeRole={workbench.activeRole}
         items={workbench.filteredOpportunities}
         members={workbench.teamMembers}
+        teamGroups={workbench.teamGroups}
         selectedOpportunityId={workbench.selectedOpportunityId}
         setSelectedOpportunityId={workbench.setSelectedOpportunityId}
         assignOpportunity={workbench.assignOpportunity}
@@ -144,11 +148,11 @@ export const FdeWorkbenchView = (): JSX.Element => {
   } else if (activeTab === "dashboard") {
     activeContent = (
       <FdeLeaderDashboardView
-        members={workbench.teamMembers}
-        opportunities={workbench.opportunities}
-        deliveryOrders={workbench.deliveryOrders}
-        operationsCustomers={workbench.operationsCustomers}
-        versionTasks={workbench.versionTasks}
+        members={workbench.visibleTeamMembers}
+        opportunities={workbench.filteredOpportunities}
+        deliveryOrders={workbench.filteredDeliveryOrders}
+        operationsCustomers={workbench.filteredOperationsCustomers}
+        versionTasks={workbench.filteredVersionTasks}
         onNavigate={handleNavigateTab}
       />
     );
@@ -184,19 +188,6 @@ export const FdeWorkbenchView = (): JSX.Element => {
         setSelectedCustomerId={workbench.setSelectedOperationsCustomerId}
         onNavigateToDelivery={() => handleNavigateTab("delivery")}
         renewAsset={workbench.renewAsset}
-      />
-    );
-  } else if (activeTab === "teamManagement") {
-    activeContent = (
-      <FdeTeamManagementView
-        activeMember={workbench.activeMember}
-        items={workbench.teamMembers}
-        canManageMembers={workbench.canManageMembers}
-        addTeamMember={workbench.addTeamMember}
-        importTeamMembers={workbench.importTeamMembers}
-        removeTeamMember={workbench.removeTeamMember}
-        toggleTeamMemberStatus={workbench.toggleTeamMemberStatus}
-        updateTeamMember={workbench.updateTeamMember}
       />
     );
   } else if (activeTab === "versionManagement") {
