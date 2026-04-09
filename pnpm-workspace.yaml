@@ -4,5 +4,13 @@ packages:
 ignoredBuiltDependencies:
   - lefthook
 
+onlyBuiltDependencies:
+  - '@swc/core'
+  - cos-js-sdk-v5
+  - es5-ext
+  - esbuild
+  - less
+  - sharp
+
 patchedDependencies:
   mdast-util-gfm-autolink-literal@2.0.1: patches/mdast-util-gfm-autolink-literal@2.0.1.patch
