@@ -9,6 +9,7 @@ import { useNavigate } from "react-router-dom";
 import type { WorkspaceComposerAttachmentItem } from "@/feature/workspace/types";
 import { getAdminManagementPath } from "@/feature/auth/mockAccounts";
 import { useMockAuth } from "@/feature/auth/hooks/useMockAuth";
+import type { AiCeoHomeCaseItem } from "@/constants/aiCeoHome";
 import type { ArtifactItem } from "@/types/artifact";
 import { hasUserInAccessScope } from "@/utils/organizationAccess";
 import { isChatAttachmentFileAllowed } from "@/utils/chatAttachmentFileTypes";
@@ -28,7 +29,7 @@ import {
   INITIAL_ORGANIZATION_DEPARTMENTS,
   INITIAL_WORKSPACES,
 } from "@/mocks/mockData";
-import { findDialogueScenario } from "./dialogueScenarioSimulation";
+import { buildDialogueScenarioReplay, findDialogueScenario } from "./dialogueScenarioSimulation";
 import type {
   DialogueGeneratedResultItem,
   DialogueSessionItem,
@@ -81,6 +82,138 @@ const buildLiveDialogueResults = (
       panel: frame.panel,
     },
   ];
+};
+
+interface CaseReplayState {
+  artifacts: ArtifactItem[];
+  openPanel: "artifacts" | "results" | null;
+  practiceQuestion: string;
+  results: DialogueGeneratedResultItem[];
+  session: DialogueSessionItem;
+}
+
+const appendUniqueArtifacts = (target: ArtifactItem[], items: ArtifactItem[]): void => {
+  const existingKeys = new Set(
+    target.map(item => `${item.fileName}::${item.canonicalPath}::${item.mimeType}`),
+  );
+
+  items.forEach(item => {
+    const nextKey = `${item.fileName}::${item.canonicalPath}::${item.mimeType}`;
+    if (existingKeys.has(nextKey)) {
+      return;
+    }
+    target.push(item);
+    existingKeys.add(nextKey);
+  });
+};
+
+const appendUniqueResults = (
+  target: DialogueGeneratedResultItem[],
+  items: DialogueGeneratedResultItem[],
+): void => {
+  const existingIds = new Set(target.map(item => item.id));
+
+  items.forEach(item => {
+    if (existingIds.has(item.id)) {
+      return;
+    }
+    target.push(item);
+    existingIds.add(item.id);
+  });
+};
+
+const resolveCasePracticeQuestion = (item: AiCeoHomeCaseItem): string =>
+  item.replayScenarioQuestion?.trim() ||
+  item.messages.find(message => message.role === "user")?.content.trim() ||
+  item.title;
+
+const buildCaseReplayState = (
+  employee: EmployeeItem,
+  item: AiCeoHomeCaseItem,
+): CaseReplayState => {
+  const replaySessionId = createId(`dialogue-case-${item.id}`);
+  const practiceQuestion = resolveCasePracticeQuestion(item);
+  const replay = item.replayScenarioQuestion
+    ? buildDialogueScenarioReplay(employee.id, item.replayScenarioQuestion, replaySessionId)
+    : null;
+
+  if (!replay) {
+    const messages = item.messages.map(message => ({
+      id: `${replaySessionId}-${message.id}`,
+      role: message.role,
+      author: message.actor,
+      content: message.content,
+      timeLabel: "案例记录",
+    }));
+
+    return {
+      session: {
+        id: replaySessionId,
+        employeeId: employee.id,
+        title: item.title,
+        preview: item.summary,
+        updatedAt: "案例记录",
+        messages,
+      },
+      artifacts: [],
+      results: [],
+      openPanel: null,
+      practiceQuestion,
+    };
+  }
+
+  const artifacts: ArtifactItem[] = [];
+  const results: DialogueGeneratedResultItem[] = [];
+  let preview = item.summary;
+  const caseMessages = replay.rounds.flatMap((round, roundIndex) => {
+    round.frames.forEach(frame => {
+      if (frame.artifacts?.length) {
+        appendUniqueArtifacts(artifacts, frame.artifacts);
+      }
+
+      const nextResults = buildLiveDialogueResults(replaySessionId, frame);
+      if (nextResults.length) {
+        appendUniqueResults(results, nextResults);
+      }
+    });
+
+    const lastFrame = round.frames[round.frames.length - 1];
+    preview = lastFrame?.preview ?? preview;
+
+    return [
+      {
+        id: `${replaySessionId}-user-${roundIndex + 1}`,
+        role: "user" as const,
+        author: "你",
+        content: round.question,
+        timeLabel: round.updatedAt,
+      },
+      {
+        id: `${replaySessionId}-assistant-${roundIndex + 1}`,
+        role: "assistant" as const,
+        author: round.agentName,
+        content: lastFrame?.preview ?? item.summary,
+        timeLabel: round.updatedAt,
+        blocks: lastFrame?.blocks,
+        followupSuggestions: lastFrame?.followupSuggestions,
+      },
+    ];
+  });
+
+  return {
+    session: {
+      id: replaySessionId,
+      employeeId: employee.id,
+      title: item.title,
+      preview,
+      updatedAt: "案例记录",
+      messages: caseMessages,
+    },
+    artifacts,
+    results,
+    openPanel: results.length > 0 ? "results" : (artifacts.length > 0 ? "artifacts" : null),
+    practiceQuestion,
+  };
 };
 
 const buildWorkspaceDefaultAgent = (
@@ -188,6 +321,7 @@ const FrontisPage = ({ viewRole }: FrontisPageProps): JSX.Element => {
   const [defaultAgentNameOverrides, setDefaultAgentNameOverrides] = useState<Record<string, string>>(
     {},
   );
+  const [activeCaseReplay, setActiveCaseReplay] = useState<CaseReplayState | null>(null);
   const [dialogueInputValue, setDialogueInputValue] = useState<string>("");
   const [dialogueAttachments, setDialogueAttachments] = useState<WorkspaceComposerAttachmentItem[]>(
     [],
@@ -298,6 +432,9 @@ const FrontisPage = ({ viewRole }: FrontisPageProps): JSX.Element => {
 
   const activeDialogueSession = useMemo(
     () => {
+      if (activeCaseReplay) {
+        return activeCaseReplay.session;
+      }
       if (isDialogueHomeActive) {
         return null;
       }
@@ -307,7 +444,7 @@ const FrontisPage = ({ viewRole }: FrontisPageProps): JSX.Element => {
         null
       );
     },
-    [activeDialogueSessionId, employeeDialogueSessions, isDialogueHomeActive],
+    [activeCaseReplay, activeDialogueSessionId, employeeDialogueSessions, isDialogueHomeActive],
   );
   const dialogueMessages = useMemo(
     () => activeDialogueSession?.messages ?? [],
@@ -321,14 +458,21 @@ const FrontisPage = ({ viewRole }: FrontisPageProps): JSX.Element => {
     return lastMessage.followupSuggestions ?? [];
   }, [dialogueMessages]);
   const activeDialogueArtifacts = useMemo(
-    () => (activeDialogueSession ? (dialogueArtifactsBySession[activeDialogueSession.id] ?? []) : []),
-    [activeDialogueSession, dialogueArtifactsBySession],
+    () =>
+      activeCaseReplay
+        ? activeCaseReplay.artifacts
+        : (activeDialogueSession ? (dialogueArtifactsBySession[activeDialogueSession.id] ?? []) : []),
+    [activeCaseReplay, activeDialogueSession, dialogueArtifactsBySession],
   );
   const activeDialogueResults = useMemo(
-    () => (activeDialogueSession ? (dialogueResultsBySession[activeDialogueSession.id] ?? []) : []),
-    [activeDialogueSession, dialogueResultsBySession],
+    () =>
+      activeCaseReplay
+        ? activeCaseReplay.results
+        : (activeDialogueSession ? (dialogueResultsBySession[activeDialogueSession.id] ?? []) : []),
+    [activeCaseReplay, activeDialogueSession, dialogueResultsBySession],
   );
-  const isDialogueResponding = activeDialogueSession?.id === respondingDialogueSessionId;
+  const isDialogueResponding =
+    activeCaseReplay ? false : activeDialogueSession?.id === respondingDialogueSessionId;
   const activeAgentHomeConfig = useMemo(
     () =>
       activeEmployee
@@ -450,6 +594,7 @@ const FrontisPage = ({ viewRole }: FrontisPageProps): JSX.Element => {
 
   const handleSelectEmployee = useCallback(
     (employeeId: string): void => {
+      setActiveCaseReplay(null);
       setActiveEmployeeId(employeeId);
       const nextEmployeeSessions = dialogueSessions.filter(item => item.employeeId === employeeId);
       setActiveDialogueSessionId(isDialogueHomeActive ? "" : (nextEmployeeSessions[0]?.id ?? ""));
@@ -463,6 +608,7 @@ const FrontisPage = ({ viewRole }: FrontisPageProps): JSX.Element => {
 
   const handleSelectDialogueSession = useCallback(
     (sessionId: string): void => {
+      setActiveCaseReplay(null);
       setIsDialogueHomeActive(false);
       setActiveDialogueSessionId(sessionId);
       dialogueAttachments.forEach(revokeComposerAttachmentPreview);
@@ -474,6 +620,7 @@ const FrontisPage = ({ viewRole }: FrontisPageProps): JSX.Element => {
   );
 
   const handleCreateDialogueSession = useCallback((): void => {
+    setActiveCaseReplay(null);
     setIsDialogueHomeActive(true);
     setActiveDialogueSessionId("");
     dialogueAttachments.forEach(revokeComposerAttachmentPreview);
@@ -542,7 +689,7 @@ const FrontisPage = ({ viewRole }: FrontisPageProps): JSX.Element => {
     [],
   );
 
-  const commitDialogue = useCallback((rawInput: string): void => {
+  const commitDialogue = useCallback((rawInput: string, createNewSession = false): void => {
     if (!activeEmployee) return;
     const content = rawInput.trim();
     if (!content && dialogueAttachments.length === 0) return;
@@ -554,7 +701,10 @@ const FrontisPage = ({ viewRole }: FrontisPageProps): JSX.Element => {
       scenarioQuestion,
       createId("dialogue-scenario"),
     );
-    const targetSessionId = activeDialogueSession?.id ?? createId("dialogue-session");
+    const targetSessionId =
+      !createNewSession && activeDialogueSession?.id
+        ? activeDialogueSession.id
+        : createId("dialogue-session");
     const nextSessionTitle =
       matchedScenario?.title ??
       (content.length > 0
@@ -610,6 +760,7 @@ const FrontisPage = ({ viewRole }: FrontisPageProps): JSX.Element => {
       return [nextSession, ...prev.filter(item => item.id !== targetSessionId)];
     });
 
+    setActiveCaseReplay(null);
     setActiveDialogueSessionId(targetSessionId);
     setIsDialogueHomeActive(false);
     setDialogueInputValue("");
@@ -785,6 +936,29 @@ const FrontisPage = ({ viewRole }: FrontisPageProps): JSX.Element => {
     commitDialogue(dialogueInputValue);
   }, [commitDialogue, dialogueInputValue]);
 
+  const handleOpenHomeCase = useCallback(
+    (item: AiCeoHomeCaseItem): void => {
+      if (!activeEmployee) {
+        return;
+      }
+      dialogueAttachments.forEach(revokeComposerAttachmentPreview);
+      setDialogueAttachments([]);
+      setDialogueInputValue("");
+      setSelectedSkillIds([]);
+      setActiveDialogueSessionId("");
+      setIsDialogueHomeActive(false);
+      setActiveCaseReplay(buildCaseReplayState(activeEmployee, item));
+    },
+    [activeEmployee, dialogueAttachments],
+  );
+
+  const handleStartCasePractice = useCallback((): void => {
+    if (!activeCaseReplay) {
+      return;
+    }
+    commitDialogue(activeCaseReplay.practiceQuestion, true);
+  }, [activeCaseReplay, commitDialogue]);
+
   const handleRenameDefaultAgent = useCallback((employeeId: string, nextName: string): void => {
     if (!DEFAULT_WORKSPACE_AGENT_ORDER.includes(employeeId)) {
       return;
@@ -801,9 +975,12 @@ const FrontisPage = ({ viewRole }: FrontisPageProps): JSX.Element => {
     }));
   }, []);
 
-  const handleSendDialogueHomePrompt = useCallback((question: string): void => {
-    commitDialogue(question);
-  }, [commitDialogue]);
+  const handleSendDialogueHomePrompt = useCallback(
+    (question: string): void => {
+      commitDialogue(question, Boolean(activeCaseReplay));
+    },
+    [activeCaseReplay, commitDialogue],
+  );
 
   const handleStopDialogue = useCallback((): void => {
     if (!isDialogueResponding || !activeDialogueSession) return;
@@ -890,7 +1067,12 @@ const FrontisPage = ({ viewRole }: FrontisPageProps): JSX.Element => {
           onDialogueInputChange={setDialogueInputValue}
           onDialogueSessionSelect={handleSelectDialogueSession}
           onFollowupClick={handleSendDialogueHomePrompt}
+          isCaseReplayMode={Boolean(activeCaseReplay)}
+          caseReplayActionLabel="立即实践"
+          caseReplayOpenPanel={activeCaseReplay?.openPanel ?? null}
+          onCaseReplayAction={handleStartCasePractice}
           onHomePromptSend={handleSendDialogueHomePrompt}
+          onHomeCaseSelect={handleOpenHomeCase}
           onRenameDefaultAgent={handleRenameDefaultAgent}
           onRemoveDialogueSession={handleRemoveDialogueSession}
           onRenameDialogueSession={handleRenameDialogueSession}

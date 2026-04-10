@@ -83,15 +83,20 @@ interface DialoguePrototypeViewProps {
   dialogueMessages: ChatMessage[];
   dialogueSessions: DialogueSessionItem[];
   followupSuggestions: string[];
+  caseReplayActionLabel?: string;
+  caseReplayOpenPanel?: "artifacts" | "results" | null;
   homeCaseItems?: AiCeoHomeCaseItem[];
   homePromptItems: AiCeoHomePromptItem[];
   homeSkillItems: AiCeoHomeSkillItem[];
   isHomeVisible: boolean;
+  isCaseReplayMode?: boolean;
   isSidebarCollapsed: boolean;
   isDialogueResponding: boolean;
+  onCaseReplayAction?: () => void;
   onCreateDialogueSession: () => void;
   onDialogueAttachmentsSelected: (files?: FileList | File[] | null) => void;
   onDialogueInputChange: (value: string) => void;
+  onHomeCaseSelect: (item: AiCeoHomeCaseItem) => void;
   onDialogueSessionSelect: (sessionId: string) => void;
   onFollowupClick: (question: string) => void;
   onHomePromptSend: (question: string) => void;
@@ -183,15 +188,20 @@ export const DialoguePrototypeView = ({
   dialogueMessages,
   dialogueSessions,
   followupSuggestions,
+  caseReplayActionLabel,
+  caseReplayOpenPanel,
   homeCaseItems,
   homePromptItems,
   homeSkillItems,
   isHomeVisible,
+  isCaseReplayMode = false,
   isSidebarCollapsed,
   isDialogueResponding,
+  onCaseReplayAction,
   onCreateDialogueSession,
   onDialogueAttachmentsSelected,
   onDialogueInputChange,
+  onHomeCaseSelect,
   onDialogueSessionSelect,
   onFollowupClick,
   onHomePromptSend,
@@ -511,6 +521,43 @@ export const DialoguePrototypeView = ({
     setActiveResultId(latestResultId);
     setSidePanelMode("results");
   }, [activeDialogueResults, clampSidePanelWidth]);
+
+  useEffect(() => {
+    if (isHomeVisible || !isCaseReplayMode || !caseReplayOpenPanel) {
+      return;
+    }
+
+    if (caseReplayOpenPanel === "results") {
+      const latestResult = activeDialogueResults[activeDialogueResults.length - 1];
+      if (!latestResult) {
+        return;
+      }
+      setSidePanelWidth(currentWidth =>
+        clampSidePanelWidth(Math.max(currentWidth, DIALOGUE_RESULT_PANEL_DEFAULT_WIDTH)),
+      );
+      setActiveResultId(latestResult.id);
+      setSidePanelMode("results");
+      return;
+    }
+
+    const preferredArtifact = activeDialogueArtifacts[0];
+    if (!preferredArtifact) {
+      return;
+    }
+    setPreferredArtifactId(preferredArtifact.id);
+    setIsArtifactPreviewing(true);
+    setSidePanelWidth(currentWidth =>
+      clampSidePanelWidth(Math.max(currentWidth, DIALOGUE_ARTIFACT_PREVIEW_PANEL_DEFAULT_WIDTH)),
+    );
+    setSidePanelMode("artifacts");
+  }, [
+    activeDialogueArtifacts,
+    activeDialogueResults,
+    caseReplayOpenPanel,
+    clampSidePanelWidth,
+    isCaseReplayMode,
+    isHomeVisible,
+  ]);
 
   useEffect(() => {
     if (!isEmployeeSwitcherOpen) {
@@ -892,7 +939,17 @@ export const DialoguePrototypeView = ({
     document.body.style.userSelect = "none";
   };
 
-  const composerNode = (
+  const composerNode = isCaseReplayMode ? (
+    <div className={styles.dialogueCaseActionWrap}>
+      <button
+        type="button"
+        className={classNames(styles.primaryButton, styles.dialogueCaseActionButton)}
+        onClick={onCaseReplayAction}
+      >
+        {caseReplayActionLabel ?? "立即实践"}
+      </button>
+    </div>
+  ) : (
     <div className={styles.composerWrap}>
       <WorkspaceComposer
         rootClassName={styles.synclawComposer}
@@ -1292,11 +1349,9 @@ export const DialoguePrototypeView = ({
             </div>
             {composerNode}
             <DialogueHomeView
-              activeEmployeeAvatarUrl={activeEmployee.avatarUrl}
-              activeEmployeeId={activeEmployee.id}
-              activeEmployeeName={activeEmployee.name}
               caseItems={homeCaseItems}
               promptItems={homePromptItems}
+              onCaseSelect={onHomeCaseSelect}
               onPromptSend={onHomePromptSend}
             />
           </div>
