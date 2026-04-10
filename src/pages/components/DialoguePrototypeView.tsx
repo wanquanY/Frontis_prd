@@ -382,7 +382,17 @@ export const DialoguePrototypeView = ({
     [homeSkillItems, selectedSkillIds],
   );
   const { visibleSkillItems, overflowSkillItems } = useMemo(() => {
-    const maxVisibleSkillCount = Math.max(MAX_VISIBLE_SKILL_COUNT - selectedSkillItems.length, 0);
+    if (selectedSkillItems.length > 0) {
+      return {
+        visibleSkillItems: [],
+        overflowSkillItems: [],
+      };
+    }
+
+    const maxVisibleSkillCount = Math.max(
+      MAX_VISIBLE_SKILL_COUNT - selectedSkillItems.length,
+      0,
+    );
 
     if (skillTrackWidth <= 0) {
       return {
@@ -646,6 +656,43 @@ export const DialoguePrototypeView = ({
     isDialogueResponding,
     isHomeVisible,
     sidePanelMode,
+  ]);
+
+  useEffect(() => {
+    if (isHomeVisible || !isCaseReplayMode || !caseReplayOpenPanel) {
+      return;
+    }
+
+    if (caseReplayOpenPanel === "results") {
+      const latestResult = activeDialogueResults[activeDialogueResults.length - 1];
+      if (!latestResult) {
+        return;
+      }
+      setSidePanelWidth(currentWidth =>
+        clampSidePanelWidth(Math.max(currentWidth, DIALOGUE_RESULT_PANEL_DEFAULT_WIDTH)),
+      );
+      setActiveResultId(latestResult.id);
+      setSidePanelMode("results");
+      return;
+    }
+
+    const preferredArtifact = activeDialogueArtifacts[0];
+    if (!preferredArtifact) {
+      return;
+    }
+    setPreferredArtifactId(preferredArtifact.id);
+    setIsArtifactPreviewing(true);
+    setSidePanelWidth(currentWidth =>
+      clampSidePanelWidth(Math.max(currentWidth, DIALOGUE_ARTIFACT_PREVIEW_PANEL_DEFAULT_WIDTH)),
+    );
+    setSidePanelMode("artifacts");
+  }, [
+    activeDialogueArtifacts,
+    activeDialogueResults,
+    caseReplayOpenPanel,
+    clampSidePanelWidth,
+    isCaseReplayMode,
+    isHomeVisible,
   ]);
 
   useEffect(() => {

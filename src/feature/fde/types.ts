@@ -17,7 +17,8 @@ export type FdeWorkbenchTabKey =
   | "agentDev"
   | "skillMarket"
   | "agentStore"
-  | "opsInsights";
+  | "opsInsights"
+  | "fdeOrgManagement";
 
 /**
  * FDE 成员模块权限。
@@ -32,7 +33,8 @@ export type FdeTeamPermissionKey =
   | "agentDev"
   | "skillMarket"
   | "agentStore"
-  | "opsInsights";
+  | "opsInsights"
+  | "fdeOrgManagement";
 
 /**
  * FDE 成员状态。
@@ -183,6 +185,16 @@ export interface FdeTeamGroupItem {
 }
 
 /**
+ * FDE 组织树节点。
+ */
+export interface FdeOrgNodeItem {
+  id: string;
+  name: string;
+  parentId: string | null;
+  leaderMemberId: string | null;
+}
+
+/**
  * FDE 团队成员。
  */
 export interface FdeTeamMemberItem {
@@ -193,6 +205,7 @@ export interface FdeTeamMemberItem {
   role: FdeWorkbenchRole;
   groupId?: string;
   groupName?: string;
+  orgNodeId?: string;
   status: FdeMemberStatus;
   accountStatus: FdeTeamAccountStatus;
   joinedAt: string;
@@ -200,6 +213,7 @@ export interface FdeTeamMemberItem {
   sourceLabel: string;
   focusScenes: string[];
   avatarSeed: string;
+  employeeNo?: string;
 }
 
 /**
@@ -908,6 +922,11 @@ export interface UseFdeWorkbenchResult {
   teamGroups: FdeTeamGroupItem[];
   teamMembers: FdeTeamMemberItem[];
   visibleTeamMembers: FdeTeamMemberItem[];
+  orgNodes: FdeOrgNodeItem[];
+  addOrgNode: (node: FdeOrgNodeItem) => void;
+  updateOrgNode: (nodeId: string, updates: Partial<Pick<FdeOrgNodeItem, "name">>) => void;
+  removeOrgNode: (nodeId: string) => void;
+  setOrgNodeLeader: (nodeId: string, memberId: string | null) => void;
 }
 
 /* ─── Skill 市场 ─── */

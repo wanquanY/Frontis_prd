@@ -7,6 +7,7 @@ import {
   FDE_OPPORTUNITIES,
   FDE_TEAM_GROUPS,
   FDE_TEAM_MEMBERS,
+  FDE_ORG_NODES,
   FDE_VERSION_MANAGEMENT_TASKS,
   FDE_WORKBENCH_NAV_GROUPS,
   FDE_WORKBENCH_TABS,
@@ -22,6 +23,7 @@ import type {
   FdeOrderItem,
   FdeOrderLineItem,
   FdeOperationsCustomerItem,
+  FdeOrgNodeItem,
   FdeRenewAssetPayload,
   FdeTeamMemberItem,
   FdeVersionManagementTaskItem,
@@ -324,6 +326,24 @@ export const useFdeWorkbench = (currentUserId?: string): UseFdeWorkbenchResult =
   const [selectedVersionTaskId, setSelectedVersionTaskId] = useState<string>(
     FDE_VERSION_MANAGEMENT_TASKS[0]?.id ?? "",
   );
+  const [orgNodes, setOrgNodes] = useState<FdeOrgNodeItem[]>(FDE_ORG_NODES);
+  const addOrgNode = useCallback((node: FdeOrgNodeItem): void => {
+    setOrgNodes(prev => [...prev, node]);
+  }, []);
+  const updateOrgNode = useCallback(
+    (nodeId: string, updates: Partial<Pick<FdeOrgNodeItem, "name">>): void => {
+      setOrgNodes(prev => prev.map(item => (item.id === nodeId ? { ...item, ...updates } : item)));
+    },
+    [],
+  );
+  const removeOrgNode = useCallback((nodeId: string): void => {
+    setOrgNodes(prev => prev.filter(item => item.id !== nodeId));
+  }, []);
+  const setOrgNodeLeader = useCallback((nodeId: string, memberId: string | null): void => {
+    setOrgNodes(prev =>
+      prev.map(item => (item.id === nodeId ? { ...item, leaderMemberId: memberId } : item)),
+    );
+  }, []);
   const ordersRef = useRef<FdeOrderItem[]>(INITIAL_FDE_SYNCED_STATE.orders);
   const deliveryOrdersRef = useRef<FdeDeliveryOrderItem[]>(FDE_DELIVERY_ORDERS);
   const operationsCustomersRef = useRef<FdeOperationsCustomerItem[]>(
@@ -1114,5 +1134,10 @@ export const useFdeWorkbench = (currentUserId?: string): UseFdeWorkbenchResult =
     teamGroups: FDE_TEAM_GROUPS,
     teamMembers,
     visibleTeamMembers,
+    orgNodes,
+    addOrgNode,
+    updateOrgNode,
+    removeOrgNode,
+    setOrgNodeLeader,
   };
 };

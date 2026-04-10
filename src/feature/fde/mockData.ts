@@ -7,6 +7,7 @@ import type {
   FdeOrderItem,
   FdeOperationsCustomerItem,
   FdeOpportunityItem,
+  FdeOrgNodeItem,
   FdeSkillItem,
   FdeSkillPresetCover,
   FdeTeamMemberItem,
@@ -85,6 +86,11 @@ export const FDE_WORKBENCH_TABS: FdeWorkbenchTabItem[] = [
     label: "运营洞察",
     description: "",
   },
+  {
+    key: "fdeOrgManagement",
+    label: "人员管理",
+    description: "管理 FDE 组织结构与成员。",
+  },
 ];
 
 /**
@@ -150,6 +156,17 @@ export const FDE_WORKBENCH_NAV_GROUPS: FdeWorkbenchNavGroup[] = [
         key: "opsInsights",
         label: "运营洞察",
         description: "",
+      },
+    ],
+  },
+  {
+    groupKey: "team",
+    groupLabel: "FDE团队管理",
+    items: [
+      {
+        key: "fdeOrgManagement",
+        label: "人员管理",
+        description: "管理 FDE 组织结构与成员。",
       },
     ],
   },
@@ -239,6 +256,42 @@ export const FDE_TEAM_GROUPS: FdeTeamGroupItem[] = [
   },
 ];
 
+/**
+ * FDE 组织树节点。
+ */
+export const FDE_ORG_NODES: FdeOrgNodeItem[] = [
+  {
+    id: "fde-org-root",
+    name: "制造交付组织",
+    parentId: null,
+    leaderMemberId: FDE_PRIMARY_LEADER_MEMBER_ID,
+  },
+  {
+    id: "fde-org-north",
+    name: "华北交付中心",
+    parentId: "fde-org-root",
+    leaderMemberId: FDE_PRIMARY_GROUP_LEADER_MEMBER_ID,
+  },
+  {
+    id: "fde-org-east",
+    name: "华东交付中心",
+    parentId: "fde-org-root",
+    leaderMemberId: "fde-engineer-hejin",
+  },
+  {
+    id: "fde-org-mes",
+    name: "MES 实施组",
+    parentId: "fde-org-east",
+    leaderMemberId: "fde-engineer-hejin",
+  },
+  {
+    id: "fde-org-south",
+    name: "华南交付中心",
+    parentId: "fde-org-root",
+    leaderMemberId: null,
+  },
+];
+
 export const FDE_TEAM_MEMBERS: FdeTeamMemberItem[] = [
   {
     id: FDE_PRIMARY_LEADER_MEMBER_ID,
@@ -246,6 +299,8 @@ export const FDE_TEAM_MEMBERS: FdeTeamMemberItem[] = [
     title: "FDE 团队负责人",
     phone: "13800001121",
     role: "leader",
+    orgNodeId: "fde-org-root",
+    employeeNo: "FDE-000001",
     status: "online",
     accountStatus: "enabled",
     joinedAt: "2025-11-18",
@@ -260,6 +315,8 @@ export const FDE_TEAM_MEMBERS: FdeTeamMemberItem[] = [
     title: "FDE 团队管理员",
     phone: "13800001238",
     role: "admin",
+    orgNodeId: "fde-org-root",
+    employeeNo: "FDE-000002",
     status: "online",
     accountStatus: "enabled",
     joinedAt: "2025-12-09",
@@ -276,6 +333,8 @@ export const FDE_TEAM_MEMBERS: FdeTeamMemberItem[] = [
     role: "member",
     groupId: FDE_RETAIL_GROUP_ID,
     groupName: "零售交付组",
+    orgNodeId: "fde-org-north",
+    employeeNo: "FDE-000003",
     status: "busy",
     accountStatus: "enabled",
     joinedAt: "2026-01-14",
@@ -292,6 +351,8 @@ export const FDE_TEAM_MEMBERS: FdeTeamMemberItem[] = [
     role: "groupLeader",
     groupId: FDE_RETAIL_GROUP_ID,
     groupName: "零售交付组",
+    orgNodeId: "fde-org-north",
+    employeeNo: "FDE-000004",
     status: "busy",
     accountStatus: "enabled",
     joinedAt: "2026-01-14",
@@ -308,6 +369,8 @@ export const FDE_TEAM_MEMBERS: FdeTeamMemberItem[] = [
     role: "groupLeader",
     groupId: FDE_SERVICE_GROUP_ID,
     groupName: "服务交付组",
+    orgNodeId: "fde-org-east",
+    employeeNo: "FDE-000005",
     status: "online",
     accountStatus: "enabled",
     joinedAt: "2026-02-03",
@@ -324,6 +387,8 @@ export const FDE_TEAM_MEMBERS: FdeTeamMemberItem[] = [
     role: "member",
     groupId: FDE_SERVICE_GROUP_ID,
     groupName: "服务交付组",
+    orgNodeId: "fde-org-south",
+    employeeNo: "FDE-000006",
     status: "online",
     accountStatus: "enabled",
     joinedAt: "2026-02-18",

@@ -90,6 +90,7 @@ export const INITIAL_ORGANIZATION_DEPARTMENTS: OrganizationDepartmentItem[] = [
   },
   {
     id: "dept-management",
+    leaderUserId: "user-admin-002",
     name: "经营管理部",
     parentId: "dept-default",
   },
