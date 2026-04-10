@@ -58,7 +58,7 @@ export const getAvatarUrl = (seed: string): string =>
 /**
  * 生成专家团默认主 agent 的差异化头像地址。
  */
-export const getMateagentAvatarUrl = (seed: string): string =>
+export const getMetaagentAvatarUrl = (seed: string): string =>
   `https://api.dicebear.com/9.x/bottts-neutral/svg?seed=${encodeURIComponent(seed)}`;
 
 /**

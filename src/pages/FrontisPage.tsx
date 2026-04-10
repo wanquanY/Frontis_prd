@@ -44,7 +44,7 @@ import {
   createId,
   getAvatarUrl,
   getExpertTeamScenarioLabel,
-  getMateagentAvatarUrl,
+  getMetaagentAvatarUrl,
   revokeComposerAttachmentPreview,
 } from "./utils";
 import {
@@ -65,7 +65,7 @@ const ACTIVE_WORKSPACE_STATUSES = new Set<StatusTone>(["online", "busy", "idle"]
 const DEFAULT_WORKSPACE_AGENT_ORDER: string[] = Object.values(WORKSPACE_DEFAULT_AGENT_CONFIG_IDS);
 const TEAM_MENTION_ALL_LABEL = "所有agent";
 const MAX_HOME_PROMPT_ITEM_COUNT = 6;
-const EXPERT_TEAM_MAIN_AGENT_NAME = "Mateagent";
+const EXPERT_TEAM_MAIN_AGENT_NAME = "Metaagent";
 const EXPERT_TEAM_MAIN_AGENT_DESCRIPTION =
   "作为专家团默认主agent，负责理解需求、调度成员并统一交付。";
 const PRODUCT_TEAM_COLLAB_QUESTION = "帮我把这个需求拆成核心模块、边界和依赖关系。";
@@ -399,7 +399,7 @@ const resolveExpertTeamMembers = (
       return {
         ...member,
         name: EXPERT_TEAM_MAIN_AGENT_NAME,
-        avatarUrl: getMateagentAvatarUrl(`${employee.id}-${member.id}`),
+        avatarUrl: getMetaagentAvatarUrl(`${employee.id}-${member.id}`),
         role: "专家团默认主agent",
         summary: EXPERT_TEAM_MAIN_AGENT_DESCRIPTION,
         lastAction: `作为${employee.name}默认主agent，负责理解需求、调度成员与统一交付。`,

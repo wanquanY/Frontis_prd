@@ -213,7 +213,7 @@ const DIALOGUE_SIDE_PANEL_MIN_WIDTH = 320;
 const DIALOGUE_SIDE_PANEL_MAX_WIDTH = 960;
 const TEAM_MENTION_ALL_OPTION_ID = "team-mention-all";
 const TEAM_MENTION_ALL_LABEL = "所有agent";
-const EXPERT_TEAM_MAIN_AGENT_NAME = "Mateagent";
+const EXPERT_TEAM_MAIN_AGENT_NAME = "Metaagent";
 const SKILL_BUTTON_FONT =
   '500 14px "PingFang SC", system-ui, -apple-system, "Segoe UI", Arial, sans-serif';
 
