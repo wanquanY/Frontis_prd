@@ -62,6 +62,7 @@ export interface AccessScopeSubject {
  */
 export interface OrganizationDepartmentItem {
   id: string;
+  leaderUserId?: string;
   name: string;
   parentId: string | null;
 }

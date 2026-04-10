@@ -1,0 +1,305 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding: 0;
+}
+
+.splitLayout {
+  display: grid;
+  grid-template-columns: minmax(320px, 0.45fr) minmax(0, 1fr);
+  gap: 24px;
+  min-height: 0;
+}
+
+.sectionCard {
+  padding: 24px;
+  border: 1px solid color-mix(in srgb, var(--text) 8%, transparent);
+  border-radius: 22px;
+  background: var(--surface, #fff);
+}
+
+.sectionTitle {
+  margin: 0 0 16px;
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 28px;
+  color: var(--text, #0f172a);
+}
+
+/* ─── 组织树 ─── */
+
+.orgTree {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  position: relative;
+}
+
+.orgTree.orgTreeRoot {
+  padding-left: 0;
+}
+
+.orgTree:not(.orgTreeRoot) {
+  padding-left: 24px;
+  margin-left: 16px;
+  border-left: 2px solid color-mix(in srgb, var(--text) 10%, transparent);
+}
+
+.orgTreeItem {
+  position: relative;
+}
+
+.orgTreeItem:not(.orgTreeRoot > .orgTreeItem)::before {
+  content: "";
+  position: absolute;
+  left: -24px;
+  top: 28px;
+  width: 20px;
+  height: 0;
+  border-top: 2px solid color-mix(in srgb, var(--text) 10%, transparent);
+}
+
+.orgTreeNode {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  margin: 6px 0;
+  padding: 14px 16px;
+  border: 1px solid color-mix(in srgb, var(--text) 8%, transparent);
+  border-radius: 18px;
+  background: var(--surface, #fff);
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.orgTreeNode:hover {
+  border-color: color-mix(in srgb, var(--primary, #00c1d4) 40%, transparent);
+}
+
+.orgTreeNodeActive {
+  border-color: var(--primary, #00c1d4);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary, #00c1d4) 14%, transparent);
+}
+
+.orgTreeNodeTitle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.orgTreeNodeName {
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 22px;
+  color: var(--text, #0f172a);
+}
+
+.orgTreeNodePath {
+  font-size: 12px;
+  line-height: 18px;
+  color: color-mix(in srgb, var(--text) 50%, transparent);
+}
+
+.orgTreeNodeMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+/* ─── Pills / Tags ─── */
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--text) 5%, transparent);
+  color: color-mix(in srgb, var(--text) 60%, transparent);
+  font-size: 12px;
+  line-height: 18px;
+  white-space: nowrap;
+}
+
+.pillPrimary {
+  background: color-mix(in srgb, var(--primary, #00c1d4) 12%, transparent);
+  color: var(--primary-deep, #0f1c4d);
+}
+
+.pillDanger {
+  background: color-mix(in srgb, #e5484d 10%, transparent);
+  color: #e5484d;
+}
+
+.pillSuccess {
+  background: color-mix(in srgb, #17a34a 10%, transparent);
+  color: #17a34a;
+}
+
+.roleFdeLeader {
+  background: color-mix(in srgb, var(--primary, #00c1d4) 12%, transparent);
+  color: var(--primary-deep, #0f1c4d);
+}
+
+.roleFdeEmployee {
+  background: color-mix(in srgb, var(--text) 6%, transparent);
+  color: color-mix(in srgb, var(--text) 60%, transparent);
+}
+
+.statusEnabled {
+  background: color-mix(in srgb, #17a34a 10%, transparent);
+  color: #17a34a;
+}
+
+.statusDisabled {
+  background: color-mix(in srgb, #e5484d 10%, transparent);
+  color: #e5484d;
+}
+
+/* ─── Metric Cards ─── */
+
+.metricsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.metricCard {
+  padding: 16px;
+  border: 1px solid color-mix(in srgb, var(--text) 8%, transparent);
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--text) 2%, var(--surface, #fff));
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.metricLabel {
+  font-size: 12px;
+  line-height: 18px;
+  color: color-mix(in srgb, var(--text) 50%, transparent);
+}
+
+.metricValue {
+  font-size: 24px;
+  line-height: 32px;
+  font-weight: 700;
+  color: var(--text, #0f172a);
+}
+
+.metricHint {
+  font-size: 12px;
+  line-height: 18px;
+  color: color-mix(in srgb, var(--text) 40%, transparent);
+}
+
+/* ─── Actions / Toolbar ─── */
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.pathText {
+  font-size: 13px;
+  line-height: 20px;
+  color: color-mix(in srgb, var(--text) 50%, transparent);
+  margin-bottom: 12px;
+}
+
+/* ─── Table ─── */
+
+.memberTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.memberTable th {
+  padding: 10px 12px;
+  text-align: left;
+  font-weight: 600;
+  color: color-mix(in srgb, var(--text) 50%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--text) 10%, transparent);
+  white-space: nowrap;
+}
+
+.memberTable td {
+  padding: 12px;
+  border-bottom: 1px solid color-mix(in srgb, var(--text) 6%, transparent);
+  color: var(--text, #0f172a);
+  vertical-align: middle;
+}
+
+.memberTable .nameCell {
+  font-weight: 700;
+}
+
+.memberTable .actionsCell {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.emptyRow {
+  text-align: center;
+  padding: 32px 12px;
+  color: color-mix(in srgb, var(--text) 40%, transparent);
+}
+
+/* ─── Modal form ─── */
+
+.formRows {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.formRow {
+  padding: 10px 0;
+  display: grid;
+  grid-template-columns: 100px minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
+  border-top: 1px solid color-mix(in srgb, var(--text) 6%, transparent);
+}
+
+.formRow:first-child {
+  border-top: 0;
+}
+
+.formLabel {
+  font-size: 13px;
+  line-height: 20px;
+  color: color-mix(in srgb, var(--text) 50%, transparent);
+}
+
+.formValue {
+  font-size: 14px;
+  line-height: 22px;
+  color: var(--text, #0f172a);
+}
+
+.formHint {
+  grid-column: 1 / -1;
+  font-size: 12px;
+  line-height: 18px;
+  color: color-mix(in srgb, var(--text) 40%, transparent);
+  padding: 0;
+}
+
+@media (max-width: 1100px) {
+  .splitLayout {
+    grid-template-columns: 1fr;
+  }
+}
