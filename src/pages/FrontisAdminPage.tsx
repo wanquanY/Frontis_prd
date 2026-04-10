@@ -10,6 +10,7 @@ import {
   MenuFoldOutlined,
   MenuUnfoldOutlined,
   RobotOutlined,
+  TeamOutlined,
 } from "@ant-design/icons";
 import type { MenuProps } from "antd";
 import { Avatar, Dropdown, message } from "antd";
@@ -34,6 +35,7 @@ import {
   hasUserAccessToExpert,
 } from "./components/agentStore/utils";
 import { ModelConfigurationView } from "./components/ModelConfigurationView";
+import { OrganizationManagementView } from "./components/OrganizationManagementView";
 import type {
   AccessScopeSubject,
   EmployeeItem,
@@ -42,6 +44,7 @@ import type {
   FrontisWebTabItem,
   FrontisWebTabKey,
   FrontisWebUserItem,
+  OrganizationDepartmentItem,
   WorkspaceItem,
 } from "./types";
 import styles from "./FrontisPage.module.less";
@@ -81,6 +84,12 @@ const FRONTIS_ADMIN_TABS: FrontisWebTabItem[] = [
     icon: <ControlOutlined />,
     roles: ["admin"],
   },
+  {
+    key: "organization",
+    label: "组织管理",
+    icon: <TeamOutlined />,
+    roles: ["admin"],
+  },
 ];
 
 const FRONTIS_ADMIN_TAB_KEYS = new Set<FrontisWebTabKey>(
@@ -110,6 +119,7 @@ const FrontisAdminPage = (): JSX.Element => {
     () => buildInitialExpertDeploymentByEmployeeId(INITIAL_EMPLOYEES),
   );
   const [deviceOwners, setDeviceOwners] = useState<Record<string, string | null>>(INITIAL_DEVICE_OWNERS);
+  const [departments, setDepartments] = useState<OrganizationDepartmentItem[]>(INITIAL_ORGANIZATION_DEPARTMENTS);
   const dialogueSessions = INITIAL_DIALOGUE_SESSIONS;
 
   const effectiveUsers = useMemo(
@@ -325,6 +335,41 @@ const FrontisAdminPage = (): JSX.Element => {
     setUsers(prev => prev.filter(item => item.id !== userId));
   }, []);
 
+  const handleAddDepartment = useCallback((dept: OrganizationDepartmentItem): void => {
+    setDepartments(prev => [...prev, dept]);
+  }, []);
+
+  const handleUpdateDepartment = useCallback(
+    (deptId: string, updates: Partial<Pick<OrganizationDepartmentItem, "name">>): void => {
+      setDepartments(prev =>
+        prev.map(item => (item.id === deptId ? { ...item, ...updates } : item)),
+      );
+    },
+    [],
+  );
+
+  const handleRemoveDepartment = useCallback((deptId: string): void => {
+    setDepartments(prev => prev.filter(item => item.id !== deptId));
+  }, []);
+
+  const handleSetDepartmentLeader = useCallback(
+    (deptId: string, userId: string | undefined): void => {
+      setDepartments(prev =>
+        prev.map(item => (item.id === deptId ? { ...item, leaderUserId: userId } : item)),
+      );
+    },
+    [],
+  );
+
+  const handleUpdateUserDepartment = useCallback(
+    (userId: string, departmentId: string): void => {
+      setUsers(prev =>
+        prev.map(item => (item.id === userId ? { ...item, departmentId } : item)),
+      );
+    },
+    [],
+  );
+
   const handleAssignDeviceOwner = useCallback((deviceId: string, ownerId: string | null): void => {
     setDeviceOwners(prev => ({
       ...prev,
@@ -505,6 +550,25 @@ const FrontisAdminPage = (): JSX.Element => {
           employees={employees}
           onApplyGlobalModel={handleApplyGlobalModel}
           onUpdateEmployeeModel={handleUpdateEmployeeModel}
+        />
+      );
+    }
+
+    if (activeTabKey === "organization") {
+      return (
+        <OrganizationManagementView
+          departments={departments}
+          employees={employees}
+          onAddDepartment={handleAddDepartment}
+          onAddUsers={handleAddUsers}
+          onRemoveDepartment={handleRemoveDepartment}
+          onRemoveUser={handleRemoveUser}
+          onSetDepartmentLeader={handleSetDepartmentLeader}
+          onUpdateDepartment={handleUpdateDepartment}
+          onUpdateUser={handleUpdateUser}
+          onUpdateUserDepartment={handleUpdateUserDepartment}
+          onUpdateUserStatus={handleUpdateUserStatus}
+          users={effectiveUsers}
         />
       );
     }

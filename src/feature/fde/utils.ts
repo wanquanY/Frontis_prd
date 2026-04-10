@@ -36,6 +36,7 @@ const FDE_WORKBENCH_ROUTE_SEGMENTS: Record<FdeWorkbenchTabKey, string> = {
   skillMarket: "skill-market",
   agentStore: "agent-store",
   opsInsights: "ops-insights",
+  fdeOrgManagement: "org-management",
 };
 
 /**

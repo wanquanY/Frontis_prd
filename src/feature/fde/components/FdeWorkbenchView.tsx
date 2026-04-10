@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import classNames from "classnames";
 import {
   AppstoreOutlined,
+  ApartmentOutlined,
   CloudServerOutlined,
   CodeOutlined,
   DashboardOutlined,
@@ -39,6 +40,7 @@ import { FdeOpsInsightsView } from "./FdeOpsInsightsView";
 import { FdeOpportunityWorkbench } from "./FdeOpportunityWorkbench";
 import { FdeOperationsMonitorView } from "./FdeOperationsMonitorView";
 import { FdeOrderManagementView } from "./FdeOrderManagementView";
+import { FdeOrgManagementView } from "./FdeOrgManagementView";
 import { FdeSkillMarketView } from "./FdeSkillMarketView";
 import { FdeTeamManagementView } from "./FdeTeamManagementView";
 import { FdeVersionManagementView } from "./FdeVersionManagementView";
@@ -56,6 +58,7 @@ const FDE_TAB_ICONS: Record<FdeWorkbenchTabKey, JSX.Element> = {
   skillMarket: <ThunderboltOutlined />,
   agentStore: <AppstoreOutlined />,
   opsInsights: <LineChartOutlined />,
+  fdeOrgManagement: <ApartmentOutlined />,
 };
 
 /**
@@ -207,6 +210,36 @@ export const FdeWorkbenchView = (): JSX.Element => {
     activeContent = <FdeAgentStoreView onNavigateToAgentDev={() => handleNavigateTab("agentDev")} />;
   } else if (activeTab === "opsInsights") {
     activeContent = <FdeOpsInsightsView />;
+  } else if (activeTab === "teamManagement") {
+    activeContent = (
+      <FdeTeamManagementView
+        activeMember={workbench.activeMember}
+        items={workbench.visibleTeamMembers}
+        canManageMembers={workbench.canManageMembers}
+        addTeamMember={workbench.addTeamMember}
+        importTeamMembers={workbench.importTeamMembers}
+        removeTeamMember={workbench.removeTeamMember}
+        toggleTeamMemberStatus={workbench.toggleTeamMemberStatus}
+        updateTeamMember={workbench.updateTeamMember}
+      />
+    );
+  } else if (activeTab === "fdeOrgManagement") {
+    activeContent = (
+      <FdeOrgManagementView
+        orgNodes={workbench.orgNodes}
+        teamMembers={workbench.teamMembers}
+        canManage={workbench.canManageMembers}
+        addOrgNode={workbench.addOrgNode}
+        updateOrgNode={workbench.updateOrgNode}
+        removeOrgNode={workbench.removeOrgNode}
+        setOrgNodeLeader={workbench.setOrgNodeLeader}
+        addTeamMember={workbench.addTeamMember}
+        importTeamMembers={workbench.importTeamMembers}
+        removeTeamMember={workbench.removeTeamMember}
+        toggleTeamMemberStatus={workbench.toggleTeamMemberStatus}
+        updateTeamMember={workbench.updateTeamMember}
+      />
+    );
   }
 
   return (
