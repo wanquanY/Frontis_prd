@@ -3,13 +3,7 @@
  * 渲染单个 Block，根据 kind 类型显示不同的 UI
  */
 
-import {
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  useCallback,
-} from "react";
+import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import classNames from "classnames";
 import { Bubble, Actions } from "@ant-design/x";
 import { Input, InputNumber, Select, DatePicker, Switch, Rate, message } from "antd";
@@ -210,6 +204,29 @@ const resolveTextBlockContent = (block: Block): string => {
   return typeof content === "string" ? content.trim() : "";
 };
 
+const resolveToolAvatarLabel = (label?: string): string => {
+  const normalizedLabel = label?.trim() ?? "";
+  if (!normalizedLabel) {
+    return "AI";
+  }
+
+  return normalizedLabel.slice(0, 2).toUpperCase();
+};
+
+const renderToolAvatar = (avatarUrl?: string, avatarLabel?: string): JSX.Element => {
+  const normalizedAvatarUrl = avatarUrl?.trim() ?? "";
+
+  return normalizedAvatarUrl ? (
+    <img
+      className={styles.toolUseAvatarImage}
+      src={normalizedAvatarUrl}
+      alt={avatarLabel || "AI"}
+    />
+  ) : (
+    <span className={styles.toolUseAvatarFallback}>{resolveToolAvatarLabel(avatarLabel)}</span>
+  );
+};
+
 export function BlockItem({
   block,
   onHITLRespond,
@@ -374,12 +391,13 @@ function MessageBlock({
   const messageFeedbackAction = messageCopyText ? (
     <AssistantFeedbackAction blockId={block.id} />
   ) : null;
-  const messageActions = messageCopyActions || messageFeedbackAction ? (
-    <div className={styles.assistantInlineActions}>
-      {messageCopyActions}
-      {messageFeedbackAction}
-    </div>
-  ) : null;
+  const messageActions =
+    messageCopyActions || messageFeedbackAction ? (
+      <div className={styles.assistantInlineActions}>
+        {messageCopyActions}
+        {messageFeedbackAction}
+      </div>
+    ) : null;
 
   return (
     <div className={styles.messageBlock}>
@@ -407,9 +425,7 @@ function MessageBlock({
           ))}
         </div>
       ) : null}
-      {messageActions ? (
-        <div className={styles.messageActions}>{messageActions}</div>
-      ) : null}
+      {messageActions ? <div className={styles.messageActions}>{messageActions}</div> : null}
     </div>
   );
 }
@@ -747,6 +763,16 @@ function ToolUseBlock({
     typeof data.display_name === "string" && data.display_name.trim()
       ? resolveToolDisplayName(data.display_name)
       : resolveToolDisplayName(data.name);
+  const normalizedToolName =
+    typeof data.name === "string" && data.name.trim() ? data.name.trim().toLowerCase() : "";
+  const isTaskDispatch = normalizedToolName === "task_dispatch";
+  const avatarUrl =
+    typeof data.avatar_url === "string" && data.avatar_url.trim() ? data.avatar_url.trim() : "";
+  const avatarLabel =
+    typeof data.avatar_label === "string" && data.avatar_label.trim()
+      ? data.avatar_label.trim()
+      : "";
+  const shouldShowAssigneeAvatar = isTaskDispatch && Boolean(avatarUrl || avatarLabel);
   const purpose = typeof data.purpose === "string" ? data.purpose.trim() : "";
   const shouldShowPurpose = Boolean(purpose);
   const subagentLabel =
@@ -832,6 +858,8 @@ function ToolUseBlock({
         data={data}
         status={status}
         displayName={displayName}
+        avatarUrl={avatarUrl}
+        avatarLabel={avatarLabel}
         purpose={purpose}
         subagentLabel={subagentLabel}
         onHITLRespond={onHITLRespond}
@@ -896,12 +924,19 @@ function ToolUseBlock({
 
           {isSubagent ? <span className={styles.toolUseSubagentBadge}>Subagent</span> : null}
 
-          {shouldShowPurpose ? (
+          {shouldShowPurpose || shouldShowAssigneeAvatar ? (
             <>
               <span className={styles.toolUseDivider} aria-hidden="true" />
-              <span className={styles.toolUsePurpose} title={purpose}>
-                {purpose}
-              </span>
+              {shouldShowAssigneeAvatar ? (
+                <span className={styles.toolUseAssigneeAvatar} aria-hidden="true">
+                  {renderToolAvatar(avatarUrl, avatarLabel)}
+                </span>
+              ) : null}
+              {shouldShowPurpose ? (
+                <span className={styles.toolUsePurpose} title={purpose}>
+                  {purpose}
+                </span>
+              ) : null}
             </>
           ) : null}
 
@@ -1073,7 +1108,9 @@ function ToolUseBlock({
                     ))}
                   </div>
                 ) : null}
-                {resultContent ? <div className={styles.toolUseOutputText}>{resultContent}</div> : null}
+                {resultContent ? (
+                  <div className={styles.toolUseOutputText}>{resultContent}</div>
+                ) : null}
               </div>
             </div>
           </div>
@@ -1100,6 +1137,8 @@ function SubagentBlock({
   block,
   status,
   displayName,
+  avatarUrl,
+  avatarLabel,
   purpose,
   subagentLabel,
   onHITLRespond,
@@ -1110,6 +1149,8 @@ function SubagentBlock({
   data: ToolUseData;
   status: string;
   displayName: string;
+  avatarUrl: string;
+  avatarLabel: string;
   purpose: string;
   subagentLabel: string;
   onHITLRespond?: (payload: HITLRespondPayload) => void;
@@ -1153,6 +1194,9 @@ function SubagentBlock({
           })}
           aria-label={`${title} ${statusLabel}`}
         >
+          <span className={styles.toolUseAvatar} aria-hidden="true">
+            {renderToolAvatar(avatarUrl, avatarLabel)}
+          </span>
           <span className={styles.toolUseIcon} aria-hidden="true">
             <ToolOutlined />
           </span>
@@ -1192,13 +1236,7 @@ function SubagentBlock({
   );
 }
 
-function ToolResultBlock({
-  block,
-  onToolExpand,
-}: {
-  block: Block;
-  onToolExpand?: () => void;
-}) {
+function ToolResultBlock({ block, onToolExpand }: { block: Block; onToolExpand?: () => void }) {
   const data = block.data as unknown as ToolResultData;
   const resultContent = typeof data.content === "string" ? data.content.trim() : "";
   const [isExpanded, setIsExpanded] = useState(false);

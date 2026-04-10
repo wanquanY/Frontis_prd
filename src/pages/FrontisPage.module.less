@@ -1360,11 +1360,15 @@
   left: 0;
   right: 0;
   z-index: 8;
+  max-height: min(56vh, 520px);
   padding: 8px;
   border: 1px solid var(--panelBorder);
   border-radius: 18px;
   background: var(--surface);
   box-shadow: var(--shadow-sm);
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .dialogueHeroCard {
@@ -1455,6 +1459,7 @@
   flex-direction: column;
   gap: 14px;
   padding: 0;
+  min-height: 0;
 }
 
 .dialogueSwitcherGroup {
@@ -1503,6 +1508,60 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
+}
+
+.dialogueSwitcherItemMeta {
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 18px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dialogueTeamAvatarStack {
+  min-width: 0;
+  width: 40px;
+  height: 40px;
+  padding: 3px;
+  border-radius: 12px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 2px;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--primary) 10%, var(--surface));
+}
+
+.dialogueTeamAvatarStackCompact {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.dialogueTeamAvatarItem {
+  min-width: 0;
+  min-height: 0;
+  border-radius: 6px;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--surface) 88%, var(--app-bg));
+}
+
+.dialogueTeamAvatarImage,
+.dialogueTeamAvatarFallback {
+  width: 100%;
+  height: 100%;
+}
+
+.dialogueTeamAvatarImage {
+  display: block;
+  object-fit: cover;
+}
+
+.dialogueTeamAvatarFallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text);
+  font-size: 9px;
+  font-weight: 600;
 }
 
 .dialogueSwitcherAgentEditRow {
@@ -1741,9 +1800,9 @@
   padding: 14px 16px 0;
   display: flex;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: flex-start;
   gap: 10px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
 }
 
 .dialogueMainCardSidebarCollapsed .dialogueViewToolbar {
@@ -1754,6 +1813,8 @@
   display: flex;
   align-items: center;
   gap: 10px;
+  flex: 0 0 auto;
+  margin-left: auto;
   min-width: 0;
 }
 
@@ -1841,6 +1902,11 @@
   align-items: center;
   gap: 12px;
   text-align: center;
+}
+
+.dialogueHomeHeroExpertTeam {
+  min-height: 142px;
+  justify-content: flex-end;
 }
 
 .dialogueHomeHeroAvatar {
@@ -3489,6 +3555,124 @@
   margin: 0 auto;
   padding: 7px 16px 9px;
   flex: 0 0 auto;
+}
+
+.dialogueCaseActionWrap {
+  width: 100%;
+  max-width: 700px;
+  margin: 0 auto;
+  padding: 16px;
+  flex: 0 0 auto;
+  display: flex;
+  justify-content: center;
+}
+
+.dialogueCaseActionButton {
+  min-width: 160px;
+}
+
+.dialogueExpertTeamStrip {
+  width: 100%;
+  max-width: 920px;
+  margin: 0 auto;
+  padding: 4px 16px 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+}
+
+.dialogueExpertTeamStripToolbar {
+  flex: 1 1 0;
+  width: auto;
+  max-width: none;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+}
+
+.dialogueExpertTeamAvatars {
+  width: max-content;
+  min-width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  justify-content: center;
+  flex-wrap: nowrap;
+  padding-bottom: 4px;
+}
+
+.dialogueExpertTeamAvatarsToolbar {
+  width: max-content;
+  min-width: 0;
+  justify-content: flex-start;
+  padding-bottom: 0;
+}
+
+.dialogueExpertAvatarButton {
+  flex: 0 0 auto;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dialogueExpertAvatar {
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.92);
+}
+
+.dialogueExpertCard {
+  width: 280px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.dialogueExpertCardHeader {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.dialogueExpertCardCopy {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.dialogueExpertCardName {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.dialogueExpertCardRole {
+  font-size: 12px;
+  color: var(--textSecondary);
+}
+
+.dialogueExpertCardSummary {
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--text);
+}
+
+.dialogueExpertCardSkills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.dialogueExpertCardSkillTag {
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--primary) 12%, white);
+  color: var(--primary);
+  font-size: 12px;
+  font-weight: 500;
 }
 
 .synclawComposer {
@@ -5754,6 +5938,10 @@
 
   .dialogueHomeHero {
     padding: 0 16px 8px;
+  }
+
+  .dialogueHomeHeroExpertTeam {
+    min-height: 126px;
   }
 
   .dialogueReplayHeader,

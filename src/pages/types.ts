@@ -122,6 +122,14 @@ export interface EmployeeItem {
   name: string;
   avatarUrl?: string;
   role: string;
+  /** 是否为 AI 专家团工作台入口。 */
+  isExpertTeam?: boolean;
+  /** 专家团唯一标识。 */
+  expertTeamId?: string;
+  /** 专家团成员 AI 专家 id 列表。 */
+  expertTeamMemberIds?: string[];
+  /** 专家团默认主专家 id。 */
+  expertTeamPrimaryMemberId?: string;
   /** 可见端范围。 */
   portalRoles: FrontisWebRole[];
   status: EmployeeStatus;

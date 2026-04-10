@@ -47,13 +47,23 @@ const EXPERT_TEAMS: ExpertTeamDef[] = [
     id: "team-product",
     name: "产研协作专家团",
     description: "重点管理专家可用范围、升级状态和配置完整度。",
-    memberIds: ["employee-pm", "employee-designer", "employee-research", "employee-ops"],
+    memberIds: [
+      "employee-pm",
+      "employee-designer",
+      "employee-research",
+      "employee-ops",
+      "employee-architect",
+      "employee-growth",
+      "employee-qa",
+      "employee-data",
+      "employee-user-researcher",
+    ],
   },
   {
     id: "team-sales",
     name: "销售增长专家团",
     description: "重点关注业务团队可用权限、运行状态和版本接收情况。",
-    memberIds: ["employee-writer", "employee-sales"],
+    memberIds: ["employee-sales"],
   },
 ];
 
@@ -90,7 +100,7 @@ const TIMELINE_ENTRIES: TimelineEntryDef[] = [
     id: "tl-3",
     time: "19:30",
     employeeId: "employee-writer",
-    agentLabel: "本地内容助理 · 销售增长专家团",
+    agentLabel: "CEO分身",
     segments: [
       { text: "整理完成昨日会议纪要摘要，提炼出 " },
       { text: "7 个功能拆解点" },
@@ -151,8 +161,9 @@ export const BossDashboardView = ({
   const completedTaskCount = useMemo(
     () =>
       dialogueSessions.reduce((total, session) => {
-        const assistantMessageCount = session.messages.filter(message => message.role === "assistant")
-          .length;
+        const assistantMessageCount = session.messages.filter(
+          message => message.role === "assistant",
+        ).length;
         return total + assistantMessageCount * 6 + 4;
       }, 0),
     [dialogueSessions],
@@ -178,18 +189,6 @@ export const BossDashboardView = ({
     [employees],
   );
 
-  const pendingUpgradeCount = useMemo(
-    () => employees.filter(employee => VERSION_UPGRADE_MAP[employee.id]).length,
-    [employees],
-  );
-
-  const abnormalWorkspaceCount = useMemo(
-    () => workspaces.filter(workspace => !["busy", "idle", "online"].includes(workspace.status)).length,
-    [workspaces],
-  );
-
-  const riskCount = pendingUpgradeCount + abnormalWorkspaceCount;
-  const isHealthy = riskCount === 0;
   const totalTokenUsage = useMemo(
     () => users.reduce((total, user) => total + user.tokenUsage, 0),
     [users],
@@ -204,7 +203,13 @@ export const BossDashboardView = ({
           normalizeAccessScopeSubjects(
             members.flatMap(member =>
               member.visibility === "all"
-                ? [{ subjectId: "company-root", subjectName: "全公司", subjectType: "company" as const }]
+                ? [
+                    {
+                      subjectId: "company-root",
+                      subjectName: "全公司",
+                      subjectType: "company" as const,
+                    },
+                  ]
                 : member.accessScopeSubjects,
             ),
             INITIAL_ORGANIZATION_DEPARTMENTS,

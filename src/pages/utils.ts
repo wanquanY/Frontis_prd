@@ -37,6 +37,19 @@ export const getAvatarText = (name: string): string => {
 };
 
 /**
+ * 从专家团摘要中提取适合展示在问候语和输入框里的场景描述。
+ */
+export const getExpertTeamScenarioLabel = (summary: string, fallbackName: string): string => {
+  const normalizedSummary = summary.split("。")[0]?.trim() ?? "";
+  const normalizedLabel = normalizedSummary
+    .replace(/，?(端到端覆盖|覆盖|加速).*/, "")
+    .replace(/等场景.*/, "")
+    .trim();
+
+  return normalizedLabel || fallbackName.trim() || "当前业务场景";
+};
+
+/**
  * 生成在线随机头像地址。
  */
 export const getAvatarUrl = (seed: string): string =>
@@ -71,6 +84,10 @@ const extractConversationEmployeeGroupTitle = (
   employee: EmployeeItem,
   defaultAgentIds: Set<string>,
 ): string => {
+  if (employee.isExpertTeam) {
+    return "AI专家团";
+  }
+
   if (defaultAgentIds.has(employee.id) || employee.source === "openclaw") {
     return "默认专家";
   }

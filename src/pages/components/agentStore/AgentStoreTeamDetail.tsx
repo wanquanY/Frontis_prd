@@ -65,6 +65,31 @@ export const EXPERT_VERSION_INFO: Record<
     updateNotes: ["优化 CEO 口吻一致性", "新增经营问答收口模板"],
   },
   "employee-sales": { version: "v2.0" },
+  "employee-architect": {
+    version: "v1.4",
+    newVersion: "v1.5",
+    updateNotes: ["补充架构约束检查项", "新增模块依赖说明模板"],
+  },
+  "employee-growth": {
+    version: "v1.2",
+    newVersion: "v1.3",
+    updateNotes: ["新增漏斗实验模板", "补充首屏转化指标口径"],
+  },
+  "employee-qa": {
+    version: "v1.1",
+    newVersion: "v1.2",
+    updateNotes: ["新增回归范围分层建议", "补充上线前验收卡点"],
+  },
+  "employee-data": {
+    version: "v1.3",
+    newVersion: "v1.4",
+    updateNotes: ["补充看板指标字典", "新增异常波动解释模板"],
+  },
+  "employee-user-researcher": {
+    version: "v1.2",
+    newVersion: "v1.3",
+    updateNotes: ["新增访谈纪要结构化输出", "补充用户痛点优先级对比视图"],
+  },
   "employee-local-ops": { version: "v1.1" },
 };
 
@@ -92,7 +117,6 @@ interface AgentStoreTeamDetailProps {
 }
 
 type OrganizationTreeValue = `${"company" | "department" | "user"}:${string}`;
-type OrganizationTreeSelectValue = { label: string; value: OrganizationTreeValue };
 interface OrganizationTreeSelectNode {
   children?: OrganizationTreeSelectNode[];
   key: OrganizationTreeValue;
@@ -100,8 +124,10 @@ interface OrganizationTreeSelectNode {
   value: OrganizationTreeValue;
 }
 
-const toTreeValue = (subjectType: AccessScopeSubject["subjectType"], subjectId: string): OrganizationTreeValue =>
-  `${subjectType}:${subjectId}`;
+const toTreeValue = (
+  subjectType: AccessScopeSubject["subjectType"],
+  subjectId: string,
+): OrganizationTreeValue => `${subjectType}:${subjectId}`;
 
 const mapTreeNodesToSelectData = (nodes: OrganizationTreeNode[]): OrganizationTreeSelectNode[] =>
   nodes.map(node => ({
@@ -163,7 +189,9 @@ export const AgentStoreTeamDetail = ({
   users,
   workspaces,
 }: AgentStoreTeamDetailProps): JSX.Element => {
-  const [selectedEmployeeId, setSelectedEmployeeId] = useState<string | null>(employees[0]?.id ?? null);
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState<string | null>(
+    employees[0]?.id ?? null,
+  );
   const hasSwitcher = employees.length > 1;
 
   useEffect(() => {
@@ -209,9 +237,9 @@ export const AgentStoreTeamDetail = ({
                   employee,
                   deploymentByEmployeeId[employee.id],
                 );
-                        const versionInfo = EXPERT_VERSION_INFO[employee.id] ?? { version: "v1.0" };
-                        const hasNewVersion =
-                          Boolean(versionInfo.newVersion) && versionInfo.newVersion !== versionInfo.version;
+                const versionInfo = EXPERT_VERSION_INFO[employee.id] ?? { version: "v1.0" };
+                const hasNewVersion =
+                  Boolean(versionInfo.newVersion) && versionInfo.newVersion !== versionInfo.version;
 
                 return (
                   <button
@@ -230,7 +258,10 @@ export const AgentStoreTeamDetail = ({
                         <span className={styles.detailAgentRailName}>{employee.name}</span>
                         <span className={styles.detailAgentRailMeta}>
                           {requiresDeviceBinding
-                            ? getDeviceConfiguredLabel(employee, deploymentByEmployeeId[employee.id])
+                            ? getDeviceConfiguredLabel(
+                                employee,
+                                deploymentByEmployeeId[employee.id],
+                              )
                             : getExpertAccessScopeSummary(
                                 employee.visibility,
                                 employee.accessScopeSubjects,
@@ -244,7 +275,10 @@ export const AgentStoreTeamDetail = ({
                         {isConfigured
                           ? "已配置"
                           : requiresDeviceBinding
-                            ? getDeviceConfiguredLabel(employee, deploymentByEmployeeId[employee.id])
+                            ? getDeviceConfiguredLabel(
+                                employee,
+                                deploymentByEmployeeId[employee.id],
+                              )
                             : "待分配权限"}
                       </span>
                       <span className={getVersionTagClassName(hasNewVersion)}>
@@ -333,10 +367,12 @@ const ExpertConfigPanel = ({
       ]),
     ),
   );
-  const [permissionAccessDraft, setPermissionAccessDraft] = useState<ExpertDeviceAccessState>(() => ({
-    accessScopeSubjects: [...employee.accessScopeSubjects],
-    visibility: employee.visibility,
-  }));
+  const [permissionAccessDraft, setPermissionAccessDraft] = useState<ExpertDeviceAccessState>(
+    () => ({
+      accessScopeSubjects: [...employee.accessScopeSubjects],
+      visibility: employee.visibility,
+    }),
+  );
   const organizationTreeData = useMemo(
     () => mapTreeNodesToSelectData(buildOrganizationTree(organizationDepartments, users)),
     [organizationDepartments, users],
@@ -346,7 +382,9 @@ const ExpertConfigPanel = ({
     [organizationDepartments, users],
   );
   const normalizeTreeValuesToSubjects = useCallback(
-    (nextValues: Array<OrganizationTreeValue | { value: OrganizationTreeValue }>): AccessScopeSubject[] =>
+    (
+      nextValues: Array<OrganizationTreeValue | { value: OrganizationTreeValue }>,
+    ): AccessScopeSubject[] =>
       normalizeAccessScopeSubjects(
         nextValues
           .map(item => {
@@ -376,7 +414,9 @@ const ExpertConfigPanel = ({
       ),
     );
     setSelectedAccessWorkspaceId(current =>
-      current && assignedWorkspaceIds.includes(current) ? current : assignedWorkspaceIds[0] ?? null,
+      current && assignedWorkspaceIds.includes(current)
+        ? current
+        : (assignedWorkspaceIds[0] ?? null),
     );
   }, [assignedWorkspaceIds, deploymentState, employee]);
 
@@ -405,9 +445,7 @@ const ExpertConfigPanel = ({
   }, []);
 
   const hasNewVersion =
-    Boolean(versionInfo.newVersion) &&
-    currentVersion !== versionInfo.newVersion &&
-    !versionIgnored;
+    Boolean(versionInfo.newVersion) && currentVersion !== versionInfo.newVersion && !versionIgnored;
 
   const workspaceOptions = useMemo(
     () =>
@@ -446,7 +484,7 @@ const ExpertConfigPanel = ({
     () =>
       assignedWorkspaces.map(workspace => {
         const ownerId = deviceOwners[workspace.id] ?? null;
-        const ownerName = ownerId ? users.find(user => user.id === ownerId)?.name ?? null : null;
+        const ownerName = ownerId ? (users.find(user => user.id === ownerId)?.name ?? null) : null;
         const accessState =
           accessDraftsByWorkspaceId[workspace.id] ??
           getDeviceAccessStateForExpert(employee, workspace.id, deploymentState);
@@ -462,15 +500,15 @@ const ExpertConfigPanel = ({
   const selectedAccessWorkspace = useMemo(
     () =>
       selectedAccessWorkspaceId
-        ? workspaces.find(workspace => workspace.id === selectedAccessWorkspaceId) ?? null
+        ? (workspaces.find(workspace => workspace.id === selectedAccessWorkspaceId) ?? null)
         : null,
     [selectedAccessWorkspaceId, workspaces],
   );
   const selectedAccessOwnerId = selectedAccessWorkspaceId
-    ? deviceOwners[selectedAccessWorkspaceId] ?? null
+    ? (deviceOwners[selectedAccessWorkspaceId] ?? null)
     : null;
   const selectedAccessOwnerName = selectedAccessOwnerId
-    ? users.find(user => user.id === selectedAccessOwnerId)?.name ?? null
+    ? (users.find(user => user.id === selectedAccessOwnerId)?.name ?? null)
     : null;
   const selectedEffectiveMembers = useMemo(() => {
     if (!selectedAccessState) {
@@ -490,23 +528,19 @@ const ExpertConfigPanel = ({
   );
   const permissionTreeValues = useMemo(
     () =>
-      permissionAccessDraft.accessScopeSubjects.map(subject =>
-        ({
-          label: subject.subjectName,
-          value: toTreeValue(subject.subjectType, subject.subjectId),
-        }),
-      ),
+      permissionAccessDraft.accessScopeSubjects.map(subject => ({
+        label: subject.subjectName,
+        value: toTreeValue(subject.subjectType, subject.subjectId),
+      })),
     [permissionAccessDraft.accessScopeSubjects],
   );
   const selectedAccessTreeValues = useMemo(
     () =>
       selectedAccessState
-        ? selectedAccessState.accessScopeSubjects.map(subject =>
-            ({
-              label: subject.subjectName,
-              value: toTreeValue(subject.subjectType, subject.subjectId),
-            }),
-          )
+        ? selectedAccessState.accessScopeSubjects.map(subject => ({
+            label: subject.subjectName,
+            value: toTreeValue(subject.subjectType, subject.subjectId),
+          }))
         : [],
     [selectedAccessState],
   );
@@ -530,7 +564,13 @@ const ExpertConfigPanel = ({
     setSelectedAccessWorkspaceId(draftWorkspaceId);
     setDraftWorkspaceId(undefined);
     message.success(`${employee.name} 已新增到该设备`);
-  }, [deploymentState, draftWorkspaceId, employee, onAttachEmployeeToDevice, requiresDeviceBinding]);
+  }, [
+    deploymentState,
+    draftWorkspaceId,
+    employee,
+    onAttachEmployeeToDevice,
+    requiresDeviceBinding,
+  ]);
 
   const handleAttachAllWorkspaces = useCallback((): void => {
     const nextWorkspaceIds = availableWorkspaceOptions.map(option => option.value);
@@ -578,7 +618,7 @@ const ExpertConfigPanel = ({
       });
       setSelectedAccessWorkspaceId(current =>
         current === workspaceId
-          ? assignedWorkspaceIds.find(item => item !== workspaceId) ?? null
+          ? (assignedWorkspaceIds.find(item => item !== workspaceId) ?? null)
           : current,
       );
       message.success(`${employee.name} 已从该设备移除`);
@@ -622,30 +662,33 @@ const ExpertConfigPanel = ({
     selectedAccessWorkspaceId,
   ]);
 
-  const handleChangeAccessVisibility = useCallback((nextVisibility: EmployeeVisibility): void => {
-    if (!requiresDeviceBinding) {
-      setPermissionAccessDraft(prev => ({
+  const handleChangeAccessVisibility = useCallback(
+    (nextVisibility: EmployeeVisibility): void => {
+      if (!requiresDeviceBinding) {
+        setPermissionAccessDraft(prev => ({
+          ...prev,
+          visibility: nextVisibility,
+        }));
+        return;
+      }
+
+      if (!selectedAccessWorkspaceId) {
+        return;
+      }
+
+      setAccessDraftsByWorkspaceId(prev => ({
         ...prev,
-        visibility: nextVisibility,
+        [selectedAccessWorkspaceId]: {
+          ...(prev[selectedAccessWorkspaceId] ?? {
+            accessScopeSubjects: [],
+            visibility: employee.visibility,
+          }),
+          visibility: nextVisibility,
+        },
       }));
-      return;
-    }
-
-    if (!selectedAccessWorkspaceId) {
-      return;
-    }
-
-    setAccessDraftsByWorkspaceId(prev => ({
-      ...prev,
-      [selectedAccessWorkspaceId]: {
-        ...(prev[selectedAccessWorkspaceId] ?? {
-          accessScopeSubjects: [],
-          visibility: employee.visibility,
-        }),
-        visibility: nextVisibility,
-      },
-    }));
-  }, [employee.visibility, requiresDeviceBinding, selectedAccessWorkspaceId]);
+    },
+    [employee.visibility, requiresDeviceBinding, selectedAccessWorkspaceId],
+  );
 
   const handleChangeAccessSubjects = useCallback(
     (nextSubjects: Array<OrganizationTreeValue | { value: OrganizationTreeValue }>): void => {
@@ -674,7 +717,12 @@ const ExpertConfigPanel = ({
         },
       }));
     },
-    [employee.visibility, normalizeTreeValuesToSubjects, requiresDeviceBinding, selectedAccessWorkspaceId],
+    [
+      employee.visibility,
+      normalizeTreeValuesToSubjects,
+      requiresDeviceBinding,
+      selectedAccessWorkspaceId,
+    ],
   );
 
   const handleModelChange = useCallback(
@@ -706,7 +754,11 @@ const ExpertConfigPanel = ({
     message.info("已忽略本次升级提醒");
   }, []);
   const handleTabChange = useCallback((nextTabKey: string): void => {
-    if (nextTabKey === "workspaceAccess" || nextTabKey === "modelConfig" || nextTabKey === "versionControl") {
+    if (
+      nextTabKey === "workspaceAccess" ||
+      nextTabKey === "modelConfig" ||
+      nextTabKey === "versionControl"
+    ) {
       setActiveTabKey(nextTabKey);
     }
   }, []);
@@ -754,7 +806,8 @@ const ExpertConfigPanel = ({
                   <div className={styles.deviceWorkspacePanelHead}>
                     <span className={styles.simpleExpertBlockLabel}>设备分配</span>
                     <span className={styles.simpleExpertHint}>
-                      该 AI 专家需要先绑定设备，再按设备配置可用权限。如已设置设备拥有者，设备拥有者默认可使用，但仍需确认该设备上的权限范围。
+                      该 AI
+                      专家需要先绑定设备，再按设备配置可用权限。如已设置设备拥有者，设备拥有者默认可使用，但仍需确认该设备上的权限范围。
                     </span>
                   </div>
                   <Button
@@ -796,7 +849,11 @@ const ExpertConfigPanel = ({
                             {ownerName ? `设备拥有者：${ownerName}` : "暂未设置设备拥有者"}
                           </span>
                         </div>
-                        <Button size="small" danger onClick={() => handleRemoveWorkspace(workspace.id)}>
+                        <Button
+                          size="small"
+                          danger
+                          onClick={() => handleRemoveWorkspace(workspace.id)}
+                        >
                           移除
                         </Button>
                       </div>
@@ -840,7 +897,9 @@ const ExpertConfigPanel = ({
                               onClick={() => setSelectedAccessWorkspaceId(workspace.id)}
                             >
                               <div className={styles.assignedWorkspaceHeader}>
-                                <span className={styles.assignedWorkspaceName}>{workspace.name}</span>
+                                <span className={styles.assignedWorkspaceName}>
+                                  {workspace.name}
+                                </span>
                                 <span className={styles.assignedWorkspacePermission}>
                                   {isWorkspaceConfigured ? "权限已配置" : "待分配权限"}
                                 </span>
@@ -882,7 +941,9 @@ const ExpertConfigPanel = ({
                             </span>
                           </div>
                           <span className={styles.devicePermissionStatus}>
-                            {isDeviceAccessConfigured(selectedAccessState) ? "已配置权限" : "待分配权限"}
+                            {isDeviceAccessConfigured(selectedAccessState)
+                              ? "已配置权限"
+                              : "待分配权限"}
                           </span>
                         </div>
 
@@ -905,9 +966,7 @@ const ExpertConfigPanel = ({
                               size="small"
                               value={selectedAccessTreeValues}
                               onChange={value =>
-                                handleChangeAccessSubjects(
-                                  Array.isArray(value) ? value : [],
-                                )
+                                handleChangeAccessSubjects(Array.isArray(value) ? value : [])
                               }
                               treeData={organizationTreeData}
                               allowClear={true}
@@ -1011,7 +1070,9 @@ const ExpertConfigPanel = ({
                   />
                   <span className={styles.simpleExpertHint}>当前生效模型：{selectedModel}</span>
                   {requiresDeviceBinding && !isAssigned ? (
-                    <span className={styles.simpleExpertHint}>设备未绑定前，模型配置不会生效。</span>
+                    <span className={styles.simpleExpertHint}>
+                      设备未绑定前，模型配置不会生效。
+                    </span>
                   ) : null}
                 </>
               ) : (

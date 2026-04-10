@@ -3,18 +3,6 @@ import {
   PRODUCT_MANAGER_BACKLOG_QUESTION,
   PRODUCT_MANAGER_PRD_QUESTION,
 } from "@/constants/aiCeoScenarioPrompts";
-import {
-  ECOMMERCE_AUTOMATION_AGENT_DEMO,
-  ECOMMERCE_AUTOMATION_SKILL_DEMOS,
-} from "@/constants/ecommerceAutomationDemo";
-import {
-  LIVE_BROADCAST_AGENT_DEMO,
-  LIVE_BROADCAST_SKILL_DEMOS,
-} from "@/constants/liveBroadcastDemo";
-import {
-  XIAOCANMAMA_IP_AGENT_DEMO,
-  XIAOCANMAMA_IP_SKILL_DEMOS,
-} from "@/constants/xiaocanMamaIpDemo";
 import benchmarkProductionCover from "@/assets/images/aiCeoScenarioOutputs/benchmark-production-page.png";
 import ceoChatDrawerCover from "@/assets/images/aiCeoScenarioOutputs/ceo-chat-drawer.png";
 import employeeAssessCover from "@/assets/images/aiCeoScenarioOutputs/employee-assess-wangjianguo.png";
@@ -613,41 +601,70 @@ export const AI_CEO_AGENT_HOME_CONFIGS: Record<string, AiCeoAgentHomeConfig> = {
     ],
     caseItems: PRODUCT_MANAGER_CASES,
   },
-  [ECOMMERCE_AUTOMATION_AGENT_DEMO.id]: {
-    intro: ECOMMERCE_AUTOMATION_AGENT_DEMO.intro,
-    skillItems: ECOMMERCE_AUTOMATION_SKILL_DEMOS.map(item => ({
-      id: item.id,
-      name: item.name,
-      iconKey: item.iconKey,
-    })),
-    promptItems: ECOMMERCE_AUTOMATION_SKILL_DEMOS.map((item, index) => ({
-      id: `ecom-ops-${index + 1}`,
-      question: item.prompt,
-    })),
+  "employee-architect": {
+    intro: "我会先把系统边界、模块关系和落地约束拆清楚，确保方案能直接进入研发实现。",
+    skillItems: [
+      { id: "architecture_planning", name: "架构规划", iconKey: "process" },
+      { id: "module_mapping", name: "模块拆分", iconKey: "database" },
+      { id: "risk_review", name: "风险评审", iconKey: "risk" },
+    ],
+    promptItems: [
+      { id: "architect-1", question: "帮我把这个需求拆成核心模块、边界和依赖关系。" },
+      { id: "architect-2", question: "这版方案上线前，架构层面最需要提前规避哪些风险？" },
+      { id: "architect-3", question: "给我一版研发可以直接拿去评审的技术落地框架。" },
+    ],
   },
-  [LIVE_BROADCAST_AGENT_DEMO.id]: {
-    intro: LIVE_BROADCAST_AGENT_DEMO.intro,
-    skillItems: LIVE_BROADCAST_SKILL_DEMOS.map(item => ({
-      id: item.id,
-      name: item.name,
-      iconKey: item.iconKey,
-    })),
-    promptItems: LIVE_BROADCAST_SKILL_DEMOS.map((item, index) => ({
-      id: `live-ops-${index + 1}`,
-      question: item.prompt,
-    })),
+  "employee-growth": {
+    intro: "我会把产品目标拆成可执行的增长实验、转化路径和验证指标，方便团队快速试错。",
+    skillItems: [
+      { id: "growth_experiment", name: "增长实验", iconKey: "task" },
+      { id: "conversion_analysis", name: "转化分析", iconKey: "overview" },
+      { id: "metric_design", name: "指标设计", iconKey: "database" },
+    ],
+    promptItems: [
+      { id: "growth-1", question: "围绕首屏转化，帮我设计一轮可执行的增长实验。" },
+      { id: "growth-2", question: "这个功能要验证是否有效，应该先看哪些关键指标？" },
+      { id: "growth-3", question: "把这条用户路径拆成转化漏斗，并指出最值得优化的节点。" },
+    ],
   },
-  [XIAOCANMAMA_IP_AGENT_DEMO.id]: {
-    intro: XIAOCANMAMA_IP_AGENT_DEMO.intro,
-    skillItems: XIAOCANMAMA_IP_SKILL_DEMOS.map(item => ({
-      id: item.id,
-      name: item.name,
-      iconKey: item.iconKey,
-    })),
-    promptItems: XIAOCANMAMA_IP_SKILL_DEMOS.map((item, index) => ({
-      id: `xiaocanmama-ip-${index + 1}`,
-      question: item.prompt,
-    })),
+  "employee-qa": {
+    intro: "我会提前补齐验收标准、回归范围和上线检查项，把交付风险拦在发布前。",
+    skillItems: [
+      { id: "acceptance_review", name: "验收评审", iconKey: "document" },
+      { id: "regression_planning", name: "回归规划", iconKey: "process" },
+      { id: "launch_checklist", name: "上线清单", iconKey: "task" },
+    ],
+    promptItems: [
+      { id: "qa-1", question: "帮我整理这次改版的验收标准和关键检查项。" },
+      { id: "qa-2", question: "这次上线前最需要覆盖哪些回归路径？" },
+      { id: "qa-3", question: "给我一版可以直接执行的上线检查清单。" },
+    ],
+  },
+  "employee-data": {
+    intro: "我会把需求背后的指标体系、看板结构和异常判断口径整理出来，方便持续追结果。",
+    skillItems: [
+      { id: "metric_design", name: "指标设计", iconKey: "database" },
+      { id: "dashboard_planning", name: "看板规划", iconKey: "overview" },
+      { id: "anomaly_insight", name: "异常洞察", iconKey: "risk" },
+    ],
+    promptItems: [
+      { id: "data-1", question: "这个需求要看效果，核心指标体系应该怎么搭？" },
+      { id: "data-2", question: "帮我规划一个能持续跟踪改版效果的数据看板。" },
+      { id: "data-3", question: "如果数据波动异常，优先要看哪些信号和判断口径？" },
+    ],
+  },
+  "employee-user-researcher": {
+    intro: "我会把用户反馈、访谈原话和优先级证据整理成清晰的问题判断，方便你决定先做什么。",
+    skillItems: [
+      { id: "user_interview", name: "用户访谈", iconKey: "employee" },
+      { id: "feedback_synthesis", name: "反馈归纳", iconKey: "document" },
+      { id: "priority_evidence", name: "优先级证据", iconKey: "benchmark" },
+    ],
+    promptItems: [
+      { id: "user-research-1", question: "帮我把这批用户反馈归纳成几个核心问题。" },
+      { id: "user-research-2", question: "如果要排优先级，当前最有说服力的用户证据是什么？" },
+      { id: "user-research-3", question: "给我一版可以用于需求评审的访谈结论摘要。" },
+    ],
   },
   "employee-writer": {
     intro:

@@ -3,10 +3,42 @@ import { buildAccessScopeSummary, normalizeAccessScopeSubjects } from "@/utils/o
 import { Button, Tag } from "antd";
 
 import type { EmployeeItem, OrganizationDepartmentItem, WorkspaceItem } from "../../types";
+import { getAvatarText } from "../../utils";
 import type { OwnedExpertTeam, RecommendedExpertTeam } from "./types";
 import { EXPERT_VERSION_INFO } from "./AgentStoreTeamDetail";
 
 import styles from "./AgentStoreView.module.less";
+
+interface TeamCompositeAvatarProps {
+  members: EmployeeItem[];
+}
+
+const TeamCompositeAvatar = ({ members }: TeamCompositeAvatarProps): JSX.Element => {
+  const visibleMembers = members.slice(0, 9);
+  const useCompactGrid = visibleMembers.length <= 4;
+
+  return (
+    <div
+      className={`${styles.cardIcon} ${styles.teamCompositeAvatar} ${
+        useCompactGrid ? styles.teamCompositeAvatarCompact : ""
+      }`}
+    >
+      {visibleMembers.map(member => (
+        <span key={member.id} className={styles.teamCompositeAvatarItem}>
+          {member.avatarUrl ? (
+            <img
+              className={styles.teamCompositeAvatarImage}
+              src={member.avatarUrl}
+              alt={member.name}
+            />
+          ) : (
+            <span className={styles.teamCompositeAvatarFallback}>{getAvatarText(member.name)}</span>
+          )}
+        </span>
+      ))}
+    </div>
+  );
+};
 
 /* ── Owned Team Card ── */
 
@@ -34,7 +66,9 @@ export const OwnedTeamCard = ({
   const accessScopeSummary = buildAccessScopeSummary(
     normalizeAccessScopeSubjects(
       members.flatMap(member =>
-        member.visibility === "all" ? [{ subjectId: "company-root", subjectName: "全公司", subjectType: "company" as const }] : member.accessScopeSubjects,
+        member.visibility === "all"
+          ? [{ subjectId: "company-root", subjectName: "全公司", subjectType: "company" as const }]
+          : member.accessScopeSubjects,
       ),
       organizationDepartments,
     ),
@@ -43,9 +77,7 @@ export const OwnedTeamCard = ({
   return (
     <div className={styles.ownedCard}>
       <div className={styles.ownedCardBody}>
-        <div className={styles.cardIcon} style={{ background: `${team.categoryColor}12` }}>
-          <span style={{ fontSize: 24 }}>{team.icon}</span>
-        </div>
+        <TeamCompositeAvatar members={members} />
 
         <div className={styles.cardContent}>
           <div className={styles.cardTitleRow}>
@@ -71,9 +103,7 @@ export const OwnedTeamCard = ({
             <span>{isOnline ? "在线" : "离线"}</span>
           </div>
           <div className={styles.cardInfoItem}>
-            <span className={styles.cardInfoValue}>
-              {members.length}
-            </span>
+            <span className={styles.cardInfoValue}>{members.length}</span>
             <span className={styles.cardInfoLabel}>AI 专家</span>
           </div>
           <div className={styles.cardInfoItem}>
@@ -124,9 +154,7 @@ export const RecommendedTeamCard = ({ team }: RecommendedTeamCardProps): JSX.Ele
         </div>
 
         <div className={styles.recRight}>
-          <span className={styles.recPrice}>
-            ¥{team.price.toLocaleString()}
-          </span>
+          <span className={styles.recPrice}>¥{team.price.toLocaleString()}</span>
           <span className={styles.recPriceUnit}>/年</span>
         </div>
       </div>

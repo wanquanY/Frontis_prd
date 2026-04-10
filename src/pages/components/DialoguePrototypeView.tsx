@@ -32,7 +32,7 @@ import {
   type MouseEvent as ReactMouseEvent,
 } from "react";
 import type { InputRef, MenuProps } from "antd";
-import { Avatar, Dropdown, Input } from "antd";
+import { Avatar, Dropdown, Input, Popover } from "antd";
 import type { Block } from "@/types/block";
 
 import type {
@@ -46,6 +46,7 @@ import { WorkspaceChatPanel } from "@/feature/workspace/components/WorkspaceChat
 import { WorkspaceComposer } from "@/feature/workspace/components/WorkspaceComposer";
 import {
   WORKSPACE_MODEL_OPTIONS,
+  type WorkspaceComposerMentionOption,
   type WorkspaceComposerAttachmentItem,
 } from "@/feature/workspace/types";
 import type { ArtifactItem } from "@/types/artifact";
@@ -62,6 +63,7 @@ import {
   buildWorkspaceChatMessages,
   downloadArtifact,
   getAvatarText,
+  getExpertTeamScenarioLabel,
   groupConversationEmployees,
   resolveArtifactUrl,
 } from "../utils";
@@ -75,6 +77,8 @@ interface DialoguePrototypeViewProps {
   activeDialogueResults: DialogueGeneratedResultItem[];
   activeDialogueSession: DialogueSessionItem | null;
   allEmployees: EmployeeItem[];
+  conversationEmployeeDirectory: EmployeeItem[];
+  activeExpertTeamMembers: EmployeeItem[];
   accountMenuItems: MenuProps["items"];
   defaultAgentIds: string[];
   dialoguePlaceholder: string;
@@ -83,15 +87,20 @@ interface DialoguePrototypeViewProps {
   dialogueMessages: ChatMessage[];
   dialogueSessions: DialogueSessionItem[];
   followupSuggestions: string[];
+  caseReplayActionLabel?: string;
+  caseReplayOpenPanel?: "artifacts" | "results" | null;
   homeCaseItems?: AiCeoHomeCaseItem[];
   homePromptItems: AiCeoHomePromptItem[];
   homeSkillItems: AiCeoHomeSkillItem[];
   isHomeVisible: boolean;
+  isCaseReplayMode?: boolean;
   isSidebarCollapsed: boolean;
   isDialogueResponding: boolean;
+  onCaseReplayAction?: () => void;
   onCreateDialogueSession: () => void;
   onDialogueAttachmentsSelected: (files?: FileList | File[] | null) => void;
   onDialogueInputChange: (value: string) => void;
+  onHomeCaseSelect: (item: AiCeoHomeCaseItem) => void;
   onDialogueSessionSelect: (sessionId: string) => void;
   onFollowupClick: (question: string) => void;
   onHomePromptSend: (question: string) => void;
@@ -107,6 +116,65 @@ interface DialoguePrototypeViewProps {
   onStopDialogue: () => void;
   viewerName: string;
 }
+
+interface DialogueTeamCompositeAvatarProps {
+  members: EmployeeItem[];
+}
+
+const DialogueTeamCompositeAvatar = ({
+  members,
+}: DialogueTeamCompositeAvatarProps): JSX.Element => {
+  const visibleMembers = members.slice(0, 9);
+  const useCompactGrid = visibleMembers.length <= 4;
+
+  return (
+    <span
+      className={classNames(
+        styles.dialogueTeamAvatarStack,
+        useCompactGrid && styles.dialogueTeamAvatarStackCompact,
+      )}
+    >
+      {visibleMembers.map(member => (
+        <span key={member.id} className={styles.dialogueTeamAvatarItem}>
+          {member.avatarUrl ? (
+            <img
+              className={styles.dialogueTeamAvatarImage}
+              src={member.avatarUrl}
+              alt={member.name}
+            />
+          ) : (
+            <span className={styles.dialogueTeamAvatarFallback}>{getAvatarText(member.name)}</span>
+          )}
+        </span>
+      ))}
+    </span>
+  );
+};
+
+interface DialogueTeamAvatarProps {
+  team: EmployeeItem;
+  members: EmployeeItem[];
+}
+
+const DialogueTeamAvatar = ({ team, members }: DialogueTeamAvatarProps): JSX.Element => {
+  const visibleMembers = members.slice(0, 9);
+  const soloMember = visibleMembers[0];
+
+  if (visibleMembers.length <= 1) {
+    const avatarSource = soloMember?.avatarUrl ?? team.avatarUrl;
+    const avatarName = soloMember?.name ?? team.name;
+
+    return (
+      <span className={styles.employeeAvatarWrap}>
+        <Avatar src={avatarSource} size={40} className={styles.dialogueHeroAvatar}>
+          {getAvatarText(avatarName)}
+        </Avatar>
+      </span>
+    );
+  }
+
+  return <DialogueTeamCompositeAvatar members={visibleMembers} />;
+};
 
 const renderSkillIcon = (iconKey: AiCeoSkillIconKey): JSX.Element => {
   switch (iconKey) {
@@ -143,6 +211,8 @@ const DIALOGUE_ARTIFACT_PREVIEW_PANEL_DEFAULT_WIDTH = 620;
 const DIALOGUE_RESULT_PANEL_DEFAULT_WIDTH = 960;
 const DIALOGUE_SIDE_PANEL_MIN_WIDTH = 320;
 const DIALOGUE_SIDE_PANEL_MAX_WIDTH = 960;
+const TEAM_MENTION_ALL_OPTION_ID = "team-mention-all";
+const TEAM_MENTION_ALL_LABEL = "所有agent";
 const SKILL_BUTTON_FONT =
   '500 14px "PingFang SC", system-ui, -apple-system, "Segoe UI", Arial, sans-serif';
 
@@ -175,6 +245,8 @@ export const DialoguePrototypeView = ({
   activeDialogueResults,
   activeDialogueSession,
   allEmployees,
+  conversationEmployeeDirectory,
+  activeExpertTeamMembers,
   accountMenuItems,
   defaultAgentIds,
   dialoguePlaceholder,
@@ -183,15 +255,20 @@ export const DialoguePrototypeView = ({
   dialogueMessages,
   dialogueSessions,
   followupSuggestions,
+  caseReplayActionLabel,
+  caseReplayOpenPanel,
   homeCaseItems,
   homePromptItems,
   homeSkillItems,
   isHomeVisible,
+  isCaseReplayMode = false,
   isSidebarCollapsed,
   isDialogueResponding,
+  onCaseReplayAction,
   onCreateDialogueSession,
   onDialogueAttachmentsSelected,
   onDialogueInputChange,
+  onHomeCaseSelect,
   onDialogueSessionSelect,
   onFollowupClick,
   onHomePromptSend,
@@ -214,6 +291,8 @@ export const DialoguePrototypeView = ({
   const skillTrackRef = useRef<HTMLDivElement | null>(null);
   const dialogueShellRef = useRef<HTMLDivElement | null>(null);
   const latestResultIdRef = useRef<string>("");
+  const latestAutoOpenedArtifactKeyRef = useRef<string>("");
+  const wasDialogueRespondingRef = useRef<boolean>(false);
   const sidePanelResizeStateRef = useRef<{ startX: number; startWidth: number } | null>(null);
   const sidePanelPendingWidthRef = useRef<number>(DIALOGUE_ARTIFACT_LIST_PANEL_DEFAULT_WIDTH);
   const [sidePanelMode, setSidePanelMode] = useState<"artifacts" | "results" | null>(null);
@@ -361,8 +440,8 @@ export const DialoguePrototypeView = ({
       })),
     [overflowSkillItems],
   );
-  const dialogueActorAvatars = useMemo(
-    () => ({
+  const dialogueActorAvatars = useMemo(() => {
+    const actorAvatarEntries: Record<string, { icon?: string; name: string }> = {
       [activeEmployee.id]: {
         icon: activeEmployee.avatarUrl,
         name: activeEmployee.name,
@@ -371,8 +450,43 @@ export const DialoguePrototypeView = ({
         icon: activeEmployee.avatarUrl,
         name: activeEmployee.name,
       },
-    }),
-    [activeEmployee.avatarUrl, activeEmployee.id, activeEmployee.name],
+    };
+
+    activeExpertTeamMembers.forEach(member => {
+      actorAvatarEntries[member.id] = {
+        icon: member.avatarUrl,
+        name: member.name,
+      };
+      actorAvatarEntries[member.name] = {
+        icon: member.avatarUrl,
+        name: member.name,
+      };
+    });
+
+    return actorAvatarEntries;
+  }, [activeEmployee.avatarUrl, activeEmployee.id, activeEmployee.name, activeExpertTeamMembers]);
+  const expertTeamMentionOptions = useMemo<WorkspaceComposerMentionOption[]>(
+    () =>
+      activeEmployee.isExpertTeam
+        ? [
+            {
+              id: TEAM_MENTION_ALL_OPTION_ID,
+              label: TEAM_MENTION_ALL_LABEL,
+              mentionLabel: TEAM_MENTION_ALL_LABEL,
+              alias: activeEmployee.name,
+              kind: "ai",
+            },
+            ...activeExpertTeamMembers.map(member => ({
+              id: member.id,
+              label: member.name,
+              mentionLabel: member.name,
+              alias: member.role,
+              avatarUrl: member.avatarUrl,
+              kind: "ai" as const,
+            })),
+          ]
+        : [],
+    [activeEmployee.isExpertTeam, activeEmployee.name, activeExpertTeamMembers],
   );
   const handleFileInputChange = (event: ChangeEvent<HTMLInputElement>): void => {
     onDialogueAttachmentsSelected(event.currentTarget.files);
@@ -490,17 +604,86 @@ export const DialoguePrototypeView = ({
     }
 
     latestResultIdRef.current = latestResultId;
+  }, [activeDialogueResults]);
 
-    if (latestResult.panel.kind !== "dispatchExecution") {
+  useEffect(() => {
+    const latestArtifact = activeDialogueArtifacts[activeDialogueArtifacts.length - 1];
+    const latestArtifactId = latestArtifact?.id ?? "";
+    const activeSessionId = activeDialogueSession?.id ?? "";
+    const wasResponding = wasDialogueRespondingRef.current;
+
+    wasDialogueRespondingRef.current = isDialogueResponding;
+
+    if (
+      isHomeVisible ||
+      isCaseReplayMode ||
+      !activeSessionId ||
+      !latestArtifactId ||
+      isDialogueResponding ||
+      !wasResponding ||
+      sidePanelMode !== null
+    ) {
       return;
     }
 
+    const autoOpenKey = `${activeSessionId}:${latestArtifactId}`;
+    if (latestAutoOpenedArtifactKeyRef.current === autoOpenKey) {
+      return;
+    }
+
+    latestAutoOpenedArtifactKeyRef.current = autoOpenKey;
+    setPreferredArtifactId(latestArtifactId);
+    setIsArtifactPreviewing(false);
     setSidePanelWidth(currentWidth =>
-      clampSidePanelWidth(Math.max(currentWidth, DIALOGUE_RESULT_PANEL_DEFAULT_WIDTH)),
+      clampSidePanelWidth(Math.max(currentWidth, DIALOGUE_ARTIFACT_LIST_PANEL_DEFAULT_WIDTH)),
     );
-    setActiveResultId(latestResultId);
-    setSidePanelMode("results");
-  }, [activeDialogueResults, clampSidePanelWidth]);
+    setSidePanelMode("artifacts");
+  }, [
+    activeDialogueArtifacts,
+    activeDialogueSession?.id,
+    clampSidePanelWidth,
+    isCaseReplayMode,
+    isDialogueResponding,
+    isHomeVisible,
+    sidePanelMode,
+  ]);
+
+  useEffect(() => {
+    if (isHomeVisible || !isCaseReplayMode || !caseReplayOpenPanel) {
+      return;
+    }
+
+    if (caseReplayOpenPanel === "results") {
+      const latestResult = activeDialogueResults[activeDialogueResults.length - 1];
+      if (!latestResult) {
+        return;
+      }
+      setSidePanelWidth(currentWidth =>
+        clampSidePanelWidth(Math.max(currentWidth, DIALOGUE_RESULT_PANEL_DEFAULT_WIDTH)),
+      );
+      setActiveResultId(latestResult.id);
+      setSidePanelMode("results");
+      return;
+    }
+
+    const preferredArtifact = activeDialogueArtifacts[0];
+    if (!preferredArtifact) {
+      return;
+    }
+    setPreferredArtifactId(preferredArtifact.id);
+    setIsArtifactPreviewing(true);
+    setSidePanelWidth(currentWidth =>
+      clampSidePanelWidth(Math.max(currentWidth, DIALOGUE_ARTIFACT_PREVIEW_PANEL_DEFAULT_WIDTH)),
+    );
+    setSidePanelMode("artifacts");
+  }, [
+    activeDialogueArtifacts,
+    activeDialogueResults,
+    caseReplayOpenPanel,
+    clampSidePanelWidth,
+    isCaseReplayMode,
+    isHomeVisible,
+  ]);
 
   useEffect(() => {
     if (!isEmployeeSwitcherOpen) {
@@ -707,6 +890,18 @@ export const DialoguePrototypeView = ({
     },
   ];
 
+  const resolveExpertTeamMembersForItem = useCallback(
+    (employee: EmployeeItem): EmployeeItem[] => {
+      if (!employee.isExpertTeam || !employee.expertTeamMemberIds?.length) {
+        return [];
+      }
+
+      return employee.expertTeamMemberIds
+        .map(memberId => conversationEmployeeDirectory.find(item => item.id === memberId) ?? null)
+        .filter((item): item is EmployeeItem => item !== null);
+    },
+    [conversationEmployeeDirectory],
+  );
   const employeeSwitcherMenu = (
     <div className={styles.dialogueSwitcherList}>
       {employeeGroups.map(group => (
@@ -715,6 +910,7 @@ export const DialoguePrototypeView = ({
           {group.items.map(item => {
             const isDefaultAgent = defaultAgentIds.includes(item.id);
             const isEditingAgent = editingAgentId === item.id;
+            const teamMembers = resolveExpertTeamMembersForItem(item);
 
             return (
               <div key={item.id} className={styles.dialogueSwitcherItemRow}>
@@ -771,18 +967,26 @@ export const DialoguePrototypeView = ({
                       setIsEmployeeSwitcherOpen(false);
                     }}
                   >
-                    <span className={styles.employeeAvatarWrap}>
-                      <Avatar src={item.avatarUrl} size={40} className={styles.dialogueHeroAvatar}>
-                        {getAvatarText(item.name)}
-                      </Avatar>
-                      <span
-                        className={classNames(styles.employeeStatusDot, {
-                          [styles.employeeStatusDotBusy]: item.status === "running",
-                          [styles.employeeStatusDotOffline]: item.status === "offline",
-                          [styles.employeeStatusDotError]: item.status === "exception",
-                        })}
-                      />
-                    </span>
+                    {item.isExpertTeam ? (
+                      <DialogueTeamAvatar team={item} members={teamMembers} />
+                    ) : (
+                      <span className={styles.employeeAvatarWrap}>
+                        <Avatar
+                          src={item.avatarUrl}
+                          size={40}
+                          className={styles.dialogueHeroAvatar}
+                        >
+                          {getAvatarText(item.name)}
+                        </Avatar>
+                        <span
+                          className={classNames(styles.employeeStatusDot, {
+                            [styles.employeeStatusDotBusy]: item.status === "running",
+                            [styles.employeeStatusDotOffline]: item.status === "offline",
+                            [styles.employeeStatusDotError]: item.status === "exception",
+                          })}
+                        />
+                      </span>
+                    )}
                     <span className={styles.dialogueSwitcherItemBody}>
                       <span className={styles.dialogueSwitcherItemName} title={item.name}>
                         {item.name}
@@ -882,68 +1086,81 @@ export const DialoguePrototypeView = ({
     document.body.style.userSelect = "none";
   };
 
-  const composerNode = (
+  const composerNode = isCaseReplayMode ? (
+    <div className={styles.dialogueCaseActionWrap}>
+      <button
+        type="button"
+        className={classNames(styles.primaryButton, styles.dialogueCaseActionButton)}
+        onClick={onCaseReplayAction}
+      >
+        {caseReplayActionLabel ?? "立即实践"}
+      </button>
+    </div>
+  ) : (
     <div className={styles.composerWrap}>
       <WorkspaceComposer
         rootClassName={styles.synclawComposer}
         value={dialogueInputValue}
         placeholder={dialoguePlaceholder}
+        mentionOptions={activeEmployee.isExpertTeam ? [] : expertTeamMentionOptions}
         attachments={dialogueAttachments}
         onRemoveAttachment={onRemoveAttachment}
         onAttachmentsSelected={onDialogueAttachmentsSelected}
         allowAttachmentOnlySend={true}
         footerExtra={
-          <div className={styles.dialogueComposerSkillBar}>
-            <span className={styles.dialogueComposerSkillDivider} aria-hidden={true} />
-            <div ref={skillTrackRef} className={styles.dialogueComposerSkillTrack}>
-              {selectedSkillItems.map(skill => (
-                <div key={skill.id} className={styles.dialogueComposerSkillSelected}>
-                  <span className={styles.dialogueComposerSkillIcon}>
-                    {renderSkillIcon(skill.iconKey)}
-                  </span>
-                  <span className={styles.dialogueComposerSkillLabel}>{skill.name}</span>
+          activeEmployee.isExpertTeam ? null : (
+            <div className={styles.dialogueComposerSkillBar}>
+              <span className={styles.dialogueComposerSkillDivider} aria-hidden={true} />
+              <div ref={skillTrackRef} className={styles.dialogueComposerSkillTrack}>
+                {selectedSkillItems.map(skill => (
+                  <div key={skill.id} className={styles.dialogueComposerSkillSelected}>
+                    <span className={styles.dialogueComposerSkillIcon}>
+                      {renderSkillIcon(skill.iconKey)}
+                    </span>
+                    <span className={styles.dialogueComposerSkillLabel}>{skill.name}</span>
+                    <button
+                      type="button"
+                      className={styles.dialogueComposerSkillClearButton}
+                      aria-label={`取消选择 ${skill.name}`}
+                      onClick={() => onSkillSelect(skill.id)}
+                    >
+                      <CloseOutlined />
+                    </button>
+                  </div>
+                ))}
+                {visibleSkillItems.map(skill => (
                   <button
+                    key={skill.id}
                     type="button"
-                    className={styles.dialogueComposerSkillClearButton}
-                    aria-label={`取消选择 ${skill.name}`}
+                    className={styles.dialogueComposerSkillButton}
                     onClick={() => onSkillSelect(skill.id)}
                   >
-                    <CloseOutlined />
-                  </button>
-                </div>
-              ))}
-              {visibleSkillItems.map(skill => (
-                <button
-                  key={skill.id}
-                  type="button"
-                  className={styles.dialogueComposerSkillButton}
-                  onClick={() => onSkillSelect(skill.id)}
-                >
-                  <span className={styles.dialogueComposerSkillIcon}>
-                    {renderSkillIcon(skill.iconKey)}
-                  </span>
-                  <span className={styles.dialogueComposerSkillLabel}>{skill.name}</span>
-                </button>
-              ))}
-              {overflowSkillItems.length > 0 ? (
-                <Dropdown
-                  menu={{
-                    items: moreSkillMenuItems,
-                    onClick: ({ key }) => onSkillSelect(String(key)),
-                  }}
-                  placement="topLeft"
-                  trigger={["click"]}
-                >
-                  <button type="button" className={styles.dialogueComposerSkillButton}>
                     <span className={styles.dialogueComposerSkillIcon}>
-                      <MoreOutlined />
+                      {renderSkillIcon(skill.iconKey)}
                     </span>
-                    <span className={styles.dialogueComposerSkillLabel}>更多</span>
+                    <span className={styles.dialogueComposerSkillLabel}>{skill.name}</span>
                   </button>
-                </Dropdown>
-              ) : null}
+                ))}
+                {overflowSkillItems.length > 0 ? (
+                  <Dropdown
+                    menu={{
+                      items: moreSkillMenuItems,
+                      onClick: ({ key }) => onSkillSelect(String(key)),
+                    }}
+                    placement="topLeft"
+                    trigger={["click"]}
+                  >
+                    <button type="button" className={styles.dialogueComposerSkillButton}>
+                      <span className={styles.dialogueComposerSkillIcon}>
+                        <MoreOutlined />
+                      </span>
+                      <span className={styles.dialogueComposerSkillLabel}>更多</span>
+                    </button>
+                  </Dropdown>
+                ) : null}
+              </div>
             </div>
-          </div>
+          )
         }
         sending={isDialogueResponding}
         showModelSelector={false}
@@ -967,6 +1184,89 @@ export const DialoguePrototypeView = ({
       />
     </div>
   );
+  const expertTeamMemberAvatars =
+    activeEmployee.isExpertTeam && activeExpertTeamMembers.length > 0 ? (
+      <>
+        {activeExpertTeamMembers.map(member => {
+          const memberSkillNames = homeSkillItems
+            .filter(skill => member.skills?.includes(skill.id))
+            .map(skill => skill.name);
+
+          return (
+            <Popover
+              key={member.id}
+              placement="top"
+              content={
+                <div className={styles.dialogueExpertCard}>
+                  <div className={styles.dialogueExpertCardHeader}>
+                    <Avatar src={member.avatarUrl} size={40}>
+                      {getAvatarText(member.name)}
+                    </Avatar>
+                    <div className={styles.dialogueExpertCardCopy}>
+                      <div className={styles.dialogueExpertCardName}>{member.name}</div>
+                    </div>
+                  </div>
+                  <div className={styles.dialogueExpertCardSummary}>{member.summary}</div>
+                  {memberSkillNames.length > 0 ? (
+                    <div className={styles.dialogueExpertCardSkills}>
+                      {memberSkillNames.map(skillName => (
+                        <span key={skillName} className={styles.dialogueExpertCardSkillTag}>
+                          {skillName}
+                        </span>
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
+              }
+            >
+              <button type="button" className={styles.dialogueExpertAvatarButton}>
+                <Avatar src={member.avatarUrl} size={40} className={styles.dialogueExpertAvatar}>
+                  {getAvatarText(member.name)}
+                </Avatar>
+              </button>
+            </Popover>
+          );
+        })}
+      </>
+    ) : null;
+  const expertTeamMemberStrip = expertTeamMemberAvatars ? (
+    <div className={styles.dialogueExpertTeamStrip}>
+      <div className={styles.dialogueExpertTeamAvatars}>{expertTeamMemberAvatars}</div>
+    </div>
+  ) : null;
+  const expertTeamToolbarStrip = expertTeamMemberAvatars ? (
+    <div
+      className={classNames(styles.dialogueExpertTeamStrip, styles.dialogueExpertTeamStripToolbar)}
+    >
+      <div
+        className={classNames(
+          styles.dialogueExpertTeamAvatars,
+          styles.dialogueExpertTeamAvatarsToolbar,
+        )}
+      >
+        {expertTeamMemberAvatars}
+      </div>
+    </div>
+  ) : null;
+  const expertTeamScenarioLabel = useMemo(
+    () =>
+      activeEmployee.isExpertTeam
+        ? getExpertTeamScenarioLabel(activeEmployee.summary, activeEmployee.name)
+        : "",
+    [activeEmployee.isExpertTeam, activeEmployee.name, activeEmployee.summary],
+  );
+  const expertTeamHomeLabel = useMemo(() => {
+    if (!activeEmployee.isExpertTeam) {
+      return "";
+    }
+
+    const normalizedTeamName = activeEmployee.name.replace(/专家团$/, "").trim();
+
+    return normalizedTeamName || expertTeamScenarioLabel || activeEmployee.name;
+  }, [activeEmployee.isExpertTeam, activeEmployee.name, expertTeamScenarioLabel]);
+  const dialogueHomeHeroTitle = activeEmployee.isExpertTeam
+    ? `Hi ${viewerName}，请说你的${expertTeamHomeLabel}需求`
+    : `Hi ${viewerName}，有什么可以帮你的？`;
 
   return (
     <div
@@ -1017,22 +1317,26 @@ export const DialoguePrototypeView = ({
                   title={activeEmployee.name}
                   onClick={() => setIsEmployeeSwitcherOpen(current => !current)}
                 >
-                  <span className={styles.employeeAvatarWrap}>
-                    <Avatar
-                      src={activeEmployee.avatarUrl}
-                      size={40}
-                      className={styles.dialogueHeroAvatar}
-                    >
-                      {getAvatarText(activeEmployee.name)}
-                    </Avatar>
-                    <span
-                      className={classNames(styles.employeeStatusDot, {
-                        [styles.employeeStatusDotBusy]: activeEmployee.status === "running",
-                        [styles.employeeStatusDotOffline]: activeEmployee.status === "offline",
-                        [styles.employeeStatusDotError]: activeEmployee.status === "exception",
-                      })}
-                    />
-                  </span>
+                  {activeEmployee.isExpertTeam ? (
+                    <DialogueTeamAvatar team={activeEmployee} members={activeExpertTeamMembers} />
+                  ) : (
+                    <span className={styles.employeeAvatarWrap}>
+                      <Avatar
+                        src={activeEmployee.avatarUrl}
+                        size={40}
+                        className={styles.dialogueHeroAvatar}
+                      >
+                        {getAvatarText(activeEmployee.name)}
+                      </Avatar>
+                      <span
+                        className={classNames(styles.employeeStatusDot, {
+                          [styles.employeeStatusDotBusy]: activeEmployee.status === "running",
+                          [styles.employeeStatusDotOffline]: activeEmployee.status === "offline",
+                          [styles.employeeStatusDotError]: activeEmployee.status === "exception",
+                        })}
+                      />
+                    </span>
+                  )}
                 </button>
               </div>
 
@@ -1102,22 +1406,26 @@ export const DialoguePrototypeView = ({
                 onClick={() => setIsEmployeeSwitcherOpen(current => !current)}
               >
                 <span className={styles.dialogueAgentSelectCurrent}>
-                  <span className={styles.employeeAvatarWrap}>
-                    <Avatar
-                      src={activeEmployee.avatarUrl}
-                      size={40}
-                      className={styles.dialogueHeroAvatar}
-                    >
-                      {getAvatarText(activeEmployee.name)}
-                    </Avatar>
-                    <span
-                      className={classNames(styles.employeeStatusDot, {
-                        [styles.employeeStatusDotBusy]: activeEmployee.status === "running",
-                        [styles.employeeStatusDotOffline]: activeEmployee.status === "offline",
-                        [styles.employeeStatusDotError]: activeEmployee.status === "exception",
-                      })}
-                    />
-                  </span>
+                  {activeEmployee.isExpertTeam ? (
+                    <DialogueTeamAvatar team={activeEmployee} members={activeExpertTeamMembers} />
+                  ) : (
+                    <span className={styles.employeeAvatarWrap}>
+                      <Avatar
+                        src={activeEmployee.avatarUrl}
+                        size={40}
+                        className={styles.dialogueHeroAvatar}
+                      >
+                        {getAvatarText(activeEmployee.name)}
+                      </Avatar>
+                      <span
+                        className={classNames(styles.employeeStatusDot, {
+                          [styles.employeeStatusDotBusy]: activeEmployee.status === "running",
+                          [styles.employeeStatusDotOffline]: activeEmployee.status === "offline",
+                          [styles.employeeStatusDotError]: activeEmployee.status === "exception",
+                        })}
+                      />
+                    </span>
+                  )}
                   <span className={styles.dialogueSwitcherItemBody}>
                     <span className={styles.dialogueSwitcherItemName}>{activeEmployee.name}</span>
                   </span>
@@ -1250,6 +1558,7 @@ export const DialoguePrototypeView = ({
       >
         {!isHomeVisible ? (
           <div className={styles.dialogueViewToolbar}>
+            {expertTeamToolbarStrip}
             <div className={styles.dialogueViewToolbarGroup}>
               <button
                 type="button"
@@ -1268,25 +1577,29 @@ export const DialoguePrototypeView = ({
 
         {isHomeVisible ? (
           <div className={styles.dialogueHomeLayout}>
-            <div className={styles.dialogueHomeHero}>
-              <Avatar
-                src={activeEmployee.avatarUrl}
-                size={88}
-                className={styles.dialogueHomeHeroAvatar}
-              >
-                {getAvatarText(activeEmployee.name)}
-              </Avatar>
-              <h2 className={styles.dialogueHomeHeroTitle}>
-                {`Hi ${viewerName}，有什么可以帮你的？`}
-              </h2>
+            <div
+              className={classNames(styles.dialogueHomeHero, {
+                [styles.dialogueHomeHeroExpertTeam]: activeEmployee.isExpertTeam,
+              })}
+            >
+              {activeEmployee.isExpertTeam ? (
+                expertTeamMemberStrip
+              ) : (
+                <Avatar
+                  src={activeEmployee.avatarUrl}
+                  size={88}
+                  className={styles.dialogueHomeHeroAvatar}
+                >
+                  {getAvatarText(activeEmployee.name)}
+                </Avatar>
+              )}
+              <h2 className={styles.dialogueHomeHeroTitle}>{dialogueHomeHeroTitle}</h2>
             </div>
             {composerNode}
             <DialogueHomeView
-              activeEmployeeAvatarUrl={activeEmployee.avatarUrl}
-              activeEmployeeId={activeEmployee.id}
-              activeEmployeeName={activeEmployee.name}
               caseItems={homeCaseItems}
               promptItems={homePromptItems}
+              onCaseSelect={onHomeCaseSelect}
               onPromptSend={onHomePromptSend}
             />
           </div>
@@ -1305,6 +1618,7 @@ export const DialoguePrototypeView = ({
                   assistantAvatarAlt={activeEmployee.name}
                   workspaceSummary={activeEmployee.summary}
                   greeting="输入消息或上传文件，开始协作"
+                  showMessageMeta={true}
                   onFollowupClick={onFollowupClick}
                   onOpenArtifact={handleOpenArtifact}
                   onOpenResult={handleOpenResult}

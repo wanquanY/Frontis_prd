@@ -122,6 +122,8 @@ export interface ToolUseData {
   name: string;
   display_name?: string; // 工具展示名称（优先用于 UI 展示）
   call_id: string;
+  avatar_url?: string;
+  avatar_label?: string;
   arguments?: Record<string, unknown>;
   arguments_delta?: string; // 流式参数增量
   purpose?: string; // 工具本次调用目的描述
