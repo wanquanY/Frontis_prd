@@ -56,6 +56,12 @@ export const getAvatarUrl = (seed: string): string =>
   `https://api.dicebear.com/9.x/notionists/svg?seed=${encodeURIComponent(seed)}`;
 
 /**
+ * 生成专家团默认主 agent 的差异化头像地址。
+ */
+export const getMateagentAvatarUrl = (seed: string): string =>
+  `https://api.dicebear.com/9.x/bottts-neutral/svg?seed=${encodeURIComponent(seed)}`;
+
+/**
  * PRD 默认 AI 专家头像预设。
  */
 export const EMPLOYEE_AVATAR_PRESETS: string[] = [

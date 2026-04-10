@@ -213,6 +213,7 @@ const DIALOGUE_SIDE_PANEL_MIN_WIDTH = 320;
 const DIALOGUE_SIDE_PANEL_MAX_WIDTH = 960;
 const TEAM_MENTION_ALL_OPTION_ID = "team-mention-all";
 const TEAM_MENTION_ALL_LABEL = "所有agent";
+const EXPERT_TEAM_MAIN_AGENT_NAME = "Mateagent";
 const SKILL_BUTTON_FONT =
   '500 14px "PingFang SC", system-ui, -apple-system, "Segoe UI", Arial, sans-serif';
 
@@ -389,10 +390,7 @@ export const DialoguePrototypeView = ({
       };
     }
 
-    const maxVisibleSkillCount = Math.max(
-      MAX_VISIBLE_SKILL_COUNT - selectedSkillItems.length,
-      0,
-    );
+    const maxVisibleSkillCount = Math.max(MAX_VISIBLE_SKILL_COUNT - selectedSkillItems.length, 0);
 
     if (skillTrackWidth <= 0) {
       return {
@@ -1235,6 +1233,7 @@ export const DialoguePrototypeView = ({
     activeEmployee.isExpertTeam && activeExpertTeamMembers.length > 0 ? (
       <>
         {activeExpertTeamMembers.map(member => {
+          const isMainAgent = member.name === EXPERT_TEAM_MAIN_AGENT_NAME;
           const memberSkillNames = homeSkillItems
             .filter(skill => member.skills?.includes(skill.id))
             .map(skill => skill.name);
@@ -1246,7 +1245,14 @@ export const DialoguePrototypeView = ({
               content={
                 <div className={styles.dialogueExpertCard}>
                   <div className={styles.dialogueExpertCardHeader}>
-                    <Avatar src={member.avatarUrl} size={40}>
+                    <Avatar
+                      src={member.avatarUrl}
+                      size={40}
+                      className={classNames(
+                        styles.dialogueExpertAvatar,
+                        isMainAgent && styles.dialogueExpertAvatarMainAgent,
+                      )}
+                    >
                       {getAvatarText(member.name)}
                     </Avatar>
                     <div className={styles.dialogueExpertCardCopy}>
@@ -1267,7 +1273,14 @@ export const DialoguePrototypeView = ({
               }
             >
               <button type="button" className={styles.dialogueExpertAvatarButton}>
-                <Avatar src={member.avatarUrl} size={40} className={styles.dialogueExpertAvatar}>
+                <Avatar
+                  src={member.avatarUrl}
+                  size={40}
+                  className={classNames(
+                    styles.dialogueExpertAvatar,
+                    isMainAgent && styles.dialogueExpertAvatarMainAgent,
+                  )}
+                >
                   {getAvatarText(member.name)}
                 </Avatar>
               </button>

@@ -252,7 +252,7 @@ const PRODUCT_MANAGER_BACKLOG_FOLLOWUPS = [
 
 const PRODUCT_TEAM_COLLAB_QUESTION = "帮我把这个需求拆成核心模块、边界和依赖关系。";
 const PRODUCT_TEAM_RISK_QUESTION = "这版方案上线前，架构层面最需要提前规避哪些风险？";
-const PRODUCT_TEAM_MAIN_AGENT_NAME = "产品策略官";
+const PRODUCT_TEAM_MAIN_AGENT_NAME = "Mateagent";
 const PRODUCT_TEAM_ARCHITECT_AVATAR_URL = getAvatarUrl("employee-architect");
 const PRODUCT_TEAM_GROWTH_AVATAR_URL = getAvatarUrl("employee-growth");
 const PRODUCT_TEAM_QA_AVATAR_URL = getAvatarUrl("employee-qa");

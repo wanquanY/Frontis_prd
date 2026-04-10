@@ -44,6 +44,7 @@ import {
   createId,
   getAvatarUrl,
   getExpertTeamScenarioLabel,
+  getMateagentAvatarUrl,
   revokeComposerAttachmentPreview,
 } from "./utils";
 import {
@@ -64,6 +65,9 @@ const ACTIVE_WORKSPACE_STATUSES = new Set<StatusTone>(["online", "busy", "idle"]
 const DEFAULT_WORKSPACE_AGENT_ORDER: string[] = Object.values(WORKSPACE_DEFAULT_AGENT_CONFIG_IDS);
 const TEAM_MENTION_ALL_LABEL = "所有agent";
 const MAX_HOME_PROMPT_ITEM_COUNT = 6;
+const EXPERT_TEAM_MAIN_AGENT_NAME = "Mateagent";
+const EXPERT_TEAM_MAIN_AGENT_DESCRIPTION =
+  "作为专家团默认主agent，负责理解需求、调度成员并统一交付。";
 const PRODUCT_TEAM_COLLAB_QUESTION = "帮我把这个需求拆成核心模块、边界和依赖关系。";
 const PRODUCT_TEAM_RISK_QUESTION = "这版方案上线前，架构层面最需要提前规避哪些风险？";
 
@@ -364,8 +368,8 @@ const buildConversationExpertTeamEmployee = (
     runtimeAgentId: `${team.id}-runtime`,
     accessScopeSubjects: primaryEmployee.accessScopeSubjects,
     boundMembers: primaryEmployee.boundMembers,
-    welcomeMessage: `我是${team.name}，可以协同处理${scenarioLabel}等场景，请直接描述你的需求。`,
-    systemPrompt: `你是${team.name}的协作入口，默认主专家是${primaryEmployee.name}，负责接收任务并协调团队成员完成。`,
+    welcomeMessage: `我是${EXPERT_TEAM_MAIN_AGENT_NAME}，${EXPERT_TEAM_MAIN_AGENT_DESCRIPTION}`,
+    systemPrompt: `你是${team.name}的协作入口，默认主agent是${EXPERT_TEAM_MAIN_AGENT_NAME}，${EXPERT_TEAM_MAIN_AGENT_DESCRIPTION}`,
     skills: uniqueSkillIds,
   };
 };
@@ -382,7 +386,27 @@ const resolveExpertTeamMembers = (
   }
 
   return employee.expertTeamMemberIds
-    .map(memberId => employees.find(item => item.id === memberId) ?? null)
+    .map(memberId => {
+      const member = employees.find(item => item.id === memberId) ?? null;
+      if (!member) {
+        return null;
+      }
+
+      if (memberId !== employee.expertTeamPrimaryMemberId) {
+        return member;
+      }
+
+      return {
+        ...member,
+        name: EXPERT_TEAM_MAIN_AGENT_NAME,
+        avatarUrl: getMateagentAvatarUrl(`${employee.id}-${member.id}`),
+        role: "专家团默认主agent",
+        summary: EXPERT_TEAM_MAIN_AGENT_DESCRIPTION,
+        lastAction: `作为${employee.name}默认主agent，负责理解需求、调度成员与统一交付。`,
+        welcomeMessage: `我是${EXPERT_TEAM_MAIN_AGENT_NAME}，${EXPERT_TEAM_MAIN_AGENT_DESCRIPTION}`,
+        systemPrompt: `你是${employee.name}的默认主agent，${EXPERT_TEAM_MAIN_AGENT_DESCRIPTION}`,
+      } satisfies EmployeeItem;
+    })
     .filter((item): item is EmployeeItem => item !== null);
 };
 
@@ -1216,7 +1240,7 @@ const FrontisPage = ({ viewRole }: FrontisPageProps): JSX.Element => {
           : selectedSkills.length
             ? `已按「${selectedSkillNamesLabel}」开始处理，我会先聚焦这些技能来回应你的需求。`
             : activeEmployee.isExpertTeam
-              ? `${respondingEmployee.name} 已接管本轮任务，如有需要会继续调度专家团其他成员协作。`
+              ? `${EXPERT_TEAM_MAIN_AGENT_NAME} 已接管本轮任务，如有需要会继续调度专家团其他成员协作。`
               : "已继续处理当前任务，结果会直接回流到本轮对话和右侧成果面板；如需管理员或其他角色协同，我会同步提醒。";
 
       const timerId = window.setTimeout(() => {
