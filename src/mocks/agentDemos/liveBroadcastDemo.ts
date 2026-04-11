@@ -176,8 +176,7 @@ export const LIVE_BROADCAST_SKILL_DEMOS: LiveBroadcastDemoSkillDefinition[] = [
     iconKey: "employee",
     category: "直播预热",
     summary: "按品类、粉丝量和带货能力筛选达人，输出可直接投放的候选名单。",
-    description:
-      "抖音星图达人投放筛选工具。适合直播前快速圈选腰尾部达人，补齐投放建议和预算组合。",
+    description: "抖音星图达人投放筛选工具。适合直播前快速圈选腰尾部达人，补齐投放建议和预算组合。",
     emoji: "🔎",
     prompt: "我要做小米冲牙器的投放，你帮我推荐一下达人。",
     title: "小米冲牙器达人推荐",
@@ -250,8 +249,7 @@ export const LIVE_BROADCAST_SKILL_DEMOS: LiveBroadcastDemoSkillDefinition[] = [
     iconKey: "ranking",
     category: "直播策划",
     summary: "拉取抖音热榜并结合品类生成短视频选题和直播开场话术。",
-    description:
-      "抖音热点选题雷达。适合直播前半小时快速找热点切入点，补齐视频标题和口播方向。",
+    description: "抖音热点选题雷达。适合直播前半小时快速找热点切入点，补齐视频标题和口播方向。",
     emoji: "🔥",
     prompt: "帮我做一下小米冲牙器的抖音热点选题。",
     title: "小米冲牙器热点选题",
@@ -474,7 +472,8 @@ export const LIVE_BROADCAST_SKILL_DEMOS: LiveBroadcastDemoSkillDefinition[] = [
     description:
       "直播 Rundown 生成器。适合品牌直播、明星直播和电商场景的整场流程设计与逐字稿编排。",
     emoji: "🎬",
-    prompt: "给雀巢咖啡做一场品牌 + 明星直播，明星是李现，福利买 3 送 1，先帮我出完整 Rundown 和福利炸场方案。",
+    prompt:
+      "给雀巢咖啡做一场品牌 + 明星直播，明星是李现，福利买 3 送 1，先帮我出完整 Rundown 和福利炸场方案。",
     title: "雀巢咖啡直播编导方案",
     updatedAt: "今天 21:16",
     thinking:

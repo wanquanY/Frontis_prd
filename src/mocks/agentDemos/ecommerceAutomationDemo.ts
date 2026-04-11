@@ -63,8 +63,7 @@ export const ECOMMERCE_AUTOMATION_AGENT_DEMO = {
     "你可以直接把货盘 Excel、微店商品、退款单或差评异常发给我，我会按电商托管流程给出质检、监控和处置建议。",
   systemPrompt:
     "你是一名电商自动化托管 Agent，负责货盘比价、商品上架质检、发货超时监控、退款风险预警、差评聚类和运营播报输出。",
-  intro:
-    "我是电商自动化托管 Agent，可以直接帮你做货盘比价、商品质检、订单异常监控和运营播报。",
+  intro: "我是电商自动化托管 Agent，可以直接帮你做货盘比价、商品质检、订单异常监控和运营播报。",
   boundMembers: ["杨万泉", "陈雪梅", "王晨", "李婷", "赵立", "周可"],
   documentNames: ["电商托管说明.md", "商品质检规则.md", "订单异常监控SOP.md"],
 } as const;
@@ -79,8 +78,7 @@ export const ECOMMERCE_AUTOMATION_SKILL_DEMOS: EcommerceAutomationDemoSkillDefin
     iconKey: "ranking",
     category: "商品运营",
     summary: "读取货盘和商品图片，校验毛利率，再按公开平台价格给出竞争力评级。",
-    description:
-      "适合在商品定价前快速做一轮市场比价、毛利率校验和建议定价区间输出。",
+    description: "适合在商品定价前快速做一轮市场比价、毛利率校验和建议定价区间输出。",
     emoji: "💹",
     prompt: "把这批坚果礼盒货盘做一轮全网比价，看看定价和毛利率有没有问题。",
     title: "坚果礼盒货盘比价总览",
@@ -152,8 +150,7 @@ export const ECOMMERCE_AUTOMATION_SKILL_DEMOS: EcommerceAutomationDemoSkillDefin
     iconKey: "process",
     category: "商品运营",
     summary: "把货盘和微店全量在售商品对齐，识别漏上架、未备案和六维异常。",
-    description:
-      "适合在商品上架后做批量质检，快速拉出漏上架清单和逐 SKU 异常明细。",
+    description: "适合在商品上架后做批量质检，快速拉出漏上架清单和逐 SKU 异常明细。",
     emoji: "🧪",
     prompt: "帮我把微店在售商品做一轮链接质检，重点看漏上架和 SKU 异常。",
     title: "微店 SKU 质检报告",
@@ -231,8 +228,7 @@ export const ECOMMERCE_AUTOMATION_SKILL_DEMOS: EcommerceAutomationDemoSkillDefin
     iconKey: "task",
     category: "风险监控",
     summary: "自动筛出付款后 48h 未出单和填单后 72h 未揽收的订单，并按供应商路由告警。",
-    description:
-      "适合做 7×24 小时履约监控，优先把高风险订单推送到供应商企微群和对接人。",
+    description: "适合做 7×24 小时履约监控，优先把高风险订单推送到供应商企微群和对接人。",
     emoji: "🚚",
     prompt: "把最近 48 小时付款未发货和 72 小时未揽收的订单拉出来，按供应商分级告警。",
     title: "发货超时告警汇总",
@@ -297,8 +293,7 @@ export const ECOMMERCE_AUTOMATION_SKILL_DEMOS: EcommerceAutomationDemoSkillDefin
     iconKey: "risk",
     category: "风险监控",
     summary: "监控退款拒绝订单，结合金额和拒绝次数做风险分级并推送运营群。",
-    description:
-      "适合用在售后风险预警场景，优先把高风险退款单标红并安排人工介入。",
+    description: "适合用在售后风险预警场景，优先把高风险退款单标红并安排人工介入。",
     emoji: "💸",
     prompt: "帮我看一下最近退款拒绝里哪些单子风险最高，先标红给运营群。",
     title: "退款拒绝风险分级",
@@ -359,8 +354,7 @@ export const ECOMMERCE_AUTOMATION_SKILL_DEMOS: EcommerceAutomationDemoSkillDefin
     iconKey: "document",
     category: "风险监控",
     summary: "监控新增差评和中评，聚合高频问题关键词并回推商品改进方向。",
-    description:
-      "适合自动归纳近期中差评内容，识别高频问题、关联 SKU 和后续改进动作。",
+    description: "适合自动归纳近期中差评内容，识别高频问题、关联 SKU 和后续改进动作。",
     emoji: "⭐",
     prompt: "把最近新增的差评和中评整理一下，帮我归纳高频问题关键词。",
     title: "差评高频问题聚合",

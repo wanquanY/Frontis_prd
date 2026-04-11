@@ -32,6 +32,7 @@
   flex-shrink: 0;
   width: 280px;
   height: 100vh;
+  min-height: 0;
   padding: 24px 12px 18px;
   border-right: 1px solid var(--fdeBorder);
   border-radius: 0;
@@ -54,6 +55,7 @@
 }
 
 .sidebarTop {
+  flex: 0 0 auto;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -145,6 +147,11 @@
   flex-direction: column;
   gap: 10px;
   min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 4px;
+  scrollbar-gutter: stable;
+  overscroll-behavior: contain;
 }
 
 .sidebarNavCollapsed {
@@ -255,11 +262,18 @@
 }
 
 .sidebarFooter {
+  flex: 0 0 auto;
   width: 100%;
   padding: 10px 12px;
+  margin-top: 8px;
   border: 0;
+  border-top: 1px solid var(--fdeBorder);
   border-radius: 14px;
-  background: transparent;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--fdeSurface) 35%, transparent),
+    color-mix(in srgb, var(--fdeSurface) 96%, var(--fdeBg))
+  );
   display: flex;
   align-items: center;
   gap: 10px;
@@ -280,6 +294,7 @@
   width: 56px;
   min-height: 56px;
   padding: 8px;
+  margin-top: 8px;
   justify-content: center;
   border-radius: 18px;
 }
@@ -465,6 +480,7 @@
   .sidebarCollapsed {
     width: auto;
     height: auto;
+    min-height: auto;
     padding: 12px 10px;
     align-items: stretch;
     border-right: 0;
@@ -488,6 +504,8 @@
   .sidebarNavCollapsed {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
+    overflow: visible;
+    padding-right: 0;
   }
 
   .navButtonCollapsed {
@@ -507,9 +525,12 @@
   .sidebarFooterCollapsed {
     width: auto;
     min-height: 0;
+    margin-top: 0;
     justify-content: flex-start;
     padding: 10px 12px;
+    border-top: 0;
     border-radius: 14px;
+    background: transparent;
   }
 
   .main {

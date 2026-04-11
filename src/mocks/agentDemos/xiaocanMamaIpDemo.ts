@@ -84,8 +84,7 @@ export const XIAOCANMAMA_IP_SKILL_DEMOS: XiaocanMamaIpDemoSkillDefinition[] = [
     description:
       "适合童装、鞋服尾货和季末清仓场景，重点把价格带、尺码覆盖、颜色数量和库存稀缺感整理成能直接发的开团文。",
     emoji: "🧥",
-    prompt:
-      "我拿到一批童装库存，打算下周一开团。按小蚕妈妈 IP 风格，写一篇童装清仓开团种草文。",
+    prompt: "我拿到一批童装库存，打算下周一开团。按小蚕妈妈 IP 风格，写一篇童装清仓开团种草文。",
     title: "臻品仓童装清仓开团文",
     updatedAt: "今天 22:18",
     thinking:
@@ -182,7 +181,8 @@ export const XIAOCANMAMA_IP_SKILL_DEMOS: XiaocanMamaIpDemoSkillDefinition[] = [
         name: "launch_brief_extract",
         displayName: "商品信息收口",
         purpose: "整理童装品类、价格带、尺码覆盖和库存限制",
-        output: "已识别加绒卫衣、棉马甲、羽绒服三类商品，并收口 19.9-69.9 元价格带和 80-170 尺码范围。",
+        output:
+          "已识别加绒卫衣、棉马甲、羽绒服三类商品，并收口 19.9-69.9 元价格带和 80-170 尺码范围。",
       },
       {
         id: "style-align",
@@ -214,8 +214,7 @@ export const XIAOCANMAMA_IP_SKILL_DEMOS: XiaocanMamaIpDemoSkillDefinition[] = [
     updatedAt: "今天 22:25",
     thinking:
       "这类返场补货文不能只讲功能，要先把‘为什么能再开一团’和‘为什么这次还要尽快下手’写清楚。我会先收口 199 元锚点原价、88 元返场价、仅 480 台、前 50/前 10 福利，再按小蚕妈妈常用的人群对号入座结构排文。",
-    preview:
-      "已生成创维小黄鸭吹风机返场开团文，突出 88 元返场价、480 台库存和前 N 名福利机制。",
+    preview: "已生成创维小黄鸭吹风机返场开团文，突出 88 元返场价、480 台库存和前 N 名福利机制。",
     responseMarkdown: `# 小蚕妈妈·创维小黄鸭吹风机返场开团文
 
 > **开卖时间**：12 月 31 日晚上 8 点整  

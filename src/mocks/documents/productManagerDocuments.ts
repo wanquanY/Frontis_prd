@@ -1,8 +1,8 @@
-import backlogDocumentContent from "../../Frontis AI · Product Backlog.md?raw";
-import fdeDeliveryPrdDocumentContent from "../../Frontis AI · FDE配置交付 PRD.md?raw";
-import adminPrdDocumentContent from "../../Frontis AI · 企业管理后台 PRD.md?raw";
-import prdDocumentContent from "../../Frontis AI · 正式 PRD.md?raw";
-import workspacePrdDocumentContent from "../../Frontis AI · 工作台 PRD.md?raw";
+import backlogDocumentContent from "../../../Frontis AI · Product Backlog.md?raw";
+import fdeDeliveryPrdDocumentContent from "../../../Frontis AI · FDE配置交付 PRD.md?raw";
+import adminPrdDocumentContent from "../../../Frontis AI · 企业管理后台 PRD.md?raw";
+import prdDocumentContent from "../../../Frontis AI · 正式 PRD.md?raw";
+import workspacePrdDocumentContent from "../../../Frontis AI · 工作台 PRD.md?raw";
 
 /**
  * 产品经理专家引用的真实 PRD 文件名。

@@ -2,7 +2,7 @@ import {
   AI_CEO_AGENT_SCENARIO_QUESTIONS,
   PRODUCT_MANAGER_BACKLOG_QUESTION,
   PRODUCT_MANAGER_PRD_QUESTION,
-} from "@/constants/aiCeoScenarioPrompts";
+} from "@/mocks/dialogueScenario/aiCeoScenarioPrompts";
 import benchmarkProductionCover from "@/assets/images/aiCeoScenarioOutputs/benchmark-production-page.png";
 import ceoChatDrawerCover from "@/assets/images/aiCeoScenarioOutputs/ceo-chat-drawer.png";
 import employeeAssessCover from "@/assets/images/aiCeoScenarioOutputs/employee-assess-wangjianguo.png";

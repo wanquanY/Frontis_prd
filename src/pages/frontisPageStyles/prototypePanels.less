@@ -1,0 +1,502 @@
+.workspaceSummaryTitle {
+  color: var(--text);
+  font-size: 15px;
+  line-height: 22px;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.runtimePreviewWindow {
+  padding: 14px;
+  border: 1px solid var(--panelBorder);
+  border-radius: 14px;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--text) 2%, var(--surface)),
+    color-mix(in srgb, var(--text) 6%, var(--app-bg))
+  );
+}
+
+.runtimePreviewDots {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.runtimePreviewDots span {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--text) 22%, var(--surface));
+}
+
+.runtimePreviewStage {
+  display: grid;
+  gap: 10px;
+}
+
+.runtimePreviewTile {
+  padding: 16px 14px;
+  border: 1px solid var(--panelBorder);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--text) 2%, var(--surface));
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.syncList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.syncList span {
+  min-height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--primary) 8%, var(--surface));
+  color: var(--text);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.viewGrid {
+  display: grid;
+  grid-template-columns: 288px minmax(0, 1fr) 288px;
+  gap: 16px;
+  min-height: 100%;
+}
+
+.singleColumnView {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.surfaceCard,
+.runtimeCard,
+.miniPanel,
+.desktopCard,
+.localOnlyCard,
+.taskCard,
+.skillCard,
+.employeeCard {
+  border: 1px solid var(--panelBorder);
+  border-radius: 16px;
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.surfaceCard {
+  padding: 20px;
+}
+
+.sideRail,
+.chatSurface,
+.cardStack,
+.formStack {
+  display: flex;
+  flex-direction: column;
+}
+
+.sideRail,
+.chatSurface {
+  gap: 16px;
+}
+
+.cardStack,
+.formStack {
+  gap: 12px;
+}
+
+.employeeGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.sectionEyebrow {
+  margin: 0 0 4px;
+  color: var(--softText);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.sectionTitle,
+.runtimeTitle,
+.miniPanelTitle {
+  margin: 0;
+  color: var(--text);
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 24px;
+}
+
+.runtimeTitle,
+.miniPanelTitle {
+  font-size: 14px;
+  line-height: 22px;
+}
+
+.heroTags,
+.composerActions,
+.attachmentRow,
+.mentionRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.infoTag,
+.statusPill,
+.attachmentBadge,
+.attachmentBadgeButton,
+.mentionButton {
+  min-height: 30px;
+  padding: 0 12px;
+  border: 1px solid var(--panelBorder);
+  border-radius: 999px;
+  background: var(--subtleBg);
+  color: var(--text-secondary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.statusOnline {
+  background: var(--statusOnlineBg);
+  color: var(--statusOnlineText);
+}
+
+.statusBusy {
+  background: var(--statusBusyBg);
+  color: var(--statusBusyText);
+}
+
+.statusIdle {
+  background: color-mix(in srgb, var(--text) 6%, var(--surface));
+  color: var(--text-secondary);
+}
+
+.statusPending {
+  background: var(--statusPendingBg);
+  color: var(--statusPendingText);
+}
+
+.statusPaused {
+  background: var(--statusPausedBg);
+  color: var(--statusPausedText);
+}
+
+.statusDraft {
+  background: color-mix(in srgb, var(--text) 4%, var(--surface));
+  color: var(--text-secondary);
+}
+
+.listCardButton {
+  width: 100%;
+  padding: 14px 16px;
+  border: 1px solid var(--panelBorder);
+  border-radius: 14px;
+  background: var(--surface);
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color 160ms ease,
+    background 160ms ease,
+    transform 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.listCardButton:hover {
+  border-color: var(--panelBorderStrong);
+  background: var(--subtleBgHover);
+  transform: translateY(-1px);
+}
+
+.isActiveCard {
+  border-color: color-mix(in srgb, var(--primary) 24%, var(--panelBorder));
+  background: var(--subtleBgStrong);
+  box-shadow: var(--shadow-sm);
+}
+
+.listCardMeta,
+.listCardHint,
+.runtimeText,
+.inputHint,
+.fieldLabel {
+  color: var(--mutedText);
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.listCardText {
+  margin: 8px 0 4px;
+  color: var(--text);
+  font-size: 14px;
+  line-height: 22px;
+}
+
+.listCardHint,
+.runtimeText {
+  margin: 0;
+}
+
+.messageList {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-right: 4px;
+  overflow-y: auto;
+}
+
+.messageBubble {
+  padding: 14px 16px;
+  border: 1px solid var(--panelBorder);
+  border-radius: 16px;
+  background: var(--surface);
+}
+
+.messageUser {
+  background: color-mix(in srgb, var(--primary) 6%, var(--surface));
+}
+
+.messageAssistant {
+  background: color-mix(in srgb, var(--text) 2%, var(--surface));
+}
+
+.messageSystem {
+  background: color-mix(in srgb, var(--text) 4%, var(--surface));
+}
+
+.messageMeta {
+  margin-bottom: 8px;
+  color: var(--mutedText);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.messageContent {
+  margin: 0;
+  color: var(--text);
+  font-size: 14px;
+  line-height: 22px;
+}
+
+.composerPanel {
+  padding: 16px;
+  border: 1px solid var(--panelBorder);
+  border-radius: 16px;
+  background: var(--surface);
+}
+
+.attachmentRow {
+  margin-top: 12px;
+}
+
+.attachmentBadgeButton,
+.mentionButton {
+  cursor: pointer;
+  transition:
+    background 160ms ease,
+    transform 160ms ease,
+    border-color 160ms ease;
+}
+
+.attachmentBadgeButton {
+  background: color-mix(in srgb, var(--primary) 6%, var(--surface));
+}
+
+.attachmentBadgeButton:hover,
+.mentionButton:hover {
+  transform: translateY(-1px);
+  border-color: var(--panelBorderStrong);
+  background: var(--subtleBgHover);
+}
+
+.composerInput,
+.textField,
+.selectField {
+  width: 100%;
+  border: 1px solid var(--panelBorder);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 14px;
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.composerInput:focus,
+.textField:focus,
+.selectField:focus {
+  border-color: color-mix(in srgb, var(--primary) 40%, var(--panelBorder));
+  outline: none;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 12%, transparent);
+}
+
+.composerInput {
+  min-height: 120px;
+  margin-top: 14px;
+  padding: 14px 16px;
+  resize: vertical;
+}
+
+.textField,
+.selectField {
+  min-height: 44px;
+  padding: 0 14px;
+}
+
+.fieldLabel {
+  display: block;
+  margin-bottom: -4px;
+}
+
+.primaryButton,
+.secondaryButton,
+.ghostButton {
+  min-height: 40px;
+  padding: 0 16px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background 160ms ease,
+    border-color 160ms ease,
+    color 160ms ease,
+    transform 160ms ease;
+}
+
+.primaryButton {
+  border: 1px solid transparent;
+  background: var(--primary);
+  color: var(--surface);
+}
+
+.secondaryButton {
+  border: 1px solid var(--panelBorder);
+  background: color-mix(in srgb, var(--primary) 8%, var(--surface));
+  color: var(--text);
+}
+
+.ghostButton {
+  border: 1px solid var(--panelBorder);
+  background: transparent;
+  color: var(--text);
+}
+
+.primaryButton:hover,
+.secondaryButton:hover,
+.ghostButton:hover {
+  transform: translateY(-1px);
+}
+
+.ghostButton:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.runtimeCard,
+.miniPanel,
+.desktopCard,
+.localOnlyCard,
+.taskCard,
+.skillCard,
+.employeeCard {
+  padding: 16px;
+}
+
+.desktopPreview {
+  padding: 14px;
+  border: 1px solid var(--panelBorder);
+  border-radius: 14px;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--text) 2%, var(--surface)),
+    color-mix(in srgb, var(--text) 6%, var(--app-bg))
+  );
+}
+
+.desktopToolbar {
+  justify-content: flex-start;
+  margin-bottom: 12px;
+}
+
+.desktopToolbar span {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--text) 22%, var(--surface));
+}
+
+.desktopCanvas {
+  display: grid;
+  gap: 10px;
+}
+
+.desktopWindow {
+  padding: 18px 14px;
+  border: 1px solid var(--panelBorder);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--text) 2%, var(--surface));
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.miniPanel {
+  background: color-mix(in srgb, var(--text) 2%, var(--surface));
+}
+
+.featureList {
+  margin: 0;
+  padding-left: 18px;
+  color: var(--mutedText);
+  font-size: 13px;
+  line-height: 22px;
+}
+
+.taskCard,
+.skillCard,
+.employeeCard {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.inlineEditor {
+  margin-top: 6px;
+}
+
+.emptyHint {
+  padding: 20px;
+  border: 1px dashed var(--panelBorderStrong);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--text) 2%, var(--surface));
+  color: var(--mutedText);
+  font-size: 14px;
+  line-height: 22px;
+}
+
+.hiddenInput {
+  display: none;
+}

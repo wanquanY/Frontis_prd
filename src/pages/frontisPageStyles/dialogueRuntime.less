@@ -1,0 +1,919 @@
+.dialogueStage {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+
+.dialogueStageSplit,
+.dialogueStageCloudspace {
+  padding: 14px 16px 0;
+}
+
+.dialogueStageSplit {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(360px, 42%);
+  gap: 16px;
+}
+
+.dialogueStageCloudspace {
+  display: flex;
+}
+
+.dialogueRuntimePanel {
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--panelBorder);
+  border-radius: 24px;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--text) 2%, var(--surface)),
+    color-mix(in srgb, var(--text) 4%, var(--surface))
+  );
+  overflow: hidden;
+}
+
+.dialogueRuntimePanelMini {
+  width: 300px;
+  height: 170px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.dialogueRuntimePanelFull {
+  flex: 1;
+}
+
+.dialogueRuntimeResizeHandle {
+  position: relative;
+  width: 10px;
+  min-height: 0;
+  cursor: col-resize;
+  border-radius: 999px;
+  background: transparent;
+  transition: background 160ms ease;
+}
+
+.dialogueRuntimeResizeHandle::before {
+  content: "";
+  position: absolute;
+  top: 20px;
+  bottom: 20px;
+  left: 50%;
+  width: 2px;
+  border-radius: 999px;
+  transform: translateX(-50%);
+  background: color-mix(in srgb, var(--text) 10%, transparent);
+  transition: background 160ms ease;
+}
+
+.dialogueRuntimeResizeHandle:hover,
+.dialogueRuntimeResizeHandle:active {
+  background: color-mix(in srgb, var(--text) 4%, transparent);
+}
+
+.dialogueRuntimeResizeHandle:hover::before,
+.dialogueRuntimeResizeHandle:active::before {
+  background: color-mix(in srgb, var(--primary) 40%, transparent);
+}
+
+.dialogueRuntimeColumn {
+  min-width: 320px;
+  min-height: 0;
+  display: flex;
+  flex: none;
+}
+
+.dialogueRuntimeColumn .dialogueRuntimePanel {
+  flex: 1;
+}
+
+.dialogueRuntimeStage {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.dialogueRuntimeTopBar {
+  height: 54px;
+  padding: 0 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.dialogueRuntimeTopBarSpacer {
+  width: 1px;
+  height: 1px;
+}
+
+.dialogueRuntimeActions {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.groupRuntimePanelHeader {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--runtimeBorderMuted);
+  background: color-mix(in srgb, var(--surface) 4%, transparent);
+  display: flex;
+  align-items: center;
+}
+
+.groupRuntimeColumn {
+  width: 420px;
+  min-width: 420px;
+  flex: none;
+  min-height: 0;
+  display: flex;
+}
+
+.groupRuntimeColumn .dialogueRuntimePanel {
+  flex: 1;
+}
+
+.groupRuntimePanelToolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  min-width: 0;
+}
+
+.groupRuntimeAgentSelectWrap {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  align-items: center;
+}
+
+.groupRuntimeAgentSelect {
+  min-width: 0;
+  max-width: 240px;
+  flex: 1;
+
+  :global(.ant-select-selector) {
+    border: 1px solid var(--runtimeBorderMuted);
+    border-radius: 12px;
+    background: var(--runtimeBgPane);
+    box-shadow: none;
+  }
+
+  :global(.ant-select-selection-item),
+  :global(.ant-select-selection-placeholder) {
+    color: var(--runtimeTextPrimary);
+    font-size: 13px;
+    line-height: 20px;
+  }
+
+  :global(.ant-select-arrow) {
+    color: var(--runtimeTextSecondary);
+  }
+}
+
+.groupRuntimeAgentSelectPopup {
+  :global(.ant-select-item-option-content) {
+    font-size: 13px;
+    line-height: 20px;
+  }
+
+  :global(.ant-select-item-option-state) {
+    color: var(--runtimeTextMuted);
+  }
+}
+
+.groupRuntimeViewControls {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.groupRuntimePanelBody {
+  flex: 1;
+  min-height: 0;
+  padding: 14px 16px 16px;
+  display: flex;
+}
+
+.groupRuntimeDeviceTitle {
+  color: var(--runtimeTextPrimary);
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.groupRuntimeDeviceMeta {
+  color: var(--runtimeTextSecondary);
+  font-size: 13px;
+  line-height: 20px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.groupRuntimeAgentTabs {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.groupRuntimeAgentTab {
+  min-width: 96px;
+  max-width: 148px;
+  padding: 8px 12px;
+  border: 0;
+  border: 1px solid var(--runtimeBorderMuted);
+  border-radius: 12px;
+  background: var(--runtimeBgPane);
+  color: var(--runtimeTextSecondary);
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  backdrop-filter: blur(6px);
+  cursor: pointer;
+  flex: 0 0 auto;
+  transition:
+    border-color 160ms ease,
+    background 160ms ease,
+    color 160ms ease,
+    transform 160ms ease;
+}
+
+.groupRuntimeAgentTab:hover {
+  border-color: var(--runtimeBorderStrong);
+  background: var(--runtimeBgPaneStrong);
+  color: var(--runtimeTextPrimary);
+  transform: translateY(-1px);
+}
+
+.groupRuntimeAgentTabActive {
+  border-color: var(--runtimeBorderAccent);
+  background: var(--runtimeBgAccent);
+  color: var(--runtimeTextPrimary);
+}
+
+.groupRuntimeAgentTabName,
+.groupRuntimeAgentTabMeta,
+.groupRuntimeDesktopLabel,
+.groupRuntimeDesktopValue,
+.groupRuntimeDesktopText,
+.groupRuntimeToolbarSummary {
+  display: block;
+}
+
+.groupRuntimeAgentTabName {
+  width: 100%;
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.groupRuntimeAgentTabMeta {
+  font-size: 11px;
+  line-height: 16px;
+  color: var(--runtimeTextAccent);
+}
+
+.groupRuntimeDesktopWindow {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  border-radius: 20px;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 50% 72%, var(--runtimeGlowPrimary), transparent 32%),
+    radial-gradient(circle at 54% 78%, var(--runtimeGlowSecondary), transparent 18%),
+    var(--runtimeBgDeep);
+  border: 1px solid var(--runtimeBorderSoft);
+  display: flex;
+  flex-direction: column;
+}
+
+.groupRuntimeDesktopHeader {
+  height: 38px;
+  padding: 0 14px;
+  background: var(--runtimeBgHeader);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.groupRuntimeDesktopDots {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.groupRuntimeDesktopDots span {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--runtimeTextPrimary) 50%, transparent);
+}
+
+.groupRuntimeDesktopHeaderTitle {
+  min-width: 0;
+  color: var(--runtimeTextSecondary);
+  font-size: 12px;
+  line-height: 18px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.groupRuntimeDesktopBody {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 92px minmax(0, 1fr);
+}
+
+.groupRuntimePlaceholder {
+  flex: 1;
+  min-height: 0;
+  padding: 32px 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  text-align: center;
+}
+
+.groupRuntimePlaceholderBadge {
+  min-height: 30px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: var(--runtimeBgChip);
+  color: var(--runtimeTextAccent);
+  display: inline-flex;
+  align-items: center;
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.groupRuntimePlaceholderTitle {
+  color: var(--runtimeTextPrimary);
+  font-size: 24px;
+  line-height: 32px;
+  font-weight: 600;
+}
+
+.groupRuntimePlaceholderMeta {
+  color: var(--runtimeTextSecondary);
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.groupRuntimePlaceholderText {
+  max-width: 420px;
+  color: var(--runtimeTextSecondary);
+  font-size: 14px;
+  line-height: 22px;
+}
+
+.groupRuntimePlaceholderHint {
+  max-width: 480px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: var(--runtimeBgChip);
+  border: 1px solid var(--runtimeBorderSoft);
+  color: var(--runtimeTextSecondary);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.groupRuntimeDesktopSidebar {
+  padding: 16px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: var(--runtimeBgSidebar);
+  color: var(--runtimeTextMuted);
+  font-size: 11px;
+  line-height: 16px;
+}
+
+.groupRuntimeDesktopCanvas {
+  min-width: 0;
+  min-height: 0;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.groupRuntimeDesktopStatusRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.groupRuntimeDesktopBadge {
+  min-height: 30px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: var(--runtimeBgChipStrong);
+  color: var(--runtimeTextPrimary);
+  display: inline-flex;
+  align-items: center;
+  font-size: 12px;
+  line-height: 18px;
+  backdrop-filter: blur(4px);
+}
+
+.groupRuntimeDesktopMainWindow {
+  flex: 1;
+  min-height: 0;
+  border-radius: 18px;
+  background: var(--runtimeBgChip);
+  border: 1px solid var(--runtimeBorderSoft);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.groupRuntimeDesktopWindowBar {
+  min-height: 42px;
+  padding: 0 16px;
+  border-bottom: 1px solid var(--runtimeBorderSoft);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.groupRuntimeDesktopWindowTitle {
+  color: var(--runtimeTextPrimary);
+  font-size: 13px;
+  line-height: 20px;
+  font-weight: 600;
+}
+
+.groupRuntimeDesktopWindowMeta {
+  color: var(--runtimeTextSecondary);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.groupRuntimeDesktopScene {
+  flex: 1;
+  min-height: 0;
+  padding: 18px;
+  display: grid;
+  grid-template-columns: minmax(220px, 1.2fr) minmax(180px, 1fr);
+  gap: 14px;
+}
+
+.groupRuntimeDesktopHeroCard {
+  padding: 18px;
+  border-radius: 18px;
+  background:
+    linear-gradient(180deg, var(--runtimeBgHeader), var(--runtimeBgPane)),
+    color-mix(in srgb, var(--surface) 4%, transparent);
+  border: 1px solid color-mix(in srgb, var(--primary) 16%, transparent);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.groupRuntimeDesktopGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.groupRuntimeDesktopCard {
+  min-height: 92px;
+  padding: 14px;
+  border-radius: 16px;
+  background: var(--runtimeBgChipStrong);
+  color: var(--runtimeTextPrimary);
+  font-size: 13px;
+  line-height: 20px;
+  display: flex;
+  align-items: flex-end;
+}
+
+.groupRuntimeDesktopDock {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  align-self: center;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: var(--runtimeBgSidebar);
+  backdrop-filter: blur(8px);
+}
+
+.groupRuntimeDesktopDockItem {
+  min-height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: var(--runtimeBgChipStrong);
+  color: var(--runtimeTextPrimary);
+  display: inline-flex;
+  align-items: center;
+  font-size: 11px;
+  line-height: 16px;
+}
+
+.dialogueRuntimeAction {
+  width: 44px;
+  height: 44px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--surface) 86%, var(--text) 14%);
+  color: var(--text);
+  box-shadow: var(--shadow-sm);
+}
+
+.dialogueMiniRuntimeDock {
+  padding: 0 16px 10px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.dialogueMiniRuntimeButton {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  cursor: pointer;
+  border-radius: 20px;
+  transition:
+    transform 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.dialogueMiniRuntimeButton:hover {
+  transform: translateY(-1px);
+}
+
+.dialogueMiniRuntimeButton:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--primary) 35%, transparent);
+  outline-offset: 2px;
+}
+
+.dialogueRuntimePanelMini .dialogueRuntimeTopBar {
+  display: none;
+}
+
+.dialogueRuntimePanelMini .dialogueRuntimeDesktop {
+  padding: 0;
+}
+
+.dialogueRuntimeDesktop {
+  flex: 1;
+  min-height: 0;
+  padding: 0 18px 18px;
+}
+
+.dialogueRuntimeDesktopWindow {
+  position: relative;
+  height: 100%;
+  border-radius: 22px;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 50% 70%, var(--runtimeGlowPrimary), transparent 34%),
+    radial-gradient(circle at 52% 78%, var(--runtimeGlowSecondary), transparent 20%),
+    var(--runtimeBgDeep);
+  display: flex;
+  flex-direction: column;
+}
+
+.groupRuntimeOverlaySection {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.groupRuntimeOverlayLabel {
+  color: var(--runtimeTextMuted);
+  font-size: 11px;
+  line-height: 16px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.groupRuntimeOverlayControls {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.groupRuntimeOverlayButton,
+.groupRuntimeOverlayIconButton {
+  border: 1px solid var(--runtimeBorderMuted);
+  background: var(--runtimeBgPaneStrong);
+  color: var(--runtimeTextSecondary);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition:
+    border-color 160ms ease,
+    background 160ms ease,
+    color 160ms ease,
+    transform 160ms ease;
+}
+
+.groupRuntimeOverlayButton {
+  min-height: 34px;
+  padding: 0 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.groupRuntimeOverlayIconButton {
+  width: 34px;
+  height: 34px;
+  justify-content: center;
+  border-radius: 999px;
+}
+
+.groupRuntimeOverlayButton:hover,
+.groupRuntimeOverlayIconButton:hover {
+  border-color: var(--runtimeBorderStrong);
+  background: var(--runtimeBgPanelStrong);
+  color: var(--runtimeTextPrimary);
+  transform: translateY(-1px);
+}
+
+.groupRuntimeOverlayButtonActive {
+  border-color: var(--runtimeBorderAccent);
+  background: var(--runtimeBgAccentStrong);
+  color: var(--runtimeTextPrimary);
+}
+
+.dialogueRuntimeDesktopHeader {
+  height: 30px;
+  background: var(--runtimeBgHeader);
+}
+
+.dialogueRuntimeDesktopBody {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 110px minmax(0, 1fr);
+}
+
+.dialogueRuntimeDesktopSidebar {
+  padding: 18px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: var(--runtimeBgSidebar);
+  color: var(--runtimeTextPrimary);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.dialogueRuntimeDesktopCanvas {
+  padding: 26px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  align-content: start;
+}
+
+.dialogueRuntimeDesktopCard {
+  min-height: 88px;
+  padding: 16px;
+  border-radius: 18px;
+  background: var(--runtimeBgChipStrong);
+  color: var(--runtimeTextPrimary);
+  font-size: 14px;
+  line-height: 22px;
+  backdrop-filter: blur(3px);
+}
+
+.groupRuntimeDesktopLabel {
+  color: var(--runtimeTextAccent);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.groupRuntimeDesktopValue {
+  margin-top: 6px;
+  color: var(--runtimeTextPrimary);
+  font-size: 18px;
+  line-height: 26px;
+  font-weight: 600;
+}
+
+.groupRuntimeDesktopText {
+  margin-top: 8px;
+  color: var(--runtimeTextSecondary);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.groupRuntimeToolbarSummary {
+  min-height: 34px;
+  padding: 0 12px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: color-mix(in srgb, var(--primary) 10%, var(--surface));
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.dialogueRuntimePanelMini .groupRuntimeShell {
+  padding: 8px;
+  border-radius: 18px;
+}
+
+.dialogueRuntimePanelMini .groupRuntimePanelHeader {
+  padding: 10px;
+}
+
+.dialogueRuntimePanelMini .groupRuntimePanelToolbar {
+  gap: 8px;
+  align-items: center;
+}
+
+.dialogueRuntimePanelMini .groupRuntimeAgentSelectWrap {
+  flex: 1;
+}
+
+.dialogueRuntimePanelMini .groupRuntimeAgentSelect {
+  max-width: 160px;
+
+  :global(.ant-select-selector) {
+    min-height: 30px;
+    padding-inline: 10px;
+  }
+
+  :global(.ant-select-selection-item),
+  :global(.ant-select-selection-placeholder) {
+    font-size: 11px;
+    line-height: 16px;
+  }
+}
+
+.dialogueRuntimePanelMini .groupRuntimePanelBody {
+  padding: 0 10px 10px;
+}
+
+.dialogueRuntimePanelMini .groupRuntimeOverlayButton {
+  min-height: 28px;
+  padding: 0 10px;
+  font-size: 11px;
+}
+
+.dialogueRuntimePanelMini .groupRuntimeOverlayIconButton {
+  width: 28px;
+  height: 28px;
+}
+
+.dialogueRuntimePanelMini .groupRuntimeAgentTab {
+  min-width: 82px;
+  max-width: 108px;
+  padding: 6px 10px;
+  border-radius: 12px;
+}
+
+.dialogueRuntimePanelMini .groupRuntimeDeviceTitle {
+  font-size: 13px;
+  line-height: 18px;
+}
+
+.dialogueRuntimePanelMini .groupRuntimeDeviceMeta {
+  font-size: 11px;
+  line-height: 16px;
+}
+
+.dialogueRuntimePanelMini .groupRuntimeAgentTabName {
+  font-size: 11px;
+  line-height: 15px;
+}
+
+.dialogueRuntimePanelMini .groupRuntimeDesktopBody {
+  grid-template-columns: 60px minmax(0, 1fr);
+}
+
+.dialogueRuntimePanelMini .groupRuntimePlaceholder {
+  padding: 18px 14px;
+  gap: 8px;
+}
+
+.dialogueRuntimePanelMini .groupRuntimePlaceholderBadge,
+.dialogueRuntimePanelMini .groupRuntimePlaceholderMeta,
+.dialogueRuntimePanelMini .groupRuntimePlaceholderHint,
+.dialogueRuntimePanelMini .groupRuntimePlaceholderText {
+  font-size: 10px;
+  line-height: 14px;
+}
+
+.dialogueRuntimePanelMini .groupRuntimePlaceholderTitle {
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.dialogueRuntimePanelMini .groupRuntimeDesktopSidebar {
+  padding: 10px 8px;
+  gap: 8px;
+  font-size: 9px;
+  line-height: 13px;
+}
+
+.dialogueRuntimePanelMini .groupRuntimeDesktopCanvas {
+  padding: 10px;
+  gap: 8px;
+}
+
+.dialogueRuntimePanelMini .groupRuntimeDesktopBadge {
+  min-height: 24px;
+  padding: 0 8px;
+  font-size: 10px;
+  line-height: 14px;
+}
+
+.dialogueRuntimePanelMini .groupRuntimeDesktopWindowBar {
+  min-height: 30px;
+  padding: 0 10px;
+}
+
+.dialogueRuntimePanelMini .groupRuntimeDesktopWindowTitle,
+.dialogueRuntimePanelMini .groupRuntimeDesktopWindowMeta {
+  font-size: 10px;
+  line-height: 14px;
+}
+
+.dialogueRuntimePanelMini .groupRuntimeDesktopScene {
+  padding: 10px;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
+}
+
+.dialogueRuntimePanelMini .groupRuntimeDesktopHeroCard {
+  padding: 12px;
+  border-radius: 14px;
+}
+
+.dialogueRuntimePanelMini .groupRuntimeDesktopGrid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.dialogueRuntimePanelMini .groupRuntimeDesktopCard {
+  min-height: 48px;
+  padding: 10px;
+  border-radius: 12px;
+  font-size: 10px;
+  line-height: 14px;
+}
+
+.dialogueRuntimePanelMini .groupRuntimeDesktopDock {
+  gap: 6px;
+  padding: 6px 8px;
+}
+
+.dialogueRuntimePanelMini .groupRuntimeDesktopDockItem {
+  min-height: 20px;
+  padding: 0 8px;
+  font-size: 9px;
+  line-height: 12px;
+}
+
+.dialogueRuntimePanelMini .groupRuntimeAgentTabMeta,
+.dialogueRuntimePanelMini .groupRuntimeOverlayLabel,
+.dialogueRuntimePanelMini .groupRuntimeDesktopLabel,
+.dialogueRuntimePanelMini .groupRuntimeDesktopText {
+  font-size: 10px;
+  line-height: 14px;
+}
+
+.dialogueRuntimePanelMini .groupRuntimeDesktopValue {
+  margin-top: 4px;
+  font-size: 13px;
+  line-height: 18px;
+}

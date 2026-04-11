@@ -1,0 +1,672 @@
+.dialogueViewToolbar {
+  padding: 14px 16px 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 10px;
+  flex-wrap: nowrap;
+}
+
+.dialogueMainCardSidebarCollapsed .dialogueViewToolbar {
+  padding-left: 72px;
+}
+
+.dialogueViewToolbarGroup {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 0 0 auto;
+  margin-left: auto;
+  min-width: 0;
+}
+
+.dialogueRuntimePanelToolbarSpacer {
+  flex: 1;
+  min-width: 0;
+}
+
+.dialogueViewDivider {
+  width: 1px;
+  height: 20px;
+  flex: 0 0 auto;
+  background: color-mix(in srgb, var(--text) 12%, transparent);
+}
+
+.dialogueViewButton,
+.dialogueRuntimeAction {
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.dialogueViewButton {
+  min-height: 34px;
+  padding: 0 12px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 20px;
+  transition:
+    background 160ms ease,
+    color 160ms ease;
+}
+
+.dialogueViewButton:hover {
+  background: color-mix(in srgb, var(--text) 4%, transparent);
+  color: var(--text);
+}
+
+.dialogueViewButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.48;
+}
+
+.dialogueViewButton:disabled:hover {
+  background: transparent;
+  color: var(--text-secondary);
+}
+
+.dialogueViewButtonActive {
+  background: color-mix(in srgb, var(--primary) 10%, var(--surface));
+  color: var(--text);
+}
+
+.dialogueHomeLayout {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  padding-top: 44px;
+}
+
+.dialogueHomeStage {
+  flex: 1 0 auto;
+  min-height: 0;
+  padding: 48px 24px 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dialogueHomeInner,
+.dialogueHomeLower {
+  width: min(1120px, 100%);
+}
+
+.dialogueHomeHero {
+  padding: 0 24px 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  text-align: center;
+}
+
+.dialogueHomeHeroExpertTeam {
+  min-height: 142px;
+  justify-content: flex-end;
+}
+
+.dialogueHomeHeroAvatar {
+  box-shadow: 0 16px 40px color-mix(in srgb, var(--primary) 12%, transparent);
+}
+
+.dialogueHomeHeroTitle {
+  margin: 0;
+  color: var(--text);
+  font-size: 32px;
+  line-height: 42px;
+  font-weight: 500;
+}
+
+.dialogueHomeHeroSubtitle {
+  max-width: 760px;
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 14px;
+  line-height: 22px;
+}
+
+.dialogueHomeIntro {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  text-align: center;
+}
+
+.dialogueHomeEyebrow {
+  min-height: 32px;
+  padding: 0 14px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--primary) 10%, var(--surface));
+  color: var(--primary);
+  display: inline-flex;
+  align-items: center;
+  font-size: 12px;
+  line-height: 18px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.dialogueHomeTitle {
+  margin: 0;
+  color: var(--text);
+  font-size: 34px;
+  line-height: 42px;
+  font-weight: 700;
+}
+
+.dialogueHomeDescription {
+  max-width: 620px;
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 16px;
+  line-height: 26px;
+}
+
+.dialoguePromptGrid {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 14px 16px;
+}
+
+.dialoguePromptCard {
+  min-height: 0;
+  max-width: 100%;
+  padding: 14px 22px;
+  border: 1px solid var(--panelBorder);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--text) 3%, var(--surface));
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  cursor: pointer;
+  overflow: hidden;
+  transition:
+    border-color 160ms ease,
+    background 160ms ease;
+}
+
+.dialoguePromptCard:hover {
+  border-color: color-mix(in srgb, var(--primary) 26%, var(--panelBorder));
+  background: color-mix(in srgb, var(--primary) 7%, var(--surface));
+}
+
+.dialoguePromptScene {
+  min-height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--text) 4%, transparent);
+  color: var(--text-secondary);
+  display: inline-flex;
+  align-items: center;
+  font-size: 12px;
+  line-height: 18px;
+  font-weight: 600;
+}
+
+.dialoguePromptQuestion {
+  display: block;
+  color: var(--text);
+  font-size: 13px;
+  line-height: 20px;
+  font-weight: 400;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dialogueHomeLower {
+  margin: 0 auto;
+  padding: 0 24px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 26px;
+}
+
+.dialoguePromptRail {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 14px 16px;
+}
+
+.dialoguePromptChip {
+  min-height: 40px;
+  max-width: 100%;
+  padding: 0 16px;
+  border: 1px solid var(--panelBorder);
+  border-radius: 999px;
+  background: transparent;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  cursor: pointer;
+  transition:
+    border-color 160ms ease,
+    background 160ms ease,
+    transform 160ms ease;
+}
+
+.dialoguePromptChip:hover {
+  transform: translateY(-1px);
+  border-color: color-mix(in srgb, var(--primary) 22%, var(--panelBorder));
+  background: color-mix(in srgb, var(--primary) 5%, var(--surface));
+}
+
+.dialoguePracticeSection {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.dialoguePracticeHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.dialoguePracticeTitle {
+  color: var(--text);
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 600;
+}
+
+.dialogueCaseRail {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 4px;
+  scroll-snap-type: x proximity;
+}
+
+.dialogueCaseRail::-webkit-scrollbar {
+  height: 8px;
+}
+
+.dialogueCaseRail::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--text) 12%, transparent);
+}
+
+.dialogueCaseShowcaseCard {
+  width: 272px;
+  min-width: 272px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+  text-align: left;
+  cursor: pointer;
+  scroll-snap-align: start;
+  transition:
+    transform 180ms ease,
+    opacity 180ms ease;
+}
+
+.dialogueCaseShowcaseCard:hover {
+  transform: translateY(-2px);
+  opacity: 0.92;
+}
+
+.dialogueCaseShowcasePreview {
+  width: 100%;
+  aspect-ratio: 1.56 / 1;
+  padding: 14px;
+  border: 1px solid var(--panelBorder);
+  border-radius: 18px;
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--primary) 16%, var(--surface)),
+    color-mix(in srgb, var(--surface) 94%, var(--app-bg)) 42%,
+    color-mix(in srgb, var(--primary) 6%, var(--surface))
+  );
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  overflow: hidden;
+  position: relative;
+  isolation: isolate;
+}
+
+.dialogueCaseShowcaseImage {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: -3;
+}
+
+.dialogueCaseShowcaseOverlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--surface) 12%, transparent) 0%,
+    color-mix(in srgb, var(--surface) 10%, transparent) 35%,
+    color-mix(in srgb, var(--surface) 90%, var(--text)) 100%
+  );
+  z-index: -2;
+}
+
+.dialogueCaseShowcaseTitle {
+  max-width: 90%;
+  color: var(--text);
+  font-size: 16px;
+  line-height: 22px;
+  font-weight: 600;
+  text-shadow: 0 1px 2px color-mix(in srgb, var(--surface) 25%, transparent);
+}
+
+.dialogueCaseShowcaseMetaWrap {
+  width: 100%;
+  padding: 0 4px;
+  position: relative;
+}
+
+.dialogueCaseShowcaseMeta {
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 20px;
+  font-weight: 400;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dialogueCaseShowcaseMetaTooltip {
+  position: absolute;
+  left: 4px;
+  right: 4px;
+  bottom: calc(100% + 10px);
+  padding: 10px 12px;
+  border: 1px solid var(--panelBorder);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--surface) 98%, var(--app-bg));
+  box-shadow: var(--shadow-md);
+  color: var(--text);
+  font-size: 12px;
+  line-height: 18px;
+  font-weight: 400;
+  opacity: 0;
+  transform: translateY(6px);
+  pointer-events: none;
+  transition:
+    opacity 160ms ease,
+    transform 160ms ease;
+  z-index: 2;
+}
+
+.dialogueCaseShowcaseCard:hover .dialogueCaseShowcaseMetaTooltip,
+.dialogueCaseShowcaseCard:focus-visible .dialogueCaseShowcaseMetaTooltip {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.dialogueReplayModalBody {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  gap: 18px;
+  overflow: hidden;
+}
+
+.dialogueReplayHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex: 0 0 auto;
+  gap: 16px;
+}
+
+.dialogueReplayHeaderMain {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.dialogueReplayStatus {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.dialogueReplayStatusBadge {
+  min-height: 24px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--primary) 10%, var(--surface));
+  color: var(--primary);
+  display: inline-flex;
+  align-items: center;
+  font-size: 12px;
+  line-height: 18px;
+  font-weight: 600;
+}
+
+.dialogueReplayStatusText {
+  color: var(--text-muted);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.dialogueReplayTitle {
+  margin: 0;
+  color: var(--text);
+  font-size: 22px;
+  line-height: 30px;
+  font-weight: 700;
+}
+
+.dialogueReplaySummary {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 14px;
+  line-height: 22px;
+}
+
+.dialogueReplayReplayButton {
+  min-height: 36px;
+  padding: 0 14px;
+  border: 1px solid var(--panelBorder);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--text) 3%, var(--surface));
+  color: var(--text);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  transition:
+    border-color 160ms ease,
+    background 160ms ease;
+}
+
+.dialogueReplayReplayButton:hover {
+  border-color: color-mix(in srgb, var(--primary) 24%, var(--panelBorder));
+  background: color-mix(in srgb, var(--primary) 8%, var(--surface));
+}
+
+.dialogueReplaySurface {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 20px;
+  border: 1px solid var(--panelBorder);
+  border-radius: 24px;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--surface) 94%, var(--app-bg)),
+    color-mix(in srgb, var(--surface) 98%, var(--primary))
+  );
+}
+
+.dialogueReplaySceneShell {
+  flex: 1;
+  height: 100%;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  border: 1px solid var(--panelBorder);
+  border-radius: 24px;
+  background: color-mix(in srgb, var(--surface) 97%, var(--app-bg));
+  overflow: hidden;
+}
+
+.dialogueReplaySceneShellSplit {
+  grid-template-columns: minmax(0, 1fr) 420px;
+}
+
+.dialogueReplaySceneChat {
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  overflow: hidden;
+}
+
+.dialogueReplayScenePanel {
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  border-left: 1px solid var(--panelBorder);
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.dialogueReplayMessages {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.dialogueReplayRowUser,
+.dialogueReplayRowAssistant {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-width: 82%;
+  animation: dialogueReplayBubbleIn 260ms ease;
+}
+
+.dialogueReplayRowUser {
+  align-self: flex-end;
+}
+
+.dialogueReplayRowAssistant {
+  align-self: flex-start;
+}
+
+.dialogueReplayMeta {
+  color: var(--text-muted);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.dialogueReplayRowUser .dialogueReplayMeta {
+  text-align: right;
+}
+
+.dialogueReplayBubble {
+  padding: 14px 16px;
+  border-radius: 18px;
+  font-size: 14px;
+  line-height: 22px;
+  white-space: pre-wrap;
+  box-shadow: var(--shadow-sm);
+}
+
+.dialogueReplayBubbleUser {
+  border-top-right-radius: 6px;
+  background: color-mix(in srgb, var(--primary) 16%, var(--surface));
+  color: var(--text);
+}
+
+.dialogueReplayBubbleAssistant {
+  border-top-left-radius: 6px;
+  background: var(--surface);
+  color: var(--text);
+}
+
+.dialogueReplaySystemNotice {
+  align-self: center;
+  max-width: 88%;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--text) 6%, var(--surface));
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 18px;
+  animation: dialogueReplayBubbleIn 260ms ease;
+}
+
+.dialogueReplayTyping {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.dialogueReplayTyping span {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--text) 24%, transparent);
+  animation: dialogueReplayTypingPulse 1s ease-in-out infinite;
+}
+
+.dialogueReplayTyping span:nth-child(2) {
+  animation-delay: 120ms;
+}
+
+.dialogueReplayTyping span:nth-child(3) {
+  animation-delay: 240ms;
+}
+
+@keyframes dialogueReplayBubbleIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes dialogueReplayTypingPulse {
+  0%,
+  80%,
+  100% {
+    transform: scale(0.72);
+    opacity: 0.42;
+  }
+
+  40% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}

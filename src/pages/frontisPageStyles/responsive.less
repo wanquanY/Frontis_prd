@@ -1,0 +1,330 @@
+@media (max-width: 1400px) {
+  .viewGrid {
+    grid-template-columns: 260px minmax(0, 1fr);
+  }
+
+  .viewGrid > :last-child {
+    grid-column: 1 / -1;
+  }
+
+  .dialogueShell {
+    grid-template-columns: 260px minmax(0, 1fr);
+  }
+
+  .dialogueShellRuntimeVisible,
+  .dialogueShellRuntimeArtifactsHidden {
+    grid-template-columns: 252px minmax(0, 1fr) 10px auto;
+  }
+
+  .dialogueShellRuntimeSidebarCollapsed,
+  .dialogueShellRuntimeSidebarCollapsedArtifactsHidden {
+    grid-template-columns: 72px minmax(0, 1fr) 10px auto;
+  }
+
+  .dialogueShellRuntimeVisible .dialogueArtifactsCard,
+  .dialogueShellRuntimeSidebarCollapsed .dialogueArtifactsCard {
+    grid-column: 1 / -1;
+  }
+
+  .dialogueInspectorCard {
+    grid-column: 1 / -1;
+  }
+
+  .expertsShell {
+    grid-template-columns: 280px minmax(0, 1fr);
+  }
+
+  .expertsShellDetail {
+    grid-template-columns: 260px minmax(0, 1fr);
+  }
+
+  .expertsStatsGrid,
+  .expertsEmployeeList {
+    grid-template-columns: 1fr;
+  }
+
+  .expertsDetailGrid,
+  .expertsPromptGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .expertsDetailHeroLayout,
+  .expertsDetailProfileGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 1100px) {
+  .page {
+    flex-direction: column;
+    height: auto;
+    min-height: 100vh;
+  }
+
+  .adminBody {
+    flex-direction: column;
+  }
+
+  .adminSidebar,
+  .adminSidebarCollapsed {
+    width: auto;
+    border-right: 0;
+    border-bottom: 1px solid var(--panelBorder);
+  }
+
+  .adminSidebar::after,
+  .adminSidebarCollapsed::after {
+    display: none;
+  }
+
+  .adminSidebarTop {
+    padding: 12px 16px 8px;
+  }
+
+  .adminSidebarSection,
+  .adminSidebarSectionCollapsed {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: stretch;
+    padding: 8px 12px 14px;
+  }
+
+  .adminBackButton,
+  .adminBackButtonCollapsed {
+    width: auto;
+    padding: 0 12px;
+    justify-content: flex-start;
+  }
+
+  .adminBackButtonCollapsed .adminBackLabel {
+    display: inline;
+  }
+
+  .adminNavButton,
+  .adminNavButtonCollapsed {
+    width: auto;
+    min-width: 0;
+    padding: 0 12px 0 14px;
+    justify-content: flex-start;
+    border-left: 2px solid transparent;
+    border-bottom: 0;
+    border-radius: 0;
+  }
+
+  .adminNavButtonCollapsed.adminNavButtonActive {
+    border-left-color: var(--primary);
+    border-bottom-color: transparent;
+  }
+
+  .adminNavButtonCollapsed .tabLabel {
+    display: inline;
+  }
+
+  .sidebar {
+    width: auto;
+    height: auto;
+    padding: 18px 10px 14px;
+    border-color: var(--panelBorder);
+    border-radius: 20px;
+    background: var(--surface);
+    box-shadow: var(--shadow-sm);
+    align-items: stretch;
+  }
+
+  .sidebarCollapsed {
+    width: auto;
+    padding: 18px 10px 14px;
+    border-color: var(--panelBorder);
+    background: var(--surface);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .sidebarTop,
+  .sidebarTopCollapsed {
+    flex-direction: row;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 0 6px;
+  }
+
+  .brandCardCollapsed {
+    width: auto;
+    justify-content: flex-start;
+  }
+
+  .sidebarSection,
+  .sidebarSectionCollapsed {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: stretch;
+  }
+
+  .sidebarBottom {
+    padding: 0 6px 6px;
+    border-top: 0;
+  }
+
+  .main {
+    height: auto;
+  }
+
+  .mainPanel {
+    min-height: 0;
+  }
+
+  .header {
+    height: auto;
+    padding: 0 16px;
+    padding-top: 14px;
+    padding-bottom: 14px;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .headerLeft,
+  .headerRight {
+    width: 100%;
+  }
+
+  .headerLeft {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .headerRight {
+    justify-content: space-between;
+  }
+
+  .content {
+    padding: 0;
+    overflow: auto;
+    background: transparent;
+  }
+
+  .dialogueShell,
+  .groupShell,
+  .expertsShell,
+  .viewGrid,
+  .employeeGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .dialogueSidebarCard {
+    border-right: 0;
+    border-bottom: 1px solid var(--panelBorder);
+  }
+
+  .dialogueArtifactsCard {
+    border-top: 1px solid var(--panelBorder);
+    border-left: 0;
+  }
+
+  .expertsShellDetail {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .expertsRail {
+    padding-right: 0;
+  }
+
+  .expertsDetailHero {
+    flex-direction: column;
+  }
+
+  .expertsDetailHeroLayout {
+    grid-template-columns: 1fr;
+  }
+
+  .expertsDetailAvatarCard {
+    align-items: flex-start;
+  }
+
+  .expertsDetailAvatarMeta {
+    text-align: left;
+  }
+
+  .expertsDetailAvatarPresetRow,
+  .expertsDetailProfileGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .dialogueShellRuntimeVisible,
+  .dialogueShellRuntimeArtifactsHidden {
+    grid-template-columns: 220px minmax(0, 1fr) 10px minmax(280px, 34vw);
+  }
+
+  .dialogueShellRuntimeSidebarCollapsed,
+  .dialogueShellRuntimeSidebarCollapsedArtifactsHidden {
+    grid-template-columns: 72px minmax(0, 1fr) 10px minmax(280px, 34vw);
+  }
+
+  .dialogueShellRuntimeVisible .dialogueArtifactsCard,
+  .dialogueShellRuntimeSidebarCollapsed .dialogueArtifactsCard {
+    grid-column: 1 / -1;
+  }
+
+  .dialogueRuntimeResizeHandle {
+    display: none;
+  }
+
+  .dialogueRuntimeColumn {
+    width: auto;
+    min-width: 0;
+  }
+
+  .dialoguePromptGrid,
+  .dialoguePromptRail {
+    gap: 12px;
+  }
+
+  .dialogueHomeLayout {
+    padding-top: 24px;
+  }
+
+  .dialogueHomeHero {
+    padding: 0 16px 8px;
+  }
+
+  .dialogueHomeHeroExpertTeam {
+    min-height: 126px;
+  }
+
+  .dialogueReplayHeader,
+  .dialoguePracticeHeader {
+    flex-direction: column;
+  }
+
+  .dialogueCaseShowcaseCard {
+    width: 224px;
+    min-width: 224px;
+  }
+
+  .dialogueHomeLower {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .dialogueReplaySurface {
+    min-height: 0;
+  }
+
+  .dialogueReplaySceneShell,
+  .dialogueReplaySceneShellSplit {
+    height: 100%;
+    min-height: 0;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .dialogueReplayScenePanel {
+    border-left: 0;
+    border-top: 1px solid var(--panelBorder);
+  }
+
+  .dialogueReplayRowUser,
+  .dialogueReplayRowAssistant {
+    max-width: 100%;
+  }
+}

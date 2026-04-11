@@ -1,0 +1,913 @@
+.dialogueShell {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 252px minmax(0, 1fr) 422px;
+  gap: 0;
+}
+
+.dialogueShellSidebarCollapsed {
+  grid-template-columns: 72px minmax(0, 1fr) 422px;
+}
+
+.dialogueShellArtifactsHidden {
+  grid-template-columns: 252px minmax(0, 1fr);
+}
+
+.dialogueShellSidebarCollapsed.dialogueShellArtifactsHidden {
+  grid-template-columns: 72px minmax(0, 1fr);
+}
+
+.dialogueShellRuntimeVisible {
+  grid-template-columns: 252px minmax(0, 1fr) 10px auto 422px;
+}
+
+.dialogueShellRuntimeArtifactsHidden {
+  grid-template-columns: 252px minmax(0, 1fr) 10px auto;
+}
+
+.dialogueShellRuntimeSidebarCollapsed {
+  grid-template-columns: 72px minmax(0, 1fr) 10px auto 422px;
+}
+
+.dialogueShellRuntimeSidebarCollapsedArtifactsHidden {
+  grid-template-columns: 72px minmax(0, 1fr) 10px auto;
+}
+
+.groupShell {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 320px minmax(0, 1fr) 422px;
+  gap: 8px;
+
+  &[data-artifacts-open="false"] {
+    grid-template-columns: 320px minmax(0, 1fr);
+  }
+}
+
+.expertsShell {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 296px minmax(0, 1fr);
+  gap: 8px;
+}
+
+.expertsShellSingle {
+  display: flex;
+  flex-direction: column;
+}
+
+.expertsShellDetail {
+  grid-template-columns: 320px minmax(0, 1fr);
+  transition: grid-template-columns 240ms ease;
+}
+
+.dialogueSidebarCard,
+.dialogueMainCard,
+.dialogueArtifactsCard,
+.groupSidebarCard,
+.groupMainCard,
+.groupArtifactsCard,
+.expertsSidebarCard,
+.expertsMainCard {
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--panelBorder);
+  border-radius: 16px;
+  background: var(--surface);
+  box-shadow: none;
+  overflow: hidden;
+}
+
+.dialogueMainCard {
+  position: relative;
+}
+
+.dialogueSidebarCard,
+.dialogueMainCard,
+.dialogueArtifactsCard {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.dialogueArtifactsCard {
+  padding: 0;
+  border-left: 1px solid var(--panelBorder);
+}
+
+.dialogueMainCardSidebarCollapsed {
+  overflow: hidden;
+}
+
+.dialogueSidebarCard {
+  padding: 16px;
+  border-right: 1px solid var(--panelBorder);
+}
+
+.groupSidebarCard {
+  padding: 0;
+}
+
+.groupArtifactsCard {
+  padding: 0;
+}
+
+.expertsSidebarCard {
+  padding: 16px;
+}
+
+.expertsMainCard {
+  gap: 12px;
+  padding: 14px;
+  overflow-y: auto;
+}
+
+.expertsMainCardPlain {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.expertsMainCardDetail {
+  min-width: 0;
+}
+
+.cardHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.cardTitle {
+  color: var(--text);
+  font-size: 22px;
+  line-height: 32px;
+  font-weight: 600;
+}
+
+.cardSubtitle {
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.dialogueSidebarCard {
+  padding: 16px 14px;
+  position: relative;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.dialogueSidebarCardCollapsed {
+  padding: 8px 6px;
+  align-items: center;
+  justify-content: center;
+  border-right: 0;
+  overflow: visible;
+}
+
+.dialogueSidebarFooter {
+  margin-top: auto;
+  padding-top: 16px;
+}
+
+.dialogueSidebarTopBar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 12px;
+}
+
+.dialogueSidebarSectionTitle {
+  color: var(--text);
+  font-size: 15px;
+  line-height: 22px;
+  font-weight: 600;
+}
+
+.dialogueSidebarAction,
+.dialogueSidebarIconButton,
+.dialogueNewSessionButton,
+.dialogueSwitcherItem,
+.dialogueSessionItem {
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.dialogueSidebarAction,
+.dialogueSidebarIconButton {
+  min-height: 40px;
+  border-radius: 12px;
+  color: var(--text);
+  transition:
+    background 160ms ease,
+    color 160ms ease;
+}
+
+.dialogueSidebarAction:hover,
+.dialogueSidebarIconButton:hover,
+.dialogueNewSessionButton:hover,
+.dialogueSwitcherItem:hover,
+.dialogueSessionItem:hover {
+  background: color-mix(in srgb, var(--text) 4%, transparent);
+}
+
+.dialogueSidebarAction {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 6px;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 22px;
+}
+
+.dialogueSidebarIconButton {
+  width: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+}
+
+.dialogueCollapsedAvatarButton {
+  position: absolute;
+  top: 14px;
+  left: 16px;
+  z-index: 5;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.dialogueCollapsedAvatarWrap {
+  width: 40px;
+  height: 40px;
+  position: relative;
+  display: inline-flex;
+}
+
+.dialogueCollapsedAvatar {
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--primary) 12%, var(--surface));
+  color: var(--primary);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+
+.dialogueCollapsedAvatarDot {
+  right: 0;
+  bottom: 0;
+}
+
+.dialogueCollapsedCapsule {
+  width: auto;
+  flex: 0 0 auto;
+  padding: 14px 6px;
+  border-radius: 999px;
+  background: var(--surface);
+  box-shadow:
+    0 16px 36px color-mix(in srgb, var(--text) 8%, transparent),
+    0 2px 10px color-mix(in srgb, var(--text) 5%, transparent);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.dialogueCollapsedBrandButton,
+.dialogueCollapsedActionButton {
+  width: 46px;
+  height: 46px;
+  border: 0;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition:
+    transform 160ms ease,
+    box-shadow 160ms ease,
+    background 160ms ease,
+    color 160ms ease;
+}
+
+.dialogueCollapsedBrandButton:hover,
+.dialogueCollapsedActionButton:hover {
+  transform: translateY(-1px);
+}
+
+.dialogueCollapsedBrandButton {
+  position: relative;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--primary) 10%, var(--surface));
+  color: var(--primary);
+}
+
+.dialogueCollapsedBrandButton:hover,
+.dialogueCollapsedBrandButton:focus-visible {
+  background: color-mix(in srgb, var(--text) 8%, transparent);
+  color: var(--text);
+}
+
+.dialogueCollapsedBrandButton:focus-visible,
+.dialogueCollapsedActionButton:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--primary) 35%, transparent);
+  outline-offset: 2px;
+}
+
+.dialogueCollapsedBrandLogo,
+.dialogueCollapsedBrandExpand {
+  position: absolute;
+  inset: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition:
+    opacity 160ms ease,
+    transform 160ms ease;
+}
+
+.dialogueCollapsedBrandLogo {
+  font-size: 18px;
+  line-height: 1;
+  font-weight: 700;
+  opacity: 1;
+  transform: scale(1);
+}
+
+.dialogueCollapsedBrandExpand {
+  font-size: 18px;
+  opacity: 0;
+  transform: scale(0.84);
+}
+
+.dialogueCollapsedBrandButton:hover .dialogueCollapsedBrandLogo,
+.dialogueCollapsedBrandButton:focus-visible .dialogueCollapsedBrandLogo {
+  opacity: 0;
+  transform: scale(0.84);
+}
+
+.dialogueCollapsedBrandButton:hover .dialogueCollapsedBrandExpand,
+.dialogueCollapsedBrandButton:focus-visible .dialogueCollapsedBrandExpand {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.dialogueCollapsedPrimaryButton {
+  background: var(--text);
+  color: var(--surface);
+}
+
+.dialogueCollapsedPrimaryButton:hover {
+  background: color-mix(in srgb, var(--text) 90%, var(--surface));
+  color: var(--surface);
+}
+
+.dialogueCollapsedActionButton {
+  background: color-mix(in srgb, var(--text) 4%, var(--surface));
+  color: var(--text);
+}
+
+.dialogueCollapsedActionButton:hover {
+  background: color-mix(in srgb, var(--text) 8%, var(--surface));
+}
+
+.dialogueCollapsedAgentSlot {
+  position: relative;
+  width: 46px;
+  flex: 0 0 auto;
+  display: flex;
+  justify-content: center;
+}
+
+.dialogueCollapsedActionButton .employeeAvatarWrap {
+  width: 40px;
+  height: 40px;
+}
+
+.dialogueCollapsedUserButton {
+  background: transparent;
+}
+
+.dialogueCollapsedFooter {
+  padding-top: 0;
+}
+
+.dialogueSidebarCardCollapsed > .dialogueAgentDropdownMenuCollapsed {
+  top: 50%;
+  right: auto;
+  left: calc(100% + 12px);
+  width: min(288px, calc(100vw - 120px));
+  max-height: min(70vh, 520px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  transform: translateY(-50%);
+  z-index: 12;
+}
+
+.dialogueAgentListSection,
+.dialogueHeroCard,
+.dialogueSessionSection {
+  margin-top: 20px;
+}
+
+.dialogueAgentListSection {
+  position: relative;
+}
+
+.dialogueAgentSelectButton {
+  width: 100%;
+  min-height: 64px;
+  padding: 12px 14px;
+  border: 1px solid var(--panelBorder);
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--text) 3%, var(--surface));
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  cursor: pointer;
+  transition:
+    border-color 160ms ease,
+    background 160ms ease;
+}
+
+.dialogueAgentSelectButton:hover {
+  border-color: color-mix(in srgb, var(--primary) 18%, var(--panelBorder));
+  background: color-mix(in srgb, var(--primary) 5%, var(--surface));
+}
+
+.dialogueAgentSelectCurrent {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
+  text-align: left;
+}
+
+.dialogueAgentSelectArrow {
+  color: var(--text-secondary);
+  font-size: 14px;
+  transition: transform 160ms ease;
+}
+
+.dialogueAgentSelectArrowOpen {
+  transform: rotate(180deg);
+}
+
+.dialogueAgentDropdownMenu {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  right: 0;
+  z-index: 8;
+  max-height: min(56vh, 520px);
+  padding: 8px;
+  border: 1px solid var(--panelBorder);
+  border-radius: 18px;
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.dialogueHeroCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 8px 2px;
+}
+
+.dialogueHeroAvatarWrap {
+  width: 88px;
+  height: 88px;
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.dialogueHeroAvatar {
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--primary) 12%, var(--surface));
+  color: var(--primary);
+  overflow: hidden;
+}
+
+.dialogueHeroStatusDot {
+  width: 16px;
+  height: 16px;
+  right: 2px;
+  bottom: 2px;
+}
+
+.dialogueHeroName {
+  color: var(--text);
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 600;
+  text-align: center;
+}
+
+.dialogueHeroBadge {
+  min-height: 36px;
+  padding: 0 12px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--panelBorder);
+  color: var(--text);
+  font-size: 13px;
+  line-height: 20px;
+  font-weight: 500;
+}
+
+.dialogueHeroSkills {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.dialogueNewSessionButton {
+  width: 100%;
+  min-height: 56px;
+  margin-top: 26px;
+  padding: 0 18px;
+  border-radius: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: color-mix(in srgb, var(--text) 4%, var(--surface));
+  color: var(--text);
+  font-size: 15px;
+  line-height: 22px;
+  font-weight: 600;
+  transition:
+    background 160ms ease,
+    transform 160ms ease;
+}
+
+.dialogueNewSessionButton:hover {
+  transform: translateY(-1px);
+}
+
+.dialogueSwitcherList {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 0;
+  min-height: 0;
+}
+
+.dialogueSwitcherGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.dialogueSwitcherGroupTitle {
+  padding: 0 6px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 18px;
+  font-weight: 600;
+}
+
+.dialogueSwitcherItemRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dialogueSwitcherItem {
+  width: 100%;
+  min-width: 0;
+  padding: 12px;
+  border-radius: 18px;
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
+  text-align: left;
+  transition: background 160ms ease;
+}
+
+.dialogueSwitcherItemActive {
+  background: color-mix(in srgb, var(--primary) 8%, var(--surface));
+}
+
+.dialogueSwitcherItemEditing {
+  cursor: default;
+}
+
+.dialogueSwitcherItemBody {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.dialogueSwitcherItemMeta {
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 18px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dialogueTeamAvatarStack {
+  min-width: 0;
+  width: 40px;
+  height: 40px;
+  padding: 3px;
+  border-radius: 12px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 2px;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--primary) 10%, var(--surface));
+}
+
+.dialogueTeamAvatarStackCompact {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.dialogueTeamAvatarItem {
+  min-width: 0;
+  min-height: 0;
+  border-radius: 6px;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--surface) 88%, var(--app-bg));
+}
+
+.dialogueTeamAvatarImage,
+.dialogueTeamAvatarFallback {
+  width: 100%;
+  height: 100%;
+}
+
+.dialogueTeamAvatarImage {
+  display: block;
+  object-fit: cover;
+}
+
+.dialogueTeamAvatarFallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text);
+  font-size: 9px;
+  font-weight: 600;
+}
+
+.dialogueSwitcherAgentEditRow {
+  display: flex;
+  width: 100%;
+}
+
+.dialogueSwitcherAgentEditInput {
+  flex: 1;
+  min-width: 0;
+}
+
+.dialogueSwitcherAgentAction {
+  width: 28px;
+  height: 28px;
+  flex: 0 0 auto;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--text-secondary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    opacity 160ms ease,
+    background 160ms ease,
+    color 160ms ease;
+}
+
+.dialogueSwitcherItemRow:hover .dialogueSwitcherAgentAction,
+.dialogueSwitcherItemRow:focus-within .dialogueSwitcherAgentAction,
+.dialogueSwitcherItemEditing .dialogueSwitcherAgentAction {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.dialogueSwitcherAgentAction:hover {
+  background: color-mix(in srgb, var(--text) 5%, transparent);
+  color: var(--text);
+}
+
+.dialogueSwitcherItemName,
+.dialogueSessionTitle {
+  color: var(--text);
+  font-size: 15px;
+  line-height: 22px;
+  font-weight: 600;
+}
+
+.dialogueSwitcherItemName {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dialogueSwitcherItemMeta,
+.dialogueSessionPreview,
+.dialogueSessionTime,
+.dialogueSessionHeading,
+.dialogueSessionEmpty {
+  color: var(--text-secondary);
+}
+
+.dialogueSwitcherItemMeta,
+.dialogueSessionTime {
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.dialogueSessionHeading {
+  margin-bottom: 12px;
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 600;
+}
+
+.dialogueSessionList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.dialogueSessionItem {
+  position: relative;
+  width: 100%;
+  min-height: 60px;
+  padding: 8px;
+  border-radius: 18px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: color-mix(in srgb, var(--text) 4%, var(--surface));
+  transition:
+    background 160ms ease,
+    transform 160ms ease;
+}
+
+.dialogueSessionItem:hover {
+  transform: translateY(-1px);
+}
+
+.dialogueSessionItemActive {
+  background: color-mix(in srgb, var(--primary) 12%, var(--surface));
+}
+
+.dialogueSessionMainButton,
+.dialogueSessionMenuButton,
+.dialogueSessionEditorButton {
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.dialogueSessionMainButton {
+  width: 100%;
+  min-height: 44px;
+  padding: 6px 52px 6px 0;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  position: relative;
+  text-align: left;
+}
+
+.dialogueSessionContent {
+  min-width: 0;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-left: 8px;
+}
+
+.dialogueSessionMainButton:hover {
+  background: color-mix(in srgb, var(--text) 4%, transparent);
+}
+
+.dialogueSessionTitle {
+  min-width: 0;
+  flex: 1 1 auto;
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dialogueSessionTime {
+  flex: 0 0 auto;
+  text-align: right;
+  white-space: nowrap;
+  opacity: 1;
+  transition: opacity 160ms ease;
+}
+
+.dialogueSessionMenuButton {
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  transform: translateY(-50%);
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    opacity 160ms ease,
+    background 160ms ease,
+    color 160ms ease;
+}
+
+.dialogueSessionItem:hover .dialogueSessionMenuButton,
+.dialogueSessionItem:focus-within .dialogueSessionMenuButton {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.dialogueSessionItem:hover .dialogueSessionTime,
+.dialogueSessionItem:focus-within .dialogueSessionTime {
+  opacity: 0;
+}
+
+.dialogueSessionMenuButton:hover {
+  background: color-mix(in srgb, var(--text) 5%, transparent);
+  color: var(--text);
+}
+
+.dialogueSessionEditor {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 6px;
+}
+
+.dialogueSessionEditorActions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.dialogueSessionEditorButton {
+  width: 30px;
+  height: 30px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  transition:
+    background 160ms ease,
+    color 160ms ease;
+}
+
+.dialogueSessionEditorButton:hover {
+  background: color-mix(in srgb, var(--text) 5%, transparent);
+  color: var(--text);
+}
+
+.dialogueSessionEmpty {
+  padding: 14px 16px;
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--text) 4%, var(--surface));
+  font-size: 13px;
+  line-height: 20px;
+}

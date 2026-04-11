@@ -2,11 +2,11 @@ import type { ArtifactItem } from "@/types/artifact";
 import {
   ECOMMERCE_AUTOMATION_AGENT_DEMO,
   ECOMMERCE_AUTOMATION_SKILL_DEMOS,
-} from "@/constants/ecommerceAutomationDemo";
+} from "@/mocks/agentDemos/ecommerceAutomationDemo";
 import {
   LIVE_BROADCAST_AGENT_DEMO,
   LIVE_BROADCAST_SKILL_DEMOS,
-} from "@/constants/liveBroadcastDemo";
+} from "@/mocks/agentDemos/liveBroadcastDemo";
 import {
   PRODUCT_MANAGER_ADMIN_PRD_DOCUMENT_CONTENT,
   PRODUCT_MANAGER_ADMIN_PRD_DOCUMENT_NAME,
@@ -18,11 +18,11 @@ import {
   PRODUCT_MANAGER_PRD_DOCUMENT_NAME,
   PRODUCT_MANAGER_WORKSPACE_PRD_DOCUMENT_CONTENT,
   PRODUCT_MANAGER_WORKSPACE_PRD_DOCUMENT_NAME,
-} from "@/constants/productManagerDocuments";
+} from "@/mocks/documents/productManagerDocuments";
 import {
   XIAOCANMAMA_IP_AGENT_DEMO,
   XIAOCANMAMA_IP_SKILL_DEMOS,
-} from "@/constants/xiaocanMamaIpDemo";
+} from "@/mocks/agentDemos/xiaocanMamaIpDemo";
 import type {
   AdminAiEmployeeListItem,
   CoworkerSkillItem,

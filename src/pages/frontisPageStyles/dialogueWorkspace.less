@@ -1,0 +1,435 @@
+.employeeList {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.employeeCardButton {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--panelBorder);
+  border-radius: 14px;
+  background: var(--surface);
+  text-align: left;
+  display: flex;
+  align-items: center;
+  transition:
+    border-color 160ms ease,
+    background 160ms ease,
+    box-shadow 160ms ease,
+    transform 160ms ease;
+}
+
+.employeeCardButton:hover {
+  background: var(--subtleBgHover);
+  border-color: var(--panelBorderStrong);
+  transform: translateY(-1px);
+}
+
+.employeeCardButtonActive {
+  background: color-mix(in srgb, var(--primary) 10%, var(--surface));
+  border-color: color-mix(in srgb, var(--primary) 24%, var(--panelBorder));
+  box-shadow: var(--shadow-sm);
+}
+
+.employeeIdentity {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.employeeAvatarWrap {
+  width: 40px;
+  height: 40px;
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.employeeAvatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--primary) 12%, var(--surface));
+  color: var(--primary);
+  font-size: 14px;
+  font-weight: 600;
+  overflow: hidden;
+}
+
+.employeeStatusDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  position: absolute;
+  right: 1px;
+  bottom: 1px;
+  background: var(--statusOnlineText);
+  border: 2px solid var(--surface);
+}
+
+.employeeStatusDotBusy {
+  background: var(--statusBusyText);
+}
+
+.employeeStatusDotIdle {
+  background: var(--statusNeutralText);
+}
+
+.employeeStatusDotPending {
+  background: var(--statusPendingText);
+}
+
+.employeeStatusDotOffline {
+  background: color-mix(in srgb, var(--surface) 72%, var(--text));
+}
+
+.employeeStatusDotError {
+  background: var(--statusBusyText);
+}
+
+.employeeCardHeader,
+.chatPanelHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.employeeName,
+.chatPanelTitle {
+  color: var(--text);
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 600;
+}
+
+.employeeTag {
+  min-height: 26px;
+  padding: 0 10px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--text) 4%, var(--surface));
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.employeeRole,
+.chatPanelSubtitle,
+.employeeHint,
+.workspaceSummaryText {
+  color: var(--text-secondary);
+  font-size: 14px;
+  line-height: 22px;
+}
+
+.chatPanelTitleGroup,
+.chatPanelMeta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.chatPanelTitleGroup {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+
+.chatPanelHeader {
+  min-height: 72px;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--panelBorder);
+}
+
+.chatPanelBody {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.composerWrap {
+  width: 100%;
+  max-width: 700px;
+  min-height: 100px;
+  margin: 0 auto;
+  padding: 7px 16px 9px;
+  flex: 0 0 auto;
+}
+
+.dialogueCaseActionWrap {
+  width: 100%;
+  max-width: 700px;
+  margin: 0 auto;
+  padding: 16px;
+  flex: 0 0 auto;
+  display: flex;
+  justify-content: center;
+}
+
+.dialogueCaseActionButton {
+  min-width: 160px;
+}
+
+.dialogueExpertTeamStrip {
+  width: 100%;
+  max-width: 920px;
+  margin: 0 auto;
+  padding: 4px 16px 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+}
+
+.dialogueExpertTeamStripToolbar {
+  flex: 1 1 0;
+  width: auto;
+  max-width: none;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+}
+
+.dialogueExpertTeamAvatars {
+  width: max-content;
+  min-width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  justify-content: center;
+  flex-wrap: nowrap;
+  padding-bottom: 4px;
+}
+
+.dialogueExpertTeamAvatarsToolbar {
+  width: max-content;
+  min-width: 0;
+  justify-content: flex-start;
+  padding-bottom: 0;
+}
+
+.dialogueExpertAvatarButton {
+  flex: 0 0 auto;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dialogueExpertAvatar {
+  box-shadow: 0 0 0 2px var(--surfaceOutlineSoft);
+}
+
+.dialogueExpertAvatarMainAgent {
+  background:
+    radial-gradient(
+      circle at top,
+      color-mix(in srgb, var(--primary) 26%, var(--surface)),
+      transparent 58%
+    ),
+    linear-gradient(
+      145deg,
+      color-mix(in srgb, var(--primary) 16%, var(--surface)),
+      color-mix(in srgb, var(--text) 6%, var(--surface))
+    );
+  box-shadow:
+    0 0 0 2px var(--surfaceOutlineStrong),
+    0 0 0 4px color-mix(in srgb, var(--primary) 22%, transparent),
+    0 14px 28px color-mix(in srgb, var(--primary) 18%, transparent);
+}
+
+.dialogueExpertCard {
+  width: 280px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.dialogueExpertCardHeader {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.dialogueExpertCardCopy {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.dialogueExpertCardName {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.dialogueExpertCardRole {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.dialogueExpertCardSummary {
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--text);
+}
+
+.dialogueExpertCardSkills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.dialogueExpertCardSkillTag {
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--primary) 12%, white);
+  color: var(--primary);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.synclawComposer {
+  width: 100%;
+  --workspace-composer-chat-box-padding-bottom: 6px;
+  --workspace-composer-chat-footer-min-height: 36px;
+  --workspace-composer-chat-footer-padding-top: 2px;
+  --workspace-composer-chat-textarea-min-height: 52px;
+  --workspace-composer-chat-textarea-padding-top: 2px;
+  --workspace-composer-chat-input-min-height: 44px;
+}
+
+.dialogueComposerSkillBar {
+  min-width: 0;
+  flex: 1 1 auto;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  overflow: hidden;
+}
+
+.dialogueComposerSkillDivider {
+  width: 1px;
+  height: 22px;
+  background: color-mix(in srgb, var(--text) 10%, transparent);
+  flex: 0 0 auto;
+}
+
+.dialogueComposerSkillTrack {
+  min-width: 0;
+  flex: 1 1 auto;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+}
+
+.dialogueComposerSkillTrack::-webkit-scrollbar {
+  display: none;
+}
+
+.dialogueComposerSkillButton {
+  min-width: 0;
+  min-height: 34px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--text);
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  transition:
+    background 160ms ease,
+    color 160ms ease;
+}
+
+.dialogueComposerSkillButton:hover {
+  background: color-mix(in srgb, var(--text) 4%, transparent);
+}
+
+.dialogueComposerSkillSelected {
+  min-width: 0;
+  min-height: 34px;
+  padding: 0 8px 0 10px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--primary) 10%, transparent);
+  color: var(--primary);
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.dialogueComposerSkillIcon {
+  width: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  flex: 0 0 auto;
+}
+
+.dialogueComposerSkillLabel {
+  flex: 0 0 auto;
+  overflow: visible;
+  text-overflow: clip;
+  white-space: nowrap;
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 500;
+}
+
+.dialogueComposerSkillClearButton {
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: inherit;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 160ms ease;
+}
+
+.dialogueComposerSkillClearButton:hover {
+  background: color-mix(in srgb, var(--primary) 12%, transparent);
+}
+
+.dialogueSkillMenuItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dialogueSkillMenuItemIcon {
+  width: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+}
