@@ -86,12 +86,6 @@ export const FdeDeliveryWorkbenchListView = ({
               </span>
               <span className={styles.deliveryOverview}>
                 <span className={styles.deliveryOverviewItem}>
-                  待配置 {summaryMap[item.id]?.pendingOrders ?? 0}
-                </span>
-                <span className={styles.deliveryOverviewItem}>
-                  配置中 {summaryMap[item.id]?.processingOrders ?? 0}
-                </span>
-                <span className={styles.deliveryOverviewItem}>
                   已交付 {summaryMap[item.id]?.deliveredOrders ?? 0}
                 </span>
               </span>
