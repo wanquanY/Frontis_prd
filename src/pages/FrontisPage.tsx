@@ -64,6 +64,7 @@ import styles from "./FrontisPage.module.less";
 
 interface FrontisPageProps {
   viewRole: FrontisWebRole;
+  embedded?: boolean;
 }
 
 const DEFAULT_CONVERSATION_EMPLOYEE_ID = "employee-writer";
@@ -566,11 +567,10 @@ const sortConversationEmployees = (employees: EmployeeItem[]): EmployeeItem[] =>
  *
  * 当前页面通过路由区分普通用户与企业老板视图。
  */
-const FrontisPage = ({ viewRole }: FrontisPageProps): JSX.Element => {
+const FrontisPage = ({ viewRole, embedded = false }: FrontisPageProps): JSX.Element => {
   const location = useLocation();
   const navigate = useNavigate();
   const { activateIdentity, activateTenant, activeIdentity, logout, session } = useMockAuth();
-  const [isDialogueSidebarCollapsed, setIsDialogueSidebarCollapsed] = useState<boolean>(false);
   const [dialogueSessions, setDialogueSessions] = useState<DialogueSessionItem[]>(() =>
     INITIAL_DIALOGUE_SESSIONS.map(item => mapDialogueSessionForRole(item, viewRole)),
   );
@@ -1407,7 +1407,12 @@ const FrontisPage = ({ viewRole }: FrontisPageProps): JSX.Element => {
   }, [location.pathname, location.search, logout, navigate]);
 
   const systemEntries = useMemo(
-    () => getSystemEntries(session?.identities ?? [], activeIdentity?.tenantId, session?.activeIdentityId),
+    () =>
+      getSystemEntries(
+        session?.identities ?? [],
+        activeIdentity?.tenantId,
+        session?.activeIdentityId,
+      ),
     [activeIdentity?.tenantId, session?.activeIdentityId, session?.identities],
   );
   const tenantEntries = useMemo(
@@ -1512,7 +1517,6 @@ const FrontisPage = ({ viewRole }: FrontisPageProps): JSX.Element => {
           homePromptItems={activeAgentHomeConfig.promptItems}
           homeSkillItems={activeAgentHomeConfig.skillItems}
           isHomeVisible={isDialogueHomeActive}
-          isSidebarCollapsed={isDialogueSidebarCollapsed}
           isDialogueResponding={isDialogueResponding}
           defaultAgentIds={deviceDefaultAgents.map(item => item.id)}
           onCreateDialogueSession={handleCreateDialogueSession}
@@ -1533,9 +1537,9 @@ const FrontisPage = ({ viewRole }: FrontisPageProps): JSX.Element => {
           onRemoveAttachment={handleRemoveDialogueAttachment}
           onSkillSelect={handleSelectSkill}
           onSendDialogue={handleSendDialogue}
-          onToggleSidebar={() => setIsDialogueSidebarCollapsed(current => !current)}
           selectedSkillIds={selectedSkillIds}
           onStopDialogue={handleStopDialogue}
+          showAccountEntry={!embedded}
           viewerName={currentUser?.name ?? "你"}
         />
       );
@@ -1547,6 +1551,10 @@ const FrontisPage = ({ viewRole }: FrontisPageProps): JSX.Element => {
       </div>
     );
   };
+
+  if (embedded) {
+    return <div className={styles.embeddedPage}>{renderContent()}</div>;
+  }
 
   return (
     <div className={styles.page}>

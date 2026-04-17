@@ -1,0 +1,296 @@
+.root {
+  display: flex;
+  min-height: 100vh;
+  background: var(--surface);
+  color: var(--text);
+}
+
+.navRail {
+  width: 112px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 18px 12px 16px;
+  border-right: 1px solid color-mix(in srgb, var(--text) 8%, transparent);
+  background: color-mix(in srgb, var(--surface) 97%, var(--app-bg));
+}
+
+.brandBlock {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding-bottom: 6px;
+}
+
+.brandLogo {
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--primary) 14%, transparent);
+  color: var(--primary);
+  font-size: 24px;
+  line-height: 1;
+  font-weight: 700;
+}
+
+.brandName {
+  color: var(--text);
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 600;
+  text-align: center;
+}
+
+.navList {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.navButton {
+  width: 100%;
+  min-height: 82px;
+  padding: 12px 8px;
+  border: 0;
+  border-radius: 22px;
+  background: transparent;
+  color: var(--text-secondary);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  transition:
+    background 180ms ease,
+    color 180ms ease,
+    transform 180ms ease,
+    box-shadow 180ms ease;
+
+  &:hover {
+    background: color-mix(in srgb, var(--text) 4%, transparent);
+    color: var(--text);
+    transform: translateY(-1px);
+  }
+}
+
+.navButtonActive {
+  background: color-mix(in srgb, var(--primary) 10%, var(--surface));
+  color: var(--primary);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--primary) 16%, transparent);
+}
+
+.navIcon {
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--text) 4%, transparent);
+  font-size: 18px;
+  line-height: 1;
+}
+
+.navButtonActive .navIcon {
+  background: color-mix(in srgb, var(--primary) 12%, transparent);
+}
+
+.navText {
+  font-size: 12px;
+  line-height: 18px;
+  font-weight: 600;
+  text-align: center;
+}
+
+.main {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+}
+
+.mainPanel {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+}
+
+.featureHeader {
+  flex-shrink: 0;
+  min-height: 74px;
+  padding: 16px 24px;
+  border-bottom: 1px solid color-mix(in srgb, var(--text) 8%, transparent);
+  background: color-mix(in srgb, var(--surface) 96%, var(--app-bg));
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.featureHeaderInfo {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.featureHeaderEyebrow {
+  color: var(--primary);
+  font-size: 12px;
+  line-height: 18px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.featureHeaderTitle {
+  margin: 0;
+  color: var(--text);
+  font-size: 20px;
+  line-height: 30px;
+  font-weight: 600;
+}
+
+.featureHeaderDescription {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.accountAvatar {
+  background: color-mix(in srgb, var(--primary) 14%, transparent);
+  color: var(--primary);
+}
+
+.navFooter {
+  padding-top: 4px;
+}
+
+.navAccountButton {
+  width: 100%;
+  padding: 12px 8px;
+  border: 0;
+  border-radius: 20px;
+  background: color-mix(in srgb, var(--text) 3%, transparent);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  transition:
+    background 160ms ease,
+    color 160ms ease;
+
+  &:hover {
+    background: color-mix(in srgb, var(--text) 5%, transparent);
+  }
+}
+
+.navAccountName {
+  color: var(--text);
+  font-size: 12px;
+  line-height: 18px;
+  font-weight: 600;
+  text-align: center;
+  word-break: break-word;
+}
+
+.accountCopy {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.accountName {
+  color: var(--text);
+  font-size: 13px;
+  line-height: 18px;
+}
+
+.content {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  background: var(--surface);
+}
+
+.featureContent {
+  overflow: auto;
+  background: color-mix(in srgb, var(--surface) 98%, var(--app-bg));
+}
+
+.featureContent > * {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+}
+
+.loadingState {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  font-size: 14px;
+  line-height: 22px;
+}
+
+@media (max-width: 1120px) {
+  .root {
+    flex-direction: column;
+  }
+
+  .navRail {
+    width: auto;
+    padding: 12px 16px;
+    border-right: 0;
+    border-bottom: 1px solid color-mix(in srgb, var(--text) 8%, transparent);
+  }
+
+  .brandBlock {
+    justify-content: flex-start;
+  }
+
+  .navList {
+    flex-direction: row;
+    overflow-x: auto;
+    padding-bottom: 4px;
+  }
+
+  .navButton {
+    min-width: 124px;
+    min-height: 72px;
+    flex-shrink: 0;
+  }
+}
+
+@media (max-width: 720px) {
+  .featureHeader {
+    padding: 14px 16px;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .navFooter {
+    padding-top: 0;
+  }
+
+  .navAccountButton {
+    width: auto;
+    min-width: 112px;
+  }
+}

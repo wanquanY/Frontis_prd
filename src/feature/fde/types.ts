@@ -17,7 +17,6 @@ export type FdeWorkbenchTabKey =
   | "agentDev"
   | "skillMarket"
   | "agentStore"
-  | "opsInsights"
   | "fdeOrgManagement";
 
 /**
@@ -33,7 +32,6 @@ export type FdeTeamPermissionKey =
   | "agentDev"
   | "skillMarket"
   | "agentStore"
-  | "opsInsights"
   | "fdeOrgManagement";
 
 /**
@@ -69,11 +67,7 @@ export type FdeDeviceMode = "云端设备" | "本地设备" | "混合部署";
 /**
  * 交付流程步骤键。
  */
-export type FdeDeliveryStepKey =
-  | "deviceConfig"
-  | "agentConfig"
-  | "apiTest"
-  | "preflight";
+export type FdeDeliveryStepKey = "deviceConfig" | "agentConfig" | "apiTest" | "preflight";
 
 /**
  * 客户运行健康度。
@@ -83,12 +77,7 @@ export type FdeMonitorHealth = "healthy" | "attention" | "risk";
 /**
  * FDE 租户版本推送状态。
  */
-export type FdeVersionManagementStatus =
-  | "当前版本"
-  | "可升级"
-  | "已推送"
-  | "已忽略"
-  | "已回退";
+export type FdeVersionManagementStatus = "当前版本" | "可升级" | "已推送" | "已忽略" | "已回退";
 
 /**
  * 配置交付订单状态。
@@ -897,10 +886,7 @@ export interface UseFdeWorkbenchResult {
   selectedVersionTaskId: string;
   setActiveTab: (tab: FdeWorkbenchTabKey) => void;
   createOrder: (payload: FdeCreateOrderPayload) => FdeCreateOrderResult;
-  assignOpportunity: (
-    opportunityId: string,
-    payload: FdeOpportunityAssignmentPayload,
-  ) => void;
+  assignOpportunity: (opportunityId: string, payload: FdeOpportunityAssignmentPayload) => void;
   createOpportunity: (payload: FdeCreateOpportunityPayload) => void;
   updateOpportunityStatus: (opportunityId: string, status: FdeOpportunityStatus) => void;
   addOpportunityComment: (payload: FdeAddOpportunityCommentPayload) => void;

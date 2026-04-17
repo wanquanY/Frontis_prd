@@ -5,16 +5,12 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { AuthRoute } from "@/feature/auth/components/AuthRoute";
 import { OperationsAuthRoute } from "@/feature/operations/components/OperationsAuthRoute";
 
-const FrontisPage = lazy(() => import("@/pages/FrontisPage"));
 const FrontisAdminPage = lazy(() => import("@/pages/FrontisAdminPage"));
 const IdentitySelectionPage = lazy(() => import("@/pages/identity/IdentitySelectionPage"));
 const LoginPage = lazy(() => import("@/pages/login/LoginPage"));
-const OperationsLoginPage = lazy(
-  () => import("@/pages/operations/login/OperationsLoginPage"),
-);
-const OperationsPlatformPage = lazy(
-  () => import("@/pages/operations/OperationsPlatformPage"),
-);
+const UnifiedWorkbenchPage = lazy(() => import("@/pages/unifiedWorkbench/UnifiedWorkbenchPage"));
+const OperationsLoginPage = lazy(() => import("@/pages/operations/login/OperationsLoginPage"));
+const OperationsPlatformPage = lazy(() => import("@/pages/operations/OperationsPlatformPage"));
 const MarketingPortalShellPage = lazy(
   () => import("@/pages/marketingPortal/MarketingPortalShellPage"),
 );
@@ -118,7 +114,15 @@ const App = (): JSX.Element => {
             path="/web/employee"
             element={
               <AuthRoute allowedRole={["employee", "admin"]}>
-                <FrontisPage viewRole="employee" />
+                <UnifiedWorkbenchPage viewRole="employee" />
+              </AuthRoute>
+            }
+          />
+          <Route
+            path="/web/employee/:tabPath"
+            element={
+              <AuthRoute allowedRole={["employee", "admin"]}>
+                <UnifiedWorkbenchPage viewRole="employee" />
               </AuthRoute>
             }
           />
@@ -134,7 +138,15 @@ const App = (): JSX.Element => {
             path="/web/admin/workspace"
             element={
               <AuthRoute allowedRole={["admin"]}>
-                <FrontisPage viewRole="admin" />
+                <UnifiedWorkbenchPage viewRole="admin" />
+              </AuthRoute>
+            }
+          />
+          <Route
+            path="/web/admin/workspace/:tabPath"
+            element={
+              <AuthRoute allowedRole={["admin"]}>
+                <UnifiedWorkbenchPage viewRole="admin" />
               </AuthRoute>
             }
           />

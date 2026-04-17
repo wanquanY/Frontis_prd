@@ -82,11 +82,6 @@ export const FDE_WORKBENCH_TABS: FdeWorkbenchTabItem[] = [
     description: "",
   },
   {
-    key: "opsInsights",
-    label: "运营洞察",
-    description: "",
-  },
-  {
     key: "fdeOrgManagement",
     label: "人员管理",
     description: "管理 FDE 组织结构与成员。",
@@ -152,11 +147,6 @@ export const FDE_WORKBENCH_NAV_GROUPS: FdeWorkbenchNavGroup[] = [
         label: "Agent广场",
         description: "",
       },
-      {
-        key: "opsInsights",
-        label: "运营洞察",
-        description: "",
-      },
     ],
   },
   {
@@ -220,11 +210,6 @@ export const FDE_TEAM_PERMISSIONS: FdeTeamPermissionItem[] = [
     key: "agentStore",
     label: "Agent广场",
     description: "可浏览和管理团队 Agent 资产。",
-  },
-  {
-    key: "opsInsights",
-    label: "运营洞察",
-    description: "可查看平台分发效率、调用活跃和企业价值覆盖情况。",
   },
 ];
 
@@ -793,8 +778,7 @@ export const FDE_DELIVERY_ORDERS: FdeDeliveryOrderItem[] = [
     ],
     sourceLabel: "FDE 手动创建订单",
     tenantStatusLabel: "已交付",
-    deliveryBoundary:
-      "已完成首期交付，当前进入客户持续运营与版本管理阶段。",
+    deliveryBoundary: "已完成首期交付，当前进入客户持续运营与版本管理阶段。",
     deliveryNote:
       "招聘协同与组织风险预警场景已交付上线，当前由企业管理员持续补充组织权限和模型配置。",
     deviceConfig: {
@@ -1080,11 +1064,7 @@ export const FDE_DELIVERY_ORDERS: FdeDeliveryOrderItem[] = [
     memberCount: 42,
     createdAt: "2026-03-27 14:50",
     launchTargetDate: "2026-04-02",
-    preflightChecks: [
-      "租户初始化完成",
-      "设备与素材库权限已确认",
-      "企业管理员完成交付验收",
-    ],
+    preflightChecks: ["租户初始化完成", "设备与素材库权限已确认", "企业管理员完成交付验收"],
     completedSteps: ["deviceConfig", "agentConfig", "apiTest", "preflight"],
     deliveryStatus: "已交付",
   },
@@ -1125,8 +1105,7 @@ export const FDE_DELIVERY_ORDERS: FdeDeliveryOrderItem[] = [
     sourceLabel: "FDE 手动创建订单",
     tenantStatusLabel: "Agent 已下发",
     deliveryBoundary: "租户与设备已就绪，当前在校区维度验证招生与教务场景的权限分组。",
-    deliveryNote:
-      "6 个校区基础数据已导入，正在灰度开放校区招生顾问、教务巡检官和续费跟进助手。",
+    deliveryNote: "6 个校区基础数据已导入，正在灰度开放校区招生顾问、教务巡检官和续费跟进助手。",
     deviceConfig: {
       mode: "混合部署",
       cloudDeviceCount: 1,
@@ -1193,11 +1172,7 @@ export const FDE_DELIVERY_ORDERS: FdeDeliveryOrderItem[] = [
     memberCount: 26,
     createdAt: "2026-03-30 11:20",
     launchTargetDate: "2026-04-10",
-    preflightChecks: [
-      "租户创建完成",
-      "测试校区已完成设备激活",
-      "企业管理员已收到交付说明",
-    ],
+    preflightChecks: ["租户创建完成", "测试校区已完成设备激活", "企业管理员已收到交付说明"],
     completedSteps: ["deviceConfig"],
     deliveryStatus: "配置中",
   },
@@ -1241,11 +1216,7 @@ export const FDE_DELIVERY_ORDERS: FdeDeliveryOrderItem[] = [
       "设备部署需求确认",
       "可用 Agent 范围确认",
     ],
-    handoffItems: [
-      "企业管理员已接手后台配置",
-      "设备与人员绑定关系已确认",
-      "可用 Agent 已完成下发",
-    ],
+    handoffItems: ["企业管理员已接手后台配置", "设备与人员绑定关系已确认", "可用 Agent 已完成下发"],
     agentGroups: [],
     agentPackages: [],
     adminTodo: ["确认客户端授权分发范围", "同步企业管理员初始化说明"],
@@ -1298,11 +1269,7 @@ export const FDE_DELIVERY_ORDERS: FdeDeliveryOrderItem[] = [
       "设备部署需求确认",
       "可用 Agent 范围确认",
     ],
-    handoffItems: [
-      "企业管理员已接手后台配置",
-      "设备与人员绑定关系已确认",
-      "可用 Agent 已完成下发",
-    ],
+    handoffItems: ["企业管理员已接手后台配置", "设备与人员绑定关系已确认", "可用 Agent 已完成下发"],
     agentGroups: [],
     agentPackages: [
       {
@@ -2306,12 +2273,26 @@ export const FDE_OPERATIONS_CUSTOMERS: FdeOperationsCustomerItem[] = [
         targetName: "云端工作站、本地工作站、本地客户端授权",
         type: "新增设备",
         summary: "试点门店扩容完成，新增设备资源已进入租户资产。",
-        detailItems: ["云端工作站：2 台 -> +1 台", "本地工作站：1 台 -> +2 台", "本地客户端授权：+8 个"],
+        detailItems: [
+          "云端工作站：2 台 -> +1 台",
+          "本地工作站：1 台 -> +2 台",
+          "本地客户端授权：+8 个",
+        ],
         requestedByName: "陈岚",
         changedAt: "2026-04-05 18:20",
         sourceLabel: "配置交付",
-        beforeSnapshot: ["云端设备额度 2/4台", "本地设备额度 1/6台", "AI 专家 4 个", "设备资产 3 台"],
-        afterSnapshot: ["云端设备额度 3/5台", "本地设备额度 3/8台", "AI 专家 4 个", "设备资产 6 台"],
+        beforeSnapshot: [
+          "云端设备额度 2/4台",
+          "本地设备额度 1/6台",
+          "AI 专家 4 个",
+          "设备资产 3 台",
+        ],
+        afterSnapshot: [
+          "云端设备额度 3/5台",
+          "本地设备额度 3/8台",
+          "AI 专家 4 个",
+          "设备资产 6 台",
+        ],
       },
       {
         id: "asset-change-01-upgrade",
@@ -2716,11 +2697,7 @@ export const FDE_OPERATIONS_CUSTOMERS: FdeOperationsCustomerItem[] = [
     taskCompletionRate: 93,
     lastHeartbeat: "3 分钟前",
     alertSummary: "昨晚素材库同步延迟 1 次，已自动恢复。",
-    highlights: [
-      "商品图批量出图稳定运行",
-      "导购话术日更 126 条",
-      "华东 12 家门店已启用灰度模板",
-    ],
+    highlights: ["商品图批量出图稳定运行", "导购话术日更 126 条", "华东 12 家门店已启用灰度模板"],
     assetQuotas: [
       { id: "quota-10", label: "云端设备额度", used: 1, total: 2, unit: "台" },
       { id: "quota-11", label: "本地设备额度", used: 2, total: 4, unit: "台" },
@@ -2913,8 +2890,18 @@ export const FDE_OPERATIONS_CUSTOMERS: FdeOperationsCustomerItem[] = [
         requestedByName: "陆舟",
         changedAt: "2026-04-03 18:20",
         sourceLabel: "配置交付",
-        beforeSnapshot: ["云端设备额度 1/2台", "本地设备额度 2/4台", "AI 专家 3 个", "设备资产 3 台"],
-        afterSnapshot: ["云端设备额度 1/2台", "本地设备额度 2/4台", "AI 专家 4 个", "设备资产 3 台"],
+        beforeSnapshot: [
+          "云端设备额度 1/2台",
+          "本地设备额度 2/4台",
+          "AI 专家 3 个",
+          "设备资产 3 台",
+        ],
+        afterSnapshot: [
+          "云端设备额度 1/2台",
+          "本地设备额度 2/4台",
+          "AI 专家 4 个",
+          "设备资产 3 台",
+        ],
       },
       {
         id: "asset-change-04-agent-renew",
@@ -3078,11 +3065,7 @@ export const FDE_VERSION_MANAGEMENT_TASKS: FdeVersionManagementTaskItem[] = [
     lastActionLabel: "已推送升级申请",
     lastActionAt: "昨天 18:40",
     releaseSummary: "新增技术岗匹配特征、面试问题生成模板和候选人优先级解释。",
-    diffHighlights: [
-      "简历优先级排序逻辑升级",
-      "技术岗 JD 拆写更稳定",
-      "新增升级前后效果说明模板",
-    ],
+    diffHighlights: ["简历优先级排序逻辑升级", "技术岗 JD 拆写更稳定", "新增升级前后效果说明模板"],
     riskHint: "需先确认 ATS 字段映射无变化，再允许 HR 团队正式切换。",
     customerDecisionHint: "企业管理员已查看说明，等待 HR 经理确认升级窗口。",
     versionHistory: [
@@ -3214,11 +3197,7 @@ export const FDE_VERSION_MANAGEMENT_TASKS: FdeVersionManagementTaskItem[] = [
     lastActionLabel: "已回退到 v1.2.8",
     lastActionAt: "2026-03-25 11:10",
     releaseSummary: "优化缺货预警算法，并新增自动补货建议。",
-    diffHighlights: [
-      "新增补货建议策略",
-      "缺货预警阈值更灵敏",
-      "需要重新校准客户实际流程",
-    ],
+    diffHighlights: ["新增补货建议策略", "缺货预警阈值更灵敏", "需要重新校准客户实际流程"],
     riskHint: "客户当前业务流程与新补货策略存在偏差，强推可能引发误报。",
     customerDecisionHint: "企业已从 v1.3.0 回退到 v1.2.8，等待下一轮修正版。",
     ignoreReason: "客户反馈补货建议与现有门店调拨流程不一致，先回退到上一稳定版本。",
@@ -3260,11 +3239,7 @@ export const FDE_VERSION_MANAGEMENT_TASKS: FdeVersionManagementTaskItem[] = [
     lastActionLabel: "当前线上版本",
     lastActionAt: "今天 09:20",
     releaseSummary: "最新版本已正式上线，支持门店库存播报、缺货提醒和临期预警。",
-    diffHighlights: [
-      "新增临期库存提醒",
-      "门店库存播报模版调整",
-      "支持督导群每日播报",
-    ],
+    diffHighlights: ["新增临期库存提醒", "门店库存播报模版调整", "支持督导群每日播报"],
     riskHint: "若门店库存口径与 ERP 不一致，可直接回退到上一稳定版本。",
     customerDecisionHint: "当前正在运行最新版本，若门店反馈播报口径异常，可发起回退。",
     versionHistory: [
@@ -3430,12 +3405,42 @@ export const FDE_VERSION_MANAGEMENT_TASKS: FdeVersionManagementTaskItem[] = [
 /* ─── Skill 市场 Mock 数据 ─── */
 
 export const FDE_SKILL_PRESET_COVERS: FdeSkillPresetCover[] = [
-  { key: "blue", label: "科技蓝", gradient: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)", emoji: "🤖" },
-  { key: "green", label: "生长绿", gradient: "linear-gradient(135deg, #11998e 0%, #38ef7d 100%)", emoji: "🌿" },
-  { key: "orange", label: "活力橙", gradient: "linear-gradient(135deg, #f093fb 0%, #f5576c 100%)", emoji: "🔥" },
-  { key: "cyan", label: "清新青", gradient: "linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)", emoji: "💎" },
-  { key: "purple", label: "创意紫", gradient: "linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%)", emoji: "✨" },
-  { key: "dark", label: "专业黑", gradient: "linear-gradient(135deg, #434343 0%, #000000 100%)", emoji: "⚡" },
+  {
+    key: "blue",
+    label: "科技蓝",
+    gradient: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+    emoji: "🤖",
+  },
+  {
+    key: "green",
+    label: "生长绿",
+    gradient: "linear-gradient(135deg, #11998e 0%, #38ef7d 100%)",
+    emoji: "🌿",
+  },
+  {
+    key: "orange",
+    label: "活力橙",
+    gradient: "linear-gradient(135deg, #f093fb 0%, #f5576c 100%)",
+    emoji: "🔥",
+  },
+  {
+    key: "cyan",
+    label: "清新青",
+    gradient: "linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)",
+    emoji: "💎",
+  },
+  {
+    key: "purple",
+    label: "创意紫",
+    gradient: "linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%)",
+    emoji: "✨",
+  },
+  {
+    key: "dark",
+    label: "专业黑",
+    gradient: "linear-gradient(135deg, #434343 0%, #000000 100%)",
+    emoji: "⚡",
+  },
 ];
 
 export const FDE_SKILL_MARKET_ITEMS: FdeSkillItem[] = [
@@ -3445,17 +3450,34 @@ export const FDE_SKILL_MARKET_ITEMS: FdeSkillItem[] = [
     version: "2.1.0",
     type: "workflow",
     tags: ["生产", "电商"],
-    description: "自动化商品信息采集、图片处理、SKU 生成和多平台同步上架的端到端 workflow，支持淘宝、京东、拼多多等主流电商平台，大幅提升运营效率。",
+    description:
+      "自动化商品信息采集、图片处理、SKU 生成和多平台同步上架的端到端 workflow，支持淘宝、京东、拼多多等主流电商平台，大幅提升运营效率。",
     publisher: "Frontis 官方",
     publishTime: "2026-03-28",
     iconColor: "#667eea",
     iconText: "电",
     visibility: "public",
     versions: [
-      { version: "2.1.0", releaseNote: "新增拼多多平台适配，优化图片批量压缩性能，修复 SKU 属性映射偶发异常。", publishTime: "2026-03-28" },
-      { version: "2.0.0", releaseNote: "重构多平台同步引擎，支持京东自营和 POP 店铺，新增 SKU 自动组合生成。", publishTime: "2026-02-15" },
-      { version: "1.2.0", releaseNote: "增加图片智能裁剪和水印功能，优化商品标题 SEO 建议。", publishTime: "2026-01-10" },
-      { version: "1.0.0", releaseNote: "初始版本，支持淘宝平台商品采集与上架。", publishTime: "2025-11-20" },
+      {
+        version: "2.1.0",
+        releaseNote: "新增拼多多平台适配，优化图片批量压缩性能，修复 SKU 属性映射偶发异常。",
+        publishTime: "2026-03-28",
+      },
+      {
+        version: "2.0.0",
+        releaseNote: "重构多平台同步引擎，支持京东自营和 POP 店铺，新增 SKU 自动组合生成。",
+        publishTime: "2026-02-15",
+      },
+      {
+        version: "1.2.0",
+        releaseNote: "增加图片智能裁剪和水印功能，优化商品标题 SEO 建议。",
+        publishTime: "2026-01-10",
+      },
+      {
+        version: "1.0.0",
+        releaseNote: "初始版本，支持淘宝平台商品采集与上架。",
+        publishTime: "2025-11-20",
+      },
     ],
   },
   {
@@ -3464,18 +3486,39 @@ export const FDE_SKILL_MARKET_ITEMS: FdeSkillItem[] = [
     version: "3.0.1",
     type: "skill",
     tags: ["营销", "创作"],
-    description: "基于大语言模型的营销文案自动生成能力，支持小红书种草文、公众号长文、短视频脚本等多种文体风格，可根据品牌调性自定义输出。",
+    description:
+      "基于大语言模型的营销文案自动生成能力，支持小红书种草文、公众号长文、短视频脚本等多种文体风格，可根据品牌调性自定义输出。",
     publisher: "Frontis 官方",
     publishTime: "2026-03-25",
     iconColor: "#f5576c",
     iconText: "文",
     visibility: "public",
     versions: [
-      { version: "3.0.1", releaseNote: "修复短视频脚本分镜描述偶发截断问题。", publishTime: "2026-03-25" },
-      { version: "3.0.0", releaseNote: "全面升级底层模型至 GPT-4o，新增短视频脚本和直播话术文体。", publishTime: "2026-03-10" },
-      { version: "2.1.0", releaseNote: "新增品牌调性自定义模板，支持多语言文案输出。", publishTime: "2026-01-28" },
-      { version: "2.0.0", releaseNote: "新增公众号长文和产品详情页文案生成。", publishTime: "2025-12-05" },
-      { version: "1.0.0", releaseNote: "初始版本，支持小红书种草文自动生成。", publishTime: "2025-10-15" },
+      {
+        version: "3.0.1",
+        releaseNote: "修复短视频脚本分镜描述偶发截断问题。",
+        publishTime: "2026-03-25",
+      },
+      {
+        version: "3.0.0",
+        releaseNote: "全面升级底层模型至 GPT-4o，新增短视频脚本和直播话术文体。",
+        publishTime: "2026-03-10",
+      },
+      {
+        version: "2.1.0",
+        releaseNote: "新增品牌调性自定义模板，支持多语言文案输出。",
+        publishTime: "2026-01-28",
+      },
+      {
+        version: "2.0.0",
+        releaseNote: "新增公众号长文和产品详情页文案生成。",
+        publishTime: "2025-12-05",
+      },
+      {
+        version: "1.0.0",
+        releaseNote: "初始版本，支持小红书种草文自动生成。",
+        publishTime: "2025-10-15",
+      },
     ],
   },
   {
@@ -3484,14 +3527,19 @@ export const FDE_SKILL_MARKET_ITEMS: FdeSkillItem[] = [
     version: "1.0.0",
     type: "model",
     tags: ["通用", "对话"],
-    description: "OpenAI GPT-4o 多模态大语言模型封装，支持文本理解、生成、推理等通用 NLP 任务，上下文窗口 128K tokens。",
+    description:
+      "OpenAI GPT-4o 多模态大语言模型封装，支持文本理解、生成、推理等通用 NLP 任务，上下文窗口 128K tokens。",
     publisher: "Frontis 官方",
     publishTime: "2026-03-20",
     iconColor: "#11998e",
     iconText: "G",
     visibility: "public",
     versions: [
-      { version: "1.0.0", releaseNote: "首次集成 GPT-4o 模型，提供标准文本理解与生成接口。", publishTime: "2026-03-20" },
+      {
+        version: "1.0.0",
+        releaseNote: "首次集成 GPT-4o 模型，提供标准文本理解与生成接口。",
+        publishTime: "2026-03-20",
+      },
     ],
   },
   {
@@ -3500,17 +3548,34 @@ export const FDE_SKILL_MARKET_ITEMS: FdeSkillItem[] = [
     version: "1.3.0",
     type: "workflow",
     tags: ["客服", "生产"],
-    description: "涵盖投诉受理、分类分级、自动派单、处理跟踪和满意度回访全流程的 workflow，集成企业微信和工单系统。",
+    description:
+      "涵盖投诉受理、分类分级、自动派单、处理跟踪和满意度回访全流程的 workflow，集成企业微信和工单系统。",
     publisher: "张伟",
     publishTime: "2026-03-18",
     iconColor: "#764ba2",
     iconText: "投",
     visibility: "public",
     versions: [
-      { version: "1.3.0", releaseNote: "新增满意度回访自动触发和统计报表。", publishTime: "2026-03-18" },
-      { version: "1.2.0", releaseNote: "集成企业微信消息通知，优化派单匹配算法。", publishTime: "2026-02-20" },
-      { version: "1.1.0", releaseNote: "增加投诉分级规则配置和 SLA 超时预警。", publishTime: "2026-01-15" },
-      { version: "1.0.0", releaseNote: "初始版本，实现基础投诉受理和分类派单。", publishTime: "2025-12-10" },
+      {
+        version: "1.3.0",
+        releaseNote: "新增满意度回访自动触发和统计报表。",
+        publishTime: "2026-03-18",
+      },
+      {
+        version: "1.2.0",
+        releaseNote: "集成企业微信消息通知，优化派单匹配算法。",
+        publishTime: "2026-02-20",
+      },
+      {
+        version: "1.1.0",
+        releaseNote: "增加投诉分级规则配置和 SLA 超时预警。",
+        publishTime: "2026-01-15",
+      },
+      {
+        version: "1.0.0",
+        releaseNote: "初始版本，实现基础投诉受理和分类派单。",
+        publishTime: "2025-12-10",
+      },
     ],
   },
   {
@@ -3519,16 +3584,29 @@ export const FDE_SKILL_MARKET_ITEMS: FdeSkillItem[] = [
     version: "2.0.0",
     type: "skill",
     tags: ["分析", "数据"],
-    description: "支持自然语言查询 SQL 数据库，自动生成可视化图表和分析报告，兼容 MySQL、PostgreSQL、ClickHouse 等主流数据源。",
+    description:
+      "支持自然语言查询 SQL 数据库，自动生成可视化图表和分析报告，兼容 MySQL、PostgreSQL、ClickHouse 等主流数据源。",
     publisher: "Frontis 官方",
     publishTime: "2026-03-15",
     iconColor: "#4facfe",
     iconText: "数",
     visibility: "public",
     versions: [
-      { version: "2.0.0", releaseNote: "新增 ClickHouse 数据源支持，重构图表渲染引擎，支持导出 PDF 报告。", publishTime: "2026-03-15" },
-      { version: "1.1.0", releaseNote: "优化 SQL 生成准确率，增加 PostgreSQL 方言适配。", publishTime: "2026-01-22" },
-      { version: "1.0.0", releaseNote: "初始版本，支持 MySQL 自然语言查询和基础图表。", publishTime: "2025-11-30" },
+      {
+        version: "2.0.0",
+        releaseNote: "新增 ClickHouse 数据源支持，重构图表渲染引擎，支持导出 PDF 报告。",
+        publishTime: "2026-03-15",
+      },
+      {
+        version: "1.1.0",
+        releaseNote: "优化 SQL 生成准确率，增加 PostgreSQL 方言适配。",
+        publishTime: "2026-01-22",
+      },
+      {
+        version: "1.0.0",
+        releaseNote: "初始版本，支持 MySQL 自然语言查询和基础图表。",
+        publishTime: "2025-11-30",
+      },
     ],
   },
   {
@@ -3537,16 +3615,29 @@ export const FDE_SKILL_MARKET_ITEMS: FdeSkillItem[] = [
     version: "1.2.0",
     type: "model",
     tags: ["语音", "识别"],
-    description: "基于 OpenAI Whisper 的高精度语音识别模型，支持中英日韩等 50+ 种语言的实时和离线转写，字错率行业领先。",
+    description:
+      "基于 OpenAI Whisper 的高精度语音识别模型，支持中英日韩等 50+ 种语言的实时和离线转写，字错率行业领先。",
     publisher: "Frontis 官方",
     publishTime: "2026-03-12",
     iconColor: "#38ef7d",
     iconText: "W",
     visibility: "public",
     versions: [
-      { version: "1.2.0", releaseNote: "新增日韩语种优化，降低实时转写延迟至 200ms 以内。", publishTime: "2026-03-12" },
-      { version: "1.1.0", releaseNote: "优化中文口语识别准确率，增加标点自动补全。", publishTime: "2026-02-01" },
-      { version: "1.0.0", releaseNote: "初始版本，集成 Whisper large-v3 模型。", publishTime: "2025-12-20" },
+      {
+        version: "1.2.0",
+        releaseNote: "新增日韩语种优化，降低实时转写延迟至 200ms 以内。",
+        publishTime: "2026-03-12",
+      },
+      {
+        version: "1.1.0",
+        releaseNote: "优化中文口语识别准确率，增加标点自动补全。",
+        publishTime: "2026-02-01",
+      },
+      {
+        version: "1.0.0",
+        releaseNote: "初始版本，集成 Whisper large-v3 模型。",
+        publishTime: "2025-12-20",
+      },
     ],
   },
   {
@@ -3555,16 +3646,29 @@ export const FDE_SKILL_MARKET_ITEMS: FdeSkillItem[] = [
     version: "1.5.0",
     type: "workflow",
     tags: ["安全", "合规"],
-    description: "多模态内容安全审核流程，涵盖文本敏感词、图片违规、视频截帧审核，支持自定义审核规则和人工复核流转。",
+    description:
+      "多模态内容安全审核流程，涵盖文本敏感词、图片违规、视频截帧审核，支持自定义审核规则和人工复核流转。",
     publisher: "李明",
     publishTime: "2026-03-10",
     iconColor: "#434343",
     iconText: "审",
     visibility: "public",
     versions: [
-      { version: "1.5.0", releaseNote: "新增视频截帧审核和自定义规则引擎。", publishTime: "2026-03-10" },
-      { version: "1.2.0", releaseNote: "增加图片 OCR 文字提取审核，优化敏感词库。", publishTime: "2026-02-05" },
-      { version: "1.0.0", releaseNote: "初始版本，支持文本敏感词检测和人工复核。", publishTime: "2025-12-15" },
+      {
+        version: "1.5.0",
+        releaseNote: "新增视频截帧审核和自定义规则引擎。",
+        publishTime: "2026-03-10",
+      },
+      {
+        version: "1.2.0",
+        releaseNote: "增加图片 OCR 文字提取审核，优化敏感词库。",
+        publishTime: "2026-02-05",
+      },
+      {
+        version: "1.0.0",
+        releaseNote: "初始版本，支持文本敏感词检测和人工复核。",
+        publishTime: "2025-12-15",
+      },
     ],
   },
   {
@@ -3573,16 +3677,29 @@ export const FDE_SKILL_MARKET_ITEMS: FdeSkillItem[] = [
     version: "2.4.0",
     type: "skill",
     tags: ["翻译", "国际化"],
-    description: "企业级多语言翻译能力，支持术语库对齐、记忆库匹配，确保专业领域翻译的一致性和准确性。",
+    description:
+      "企业级多语言翻译能力，支持术语库对齐、记忆库匹配，确保专业领域翻译的一致性和准确性。",
     publisher: "Frontis 官方",
     publishTime: "2026-03-08",
     iconColor: "#00f2fe",
     iconText: "译",
     visibility: "public",
     versions: [
-      { version: "2.4.0", releaseNote: "新增法语、德语术语库预置，优化长文档分段翻译一致性。", publishTime: "2026-03-08" },
-      { version: "2.2.0", releaseNote: "增加记忆库自动匹配和术语锁定功能。", publishTime: "2026-02-12" },
-      { version: "2.0.0", releaseNote: "重构翻译引擎，支持术语库对齐和批量文件翻译。", publishTime: "2026-01-05" },
+      {
+        version: "2.4.0",
+        releaseNote: "新增法语、德语术语库预置，优化长文档分段翻译一致性。",
+        publishTime: "2026-03-08",
+      },
+      {
+        version: "2.2.0",
+        releaseNote: "增加记忆库自动匹配和术语锁定功能。",
+        publishTime: "2026-02-12",
+      },
+      {
+        version: "2.0.0",
+        releaseNote: "重构翻译引擎，支持术语库对齐和批量文件翻译。",
+        publishTime: "2026-01-05",
+      },
       { version: "1.0.0", releaseNote: "初始版本，支持中英双语翻译。", publishTime: "2025-10-28" },
     ],
   },
@@ -3592,14 +3709,19 @@ export const FDE_SKILL_MARKET_ITEMS: FdeSkillItem[] = [
     version: "1.0.0",
     type: "model",
     tags: ["设计", "图像"],
-    description: "基于 DALL-E 3 的文生图模型封装，支持高分辨率图片生成、风格迁移和局部编辑，适用于营销物料快速产出。",
+    description:
+      "基于 DALL-E 3 的文生图模型封装，支持高分辨率图片生成、风格迁移和局部编辑，适用于营销物料快速产出。",
     publisher: "Frontis 官方",
     publishTime: "2026-03-05",
     iconColor: "#a18cd1",
     iconText: "D",
     visibility: "public",
     versions: [
-      { version: "1.0.0", releaseNote: "首次集成 DALL-E 3，支持文生图、风格迁移和局部编辑。", publishTime: "2026-03-05" },
+      {
+        version: "1.0.0",
+        releaseNote: "首次集成 DALL-E 3，支持文生图、风格迁移和局部编辑。",
+        publishTime: "2026-03-05",
+      },
     ],
   },
   {
@@ -3608,15 +3730,24 @@ export const FDE_SKILL_MARKET_ITEMS: FdeSkillItem[] = [
     version: "1.1.0",
     type: "skill",
     tags: ["营销", "销售"],
-    description: "基于历史成交数据和行为特征的线索智能评分模型，帮助销售团队优先跟进高价值线索，提升转化率。",
+    description:
+      "基于历史成交数据和行为特征的线索智能评分模型，帮助销售团队优先跟进高价值线索，提升转化率。",
     publisher: "王芳",
     publishTime: "2026-03-02",
     iconColor: "#f093fb",
     iconText: "销",
     visibility: "public",
     versions: [
-      { version: "1.1.0", releaseNote: "新增行为序列特征和企业画像维度，评分准确率提升 12%。", publishTime: "2026-03-02" },
-      { version: "1.0.0", releaseNote: "初始版本，基于基础成交数据的线索评分模型。", publishTime: "2026-01-18" },
+      {
+        version: "1.1.0",
+        releaseNote: "新增行为序列特征和企业画像维度，评分准确率提升 12%。",
+        publishTime: "2026-03-02",
+      },
+      {
+        version: "1.0.0",
+        releaseNote: "初始版本，基于基础成交数据的线索评分模型。",
+        publishTime: "2026-01-18",
+      },
     ],
   },
   {
@@ -3625,14 +3756,19 @@ export const FDE_SKILL_MARKET_ITEMS: FdeSkillItem[] = [
     version: "1.0.0",
     type: "tool",
     tags: ["浏览器", "自动化"],
-    description: "面向网页操作场景的 MCP 工具，可用于页面打开、点击、表单提交与结果抓取，适合在 Frontis 工作流中承接浏览器自动化任务。",
+    description:
+      "面向网页操作场景的 MCP 工具，可用于页面打开、点击、表单提交与结果抓取，适合在 Frontis 工作流中承接浏览器自动化任务。",
     publisher: "Frontis 官方",
     publishTime: "2026-03-29",
     iconColor: "#1677ff",
     iconText: "B",
     visibility: "public",
     versions: [
-      { version: "1.0.0", releaseNote: "首个正式版本，支持页面打开、点击、输入和结果抓取。", publishTime: "2026-03-29" },
+      {
+        version: "1.0.0",
+        releaseNote: "首个正式版本，支持页面打开、点击、输入和结果抓取。",
+        publishTime: "2026-03-29",
+      },
     ],
   },
   {
@@ -3641,15 +3777,24 @@ export const FDE_SKILL_MARKET_ITEMS: FdeSkillItem[] = [
     version: "1.2.0",
     type: "tool",
     tags: ["检索", "连接器"],
-    description: "提供 MCP Server 与 Tool 的发现、搜索和基础连接能力，适合在工具广场中统一接入外部搜索和检索服务。",
+    description:
+      "提供 MCP Server 与 Tool 的发现、搜索和基础连接能力，适合在工具广场中统一接入外部搜索和检索服务。",
     publisher: "Frontis 官方",
     publishTime: "2026-03-31",
     iconColor: "#13c2c2",
     iconText: "S",
     visibility: "public",
     versions: [
-      { version: "1.2.0", releaseNote: "增加 MCP Server 索引同步和连接诊断能力。", publishTime: "2026-03-31" },
-      { version: "1.0.0", releaseNote: "初始版本，支持基础搜索和服务发现。", publishTime: "2026-03-12" },
+      {
+        version: "1.2.0",
+        releaseNote: "增加 MCP Server 索引同步和连接诊断能力。",
+        publishTime: "2026-03-31",
+      },
+      {
+        version: "1.0.0",
+        releaseNote: "初始版本，支持基础搜索和服务发现。",
+        publishTime: "2026-03-12",
+      },
     ],
   },
   {
@@ -3658,15 +3803,24 @@ export const FDE_SKILL_MARKET_ITEMS: FdeSkillItem[] = [
     version: "1.1.0",
     type: "tool",
     tags: ["数据库", "SQL"],
-    description: "支持只读查询、参数化执行与结果结构化返回的数据库 MCP 工具，适合分析型 Agent 和数据类 Skill 调用。",
+    description:
+      "支持只读查询、参数化执行与结果结构化返回的数据库 MCP 工具，适合分析型 Agent 和数据类 Skill 调用。",
     publisher: "数据平台组",
     publishTime: "2026-03-27",
     iconColor: "#722ed1",
     iconText: "D",
     visibility: "public",
     versions: [
-      { version: "1.1.0", releaseNote: "优化结构化结果返回格式，补充参数化执行模板。", publishTime: "2026-03-27" },
-      { version: "1.0.0", releaseNote: "初始版本，支持数据库只读查询和结果透传。", publishTime: "2026-03-06" },
+      {
+        version: "1.1.0",
+        releaseNote: "优化结构化结果返回格式，补充参数化执行模板。",
+        publishTime: "2026-03-27",
+      },
+      {
+        version: "1.0.0",
+        releaseNote: "初始版本，支持数据库只读查询和结果透传。",
+        publishTime: "2026-03-06",
+      },
     ],
   },
   /* 团队共享 skill */
@@ -3676,7 +3830,8 @@ export const FDE_SKILL_MARKET_ITEMS: FdeSkillItem[] = [
     version: "1.0.0",
     type: "workflow",
     tags: ["效率", "团队"],
-    description: "自动汇总团队成员的日报、代码提交和任务完成情况，生成结构化周报并推送至飞书/钉钉群。",
+    description:
+      "自动汇总团队成员的日报、代码提交和任务完成情况，生成结构化周报并推送至飞书/钉钉群。",
     publisher: "陈蓝",
     publishTime: "2026-03-26",
     iconColor: "#667eea",
@@ -3684,7 +3839,11 @@ export const FDE_SKILL_MARKET_ITEMS: FdeSkillItem[] = [
     visibility: "team",
     isSharedToMe: true,
     versions: [
-      { version: "1.0.0", releaseNote: "初始版本，支持飞书/钉钉群推送结构化周报。", publishTime: "2026-03-26" },
+      {
+        version: "1.0.0",
+        releaseNote: "初始版本，支持飞书/钉钉群推送结构化周报。",
+        publishTime: "2026-03-26",
+      },
     ],
   },
   {
@@ -3693,7 +3852,8 @@ export const FDE_SKILL_MARKET_ITEMS: FdeSkillItem[] = [
     version: "1.2.0",
     type: "skill",
     tags: ["分析", "营销"],
-    description: "定期爬取竞品官网、应用商店评论和社交媒体动态，自动生成竞品对比报告和差异化策略建议。",
+    description:
+      "定期爬取竞品官网、应用商店评论和社交媒体动态，自动生成竞品对比报告和差异化策略建议。",
     publisher: "赵工",
     publishTime: "2026-03-22",
     iconColor: "#f5576c",
@@ -3701,8 +3861,16 @@ export const FDE_SKILL_MARKET_ITEMS: FdeSkillItem[] = [
     visibility: "team",
     isSharedToMe: true,
     versions: [
-      { version: "1.2.0", releaseNote: "增加社交媒体舆情监控和情感分析维度。", publishTime: "2026-03-22" },
-      { version: "1.0.0", releaseNote: "初始版本，支持竞品官网和应用商店数据采集。", publishTime: "2026-02-10" },
+      {
+        version: "1.2.0",
+        releaseNote: "增加社交媒体舆情监控和情感分析维度。",
+        publishTime: "2026-03-22",
+      },
+      {
+        version: "1.0.0",
+        releaseNote: "初始版本，支持竞品官网和应用商店数据采集。",
+        publishTime: "2026-02-10",
+      },
     ],
   },
   {
@@ -3711,7 +3879,8 @@ export const FDE_SKILL_MARKET_ITEMS: FdeSkillItem[] = [
     version: "1.0.0",
     type: "workflow",
     tags: ["管理", "风控"],
-    description: "基于项目进度、资源分配和历史数据的风险评估 workflow，每日自动检测并推送预警通知。",
+    description:
+      "基于项目进度、资源分配和历史数据的风险评估 workflow，每日自动检测并推送预警通知。",
     publisher: "陈蓝",
     publishTime: "2026-03-20",
     iconColor: "#11998e",
@@ -3719,7 +3888,11 @@ export const FDE_SKILL_MARKET_ITEMS: FdeSkillItem[] = [
     visibility: "team",
     isSharedByMe: true,
     versions: [
-      { version: "1.0.0", releaseNote: "初始版本，基于进度和资源偏差的自动风险检测。", publishTime: "2026-03-20" },
+      {
+        version: "1.0.0",
+        releaseNote: "初始版本，基于进度和资源偏差的自动风险检测。",
+        publishTime: "2026-03-20",
+      },
     ],
   },
   /* 我的 skill */
@@ -3736,9 +3909,21 @@ export const FDE_SKILL_MARKET_ITEMS: FdeSkillItem[] = [
     iconText: "排",
     visibility: "private",
     versions: [
-      { version: "1.4.0", releaseNote: "新增弹性工时模式和节假日自动排除。", publishTime: "2026-03-27" },
-      { version: "1.2.0", releaseNote: "优化约束求解算法，排班生成速度提升 3 倍。", publishTime: "2026-02-18" },
-      { version: "1.0.0", releaseNote: "初始版本，支持固定轮班制排班生成。", publishTime: "2026-01-05" },
+      {
+        version: "1.4.0",
+        releaseNote: "新增弹性工时模式和节假日自动排除。",
+        publishTime: "2026-03-27",
+      },
+      {
+        version: "1.2.0",
+        releaseNote: "优化约束求解算法，排班生成速度提升 3 倍。",
+        publishTime: "2026-02-18",
+      },
+      {
+        version: "1.0.0",
+        releaseNote: "初始版本，支持固定轮班制排班生成。",
+        publishTime: "2026-01-05",
+      },
     ],
   },
   {
@@ -3747,16 +3932,29 @@ export const FDE_SKILL_MARKET_ITEMS: FdeSkillItem[] = [
     version: "2.0.0",
     type: "skill",
     tags: ["知识", "客服"],
-    description: "基于企业知识库的 RAG 问答能力，支持文档上传、自动分块、向量检索和精准回答，减少人工咨询量。",
+    description:
+      "基于企业知识库的 RAG 问答能力，支持文档上传、自动分块、向量检索和精准回答，减少人工咨询量。",
     publisher: "陈蓝",
     publishTime: "2026-03-24",
     iconColor: "#4facfe",
     iconText: "知",
     visibility: "public",
     versions: [
-      { version: "2.0.0", releaseNote: "重构向量检索引擎，新增多轮对话上下文理解和引用溯源。", publishTime: "2026-03-24" },
-      { version: "1.3.0", releaseNote: "增加 PDF 和 Word 文档解析，优化分块策略。", publishTime: "2026-02-28" },
-      { version: "1.0.0", releaseNote: "初始版本，支持纯文本知识库上传和基础问答。", publishTime: "2026-01-12" },
+      {
+        version: "2.0.0",
+        releaseNote: "重构向量检索引擎，新增多轮对话上下文理解和引用溯源。",
+        publishTime: "2026-03-24",
+      },
+      {
+        version: "1.3.0",
+        releaseNote: "增加 PDF 和 Word 文档解析，优化分块策略。",
+        publishTime: "2026-02-28",
+      },
+      {
+        version: "1.0.0",
+        releaseNote: "初始版本，支持纯文本知识库上传和基础问答。",
+        publishTime: "2026-01-12",
+      },
     ],
   },
   {
@@ -3765,14 +3963,19 @@ export const FDE_SKILL_MARKET_ITEMS: FdeSkillItem[] = [
     version: "1.0.0",
     type: "workflow",
     tags: ["法务", "合规"],
-    description: "自动提取合同关键条款、对比模板差异、标注风险点，辅助法务团队高效完成合同审核工作。",
+    description:
+      "自动提取合同关键条款、对比模板差异、标注风险点，辅助法务团队高效完成合同审核工作。",
     publisher: "陈蓝",
     publishTime: "2026-03-19",
     iconColor: "#434343",
     iconText: "合",
     visibility: "team",
     versions: [
-      { version: "1.0.0", releaseNote: "初始版本，支持合同关键条款提取和风险标注。", publishTime: "2026-03-19" },
+      {
+        version: "1.0.0",
+        releaseNote: "初始版本，支持合同关键条款提取和风险标注。",
+        publishTime: "2026-03-19",
+      },
     ],
   },
 ];
@@ -3787,7 +3990,8 @@ export const FDE_AGENT_STORE_ITEMS: FdeAgentItem[] = [
     agentType: "metaagent",
     category: "sales",
     tags: ["内容创作", "客服"],
-    description: "面向电商和 SaaS 企业的全渠道智能客服 Agent，集成退货政策查询、物流追踪、会员权益咨询等技能，支持多轮对话和情绪识别。",
+    description:
+      "面向电商和 SaaS 企业的全渠道智能客服 Agent，集成退货政策查询、物流追踪、会员权益咨询等技能，支持多轮对话和情绪识别。",
     publisher: "Frontis 官方",
     publishTime: "2026-03-30",
     iconColor: "#667eea",
@@ -3800,18 +4004,28 @@ export const FDE_AGENT_STORE_ITEMS: FdeAgentItem[] = [
     ],
     versions: [
       {
-        version: "3.2.0", releaseNote: "新增情绪识别和智能转人工策略，优化多轮对话上下文保持。", publishTime: "2026-03-30",
+        version: "3.2.0",
+        releaseNote: "新增情绪识别和智能转人工策略，优化多轮对话上下文保持。",
+        publishTime: "2026-03-30",
         evolution: {
-          skillTriggerAccuracy: "91%", skillTriggerAccuracyTrend: "↑13%",
-          taskCompletionRate: "89%", taskCompletionRateTrend: "↑18%",
-          qualityScore: "87%", qualityScoreTrend: "↑15%",
-          executionTime: "128ms", executionTimeTrend: "↓39%",
-          tokenUsage: "1240", tokenUsageTrend: "↓22%",
-          regressionRetention: "96%", regressionRetentionTrend: "↑12%",
+          skillTriggerAccuracy: "91%",
+          skillTriggerAccuracyTrend: "↑13%",
+          taskCompletionRate: "89%",
+          taskCompletionRateTrend: "↑18%",
+          qualityScore: "87%",
+          qualityScoreTrend: "↑15%",
+          executionTime: "128ms",
+          executionTimeTrend: "↓39%",
+          tokenUsage: "1240",
+          tokenUsageTrend: "↓22%",
+          regressionRetention: "96%",
+          regressionRetentionTrend: "↑12%",
         },
         evalReport: {
-          summary: "v3.2版本在各项核心指标上均有显著提升，特别是在Skill触发准确率和任务完成行为率方面表现突出，经过多轮测试验证，该版本已达到发布标准，建议进行部署。",
-          overallScore: 92, overallScoreTrend: "↑15%",
+          summary:
+            "v3.2版本在各项核心指标上均有显著提升，特别是在Skill触发准确率和任务完成行为率方面表现突出，经过多轮测试验证，该版本已达到发布标准，建议进行部署。",
+          overallScore: 92,
+          overallScoreTrend: "↑15%",
           metrics: [
             { label: "Skill触发准确率", value: "91%", trend: "↑12%" },
             { label: "任务完成行为率", value: "89%", trend: "↑8%" },
@@ -3825,22 +4039,33 @@ export const FDE_AGENT_STORE_ITEMS: FdeAgentItem[] = [
           testScenes: ["电商客服", "物流查询", "会员权益", "售后服务"],
           issues: "在复杂多轮对话场景下，工具调用成功率仍有提升空间。",
           suggestions: "优化工具调用参数验证逻辑，增加错误重试机制。",
-          conclusion: "v3.2版本表现优秀，各项指标均已达到或超过预期目标，建议进行发布。并在生产环境中持续监控其性能表现。",
+          conclusion:
+            "v3.2版本表现优秀，各项指标均已达到或超过预期目标，建议进行发布。并在生产环境中持续监控其性能表现。",
         },
       },
       {
-        version: "3.0.0", releaseNote: "全面升级底层模型，新增退货政策和物流查询技能。", publishTime: "2026-02-20",
+        version: "3.0.0",
+        releaseNote: "全面升级底层模型，新增退货政策和物流查询技能。",
+        publishTime: "2026-02-20",
         evolution: {
-          skillTriggerAccuracy: "86%", skillTriggerAccuracyTrend: "↑8%",
-          taskCompletionRate: "82%", taskCompletionRateTrend: "↑10%",
-          qualityScore: "83%", qualityScoreTrend: "↑9%",
-          executionTime: "210ms", executionTimeTrend: "↓15%",
-          tokenUsage: "1590", tokenUsageTrend: "↓10%",
-          regressionRetention: "88%", regressionRetentionTrend: "↑6%",
+          skillTriggerAccuracy: "86%",
+          skillTriggerAccuracyTrend: "↑8%",
+          taskCompletionRate: "82%",
+          taskCompletionRateTrend: "↑10%",
+          qualityScore: "83%",
+          qualityScoreTrend: "↑9%",
+          executionTime: "210ms",
+          executionTimeTrend: "↓15%",
+          tokenUsage: "1590",
+          tokenUsageTrend: "↓10%",
+          regressionRetention: "88%",
+          regressionRetentionTrend: "↑6%",
         },
         evalReport: {
-          summary: "v3.0版本底层模型升级效果显著，新增的退货政策和物流查询技能运行稳定，综合性能达到上线标准。",
-          overallScore: 84, overallScoreTrend: "↑9%",
+          summary:
+            "v3.0版本底层模型升级效果显著，新增的退货政策和物流查询技能运行稳定，综合性能达到上线标准。",
+          overallScore: 84,
+          overallScoreTrend: "↑9%",
           metrics: [
             { label: "Skill触发准确率", value: "86%", trend: "↑8%" },
             { label: "任务完成行为率", value: "82%", trend: "↑10%" },
@@ -3854,19 +4079,78 @@ export const FDE_AGENT_STORE_ITEMS: FdeAgentItem[] = [
           testScenes: ["电商客服", "物流查询", "售后服务"],
           issues: "退货政策查询在跨境场景下响应偏慢，偶发超时。",
           suggestions: "针对跨境退货政策场景增加缓存策略，优化上下文截断阈值。",
-          conclusion: "v3.0版本整体质量良好，各核心指标均稳步提升，建议发布并重点关注跨境场景的性能表现。",
+          conclusion:
+            "v3.0版本整体质量良好，各核心指标均稳步提升，建议发布并重点关注跨境场景的性能表现。",
         },
       },
-      { version: "2.0.0", releaseNote: "增加会员权益咨询和订单状态查询。", publishTime: "2026-01-10" },
+      {
+        version: "2.0.0",
+        releaseNote: "增加会员权益咨询和订单状态查询。",
+        publishTime: "2026-01-10",
+      },
       { version: "1.0.0", releaseNote: "初始版本，基础 FAQ 问答能力。", publishTime: "2025-11-05" },
     ],
     feedbackData: [
-      { id: "R-1081", summary: "用户轮询退货政策", source: "线上回流", rating: 5, toolCallRounds: 3, dialogueRounds: 5, tokenUsage: 1250, enterprise: "星耀电商" },
-      { id: "R-1082", summary: "查询物流详情或地址", source: "线上回流", rating: 4, toolCallRounds: 2, dialogueRounds: 4, tokenUsage: 980, enterprise: "星耀电商" },
-      { id: "R-1083", summary: "投诉商品质量问题", source: "人工标注", rating: 1, toolCallRounds: 5, dialogueRounds: 8, tokenUsage: 2100, enterprise: "鼎盛科技" },
-      { id: "R-1084", summary: "咨询会员权益详情", source: "线上回流", rating: 5, toolCallRounds: 1, dialogueRounds: 3, tokenUsage: 720, enterprise: "鼎盛科技" },
-      { id: "R-1085", summary: "修改收货地址请求", source: "线上回流", rating: 4, toolCallRounds: 2, dialogueRounds: 3, tokenUsage: 650, enterprise: "恒通物流" },
-      { id: "R-1086", summary: "咨询优惠券使用规则", source: "人工标注", rating: 5, toolCallRounds: 1, dialogueRounds: 2, tokenUsage: 430, enterprise: "恒通物流" },
+      {
+        id: "R-1081",
+        summary: "用户轮询退货政策",
+        source: "线上回流",
+        rating: 5,
+        toolCallRounds: 3,
+        dialogueRounds: 5,
+        tokenUsage: 1250,
+        enterprise: "星耀电商",
+      },
+      {
+        id: "R-1082",
+        summary: "查询物流详情或地址",
+        source: "线上回流",
+        rating: 4,
+        toolCallRounds: 2,
+        dialogueRounds: 4,
+        tokenUsage: 980,
+        enterprise: "星耀电商",
+      },
+      {
+        id: "R-1083",
+        summary: "投诉商品质量问题",
+        source: "人工标注",
+        rating: 1,
+        toolCallRounds: 5,
+        dialogueRounds: 8,
+        tokenUsage: 2100,
+        enterprise: "鼎盛科技",
+      },
+      {
+        id: "R-1084",
+        summary: "咨询会员权益详情",
+        source: "线上回流",
+        rating: 5,
+        toolCallRounds: 1,
+        dialogueRounds: 3,
+        tokenUsage: 720,
+        enterprise: "鼎盛科技",
+      },
+      {
+        id: "R-1085",
+        summary: "修改收货地址请求",
+        source: "线上回流",
+        rating: 4,
+        toolCallRounds: 2,
+        dialogueRounds: 3,
+        tokenUsage: 650,
+        enterprise: "恒通物流",
+      },
+      {
+        id: "R-1086",
+        summary: "咨询优惠券使用规则",
+        source: "人工标注",
+        rating: 5,
+        toolCallRounds: 1,
+        dialogueRounds: 2,
+        tokenUsage: 430,
+        enterprise: "恒通物流",
+      },
     ],
   },
   {
@@ -3876,7 +4160,8 @@ export const FDE_AGENT_STORE_ITEMS: FdeAgentItem[] = [
     agentType: "syngent",
     category: "production",
     tags: ["建筑施工", "制造"],
-    description: "基于约束求解和 AI 预测的智能排程 Agent，适用于离散制造和流程工业，支持多工厂、多产线协同排程和异常自动调整。",
+    description:
+      "基于约束求解和 AI 预测的智能排程 Agent，适用于离散制造和流程工业，支持多工厂、多产线协同排程和异常自动调整。",
     publisher: "陈蓝",
     publishTime: "2026-03-28",
     iconColor: "#11998e",
@@ -3888,18 +4173,28 @@ export const FDE_AGENT_STORE_ITEMS: FdeAgentItem[] = [
     ],
     versions: [
       {
-        version: "2.0.0", releaseNote: "重构排程引擎，新增多工厂协同和异常自动调整。", publishTime: "2026-03-28",
+        version: "2.0.0",
+        releaseNote: "重构排程引擎，新增多工厂协同和异常自动调整。",
+        publishTime: "2026-03-28",
         evolution: {
-          skillTriggerAccuracy: "88%", skillTriggerAccuracyTrend: "↑10%",
-          taskCompletionRate: "85%", taskCompletionRateTrend: "↑12%",
-          qualityScore: "90%", qualityScoreTrend: "↑8%",
-          executionTime: "350ms", executionTimeTrend: "↓28%",
-          tokenUsage: "1890", tokenUsageTrend: "↓15%",
-          regressionRetention: "93%", regressionRetentionTrend: "↑9%",
+          skillTriggerAccuracy: "88%",
+          skillTriggerAccuracyTrend: "↑10%",
+          taskCompletionRate: "85%",
+          taskCompletionRateTrend: "↑12%",
+          qualityScore: "90%",
+          qualityScoreTrend: "↑8%",
+          executionTime: "350ms",
+          executionTimeTrend: "↓28%",
+          tokenUsage: "1890",
+          tokenUsageTrend: "↓15%",
+          regressionRetention: "93%",
+          regressionRetentionTrend: "↑9%",
         },
         evalReport: {
-          summary: "v2.0版本排程引擎重构后性能大幅提升，多工厂协同调度能力通过验证，异常自动调整覆盖率达到预期。",
-          overallScore: 88, overallScoreTrend: "↑11%",
+          summary:
+            "v2.0版本排程引擎重构后性能大幅提升，多工厂协同调度能力通过验证，异常自动调整覆盖率达到预期。",
+          overallScore: 88,
+          overallScoreTrend: "↑11%",
           metrics: [
             { label: "Skill触发准确率", value: "88%", trend: "↑10%" },
             { label: "任务完成行为率", value: "85%", trend: "↑12%" },
@@ -3919,9 +4214,36 @@ export const FDE_AGENT_STORE_ITEMS: FdeAgentItem[] = [
       { version: "1.0.0", releaseNote: "初始版本，单产线排程能力。", publishTime: "2026-01-15" },
     ],
     feedbackData: [
-      { id: "R-2001", summary: "排程结果与实际产能偏差", source: "线上回流", rating: 3, toolCallRounds: 4, dialogueRounds: 6, tokenUsage: 1800, enterprise: "华建集团" },
-      { id: "R-2002", summary: "紧急插单后重排响应", source: "人工标注", rating: 4, toolCallRounds: 3, dialogueRounds: 5, tokenUsage: 1450, enterprise: "华建集团" },
-      { id: "R-2003", summary: "跨产线资源冲突处理", source: "线上回流", rating: 4, toolCallRounds: 5, dialogueRounds: 7, tokenUsage: 2200, enterprise: "锐智制造" },
+      {
+        id: "R-2001",
+        summary: "排程结果与实际产能偏差",
+        source: "线上回流",
+        rating: 3,
+        toolCallRounds: 4,
+        dialogueRounds: 6,
+        tokenUsage: 1800,
+        enterprise: "华建集团",
+      },
+      {
+        id: "R-2002",
+        summary: "紧急插单后重排响应",
+        source: "人工标注",
+        rating: 4,
+        toolCallRounds: 3,
+        dialogueRounds: 5,
+        tokenUsage: 1450,
+        enterprise: "华建集团",
+      },
+      {
+        id: "R-2003",
+        summary: "跨产线资源冲突处理",
+        source: "线上回流",
+        rating: 4,
+        toolCallRounds: 5,
+        dialogueRounds: 7,
+        tokenUsage: 2200,
+        enterprise: "锐智制造",
+      },
     ],
   },
   {
@@ -3931,7 +4253,8 @@ export const FDE_AGENT_STORE_ITEMS: FdeAgentItem[] = [
     agentType: "openclaw",
     category: "supply",
     tags: ["供应链", "采购"],
-    description: "供应链上下游协同 Agent，实时监控库存水位、自动触发补货、管理供应商绩效评估和交期预警。",
+    description:
+      "供应链上下游协同 Agent，实时监控库存水位、自动触发补货、管理供应商绩效评估和交期预警。",
     publisher: "Frontis 官方",
     publishTime: "2026-03-25",
     iconColor: "#f5576c",
@@ -3943,18 +4266,28 @@ export const FDE_AGENT_STORE_ITEMS: FdeAgentItem[] = [
     ],
     versions: [
       {
-        version: "1.5.0", releaseNote: "新增供应商绩效自动评估和交期预警。", publishTime: "2026-03-25",
+        version: "1.5.0",
+        releaseNote: "新增供应商绩效自动评估和交期预警。",
+        publishTime: "2026-03-25",
         evolution: {
-          skillTriggerAccuracy: "85%", skillTriggerAccuracyTrend: "↑7%",
-          taskCompletionRate: "81%", taskCompletionRateTrend: "↑11%",
-          qualityScore: "79%", qualityScoreTrend: "↑6%",
-          executionTime: "245ms", executionTimeTrend: "↓20%",
-          tokenUsage: "1650", tokenUsageTrend: "↓18%",
-          regressionRetention: "91%", regressionRetentionTrend: "↑8%",
+          skillTriggerAccuracy: "85%",
+          skillTriggerAccuracyTrend: "↑7%",
+          taskCompletionRate: "81%",
+          taskCompletionRateTrend: "↑11%",
+          qualityScore: "79%",
+          qualityScoreTrend: "↑6%",
+          executionTime: "245ms",
+          executionTimeTrend: "↓20%",
+          tokenUsage: "1650",
+          tokenUsageTrend: "↓18%",
+          regressionRetention: "91%",
+          regressionRetentionTrend: "↑8%",
         },
         evalReport: {
-          summary: "v1.5版本新增的供应商绩效评估和交期预警功能验证通过，库存水位监控响应延迟有改善，整体达标。",
-          overallScore: 82, overallScoreTrend: "↑8%",
+          summary:
+            "v1.5版本新增的供应商绩效评估和交期预警功能验证通过，库存水位监控响应延迟有改善，整体达标。",
+          overallScore: 82,
+          overallScoreTrend: "↑8%",
           metrics: [
             { label: "Skill触发准确率", value: "85%", trend: "↑7%" },
             { label: "任务完成行为率", value: "81%", trend: "↑11%" },
@@ -3971,11 +4304,33 @@ export const FDE_AGENT_STORE_ITEMS: FdeAgentItem[] = [
           conclusion: "v1.5版本功能完整、性能达标，建议发布。重点关注新供应商场景下的评估准确性。",
         },
       },
-      { version: "1.0.0", releaseNote: "初始版本，库存监控和自动补货。", publishTime: "2026-02-01" },
+      {
+        version: "1.0.0",
+        releaseNote: "初始版本，库存监控和自动补货。",
+        publishTime: "2026-02-01",
+      },
     ],
     feedbackData: [
-      { id: "R-3001", summary: "补货建议数量偏大", source: "线上回流", rating: 3, toolCallRounds: 2, dialogueRounds: 4, tokenUsage: 1100, enterprise: "盛达供应链" },
-      { id: "R-3002", summary: "供应商交期预警不及时", source: "人工标注", rating: 2, toolCallRounds: 3, dialogueRounds: 5, tokenUsage: 1350, enterprise: "盛达供应链" },
+      {
+        id: "R-3001",
+        summary: "补货建议数量偏大",
+        source: "线上回流",
+        rating: 3,
+        toolCallRounds: 2,
+        dialogueRounds: 4,
+        tokenUsage: 1100,
+        enterprise: "盛达供应链",
+      },
+      {
+        id: "R-3002",
+        summary: "供应商交期预警不及时",
+        source: "人工标注",
+        rating: 2,
+        toolCallRounds: 3,
+        dialogueRounds: 5,
+        tokenUsage: 1350,
+        enterprise: "盛达供应链",
+      },
     ],
   },
   {
@@ -3985,7 +4340,8 @@ export const FDE_AGENT_STORE_ITEMS: FdeAgentItem[] = [
     agentType: "metaagent",
     category: "sales",
     tags: ["内容创作", "营销"],
-    description: "全渠道营销内容生产 Agent，覆盖小红书、抖音、公众号、邮件等渠道，支持 A/B 测试文案自动生成和效果追踪。",
+    description:
+      "全渠道营销内容生产 Agent，覆盖小红书、抖音、公众号、邮件等渠道，支持 A/B 测试文案自动生成和效果追踪。",
     publisher: "王芳",
     publishTime: "2026-03-22",
     iconColor: "#f093fb",
@@ -3997,13 +4353,43 @@ export const FDE_AGENT_STORE_ITEMS: FdeAgentItem[] = [
       { skillName: "多语言翻译引擎", version: "2.4.0" },
     ],
     versions: [
-      { version: "2.3.0", releaseNote: "新增 A/B 测试文案对比和效果追踪看板。", publishTime: "2026-03-22" },
-      { version: "2.0.0", releaseNote: "增加抖音短视频脚本和邮件营销模板。", publishTime: "2026-02-10" },
-      { version: "1.0.0", releaseNote: "初始版本，小红书和公众号文案生成。", publishTime: "2025-12-20" },
+      {
+        version: "2.3.0",
+        releaseNote: "新增 A/B 测试文案对比和效果追踪看板。",
+        publishTime: "2026-03-22",
+      },
+      {
+        version: "2.0.0",
+        releaseNote: "增加抖音短视频脚本和邮件营销模板。",
+        publishTime: "2026-02-10",
+      },
+      {
+        version: "1.0.0",
+        releaseNote: "初始版本，小红书和公众号文案生成。",
+        publishTime: "2025-12-20",
+      },
     ],
     feedbackData: [
-      { id: "R-4001", summary: "小红书文案风格偏正式", source: "线上回流", rating: 3, toolCallRounds: 2, dialogueRounds: 3, tokenUsage: 890, enterprise: "美妆星球" },
-      { id: "R-4002", summary: "生成图片与文案不匹配", source: "人工标注", rating: 2, toolCallRounds: 4, dialogueRounds: 6, tokenUsage: 1800, enterprise: "美妆星球" },
+      {
+        id: "R-4001",
+        summary: "小红书文案风格偏正式",
+        source: "线上回流",
+        rating: 3,
+        toolCallRounds: 2,
+        dialogueRounds: 3,
+        tokenUsage: 890,
+        enterprise: "美妆星球",
+      },
+      {
+        id: "R-4002",
+        summary: "生成图片与文案不匹配",
+        source: "人工标注",
+        rating: 2,
+        toolCallRounds: 4,
+        dialogueRounds: 6,
+        tokenUsage: 1800,
+        enterprise: "美妆星球",
+      },
     ],
   },
   {
@@ -4013,7 +4399,8 @@ export const FDE_AGENT_STORE_ITEMS: FdeAgentItem[] = [
     agentType: "syngent",
     category: "production",
     tags: ["质检", "制造"],
-    description: "基于计算机视觉和传感器数据的智能质量巡检 Agent，支持缺陷识别、SPC 分析和自动生成巡检报告。",
+    description:
+      "基于计算机视觉和传感器数据的智能质量巡检 Agent，支持缺陷识别、SPC 分析和自动生成巡检报告。",
     publisher: "Frontis 官方",
     publishTime: "2026-03-18",
     iconColor: "#764ba2",
@@ -4024,11 +4411,28 @@ export const FDE_AGENT_STORE_ITEMS: FdeAgentItem[] = [
       { skillName: "内容审核自动化", version: "1.5.0" },
     ],
     versions: [
-      { version: "1.2.0", releaseNote: "新增 SPC 控制图分析和报告自动生成。", publishTime: "2026-03-18" },
-      { version: "1.0.0", releaseNote: "初始版本，缺陷图片识别和分类。", publishTime: "2026-01-25" },
+      {
+        version: "1.2.0",
+        releaseNote: "新增 SPC 控制图分析和报告自动生成。",
+        publishTime: "2026-03-18",
+      },
+      {
+        version: "1.0.0",
+        releaseNote: "初始版本，缺陷图片识别和分类。",
+        publishTime: "2026-01-25",
+      },
     ],
     feedbackData: [
-      { id: "R-5001", summary: "微小裂纹漏检", source: "人工标注", rating: 2, toolCallRounds: 3, dialogueRounds: 4, tokenUsage: 1200, enterprise: "锐智制造" },
+      {
+        id: "R-5001",
+        summary: "微小裂纹漏检",
+        source: "人工标注",
+        rating: 2,
+        toolCallRounds: 3,
+        dialogueRounds: 4,
+        tokenUsage: 1200,
+        enterprise: "锐智制造",
+      },
     ],
   },
   /* 团队共享 */
@@ -4039,7 +4443,8 @@ export const FDE_AGENT_STORE_ITEMS: FdeAgentItem[] = [
     agentType: "openclaw",
     category: "general",
     tags: ["效率", "管理"],
-    description: "自动收集项目进度数据，生成周报/月报并推送至协作平台，支持自定义汇报模板和多项目并行。",
+    description:
+      "自动收集项目进度数据，生成周报/月报并推送至协作平台，支持自定义汇报模板和多项目并行。",
     publisher: "赵工",
     publishTime: "2026-03-26",
     iconColor: "#4facfe",
@@ -4051,7 +4456,11 @@ export const FDE_AGENT_STORE_ITEMS: FdeAgentItem[] = [
       { skillName: "数据分析助手", version: "2.0.0" },
     ],
     versions: [
-      { version: "1.0.0", releaseNote: "初始版本，项目周报自动生成与推送。", publishTime: "2026-03-26" },
+      {
+        version: "1.0.0",
+        releaseNote: "初始版本，项目周报自动生成与推送。",
+        publishTime: "2026-03-26",
+      },
     ],
     feedbackData: [],
   },
@@ -4062,7 +4471,8 @@ export const FDE_AGENT_STORE_ITEMS: FdeAgentItem[] = [
     agentType: "metaagent",
     category: "sales",
     tags: ["分析", "营销"],
-    description: "7x24 小时竞品动态监控 Agent，追踪价格变动、功能更新和市场活动，自动生成差异化策略建议。",
+    description:
+      "7x24 小时竞品动态监控 Agent，追踪价格变动、功能更新和市场活动，自动生成差异化策略建议。",
     publisher: "陈蓝",
     publishTime: "2026-03-20",
     iconColor: "#38ef7d",
@@ -4074,11 +4484,28 @@ export const FDE_AGENT_STORE_ITEMS: FdeAgentItem[] = [
       { skillName: "智能文案生成", version: "3.0.1" },
     ],
     versions: [
-      { version: "1.1.0", releaseNote: "增加市场活动追踪和自动策略建议。", publishTime: "2026-03-20" },
-      { version: "1.0.0", releaseNote: "初始版本，竞品价格和功能变动监控。", publishTime: "2026-02-15" },
+      {
+        version: "1.1.0",
+        releaseNote: "增加市场活动追踪和自动策略建议。",
+        publishTime: "2026-03-20",
+      },
+      {
+        version: "1.0.0",
+        releaseNote: "初始版本，竞品价格和功能变动监控。",
+        publishTime: "2026-02-15",
+      },
     ],
     feedbackData: [
-      { id: "R-T001", summary: "竞品价格变动推送延迟", source: "线上回流", rating: 3, toolCallRounds: 1, dialogueRounds: 2, tokenUsage: 380, enterprise: "本团队" },
+      {
+        id: "R-T001",
+        summary: "竞品价格变动推送延迟",
+        source: "线上回流",
+        rating: 3,
+        toolCallRounds: 1,
+        dialogueRounds: 2,
+        tokenUsage: 380,
+        enterprise: "本团队",
+      },
     ],
   },
   /* 我的 Agent */
@@ -4089,7 +4516,8 @@ export const FDE_AGENT_STORE_ITEMS: FdeAgentItem[] = [
     agentType: "syngent",
     category: "general",
     tags: ["法务", "风控"],
-    description: "合同全生命周期风控 Agent，自动审核条款、对比历史合同、标注风险点并生成合规建议，减少法务审核工作量。",
+    description:
+      "合同全生命周期风控 Agent，自动审核条款、对比历史合同、标注风险点并生成合规建议，减少法务审核工作量。",
     publisher: "陈蓝",
     publishTime: "2026-03-29",
     iconColor: "#434343",
@@ -4102,18 +4530,28 @@ export const FDE_AGENT_STORE_ITEMS: FdeAgentItem[] = [
     ],
     versions: [
       {
-        version: "1.3.0", releaseNote: "新增历史合同交叉对比和合规建议生成。", publishTime: "2026-03-29",
+        version: "1.3.0",
+        releaseNote: "新增历史合同交叉对比和合规建议生成。",
+        publishTime: "2026-03-29",
         evolution: {
-          skillTriggerAccuracy: "93%", skillTriggerAccuracyTrend: "↑11%",
-          taskCompletionRate: "91%", taskCompletionRateTrend: "↑14%",
-          qualityScore: "89%", qualityScoreTrend: "↑10%",
-          executionTime: "180ms", executionTimeTrend: "↓32%",
-          tokenUsage: "1580", tokenUsageTrend: "↓19%",
-          regressionRetention: "97%", regressionRetentionTrend: "↑8%",
+          skillTriggerAccuracy: "93%",
+          skillTriggerAccuracyTrend: "↑11%",
+          taskCompletionRate: "91%",
+          taskCompletionRateTrend: "↑14%",
+          qualityScore: "89%",
+          qualityScoreTrend: "↑10%",
+          executionTime: "180ms",
+          executionTimeTrend: "↓32%",
+          tokenUsage: "1580",
+          tokenUsageTrend: "↓19%",
+          regressionRetention: "97%",
+          regressionRetentionTrend: "↑8%",
         },
         evalReport: {
-          summary: "v1.3版本新增的历史合同对比和合规建议功能表现出色，条款识别准确率显著提升，模型推理速度大幅优化。",
-          overallScore: 93, overallScoreTrend: "↑12%",
+          summary:
+            "v1.3版本新增的历史合同对比和合规建议功能表现出色，条款识别准确率显著提升，模型推理速度大幅优化。",
+          overallScore: 93,
+          overallScoreTrend: "↑12%",
           metrics: [
             { label: "Skill触发准确率", value: "93%", trend: "↑11%" },
             { label: "任务完成行为率", value: "91%", trend: "↑14%" },
@@ -4127,22 +4565,32 @@ export const FDE_AGENT_STORE_ITEMS: FdeAgentItem[] = [
           testScenes: ["标准合同审核", "合同条款对比", "风险条款标注", "合规建议生成"],
           issues: "对于非标准格式的扫描件合同，OCR提取准确率有待提升。",
           suggestions: "集成高精度OCR预处理模块，增加文档版面分析能力。",
-          conclusion: "v1.3版本各项指标均超出预期，建议正式发布。后续迭代重点提升非标文档的处理能力。",
+          conclusion:
+            "v1.3版本各项指标均超出预期，建议正式发布。后续迭代重点提升非标文档的处理能力。",
         },
       },
       {
-        version: "1.1.0", releaseNote: "增加风险等级评估和自动摘要。", publishTime: "2026-02-25",
+        version: "1.1.0",
+        releaseNote: "增加风险等级评估和自动摘要。",
+        publishTime: "2026-02-25",
         evolution: {
-          skillTriggerAccuracy: "84%", skillTriggerAccuracyTrend: "↑6%",
-          taskCompletionRate: "80%", taskCompletionRateTrend: "↑8%",
-          qualityScore: "81%", qualityScoreTrend: "↑7%",
-          executionTime: "265ms", executionTimeTrend: "↓12%",
-          tokenUsage: "1950", tokenUsageTrend: "↓8%",
-          regressionRetention: "90%", regressionRetentionTrend: "↑5%",
+          skillTriggerAccuracy: "84%",
+          skillTriggerAccuracyTrend: "↑6%",
+          taskCompletionRate: "80%",
+          taskCompletionRateTrend: "↑8%",
+          qualityScore: "81%",
+          qualityScoreTrend: "↑7%",
+          executionTime: "265ms",
+          executionTimeTrend: "↓12%",
+          tokenUsage: "1950",
+          tokenUsageTrend: "↓8%",
+          regressionRetention: "90%",
+          regressionRetentionTrend: "↑5%",
         },
         evalReport: {
           summary: "v1.1版本新增风险等级评估功能通过验证，自动摘要准确性尚可，整体满足上线要求。",
-          overallScore: 82, overallScoreTrend: "↑7%",
+          overallScore: 82,
+          overallScoreTrend: "↑7%",
           metrics: [
             { label: "Skill触发准确率", value: "84%", trend: "↑6%" },
             { label: "任务完成行为率", value: "80%", trend: "↑8%" },
@@ -4159,14 +4607,63 @@ export const FDE_AGENT_STORE_ITEMS: FdeAgentItem[] = [
           conclusion: "v1.1版本基本达标，建议发布并在后续版本中优化长文档处理能力。",
         },
       },
-      { version: "1.0.0", releaseNote: "初始版本，合同关键条款提取和基础风险标注。", publishTime: "2026-01-20" },
+      {
+        version: "1.0.0",
+        releaseNote: "初始版本，合同关键条款提取和基础风险标注。",
+        publishTime: "2026-01-20",
+      },
     ],
     feedbackData: [
-      { id: "R-M001", summary: "合同违约条款识别遗漏", source: "人工标注", rating: 2, toolCallRounds: 4, dialogueRounds: 6, tokenUsage: 2300, enterprise: "华建集团" },
-      { id: "R-M002", summary: "标准合同审核通过", source: "线上回流", rating: 5, toolCallRounds: 2, dialogueRounds: 3, tokenUsage: 980, enterprise: "华建集团" },
-      { id: "R-M003", summary: "供应商合同条款对比", source: "线上回流", rating: 4, toolCallRounds: 3, dialogueRounds: 5, tokenUsage: 1560, enterprise: "盛达供应链" },
-      { id: "R-M004", summary: "知识产权条款风险提醒", source: "人工标注", rating: 5, toolCallRounds: 2, dialogueRounds: 4, tokenUsage: 1100, enterprise: "盛达供应链" },
-      { id: "R-M005", summary: "续约合同差异分析", source: "线上回流", rating: 4, toolCallRounds: 3, dialogueRounds: 4, tokenUsage: 1280, enterprise: "锐智制造" },
+      {
+        id: "R-M001",
+        summary: "合同违约条款识别遗漏",
+        source: "人工标注",
+        rating: 2,
+        toolCallRounds: 4,
+        dialogueRounds: 6,
+        tokenUsage: 2300,
+        enterprise: "华建集团",
+      },
+      {
+        id: "R-M002",
+        summary: "标准合同审核通过",
+        source: "线上回流",
+        rating: 5,
+        toolCallRounds: 2,
+        dialogueRounds: 3,
+        tokenUsage: 980,
+        enterprise: "华建集团",
+      },
+      {
+        id: "R-M003",
+        summary: "供应商合同条款对比",
+        source: "线上回流",
+        rating: 4,
+        toolCallRounds: 3,
+        dialogueRounds: 5,
+        tokenUsage: 1560,
+        enterprise: "盛达供应链",
+      },
+      {
+        id: "R-M004",
+        summary: "知识产权条款风险提醒",
+        source: "人工标注",
+        rating: 5,
+        toolCallRounds: 2,
+        dialogueRounds: 4,
+        tokenUsage: 1100,
+        enterprise: "盛达供应链",
+      },
+      {
+        id: "R-M005",
+        summary: "续约合同差异分析",
+        source: "线上回流",
+        rating: 4,
+        toolCallRounds: 3,
+        dialogueRounds: 4,
+        tokenUsage: 1280,
+        enterprise: "锐智制造",
+      },
     ],
   },
   {
@@ -4176,7 +4673,8 @@ export const FDE_AGENT_STORE_ITEMS: FdeAgentItem[] = [
     agentType: "openclaw",
     category: "production",
     tags: ["调度", "制造"],
-    description: "面向多班次制造业的智能排班 Agent，综合员工技能、法规约束和产能需求自动生成最优班次方案。",
+    description:
+      "面向多班次制造业的智能排班 Agent，综合员工技能、法规约束和产能需求自动生成最优班次方案。",
     publisher: "陈蓝",
     publishTime: "2026-03-24",
     iconColor: "#00f2fe",
@@ -4187,11 +4685,28 @@ export const FDE_AGENT_STORE_ITEMS: FdeAgentItem[] = [
       { skillName: "数据分析助手", version: "2.0.0" },
     ],
     versions: [
-      { version: "1.2.0", releaseNote: "新增法规约束自动检测和弹性工时模式。", publishTime: "2026-03-24" },
-      { version: "1.0.0", releaseNote: "初始版本，基于固定规则的排班生成。", publishTime: "2026-02-05" },
+      {
+        version: "1.2.0",
+        releaseNote: "新增法规约束自动检测和弹性工时模式。",
+        publishTime: "2026-03-24",
+      },
+      {
+        version: "1.0.0",
+        releaseNote: "初始版本，基于固定规则的排班生成。",
+        publishTime: "2026-02-05",
+      },
     ],
     feedbackData: [
-      { id: "R-M101", summary: "加班上限超标未告警", source: "线上回流", rating: 3, toolCallRounds: 2, dialogueRounds: 3, tokenUsage: 780, enterprise: "锐智制造" },
+      {
+        id: "R-M101",
+        summary: "加班上限超标未告警",
+        source: "线上回流",
+        rating: 3,
+        toolCallRounds: 2,
+        dialogueRounds: 3,
+        tokenUsage: 780,
+        enterprise: "锐智制造",
+      },
     ],
   },
 ];
@@ -4203,7 +4718,8 @@ export const FDE_AGENT_WORKSPACES: FdeAgentWorkspace[] = [
   {
     id: "ws-001",
     name: "智能客服 Agent",
-    description: "面向电商和 SaaS 企业的全渠道智能客服 Agent，集成退货政策查询、物流追踪、会员权益咨询等技能。",
+    description:
+      "面向电商和 SaaS 企业的全渠道智能客服 Agent，集成退货政策查询、物流追踪、会员权益咨询等技能。",
     iconColor: "#667eea",
     iconText: "客",
     framework: "MetaAgent",
@@ -4215,15 +4731,51 @@ export const FDE_AGENT_WORKSPACES: FdeAgentWorkspace[] = [
     ],
     createdAt: "2026-03-15",
     fileCount: 16,
-    overviewText: "本空间共有 16 个文件，围绕智能客服 Agent 展开，包含产品架构、业务规划、合作汇报、产业落地、政策解析等，材料类型含 PPT、讲稿、讨论文档等。",
+    overviewText:
+      "本空间共有 16 个文件，围绕智能客服 Agent 展开，包含产品架构、业务规划、合作汇报、产业落地、政策解析等，材料类型含 PPT、讲稿、讨论文档等。",
     conversations: [
-      { id: "conv-01", title: "用户询问OPC服务回复撰写", summary: "FrontisAI里面有一个FDE工作台，是专...", date: "56分钟前" },
-      { id: "conv-02", title: "昌发展OPC方案优化建议", summary: "你梳理的PPT框架特别的好。接下来请...", date: "3月24日" },
-      { id: "conv-03", title: "PPT修改建议整理", summary: "附件中是目前生成的第二章标题页，其...", date: "3月15日" },
-      { id: "conv-04", title: "昌平\"1+2+N\"AI产业体系是什么", summary: "现在昌平区的人工智能发展战略基本了...", date: "3月14日" },
-      { id: "conv-05", title: "徐广新汇报OPC进展", summary: "汇报下OPC方向的最新进展和思考...", date: "2月26日" },
-      { id: "conv-06", title: "梳理OPC方案及会议核心", summary: "方案没有任何问题，帮我生成这个方案...", date: "2月26日" },
-      { id: "conv-07", title: "syngents会见政府方案框架...", summary: "重新生成PPT框架", date: "2月24日" },
+      {
+        id: "conv-01",
+        title: "用户询问OPC服务回复撰写",
+        summary: "FrontisAI里面有一个FDE工作台，是专...",
+        date: "56分钟前",
+      },
+      {
+        id: "conv-02",
+        title: "昌发展OPC方案优化建议",
+        summary: "你梳理的PPT框架特别的好。接下来请...",
+        date: "3月24日",
+      },
+      {
+        id: "conv-03",
+        title: "PPT修改建议整理",
+        summary: "附件中是目前生成的第二章标题页，其...",
+        date: "3月15日",
+      },
+      {
+        id: "conv-04",
+        title: '昌平"1+2+N"AI产业体系是什么',
+        summary: "现在昌平区的人工智能发展战略基本了...",
+        date: "3月14日",
+      },
+      {
+        id: "conv-05",
+        title: "徐广新汇报OPC进展",
+        summary: "汇报下OPC方向的最新进展和思考...",
+        date: "2月26日",
+      },
+      {
+        id: "conv-06",
+        title: "梳理OPC方案及会议核心",
+        summary: "方案没有任何问题，帮我生成这个方案...",
+        date: "2月26日",
+      },
+      {
+        id: "conv-07",
+        title: "syngents会见政府方案框架...",
+        summary: "重新生成PPT框架",
+        date: "2月24日",
+      },
     ],
     knowledgeBases: [
       { id: "kb-01", name: "OPC产业政策文库", fileCount: 32 },
@@ -4238,7 +4790,7 @@ export const FDE_AGENT_WORKSPACES: FdeAgentWorkspace[] = [
       { id: "res-01", title: "用户询问OPC服务回复撰写", resultCount: 3, lastDate: "56分钟前" },
       { id: "res-02", title: "昌发展OPC方案优化建议", resultCount: 54, lastDate: "3月24日" },
       { id: "res-03", title: "PPT修改建议整理", resultCount: 5, lastDate: "3月15日" },
-      { id: "res-04", title: "昌平\"1+2+N\"AI产业体系是...", resultCount: 3, lastDate: "3月14日" },
+      { id: "res-04", title: '昌平"1+2+N"AI产业体系是...', resultCount: 3, lastDate: "3月14日" },
       { id: "res-05", title: "徐广新汇报OPC进展", resultCount: 15, lastDate: "2月26日" },
       { id: "res-06", title: "梳理OPC方案及会议核心", resultCount: 6, lastDate: "2月26日" },
       { id: "res-07", title: "syngents会见政府方案框...", resultCount: 8, lastDate: "2月24日" },
@@ -4260,10 +4812,21 @@ export const FDE_AGENT_WORKSPACES: FdeAgentWorkspace[] = [
     ],
     createdAt: "2026-03-18",
     fileCount: 12,
-    overviewText: "本空间围绕供应链协同 Agent 展开，包含采购、库存、物流和供应商管理相关的设计方案和配置文件。",
+    overviewText:
+      "本空间围绕供应链协同 Agent 展开，包含采购、库存、物流和供应商管理相关的设计方案和配置文件。",
     conversations: [
-      { id: "conv-s01", title: "采购计划自动生成方案", summary: "基于历史数据和季节趋势生成采购计划...", date: "3月20日" },
-      { id: "conv-s02", title: "库存异常监控规则配置", summary: "设置安全库存阈值和预警触发条件...", date: "3月18日" },
+      {
+        id: "conv-s01",
+        title: "采购计划自动生成方案",
+        summary: "基于历史数据和季节趋势生成采购计划...",
+        date: "3月20日",
+      },
+      {
+        id: "conv-s02",
+        title: "库存异常监控规则配置",
+        summary: "设置安全库存阈值和预警触发条件...",
+        date: "3月18日",
+      },
     ],
     knowledgeBases: [
       { id: "kb-s01", name: "供应链管理文库", fileCount: 28 },
@@ -4295,14 +4858,15 @@ export const FDE_AGENT_WORKSPACES: FdeAgentWorkspace[] = [
     fileCount: 9,
     overviewText: "本空间围绕数据分析 Agent 展开，包含 SQL 查询、报表模板和可视化配置。",
     conversations: [
-      { id: "conv-d01", title: "自然语言转SQL查询方案", summary: "设计自然语言到SQL的转换流程...", date: "3月22日" },
+      {
+        id: "conv-d01",
+        title: "自然语言转SQL查询方案",
+        summary: "设计自然语言到SQL的转换流程...",
+        date: "3月22日",
+      },
     ],
-    knowledgeBases: [
-      { id: "kb-d01", name: "数据分析方法论", fileCount: 20 },
-    ],
-    feedbackData: [
-      { enterprise: "新锐科技", count: 2 },
-    ],
+    knowledgeBases: [{ id: "kb-d01", name: "数据分析方法论", fileCount: 20 }],
+    feedbackData: [{ enterprise: "新锐科技", count: 2 }],
     results: [
       { id: "res-d01", title: "自然语言转SQL查询方案", resultCount: 6, lastDate: "3月22日" },
     ],
@@ -4310,7 +4874,8 @@ export const FDE_AGENT_WORKSPACES: FdeAgentWorkspace[] = [
   {
     id: "ws-004",
     name: "HR 招聘助手 Agent",
-    description: "面向多班次制造业的智能排班 Agent，综合员工技能、法规约束和产能需求自动生成最优班次方案。",
+    description:
+      "面向多班次制造业的智能排班 Agent，综合员工技能、法规约束和产能需求自动生成最优班次方案。",
     iconColor: "#00f2fe",
     iconText: "招",
     framework: "MetaAgent",
@@ -4323,17 +4888,16 @@ export const FDE_AGENT_WORKSPACES: FdeAgentWorkspace[] = [
     fileCount: 8,
     overviewText: "本空间围绕 HR 招聘助手 Agent 展开，包含简历解析和岗位匹配相关配置。",
     conversations: [
-      { id: "conv-h01", title: "简历解析规则优化", summary: "优化简历关键信息提取准确率...", date: "3月25日" },
+      {
+        id: "conv-h01",
+        title: "简历解析规则优化",
+        summary: "优化简历关键信息提取准确率...",
+        date: "3月25日",
+      },
     ],
-    knowledgeBases: [
-      { id: "kb-h01", name: "HR行业知识库", fileCount: 12 },
-    ],
-    feedbackData: [
-      { enterprise: "创新医疗", count: 1 },
-    ],
-    results: [
-      { id: "res-h01", title: "简历解析规则优化", resultCount: 3, lastDate: "3月25日" },
-    ],
+    knowledgeBases: [{ id: "kb-h01", name: "HR行业知识库", fileCount: 12 }],
+    feedbackData: [{ enterprise: "创新医疗", count: 1 }],
+    results: [{ id: "res-h01", title: "简历解析规则优化", resultCount: 3, lastDate: "3月25日" }],
   },
   {
     id: "ws-005",
@@ -4352,12 +4916,20 @@ export const FDE_AGENT_WORKSPACES: FdeAgentWorkspace[] = [
     fileCount: 11,
     overviewText: "本空间围绕销售增长 Agent 展开，包含线索管理、客户画像和战报模板。",
     conversations: [
-      { id: "conv-sl01", title: "线索评分模型设计", summary: "设计多维度线索打分模型...", date: "3月28日" },
-      { id: "conv-sl02", title: "客户画像分析方案", summary: "基于行为数据构建客户画像...", date: "3月26日" },
+      {
+        id: "conv-sl01",
+        title: "线索评分模型设计",
+        summary: "设计多维度线索打分模型...",
+        date: "3月28日",
+      },
+      {
+        id: "conv-sl02",
+        title: "客户画像分析方案",
+        summary: "基于行为数据构建客户画像...",
+        date: "3月26日",
+      },
     ],
-    knowledgeBases: [
-      { id: "kb-sl01", name: "销售方法论", fileCount: 22 },
-    ],
+    knowledgeBases: [{ id: "kb-sl01", name: "销售方法论", fileCount: 22 }],
     feedbackData: [
       { enterprise: "智联制造", count: 2 },
       { enterprise: "环球电商", count: 1 },
@@ -4385,16 +4957,24 @@ export const FDE_AGENT_WORKSPACES: FdeAgentWorkspace[] = [
     fileCount: 14,
     overviewText: "本空间围绕内容创作 Agent 展开，包含文案生成、翻译、SEO优化和配图推荐。",
     conversations: [
-      { id: "conv-c01", title: "公众号文章生成模板", summary: "设计适配不同行业的文章模板...", date: "3月30日" },
-      { id: "conv-c02", title: "营销邮件自动化方案", summary: "设计邮件自动化触发规则...", date: "3月29日" },
+      {
+        id: "conv-c01",
+        title: "公众号文章生成模板",
+        summary: "设计适配不同行业的文章模板...",
+        date: "3月30日",
+      },
+      {
+        id: "conv-c02",
+        title: "营销邮件自动化方案",
+        summary: "设计邮件自动化触发规则...",
+        date: "3月29日",
+      },
     ],
     knowledgeBases: [
       { id: "kb-c01", name: "内容营销知识库", fileCount: 35 },
       { id: "kb-c02", name: "品牌文案风格指南", fileCount: 8 },
     ],
-    feedbackData: [
-      { enterprise: "百汇零售", count: 3 },
-    ],
+    feedbackData: [{ enterprise: "百汇零售", count: 3 }],
     results: [
       { id: "res-c01", title: "公众号文章生成模板", resultCount: 12, lastDate: "3月30日" },
       { id: "res-c02", title: "营销邮件自动化方案", resultCount: 5, lastDate: "3月29日" },

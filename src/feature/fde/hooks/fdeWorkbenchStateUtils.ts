@@ -27,7 +27,6 @@ export const FDE_DEVELOPMENT_VISIBLE_KEYS: FdeWorkbenchTabKey[] = [
   "agentDev",
   "skillMarket",
   "agentStore",
-  "opsInsights",
 ];
 
 const DEFAULT_VALIDITY_MONTHS = 12;
@@ -112,7 +111,8 @@ const resolveAssetChangeRecordAssetType = (
   return "设备";
 };
 
-const stripValidityLabel = (value: string): string => value.replace(/\s*·\s*\d+\s*个月$/, "").trim();
+const stripValidityLabel = (value: string): string =>
+  value.replace(/\s*·\s*\d+\s*个月$/, "").trim();
 
 const resolveAssetChangeRecordTargetName = (order: FdeDeliveryOrderItem): string => {
   const deviceTargets = Array.from(
@@ -125,7 +125,9 @@ const resolveAssetChangeRecordTargetName = (order: FdeDeliveryOrderItem): string
   );
   const fallbackTargets = Array.from(
     new Set(
-      (order.changeDetailItems ?? []).map(item => stripValidityLabel(item.afterValue)).filter(Boolean),
+      (order.changeDetailItems ?? [])
+        .map(item => stripValidityLabel(item.afterValue))
+        .filter(Boolean),
     ),
   );
 
@@ -200,9 +202,7 @@ const resolveAssetChangeRecordSummary = (
 /**
  * 构建客户当前资产快照，用于变更记录对比。
  */
-export const buildCustomerAssetSnapshot = (
-  customer: FdeOperationsCustomerItem,
-): string[] => {
+export const buildCustomerAssetSnapshot = (customer: FdeOperationsCustomerItem): string[] => {
   const quotaLines = customer.assetQuotas
     .filter(item => item.label !== "租户席位额度")
     .map(item => `${item.label} ${item.used}/${item.total}${item.unit}`);
@@ -329,12 +329,11 @@ export const getLineItemValidityMonths = (
   item: FdeOrderDeviceLineItem | FdeOrderAgentLineItem | FdeOrderAgentGroupLineItem,
 ): number => item.validityMonths ?? DEFAULT_VALIDITY_MONTHS;
 
-const buildStableAssetId = (
-  type: FdeAssetType,
-  lineItemId: string,
-  sequence = 1,
-): string => {
-  const normalizedId = lineItemId.replaceAll(/[^a-zA-Z0-9]/g, "").slice(-8).toUpperCase();
+const buildStableAssetId = (type: FdeAssetType, lineItemId: string, sequence = 1): string => {
+  const normalizedId = lineItemId
+    .replaceAll(/[^a-zA-Z0-9]/g, "")
+    .slice(-8)
+    .toUpperCase();
   const prefix = type === "device" ? "AST-DEV" : "AST-AGT";
   const suffix = type === "device" ? `-${String(sequence).padStart(2, "0")}` : "";
 
@@ -395,7 +394,9 @@ const buildDeviceAssetsFromLineItem = (
 ): FdeOperationsCustomerItem["devices"] => {
   const validityMonths = getLineItemValidityMonths(lineItem);
   const expiresAt = addValidityMonths(completedAt, validityMonths);
-  const matchedTemplates = templates.filter(item => matchesDeviceTemplate(item, lineItem.deviceType));
+  const matchedTemplates = templates.filter(item =>
+    matchesDeviceTemplate(item, lineItem.deviceType),
+  );
 
   return Array.from({ length: lineItem.quantity }).map((_, index) => {
     const template = matchedTemplates[index];
@@ -410,8 +411,7 @@ const buildDeviceAssetsFromLineItem = (
         categoryLabel: lineItem.deviceType,
         ownerLabel: lineItem.deviceType === "云端工作站" ? "FDE 统管" : "企业员工",
         activationLabel: "已激活",
-        assignedEmployeeName:
-          lineItem.deviceType === "云端工作站" ? undefined : "待客户分配",
+        assignedEmployeeName: lineItem.deviceType === "云端工作站" ? undefined : "待客户分配",
         locationLabel: order.tenantName ?? order.customerName,
       }),
       assetId: buildStableAssetId("device", lineItem.id, index + 1),
@@ -450,9 +450,7 @@ const buildAgentAssetsFromLineItem = (
   const agentPackages = buildOrderAgentPackages(lineItem);
 
   return agentPackages.map((agentPackage, index) => {
-    const template =
-      templates.find(item => item.name === agentPackage.name) ??
-      templates[index];
+    const template = templates.find(item => item.name === agentPackage.name) ?? templates[index];
 
     return {
       ...(template ?? {
@@ -481,10 +479,7 @@ const buildAgentAssetsFromLineItem = (
 /**
  * 计算续费应从哪个时间点继续顺延。
  */
-export const resolveRenewalBaseAt = (
-  expiresAt: string | undefined,
-  renewedAt: string,
-): string => {
+export const resolveRenewalBaseAt = (expiresAt: string | undefined, renewedAt: string): string => {
   if (!expiresAt) {
     return renewedAt;
   }
@@ -568,9 +563,8 @@ export const isAgentLineItem = (item: FdeOrderLineItem): item is FdeOrderAgentLi
 /**
  * 判断订单商品是否为 AI 专家团项。
  */
-export const isAgentGroupLineItem = (
-  item: FdeOrderLineItem,
-): item is FdeOrderAgentGroupLineItem => item.kind === "agentGroup";
+export const isAgentGroupLineItem = (item: FdeOrderLineItem): item is FdeOrderAgentGroupLineItem =>
+  item.kind === "agentGroup";
 
 /**
  * 判断订单商品是否为 tokens 项。
@@ -586,10 +580,7 @@ export const hasManualDeliveryLineItem = (order: FdeOrderItem): boolean =>
     item => isDeviceLineItem(item) || isAgentLineItem(item) || isAgentGroupLineItem(item),
   );
 
-const getTeamMemberNameById = (
-  memberId: string,
-  members: FdeTeamMemberItem[],
-): string =>
+const getTeamMemberNameById = (memberId: string, members: FdeTeamMemberItem[]): string =>
   members.find(item => item.id === memberId)?.name ??
   FDE_TEAM_MEMBERS.find(item => item.id === memberId)?.name ??
   "FDE";
@@ -812,9 +803,7 @@ const getAgentLineItemNames = (
   Array.from(
     new Set(
       lineItems.flatMap(item =>
-        item.kind === "agent"
-          ? [item.agentName]
-          : item.agents.map(agent => agent.name),
+        item.kind === "agent" ? [item.agentName] : item.agents.map(agent => agent.name),
       ),
     ),
   );
@@ -990,15 +979,18 @@ export const syncOrdersWithDeliveryState = (
           tenantCode: boundTenant.tenantCode,
         }
       : order;
-    const linkedInitialDelivery =
-      boundTenant?.linkedOrderIds?.includes(order.id) ? boundTenant : undefined;
+    const linkedInitialDelivery = boundTenant?.linkedOrderIds?.includes(order.id)
+      ? boundTenant
+      : undefined;
     const linkedChangeOrders = deliveryOrders.filter(
       item => item.orderKind === "change" && item.linkedOrderIds?.includes(order.id),
     );
 
     let fulfillmentItems = nextOrder.fulfillmentItems.map(item => {
       if (item.linkedRecordType === "delivery" || item.linkedRecordType === "change") {
-        const linkedDeliveryOrder = deliveryOrders.find(record => record.id === item.linkedRecordId);
+        const linkedDeliveryOrder = deliveryOrders.find(
+          record => record.id === item.linkedRecordId,
+        );
 
         if (!linkedDeliveryOrder) {
           return item;
@@ -1135,9 +1127,7 @@ export const syncOrdersWithDeliveryState = (
           type: "首期配置交付",
           summary: [
             nextOrder.lineItems.some(isDeviceLineItem) ? "设备交付" : "",
-            nextOrder.lineItems.some(
-              item => isAgentLineItem(item) || isAgentGroupLineItem(item),
-            )
+            nextOrder.lineItems.some(item => isAgentLineItem(item) || isAgentGroupLineItem(item))
               ? "AI 专家下发"
               : "",
           ]
@@ -1201,7 +1191,9 @@ export const syncOrdersWithDeliveryState = (
       const totalTokenAmount = nextOrder.lineItems
         .filter(isTokensLineItem)
         .reduce((total, item) => total + item.totalAmount, 0);
-      const linkedCustomer = nextCustomers.find(item => item.customerName === boundTenant.customerName);
+      const linkedCustomer = nextCustomers.find(
+        item => item.customerName === boundTenant.customerName,
+      );
 
       if (linkedCustomer && totalTokenCount > 0 && totalTokenAmount > 0) {
         fulfillmentItems = fulfillmentItems.map(item => {
@@ -1253,12 +1245,12 @@ export const syncOrdersWithDeliveryState = (
       }
     }
 
-      const linkedCustomer = nextCustomers.find(item => item.customerName === nextOrder.customerName);
+    const linkedCustomer = nextCustomers.find(item => item.customerName === nextOrder.customerName);
 
-      if (linkedCustomer) {
-        const completedInitialRecord = fulfillmentItems.some(
-          item => item.type === "首期配置交付" && item.status === "已完成",
-        )
+    if (linkedCustomer) {
+      const completedInitialRecord = fulfillmentItems.some(
+        item => item.type === "首期配置交付" && item.status === "已完成",
+      )
         ? linkedInitialDelivery
         : undefined;
       const completedDeviceChangeRecordId = fulfillmentItems.find(
@@ -1337,14 +1329,11 @@ export const syncOrdersWithDeliveryState = (
           };
         }
 
-        if (
-          isDeviceLineItem(item) &&
-          item.renewalTargetAssetId &&
-          completedRenewalDelivery
-        ) {
+        if (isDeviceLineItem(item) && item.renewalTargetAssetId && completedRenewalDelivery) {
           const targetDevice = nextCustomer.devices.find(
             device =>
-              device.assetId === item.renewalTargetAssetId || device.id === item.renewalTargetAssetId,
+              device.assetId === item.renewalTargetAssetId ||
+              device.id === item.renewalTargetAssetId,
           );
 
           if (!targetDevice) {
@@ -1354,8 +1343,8 @@ export const syncOrdersWithDeliveryState = (
           const completedAt = resolveDeliveryCompletedAt(completedRenewalDelivery);
           const nextActivatedAt =
             targetDevice.expiresAt && dayjs(targetDevice.expiresAt).isAfter(dayjs(completedAt))
-            ? targetDevice.activatedAt ?? completedAt
-            : completedAt;
+              ? (targetDevice.activatedAt ?? completedAt)
+              : completedAt;
           const nextExpiresAt = addValidityMonths(
             resolveRenewalBaseAt(targetDevice.expiresAt, completedAt),
             getLineItemValidityMonths(item),
@@ -1364,7 +1353,8 @@ export const syncOrdersWithDeliveryState = (
           nextCustomer = {
             ...nextCustomer,
             devices: nextCustomer.devices.map(device =>
-              device.assetId === item.renewalTargetAssetId || device.id === item.renewalTargetAssetId
+              device.assetId === item.renewalTargetAssetId ||
+              device.id === item.renewalTargetAssetId
                 ? {
                     ...device,
                     sourceOrderId: nextOrder.id,
@@ -1385,14 +1375,11 @@ export const syncOrdersWithDeliveryState = (
           };
         }
 
-        if (
-          isAgentLineItem(item) &&
-          item.renewalTargetAssetId &&
-          completedRenewalDelivery
-        ) {
+        if (isAgentLineItem(item) && item.renewalTargetAssetId && completedRenewalDelivery) {
           const targetAgent = nextCustomer.agents.find(
             agent =>
-              agent.assetId === item.renewalTargetAssetId || agent.name === item.renewalTargetAssetId,
+              agent.assetId === item.renewalTargetAssetId ||
+              agent.name === item.renewalTargetAssetId,
           );
 
           if (!targetAgent) {
@@ -1402,8 +1389,8 @@ export const syncOrdersWithDeliveryState = (
           const completedAt = resolveDeliveryCompletedAt(completedRenewalDelivery);
           const nextActivatedAt =
             targetAgent.expiresAt && dayjs(targetAgent.expiresAt).isAfter(dayjs(completedAt))
-            ? targetAgent.activatedAt ?? completedAt
-            : completedAt;
+              ? (targetAgent.activatedAt ?? completedAt)
+              : completedAt;
           const nextExpiresAt = addValidityMonths(
             resolveRenewalBaseAt(targetAgent.expiresAt, completedAt),
             getLineItemValidityMonths(item),
@@ -1412,7 +1399,8 @@ export const syncOrdersWithDeliveryState = (
           nextCustomer = {
             ...nextCustomer,
             agents: nextCustomer.agents.map(agent =>
-              agent.assetId === item.renewalTargetAssetId || agent.name === item.renewalTargetAssetId
+              agent.assetId === item.renewalTargetAssetId ||
+              agent.name === item.renewalTargetAssetId
                 ? {
                     ...agent,
                     sourceOrderId: nextOrder.id,

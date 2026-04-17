@@ -21,7 +21,6 @@ export const FDE_DEVELOPMENT_TAB_KEYS: FdeWorkbenchTabKey[] = [
   "agentDev",
   "skillMarket",
   "agentStore",
-  "opsInsights",
 ];
 
 const FDE_WORKBENCH_ROUTE_SEGMENTS: Record<FdeWorkbenchTabKey, string> = {
@@ -35,7 +34,6 @@ const FDE_WORKBENCH_ROUTE_SEGMENTS: Record<FdeWorkbenchTabKey, string> = {
   agentDev: "agent-dev",
   skillMarket: "skill-market",
   agentStore: "agent-store",
-  opsInsights: "ops-insights",
   fdeOrgManagement: "org-management",
 };
 
@@ -117,9 +115,7 @@ export const getFdeWorkbenchPath = (tabKey: FdeWorkbenchTabKey): string =>
 /**
  * 根据路由片段解析 FDE 工作台模块。
  */
-export const getFdeWorkbenchTabKeyFromPath = (
-  tabPath?: string,
-): FdeWorkbenchTabKey | null => {
+export const getFdeWorkbenchTabKeyFromPath = (tabPath?: string): FdeWorkbenchTabKey | null => {
   if (!tabPath) {
     return null;
   }

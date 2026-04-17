@@ -24,9 +24,7 @@ import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { getLoginPath, getSystemEntries, getTenantEntries } from "@/feature/auth/mockAccounts";
 import { useMockAuth } from "@/feature/auth/hooks/useMockAuth";
 import { useFdeWorkbench } from "@/feature/fde/hooks/useFdeWorkbench";
-import type {
-  FdeWorkbenchTabKey,
-} from "@/feature/fde/types";
+import type { FdeWorkbenchTabKey } from "@/feature/fde/types";
 import {
   getFdeAvatarUrl,
   getFdeWorkbenchPath,
@@ -37,7 +35,6 @@ import { FdeAgentDevView } from "./FdeAgentDevView";
 import { FdeAgentStoreView } from "./FdeAgentStoreView";
 import { FdeDeliveryWorkbench } from "./FdeDeliveryWorkbench";
 import { FdeLeaderDashboardView } from "./FdeLeaderDashboardView";
-import { FdeOpsInsightsView } from "./FdeOpsInsightsView";
 import { FdeOpportunityWorkbench } from "./FdeOpportunityWorkbench";
 import { FdeOperationsMonitorView } from "./FdeOperationsMonitorView";
 import { FdeOrderManagementView } from "./FdeOrderManagementView";
@@ -58,7 +55,6 @@ const FDE_TAB_ICONS: Record<FdeWorkbenchTabKey, JSX.Element> = {
   agentDev: <CodeOutlined />,
   skillMarket: <ThunderboltOutlined />,
   agentStore: <AppstoreOutlined />,
-  opsInsights: <LineChartOutlined />,
   fdeOrgManagement: <ApartmentOutlined />,
 };
 
@@ -118,7 +114,12 @@ export const FdeWorkbenchView = (): JSX.Element => {
     navigate(getLoginPath(redirectPath), { replace: true });
   }, [location.pathname, location.search, logout, navigate]);
   const systemEntries = useMemo(
-    () => getSystemEntries(session?.identities ?? [], activeIdentity?.tenantId, session?.activeIdentityId),
+    () =>
+      getSystemEntries(
+        session?.identities ?? [],
+        activeIdentity?.tenantId,
+        session?.activeIdentityId,
+      ),
     [activeIdentity?.tenantId, session?.activeIdentityId, session?.identities],
   );
   const tenantEntries = useMemo(
@@ -270,11 +271,13 @@ export const FdeWorkbenchView = (): JSX.Element => {
   } else if (activeTab === "agentDev") {
     activeContent = <FdeAgentDevView />;
   } else if (activeTab === "skillMarket") {
-    activeContent = <FdeSkillMarketView onNavigateToAgentDev={() => handleNavigateTab("agentDev")} />;
+    activeContent = (
+      <FdeSkillMarketView onNavigateToAgentDev={() => handleNavigateTab("agentDev")} />
+    );
   } else if (activeTab === "agentStore") {
-    activeContent = <FdeAgentStoreView onNavigateToAgentDev={() => handleNavigateTab("agentDev")} />;
-  } else if (activeTab === "opsInsights") {
-    activeContent = <FdeOpsInsightsView />;
+    activeContent = (
+      <FdeAgentStoreView onNavigateToAgentDev={() => handleNavigateTab("agentDev")} />
+    );
   } else if (activeTab === "teamManagement") {
     activeContent = (
       <FdeTeamManagementView
@@ -420,7 +423,6 @@ export const FdeWorkbenchView = (): JSX.Element => {
             )}
           </button>
         </Dropdown>
-
       </aside>
 
       <main className={styles.main}>
