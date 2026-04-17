@@ -1,0 +1,1990 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Frontis AI 平台业务流程图 V2.0</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  background: #eef1f6;
+  min-height: 100vh;
+}
+.page-header {
+  background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 60%, #1e40af 100%);
+  color: white;
+  padding: 18px 40px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 3px 16px rgba(0,0,0,0.35);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+.page-header h1 {
+  font-size: 21px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.page-header h1 .logo-dot {
+  width: 10px; height: 10px;
+  background: #60a5fa;
+  border-radius: 50%;
+  display: inline-block;
+  box-shadow: 0 0 8px #60a5fa;
+}
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.version-badge {
+  background: rgba(255,255,255,0.12);
+  border: 1px solid rgba(255,255,255,0.25);
+  padding: 4px 14px;
+  border-radius: 20px;
+  font-size: 12px;
+  color: #93c5fd;
+  font-weight: 600;
+}
+.date-badge {
+  font-size: 11px;
+  color: #64748b;
+}
+.hint-badge {
+  font-size: 11px;
+  color: #fbbf24;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.main-content {
+  padding: 20px 24px 32px;
+}
+.legend-box {
+  background: white;
+  border-radius: 10px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+  padding: 14px 22px;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 28px;
+  flex-wrap: wrap;
+}
+.legend-section {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+.legend-divider {
+  width: 1px;
+  height: 26px;
+  background: #e2e8f0;
+}
+.legend-title {
+  font-size: 11px;
+  font-weight: 800;
+  color: #374151;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: #4b5563;
+  white-space: nowrap;
+}
+.li-rect { width: 22px; height: 14px; border-radius: 3px; flex-shrink: 0; }
+.li-diamond-wrap { width: 14px; height: 14px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+.li-diamond { width: 11px; height: 11px; transform: rotate(45deg); border-radius: 1px; }
+.li-capsule { width: 30px; height: 14px; border-radius: 7px; flex-shrink: 0; }
+.li-border-product { width: 22px; height: 14px; border-radius: 3px; border: 2.5px solid #dc2626; background: #fef2f2; flex-shrink: 0; }
+.scroll-wrap {
+  overflow-x: auto;
+  overflow-y: visible;
+  border-radius: 12px;
+  box-shadow: 0 4px 28px rgba(0,0,0,0.13);
+}
+.svg-outer {
+  background: #ffffff;
+  border-radius: 12px;
+  display: inline-block;
+  line-height: 0;
+}
+
+/* ═══ Node hover & cursor ═══ */
+.node-clickable { cursor: pointer; }
+.node-clickable:hover rect,
+.node-clickable:hover polygon {
+  filter: brightness(0.95) saturate(1.2);
+  stroke-width: 3;
+}
+.node-clickable:hover circle {
+  filter: brightness(0.9);
+}
+
+/* ═══ Popup Overlay ═══ */
+#popup-overlay {
+  display: none;
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(15,23,42,0.35);
+  z-index: 200;
+  backdrop-filter: blur(2px);
+}
+#popup-overlay.show { display: block; }
+
+/* ═══ Popup Panel ═══ */
+#popup-panel {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 620px;
+  max-height: 80vh;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+  z-index: 210;
+  overflow: hidden;
+  display: none;
+  flex-direction: column;
+}
+#popup-panel.show {
+  display: flex;
+  animation: popIn 0.2s ease;
+}
+@keyframes popIn {
+  from { opacity: 0; transform: translate(-50%, -50%) scale(0.95); }
+  to   { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+
+.popup-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px 14px;
+  border-bottom: 1px solid #f1f5f9;
+}
+.popup-header .popup-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 99px;
+  margin-bottom: 6px;
+}
+.popup-header h2 {
+  font-size: 18px;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0;
+}
+.popup-header .close-btn {
+  width: 32px; height: 32px;
+  border: none;
+  background: #f1f5f9;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 16px;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background 0.15s;
+}
+.popup-header .close-btn:hover { background: #e2e8f0; }
+
+.popup-body {
+  padding: 20px 24px 24px;
+  overflow-y: auto;
+  flex: 1;
+}
+.popup-body p {
+  font-size: 13px;
+  color: #475569;
+  line-height: 1.7;
+  margin-bottom: 14px;
+}
+.popup-body .section-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 18px 0 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.popup-body .section-title:first-child { margin-top: 0; }
+
+/* Info cards */
+.info-card {
+  background: #f8fafc;
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin-bottom: 10px;
+  border-left: 3px solid #3b82f6;
+}
+.info-card.red { border-left-color: #dc2626; background: #fef2f2; }
+.info-card.green { border-left-color: #16a34a; background: #f0fdf4; }
+.info-card.amber { border-left-color: #d97706; background: #fffbeb; }
+.info-card.purple { border-left-color: #7e22ce; background: #faf5ff; }
+.info-card h4 {
+  font-size: 12px;
+  font-weight: 700;
+  color: #334155;
+  margin-bottom: 4px;
+}
+.info-card ul {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 12px;
+  color: #475569;
+  line-height: 1.8;
+}
+.info-card li { margin-bottom: 2px; }
+
+/* Tag */
+.tag {
+  display: inline-block;
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 99px;
+  font-weight: 600;
+  margin: 2px 4px 2px 0;
+}
+.tag-blue { background: #dbeafe; color: #1d4ed8; }
+.tag-green { background: #dcfce7; color: #15803d; }
+.tag-red { background: #fef2f2; color: #dc2626; }
+.tag-amber { background: #fef3c7; color: #92400e; }
+.tag-purple { background: #f3e8ff; color: #7e22ce; }
+.tag-gray { background: #f1f5f9; color: #475569; }
+
+/* Flow arrow */
+.flow-arrow {
+  text-align: center;
+  padding: 8px 0 4px;
+  font-size: 12px;
+  color: #94a3b8;
+}
+</style>
+</head>
+<body>
+
+<div class="page-header">
+  <h1><span class="logo-dot"></span>Frontis AI 平台业务流程图</h1>
+  <div class="header-right">
+    <span class="version-badge">V2.0</span>
+    <span class="hint-badge">💡 点击任意节点查看详情</span>
+    <span class="date-badge">2026-04-14</span>
+  </div>
+</div>
+
+<div class="main-content">
+
+<!-- 图例 -->
+<div class="legend-box">
+  <div class="legend-section">
+    <span class="legend-title">泳道</span>
+    <div class="legend-item"><div class="li-rect" style="background:#dbeafe;border:1.5px solid #3b82f6;"></div>平台运营(ops)</div>
+    <div class="legend-item"><div class="li-rect" style="background:#dcfce7;border:1.5px solid #22c55e;"></div>FDE工程师</div>
+    <div class="legend-item"><div class="li-rect" style="background:#f1f5f9;border:1.5px solid #94a3b8;"></div>系统自动</div>
+    <div class="legend-item"><div class="li-rect" style="background:#f3e8ff;border:1.5px solid #a855f7;"></div>企业管理员</div>
+    <div class="legend-item"><div class="li-rect" style="background:#fff7ed;border:1.5px solid #f97316;"></div>企业员工</div>
+  </div>
+  <div class="legend-divider"></div>
+  <div class="legend-section">
+    <span class="legend-title">节点</span>
+    <div class="legend-item"><div class="li-rect" style="background:#e0f2fe;border:1.5px solid #0ea5e9;"></div>普通流程节点</div>
+    <div class="legend-item">
+      <div class="li-diamond-wrap"><div class="li-diamond" style="background:#fef3c7;border:1.5px solid #f59e0b;"></div></div>
+      审批/判断节点
+    </div>
+    <div class="legend-item"><div class="li-capsule" style="background:#fee2e2;border:1.5px solid #ef4444;"></div>关键状态节点</div>
+    <div class="legend-item"><div class="li-border-product"></div><span style="color:#dc2626;font-weight:600;">🟥 商品相关</span></div>
+  </div>
+  <div class="legend-divider"></div>
+  <div class="legend-section">
+    <span class="legend-title">阶段</span>
+    <div class="legend-item"><div class="li-rect" style="background:#dbeeff;border:1px solid #93c5fd;"></div>①平台初始化</div>
+    <div class="legend-item"><div class="li-rect" style="background:#d1fae5;border:1px solid #6ee7b7;"></div>②FDE管理</div>
+    <div class="legend-item"><div class="li-rect" style="background:#fef9c3;border:1px solid #fde047;"></div>③Agent上架</div>
+    <div class="legend-item"><div class="li-rect" style="background:#fce7f3;border:1px solid #f9a8d4;"></div>④商品化</div>
+    <div class="legend-item"><div class="li-rect" style="background:#ede9fe;border:1px solid #c4b5fd;"></div>⑤商机与租户</div>
+    <div class="legend-item"><div class="li-rect" style="background:#e0e7ff;border:1px solid #818cf8;"></div>⑥选品下单</div>
+    <div class="legend-item"><div class="li-rect" style="background:#cffafe;border:1px solid #67e8f9;"></div>⑦付款交付</div>
+    <div class="legend-item"><div class="li-rect" style="background:#ffedd5;border:1px solid #fdba74;"></div>⑧续费迭代</div>
+  </div>
+</div>
+
+<!-- SVG 主体 -->
+<div class="scroll-wrap">
+<div class="svg-outer">
+<svg xmlns="http://www.w3.org/2000/svg" width="7200" height="875" style="display:block;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;">
+<defs>
+  <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+    <path d="M0,1 L9,5 L0,9 Z" fill="#6b7280"></path>
+  </marker>
+  <marker id="arr-b" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+    <path d="M0,1 L9,5 L0,9 Z" fill="#2563eb"></path>
+  </marker>
+  <marker id="arr-g" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+    <path d="M0,1 L9,5 L0,9 Z" fill="#16a34a"></path>
+  </marker>
+  <marker id="arr-r" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+    <path d="M0,1 L9,5 L0,9 Z" fill="#dc2626"></path>
+  </marker>
+  <marker id="arr-p" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+    <path d="M0,1 L9,5 L0,9 Z" fill="#9333ea"></path>
+  </marker>
+  <marker id="arr-a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+    <path d="M0,1 L9,5 L0,9 Z" fill="#d97706"></path>
+  </marker>
+  <marker id="arr-c" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+    <path d="M0,1 L9,5 L0,9 Z" fill="#0891b2"></path>
+  </marker>
+  <marker id="arr-i" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+    <path d="M0,1 L9,5 L0,9 Z" fill="#6366f1"></path>
+  </marker>
+  <filter id="sh" x="-20%" y="-20%" width="140%" height="140%">
+    <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="rgba(0,0,0,0.12)"></feDropShadow>
+  </filter>
+  <filter id="sh-r" x="-20%" y="-20%" width="140%" height="140%">
+    <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="rgba(220,38,38,0.2)"></feDropShadow>
+  </filter>
+</defs>
+
+<!-- ═══ BACKGROUND BANDS ═══ -->
+<rect x="120" y="0" width="500" height="875" fill="#eff6ff" opacity="0.7"></rect>
+<rect x="620" y="0" width="420" height="875" fill="#f0fdf4" opacity="0.7"></rect>
+<rect x="1040" y="0" width="640" height="875" fill="#fefce8" opacity="0.7"></rect>
+<rect x="1680" y="0" width="800" height="875" fill="#fff0f6" opacity="0.65"></rect>
+<rect x="2480" y="0" width="680" height="875" fill="#f5f3ff" opacity="0.65"></rect>
+<rect x="3160" y="0" width="780" height="875" fill="#e0e7ff" opacity="0.6"></rect>
+<rect x="3940" y="0" width="1460" height="875" fill="#ecfeff" opacity="0.65"></rect>
+<rect x="5400" y="0" width="1800" height="875" fill="#fff7ed" opacity="0.7"></rect>
+
+<!-- ═══ PHASE HEADERS ═══ -->
+<rect x="120" y="0" width="7080" height="52" fill="rgba(15,23,42,0.05)"></rect>
+<rect x="121" y="4" width="498" height="44" rx="6" fill="#dbeafe" opacity="0.7"></rect>
+<text x="370" y="21" text-anchor="middle" font-size="13" font-weight="800" fill="#1d4ed8">① 平台初始化</text>
+<text x="370" y="38" text-anchor="middle" font-size="10" fill="#3b82f6">Platform Initialization</text>
+<rect x="621" y="4" width="418" height="44" rx="6" fill="#dcfce7" opacity="0.8"></rect>
+<text x="830" y="21" text-anchor="middle" font-size="13" font-weight="800" fill="#15803d">② FDE组织管理</text>
+<text x="830" y="38" text-anchor="middle" font-size="10" fill="#22c55e">FDE Organization</text>
+<rect x="1041" y="4" width="638" height="44" rx="6" fill="#fef9c3" opacity="0.9"></rect>
+<text x="1360" y="21" text-anchor="middle" font-size="13" font-weight="800" fill="#92400e">③ Agent 开发与上架</text>
+<text x="1360" y="38" text-anchor="middle" font-size="10" fill="#ca8a04">Agent Development &amp; Publishing</text>
+<rect x="1681" y="4" width="798" height="44" rx="6" fill="#fce7f3" opacity="0.8"></rect>
+<text x="2080" y="21" text-anchor="middle" font-size="13" font-weight="800" fill="#9d174d">④ 🟥 商品化与定价</text>
+<text x="2080" y="38" text-anchor="middle" font-size="10" fill="#db2777">Product Configuration &amp; Pricing</text>
+<rect x="2481" y="4" width="678" height="44" rx="6" fill="#ede9fe" opacity="0.8"></rect>
+<text x="2820" y="21" text-anchor="middle" font-size="13" font-weight="800" fill="#6d28d9">⑤ 商机与租户创建</text>
+<text x="2820" y="38" text-anchor="middle" font-size="10" fill="#7c3aed">Opportunity &amp; Tenant</text>
+<rect x="3161" y="4" width="778" height="44" rx="6" fill="#e0e7ff" opacity="0.8"></rect>
+<text x="3550" y="21" text-anchor="middle" font-size="13" font-weight="800" fill="#4338ca">⑥ 🟥 浏览商品池 &amp; 下单</text>
+<text x="3550" y="38" text-anchor="middle" font-size="10" fill="#6366f1">Browse Product &amp; Create Order</text>
+<rect x="3941" y="4" width="1458" height="44" rx="6" fill="#cffafe" opacity="0.8"></rect>
+<text x="4670" y="21" text-anchor="middle" font-size="13" font-weight="800" fill="#155e75">⑦ 付款与交付</text>
+<text x="4670" y="38" text-anchor="middle" font-size="10" fill="#0891b2">Payment &amp; Delivery</text>
+<rect x="5401" y="4" width="1798" height="44" rx="6" fill="#ffedd5" opacity="0.8"></rect>
+<text x="6300" y="21" text-anchor="middle" font-size="13" font-weight="800" fill="#9a3412">⑧ 🟥 续费与迭代</text>
+<text x="6300" y="38" text-anchor="middle" font-size="10" fill="#ea580c">Renewal &amp; Iteration</text>
+
+<!-- ═══ LANE LABELS ═══ -->
+<rect x="0" y="52" width="120" height="150" fill="#1d4ed8"></rect>
+<text transform="translate(60,127) rotate(-90)" text-anchor="middle" font-size="12" font-weight="700" fill="white" letter-spacing="1">平台运营</text>
+<text transform="translate(88,127) rotate(-90)" text-anchor="middle" font-size="9" fill="#bfdbfe">ops 控制台</text>
+<rect x="0" y="202" width="120" height="150" fill="#15803d"></rect>
+<text transform="translate(60,277) rotate(-90)" text-anchor="middle" font-size="12" font-weight="700" fill="white" letter-spacing="1">FDE工程师</text>
+<text transform="translate(88,277) rotate(-90)" text-anchor="middle" font-size="9" fill="#bbf7d0">desk + workspace</text>
+<rect x="0" y="352" width="120" height="150" fill="#334155"></rect>
+<text transform="translate(60,427) rotate(-90)" text-anchor="middle" font-size="12" font-weight="700" fill="white" letter-spacing="1">系统自动</text>
+<text transform="translate(88,427) rotate(-90)" text-anchor="middle" font-size="9" fill="#94a3b8">system auto</text>
+<rect x="0" y="502" width="120" height="150" fill="#7e22ce"></rect>
+<text transform="translate(60,577) rotate(-90)" text-anchor="middle" font-size="12" font-weight="700" fill="white" letter-spacing="1">企业管理员</text>
+<text transform="translate(88,577) rotate(-90)" text-anchor="middle" font-size="9" fill="#e9d5ff">tenant 工作台</text>
+<rect x="0" y="652" width="120" height="150" fill="#c2410c"></rect>
+<text transform="translate(60,727) rotate(-90)" text-anchor="middle" font-size="12" font-weight="700" fill="white" letter-spacing="1">企业员工</text>
+<text transform="translate(88,727) rotate(-90)" text-anchor="middle" font-size="9" fill="#fed7aa">workspace</text>
+<rect x="0" y="802" width="7200" height="73" fill="#0f172a"></rect>
+
+<!-- ═══ LANE DIVIDERS ═══ -->
+<line x1="0" y1="52" x2="7200" y2="52" stroke="#cbd5e1" stroke-width="1.5"></line>
+<line x1="0" y1="202" x2="7200" y2="202" stroke="#cbd5e1" stroke-width="2"></line>
+<line x1="0" y1="352" x2="7200" y2="352" stroke="#cbd5e1" stroke-width="2"></line>
+<line x1="0" y1="502" x2="7200" y2="502" stroke="#cbd5e1" stroke-width="2"></line>
+<line x1="0" y1="652" x2="7200" y2="652" stroke="#cbd5e1" stroke-width="2"></line>
+<line x1="0" y1="802" x2="7200" y2="802" stroke="#cbd5e1" stroke-width="1.5"></line>
+<line x1="120" y1="0" x2="120" y2="875" stroke="#1e293b" stroke-width="2.5"></line>
+<line x1="620" y1="52" x2="620" y2="802" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="8,5"></line>
+<line x1="1040" y1="52" x2="1040" y2="802" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="8,5"></line>
+<line x1="1680" y1="52" x2="1680" y2="802" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="8,5"></line>
+<line x1="2480" y1="52" x2="2480" y2="802" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="8,5"></line>
+<line x1="3160" y1="52" x2="3160" y2="802" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="8,5"></line>
+<line x1="3940" y1="52" x2="3940" y2="802" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="8,5"></line>
+<line x1="5400" y1="52" x2="5400" y2="802" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="8,5"></line>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!--  PHASE 1: 平台初始化                                        -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+
+<!-- N01 -->
+<g class="node-clickable" data-node="N1" filter="url(#sh)">
+<rect x="180" y="402" width="140" height="50" rx="8" fill="#f1f5f9" stroke="#64748b" stroke-width="2"></rect>
+<text x="250" y="423" text-anchor="middle" font-size="10" fill="#334155" font-weight="700">系统初始化</text>
+<text x="250" y="438" text-anchor="middle" font-size="9" fill="#64748b">Platform 创建</text>
+</g>
+<circle cx="180" cy="427" r="10" fill="#64748b"></circle>
+<text x="180" y="431" text-anchor="middle" font-size="9" fill="white" font-weight="700">N1</text>
+
+<!-- N02 -->
+<g class="node-clickable" data-node="N2" filter="url(#sh)">
+<rect x="345" y="102" width="145" height="50" rx="8" fill="#dbeafe" stroke="#3b82f6" stroke-width="2"></rect>
+<text x="417" y="123" text-anchor="middle" font-size="10" fill="#1e3a8a" font-weight="700">创建FDE账号</text>
+<text x="417" y="138" text-anchor="middle" font-size="9" fill="#2563eb">分配工作台权限</text>
+</g>
+<circle cx="345" cy="127" r="10" fill="#2563eb"></circle>
+<text x="345" y="131" text-anchor="middle" font-size="9" fill="white" font-weight="700">N2</text>
+
+<path d="M 250 402 L 250 200 L 417 200 L 417 152" stroke="#64748b" stroke-width="1.8" fill="none" stroke-dasharray="5,3" marker-end="url(#arr)"></path>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!--  PHASE 2: FDE组织管理                                       -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+
+<!-- N03 -->
+<g class="node-clickable" data-node="N3" filter="url(#sh)">
+<rect x="635" y="102" width="145" height="50" rx="8" fill="#dbeafe" stroke="#3b82f6" stroke-width="2"></rect>
+<text x="707" y="123" text-anchor="middle" font-size="10" fill="#1e3a8a" font-weight="700">录入企业信息</text>
+<text x="707" y="138" text-anchor="middle" font-size="9" fill="#2563eb">创建Enterprise</text>
+</g>
+<circle cx="635" cy="127" r="10" fill="#2563eb"></circle>
+<text x="635" y="131" text-anchor="middle" font-size="9" fill="white" font-weight="700">N3</text>
+
+<!-- N04 -->
+<g class="node-clickable" data-node="N4" filter="url(#sh)">
+<rect x="785" y="102" width="145" height="50" rx="8" fill="#dbeafe" stroke="#3b82f6" stroke-width="2"></rect>
+<text x="857" y="123" text-anchor="middle" font-size="10" fill="#1e3a8a" font-weight="700">邀请企业管理员</text>
+<text x="857" y="138" text-anchor="middle" font-size="9" fill="#2563eb">发送激活邀请</text>
+</g>
+<circle cx="785" cy="127" r="10" fill="#2563eb"></circle>
+<text x="785" y="131" text-anchor="middle" font-size="9" fill="white" font-weight="700">N4</text>
+
+<!-- N05 -->
+<g class="node-clickable" data-node="N5" filter="url(#sh)">
+<rect x="905" y="552" width="145" height="50" rx="8" fill="#f3e8ff" stroke="#a855f7" stroke-width="2"></rect>
+<text x="977" y="573" text-anchor="middle" font-size="10" fill="#6b21a8" font-weight="700">接受邀请</text>
+<text x="977" y="588" text-anchor="middle" font-size="9" fill="#7e22ce">加入Enterprise</text>
+</g>
+<circle cx="905" cy="577" r="10" fill="#7e22ce"></circle>
+<text x="905" y="581" text-anchor="middle" font-size="9" fill="white" font-weight="700">N5</text>
+
+<line x1="490" y1="127" x2="635" y2="127" stroke="#2563eb" stroke-width="2" marker-end="url(#arr-b)"></line>
+<line x1="780" y1="127" x2="785" y2="127" stroke="#2563eb" stroke-width="2" marker-end="url(#arr-b)"></line>
+<path d="M 857 152 L 857 520 L 977 520 L 977 552" stroke="#9333ea" stroke-width="1.8" fill="none" stroke-dasharray="5,3" marker-end="url(#arr-p)"></path>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!--  PHASE 3: Agent开发与上架                                   -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+
+<!-- N06 -->
+<g class="node-clickable" data-node="N6" filter="url(#sh)">
+<rect x="1050" y="252" width="140" height="50" rx="8" fill="#dcfce7" stroke="#22c55e" stroke-width="2"></rect>
+<text x="1120" y="273" text-anchor="middle" font-size="10" fill="#14532d" font-weight="700">开发 Agent</text>
+<text x="1120" y="288" text-anchor="middle" font-size="9" fill="#16a34a">编写 Prompt/配置</text>
+</g>
+<circle cx="1050" cy="277" r="10" fill="#16a34a"></circle>
+<text x="1050" y="281" text-anchor="middle" font-size="9" fill="white" font-weight="700">N6</text>
+
+<!-- N07 -->
+<g class="node-clickable" data-node="N7" filter="url(#sh)">
+<rect x="1180" y="252" width="140" height="50" rx="8" fill="#dcfce7" stroke="#22c55e" stroke-width="2"></rect>
+<text x="1250" y="273" text-anchor="middle" font-size="10" fill="#14532d" font-weight="700">提交上架申请</text>
+<text x="1250" y="288" text-anchor="middle" font-size="9" fill="#16a34a">填写描述/分类</text>
+</g>
+<circle cx="1180" cy="277" r="10" fill="#16a34a"></circle>
+<text x="1180" y="281" text-anchor="middle" font-size="9" fill="white" font-weight="700">N7</text>
+<rect x="1194" y="305" width="112" height="20" rx="10" fill="#fef3c7" stroke="#f59e0b" stroke-width="1.5"></rect>
+<text x="1250" y="319" text-anchor="middle" font-size="10" fill="#92400e" font-weight="700">【待审核】</text>
+
+<!-- N08 (diamond) -->
+<g class="node-clickable" data-node="N8" filter="url(#sh)">
+<polygon points="1410,88 1478,127 1410,166 1342,127" fill="#fef3c7" stroke="#f59e0b" stroke-width="2.5"></polygon>
+<text x="1410" y="122" text-anchor="middle" font-size="10" fill="#78350f" font-weight="700">运营</text>
+<text x="1410" y="136" text-anchor="middle" font-size="10" fill="#78350f" font-weight="700">审核</text>
+</g>
+<circle cx="1342" cy="127" r="10" fill="#d97706"></circle>
+<text x="1342" y="131" text-anchor="middle" font-size="9" fill="white" font-weight="700">N8</text>
+
+<!-- N09 -->
+<g class="node-clickable" data-node="N9" filter="url(#sh)">
+<rect x="1515" y="102" width="140" height="50" rx="8" fill="#dbeafe" stroke="#3b82f6" stroke-width="2"></rect>
+<text x="1585" y="123" text-anchor="middle" font-size="10" fill="#1e3a8a" font-weight="700">Agent 已上架</text>
+<text x="1585" y="138" text-anchor="middle" font-size="9" fill="#2563eb">Agent Store 可见</text>
+</g>
+<circle cx="1515" cy="127" r="10" fill="#2563eb"></circle>
+<text x="1515" y="131" text-anchor="middle" font-size="9" fill="white" font-weight="700">N9</text>
+<rect x="1529" y="155" width="112" height="20" rx="10" fill="#dcfce7" stroke="#16a34a" stroke-width="1.5"></rect>
+<text x="1585" y="169" text-anchor="middle" font-size="10" fill="#14532d" font-weight="700">【已上架】</text>
+
+<path d="M 980 200 L 980 252 L 1050 252" stroke="#16a34a" stroke-width="1.8" fill="none" stroke-dasharray="5,3" marker-end="url(#arr-g)"></path>
+<line x1="1130" y1="277" x2="1180" y2="277" stroke="#22c55e" stroke-width="2" marker-end="url(#arr-g)"></line>
+<path d="M 1250 252 L 1250 200 L 1342 200 L 1342 127" stroke="#f59e0b" stroke-width="1.8" fill="none" stroke-dasharray="5,3" marker-end="url(#arr-a)"></path>
+<line x1="1478" y1="127" x2="1515" y2="127" stroke="#16a34a" stroke-width="2" marker-end="url(#arr-g)"></line>
+<text x="1497" y="120" text-anchor="middle" font-size="10" fill="#16a34a" font-weight="700">通过</text>
+<path d="M 1410 166 L 1410 230 L 1120 230 L 1120 252" stroke="#dc2626" stroke-width="1.8" fill="none" stroke-dasharray="4,3" marker-end="url(#arr-r)"></path>
+<text x="1280" y="224" text-anchor="middle" font-size="10" fill="#dc2626" font-weight="700">拒绝 → 修改重提</text>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!--  PHASE 4: 🟥 商品化与定价                                   -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+
+<!-- N10 -->
+<g class="node-clickable" data-node="N10" filter="url(#sh-r)">
+<rect x="1685" y="102" width="130" height="50" rx="8" fill="#fef2f2" stroke="#dc2626" stroke-width="2.5"></rect>
+<text x="1750" y="123" text-anchor="middle" font-size="10" fill="#991b1b" font-weight="700">🟥 创建商品类目</text>
+<text x="1750" y="138" text-anchor="middle" font-size="9" fill="#dc2626">AI能力/设备/资源包</text>
+</g>
+<circle cx="1685" cy="127" r="10" fill="#dc2626"></circle>
+<text x="1685" y="131" text-anchor="middle" font-size="9" fill="white" font-weight="700">N10</text>
+
+<!-- N11 -->
+<g class="node-clickable" data-node="N11" filter="url(#sh-r)">
+<rect x="1820" y="102" width="140" height="50" rx="8" fill="#fef2f2" stroke="#dc2626" stroke-width="2.5"></rect>
+<text x="1890" y="123" text-anchor="middle" font-size="10" fill="#991b1b" font-weight="700">🟥 Agent转商品</text>
+<text x="1890" y="138" text-anchor="middle" font-size="9" fill="#dc2626">填写信息+定价</text>
+</g>
+<circle cx="1820" cy="127" r="10" fill="#dc2626"></circle>
+<text x="1820" y="131" text-anchor="middle" font-size="9" fill="white" font-weight="700">N11</text>
+
+<!-- N12 -->
+<g class="node-clickable" data-node="N12" filter="url(#sh-r)">
+<rect x="1970" y="102" width="140" height="50" rx="8" fill="#fef2f2" stroke="#dc2626" stroke-width="2.5"></rect>
+<text x="2040" y="123" text-anchor="middle" font-size="10" fill="#991b1b" font-weight="700">🟥 创建非Agent商品</text>
+<text x="2040" y="138" text-anchor="middle" font-size="9" fill="#dc2626">设备/积分/服务</text>
+</g>
+<circle cx="1970" cy="127" r="10" fill="#dc2626"></circle>
+<text x="1970" y="131" text-anchor="middle" font-size="9" fill="white" font-weight="700">N12</text>
+
+<!-- N13 -->
+<g class="node-clickable" data-node="N13" filter="url(#sh-r)">
+<rect x="2120" y="102" width="155" height="50" rx="8" fill="#fef2f2" stroke="#dc2626" stroke-width="2.5"></rect>
+<text x="2197" y="123" text-anchor="middle" font-size="10" fill="#991b1b" font-weight="700">🟥 创建组合商品</text>
+<text x="2197" y="138" text-anchor="middle" font-size="9" fill="#dc2626">专家团/促销套餐</text>
+</g>
+<circle cx="2120" cy="127" r="10" fill="#dc2626"></circle>
+<text x="2120" y="131" text-anchor="middle" font-size="9" fill="white" font-weight="700">N13</text>
+
+<!-- N14 -->
+<g class="node-clickable" data-node="N14" filter="url(#sh-r)">
+<rect x="2295" y="102" width="140" height="50" rx="8" fill="#fef2f2" stroke="#dc2626" stroke-width="2.5"></rect>
+<text x="2365" y="123" text-anchor="middle" font-size="10" fill="#991b1b" font-weight="700">🟥 商品上架发布</text>
+<text x="2365" y="138" text-anchor="middle" font-size="9" fill="#dc2626">商品池可见可售</text>
+</g>
+<circle cx="2295" cy="127" r="10" fill="#dc2626"></circle>
+<text x="2295" y="131" text-anchor="middle" font-size="9" fill="white" font-weight="700">N14</text>
+<rect x="2309" y="155" width="112" height="20" rx="10" fill="#fef2f2" stroke="#dc2626" stroke-width="1.5"></rect>
+<text x="2365" y="169" text-anchor="middle" font-size="10" fill="#991b1b" font-weight="700">【商品在售】</text>
+
+<line x1="1655" y1="127" x2="1685" y2="127" stroke="#dc2626" stroke-width="2" marker-end="url(#arr-r)"></line>
+<line x1="1815" y1="127" x2="1820" y2="127" stroke="#dc2626" stroke-width="2" marker-end="url(#arr-r)"></line>
+<line x1="1960" y1="127" x2="1970" y2="127" stroke="#dc2626" stroke-width="2" marker-end="url(#arr-r)"></line>
+<line x1="2110" y1="127" x2="2120" y2="127" stroke="#dc2626" stroke-width="2" marker-end="url(#arr-r)"></line>
+<line x1="2275" y1="127" x2="2295" y2="127" stroke="#dc2626" stroke-width="2" marker-end="url(#arr-r)"></line>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!--  PHASE 5: 商机与租户创建                                    -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+
+<!-- N15 -->
+<g class="node-clickable" data-node="N15" filter="url(#sh)">
+<rect x="2485" y="252" width="145" height="50" rx="8" fill="#dcfce7" stroke="#22c55e" stroke-width="2"></rect>
+<text x="2557" y="273" text-anchor="middle" font-size="10" fill="#14532d" font-weight="700">获取商机线索</text>
+<text x="2557" y="288" text-anchor="middle" font-size="9" fill="#16a34a">门户同步/手动录入</text>
+</g>
+<circle cx="2485" cy="277" r="10" fill="#16a34a"></circle>
+<text x="2485" y="281" text-anchor="middle" font-size="9" fill="white" font-weight="700">N15</text>
+
+<!-- N16 -->
+<g class="node-clickable" data-node="N16" filter="url(#sh)">
+<rect x="2630" y="252" width="140" height="50" rx="8" fill="#dcfce7" stroke="#22c55e" stroke-width="2"></rect>
+<text x="2700" y="273" text-anchor="middle" font-size="10" fill="#14532d" font-weight="700">跟进商机</text>
+<text x="2700" y="288" text-anchor="middle" font-size="9" fill="#16a34a">沟通/演示/方案</text>
+</g>
+<circle cx="2630" cy="277" r="10" fill="#16a34a"></circle>
+<text x="2630" y="281" text-anchor="middle" font-size="9" fill="white" font-weight="700">N16</text>
+
+<!-- N17 (diamond) -->
+<g class="node-clickable" data-node="N17" filter="url(#sh)">
+<polygon points="2840,248 2895,277 2840,306 2785,277" fill="#fef3c7" stroke="#f59e0b" stroke-width="2.5"></polygon>
+<text x="2840" y="272" text-anchor="middle" font-size="9" fill="#78350f" font-weight="700">需要</text>
+<text x="2840" y="285" text-anchor="middle" font-size="9" fill="#78350f" font-weight="700">折扣?</text>
+</g>
+<circle cx="2785" cy="277" r="10" fill="#d97706"></circle>
+<text x="2785" y="281" text-anchor="middle" font-size="9" fill="white" font-weight="700">N17</text>
+
+<!-- N18 (diamond) -->
+<g class="node-clickable" data-node="N18" filter="url(#sh)">
+<polygon points="2950,88 3015,127 2950,166 2885,127" fill="#fef3c7" stroke="#f59e0b" stroke-width="2.5"></polygon>
+<text x="2950" y="122" text-anchor="middle" font-size="9" fill="#78350f" font-weight="700">折扣</text>
+<text x="2950" y="136" text-anchor="middle" font-size="9" fill="#78350f" font-weight="700">审批</text>
+</g>
+<circle cx="2885" cy="127" r="10" fill="#d97706"></circle>
+<text x="2885" y="131" text-anchor="middle" font-size="9" fill="white" font-weight="700">N18</text>
+
+<!-- N19 -->
+<g class="node-clickable" data-node="N19" filter="url(#sh)">
+<rect x="2980" y="252" width="140" height="50" rx="8" fill="#dcfce7" stroke="#22c55e" stroke-width="2"></rect>
+<text x="3050" y="273" text-anchor="middle" font-size="10" fill="#14532d" font-weight="700">商机已成单</text>
+<text x="3050" y="288" text-anchor="middle" font-size="9" fill="#16a34a">确认下单意向</text>
+</g>
+<circle cx="2980" cy="277" r="10" fill="#16a34a"></circle>
+<text x="2980" y="281" text-anchor="middle" font-size="9" fill="white" font-weight="700">N19</text>
+
+<!-- N20 -->
+<g class="node-clickable" data-node="N20" filter="url(#sh)">
+<rect x="3070" y="252" width="80" height="50" rx="8" fill="#dcfce7" stroke="#22c55e" stroke-width="2"></rect>
+<text x="3110" y="273" text-anchor="middle" font-size="10" fill="#14532d" font-weight="700">创建租户</text>
+<text x="3110" y="288" text-anchor="middle" font-size="9" fill="#16a34a">企业实体</text>
+</g>
+<circle cx="3070" cy="277" r="10" fill="#16a34a"></circle>
+<text x="3070" y="281" text-anchor="middle" font-size="9" fill="white" font-weight="700">N20</text>
+
+<path d="M 2365 152 L 2365 220 L 2557 220 L 2557 252" stroke="#22c55e" stroke-width="1.8" fill="none" stroke-dasharray="5,3" marker-end="url(#arr-g)"></path>
+<line x1="2570" y1="277" x2="2630" y2="277" stroke="#22c55e" stroke-width="2" marker-end="url(#arr-g)"></line>
+<line x1="2770" y1="277" x2="2785" y2="277" stroke="#22c55e" stroke-width="2" marker-end="url(#arr-g)"></line>
+<line x1="2895" y1="277" x2="2980" y2="277" stroke="#16a34a" stroke-width="2" marker-end="url(#arr-g)"></line>
+<text x="2937" y="268" text-anchor="middle" font-size="9" fill="#16a34a" font-weight="700">否</text>
+<path d="M 2840 248 L 2840 180 L 2885 180 L 2885 127" stroke="#f59e0b" stroke-width="1.8" fill="none" stroke-dasharray="5,3" marker-end="url(#arr-a)"></path>
+<text x="2862" y="174" text-anchor="middle" font-size="10" fill="#92400e" font-weight="700">是↑申请折扣</text>
+<path d="M 3015 127 L 3050 127 L 3050 252" stroke="#16a34a" stroke-width="1.8" fill="none" stroke-dasharray="5,3" marker-end="url(#arr-g)"></path>
+<text x="3035" y="120" text-anchor="middle" font-size="10" fill="#16a34a" font-weight="700">批准</text>
+<path d="M 2950 166 L 2950 220 L 2700 220 L 2700 302" stroke="#dc2626" stroke-width="1.8" fill="none" stroke-dasharray="4,3" marker-end="url(#arr-r)"></path>
+<text x="2840" y="214" text-anchor="middle" font-size="10" fill="#dc2626" font-weight="700">拒绝→重新跟进</text>
+<line x1="3060" y1="277" x2="3070" y2="277" stroke="#22c55e" stroke-width="2" marker-end="url(#arr-g)"></line>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!--  PHASE 6: 🟥 浏览商品池 & 下单                              -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+
+<!-- N21 -->
+<g class="node-clickable" data-node="N21" filter="url(#sh-r)">
+<rect x="3165" y="252" width="145" height="50" rx="8" fill="#fef2f2" stroke="#dc2626" stroke-width="2.5"></rect>
+<text x="3237" y="273" text-anchor="middle" font-size="10" fill="#991b1b" font-weight="700">🟥 浏览商品池</text>
+<text x="3237" y="288" text-anchor="middle" font-size="9" fill="#dc2626">筛选/搜索/详情</text>
+</g>
+<circle cx="3165" cy="277" r="10" fill="#dc2626"></circle>
+<text x="3165" y="281" text-anchor="middle" font-size="9" fill="white" font-weight="700">N21</text>
+
+<!-- N22 -->
+<g class="node-clickable" data-node="N22" filter="url(#sh-r)">
+<rect x="3315" y="252" width="145" height="50" rx="8" fill="#fef2f2" stroke="#dc2626" stroke-width="2.5"></rect>
+<text x="3387" y="273" text-anchor="middle" font-size="10" fill="#991b1b" font-weight="700">🟥 选择商品</text>
+<text x="3387" y="288" text-anchor="middle" font-size="9" fill="#dc2626">Agent/设备/专家团</text>
+</g>
+<circle cx="3315" cy="277" r="10" fill="#dc2626"></circle>
+<text x="3315" y="281" text-anchor="middle" font-size="9" fill="white" font-weight="700">N22</text>
+
+<!-- N23 -->
+<g class="node-clickable" data-node="N23" filter="url(#sh-r)">
+<rect x="3465" y="252" width="145" height="50" rx="8" fill="#fef2f2" stroke="#dc2626" stroke-width="2.5"></rect>
+<text x="3537" y="273" text-anchor="middle" font-size="10" fill="#991b1b" font-weight="700">🟥 确认订单清单</text>
+<text x="3537" y="288" text-anchor="middle" font-size="9" fill="#dc2626">核对商品+总价</text>
+</g>
+<circle cx="3465" cy="277" r="10" fill="#dc2626"></circle>
+<text x="3465" y="281" text-anchor="middle" font-size="9" fill="white" font-weight="700">N23</text>
+
+<!-- N24 -->
+<g class="node-clickable" data-node="N24" filter="url(#sh-r)">
+<rect x="3625" y="252" width="145" height="50" rx="8" fill="#fef2f2" stroke="#dc2626" stroke-width="2.5"></rect>
+<text x="3697" y="273" text-anchor="middle" font-size="10" fill="#991b1b" font-weight="700">🟥 创建订单</text>
+<text x="3697" y="288" text-anchor="middle" font-size="9" fill="#dc2626">绑定租户+备注</text>
+</g>
+<circle cx="3625" cy="277" r="10" fill="#dc2626"></circle>
+<text x="3625" y="281" text-anchor="middle" font-size="9" fill="white" font-weight="700">N24</text>
+<rect x="3639" y="305" width="116" height="20" rx="10" fill="#fee2e2" stroke="#ef4444" stroke-width="1.5"></rect>
+<text x="3697" y="319" text-anchor="middle" font-size="10" fill="#991b1b" font-weight="700">【待付款】</text>
+
+<line x1="3150" y1="277" x2="3165" y2="277" stroke="#dc2626" stroke-width="2" marker-end="url(#arr-r)"></line>
+<line x1="3245" y1="277" x2="3310" y2="277" stroke="#dc2626" stroke-width="2" marker-end="url(#arr-r)"></line>
+<line x1="3395" y1="277" x2="3460" y2="277" stroke="#dc2626" stroke-width="2" marker-end="url(#arr-r)"></line>
+<line x1="3545" y1="277" x2="3620" y2="277" stroke="#dc2626" stroke-width="2" marker-end="url(#arr-r)"></line>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!--  PHASE 7: 付款与交付                                        -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+
+<!-- N25 -->
+<g class="node-clickable" data-node="N25" filter="url(#sh)">
+<rect x="3945" y="252" width="130" height="50" rx="8" fill="#cffafe" stroke="#06b6d4" stroke-width="2"></rect>
+<text x="4010" y="273" text-anchor="middle" font-size="10" fill="#164e63" font-weight="700">客户线下付款</text>
+<text x="4010" y="288" text-anchor="middle" font-size="9" fill="#0891b2">扫码/转账</text>
+</g>
+<circle cx="3945" cy="277" r="10" fill="#0891b2"></circle>
+<text x="3945" y="281" text-anchor="middle" font-size="9" fill="white" font-weight="700">N25</text>
+
+<!-- N26 -->
+<g class="node-clickable" data-node="N26" filter="url(#sh)">
+<rect x="4070" y="252" width="135" height="50" rx="8" fill="#cffafe" stroke="#06b6d4" stroke-width="2"></rect>
+<text x="4137" y="273" text-anchor="middle" font-size="10" fill="#164e63" font-weight="700">上传付款凭证</text>
+<text x="4137" y="288" text-anchor="middle" font-size="9" fill="#0891b2">银行水单/截图</text>
+</g>
+<circle cx="4070" cy="277" r="10" fill="#0891b2"></circle>
+<text x="4070" y="281" text-anchor="middle" font-size="9" fill="white" font-weight="700">N26</text>
+<rect x="4084" y="305" width="108" height="20" rx="10" fill="#fef3c7" stroke="#f59e0b" stroke-width="1.5"></rect>
+<text x="4138" y="319" text-anchor="middle" font-size="10" fill="#92400e" font-weight="700">【待确认】</text>
+
+<!-- N27 -->
+<g class="node-clickable" data-node="N27" filter="url(#sh)">
+<rect x="4205" y="102" width="145" height="50" rx="8" fill="#dbeafe" stroke="#3b82f6" stroke-width="2"></rect>
+<text x="4277" y="123" text-anchor="middle" font-size="10" fill="#1e3a8a" font-weight="700">核查确认付款</text>
+<text x="4277" y="138" text-anchor="middle" font-size="9" fill="#2563eb">FDE/运营双确认</text>
+</g>
+<circle cx="4205" cy="127" r="10" fill="#2563eb"></circle>
+<text x="4205" y="131" text-anchor="middle" font-size="9" fill="white" font-weight="700">N27</text>
+<rect x="4219" y="155" width="116" height="20" rx="10" fill="#d1fae5" stroke="#10b981" stroke-width="1.5"></rect>
+<text x="4277" y="169" text-anchor="middle" font-size="10" fill="#065f46" font-weight="700">【已付款】</text>
+
+<!-- N28 -->
+<g class="node-clickable" data-node="N28" filter="url(#sh)">
+<rect x="4345" y="402" width="145" height="50" rx="8" fill="#f1f5f9" stroke="#64748b" stroke-width="2"></rect>
+<text x="4417" y="423" text-anchor="middle" font-size="10" fill="#334155" font-weight="700">自动激活资源配额</text>
+<text x="4417" y="438" text-anchor="middle" font-size="9" fill="#64748b">预分配→已激活</text>
+</g>
+<circle cx="4345" cy="427" r="10" fill="#475569"></circle>
+<text x="4345" y="431" text-anchor="middle" font-size="9" fill="white" font-weight="700">N28</text>
+<rect x="4359" y="455" width="116" height="20" rx="10" fill="#bfdbfe" stroke="#3b82f6" stroke-width="1.5"></rect>
+<text x="4417" y="469" text-anchor="middle" font-size="10" fill="#1e40af" font-weight="700">【已激活】</text>
+
+<!-- N29 -->
+<g class="node-clickable" data-node="N29" filter="url(#sh-r)">
+<rect x="4485" y="252" width="145" height="50" rx="8" fill="#fef2f2" stroke="#dc2626" stroke-width="2.5"></rect>
+<text x="4557" y="273" text-anchor="middle" font-size="10" fill="#991b1b" font-weight="700">🟥 部署Agent配置</text>
+<text x="4557" y="288" text-anchor="middle" font-size="9" fill="#dc2626">从Store下载+部署</text>
+</g>
+<circle cx="4485" cy="277" r="10" fill="#dc2626"></circle>
+<text x="4485" y="281" text-anchor="middle" font-size="9" fill="white" font-weight="700">N29</text>
+
+<!-- N30 -->
+<g class="node-clickable" data-node="N30" filter="url(#sh)">
+<rect x="4635" y="252" width="145" height="50" rx="8" fill="#cffafe" stroke="#06b6d4" stroke-width="2"></rect>
+<text x="4707" y="273" text-anchor="middle" font-size="10" fill="#164e63" font-weight="700">部署完成通知</text>
+<text x="4707" y="288" text-anchor="middle" font-size="9" fill="#0891b2">通知企业管理员</text>
+</g>
+<circle cx="4635" cy="277" r="10" fill="#0891b2"></circle>
+<text x="4635" y="281" text-anchor="middle" font-size="9" fill="white" font-weight="700">N30</text>
+
+<!-- N31 -->
+<g class="node-clickable" data-node="N31" filter="url(#sh-r)">
+<rect x="4775" y="402" width="145" height="50" rx="8" fill="#fef2f2" stroke="#dc2626" stroke-width="2.5"></rect>
+<text x="4847" y="423" text-anchor="middle" font-size="10" fill="#991b1b" font-weight="700">🟥 形成客户资产</text>
+<text x="4847" y="438" text-anchor="middle" font-size="9" fill="#dc2626">商品→资产实例</text>
+</g>
+<circle cx="4775" cy="427" r="10" fill="#dc2626"></circle>
+<text x="4775" y="431" text-anchor="middle" font-size="9" fill="white" font-weight="700">N31</text>
+<rect x="4789" y="455" width="116" height="20" rx="10" fill="#d1fae5" stroke="#10b981" stroke-width="1.5"></rect>
+<text x="4847" y="469" text-anchor="middle" font-size="10" fill="#065f46" font-weight="700">【已交付】</text>
+
+<!-- N32 -->
+<g class="node-clickable" data-node="N32" filter="url(#sh)">
+<rect x="4915" y="552" width="145" height="50" rx="8" fill="#f3e8ff" stroke="#a855f7" stroke-width="2"></rect>
+<text x="4987" y="573" text-anchor="middle" font-size="10" fill="#6b21a8" font-weight="700">登录tenant工作台</text>
+<text x="4987" y="588" text-anchor="middle" font-size="9" fill="#7e22ce">配置成员与权限</text>
+</g>
+<circle cx="4915" cy="577" r="10" fill="#7e22ce"></circle>
+<text x="4915" y="581" text-anchor="middle" font-size="9" fill="white" font-weight="700">N32</text>
+
+<!-- N33 -->
+<g class="node-clickable" data-node="N33" filter="url(#sh)">
+<rect x="5055" y="702" width="145" height="50" rx="8" fill="#fff7ed" stroke="#f97316" stroke-width="2"></rect>
+<text x="5127" y="723" text-anchor="middle" font-size="10" fill="#9a3412" font-weight="700">登录workspace</text>
+<text x="5127" y="738" text-anchor="middle" font-size="9" fill="#ea580c">使用已购Agent</text>
+</g>
+<circle cx="5055" cy="727" r="10" fill="#c2410c"></circle>
+<text x="5055" y="731" text-anchor="middle" font-size="9" fill="white" font-weight="700">N33</text>
+
+<line x1="3770" y1="277" x2="3945" y2="277" stroke="#0891b2" stroke-width="2" marker-end="url(#arr-c)"></line>
+<line x1="4015" y1="277" x2="4065" y2="277" stroke="#0891b2" stroke-width="2" marker-end="url(#arr-c)"></line>
+<path d="M 4137 252 L 4137 180 L 4277 180 L 4277 152" stroke="#2563eb" stroke-width="1.8" fill="none" stroke-dasharray="5,3" marker-end="url(#arr-b)"></path>
+<path d="M 4277 152 L 4277 360 L 4417 360 L 4417 402" stroke="#475569" stroke-width="1.8" fill="none" stroke-dasharray="5,3" marker-end="url(#arr)"></path>
+<path d="M 4350 127 L 4485 252" stroke="#0891b2" stroke-width="1.8" fill="none" stroke-dasharray="5,3" marker-end="url(#arr-c)"></path>
+<path d="M 4490 402 L 4490 340 L 4557 340 L 4557 302" stroke="#475569" stroke-width="1.8" fill="none" stroke-dasharray="5,3"></path>
+<line x1="4565" y1="277" x2="4630" y2="277" stroke="#0891b2" stroke-width="2" marker-end="url(#arr-c)"></line>
+<path d="M 4557 302 L 4557 360 L 4847 360 L 4847 402" stroke="#475569" stroke-width="1.8" fill="none" stroke-dasharray="5,3" marker-end="url(#arr)"></path>
+<path d="M 4707 302 L 4707 520 L 4987 520 L 4987 552" stroke="#0891b2" stroke-width="1.8" fill="none" stroke-dasharray="5,3"></path>
+<path d="M 4847 452 L 4847 520 L 4987 520" stroke="#475569" stroke-width="1.8" fill="none" stroke-dasharray="5,3"></path>
+<path d="M 4987 602 L 4987 660 L 5127 660 L 5127 702" stroke="#9333ea" stroke-width="1.8" fill="none" stroke-dasharray="5,3" marker-end="url(#arr-p)"></path>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!--  PHASE 8: 🟥 续费与迭代                                     -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+
+<!-- N34 -->
+<g class="node-clickable" data-node="N34" filter="url(#sh)">
+<rect x="5410" y="402" width="145" height="50" rx="8" fill="#f1f5f9" stroke="#64748b" stroke-width="2"></rect>
+<text x="5482" y="423" text-anchor="middle" font-size="10" fill="#334155" font-weight="700">到期前30天</text>
+<text x="5482" y="438" text-anchor="middle" font-size="9" fill="#64748b">触发续费提醒</text>
+</g>
+<circle cx="5410" cy="427" r="10" fill="#475569"></circle>
+<text x="5410" y="431" text-anchor="middle" font-size="9" fill="white" font-weight="700">N34</text>
+
+<!-- N35A -->
+<g class="node-clickable" data-node="N35A" filter="url(#sh)">
+<rect x="5585" y="552" width="145" height="50" rx="8" fill="#f3e8ff" stroke="#a855f7" stroke-width="2"></rect>
+<text x="5657" y="573" text-anchor="middle" font-size="10" fill="#6b21a8" font-weight="700">路径A:管理员</text>
+<text x="5657" y="588" text-anchor="middle" font-size="9" fill="#7e22ce">自助发起续费</text>
+</g>
+<circle cx="5585" cy="577" r="10" fill="#7e22ce"></circle>
+<text x="5585" y="581" text-anchor="middle" font-size="9" fill="white" font-weight="700">N35A</text>
+
+<!-- N35B -->
+<g class="node-clickable" data-node="N35B" filter="url(#sh-r)">
+<rect x="5585" y="252" width="145" height="50" rx="8" fill="#fef2f2" stroke="#dc2626" stroke-width="2.5"></rect>
+<text x="5657" y="273" text-anchor="middle" font-size="10" fill="#991b1b" font-weight="700">🟥 路径B:FDE续费</text>
+<text x="5657" y="288" text-anchor="middle" font-size="9" fill="#dc2626">选商品→新订单</text>
+</g>
+<circle cx="5585" cy="277" r="10" fill="#dc2626"></circle>
+<text x="5585" y="281" text-anchor="middle" font-size="9" fill="white" font-weight="700">N35B</text>
+
+<!-- N36 -->
+<g class="node-clickable" data-node="N36" filter="url(#sh)">
+<rect x="5770" y="252" width="140" height="50" rx="8" fill="#cffafe" stroke="#06b6d4" stroke-width="2"></rect>
+<text x="5840" y="273" text-anchor="middle" font-size="10" fill="#164e63" font-weight="700">提交Agent</text>
+<text x="5840" y="288" text-anchor="middle" font-size="9" fill="#0891b2">新版本迭代</text>
+</g>
+<circle cx="5770" cy="277" r="10" fill="#0891b2"></circle>
+<text x="5770" y="281" text-anchor="middle" font-size="9" fill="white" font-weight="700">N36</text>
+
+<!-- N37 (diamond) -->
+<g class="node-clickable" data-node="N37" filter="url(#sh)">
+<polygon points="6010,88 6075,127 6010,166 5945,127" fill="#fef3c7" stroke="#f59e0b" stroke-width="2.5"></polygon>
+<text x="6010" y="122" text-anchor="middle" font-size="10" fill="#78350f" font-weight="700">审批</text>
+<text x="6010" y="136" text-anchor="middle" font-size="10" fill="#78350f" font-weight="700">新版本</text>
+</g>
+<circle cx="5945" cy="127" r="10" fill="#d97706"></circle>
+<text x="5945" y="131" text-anchor="middle" font-size="9" fill="white" font-weight="700">N37</text>
+
+<!-- N38 -->
+<g class="node-clickable" data-node="N38" filter="url(#sh-r)">
+<rect x="6105" y="402" width="145" height="50" rx="8" fill="#fef2f2" stroke="#dc2626" stroke-width="2.5"></rect>
+<text x="6177" y="423" text-anchor="middle" font-size="10" fill="#991b1b" font-weight="700">🟥 已购客户升级</text>
+<text x="6177" y="438" text-anchor="middle" font-size="9" fill="#dc2626">通知或自动升级</text>
+</g>
+<circle cx="6105" cy="427" r="10" fill="#dc2626"></circle>
+<text x="6105" y="431" text-anchor="middle" font-size="9" fill="white" font-weight="700">N38</text>
+
+<!-- N39 -->
+<g class="node-clickable" data-node="N39" filter="url(#sh-r)">
+<rect x="6285" y="102" width="145" height="50" rx="8" fill="#fef2f2" stroke="#dc2626" stroke-width="2.5"></rect>
+<text x="6357" y="123" text-anchor="middle" font-size="10" fill="#991b1b" font-weight="700">🟥 商品上下架管理</text>
+<text x="6357" y="138" text-anchor="middle" font-size="9" fill="#dc2626">调价/编辑/归档</text>
+</g>
+<circle cx="6285" cy="127" r="10" fill="#dc2626"></circle>
+<text x="6285" y="131" text-anchor="middle" font-size="9" fill="white" font-weight="700">N39</text>
+
+<text x="4400" y="856" text-anchor="middle" font-size="10" fill="#a78bfa" font-weight="700">↺ 续费订单回流至付款流程（创建续费订单 → 待付款 → 已付款 → 已激活 → 更新到期时间）</text>
+<path d="M 5657 602 L 5657 680 L 5800 680 L 5800 845 L 3697 845 L 3697 330" stroke="#9333ea" stroke-width="2" fill="none" stroke-dasharray="6,4" marker-end="url(#arr-p)"></path>
+<path d="M 5657 302 L 5657 370 L 5800 370 L 5800 680" stroke="#dc2626" stroke-width="1.8" fill="none" stroke-dasharray="6,4"></path>
+<path d="M 5127 752 L 5127 780 L 5482 780 L 5482 452" stroke="#475569" stroke-width="1.8" fill="none" stroke-dasharray="5,3" marker-end="url(#arr)"></path>
+<text x="5308" y="773" text-anchor="middle" font-size="9" fill="#64748b">服务到期提醒</text>
+<path d="M 5482 452 L 5482 520 L 5657 520 L 5657 552" stroke="#9333ea" stroke-width="1.8" fill="none" stroke-dasharray="5,3" marker-end="url(#arr-p)"></path>
+<path d="M 5482 402 L 5482 355 L 5657 355 L 5657 302" stroke="#0891b2" stroke-width="1.8" fill="none" stroke-dasharray="5,3" marker-end="url(#arr-c)"></path>
+<path d="M 5840 252 L 5840 195 L 6010 195 L 6010 166" stroke="#22c55e" stroke-width="1.8" fill="none" stroke-dasharray="5,3" marker-end="url(#arr-g)"></path>
+<path d="M 6010 166 L 6010 360 L 6177 360 L 6177 402" stroke="#16a34a" stroke-width="1.8" fill="none" marker-end="url(#arr-g)"></path>
+<text x="6097" y="354" text-anchor="middle" font-size="10" fill="#16a34a" font-weight="700">通过</text>
+<path d="M 5945 127 L 5855 127 L 5855 252" stroke="#dc2626" stroke-width="1.8" fill="none" stroke-dasharray="4,3" marker-end="url(#arr-r)"></path>
+<text x="5900" y="120" text-anchor="middle" font-size="10" fill="#dc2626" font-weight="700">拒绝</text>
+<path d="M 2365 102 L 2365 70 L 6357 70 L 6357 102" stroke="#dc2626" stroke-width="1.5" fill="none" stroke-dasharray="6,4" marker-end="url(#arr-r)"></path>
+
+<text x="280" y="832" text-anchor="middle" font-size="11" fill="#94a3b8" font-weight="600">图例说明</text>
+<text x="280" y="850" text-anchor="middle" font-size="9" fill="#64748b">N# = 流程节点编号 | 🟥 红色边框 = 商品相关环节 | 💡 点击节点查看详情</text>
+<line x1="440" y1="832" x2="480" y2="832" stroke="#16a34a" stroke-width="2" marker-end="url(#arr-g)"></line>
+<text x="500" y="836" font-size="10" fill="#64748b">通过/推进</text>
+<line x1="590" y1="832" x2="630" y2="832" stroke="#dc2626" stroke-width="2" stroke-dasharray="4,3" marker-end="url(#arr-r)"></line>
+<text x="650" y="836" font-size="10" fill="#64748b">拒绝/回流</text>
+<line x1="740" y1="832" x2="780" y2="832" stroke="#64748b" stroke-width="1.8" stroke-dasharray="5,3" marker-end="url(#arr)"></line>
+<text x="800" y="836" font-size="10" fill="#64748b">跨泳道触发</text>
+<line x1="900" y1="832" x2="940" y2="832" stroke="#9333ea" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#arr-p)"></line>
+<text x="960" y="836" font-size="10" fill="#64748b">续费回流</text>
+<polygon points="1030,826 1046,832 1030,838 1014,832" fill="#fef3c7" stroke="#f59e0b" stroke-width="1.5"></polygon>
+<text x="1060" y="836" font-size="10" fill="#64748b">审批/判断</text>
+<rect x="1140" y="825" width="60" height="14" rx="7" fill="#fee2e2" stroke="#ef4444" stroke-width="1.2"></rect>
+<text x="1170" y="836" text-anchor="middle" font-size="9" fill="#991b1b" font-weight="600">【状态】</text>
+<text x="1215" y="836" font-size="10" fill="#64748b">关键状态</text>
+<rect x="1290" y="825" width="60" height="14" rx="7" fill="#fef2f2" stroke="#dc2626" stroke-width="2"></rect>
+<text x="1365" y="836" font-size="10" fill="#64748b">🟥 商品相关</text>
+<text x="6900" y="838" text-anchor="middle" font-size="11" fill="#475569">Frontis AI Platform  ©  2026  —  BizFlow V2.0</text>
+
+</svg>
+</div>
+</div>
+
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!--  POPUP OVERLAY                                              -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div id="popup-overlay" onclick="closePopup()"></div>
+<div id="popup-panel">
+  <div class="popup-header">
+    <div>
+      <div class="popup-badge" id="popup-badge"></div>
+      <h2 id="popup-title"></h2>
+    </div>
+    <button class="close-btn" onclick="closePopup()">✕</button>
+  </div>
+  <div class="popup-body" id="popup-body"></div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+//  NODE DETAIL DATA
+// ═══════════════════════════════════════════════════════════════
+const NODE_DATA = {
+  N1: {
+    badge: '<span class="tag tag-gray">系统自动</span><span class="tag tag-gray">① 平台初始化</span>',
+    title: '系统初始化 Platform',
+    body: `
+      <p>系统部署/启动时自动完成，无需人工操作。</p>
+      <div class="section-title">📋 执行内容</div>
+      <div class="info-card">
+        <ul>
+          <li>创建 Platform 顶级组织（数据库级初始化）</li>
+          <li>预置 Platform Admin 超级管理员账号</li>
+          <li>初始化基础系统配置项（默认语言、时区、租户配额等）</li>
+        </ul>
+      </div>
+      <div class="section-title">🔗 上下游</div>
+      <div class="flow-arrow">N1（系统初始化） → N2（运营创建FDE账号）</div>
+    `
+  },
+  N2: {
+    badge: '<span class="tag tag-blue">平台运营</span><span class="tag tag-gray">① 平台初始化</span>',
+    title: '创建 FDE 账号',
+    body: `
+      <p>Platform Admin 在 ops 控制台中创建 FDE 团队组织并分配账号。</p>
+      <div class="section-title">📝 需要输入的信息</div>
+      <div class="info-card">
+        <h4>基本信息</h4>
+        <ul>
+          <li><strong>FDE 团队名称</strong> — 如"华东交付团队"</li>
+          <li><strong>负责人姓名</strong></li>
+          <li><strong>负责人手机号 / 邮箱</strong> — 用于账号登录</li>
+          <li><strong>初始密码</strong> — 系统自动生成或手动设置</li>
+        </ul>
+      </div>
+      <div class="info-card green">
+        <h4>角色与权限分配</h4>
+        <ul>
+          <li><strong>团队负责人</strong> — 查看全量业务数据、分配商机、管理成员</li>
+          <li><strong>团队管理员</strong> — 全量业务执行与协同</li>
+          <li><strong>小组负责人</strong> — 本组业务推进与组内派发</li>
+          <li><strong>普通成员</strong> — 仅查看归属自己的业务对象</li>
+        </ul>
+      </div>
+      <div class="info-card amber">
+        <h4>工作台权限勾选</h4>
+        <ul>
+          <li>商机管理 ✅、订单管理 ✅、租户管理 ✅、配置交付 ✅</li>
+          <li>客户资产管理 ✅、版本管理 ✅、Agent 开发（可选）</li>
+        </ul>
+      </div>
+      <div class="section-title">🔗 上下游</div>
+      <div class="flow-arrow">← N1（系统初始化） → N3（录入企业信息）</div>
+    `
+  },
+  N3: {
+    badge: '<span class="tag tag-blue">平台运营</span><span class="tag tag-green">② FDE组织管理</span>',
+    title: '录入企业信息 & 创建 Enterprise',
+    body: `
+      <p>运营在 ops 控制台中录入客户企业的基本信息，创建 Enterprise 租户容器。</p>
+      <div class="section-title">📝 需要输入的信息</div>
+      <div class="info-card">
+        <h4>企业基本信息</h4>
+        <ul>
+          <li><strong>企业名称</strong> — 如"广州联创科技有限公司"</li>
+          <li><strong>企业编码</strong> — 系统自动生成（如 ENT-20260414-001）</li>
+          <li><strong>行业分类</strong> — 下拉选择（零售/制造/物流/电商/金融等）</li>
+          <li><strong>企业规模</strong> — 人数范围（<50 / 50-200 / 200-1000 / 1000+）</li>
+          <li><strong>联系人姓名 & 手机号</strong></li>
+          <li><strong>管理员邮箱</strong> — 用于发送激活邀请</li>
+        </ul>
+      </div>
+      <div class="info-card green">
+        <h4>系统自动生成的内容</h4>
+        <ul>
+          <li>企业一级部门（默认"全公司"）</li>
+          <li>企业管理员角色模板</li>
+          <li>默认资源配额（根据企业规模预设）</li>
+        </ul>
+      </div>
+      <div class="section-title">🔗 上下游</div>
+      <div class="flow-arrow">← N2（创建FDE账号） → N4（邀请企业管理员）</div>
+    `
+  },
+  N4: {
+    badge: '<span class="tag tag-blue">平台运营</span><span class="tag tag-green">② FDE组织管理</span>',
+    title: '邀请企业管理员',
+    body: `
+      <p>运营通过系统向企业管理员发送激活邀请，管理员通过邮件中的专属链接完成注册激活。</p>
+      <div class="section-title">📧 邀请机制</div>
+      <div class="info-card purple">
+        <h4>邀请方式：邮件专属链接</h4>
+        <ul>
+          <li>系统自动发送一封<strong>激活邮件</strong>到管理员邮箱</li>
+          <li>邮件中包含<strong>一次性激活链接</strong>（有效期 7 天，不可重复使用）</li>
+          <li>链接地址格式：<code>frontis.ai/activate?token=xxx</code></li>
+          <li>点击链接后跳转到注册页面，设置登录密码、完善个人信息</li>
+          <li>激活成功后链接失效，账号正式启用</li>
+        </ul>
+      </div>
+      <div class="info-card">
+        <h4>备选方案</h4>
+        <ul>
+          <li><strong>短信链接</strong> — 同时发送短信，包含短链接</li>
+          <li><strong>激活码</strong> — 生成 6 位激活码，管理员在登录页输入激活码+设置密码</li>
+        </ul>
+      </div>
+      <div class="info-card amber">
+        <h4>邀请邮件内容</h4>
+        <ul>
+          <li>欢迎语 + 企业名称</li>
+          <li>激活按钮（直达注册页）</li>
+          <li>账号有效期说明</li>
+          <li>平台简介与快速上手指引链接</li>
+        </ul>
+      </div>
+      <div class="section-title">🔗 上下游</div>
+      <div class="flow-arrow">← N3（录入企业信息） → N5（企业管理员接受邀请）</div>
+    `
+  },
+  N5: {
+    badge: '<span class="tag tag-purple">企业管理员</span><span class="tag tag-green">② FDE组织管理</span>',
+    title: '企业管理员接受邀请',
+    body: `
+      <p>企业管理员通过邮件中的激活链接完成注册，正式加入 Enterprise 租户。</p>
+      <div class="section-title">📝 管理员需要完成的操作</div>
+      <div class="info-card">
+        <ul>
+          <li>点击邮件中的激活链接</li>
+          <li>设置登录密码（需满足复杂度要求）</li>
+          <li>填写个人基本信息（姓名、手机号、职位）</li>
+          <li>阅读并接受服务条款</li>
+          <li>完成注册后自动登录，进入 tenant 工作台首页</li>
+        </ul>
+      </div>
+      <div class="info-card green">
+        <h4>激活后系统自动执行</h4>
+        <ul>
+          <li>将该用户标记为企业管理员角色</li>
+          <li>初始化企业管理后台（设备管理、AI专家团、模型配置等模块）</li>
+          <li>发送激活成功通知给 FDE 运营</li>
+        </ul>
+      </div>
+      <div class="section-title">🔗 上下游</div>
+      <div class="flow-arrow">← N4（邀请企业管理员） → N6（开发 Agent）</div>
+    `
+  },
+  N6: {
+    badge: '<span class="tag tag-green">FDE工程师</span><span class="tag tag-amber">③ Agent开发与上架</span>',
+    title: '开发 Agent',
+    body: `
+      <p>开发者在 Agent 工作空间中创建和配置 Agent 包。</p>
+      <div class="section-title">📝 需要配置的内容</div>
+      <div class="info-card">
+        <h4>Agent 基本信息</h4>
+        <ul>
+          <li><strong>Agent 名称</strong></li>
+          <li><strong>Agent 描述</strong> — 能力说明、适用场景</li>
+          <li><strong>业务板块</strong> — 销售/生产/供应/通用</li>
+          <li><strong>Agent 类型</strong> — 通用职能 / 深度专业</li>
+        </ul>
+      </div>
+      <div class="info-card green">
+        <h4>技术配置</h4>
+        <ul>
+          <li><strong>绑定模型</strong> — 选择 LLM 模型（如 Claude Sonnet 4.6）</li>
+          <li><strong>Runtime 类型</strong> — 标准 Runtime / 企业 Runtime</li>
+          <li><strong>关联 Skill</strong> — 选择或上传 Skill 包</li>
+          <li><strong>Prompt 配置</strong></li>
+          <li><strong>版本号</strong> — 自动生成（如 v1.0.0）</li>
+        </ul>
+      </div>
+      <div class="section-title">🔗 上下游</div>
+      <div class="flow-arrow">← N5（接受邀请） → N7（提交上架申请）</div>
+    `
+  },
+  N7: {
+    badge: '<span class="tag tag-green">FDE工程师</span><span class="tag tag-amber">③ Agent开发与上架</span>',
+    title: '提交上架申请',
+    body: `
+      <p>开发者完成 Agent 开发和测试后，提交上架申请进入审核流程。</p>
+      <div class="section-title">📝 需要填写的信息</div>
+      <div class="info-card">
+        <ul>
+          <li><strong>上架描述</strong> — 说明这个 Agent 能做什么</li>
+          <li><strong>分类标签</strong> — 选择所属类目</li>
+          <li><strong>版本说明</strong> — 本次更新内容</li>
+          <li><strong>使用场景说明</strong></li>
+          <li><strong>测试报告</strong>（可选上传）</li>
+        </ul>
+      </div>
+      <div class="info-card amber">
+        <h4>提交后状态</h4>
+        <ul>
+          <li>Agent 状态变为 <strong>【待审核】</strong></li>
+          <li>运营端收到待审核通知</li>
+          <li>开发者可查看审核进度</li>
+        </ul>
+      </div>
+      <div class="section-title">🔗 上下游</div>
+      <div class="flow-arrow">← N6（开发 Agent） → N8（运营审核）</div>
+    `
+  },
+  N8: {
+    badge: '<span class="tag tag-amber">审批节点</span><span class="tag tag-amber">③ Agent开发与上架</span>',
+    title: '运营审核 Agent',
+    body: `
+      <p>运营在 Agent Store 审核界面审查开发者提交的 Agent，决定是否通过上架。</p>
+      <div class="section-title">📋 审核维度</div>
+      <div class="info-card">
+        <h4>技术审核</h4>
+        <ul>
+          <li>Agent 功能是否正常</li>
+          <li>Skill 配置是否完整</li>
+          <li>模型绑定是否正确</li>
+          <li>安全扫描结果（pass / warn / block）</li>
+        </ul>
+      </div>
+      <div class="info-card green">
+        <h4>运营审核</h4>
+        <ul>
+          <li>描述是否清晰、准确</li>
+          <li>分类是否正确</li>
+          <li>是否与已有 Agent 重复</li>
+          <li>性能报告评分（12 维评测）</li>
+          <li>风险评估报告</li>
+        </ul>
+      </div>
+      <div class="info-card amber">
+        <h4>审核结果</h4>
+        <ul>
+          <li><strong>✅ 通过</strong> → Agent 进入 Agent Store 已上架状态 → N9</li>
+          <li><strong>❌ 拒绝</strong> → 填写驳回原因 → 退回开发者修改重提 → N6</li>
+        </ul>
+      </div>
+      <div class="section-title">🔗 上下游</div>
+      <div class="flow-arrow">← N7（提交申请） → N9（通过）或 N6（拒绝回流）</div>
+    `
+  },
+  N9: {
+    badge: '<span class="tag tag-blue">平台运营</span><span class="tag tag-amber">③ Agent开发与上架</span>',
+    title: 'Agent 已上架',
+    body: `
+      <p>Agent 审核通过后，正式上架到 Agent Store，开发者可在 Agent Store 中查看和下载。</p>
+      <div class="info-card green">
+        <h4>上架后 Agent 可见信息</h4>
+        <ul>
+          <li>Agent 名称、描述、版本</li>
+          <li>业务板块、类型</li>
+          <li>关联 Skill 列表</li>
+          <li>版本历史</li>
+          <li>运营数据（分发次数、服务企业数、评分）</li>
+        </ul>
+      </div>
+      <div class="info-card amber">
+        <h4>⚠️ 注意</h4>
+        <ul>
+          <li>上架 ≠ 可售卖！Agent 上架后只是"技术资产"</li>
+          <li>需要运营在<strong>商品中心</strong>将其转为商品并定价后，才能出现在商品池中供 FDE 选品下单</li>
+        </ul>
+      </div>
+      <div class="section-title">🔗 上下游</div>
+      <div class="flow-arrow">← N8（审核通过） → N10（创建商品类目）</div>
+    `
+  },
+  N10: {
+    badge: '<span class="tag tag-red">🟥 商品相关</span><span class="tag tag-pink">④ 商品化与定价</span>',
+    title: '创建商品类目',
+    body: `
+      <p>运营在商品管理中心创建和维护商品类目体系，为后续商品录入提供分类基础。</p>
+      <div class="section-title">📝 类目体系</div>
+      <div class="info-card red">
+        <h4>预设类目结构</h4>
+        <ul>
+          <li><strong>AI 能力</strong> — AI Agent / AI 专家团</li>
+          <li><strong>设备资源</strong> — 云端工作站 / 本地工作站 / 本地客户端</li>
+          <li><strong>资源包</strong> — 积分包</li>
+          <li><strong>服务</strong> — 实施服务 / 培训服务</li>
+          <li><strong>套餐</strong> — 促销套餐</li>
+        </ul>
+      </div>
+      <div class="info-card">
+        <h4>类目操作</h4>
+        <ul>
+          <li>支持一级/二级类目</li>
+          <li>设置类目排序权重</li>
+          <li>启用/停用类目</li>
+        </ul>
+      </div>
+      <div class="section-title">🔗 上下游</div>
+      <div class="flow-arrow">← N9（Agent已上架） → N11（Agent转商品）</div>
+    `
+  },
+  N11: {
+    badge: '<span class="tag tag-red">🟥 商品相关</span><span class="tag tag-pink">④ 商品化与定价</span>',
+    title: 'Agent 转为商品',
+    body: `
+      <p>运营将已上架的 Agent 技术资产转化为可售卖的商业商品。</p>
+      <div class="section-title">📝 需要填写的信息</div>
+      <div class="info-card red">
+        <h4>商品基本信息</h4>
+        <ul>
+          <li><strong>商品名称</strong> — 可与 Agent 技术名不同（营销友好名称）</li>
+          <li><strong>商品描述</strong> — 面向客户的营销文案</li>
+          <li><strong>所属类目</strong> — 从类目体系选择</li>
+          <li><strong>封面图</strong> — 上传商品封面</li>
+          <li><strong>标签</strong> — 如"热门"、"新品"、"推荐"</li>
+        </ul>
+      </div>
+      <div class="info-card green">
+        <h4>定价设置</h4>
+        <ul>
+          <li><strong>定价模式</strong> — 固定价 / 免费 / 试用</li>
+          <li><strong>价格金额</strong> — 如 ¥9,800/年</li>
+          <li><strong>有效时长</strong> — 如 12 个月 / 永久</li>
+          <li><strong>试用天数</strong>（可选） — 如 3 天试用</li>
+        </ul>
+      </div>
+      <div class="info-card amber">
+        <h4>关键规则</h4>
+        <ul>
+          <li>同一个 Agent 可以创建<strong>多个商品</strong>（标准版/企业版/试用版）</li>
+          <li>开发者<strong>不参与定价</strong>，定价权完全在运营</li>
+          <li>商品创建后默认为"草稿"状态，需手动上架</li>
+        </ul>
+      </div>
+      <div class="section-title">🔗 上下游</div>
+      <div class="flow-arrow">← N10（创建类目） → N12（创建非Agent商品）</div>
+    `
+  },
+  N12: {
+    badge: '<span class="tag tag-red">🟥 商品相关</span><span class="tag tag-pink">④ 商品化与定价</span>',
+    title: '创建非 Agent 商品',
+    body: `
+      <p>运营直接在商品管理中新建设备、积分包、服务等非 Agent 类商品。</p>
+      <div class="section-title">📝 商品类型</div>
+      <div class="info-card red">
+        <h4>设备商品</h4>
+        <ul>
+          <li>云端工作站 / 本地工作站 / 本地客户端授权</li>
+          <li>填写规格、定价、有效时长</li>
+        </ul>
+      </div>
+      <div class="info-card green">
+        <h4>资源包商品</h4>
+        <ul>
+          <li>积分包 — 设置积分数量与对应价格</li>
+          <li>例：¥1,000 = 1万积分</li>
+        </ul>
+      </div>
+      <div class="info-card">
+        <h4>服务商品（二期）</h4>
+        <ul>
+          <li>N天实施服务</li>
+          <li>培训服务</li>
+        </ul>
+      </div>
+      <div class="section-title">🔗 上下游</div>
+      <div class="flow-arrow">← N11（Agent转商品） → N13（创建组合商品）</div>
+    `
+  },
+  N13: {
+    badge: '<span class="tag tag-red">🟥 商品相关</span><span class="tag tag-pink">④ 商品化与定价</span>',
+    title: '创建组合商品',
+    body: `
+      <p>运营将多个基础商品打包为组合商品，独立定价，体现打包优惠。</p>
+      <div class="section-title">📝 两种组合类型</div>
+      <div class="info-card red">
+        <h4>A. AI 专家团</h4>
+        <ul>
+          <li>从已上架的 Agent 商品中选择多个加入专家团</li>
+          <li>例：零售经营专家团 = 门店日报官 + 库存盘点官 + 经营复盘助手</li>
+          <li>设置专家团整体价格（可低于单买总和）</li>
+        </ul>
+      </div>
+      <div class="info-card green">
+        <h4>B. 促销套餐（二期）</h4>
+        <ul>
+          <li>跨类型打包：设备 + Agent + 积分 + 服务</li>
+          <li>例：开业套餐 = 2台云端工作站 + 零售专家团 + 10万积分 + 3天实施</li>
+          <li>设置促销期限</li>
+        </ul>
+      </div>
+      <div class="section-title">🔗 上下游</div>
+      <div class="flow-arrow">← N12（创建非Agent商品） → N14（商品上架发布）</div>
+    `
+  },
+  N14: {
+    badge: '<span class="tag tag-red">🟥 商品相关</span><span class="tag tag-pink">④ 商品化与定价</span>',
+    title: '商品上架发布',
+    body: `
+      <p>运营将草稿状态的商品正式发布上架，商品出现在商品池中，FDE 可以浏览和选择。</p>
+      <div class="info-card red">
+        <h4>上架后效果</h4>
+        <ul>
+          <li>商品状态变为 <strong>【商品在售】</strong></li>
+          <li>出现在 FDE 工作台的<strong>商品列表（Marketplace）</strong>中</li>
+          <li>FDE 可以按类目筛选、搜索、查看详情</li>
+        </ul>
+      </div>
+      <div class="info-card amber">
+        <h4>状态流转</h4>
+        <ul>
+          <li><strong>草稿</strong> → 上架 → <strong>在售</strong></li>
+          <li><strong>在售</strong> → 下架 → 已下架（历史订单不受影响）</li>
+          <li><strong>已下架</strong> → 重新上架 或 归档</li>
+        </ul>
+      </div>
+      <div class="section-title">🔗 上下游</div>
+      <div class="flow-arrow">← N13（创建组合商品） → N15（获取商机线索）</div>
+    `
+  },
+  N15: {
+    badge: '<span class="tag tag-green">FDE工程师</span><span class="tag tag-purple">⑤ 商机与租户创建</span>',
+    title: '获取商机线索',
+    body: `
+      <p>FDE 通过多种渠道获取商机线索，录入系统开始跟进。</p>
+      <div class="section-title">📥 商机来源</div>
+      <div class="info-card">
+        <ul>
+          <li><strong>营销门户自动同步</strong> — 官网留资、活动报名等自动流入</li>
+          <li><strong>FDE 手动录入</strong> — 线下沟通后补录到系统</li>
+          <li><strong>其他渠道导入</strong> — 批量导入 Excel/CSV</li>
+        </ul>
+      </div>
+      <div class="info-card green">
+        <h4>📝 商机信息</h4>
+        <ul>
+          <li>企业名称、业务场景、行业</li>
+          <li>需求联系人 & 联系电话</li>
+          <li>预计金额</li>
+          <li>感兴趣的 AI 专家</li>
+          <li>需求描述</li>
+        </ul>
+      </div>
+      <div class="info-card amber">
+        <h4>初始状态</h4>
+        <ul>
+          <li>自动同步 → 状态为"未开始"</li>
+          <li>手动录入 → 状态为"对接中"</li>
+        </ul>
+      </div>
+      <div class="section-title">🔗 上下游</div>
+      <div class="flow-arrow">← N14（商品上架） → N16（跟进商机）</div>
+    `
+  },
+  N16: {
+    badge: '<span class="tag tag-green">FDE工程师</span><span class="tag tag-purple">⑤ 商机与租户创建</span>',
+    title: '跟进商机',
+    body: `
+      <p>FDE 工程师与客户进行多轮沟通、演示和方案推荐，推进商机转化。</p>
+      <div class="info-card">
+        <h4>跟进动作</h4>
+        <ul>
+          <li>拜访客户 / 线上会议</li>
+          <li>展示 Demo 方案</li>
+          <li>推荐合适的 Agent 组合方案</li>
+          <li>商务谈判（价格、交付周期等）</li>
+          <li>记录跟进动态和结论</li>
+        </ul>
+      </div>
+      <div class="info-card green">
+        <h4>状态流转</h4>
+        <ul>
+          <li>未开始 → <strong>对接中</strong> → 已成单 / 异常终止</li>
+        </ul>
+      </div>
+      <div class="section-title">🔗 上下游</div>
+      <div class="flow-arrow">← N15（获取商机） → N17（需要折扣判断）</div>
+    `
+  },
+  N17: {
+    badge: '<span class="tag tag-amber">判断节点</span><span class="tag tag-purple">⑤ 商机与租户创建</span>',
+    title: '需要折扣？',
+    body: `
+      <p>FDE 判断当前商机是否需要申请折扣，分两条路径推进。</p>
+      <div class="info-card amber">
+        <h4>判断逻辑</h4>
+        <ul>
+          <li><strong>否（不需要折扣）</strong> → 直接报价 → N19</li>
+          <li><strong>是（需要折扣）</strong> → 申请折扣审批 → N18</li>
+        </ul>
+      </div>
+      <div class="section-title">🔗 上下游</div>
+      <div class="flow-arrow">← N16（跟进商机） → N19（已成单）或 N18（折扣审批）</div>
+    `
+  },
+  N18: {
+    badge: '<span class="tag tag-amber">审批节点</span><span class="tag tag-blue">平台运营</span>',
+    title: '折扣审批',
+    body: `
+      <p>FDE 提交折扣申请后，运营进行审批。</p>
+      <div class="info-card amber">
+        <h4>审批内容</h4>
+        <ul>
+          <li>申请的折扣比例或金额</li>
+          <li>申请理由（大客户/战略合作等）</li>
+          <li>客户背景信息</li>
+        </ul>
+      </div>
+      <div class="info-card green">
+        <h4>审批结果</h4>
+        <ul>
+          <li><strong>✅ 批准</strong> → FDE 按折扣价报价 → N19</li>
+          <li><strong>❌ 拒绝</strong> → 退回 FDE 重新匹配方案 → N16</li>
+        </ul>
+      </div>
+      <div class="section-title">🔗 上下游</div>
+      <div class="flow-arrow">← N17（折扣申请） → N19（批准）或 N16（拒绝回流）</div>
+    `
+  },
+  N19: {
+    badge: '<span class="tag tag-green">FDE工程师</span><span class="tag tag-purple">⑤ 商机与租户创建</span>',
+    title: '商机已成单',
+    body: `
+      <p>客户确认下单意向，商机状态变为"已成单"，进入租户创建阶段。</p>
+      <div class="info-card green">
+        <h4>成单确认</h4>
+        <ul>
+          <li>客户确认购买意向</li>
+          <li>确认最终报价（标准价或折扣价）</li>
+          <li>商机状态变更为"已成单"</li>
+        </ul>
+      </div>
+      <div class="section-title">🔗 上下游</div>
+      <div class="flow-arrow">← N17/N18 → N20（创建租户）</div>
+    `
+  },
+  N20: {
+    badge: '<span class="tag tag-green">FDE工程师</span><span class="tag tag-purple">⑤ 商机与租户创建</span>',
+    title: '创建租户',
+    body: `
+      <p>FDE 在系统中创建客户企业租户，作为后续订单和交付的载体。</p>
+      <div class="info-card green">
+        <h4>📝 需要输入的信息</h4>
+        <ul>
+          <li><strong>租户名称</strong> — 客户企业名称</li>
+          <li><strong>租户编码</strong> — 系统自动生成</li>
+          <li><strong>行业</strong></li>
+          <li><strong>管理员联系方式</strong></li>
+          <li><strong>关联商机</strong> — 关联已成交的商机记录</li>
+        </ul>
+      </div>
+      <div class="info-card amber">
+        <h4>⚠️ 关键规则</h4>
+        <ul>
+          <li><strong>先有租户，才有订单</strong> — 会议确认的顺序</li>
+          <li>一个租户下可以有多个订单和多次交付</li>
+          <li>邀请企业管理员加入租户（如果 N4/N5 阶段还没完成）</li>
+        </ul>
+      </div>
+      <div class="section-title">🔗 上下游</div>
+      <div class="flow-arrow">← N19（商机已成单） → N21（浏览商品池）</div>
+    `
+  },
+  N21: {
+    badge: '<span class="tag tag-red">🟥 商品相关</span><span class="tag tag-purple">⑥ 选品下单</span>',
+    title: '浏览商品池',
+    body: `
+      <p>FDE 在 FDE 工作台的 Marketplace 页面浏览运营已上架的全部可售商品。</p>
+      <div class="info-card red">
+        <h4>商品列表功能</h4>
+        <ul>
+          <li><strong>按类目筛选</strong> — AI能力 / 设备 / 资源包 / 套餐</li>
+          <li><strong>搜索</strong> — 按商品名称搜索</li>
+          <li><strong>查看详情</strong> — 商品描述、价格、包含内容、规格</li>
+        </ul>
+      </div>
+      <div class="info-card">
+        <h4>可见范围</h4>
+        <ul>
+          <li>FDE 看到全部可售商品（含内部价）</li>
+          <li>客户（未来）只看到公开可见商品</li>
+          <li>只显示运营已上架（在售）的商品</li>
+        </ul>
+      </div>
+      <div class="section-title">🔗 上下游</div>
+      <div class="flow-arrow">← N20（创建租户） → N22（选择商品）</div>
+    `
+  },
+  N22: {
+    badge: '<span class="tag tag-red">🟥 商品相关</span><span class="tag tag-purple">⑥ 选品下单</span>',
+    title: '选择商品',
+    body: `
+      <p>FDE 从商品池中选择要售卖给客户的商品。</p>
+      <div class="info-card red">
+        <h4>可选商品类型</h4>
+        <ul>
+          <li>🟥 <strong>AI Agent 商品</strong> — 单个 Agent（如"销售话术助手"）</li>
+          <li>🟥 <strong>AI 专家团商品</strong> — 打包好的专家团</li>
+          <li>🟥 <strong>设备商品</strong> — 云端工作站/本地工作站（选择数量）</li>
+          <li>🟥 <strong>积分包</strong> — 选择所需积分数量</li>
+          <li>🟥 <strong>促销套餐</strong> — 一键加入整个套餐</li>
+        </ul>
+      </div>
+      <div class="info-card green">
+        <h4>商品价格</h4>
+        <ul>
+          <li>商品价格由运营预设，FDE <strong>直接看到定价</strong></li>
+          <li>不需要手动填单价</li>
+        </ul>
+      </div>
+      <div class="section-title">🔗 上下游</div>
+      <div class="flow-arrow">← N21（浏览商品池） → N23（确认订单清单）</div>
+    `
+  },
+  N23: {
+    badge: '<span class="tag tag-red">🟥 商品相关</span><span class="tag tag-purple">⑥ 选品下单</span>',
+    title: '确认订单清单',
+    body: `
+      <p>FDE 核对已选商品清单和总价，确认无误后准备创建订单。</p>
+      <div class="info-card red">
+        <h4>清单展示内容</h4>
+        <ul>
+          <li>商品名称、规格、单价、数量</li>
+          <li>各商品小计</li>
+          <li><strong>订单总价</strong>（所有商品小计之和）</li>
+        </ul>
+      </div>
+      <div class="info-card amber">
+        <h4>与现有流程的区别</h4>
+        <ul>
+          <li>❌ 现有：先建空订单 → 手动加商品行 → 手动填价格</li>
+          <li>✅ 改造后：从商品池选 → 确认清单 → 自动生成订单</li>
+        </ul>
+      </div>
+      <div class="section-title">🔗 上下游</div>
+      <div class="flow-arrow">← N22（选择商品） → N24（创建订单）</div>
+    `
+  },
+  N24: {
+    badge: '<span class="tag tag-red">🟥 商品相关</span><span class="tag tag-purple">⑥ 选品下单</span>',
+    title: '创建订单',
+    body: `
+      <p>FDE 在租户下正式创建订单，订单绑定租户和已选商品清单。</p>
+      <div class="info-card red">
+        <h4>📝 创建订单需要填写</h4>
+        <ul>
+          <li><strong>关联租户</strong>（必填） — 下拉选择已创建的租户</li>
+          <li><strong>商品清单</strong> — 从 N23 自动带入</li>
+          <li><strong>订单备注</strong> — 补充说明、交付背景、客户要求</li>
+        </ul>
+      </div>
+      <div class="info-card amber">
+        <h4>创建后状态</h4>
+        <ul>
+          <li>订单状态：<strong>【待付款】</strong></li>
+          <li>订单业务类型：新购</li>
+          <li>订单中的商品信息<strong>快照保存</strong>（后续调价不影响此订单）</li>
+        </ul>
+      </div>
+      <div class="section-title">🔗 上下游</div>
+      <div class="flow-arrow">← N23（确认清单） → N25（客户线下付款）</div>
+    `
+  },
+  N25: {
+    badge: '<span class="tag tag-green">FDE工程师</span><span class="tag tag-cyan">⑦ 付款与交付</span>',
+    title: '客户线下付款',
+    body: `
+      <p>客户通过线下方式完成付款（扫码、银行转账等）。</p>
+      <div class="info-card">
+        <h4>付款方式</h4>
+        <ul>
+          <li>扫码支付（微信/支付宝）</li>
+          <li>银行对公转账</li>
+          <li>其他线下方式</li>
+        </ul>
+      </div>
+      <div class="section-title">🔗 上下游</div>
+      <div class="flow-arrow">← N24（创建订单） → N26（上传付款凭证）</div>
+    `
+  },
+  N26: {
+    badge: '<span class="tag tag-green">FDE工程师</span><span class="tag tag-cyan">⑦ 付款与交付</span>',
+    title: '上传付款凭证',
+    body: `
+      <p>FDE 在系统中上传客户付款凭证，发起付款确认流程。</p>
+      <div class="info-card">
+        <h4>📝 需要上传</h4>
+        <ul>
+          <li><strong>付款凭证</strong> — 银行转账水单截图、支付截图等</li>
+          <li><strong>付款金额</strong> — 确认与订单金额一致</li>
+          <li><strong>付款时间</strong></li>
+        </ul>
+      </div>
+      <div class="info-card amber">
+        <h4>上传后状态</h4>
+        <ul>
+          <li>订单付款状态变为 <strong>【待确认】</strong></li>
+          <li>运营收到待确认通知</li>
+        </ul>
+      </div>
+      <div class="section-title">🔗 上下游</div>
+      <div class="flow-arrow">← N25（客户付款） → N27（运营核查确认）</div>
+    `
+  },
+  N27: {
+    badge: '<span class="tag tag-blue">平台运营</span><span class="tag tag-cyan">⑦ 付款与交付</span>',
+    title: '核查确认付款',
+    body: `
+      <p>运营核查 FDE 上传的付款凭证，确认款项已到账。</p>
+      <div class="info-card">
+        <h4>核查内容</h4>
+        <ul>
+          <li>付款凭证是否有效</li>
+          <li>金额是否与订单一致</li>
+          <li>财务系统是否已到账</li>
+        </ul>
+      </div>
+      <div class="info-card green">
+        <h4>确认后状态</h4>
+        <ul>
+          <li>订单付款状态变为 <strong>【已付款】</strong></li>
+          <li>系统自动激活资源配额 → N28</li>
+          <li>通知 FDE 开始部署 → N29</li>
+        </ul>
+      </div>
+      <div class="section-title">🔗 上下游</div>
+      <div class="flow-arrow">← N26（上传凭证） → N28（激活资源） & N29（部署Agent）</div>
+    `
+  },
+  N28: {
+    badge: '<span class="tag tag-gray">系统自动</span><span class="tag tag-cyan">⑦ 付款与交付</span>',
+    title: '自动激活资源配额',
+    body: `
+      <p>付款确认后，系统自动激活订单中预分配的资源配额。</p>
+      <div class="info-card">
+        <h4>自动执行内容</h4>
+        <ul>
+          <li>将预分配的资源配额从"未激活"变为<strong>"已激活"</strong></li>
+          <li>设备额度生效</li>
+          <li>积分额度到账</li>
+          <li>Agent 下载权限解锁（关联到该订单）</li>
+        </ul>
+      </div>
+      <div class="info-card green">
+        <h4>激活后状态</h4>
+        <ul>
+          <li>状态变为 <strong>【已激活】</strong></li>
+          <li>FDE 可以开始部署 Agent</li>
+        </ul>
+      </div>
+      <div class="section-title">🔗 上下游</div>
+      <div class="flow-arrow">← N27（确认付款） → N29（部署Agent）</div>
+    `
+  },
+  N29: {
+    badge: '<span class="tag tag-red">🟥 商品相关</span><span class="tag tag-cyan">⑦ 付款与交付</span>',
+    title: '部署 Agent 配置',
+    body: `
+      <p>FDE 从 Agent Store 下载订单中对应的 Agent 包，部署到客户环境。</p>
+      <div class="info-card red">
+        <h4>部署流程</h4>
+        <ul>
+          <li>从 Agent Store 下载 Agent 包（<strong>下载记录必须关联订单</strong>）</li>
+          <li>部署到客户指定的运行环境（云端/本地）</li>
+          <li>沙盒环境验证</li>
+          <li>配置模型、权限、Skill</li>
+        </ul>
+      </div>
+      <div class="info-card amber">
+        <h4>⚠️ 管控规则</h4>
+        <ul>
+          <li>所有 Agent 下载/分发<strong>必须挂在订单上</strong></li>
+          <li>不能脱离订单随意下载</li>
+          <li>每个下载记录可追溯：谁下载、挂在哪个订单、部署到哪个设备</li>
+        </ul>
+      </div>
+      <div class="section-title">🔗 上下游</div>
+      <div class="flow-arrow">← N28（激活资源） → N30（部署完成通知）</div>
+    `
+  },
+  N30: {
+    badge: '<span class="tag tag-green">FDE工程师</span><span class="tag tag-cyan">⑦ 付款与交付</span>',
+    title: '部署完成通知',
+    body: `
+      <p>FDE 部署完成后，通知企业管理员可以开始使用。</p>
+      <div class="info-card">
+        <h4>通知内容</h4>
+        <ul>
+          <li>部署完成通知（系统通知 / 邮件）</li>
+          <li>登录地址和初始账号信息</li>
+          <li>快速上手指引</li>
+        </ul>
+      </div>
+      <div class="section-title">🔗 上下游</div>
+      <div class="flow-arrow">← N29（部署Agent） → N32（管理员配置权限）</div>
+    `
+  },
+  N31: {
+    badge: '<span class="tag tag-red">🟥 商品相关</span><span class="tag tag-cyan">⑦ 付款与交付</span>',
+    title: '形成客户资产',
+    body: `
+      <p>交付完成后，订单中的商品转化为客户的实际资产。</p>
+      <div class="info-card red">
+        <h4>商品 → 资产映射</h4>
+        <ul>
+          <li>🟥 设备商品 → <strong>设备资产</strong>（资产 ID + 到期时间 + 状态）</li>
+          <li>🟥 AI 专家商品 → <strong>AI 专家资产</strong>（每个 Agent 独立资产记录）</li>
+          <li>🟥 AI 专家团 → 团内每个 Agent 生成独立资产</li>
+          <li>🟥 积分包 → <strong>积分额度</strong></li>
+        </ul>
+      </div>
+      <div class="info-card green">
+        <h4>交付完成状态</h4>
+        <ul>
+          <li>交付状态变为 <strong>【已交付】</strong></li>
+          <li>客户具备正式开始使用条件</li>
+          <li>进入资产运营阶段</li>
+        </ul>
+      </div>
+      <div class="section-title">🔗 上下游</div>
+      <div class="flow-arrow">← N29（部署Agent） → N32（管理员配置权限）</div>
+    `
+  },
+  N32: {
+    badge: '<span class="tag tag-purple">企业管理员</span><span class="tag tag-cyan">⑦ 付款与交付</span>',
+    title: '登录 tenant 工作台 & 配置权限',
+    body: `
+      <p>企业管理员登录 tenant 工作台，完成内部配置。</p>
+      <div class="info-card purple">
+        <h4>📝 需要配置的内容</h4>
+        <ul>
+          <li><strong>成员管理</strong> — 添加企业员工账号</li>
+          <li><strong>权限配置</strong> — 谁能用哪些 AI 专家</li>
+          <li><strong>设备绑定</strong> — 将设备分配给具体员工</li>
+          <li><strong>模型配置</strong> — 选择企业使用的 LLM 供应商</li>
+        </ul>
+      </div>
+      <div class="section-title">🔗 上下游</div>
+      <div class="flow-arrow">← N30/N31 → N33（企业员工使用）</div>
+    `
+  },
+  N33: {
+    badge: '<span class="tag tag-orange">企业员工</span><span class="tag tag-cyan">⑦ 付款与交付</span>',
+    title: '企业员工使用 Agent',
+    body: `
+      <p>企业管理员完成配置后，企业员工登录 workspace 开始使用已购的 AI 专家。</p>
+      <div class="info-card">
+        <h4>员工工作台</h4>
+        <ul>
+          <li>看到已授权的 AI 专家卡片列表</li>
+          <li>按设备自动生成的默认 Agent</li>
+          <li>发起对话、上传附件、查看成果</li>
+        </ul>
+      </div>
+      <div class="section-title">🔗 上下游</div>
+      <div class="flow-arrow">← N32（管理员配置） → N34（到期续费提醒）</div>
+    `
+  },
+  N34: {
+    badge: '<span class="tag tag-gray">系统自动</span><span class="tag tag-orange">⑧ 续费与迭代</span>',
+    title: '到期前 30 天触发续费提醒',
+    body: `
+      <p>系统在资产到期前 30 天自动触发续费提醒通知。</p>
+      <div class="info-card">
+        <h4>提醒方式</h4>
+        <ul>
+          <li>系统通知：提醒企业管理员和 FDE</li>
+          <li>邮件通知：发送到管理员邮箱</li>
+          <li>工作台提醒：登录时弹窗提示</li>
+        </ul>
+      </div>
+      <div class="section-title">🔗 上下游</div>
+      <div class="flow-arrow">← N33（正常服务） → N35A（管理员续费）或 N35B（FDE续费）</div>
+    `
+  },
+  N35A: {
+    badge: '<span class="tag tag-purple">企业管理员</span><span class="tag tag-orange">⑧ 续费与迭代</span>',
+    title: '路径 A：管理员自助发起续费',
+    body: `
+      <p>企业管理员在 tenant 工作台自助发起续费。</p>
+      <div class="info-card purple">
+        <h4>续费操作</h4>
+        <ul>
+          <li>在资产列表中找到即将到期的资产</li>
+          <li>点击"续费"按钮</li>
+          <li>选择续费时长</li>
+          <li>系统自动生成续费订单</li>
+          <li>进入付款 → 交付流程（回流到 N24）</li>
+        </ul>
+      </div>
+      <div class="info-card amber">
+        <h4>⚠️ 关键规则</h4>
+        <ul>
+          <li>续费 = <strong>新订单 → 新交付 → 新到期时间</strong></li>
+          <li>不是直接改到期时间</li>
+        </ul>
+      </div>
+      <div class="section-title">🔗 上下游</div>
+      <div class="flow-arrow">← N34（续费提醒） → 回流至 N24（创建订单）</div>
+    `
+  },
+  N35B: {
+    badge: '<span class="tag tag-red">🟥 商品相关</span><span class="tag tag-orange">⑧ 续费与迭代</span>',
+    title: '路径 B：FDE 代客户续费',
+    body: `
+      <p>FDE 主动联系客户，代客户发起续费订单。</p>
+      <div class="info-card red">
+        <h4>续费流程</h4>
+        <ul>
+          <li>在客户资产列表中找到到期资产</li>
+          <li>🟥 选择要续费的商品（续费对应的原商品）</li>
+          <li>创建续费订单</li>
+          <li>客户付款 → 交付 → 更新到期时间</li>
+        </ul>
+      </div>
+      <div class="section-title">🔗 上下游</div>
+      <div class="flow-arrow">← N34（续费提醒） → 回流至 N24（创建订单）</div>
+    `
+  },
+  N36: {
+    badge: '<span class="tag tag-green">FDE工程师</span><span class="tag tag-orange">⑧ 续费与迭代</span>',
+    title: '提交 Agent 新版本迭代',
+    body: `
+      <p>开发者完成 Agent 新版本开发后，提交新版本进行审核。</p>
+      <div class="info-card">
+        <h4>📝 提交内容</h4>
+        <ul>
+          <li>新版本号（如 v2.0.0）</li>
+          <li>版本说明 / 更新日志</li>
+          <li>新版本 Agent 包</li>
+          <li>测试报告</li>
+        </ul>
+      </div>
+      <div class="section-title">🔗 上下游</div>
+      <div class="flow-arrow">← N33（正常服务中） → N37（运营审批新版本）</div>
+    `
+  },
+  N37: {
+    badge: '<span class="tag tag-amber">审批节点</span><span class="tag tag-orange">⑧ 续费与迭代</span>',
+    title: '运营审批新版本',
+    body: `
+      <p>运营审核 Agent 新版本，决定是否允许已购客户升级。</p>
+      <div class="info-card amber">
+        <h4>审核维度</h4>
+        <ul>
+          <li>新版本功能是否正常</li>
+          <li>是否影响已购客户的使用</li>
+          <li>性能报告 vs 旧版本对比</li>
+          <li>安全扫描结果</li>
+        </ul>
+      </div>
+      <div class="info-card green">
+        <h4>审批结果</h4>
+        <ul>
+          <li><strong>✅ 通过</strong> → 已购客户收到升级通知/自动升级 → N38</li>
+          <li><strong>❌ 拒绝</strong> → 退回开发者修改 → N36</li>
+        </ul>
+      </div>
+      <div class="section-title">🔗 上下游</div>
+      <div class="flow-arrow">← N36（提交新版本） → N38（通过）或 N36（拒绝回流）</div>
+    `
+  },
+  N38: {
+    badge: '<span class="tag tag-red">🟥 商品相关</span><span class="tag tag-orange">⑧ 续费与迭代</span>',
+    title: '已购客户升级',
+    body: `
+      <p>新版本审批通过后，已购客户收到升级通知或自动升级。</p>
+      <div class="info-card red">
+        <h4>升级方式</h4>
+        <ul>
+          <li><strong>自动升级</strong> — 系统自动为已购客户部署新版本</li>
+          <li><strong>通知升级</strong> — 通知客户/企业管理员，由其决定是否升级</li>
+        </ul>
+      </div>
+      <div class="section-title">🔗 上下游</div>
+      <div class="flow-arrow">← N37（审批通过） → 持续运营</div>
+    `
+  },
+  N39: {
+    badge: '<span class="tag tag-red">🟥 商品相关</span><span class="tag tag-orange">⑧ 续费与迭代</span>',
+    title: '商品上下架管理',
+    body: `
+      <p>运营持续管理已上架商品，包括调价、编辑、下架、归档等操作。</p>
+      <div class="info-card red">
+        <h4>管理操作</h4>
+        <ul>
+          <li><strong>调价</strong> — 修改商品价格（记录变更日志）</li>
+          <li><strong>编辑</strong> — 修改商品描述、标签、封面</li>
+          <li><strong>下架</strong> — 商品不再出现在商品池中（历史订单不受影响）</li>
+          <li><strong>重新上架</strong> — 下架商品重新变为在售</li>
+          <li><strong>归档</strong> — 彻底不再使用的商品</li>
+        </ul>
+      </div>
+      <div class="info-card amber">
+        <h4>持续运营</h4>
+        <ul>
+          <li>这是一个贯穿整个产品生命周期的持续操作</li>
+          <li>从 N14 上架后开始，直到商品归档结束</li>
+          <li>图中虚线连接 N14 → N39 表示持续管理关系</li>
+        </ul>
+      </div>
+      <div class="section-title">🔗 上下游</div>
+      <div class="flow-arrow">← N14（商品上架） → 持续管理循环</div>
+    `
+  }
+};
+
+// ═══════════════════════════════════════════════════════════════
+//  POPUP LOGIC
+// ═══════════════════════════════════════════════════════════════
+const overlay = document.getElementById('popup-overlay');
+const panel   = document.getElementById('popup-panel');
+const badgeEl = document.getElementById('popup-badge');
+const titleEl = document.getElementById('popup-title');
+const bodyEl  = document.getElementById('popup-body');
+
+function openPopup(nodeId) {
+  const data = NODE_DATA[nodeId];
+  if (!data) return;
+  badgeEl.innerHTML = data.badge;
+  titleEl.textContent = data.title;
+  bodyEl.innerHTML = data.body;
+  overlay.classList.add('show');
+  panel.classList.add('show');
+}
+
+function closePopup() {
+  overlay.classList.remove('show');
+  panel.classList.remove('show');
+}
+
+// Bind click on all clickable nodes
+document.querySelectorAll('.node-clickable').forEach(g => {
+  g.addEventListener('click', () => {
+    const nodeId = g.getAttribute('data-node');
+    if (nodeId) openPopup(nodeId);
+  });
+});
+
+// ESC to close
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closePopup();
+});
+</script>
+
+</body></html>

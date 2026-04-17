@@ -2,9 +2,14 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AppstoreOutlined, LogoutOutlined } from "@ant-design/icons";
 import type { MenuProps } from "antd";
 import { Empty, message } from "antd";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import type { WorkspaceComposerAttachmentItem } from "@/feature/workspace/types";
-import { getAdminManagementPath } from "@/feature/auth/mockAccounts";
+import {
+  getAdminManagementPath,
+  getLoginPath,
+  getSystemEntries,
+  getTenantEntries,
+} from "@/feature/auth/mockAccounts";
 import { useMockAuth } from "@/feature/auth/hooks/useMockAuth";
 import type { AiCeoAgentHomeConfig, AiCeoHomeCaseItem } from "@/constants/aiCeoHome";
 import type { ArtifactItem } from "@/types/artifact";
@@ -27,10 +32,12 @@ import {
   INITIAL_ORGANIZATION_DEPARTMENTS,
   INITIAL_WORKSPACES,
 } from "@/mocks/mockData";
-import { buildDialogueScenarioReplay, findDialogueScenario } from "./dialogueScenarioSimulation";
 import type {
   DialogueScenarioFrame,
   DialogueScenarioMessageSnapshot,
+} from "@/types/dialogueScenario";
+import { buildDialogueScenarioReplay, findDialogueScenario } from "./dialogueScenarioSimulation";
+import type {
   DialogueGeneratedResultItem,
   DialogueSessionItem,
   EmployeeItem,
@@ -560,8 +567,9 @@ const sortConversationEmployees = (employees: EmployeeItem[]): EmployeeItem[] =>
  * 当前页面通过路由区分普通用户与企业老板视图。
  */
 const FrontisPage = ({ viewRole }: FrontisPageProps): JSX.Element => {
+  const location = useLocation();
   const navigate = useNavigate();
-  const { logout, session } = useMockAuth();
+  const { activateIdentity, activateTenant, activeIdentity, logout, session } = useMockAuth();
   const [isDialogueSidebarCollapsed, setIsDialogueSidebarCollapsed] = useState<boolean>(false);
   const [dialogueSessions, setDialogueSessions] = useState<DialogueSessionItem[]>(() =>
     INITIAL_DIALOGUE_SESSIONS.map(item => mapDialogueSessionForRole(item, viewRole)),
@@ -1391,23 +1399,86 @@ const FrontisPage = ({ viewRole }: FrontisPageProps): JSX.Element => {
   }, [activeDialogueSession, clearDialogueTimers, isDialogueResponding]);
 
   const handleLogout = useCallback((): void => {
+    const redirectPath = `${location.pathname}${location.search}`;
+
     logout();
     message.success("已退出模拟登录。");
-    navigate("/portal", { replace: true });
-  }, [logout, navigate]);
+    navigate(getLoginPath(redirectPath), { replace: true });
+  }, [location.pathname, location.search, logout, navigate]);
 
-  const handleOpenManagementPortal = useCallback((): void => {
-    navigate(getAdminManagementPath());
-  }, [navigate]);
+  const systemEntries = useMemo(
+    () => getSystemEntries(session?.identities ?? [], activeIdentity?.tenantId, session?.activeIdentityId),
+    [activeIdentity?.tenantId, session?.activeIdentityId, session?.identities],
+  );
+  const tenantEntries = useMemo(
+    () => getTenantEntries(session?.identities ?? [], activeIdentity?.tenantId),
+    [activeIdentity?.tenantId, session?.identities],
+  );
+  const handleOpenSystemEntry = useCallback(
+    (identityId: string, entryPath: string): void => {
+      const result = activateIdentity(identityId, entryPath);
+
+      if (!result.success) {
+        message.error(result.message);
+        return;
+      }
+
+      navigate(result.redirectPath ?? entryPath, { replace: true });
+    },
+    [activateIdentity, navigate],
+  );
+  const handleSwitchTenant = useCallback(
+    (tenantId: string): void => {
+      const currentPath = `${location.pathname}${location.search}`;
+      const result = activateTenant(tenantId, currentPath);
+
+      if (!result.success) {
+        message.error(result.message);
+        return;
+      }
+
+      navigate(result.redirectPath ?? "/portal", { replace: true });
+    },
+    [activateTenant, location.pathname, location.search, navigate],
+  );
 
   const accountMenuItems: MenuProps["items"] = [
-    ...(currentUser && MANAGEMENT_USER_ROLES.has(currentUser.role)
+    ...(viewRole === "admin"
       ? [
           {
-            key: "management",
+            key: "open-admin-management",
             icon: <AppstoreOutlined />,
-            label: "管理后台",
-            onClick: handleOpenManagementPortal,
+            label: "进入企业管理后台",
+            onClick: () => navigate(getAdminManagementPath(), { replace: true }),
+          },
+          {
+            type: "divider" as const,
+          },
+        ]
+      : []),
+    ...systemEntries.map(entry => ({
+      key: `system-entry-${entry.identityId}`,
+      icon: <AppstoreOutlined />,
+      label: `进入${entry.label}`,
+      onClick: () => handleOpenSystemEntry(entry.identityId, entry.entryPath),
+    })),
+    ...(systemEntries.length
+      ? [
+          {
+            type: "divider" as const,
+          },
+        ]
+      : []),
+    ...tenantEntries.map(tenant => ({
+      key: `tenant-entry-${tenant.tenantId}`,
+      icon: <AppstoreOutlined />,
+      label: `切换到${tenant.tenantName}`,
+      onClick: () => handleSwitchTenant(tenant.tenantId),
+    })),
+    ...(tenantEntries.length
+      ? [
+          {
+            type: "divider" as const,
           },
         ]
       : []),

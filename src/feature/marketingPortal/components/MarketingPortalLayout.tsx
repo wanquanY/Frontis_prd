@@ -1,17 +1,120 @@
-import classNames from "classnames";
-import { NavLink, Outlet } from "react-router-dom";
+import { useCallback, useMemo } from "react";
 
+import { AppstoreOutlined, LogoutOutlined } from "@ant-design/icons";
+import type { MenuProps } from "antd";
+import { Avatar, Dropdown, message } from "antd";
+import classNames from "classnames";
+import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
+
+import { getAdminManagementPath, getLoginPath } from "@/feature/auth/mockAccounts";
 import { useMockAuth } from "@/feature/auth/hooks/useMockAuth";
 import { PORTAL_NAV_ITEMS } from "@/feature/marketingPortal/portalData";
+import { getAvatarText } from "@/pages/utils";
 
 import styles from "./MarketingPortalLayout.module.less";
+
+interface PortalModuleEntry {
+  key: string;
+  identityId: string;
+  label: string;
+  description: string;
+  entryPath: string;
+}
 
 /**
  * 营销门户站点级布局。
  */
 export const MarketingPortalLayout = (): JSX.Element => {
-  const { getDefaultPathByRole, session } = useMockAuth();
-  const workspacePath = session ? getDefaultPathByRole(session.role) : "/login";
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { activateIdentity, activeIdentity, logout, session } = useMockAuth();
+  const moduleEntries = useMemo<PortalModuleEntry[]>(() => {
+    if (!session) {
+      return [];
+    }
+
+    return session.identities.flatMap(identity => {
+      const nextEntries: PortalModuleEntry[] = [
+        {
+          key: `identity-${identity.id}`,
+          identityId: identity.id,
+          label: identity.platformLabel,
+          description: `${identity.tenantName} · ${identity.roleLabel}`,
+          entryPath: identity.entryPath,
+        },
+      ];
+
+      if (identity.role === "admin" && identity.platform === "enterpriseWorkspace") {
+        nextEntries.push({
+          key: `identity-${identity.id}-management`,
+          identityId: identity.id,
+          label: "企业管理后台",
+          description: `${identity.tenantName} · 企业管理`,
+          entryPath: getAdminManagementPath(),
+        });
+      }
+
+      return nextEntries;
+    });
+  }, [session]);
+
+  const handleOpenModule = useCallback(
+    (entry: PortalModuleEntry): void => {
+      const result = activateIdentity(entry.identityId, entry.entryPath);
+
+      if (!result.success) {
+        message.error(result.message);
+        return;
+      }
+
+      navigate(result.redirectPath ?? entry.entryPath, { replace: true });
+    },
+    [activateIdentity, navigate],
+  );
+
+  const handleLogout = useCallback((): void => {
+    const redirectPath = `${location.pathname}${location.search}`;
+
+    logout();
+    message.success("已退出模拟登录。");
+    navigate(getLoginPath(redirectPath), { replace: true });
+  }, [location.pathname, location.search, logout, navigate]);
+
+  const accountMenuItems = useMemo<MenuProps["items"]>(() => {
+    if (!session) {
+      return [];
+    }
+
+    const systemModuleItems: NonNullable<MenuProps["items"]> = moduleEntries.map(entry => ({
+      key: entry.key,
+      icon: <AppstoreOutlined />,
+      label: (
+        <span className={styles.menuItemContent}>
+          <span className={styles.menuItemTitle}>{entry.label}</span>
+          <span className={styles.menuItemDescription}>{entry.description}</span>
+        </span>
+      ),
+      onClick: () => handleOpenModule(entry),
+    }));
+
+    return [
+      {
+        key: "module-group",
+        type: "group",
+        label: <span className={styles.menuGroupLabel}>系统功能模块</span>,
+        children: systemModuleItems,
+      },
+      {
+        type: "divider",
+      },
+      {
+        key: "logout",
+        icon: <LogoutOutlined />,
+        label: "退出登录",
+        onClick: handleLogout,
+      },
+    ];
+  }, [handleLogout, handleOpenModule, moduleEntries, session]);
 
   return (
     <div className={styles.siteRoot} data-portal-root="true" data-portal-header-tone="dark">
@@ -45,16 +148,24 @@ export const MarketingPortalLayout = (): JSX.Element => {
 
             <div className={styles.headerActions}>
               {session ? (
-                <span className={styles.sessionHint}>
-                  {session.name}
-                  <span className={styles.sessionHintDivider}>·</span>
-                  {session.role === "admin" ? "企业老板" : "普通用户"}
-                </span>
-              ) : null}
-
-              <NavLink className={styles.headerLogin} to={workspacePath}>
-                {session ? "进入工作台" : "登录"}
-              </NavLink>
+                <Dropdown
+                  menu={{ items: accountMenuItems }}
+                  overlayClassName={styles.accountDropdown}
+                  placement="bottomRight"
+                  trigger={["click"]}
+                >
+                  <button type="button" className={styles.accountTrigger} aria-label="打开账户菜单">
+                    <span className={styles.accountName}>{session.name}</span>
+                    <Avatar className={styles.accountAvatar} size={34}>
+                      {getAvatarText(activeIdentity?.subjectName ?? session.name)}
+                    </Avatar>
+                  </button>
+                </Dropdown>
+              ) : (
+                <NavLink className={styles.headerLogin} to="/login">
+                  登录
+                </NavLink>
+              )}
             </div>
           </header>
         </div>

@@ -80,6 +80,7 @@ interface DialoguePrototypeViewProps {
   conversationEmployeeDirectory: EmployeeItem[];
   activeExpertTeamMembers: EmployeeItem[];
   accountMenuItems: MenuProps["items"];
+  accountMetaLabel?: string;
   defaultAgentIds: string[];
   dialoguePlaceholder: string;
   dialogueAttachments: WorkspaceComposerAttachmentItem[];
@@ -249,6 +250,7 @@ export const DialoguePrototypeView = ({
   conversationEmployeeDirectory,
   activeExpertTeamMembers,
   accountMenuItems,
+  accountMetaLabel,
   defaultAgentIds,
   dialoguePlaceholder,
   dialogueAttachments,
@@ -1602,7 +1604,9 @@ export const DialoguePrototypeView = ({
                   </Avatar>
                   <span className={styles.accountBody}>
                     <span className={styles.accountName}>{viewerName}</span>
-                    <span className={styles.accountMeta}>当前登录账号</span>
+                    {accountMetaLabel ? (
+                      <span className={styles.accountMeta}>{accountMetaLabel}</span>
+                    ) : null}
                   </span>
                 </button>
               </Dropdown>

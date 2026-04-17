@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>统一用户体系 PRD</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 32px 40px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      color: #1f2937;
+      background: #ffffff;
+      line-height: 1.8;
+    }
+    .doc {
+      width: min(1200px, 100%);
+      margin: 0 auto;
+    }
+    h1 { font-size: 32px; margin: 0 0 10px; }
+    h2 { font-size: 22px; margin: 34px 0 14px; padding-bottom: 8px; border-bottom: 1px solid #e5e7eb; }
+    h3 { font-size: 17px; margin: 20px 0 8px; }
+    p { margin: 8px 0; }
+    ul { margin: 8px 0 8px 22px; padding: 0; }
+    li { margin: 4px 0; }
+    .meta { color: #6b7280; font-size: 14px; margin-bottom: 18px; }
+    .note {
+      padding: 12px 14px;
+      border-left: 4px solid #2563eb;
+      background: #f8fbff;
+      margin: 12px 0;
+    }
+    .svg-wrap {
+      overflow: auto;
+      border: 1px solid #e5e7eb;
+      padding: 12px;
+      margin: 14px 0;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+      margin: 12px 0;
+    }
+    th, td {
+      border: 1px solid #d1d5db;
+      padding: 10px 12px;
+      text-align: left;
+      vertical-align: top;
+    }
+    th {
+      background: #f9fafb;
+      font-weight: 700;
+    }
+    .small { color: #6b7280; font-size: 13px; }
+  </style>
+</head>
+<body>
+  <div class="doc">
+    <h1>统一用户体系 PRD</h1>
+    <div class="meta">从业务逻辑和产品设计角度梳理统一用户体系，明确租户、组织、成员、角色、权限与系统模块之间的关系。</div>
+
+    <h2>1. 产品定位</h2>
+    <p>统一用户体系是 Frontis 多平台后台的身份底座，不只是统一登录能力。它需要承接同一个自然人在多个租户、多个组织、多个角色、多个系统模块中的工作身份，并最终解决“谁以什么身份进入哪个后台、看到什么功能、操作什么数据”的问题。</p>
+
+    <h2>2. 业务目标</h2>
+    <ul>
+      <li>一人一账号，统一登录入口。</li>
+      <li>一人多身份，承接多租户与多平台工作场景。</li>
+      <li>租户开通能力与角色授权联动生效。</li>
+      <li>统一组织树、成员、角色、权限、审计模型。</li>
+    </ul>
+
+    <h2>3. 核心对象</h2>
+    <ul>
+      <li><b>User</b>：自然人统一账号，建议手机号唯一。</li>
+      <li><b>Member</b>：用户在某个租户内的身份实例，挂接组织、角色、状态与数据范围。</li>
+      <li><b>Tenant</b>：业务与权限边界，承接组织树、成员、角色、订单、资产等对象。</li>
+      <li><b>Org / Node</b>：组织节点，承接组织树、负责人和成员归属。</li>
+      <li><b>Role</b>：权限集合，包含内置角色与自定义角色。</li>
+      <li><b>Permission</b>：平台权限、页面权限、数据范围权限。</li>
+    </ul>
+    <div class="note"><b>核心原则：</b>User 与 Member 必须分层。User 是全局账号，Member 是租户内真实业务身份。</div>
+
+    <h2>4. 系统模块</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>系统模块</th>
+          <th>定位</th>
+          <th>主要使用角色</th>
+          <th>说明</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>运营管理后台</td>
+          <td>平台级租户与权限治理后台</td>
+          <td>平台运营人员</td>
+          <td>负责租户创建、模块开通、平台级角色与能力边界管理。</td>
+        </tr>
+        <tr>
+          <td>FDE业务管理</td>
+          <td>FDE 业务协作与执行后台</td>
+          <td>FDE管理员、普通FDE</td>
+          <td>负责租户承接、组织管理、成员管理、商机分配等业务执行相关身份能力。</td>
+        </tr>
+        <tr>
+          <td>FDE开发管理</td>
+          <td>FDE 研发与发布后台</td>
+          <td>普通FDE（具开发身份）</td>
+          <td>负责 Agent 开发、测试、提审、发布、版本管理与进化，不承担组织与成员管理。</td>
+        </tr>
+        <tr>
+          <td>企业管理后台</td>
+          <td>企业内成员与权限管理后台</td>
+          <td>企业管理员、普通员工</td>
+          <td>负责企业组织树、成员、角色与权限管理。</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>5. 关键业务说明图</h2>
+    <div class="svg-wrap">
+      <svg viewBox="0 0 1440 520" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;display:block;">
+        <defs>
+          <marker id="arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 z" fill="#94a3b8"></path>
+          </marker>
+        </defs>
+        <rect x="20" y="20" width="1400" height="480" rx="8" fill="#ffffff" stroke="#d1d5db"></rect>
+        <rect x="60" y="60" width="220" height="84" rx="8" fill="#f9fafb" stroke="#d1d5db"></rect>
+        <text x="170" y="94" text-anchor="middle" font-size="20" font-weight="700">租户创建</text>
+        <text x="170" y="118" text-anchor="middle" font-size="12" fill="#6b7280">创建租户基础信息</text>
+        <rect x="340" y="60" width="270" height="84" rx="8" fill="#f9fafb" stroke="#d1d5db"></rect>
+        <text x="475" y="94" text-anchor="middle" font-size="20" font-weight="700">开通系统模块权限</text>
+        <text x="475" y="118" text-anchor="middle" font-size="12" fill="#6b7280">运营 / FDE业务 / FDE开发 / 企业</text>
+        <rect x="670" y="60" width="250" height="84" rx="8" fill="#f9fafb" stroke="#d1d5db"></rect>
+        <text x="795" y="94" text-anchor="middle" font-size="20" font-weight="700">角色可选范围生成</text>
+        <text x="795" y="118" text-anchor="middle" font-size="12" fill="#6b7280">只显示已开模块对应角色</text>
+        <rect x="980" y="60" width="220" height="84" rx="8" fill="#f9fafb" stroke="#d1d5db"></rect>
+        <text x="1090" y="94" text-anchor="middle" font-size="20" font-weight="700">成员加入租户</text>
+        <text x="1090" y="118" text-anchor="middle" font-size="12" fill="#6b7280">绑定组织、角色、状态</text>
+        <rect x="1260" y="60" width="120" height="84" rx="8" fill="#f9fafb" stroke="#d1d5db"></rect>
+        <text x="1320" y="94" text-anchor="middle" font-size="20" font-weight="700">登录进入</text>
+        <text x="1320" y="118" text-anchor="middle" font-size="12" fill="#6b7280">按身份生效</text>
+        <line x1="280" y1="102" x2="340" y2="102" stroke="#94a3b8" stroke-width="3" marker-end="url(#arr)"></line>
+        <line x1="610" y1="102" x2="670" y2="102" stroke="#94a3b8" stroke-width="3" marker-end="url(#arr)"></line>
+        <line x1="920" y1="102" x2="980" y2="102" stroke="#94a3b8" stroke-width="3" marker-end="url(#arr)"></line>
+        <line x1="1200" y1="102" x2="1260" y2="102" stroke="#94a3b8" stroke-width="3" marker-end="url(#arr)"></line>
+        <rect x="90" y="250" width="1260" height="150" rx="8" fill="#f9fafb" stroke="#d1d5db"></rect>
+        <text x="720" y="285" text-anchor="middle" font-size="20" font-weight="700">关键业务规则</text>
+        <text x="135" y="325" font-size="14" fill="#4b5563">1. 创建租户时先开系统模块权限，再决定内置角色可选范围。</text>
+        <text x="135" y="351" font-size="14" fill="#4b5563">2. 未开 FDE 模块的租户，不能选择 FDE管理员 / 普通FDE。</text>
+        <text x="135" y="377" font-size="14" fill="#4b5563">3. 未开企业模块的租户，不能选择企业管理员 / 普通员工。</text>
+        <text x="720" y="325" font-size="14" fill="#4b5563">4. 组织树是成员归属、负责人设置、业务分配、数据范围控制的基础。</text>
+        <text x="720" y="351" font-size="14" fill="#4b5563">5. 自定义角色只能在当前租户已开通模块范围内配置权限。</text>
+        <text x="720" y="377" font-size="14" fill="#4b5563">6. 登录后按“租户 × 角色 × 模块能力”生成最终进入路径。</text>
+      </svg>
+    </div>
+
+    <h2>6. 租户创建与模块开通逻辑</h2>
+    <ul>
+      <li>运营人员创建租户并录入基础信息。</li>
+      <li>运营人员为租户开通系统模块权限：运营管理后台 / FDE业务管理 / FDE开发管理 / 企业管理后台。</li>
+      <li>系统根据租户已开模块，生成该租户可选的内置角色范围。</li>
+      <li>成员分配角色时，只能选择当前租户已开模块对应的内置角色与自定义角色。</li>
+    </ul>
+    <div class="note"><b>强规则：</b>角色选择范围必须依赖租户模块开通结果。</div>
+
+    <h2>7. 内置角色定义与权限清单</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>内置角色</th>
+          <th>关联系统模块</th>
+          <th>平台进入权限</th>
+          <th>核心权限</th>
+          <th>业务说明</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>企业管理员</td>
+          <td>企业管理后台</td>
+          <td>可进入企业管理后台</td>
+          <td>查看企业组织树、创建/编辑组织节点、设置负责人、新增/编辑/启停/删除企业成员、分配角色、配置页面权限与数据范围</td>
+          <td>企业租户内的管理角色，负责企业内部组织、成员和权限治理。</td>
+        </tr>
+        <tr>
+          <td>普通员工</td>
+          <td>企业管理后台（受限）/ 企业侧工作空间</td>
+          <td>可进入企业模块中的被授权页面</td>
+          <td>查看被授权菜单、在权限范围内使用系统、查看自身归属组织与角色（建议）</td>
+          <td>企业普通使用者，只承接被授权的工作能力，不承担管理职责。</td>
+        </tr>
+        <tr>
+          <td>FDE管理员</td>
+          <td>FDE业务管理</td>
+          <td>可进入 FDE业务管理</td>
+          <td>查看/维护负责租户、创建/编辑组织树、设置组织负责人、新增/编辑/启停/删除 FDE 成员、按组织/成员分配商机、分配角色、配置数据范围</td>
+          <td>偏业务协作与管理统筹，是 FDE 业务侧的核心管理角色。</td>
+        </tr>
+        <tr>
+          <td>普通FDE</td>
+          <td>FDE业务管理 / FDE开发管理（按租户模块开通结果决定）</td>
+          <td>可进入 FDE业务管理；若租户开通 FDE开发管理，则可进入开发模块</td>
+          <td>查看分配给自己的租户/业务对象、在 FDE业务管理中处理执行事项、在 FDE开发管理中进行 Agent 开发/测试/提审/发布/版本进化（具开发权限时）</td>
+          <td>既可以是业务执行者，也可以具备开发身份，但不天然拥有组织与成员管理能力。</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>8. 自定义角色设计</h2>
+    <ul>
+      <li>支持创建自定义角色、编辑自定义角色、删除自定义角色、查看角色关联成员。</li>
+      <li>自定义角色不能脱离租户存在，必须挂在某个租户下。</li>
+      <li>自定义角色只能在当前租户已开通的系统模块范围内配置页面权限与数据范围。</li>
+      <li>成员被分配自定义角色后，其最终权限与内置角色权限共同生效。</li>
+    </ul>
+
+    <h2>9. 组织树功能说明</h2>
+    <ul>
+      <li>创建组织节点</li>
+      <li>编辑组织节点</li>
+      <li>删除组织节点</li>
+      <li>设置组织负责人</li>
+      <li>解除组织负责人</li>
+      <li>查看节点路径</li>
+    </ul>
+    <div class="note">组织树是成员归属、负责人设置、业务分派与数据范围控制的基础结构。</div>
+
+    <h2>10. 功能清单总表</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>系统模块</th>
+          <th>功能模块</th>
+          <th>一级功能</th>
+          <th>二级功能</th>
+          <th>功能描述</th>
+          <th>用户旅程</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>通用登录</td><td>统一认证</td><td>登录</td><td>手机号输入</td><td>所有用户通过手机号进入统一登录入口。</td><td>所有用户输入手机号，期望用一个账号进入 Frontis 的不同系统。</td></tr>
+        <tr><td>通用登录</td><td>统一认证</td><td>登录</td><td>获取验证码</td><td>支持验证码获取，并带冷却机制。</td><td>所有用户获取验证码，期望低门槛完成登录，同时平台兼顾安全。</td></tr>
+        <tr><td>通用登录</td><td>身份进入</td><td>身份识别</td><td>识别可进入租户</td><td>登录后识别当前用户可进入哪些租户。</td><td>多身份用户登录后，期望系统自动告诉他有哪些可进入租户。</td></tr>
+        <tr><td>通用登录</td><td>身份进入</td><td>身份识别</td><td>识别可进入平台</td><td>识别当前用户可进入哪些平台。</td><td>多身份用户登录后，期望系统只展示自己可进入的平台。</td></tr>
+        <tr><td>通用登录</td><td>身份进入</td><td>身份选择</td><td>选择租户 / 平台 / 身份</td><td>在进入后台前选择本次身份组合。</td><td>多身份用户选择当前工作上下文，期望快速进入正确后台。</td></tr>
+        <tr><td>运营管理后台</td><td>租户管理</td><td>租户维护</td><td>创建租户</td><td>创建新的业务租户。</td><td>平台运营人员创建租户，期望快速承接新的客户主体或内部组织。</td></tr>
+        <tr><td>运营管理后台</td><td>模块开通</td><td>平台能力开通</td><td>开通系统模块权限</td><td>为租户开通运营管理后台、FDE业务管理、FDE开发管理、企业管理后台。</td><td>平台运营人员给租户开通系统模块，期望租户只获得被授权的系统能力。</td></tr>
+        <tr><td>运营管理后台</td><td>角色治理</td><td>角色范围控制</td><td>限制内置角色可选范围</td><td>根据租户已开模块决定可选内置角色。</td><td>平台运营人员控制角色选择范围，期望未开模块的租户不能误选不对应角色。</td></tr>
+        <tr><td>FDE业务管理</td><td>组织树管理</td><td>组织维护</td><td>创建组织节点</td><td>创建 FDE 组织节点。</td><td>FDE管理员维护组织结构，期望团队分工与系统结构一致。</td></tr>
+        <tr><td>FDE业务管理</td><td>组织树管理</td><td>负责人设置</td><td>设置组织负责人</td><td>给组织节点指定负责人。</td><td>FDE管理员设置组织负责人，期望业务管理责任归属明确。</td></tr>
+        <tr><td>FDE业务管理</td><td>成员管理</td><td>成员维护</td><td>新增成员</td><td>创建 FDE 成员身份并分配归属。</td><td>FDE管理员新增成员，期望新成员可以进入正确组织和业务上下文。</td></tr>
+        <tr><td>FDE业务管理</td><td>业务分派</td><td>商机分配</td><td>按组织分配商机</td><td>基于组织树把商机分派给组织或小组。</td><td>FDE团队负责人根据组织树分配商机，期望商机分派有依据、责任清晰。</td></tr>
+        <tr><td>FDE业务管理</td><td>业务分派</td><td>商机分配</td><td>按成员分配商机</td><td>将具体商机分派给具体工程师。</td><td>FDE团队负责人把商机分给具体工程师，期望一线承接责任到人。</td></tr>
+        <tr><td>FDE业务管理</td><td>角色管理</td><td>内置角色</td><td>分配 FDE管理员 / 普通FDE</td><td>在已开 FDE 模块范围内分配内置角色。</td><td>FDE管理员给成员分配 FDE 角色，期望成员进入系统后只看到自己的业务入口。</td></tr>
+        <tr><td>FDE开发管理</td><td>Agent 开发</td><td>开发执行</td><td>创建 Agent</td><td>创建 Agent 并进入开发流程。</td><td>普通FDE 在开发模块创建 Agent，期望把业务需求转成可运行能力。</td></tr>
+        <tr><td>FDE开发管理</td><td>Agent 开发</td><td>开发执行</td><td>测试 Agent</td><td>在提交前完成测试与验证。</td><td>普通FDE 测试 Agent，期望在上架前验证能力与稳定性。</td></tr>
+        <tr><td>FDE开发管理</td><td>Agent 上线</td><td>审核发布</td><td>提交上架审核</td><td>向运营侧发起上架审核。</td><td>普通FDE 提交上架审核，期望 Agent 进入平台技术资产池。</td></tr>
+        <tr><td>FDE开发管理</td><td>Agent 版本</td><td>版本管理</td><td>提交新版本</td><td>提交新版本并触发后续审核。</td><td>普通FDE 提交新版本，期望持续优化已上线 Agent。</td></tr>
+        <tr><td>企业管理后台</td><td>组织树管理</td><td>组织维护</td><td>创建组织节点</td><td>创建企业内部组织节点。</td><td>企业管理员创建组织节点，期望系统组织结构与企业真实结构一致。</td></tr>
+        <tr><td>企业管理后台</td><td>成员管理</td><td>成员维护</td><td>新增企业成员</td><td>新增企业成员并发起邀请。</td><td>企业管理员新增成员，期望新员工激活后直接进入正确组织和权限范围。</td></tr>
+        <tr><td>企业管理后台</td><td>角色管理</td><td>内置角色</td><td>分配企业管理员 / 普通员工</td><td>在已开企业模块范围内分配企业内置角色。</td><td>企业管理员分配企业角色，期望不同岗位看到不同系统能力。</td></tr>
+        <tr><td>企业管理后台</td><td>角色管理</td><td>自定义角色</td><td>创建自定义角色</td><td>创建企业自定义角色并配置权限。</td><td>企业管理员创建自定义角色，期望满足企业内部特殊岗位需求。</td></tr>
+        <tr><td>企业管理后台</td><td>权限设置</td><td>页面权限</td><td>配置页面权限</td><td>配置角色可访问的具体页面。</td><td>企业管理员配置页面权限，期望员工进入后台后只看到岗位相关菜单。</td></tr>
+      </tbody>
+    </table>
+
+    <h2>11. 结论</h2>
+    <p>统一用户体系的核心业务逻辑是：<b>租户创建时先开系统模块权限，再决定内置角色可选范围；成员加入租户后挂接组织树、角色与状态；登录时根据租户、角色、模块能力生成最终身份进入路径；平台内的菜单、页面、数据范围由内置角色、自定义角色与租户已开通能力共同决定。</b></p>
+  </div>
+</body>
+</html>

@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Frontis AI 平台业务流程图 V2.4 重构版</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      background: #eef1f6; color: #0f172a;
+    }
+    .page-header {
+      background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 60%, #1e40af 100%);
+      color: white; padding: 16px 32px;
+      display: flex; align-items: center; justify-content: space-between;
+      box-shadow: 0 3px 16px rgba(0,0,0,0.35); position: sticky; top: 0; z-index: 100;
+    }
+    .page-header h1 { font-size: 20px; font-weight: 800; letter-spacing: 1px; display: flex; align-items: center; gap: 10px; }
+    .logo-dot { width: 10px; height: 10px; border-radius: 50%; background: #60a5fa; box-shadow: 0 0 8px #60a5fa; }
+    .header-right { display: flex; align-items: center; gap: 12px; }
+    .version-badge { background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.25); padding: 3px 12px; border-radius: 99px; font-size: 11px; color: #93c5fd; font-weight: 700; }
+    .hint-badge { font-size: 11px; color: #fbbf24; }
+    .main-content { padding: 16px 20px 28px; }
+
+    .legend-box {
+      background: white; border-radius: 10px; box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+      padding: 12px 18px; margin-bottom: 14px; display: flex; flex-wrap: wrap; gap: 20px; align-items: center;
+    }
+    .legend-section { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+    .legend-divider { width: 1px; height: 24px; background: #e2e8f0; }
+    .legend-title { font-size: 10px; font-weight: 800; color: #374151; text-transform: uppercase; }
+    .legend-item { display: flex; align-items: center; gap: 6px; font-size: 11px; color: #4b5563; }
+    .legend-dot { width: 20px; height: 12px; border-radius: 3px; }
+    .legend-diamond { width: 10px; height: 10px; transform: rotate(45deg); border-radius: 1px; }
+    .legend-capsule { width: 28px; height: 13px; border-radius: 7px; }
+
+    .scroll-wrap { overflow: auto; border-radius: 12px; box-shadow: 0 4px 28px rgba(0,0,0,0.13); background: #fff; }
+    .node-clickable { cursor: pointer; }
+    .node-clickable:hover .shape { filter: brightness(0.97) saturate(1.08); stroke-width: 3; }
+
+    #popup-overlay { display: none; position: fixed; inset: 0; background: rgba(15,23,42,0.35); z-index: 200; backdrop-filter: blur(2px); }
+    #popup-overlay.show { display: block; }
+    #popup-panel {
+      position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+      width: 640px; max-height: 80vh; background: #fff; border-radius: 16px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.25); z-index: 210; overflow: hidden; display: none; flex-direction: column;
+    }
+    #popup-panel.show { display: flex; }
+    .popup-header { display: flex; align-items: center; justify-content: space-between; padding: 18px 22px 12px; border-bottom: 1px solid #f1f5f9; }
+    .popup-header h2 { font-size: 18px; font-weight: 800; }
+    .popup-body { padding: 18px 22px 22px; overflow-y: auto; }
+    .popup-body p { font-size: 13px; color: #475569; line-height: 1.7; margin-bottom: 12px; }
+    .info-card { background: #f8fafc; border-left: 3px solid #3b82f6; border-radius: 10px; padding: 12px 14px; margin-bottom: 10px; }
+    .info-card.red { background: #fef2f2; border-left-color: #dc2626; }
+    .info-card.green { background: #f0fdf4; border-left-color: #16a34a; }
+    .info-card.amber { background: #fffbeb; border-left-color: #d97706; }
+    .info-card.purple { background: #faf5ff; border-left-color: #7e22ce; }
+    .info-card.cyan { background: #ecfeff; border-left-color: #0891b2; }
+    .info-card h4 { font-size: 12px; margin-bottom: 4px; }
+    .info-card ul { padding-left: 18px; font-size: 12px; color: #475569; line-height: 1.8; }
+    .close-btn { width: 32px; height: 32px; border: none; background: #f1f5f9; border-radius: 50%; cursor: pointer; color: #64748b; font-size: 16px; }
+    .tag { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 99px; font-weight: 600; margin-right: 6px; }
+    .tag-blue { background: #dbeafe; color: #1d4ed8; }
+    .tag-green { background: #dcfce7; color: #15803d; }
+    .tag-red { background: #fef2f2; color: #dc2626; }
+    .tag-amber { background: #fef3c7; color: #92400e; }
+    .tag-purple { background: #f3e8ff; color: #7e22ce; }
+    .tag-gray { background: #f1f5f9; color: #475569; }
+    .tag-pink { background: #fce7f3; color: #9d174d; }
+    .tag-cyan { background: #cffafe; color: #155e75; }
+    .tag-orange { background: #ffedd5; color: #9a3412; }
+    .tag-indigo { background: #e0e7ff; color: #4338ca; }
+  </style>
+</head>
+<body>
+  <div class="page-header">
+    <h1><span class="logo-dot"></span>Frontis AI 平台业务流程图</h1>
+    <div class="header-right">
+      <span class="version-badge">V2.4 重构版</span>
+      <span class="hint-badge">💡 重构租户与统一用户体系逻辑 · 点击节点查看详情</span>
+    </div>
+  </div>
+  <div class="main-content">
+    <div class="legend-box">
+      <div class="legend-section">
+        <div class="legend-title">泳道</div>
+        <div class="legend-item"><span class="legend-dot" style="background:#dbeafe;border:1px solid #3b82f6"></span>平台系统</div>
+        <div class="legend-item"><span class="legend-dot" style="background:#dbeafe;border:1px solid #1d4ed8"></span>平台运营/超管</div>
+        <div class="legend-item"><span class="legend-dot" style="background:#dcfce7;border:1px solid #22c55e"></span>FDE业务管理员</div>
+        <div class="legend-item"><span class="legend-dot" style="background:#ecfccb;border:1px solid #65a30d"></span>FDE开发工程师</div>
+        <div class="legend-item"><span class="legend-dot" style="background:#f3e8ff;border:1px solid #a855f7"></span>企业管理员</div>
+        <div class="legend-item"><span class="legend-dot" style="background:#fff7ed;border:1px solid #f97316"></span>企业员工</div>
+      </div>
+      <div class="legend-divider"></div>
+      <div class="legend-section">
+        <div class="legend-title">节点</div>
+        <div class="legend-item"><span class="legend-dot" style="background:#e0f2fe;border:1px solid #0ea5e9"></span>普通流程节点</div>
+        <div class="legend-item"><span class="legend-diamond" style="background:#fef3c7;border:1px solid #f59e0b"></span>审批/判断节点</div>
+        <div class="legend-item"><span class="legend-capsule" style="background:#fee2e2;border:1px solid #ef4444"></span>关键状态节点</div>
+        <div class="legend-item"><span class="legend-dot" style="background:#fef2f2;border:2px solid #dc2626"></span><span style="color:#dc2626;font-weight:700;">商品相关</span></div>
+      </div>
+      <div class="legend-divider"></div>
+      <div class="legend-section">
+        <div class="legend-title">阶段</div>
+        <div class="legend-item"><span class="legend-dot" style="background:#dbeeff;border:1px solid #93c5fd"></span>①平台初始化</div>
+        <div class="legend-item"><span class="legend-dot" style="background:#e0f2fe;border:1px solid #60a5fa"></span>②租户创建与模块开通</div>
+        <div class="legend-item"><span class="legend-dot" style="background:#fef9c3;border:1px solid #fde047"></span>③Agent上架</div>
+        <div class="legend-item"><span class="legend-dot" style="background:#fce7f3;border:1px solid #f9a8d4"></span>④商品化</div>
+        <div class="legend-item"><span class="legend-dot" style="background:#ede9fe;border:1px solid #c4b5fd"></span>⑤商机推进</div>
+        <div class="legend-item"><span class="legend-dot" style="background:#e0e7ff;border:1px solid #818cf8"></span>⑥租户确认与下单</div>
+        <div class="legend-item"><span class="legend-dot" style="background:#cffafe;border:1px solid #67e8f9"></span>⑦付款与交付</div>
+        <div class="legend-item"><span class="legend-dot" style="background:#ffedd5;border:1px solid #fdba74"></span>⑧续费与迭代</div>
+      </div>
+      <div class="legend-divider"></div>
+      <div class="legend-section">
+        <div class="legend-title">说明</div>
+        <div class="legend-item">💡 除运营后台外，均为统一用户体系</div>
+        <div class="legend-item">↺ 虚线表示回流/持续管理</div>
+      </div>
+    </div>
+    <div class="scroll-wrap"><svg id="flowSvg" xmlns="http://www.w3.org/2000/svg"></svg></div>
+  </div>
+
+  <div id="popup-overlay" onclick="closePopup()"></div>
+  <div id="popup-panel">
+    <div class="popup-header"><div><div id="popup-badge" style="margin-bottom:6px;"></div><h2 id="popup-title"></h2></div><button class="close-btn" onclick="closePopup()">✕</button></div>
+    <div class="popup-body" id="popup-body"></div>
+  </div>
+
+<script>
+const LANES = [
+  { id:'sys', label:'平台系统', short:'system', color:'#334155', fill:'#f1f5f9' },
+  { id:'ops', label:'平台运营/超管', short:'ops console', color:'#1d4ed8', fill:'#dbeafe' },
+  { id:'fdeBiz', label:'FDE业务管理员', short:'biz workspace', color:'#15803d', fill:'#dcfce7' },
+  { id:'fdeDev', label:'FDE开发工程师', short:'dev workspace', color:'#65a30d', fill:'#ecfccb' },
+  { id:'admin', label:'企业管理员', short:'tenant console', color:'#7e22ce', fill:'#f3e8ff' },
+  { id:'employee', label:'企业员工', short:'workspace', color:'#c2410c', fill:'#fff7ed' },
+];
+const STAGES = [
+  { id:'s1', title:'① 平台初始化', en:'Platform Initialization', fill:'#dbeeff', text:'#1d4ed8' },
+  { id:'s2', title:'② 租户创建与模块开通', en:'Tenant & Permission Opening', fill:'#e0f2fe', text:'#0369a1' },
+  { id:'s3', title:'③ Agent 开发与审核上架', en:'Agent Development & Publishing', fill:'#fef9c3', text:'#92400e' },
+  { id:'s4', title:'④ 商品化与定价', en:'Product Configuration & Pricing', fill:'#fce7f3', text:'#9d174d' },
+  { id:'s5', title:'⑤ 商机推进与方案匹配', en:'Opportunity & Solution Matching', fill:'#ede9fe', text:'#6d28d9' },
+  { id:'s6', title:'⑥ 租户确认与下单', en:'Tenant Confirmation & Ordering', fill:'#e0e7ff', text:'#4338ca' },
+  { id:'s7', title:'⑦ 付款确认与交付实施', en:'Payment & Delivery', fill:'#cffafe', text:'#155e75' },
+  { id:'s8', title:'⑧ 续费、增购与版本迭代', en:'Renewal, Upsell & Iteration', fill:'#ffedd5', text:'#9a3412' },
+];
+const NODES = [
+  // 阶段1 平台初始化
+  { id:'N1', stage:'s1', lane:'sys', type:'rect', title:'初始化Platform', sub:'创建超管组织' },
+  { id:'N2', stage:'s1', lane:'sys', type:'rect', title:'初始化权限模型', sub:'租户/角色/模块能力' },
+  { id:'N3', stage:'s1', lane:'ops', type:'rect', title:'超管/运营人员登录后台', sub:'进入运营控制台' },
+
+  // 阶段2 租户创建与模块开通
+  { id:'N4', stage:'s2', lane:'ops', type:'rect', title:'创建租户', sub:'新建组织/租户' },
+  { id:'N5', stage:'s2', lane:'ops', type:'rect', title:'开通功能模块', sub:'企业工作台/FDE业务/FDE开发/运营端' },
+  { id:'N6', stage:'s2', lane:'ops', type:'rect', title:'录入租户业务信息', sub:'企业/FDE组织资料' },
+  { id:'N7', stage:'s2', lane:'ops', type:'rect', title:'邀请租户管理员', sub:'FDE业务管理员 / 企业管理员' },
+  { id:'N8', stage:'s2', lane:'fdeBiz', type:'rect', title:'FDE业务管理员接受邀请', sub:'统一账号体系登录' },
+  { id:'N9', stage:'s2', lane:'fdeBiz', type:'rect', title:'初始化FDE组织树', sub:'团队/组别/角色' },
+  { id:'N10', stage:'s2', lane:'fdeBiz', type:'rect', title:'邀请FDE开发工程师', sub:'邀请普通FDE成员' },
+  { id:'N11', stage:'s2', lane:'fdeDev', type:'rect', title:'FDE开发工程师接受邀请', sub:'统一账号体系登录' },
+  { id:'N12', stage:'s2', lane:'admin', type:'rect', title:'企业管理员接受邀请', sub:'首次登录激活', status:'【已激活】', statusType:'green' },
+  { id:'N13', stage:'s2', lane:'admin', type:'rect', title:'初始化企业组织树', sub:'部门/成员结构' },
+  { id:'N14', stage:'s2', lane:'admin', type:'rect', title:'邀请企业员工', sub:'添加账号并发送邀请' },
+
+  // 阶段3 Agent 开发与审核上架
+  { id:'N15', stage:'s3', lane:'fdeDev', type:'rect', title:'开发 Agent', sub:'Prompt / Skill / 配置项' },
+  { id:'N16', stage:'s3', lane:'fdeDev', type:'rect', title:'测试并提审', sub:'填写描述/分类/版本说明', status:'【待审核】', statusType:'amber' },
+  { id:'N17', stage:'s3', lane:'ops', type:'diamond', title:'运营\n审核' },
+  { id:'N18', stage:'s3', lane:'ops', type:'rect', title:'Agent Store上架', sub:'技术资产池可见', status:'【已上架】', statusType:'green' },
+
+  // 阶段4 商品化与定价
+  { id:'N19', stage:'s4', lane:'ops', type:'rect', title:'🟥 创建商品类目', sub:'按业务动态创建', product:true },
+  { id:'N20', stage:'s4', lane:'ops', type:'rect', title:'🟥 Agent转商品', sub:'配置商品信息+定价', product:true },
+  { id:'N21', stage:'s4', lane:'ops', type:'rect', title:'🟥 创建非Agent商品', sub:'设备/资源包/服务', product:true },
+  { id:'N22', stage:'s4', lane:'ops', type:'rect', title:'🟥 创建SKU/规格', sub:'时长/版本/套餐明细', product:true },
+  { id:'N23', stage:'s4', lane:'ops', type:'rect', title:'🟥 商品上架发布', sub:'商品池可见可售', product:true, status:'【商品在售】', statusType:'red' },
+
+  // 阶段5 商机推进
+  { id:'N24', stage:'s5', lane:'fdeBiz', type:'rect', title:'获取商机线索', sub:'门户同步/手动录入' },
+  { id:'N25', stage:'s5', lane:'fdeBiz', type:'rect', title:'跟进需求与方案匹配', sub:'沟通/演示/推荐方案' },
+  { id:'N26', stage:'s5', lane:'fdeBiz', type:'diamond', title:'需要\n折扣?' },
+  { id:'N27', stage:'s5', lane:'ops', type:'diamond', title:'折扣\n审批' },
+  { id:'N28', stage:'s5', lane:'fdeBiz', type:'rect', title:'客户确认意向', sub:'商机转订单前置' },
+
+  // 阶段6 租户确认与下单
+  { id:'N29', stage:'s6', lane:'fdeBiz', type:'rect', title:'确认目标租户', sub:'存量租户或新建客户租户' },
+  { id:'N30', stage:'s6', lane:'fdeBiz', type:'rect', title:'🟥 浏览商品池', sub:'筛选/搜索/查看详情', product:true },
+  { id:'N31', stage:'s6', lane:'fdeBiz', type:'rect', title:'🟥 选择商品 & SKU', sub:'Agent/设备/套餐/规格', product:true },
+  { id:'N32', stage:'s6', lane:'fdeBiz', type:'rect', title:'🟥 创建订单', sub:'绑定租户+商品+备注', product:true, status:'【待付款】', statusType:'red' },
+
+  // 阶段7 付款与交付
+  { id:'N33', stage:'s7', lane:'admin', type:'rect', title:'客户线下付款', sub:'扫码/银行转账' },
+  { id:'N34', stage:'s7', lane:'fdeBiz', type:'rect', title:'上传付款凭证', sub:'水单/支付截图', status:'【待确认】', statusType:'amber' },
+  { id:'N35', stage:'s7', lane:'ops', type:'rect', title:'确认付款状态', sub:'人工核验到账', status:'【已付款】', statusType:'green' },
+  { id:'N36', stage:'s7', lane:'sys', type:'rect', title:'激活资源配额', sub:'预分配→已激活', status:'【已激活】', statusType:'blue' },
+  { id:'N37', stage:'s7', lane:'fdeDev', type:'rect', title:'部署 / 下载技术资产', sub:'下载必须绑定订单' },
+  { id:'N38', stage:'s7', lane:'fdeDev', type:'rect', title:'沙盒验证', sub:'运行验证结果', status:'【待验证】', statusType:'amber' },
+  { id:'N39', stage:'s7', lane:'sys', type:'rect', title:'🟥 形成客户资产', sub:'商品→资产实例', product:true, status:'【已交付】', statusType:'green' },
+  { id:'N40', stage:'s7', lane:'admin', type:'rect', title:'配置成员', sub:'录入企业员工账号' },
+  { id:'N41', stage:'s7', lane:'admin', type:'rect', title:'分配角色与权限', sub:'谁能用哪些能力' },
+  { id:'N42', stage:'s7', lane:'employee', type:'rect', title:'进入workspace使用能力', sub:'开始正式使用' },
+
+  // 阶段8 续费与迭代
+  { id:'N43', stage:'s8', lane:'sys', type:'rect', title:'到期提醒', sub:'提前30天通知' },
+  { id:'N44', stage:'s8', lane:'admin', type:'rect', title:'发起续费/增购意向', sub:'企业侧提出申请' },
+  { id:'N45', stage:'s8', lane:'fdeBiz', type:'rect', title:'🟥 创建续费/增购订单', sub:'重走订单流程', product:true },
+  { id:'N46', stage:'s8', lane:'fdeDev', type:'rect', title:'提交新版本', sub:'版本开发与测试' },
+  { id:'N47', stage:'s8', lane:'ops', type:'diamond', title:'审核\n新版本' },
+  { id:'N48', stage:'s8', lane:'sys', type:'rect', title:'🟥 已购客户升级', sub:'通知或自动升级', product:true },
+  { id:'N49', stage:'s8', lane:'ops', type:'rect', title:'🟥 商品上下架/价格维护', sub:'调价/编辑/归档', product:true },
+];
+const EDGES = [
+  ['N1','N2','gray'], ['N2','N3','gray'],
+  ['N3','N4','blue'], ['N4','N5','blue'], ['N5','N6','blue'], ['N6','N7','blue'],
+  ['N7','N8','green'], ['N7','N12','purple'],
+  ['N8','N9','green'], ['N9','N10','green'], ['N10','N11','green'],
+  ['N11','N15','green'], ['N15','N16','green'], ['N16','N17','amber'], ['N17','N18','green'],
+  ['N18','N19','red'], ['N19','N20','red'], ['N20','N21','red'], ['N21','N22','red'], ['N22','N23','red'],
+  ['N23','N24','green'], ['N24','N25','green'], ['N25','N26','green'], ['N26','N28','green','否'], ['N26','N27','amber','是'], ['N27','N28','green','批准'],
+  ['N28','N29','green'], ['N29','N30','red'], ['N30','N31','red'], ['N31','N32','red'],
+  ['N32','N33','cyan'], ['N33','N34','cyan'], ['N34','N35','blue'], ['N35','N36','gray'], ['N35','N37','cyan'], ['N37','N38','gray'], ['N38','N39','green'], ['N39','N40','gray'], ['N40','N41','purple'], ['N41','N42','purple'],
+  ['N42','N43','gray'], ['N43','N44','purple'], ['N44','N45','red'], ['N45','N46','cyan'], ['N46','N47','green'], ['N47','N48','green'],
+];
+const SPECIAL_EDGES = [
+  { from:'N17', to:'N15', color:'red', dashed:true, label:'拒绝→修改重提' },
+  { from:'N27', to:'N25', color:'red', dashed:true, label:'拒绝→重新跟进' },
+  { from:'N35', to:'N34', color:'red', dashed:true, label:'驳回→重新上传' },
+  { from:'N38', to:'N37', color:'red', dashed:true, label:'验证不通过→重新部署' },
+  { from:'N47', to:'N46', color:'red', dashed:true, label:'拒绝' },
+  { from:'N45', to:'N32', color:'purple', dashed:true, label:'↺ 回流订单主链路' },
+  { from:'N23', to:'N49', color:'red', dashed:true, label:'' },
+];
+const COLORS = { gray:'#64748b', blue:'#2563eb', green:'#16a34a', amber:'#d97706', red:'#dc2626', purple:'#9333ea', cyan:'#0891b2' };
+function markerId(c){return ({gray:'arr',blue:'arr-b',green:'arr-g',amber:'arr-a',red:'arr-r',purple:'arr-p',cyan:'arr-c'})[c]||'arr';}
+
+const POPUPS = {
+  N1:{badge:'<span class="tag tag-gray">平台系统</span><span class="tag tag-blue">① 平台初始化</span>',title:'初始化 Platform',body:'<div class="info-card"><ul><li>创建 Platform 超管组织</li><li>生成默认超级管理员账号</li></ul></div>'},
+  N2:{badge:'<span class="tag tag-gray">平台系统</span><span class="tag tag-blue">① 平台初始化</span>',title:'初始化权限模型',body:'<div class="info-card"><ul><li>初始化租户模型、角色模型、权限模型</li><li>提供统一用户体系能力</li><li>提供商品中心、定价、折扣、试用等基础能力底座</li></ul></div>'},
+  N3:{badge:'<span class="tag tag-blue">平台运营/超管</span><span class="tag tag-blue">① 平台初始化</span>',title:'超管/运营人员登录后台',body:'<div class="info-card"><ul><li>超管组织或平台运营人员进入运营管理后台</li><li>后续由超管/运营创建租户并分配功能模块权限</li></ul></div>'},
+  N4:{badge:'<span class="tag tag-blue">平台运营/超管</span><span class="tag tag-cyan">② 租户创建与模块开通</span>',title:'创建租户',body:'<div class="info-card"><ul><li>创建组织/租户承载实体</li><li>租户是后续订单、交付、权限控制的根对象</li></ul></div>'},
+  N5:{badge:'<span class="tag tag-blue">平台运营/超管</span><span class="tag tag-cyan">② 租户创建与模块开通</span>',title:'开通功能模块',body:'<div class="info-card"><ul><li>给租户分配功能模块权限</li><li>四类模块：企业工作台 / FDE业务管理 / FDE开发管理 / 运营端</li></ul></div>'},
+  N6:{badge:'<span class="tag tag-blue">平台运营/超管</span><span class="tag tag-cyan">② 租户创建与模块开通</span>',title:'录入租户业务信息',body:'<div class="info-card"><ul><li>录入企业/FDE组织的业务资料</li><li>如名称、行业、联系人、管理员邮箱等</li></ul></div>'},
+  N7:{badge:'<span class="tag tag-blue">平台运营/超管</span><span class="tag tag-cyan">② 租户创建与模块开通</span>',title:'邀请租户管理员',body:'<div class="info-card"><ul><li>平台运营只邀请租户管理员</li><li>FDE 租户 → 邀请 FDE业务管理员</li><li>企业租户 → 邀请 企业管理员</li></ul></div>'},
+  N8:{badge:'<span class="tag tag-green">FDE业务管理员</span><span class="tag tag-cyan">② 租户创建与模块开通</span>',title:'FDE业务管理员接受邀请',body:'<div class="info-card green"><ul><li>接受邀请后进入 FDE业务管理工作台</li></ul></div>'},
+  N9:{badge:'<span class="tag tag-green">FDE业务管理员</span><span class="tag tag-cyan">② 租户创建与模块开通</span>',title:'初始化FDE组织树',body:'<div class="info-card green"><ul><li>初始化 FDE 团队 / 组别 / 角色结构</li></ul></div>'},
+  N10:{badge:'<span class="tag tag-green">FDE业务管理员</span><span class="tag tag-cyan">② 租户创建与模块开通</span>',title:'邀请FDE开发工程师',body:'<div class="info-card green"><ul><li>FDE业务管理员邀请 FDE开发工程师或其他 FDE 成员</li></ul></div>'},
+  N11:{badge:'<span class="tag tag-green">FDE开发工程师</span><span class="tag tag-cyan">② 租户创建与模块开通</span>',title:'FDE开发工程师接受邀请',body:'<div class="info-card green"><ul><li>接受邀请后进入 FDE开发管理工作台</li></ul></div>'},
+  N12:{badge:'<span class="tag tag-purple">企业管理员</span><span class="tag tag-cyan">② 租户创建与模块开通</span>',title:'企业管理员接受邀请',body:'<div class="info-card purple"><ul><li>通过邮件链接 / 激活码完成首次登录</li><li>激活后租户状态进入【已激活】</li></ul></div>'},
+  N13:{badge:'<span class="tag tag-purple">企业管理员</span><span class="tag tag-cyan">② 租户创建与模块开通</span>',title:'初始化企业组织树',body:'<div class="info-card purple"><ul><li>初始化企业部门 / 组织树结构</li></ul></div>'},
+  N14:{badge:'<span class="tag tag-purple">企业管理员</span><span class="tag tag-cyan">② 租户创建与模块开通</span>',title:'邀请企业员工',body:'<div class="info-card purple"><ul><li>企业管理员添加员工账号并发送邀请</li></ul></div>'},
+  N15:{badge:'<span class="tag tag-green">FDE开发工程师</span><span class="tag tag-amber">③ Agent上架</span>',title:'开发 Agent',body:'<div class="info-card"><ul><li>创建 Agent，编写 Prompt / Skill / 配置项</li></ul></div>'},
+  N16:{badge:'<span class="tag tag-green">FDE开发工程师</span><span class="tag tag-amber">③ Agent上架</span>',title:'测试并提审',body:'<div class="info-card"><ul><li>完成测试后提交审核</li><li>状态：待审核</li></ul></div>'},
+  N17:{badge:'<span class="tag tag-amber">审批节点</span><span class="tag tag-amber">③ Agent上架</span>',title:'运营审核 Agent',body:'<div class="info-card amber"><ul><li>通过 → 上架到 Agent Store</li><li>拒绝 → 回流 FDE 开发修改</li></ul></div>'},
+  N18:{badge:'<span class="tag tag-blue">平台运营/超管</span><span class="tag tag-amber">③ Agent上架</span>',title:'Agent Store上架',body:'<div class="info-card green"><ul><li>Agent 进入技术资产池（Agent Store）</li><li>⚠️ 不等于商品可售</li></ul></div>'},
+  N19:{badge:'<span class="tag tag-red">🟥 商品相关</span><span class="tag tag-pink">④ 商品化</span>',title:'创建商品类目',body:'<div class="info-card red"><ul><li>按业务需求动态创建类目</li></ul></div>'},
+  N20:{badge:'<span class="tag tag-red">🟥 商品相关</span><span class="tag tag-pink">④ 商品化</span>',title:'Agent转商品',body:'<div class="info-card red"><ul><li>将技术资产包装为可售商品</li></ul></div>'},
+  N21:{badge:'<span class="tag tag-red">🟥 商品相关</span><span class="tag tag-pink">④ 商品化</span>',title:'创建非Agent商品',body:'<div class="info-card red"><ul><li>设备商品、资源包商品、服务商品</li></ul></div>'},
+  N22:{badge:'<span class="tag tag-red">🟥 商品相关</span><span class="tag tag-pink">④ 商品化</span>',title:'创建SKU/规格',body:'<div class="info-card red"><ul><li>为商品定义规格、版本、时长、套餐明细</li></ul></div>'},
+  N23:{badge:'<span class="tag tag-red">🟥 商品相关</span><span class="tag tag-pink">④ 商品化</span>',title:'商品上架发布',body:'<div class="info-card red"><ul><li>商品池可见可售</li></ul></div>'},
+  N24:{badge:'<span class="tag tag-green">FDE业务管理员</span><span class="tag tag-purple">⑤ 商机推进</span>',title:'获取商机线索',body:'<div class="info-card"><ul><li>门户同步 / 手动录入 / 渠道导入</li></ul></div>'},
+  N25:{badge:'<span class="tag tag-green">FDE业务管理员</span><span class="tag tag-purple">⑤ 商机推进</span>',title:'跟进需求与方案匹配',body:'<div class="info-card"><ul><li>沟通客户需求、做方案匹配、推荐商品能力组合</li></ul></div>'},
+  N26:{badge:'<span class="tag tag-amber">判断节点</span><span class="tag tag-purple">⑤ 商机推进</span>',title:'需要折扣？',body:'<div class="info-card amber"><ul><li>否 → 直接推进</li><li>是 → 发起折扣审批</li></ul></div>'},
+  N27:{badge:'<span class="tag tag-amber">审批节点</span><span class="tag tag-purple">⑤ 商机推进</span>',title:'折扣审批',body:'<div class="info-card amber"><ul><li>平台运营审核折扣比例/金额</li><li>通过继续，不通过回流重新跟进</li></ul></div>'},
+  N28:{badge:'<span class="tag tag-green">FDE业务管理员</span><span class="tag tag-purple">⑤ 商机推进</span>',title:'客户确认意向',body:'<div class="info-card green"><ul><li>客户确认方案与报价，准备进入订单阶段</li></ul></div>'},
+  N29:{badge:'<span class="tag tag-green">FDE业务管理员</span><span class="tag tag-indigo">⑥ 租户确认与下单</span>',title:'确认目标租户',body:'<div class="info-card green"><ul><li>确认已有客户租户，若无则先新建客户租户</li></ul></div>'},
+  N30:{badge:'<span class="tag tag-red">🟥 商品相关</span><span class="tag tag-indigo">⑥ 租户确认与下单</span>',title:'浏览商品池',body:'<div class="info-card red"><ul><li>读取的是商品池，不是 Agent Store</li></ul></div>'},
+  N31:{badge:'<span class="tag tag-red">🟥 商品相关</span><span class="tag tag-indigo">⑥ 租户确认与下单</span>',title:'选择商品 & SKU',body:'<div class="info-card red"><ul><li>选择商品、SKU、时长、套餐等</li></ul></div>'},
+  N32:{badge:'<span class="tag tag-red">🟥 商品相关</span><span class="tag tag-indigo">⑥ 租户确认与下单</span>',title:'创建订单',body:'<div class="info-card red"><ul><li>订单关联：租户 + 商品 + 备注</li><li>状态：【待付款】</li></ul></div>'},
+  N33:{badge:'<span class="tag tag-purple">企业管理员</span><span class="tag tag-cyan">⑦ 付款与交付</span>',title:'客户线下付款',body:'<div class="info-card"><ul><li>线下付款：扫码/银行转账</li></ul></div>'},
+  N34:{badge:'<span class="tag tag-green">FDE业务管理员</span><span class="tag tag-cyan">⑦ 付款与交付</span>',title:'上传付款凭证',body:'<div class="info-card"><ul><li>补录付款信息，上传水单/截图</li><li>状态：【待确认】</li></ul></div>'},
+  N35:{badge:'<span class="tag tag-blue">平台运营/超管</span><span class="tag tag-cyan">⑦ 付款与交付</span>',title:'确认付款状态',body:'<div class="info-card"><ul><li>运营人工确认到账</li><li>通过：已付款；驳回：回流重新上传凭证</li></ul></div>'},
+  N36:{badge:'<span class="tag tag-gray">平台系统</span><span class="tag tag-cyan">⑦ 付款与交付</span>',title:'激活资源配额',body:'<div class="info-card"><ul><li>已付款后系统自动激活资源配额</li></ul></div>'},
+  N37:{badge:'<span class="tag tag-green">FDE开发工程师</span><span class="tag tag-cyan">⑦ 付款与交付</span>',title:'部署 / 下载技术资产',body:'<div class="info-card"><ul><li>从技术资产池下载并部署</li><li>⚠️ 所有下载必须挂靠订单</li></ul></div>'},
+  N38:{badge:'<span class="tag tag-green">FDE开发工程师</span><span class="tag tag-cyan">⑦ 付款与交付</span>',title:'沙盒验证',body:'<div class="info-card"><ul><li>对部署结果做验证</li><li>不通过回流重新部署</li></ul></div>'},
+  N39:{badge:'<span class="tag tag-red">🟥 商品相关</span><span class="tag tag-cyan">⑦ 付款与交付</span>',title:'形成客户资产',body:'<div class="info-card red"><ul><li>商品转化为资产实例（设备资产 / Agent 资产 / 积分额度）</li><li>状态：【已交付】</li></ul></div>'},
+  N40:{badge:'<span class="tag tag-purple">企业管理员</span><span class="tag tag-cyan">⑦ 付款与交付</span>',title:'配置成员',body:'<div class="info-card purple"><ul><li>添加企业员工账号</li></ul></div>'},
+  N41:{badge:'<span class="tag tag-purple">企业管理员</span><span class="tag tag-cyan">⑦ 付款与交付</span>',title:'分配角色与权限',body:'<div class="info-card purple"><ul><li>为成员分配角色和能力权限</li></ul></div>'},
+  N42:{badge:'<span class="tag tag-orange">企业员工</span><span class="tag tag-cyan">⑦ 付款与交付</span>',title:'进入workspace使用能力',body:'<div class="info-card"><ul><li>企业员工在授权范围内开始使用已购能力</li></ul></div>'},
+  N43:{badge:'<span class="tag tag-gray">平台系统</span><span class="tag tag-orange">⑧ 续费与迭代</span>',title:'到期提醒',body:'<div class="info-card"><ul><li>平台系统提前30天触发续费通知</li></ul></div>'},
+  N44:{badge:'<span class="tag tag-purple">企业管理员</span><span class="tag tag-orange">⑧ 续费与迭代</span>',title:'发起续费/增购意向',body:'<div class="info-card purple"><ul><li>企业侧提出续费或增购申请</li></ul></div>'},
+  N45:{badge:'<span class="tag tag-red">🟥 商品相关</span><span class="tag tag-orange">⑧ 续费与迭代</span>',title:'创建续费/增购订单',body:'<div class="info-card red"><ul><li>FDE 业务管理员代客创建续费/增购订单</li><li>回流到主订单流程</li></ul></div>'},
+  N46:{badge:'<span class="tag tag-green">FDE开发工程师</span><span class="tag tag-orange">⑧ 续费与迭代</span>',title:'提交新版本',body:'<div class="info-card"><ul><li>FDE 开发工程师进行版本开发、测试并提交</li></ul></div>'},
+  N47:{badge:'<span class="tag tag-amber">审批节点</span><span class="tag tag-orange">⑧ 续费与迭代</span>',title:'审核新版本',body:'<div class="info-card amber"><ul><li>平台运营审核新版本发布节奏、质量与影响范围</li></ul></div>'},
+  N48:{badge:'<span class="tag tag-red">🟥 商品相关</span><span class="tag tag-orange">⑧ 续费与迭代</span>',title:'已购客户升级',body:'<div class="info-card red"><ul><li>对已购客户执行升级策略：通知升级或自动升级</li></ul></div>'},
+  N49:{badge:'<span class="tag tag-red">🟥 商品相关</span><span class="tag tag-orange">⑧ 续费与迭代</span>',title:'商品上下架/价格维护',body:'<div class="info-card red"><ul><li>运营持续维护商品状态、价格、归档</li></ul></div>'},
+};
+
+function closePopup(){document.getElementById('popup-overlay').classList.remove('show');document.getElementById('popup-panel').classList.remove('show');}
+function openPopup(id){const d=POPUPS[id];if(!d)return;document.getElementById('popup-badge').innerHTML=d.badge;document.getElementById('popup-title').textContent=d.title;document.getElementById('popup-body').innerHTML=d.body;document.getElementById('popup-overlay').classList.add('show');document.getElementById('popup-panel').classList.add('show');}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closePopup();});
+
+function estW(t,s=12){return t.replace(/[A-Z0-9\u4e00-\u9fff]/g,'aa').length*s*0.55;}
+function nodeW(n){return n.type==='diamond'?190:Math.max(160,estW(n.title.replace('🟥 ',''),12)+54, n.sub?estW(n.sub,10)+42:0, n.status?estW(n.status,10)+36:0);}
+function markerId(c){return ({gray:'arr',blue:'arr-b',green:'arr-g',amber:'arr-a',red:'arr-r',purple:'arr-p',cyan:'arr-c'})[c]||'arr';}
+
+function computeStageWidths(){
+  const GAP=30,CONN_GAP=58,PAD=42,MIN=500,TITLE_PAD=110;
+  const es=new Set(EDGES.map(([f,t])=>f+'->'+t));
+  return STAGES.map(st=>{
+    const sn=NODES.filter(n=>n.stage===st.id);
+    const lw=LANES.map(la=>{
+      const rn=sn.filter(n=>n.lane===la.id); if(!rn.length) return 0;
+      return rn.reduce((s,n,i)=>s+nodeW(n)+(i?((es.has(rn[i-1].id+'->'+n.id)||es.has(n.id+'->'+rn[i-1].id))?CONN_GAP:GAP):0),0);
+    });
+    const mr=Math.max(...lw,0);
+    const tw=Math.max(estW(st.title,13),estW(st.en,10))+TITLE_PAD;
+    return {...st,width:Math.max(MIN,mr+PAD*2,tw)};
+  });
+}
+
+function render(){
+  const svg=document.getElementById('flowSvg');
+  const LT=60, LH=132, LLW=132, HH=56, FH=60, NH=50, PHG=18;
+  const sw=computeStageWidths();
+  let xc=LLW; const sp={};
+  sw.forEach(s=>{sp[s.id]={x:xc,w:s.width}; xc+=s.width+PHG;});
+  const TW=xc, TH=LT+LANES.length*LH+FH;
+  svg.setAttribute('width',TW); svg.setAttribute('height',TH);
+
+  let h='';
+  h+=`<defs>
+    <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,1 L9,5 L0,9 Z" fill="#6b7280"></path></marker>
+    <marker id="arr-b" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,1 L9,5 L0,9 Z" fill="#2563eb"></path></marker>
+    <marker id="arr-g" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,1 L9,5 L0,9 Z" fill="#16a34a"></path></marker>
+    <marker id="arr-r" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,1 L9,5 L0,9 Z" fill="#dc2626"></path></marker>
+    <marker id="arr-p" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,1 L9,5 L0,9 Z" fill="#9333ea"></path></marker>
+    <marker id="arr-a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,1 L9,5 L0,9 Z" fill="#d97706"></path></marker>
+    <marker id="arr-c" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,1 L9,5 L0,9 Z" fill="#0891b2"></path></marker>
+    <filter id="sh" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="rgba(0,0,0,0.1)"></feDropShadow></filter>
+    <filter id="sh-r" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="rgba(220,38,38,0.18)"></feDropShadow></filter>
+  </defs>`;
+
+  sw.forEach(s=>{const{x,w}=sp[s.id]; h+=`<rect x="${x}" y="0" width="${w}" height="${TH}" fill="${s.fill}" opacity="0.32"></rect>`;});
+  LANES.forEach((la,i)=>{h+=`<rect x="${LLW}" y="${LT+i*LH}" width="${TW-LLW}" height="${LH}" fill="${la.fill}" opacity="0.16"></rect>`;});
+  h+=`<rect x="${LLW}" y="0" width="${TW-LLW}" height="${HH}" fill="rgba(15,23,42,0.04)"></rect>`;
+  sw.forEach(s=>{const{x,w}=sp[s.id]; h+=`<rect x="${x+1}" y="4" width="${w-2}" height="48" rx="6" fill="${s.fill}" opacity="0.84"></rect>`; h+=`<text x="${x+w/2}" y="23" text-anchor="middle" font-size="13" font-weight="800" fill="${s.text}">${s.title}</text>`; h+=`<text x="${x+w/2}" y="40" text-anchor="middle" font-size="10" fill="${s.text}">${s.en}</text>`;});
+
+  LANES.forEach((la,i)=>{const y=LT+i*LH; h+=`<rect x="0" y="${y}" width="${LLW}" height="${LH}" fill="${la.color}"></rect>`; h+=`<text x="50" y="${y+10}" writing-mode="tb" glyph-orientation-vertical="0" font-size="12" font-weight="700" fill="white">${la.label}</text>`; h+=`<text x="86" y="${y+10}" writing-mode="tb" glyph-orientation-vertical="0" font-size="9" fill="white" opacity="0.75">${la.short}</text>`;});
+  h+=`<rect x="0" y="${LT+LANES.length*LH}" width="${TW}" height="${FH}" fill="#0f172a"></rect>`;
+
+  h+=`<line x1="${LLW}" y1="0" x2="${LLW}" y2="${TH}" stroke="#1e293b" stroke-width="2.5"></line>`;
+  for(let i=0;i<=LANES.length;i++){const y=LT+i*LH;h+=`<line x1="0" y1="${y}" x2="${TW}" y2="${y}" stroke="#cbd5e1" stroke-width="${i===0||i===LANES.length?1.5:2}"></line>`;}
+  sw.forEach((s,i)=>{if(i===0)return;const x=sp[s.id].x;h+=`<line x1="${x}" y1="56" x2="${x}" y2="${LT+LANES.length*LH}" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="8,5"></line>`;});
+
+  const np={};
+  sw.forEach(st=>{
+    const{x}=sp[st.id];
+    LANES.forEach((la,li)=>{
+      const rn=NODES.filter(n=>n.stage===st.id&&n.lane===la.id); if(!rn.length) return;
+      let cx=x+42; const cy=LT+li*LH+LH/2;
+      rn.forEach((n,idx)=>{
+        const nw=nodeW(n), nh=NH, nx=cx, ny=cy-nh/2, shapeH=n.type==='diamond'?78:nh;
+        np[n.id]={x:nx,y:ny,w:nw,h:nh,shapeH,cx:nx+nw/2,cy,stage:st.id,lane:la.id,type:n.type};
+        const hasEdge=idx<rn.length-1&&EDGES.some(([f,t])=>(f===n.id&&t===rn[idx+1].id)||(t===n.id&&f===rn[idx+1].id));
+        cx+=nw+(hasEdge?58:30);
+      });
+    });
+  });
+
+  function anchors(n){
+    const topY=n.cy-(n.shapeH||n.h)/2,bottomY=n.cy+(n.shapeH||n.h)/2;
+    return { left:{x:n.x,y:n.cy}, right:{x:n.x+n.w,y:n.cy}, top:{x:n.cx,y:topY}, bottom:{x:n.cx,y:bottomY} };
+  }
+  function laneIndex(id){ return LANES.findIndex(l=>l.id===id); }
+  function stageIndex(id){ return STAGES.findIndex(s=>s.id===id); }
+  function edgeBias(colorKey='gray', dashed=false){
+    const map={ gray:0, blue:-12, green:12, amber:-20, red:22, purple:30, cyan:-30 };
+    return (map[colorKey]||0) + (dashed? (map[colorKey]>=0?12:-12) : 0);
+  }
+  function routeMeta(a,b,colorKey,dashed,retreat){
+    const A=anchors(a), B=anchors(b);
+    const dx=b.cx-a.cx, dy=b.cy-a.cy;
+    const sameLane=a.lane===b.lane;
+    const sameStage=a.stage===b.stage;
+    const liA=laneIndex(a.lane), liB=laneIndex(b.lane);
+    const siA=stageIndex(a.stage), siB=stageIndex(b.stage);
+    const laneGap=Math.abs(liB-liA), stageGap=Math.abs(siB-siA);
+    const bias=edgeBias(colorKey,dashed);
+
+    if(retreat){
+      const lift=Math.min(A.top.y,B.top.y)-54-stageGap*14+Math.min(bias,0);
+      return { mode:'retreat-top', from:A.top, to:B.top, rail:lift, bias, sameLane, sameStage };
+    }
+
+    if(sameLane && Math.abs(dx)>=Math.abs(dy)){
+      if(dx>=0){
+        const midX=(A.right.x+B.left.x)/2 + bias*0.35;
+        return { mode:'horizontal', from:A.right, to:B.left, rail:midX, bias, sameLane, sameStage };
+      }
+      const railY=Math.min(A.top.y,B.top.y)-50-stageGap*12+Math.min(bias,0);
+      return { mode:'horizontal-back', from:A.left, to:B.right, rail:railY, bias, sameLane, sameStage };
+    }
+
+    if(dy>=0){
+      const from=sameStage?A.bottom:(dx>=0?A.bottom:A.bottom);
+      const to=B.top;
+      const railY=(from.y+to.y)/2 + bias + stageGap*6;
+      const enterShift=(siB-siA)*10;
+      return { mode:'vertical-down', from, to, rail:railY, enterShift, bias, sameLane, sameStage, laneGap };
+    }
+
+    const from=A.top, to=B.bottom;
+    const railY=(from.y+to.y)/2 + bias - stageGap*6;
+    const enterShift=(siB-siA)*10;
+    return { mode:'vertical-up', from, to, rail:railY, enterShift, bias, sameLane, sameStage, laneGap };
+  }
+  function path(a,b,colorKey,dashed=false,retreat=false,level=0){
+    const meta=routeMeta(a,b,colorKey,dashed,retreat);
+    const f=meta.from, t=meta.to;
+    const levelShift=level*10*(meta.bias>=0?1:-1);
+
+    if(meta.mode==='horizontal'){
+      const mx=meta.rail + levelShift;
+      return `M ${f.x} ${f.y} L ${mx} ${f.y} L ${mx} ${t.y} L ${t.x} ${t.y}`;
+    }
+    if(meta.mode==='horizontal-back'){
+      const ry=meta.rail - level*12;
+      return `M ${f.x} ${f.y} L ${f.x-20} ${f.y} L ${f.x-20} ${ry} L ${t.x+20} ${ry} L ${t.x+20} ${t.y} L ${t.x} ${t.y}`;
+    }
+    if(meta.mode==='vertical-down' || meta.mode==='vertical-up'){
+      const ry=meta.rail + levelShift;
+      const tx=t.x + (meta.enterShift||0) + meta.bias*0.18;
+      return `M ${f.x} ${f.y} L ${f.x} ${ry} L ${tx} ${ry} L ${tx} ${t.y-14*(meta.mode==='vertical-down'?1:-1)} L ${t.x} ${t.y}`;
+    }
+    if(meta.mode==='retreat-top'){
+      const ry=meta.rail - level*12;
+      return `M ${f.x} ${f.y} L ${f.x} ${ry} L ${t.x} ${ry} L ${t.x} ${t.y}`;
+    }
+    return `M ${f.x} ${f.y} L ${t.x} ${t.y}`;
+  }
+  function draw(a,b,ck,label,dashed,retreat,level=0){
+    const c=COLORS[ck]||COLORS.gray,mk=markerId(ck),d=path(a,b,ck,dashed,retreat,level);
+    const sw=dashed?1.9:2.2;
+    h+=`<path d="${d}" stroke="${c}" stroke-width="${sw}" fill="none" ${dashed?'stroke-dasharray="5,4"':''} marker-end="url(#${mk})"></path>`;
+    if(label){
+      const lx=(a.cx+b.cx)/2;
+      const ly=Math.min(a.y,b.y)-10-(level*8)+(dashed?-6:0);
+      h+=`<text x="${lx}" y="${ly}" text-anchor="middle" font-size="10" fill="${c}" font-weight="700">${label}</text>`;
+    }
+  }
+  EDGES.forEach(([a,b,ck,label],idx)=>{if(np[a]&&np[b])draw(np[a],np[b],ck,label,false,false,idx%2);});
+  SPECIAL_EDGES.forEach((e,idx)=>{if(!np[e.from]||!np[e.to])return;const retreat=np[e.to].cx<np[e.from].cx||np[e.to].cy<np[e.from].cy;draw(np[e.from],np[e.to],e.color,e.label,e.dashed,retreat,idx+1);});
+
+  h+=`<text x="${TW/2}" y="${TH-18}" text-anchor="middle" font-size="11" fill="#475569">Frontis AI Platform  ©  2026  —  BizFlow V2.4</text>`;
+
+  NODES.forEach(n=>{
+    const p=np[n.id]; if(!p) return;
+    const ip=!!n.product; const stroke=ip?'#dc2626':(n.type==='diamond'?'#f59e0b':(LANES.find(l=>l.id===n.lane)?.color||'#334155')); const fill=ip?'#fef2f2':(n.type==='diamond'?'#fef3c7':(LANES.find(l=>l.id===n.lane)?.fill||'#f8fafc')); const filter=ip?'url(#sh-r)':'url(#sh)';
+    if(n.type==='diamond'){
+      const dW=p.w,dH=78,cx=p.cx,cy=p.cy,pts=`${cx},${cy-dH/2} ${cx+dW/2},${cy} ${cx},${cy+dH/2} ${cx-dW/2},${cy}`;
+      h+=`<g class="node-clickable" data-node="${n.id}" filter="${filter}"><polygon class="shape" points="${pts}" fill="${fill}" stroke="${stroke}" stroke-width="2.5"></polygon>`;
+      n.title.split('\n').forEach((l,i)=>{h+=`<text x="${cx}" y="${cy-5+i*16}" text-anchor="middle" font-size="10" fill="#78350f" font-weight="700">${l}</text>`;});
+      h+=`</g><circle cx="${p.x}" cy="${p.cy}" r="10" fill="#d97706"></circle><text x="${p.x}" y="${p.cy+4}" text-anchor="middle" font-size="9" fill="white" font-weight="700">${n.id}</text>`;
+    } else {
+      const tc=ip?'#991b1b':(n.lane==='ops'?'#1e3a8a':n.lane==='fdeBiz'?'#14532d':n.lane==='fdeDev'?'#3f6212':n.lane==='sys'?'#334155':n.lane==='admin'?'#6b21a8':'#9a3412');
+      const sc=ip?'#dc2626':(n.lane==='ops'?'#2563eb':n.lane==='fdeBiz'?'#16a34a':n.lane==='fdeDev'?'#65a30d':n.lane==='sys'?'#64748b':n.lane==='admin'?'#7e22ce':'#ea580c');
+      h+=`<g class="node-clickable" data-node="${n.id}" filter="${filter}"><rect class="shape" x="${p.x}" y="${p.y}" width="${p.w}" height="${p.h}" rx="8" fill="${fill}" stroke="${stroke}" stroke-width="${ip?2.5:2}"></rect>`;
+      h+=`<text x="${p.cx}" y="${p.y+21}" text-anchor="middle" font-size="10" fill="${tc}" font-weight="700">${n.title}</text>`;
+      if(n.sub)h+=`<text x="${p.cx}" y="${p.y+36}" text-anchor="middle" font-size="9" fill="${sc}">${n.sub}</text>`;
+      h+=`</g>`;
+      const bc=ip?'#dc2626':(n.lane==='ops'?'#2563eb':n.lane==='fdeBiz'?'#16a34a':n.lane==='fdeDev'?'#65a30d':n.lane==='sys'?'#475569':n.lane==='admin'?'#7e22ce':'#c2410c');
+      h+=`<circle cx="${p.x}" cy="${p.cy}" r="10" fill="${bc}"></circle><text x="${p.x}" y="${p.cy+4}" text-anchor="middle" font-size="9" fill="white" font-weight="700">${n.id}</text>`;
+      if(n.status){const sm={amber:{f:'#fef3c7',s:'#f59e0b',t:'#92400e'},green:{f:'#d1fae5',s:'#10b981',t:'#065f46'},red:{f:'#fee2e2',s:'#ef4444',t:'#991b1b'},blue:{f:'#bfdbfe',s:'#3b82f6',t:'#1e40af'}};const st=sm[n.statusType||'amber'],sw2=Math.max(108,estW(n.status,10)+20);h+=`<rect x="${p.cx-sw2/2}" y="${p.y+p.h+8}" width="${sw2}" height="20" rx="10" fill="${st.f}" stroke="${st.s}" stroke-width="1.5"></rect><text x="${p.cx}" y="${p.y+p.h+22}" text-anchor="middle" font-size="10" fill="${st.t}" font-weight="700">${n.status}</text>`;}
+    }
+  });
+
+  svg.innerHTML=h;
+  document.querySelectorAll('.node-clickable').forEach(el=>el.addEventListener('click',()=>{const id=el.getAttribute('data-node');if(id)openPopup(id);}));
+}
+render();
+</script>
+</body>
+</html>

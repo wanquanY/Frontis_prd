@@ -20,7 +20,7 @@ import type {
 import adminStyles from "./FrontisAdminViews.module.less";
 import { getRoleLabel, getUserStatusLabel } from "./FrontisWebViews";
 
-interface OrganizationManagementViewProps {
+export interface OrganizationManagementViewProps {
   departments: OrganizationDepartmentItem[];
   employees: EmployeeItem[];
   onAddDepartment: (dept: OrganizationDepartmentItem) => void;
@@ -36,6 +36,7 @@ interface OrganizationManagementViewProps {
   onUpdateUserDepartment: (userId: string, departmentId: string) => void;
   onUpdateUserStatus: (userId: string, status: FrontisUserStatus) => void;
   users: FrontisWebUserItem[];
+  embedded?: boolean;
 }
 
 interface DraftDepartmentForm {
@@ -146,6 +147,7 @@ const flattenDepartmentTree = (
  */
 export const OrganizationManagementView = ({
   departments,
+  embedded = false,
   employees,
   onAddDepartment,
   onAddUsers,
@@ -218,6 +220,7 @@ export const OrganizationManagementView = ({
         : null,
     [selectedDept, users],
   );
+  const isRootDept = selectedDept?.parentId === null;
 
   const deptOptions = useMemo(
     () => departments.map(item => ({ label: buildDepartmentPath(departments, item.id), value: item.id })),
@@ -276,6 +279,11 @@ export const OrganizationManagementView = ({
 
   const handleDeleteDept = useCallback((): void => {
     if (!selectedDept) {
+      return;
+    }
+
+    if (selectedDept.parentId === null) {
+      message.warning("一级部门不可删除");
       return;
     }
 
@@ -463,7 +471,12 @@ export const OrganizationManagementView = ({
             okText="确认"
             cancelText="取消"
           >
-            <Button size="small" danger icon={<DeleteOutlined />} disabled={!selectedDept}>
+            <Button
+              size="small"
+              danger
+              icon={<DeleteOutlined />}
+              disabled={!selectedDept || isRootDept}
+            >
               删除
             </Button>
           </Popconfirm>
@@ -668,16 +681,18 @@ export const OrganizationManagementView = ({
     );
   };
 
-  return (
-    <div className={adminStyles.consolePage}>
-      <header className={adminStyles.consoleHeader}>
-        <div className={adminStyles.consoleHeaderMain}>
-          <h1 className={adminStyles.consoleTitle}>组织管理</h1>
-          <p className={adminStyles.consoleSubtitle}>
-            管理企业组织架构，维护部门结构与人员信息。
-          </p>
-        </div>
-      </header>
+  const content = (
+    <>
+      {embedded ? null : (
+        <header className={adminStyles.consoleHeader}>
+          <div className={adminStyles.consoleHeaderMain}>
+            <h1 className={adminStyles.consoleTitle}>组织管理</h1>
+            <p className={adminStyles.consoleSubtitle}>
+              管理企业组织架构，维护部门结构与人员信息。
+            </p>
+          </div>
+        </header>
+      )}
 
       <div className={adminStyles.consoleSplitLayout}>
         {renderDepartmentTree()}
@@ -881,6 +896,12 @@ export const OrganizationManagementView = ({
           </div>
         </div>
       </Modal>
-    </div>
+    </>
   );
+
+  if (embedded) {
+    return content;
+  }
+
+  return <div className={adminStyles.consolePage}>{content}</div>;
 };

@@ -1,0 +1,371 @@
+.sidebarToolbar {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.sidebarItemHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.tenantEntryButton {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.tenantEntryTitle {
+  color: var(--text);
+  font-size: 14px;
+  line-height: 22px;
+  font-weight: 700;
+}
+
+.tenantEntryMeta,
+.tenantModulesCell {
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.recordEntryButton {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.recordEntryTitle {
+  color: var(--text);
+  font-size: 14px;
+  line-height: 22px;
+  font-weight: 700;
+}
+
+.recordEntryMeta {
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.detailGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.tenantDetailGrid {
+  margin-top: 0;
+}
+
+.detailBlockTitleReset {
+  margin: 0;
+}
+
+.detailTabBar {
+  display: flex;
+  gap: 32px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid color-mix(in srgb, var(--text) 12%, var(--surface));
+}
+
+.detailTabButton {
+  position: relative;
+  padding: 0 2px 14px;
+  border: 0;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.detailTabButtonActive {
+  color: var(--primary);
+}
+
+.detailTabButtonActive::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  bottom: -1px;
+  left: 0;
+  height: 3px;
+  border-radius: 999px;
+  background: var(--primary);
+}
+
+.pillRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.memberTabPanel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.memberSearchRow {
+  max-width: 360px;
+}
+
+.memberSearch {
+  width: 100%;
+}
+
+.memberSection {
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--text) 10%, var(--surface));
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--surface) 92%, var(--app-bg));
+}
+
+.memberSectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 20px 24px;
+  border-bottom: 1px solid color-mix(in srgb, var(--text) 8%, var(--surface));
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--surface) 85%, var(--app-bg)),
+    color-mix(in srgb, var(--surface) 96%, var(--app-bg))
+  );
+}
+
+.memberSectionTitle {
+  margin: 0;
+  color: var(--text);
+  font-size: 18px;
+  line-height: 28px;
+  font-weight: 700;
+}
+
+.memberSectionMeta {
+  margin: 4px 0 0;
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.memberList {
+  display: flex;
+  flex-direction: column;
+}
+
+.memberRow {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 22px 24px;
+}
+
+.memberRow + .memberRow {
+  border-top: 1px solid color-mix(in srgb, var(--text) 8%, var(--surface));
+}
+
+.memberAvatar {
+  flex: 0 0 auto;
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--primary) 86%, var(--surface)),
+    color-mix(in srgb, var(--primary) 68%, var(--text))
+  );
+  color: var(--surface);
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.memberBody {
+  display: flex;
+  min-width: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.memberName {
+  color: var(--text);
+  font-size: 20px;
+  line-height: 28px;
+  font-weight: 700;
+}
+
+.memberMeta,
+.memberAddedAt {
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.memberAddedAt {
+  flex: 0 0 auto;
+}
+
+.detailParagraph {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 14px;
+  line-height: 22px;
+}
+
+.modalDetailStack {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.reviewModalMeta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.reviewModalMetaText {
+  color: var(--text-secondary);
+  font-size: 14px;
+  line-height: 22px;
+}
+
+.alertBlock {
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: rgba(255, 103, 103, 0.1);
+  color: #ff6767;
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.emptyWrap {
+  min-height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 0;
+}
+
+.trendList {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.trendItem {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.trendHeader,
+.trendMeta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.trendHeader strong {
+  color: var(--text);
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.trendBarTrack {
+  width: 100%;
+  height: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--text) 6%, var(--surface));
+}
+
+.trendBarFill {
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--primary), color-mix(in srgb, var(--primary) 50%, #0f1c4d));
+}
+
+.formGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.modalField {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.modalFieldWide {
+  grid-column: 1 / -1;
+}
+
+.modalLabel {
+  color: var(--text);
+  font-size: 13px;
+  line-height: 20px;
+  font-weight: 600;
+}
+
+.fullWidthInput {
+  width: 100%;
+}
+
+@media (max-width: 1120px) {
+  .detailGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .memberRow {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .memberAddedAt {
+    padding-left: 64px;
+  }
+}
+
+@media (max-width: 960px) {
+  .formGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .detailTabBar {
+    gap: 20px;
+  }
+
+  .memberSectionHeader {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .memberSearchRow {
+    max-width: none;
+  }
+
+  .memberAddedAt {
+    padding-left: 0;
+  }
+}

@@ -157,19 +157,6 @@
   gap: 12px;
 }
 
-.sessionHint {
-  display: inline-flex;
-  align-items: center;
-  color: var(--portalHeaderTextMuted);
-  font-size: 13px;
-  line-height: 1.4;
-  white-space: nowrap;
-}
-
-.sessionHintDivider {
-  margin: 0 6px;
-}
-
 .navLink,
 .footerLink {
   padding: 10px 14px;
@@ -233,6 +220,120 @@
   border-color: var(--portalHeaderBorder);
   background: var(--portalHeaderHover);
   color: var(--portalHeaderText);
+}
+
+.accountTrigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 48px;
+  padding: 7px 8px 7px 16px;
+  border: 1px solid var(--portalHeaderBorder);
+  border-radius: 999px;
+  background: var(--portalHeaderHover);
+  color: var(--portalHeaderText);
+  transition:
+    transform 180ms ease,
+    border-color 180ms ease,
+    background 180ms ease,
+    box-shadow 180ms ease;
+
+  &:hover {
+    transform: translateY(-1px);
+    background: rgba(255, 255, 255, 0.12);
+  }
+}
+
+.accountName {
+  color: var(--portalHeaderText);
+  font-size: 14px;
+  line-height: 1;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.accountAvatar {
+  flex-shrink: 0;
+  background: var(--portalAccentStrong);
+  color: var(--portalBg);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.accountDropdown {
+  --accountDropdownBg: rgba(7, 17, 31, 0.92);
+  --accountDropdownBorder: rgba(255, 255, 255, 0.12);
+  --accountDropdownHover: rgba(255, 255, 255, 0.08);
+  --accountDropdownText: #f8fafc;
+  --accountDropdownTextMuted: rgba(248, 250, 252, 0.72);
+  --accountDropdownAccent: #7de2f1;
+  --accountDropdownShadow: 0 24px 80px rgba(7, 17, 31, 0.18);
+
+  :global(.ant-dropdown-menu) {
+    min-width: 268px;
+    padding: 8px;
+    border: 1px solid var(--accountDropdownBorder);
+    border-radius: 20px;
+    background: var(--accountDropdownBg);
+    box-shadow: var(--accountDropdownShadow);
+    backdrop-filter: blur(18px);
+  }
+
+  :global(.ant-dropdown-menu-item),
+  :global(.ant-dropdown-menu-submenu-title) {
+    min-height: 48px;
+    margin: 0;
+    border-radius: 14px;
+    color: var(--accountDropdownText);
+
+    &:hover {
+      background: var(--accountDropdownHover);
+    }
+  }
+
+  :global(.ant-dropdown-menu-item-group-title) {
+    padding: 8px 12px 10px;
+  }
+
+  :global(.ant-dropdown-menu-item-divider) {
+    margin: 8px 4px;
+    background: var(--accountDropdownBorder);
+  }
+
+  :global(.ant-dropdown-menu-title-content) {
+    color: var(--accountDropdownText);
+  }
+
+  :global(.ant-dropdown-menu-item .anticon) {
+    color: var(--accountDropdownAccent);
+  }
+}
+
+.menuGroupLabel {
+  color: var(--accountDropdownTextMuted);
+  font-size: 12px;
+  line-height: 1.4;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.menuItemContent {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.menuItemTitle {
+  color: var(--accountDropdownText);
+  font-size: 14px;
+  line-height: 1.4;
+  font-weight: 600;
+}
+
+.menuItemDescription {
+  color: var(--accountDropdownTextMuted);
+  font-size: 12px;
+  line-height: 1.5;
 }
 
 .secondaryButton,
@@ -404,12 +505,13 @@
     flex-direction: column;
   }
 
-  .sessionHint {
-    justify-content: center;
+  .headerLogin,
+  .headerCta,
+  .accountTrigger {
+    width: 100%;
   }
 
-  .headerLogin,
-  .headerCta {
-    width: 100%;
+  .accountTrigger {
+    justify-content: space-between;
   }
 }

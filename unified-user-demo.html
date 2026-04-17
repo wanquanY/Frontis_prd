@@ -1,0 +1,4226 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>统一用户体系 Demo</title>
+  <style>
+    :root {
+      --bg: #f3f6fb;
+      --surface: #ffffff;
+      --surface-soft: #f8fbff;
+      --line: #dbe3ee;
+      --text: #17212b;
+      --muted: #6a7688;
+      --blue: #2563eb;
+      --blue-soft: #ebf3ff;
+      --green: #18794e;
+      --green-soft: #eaf8ef;
+      --amber: #9a5b06;
+      --amber-soft: #fff3dd;
+      --red: #c2410c;
+      --red-soft: #fff0ea;
+      --shadow: 0 18px 40px rgba(15, 23, 42, 0.08);
+      --radius-lg: 24px;
+      --radius-md: 18px;
+      --radius-sm: 14px;
+      --sans: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+      --sidebar-width: clamp(232px, 20vw, 276px);
+      --sidebar-pad: clamp(14px, 1.8vw, 18px);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      font-family: var(--sans);
+      color: var(--text);
+      background:
+        radial-gradient(circle at top right, rgba(37, 99, 235, 0.08), transparent 28%),
+        linear-gradient(180deg, #f8fbff 0%, var(--bg) 100%);
+      min-height: 100%;
+    }
+
+    button,
+    input,
+    select,
+    textarea {
+      font: inherit;
+    }
+
+    button {
+      cursor: pointer;
+      border: none;
+      background: none;
+    }
+
+    .app {
+      min-height: 100vh;
+    }
+
+    .auth-shell {
+      width: min(1280px, calc(100vw - clamp(20px, 4vw, 48px)));
+      margin: 0 auto;
+      min-height: 100vh;
+      display: grid;
+      align-items: center;
+      padding: clamp(16px, 3vw, 28px) 0;
+    }
+
+    .hero {
+      background: rgba(255, 255, 255, 0.94);
+      border: 1px solid rgba(37, 99, 235, 0.12);
+      border-radius: 30px;
+      box-shadow: var(--shadow);
+      padding: 28px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 18px;
+    }
+
+    .brand-mark {
+      width: 48px;
+      height: 48px;
+      border-radius: 16px;
+      display: grid;
+      place-items: center;
+      background: var(--blue-soft);
+      color: var(--blue);
+      border: 1px solid #d3e3ff;
+      font-size: 24px;
+      font-weight: 700;
+    }
+
+    .brand-title {
+      font-size: 28px;
+      font-weight: 700;
+      line-height: 1.1;
+    }
+
+    .brand-subtitle {
+      color: var(--muted);
+      margin-top: 4px;
+    }
+
+    .auth-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(min(100%, 360px), 1fr));
+      gap: 20px;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow);
+      padding: 24px;
+    }
+
+    .card h1,
+    .card h2,
+    .card h3 {
+      margin: 0;
+    }
+
+    .page-title {
+      font-size: 34px;
+      line-height: 1.1;
+      margin-bottom: 16px;
+    }
+
+    .toolbar {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .field-group {
+      margin-top: 16px;
+    }
+
+    .field-group label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 600;
+    }
+
+    .field-control {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: #fff;
+      padding: 12px 14px;
+      outline: none;
+      color: var(--text);
+    }
+
+    .field-control:focus {
+      border-color: #a7c5ff;
+      box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.08);
+    }
+
+    .button {
+      min-height: 42px;
+      padding: 0 16px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      background: #fff;
+      color: var(--text);
+      font-weight: 600;
+      transition: 0.18s ease;
+    }
+
+    .button:hover {
+      transform: translateY(-1px);
+      border-color: #c8d6ea;
+    }
+
+    .button.primary {
+      background: var(--blue);
+      color: #fff;
+      border-color: var(--blue);
+    }
+
+    .button.ghost {
+      background: var(--surface-soft);
+    }
+
+    .button.danger {
+      background: var(--red-soft);
+      color: var(--red);
+      border-color: #ffd0c2;
+    }
+
+    .button.small {
+      min-height: 34px;
+      padding: 0 12px;
+      font-size: 13px;
+    }
+
+    .sample-list,
+    .choice-list,
+    .stack {
+      display: grid;
+      gap: 12px;
+    }
+
+    .sample-card,
+    .choice-card {
+      width: 100%;
+      text-align: left;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 14px 16px;
+      background: #fff;
+      transition: 0.18s ease;
+    }
+
+    .sample-card:hover,
+    .choice-card:hover {
+      border-color: #bed3f9;
+      transform: translateY(-1px);
+    }
+
+    .sample-head,
+    .choice-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .meta,
+    .meta-text {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.7;
+    }
+
+    .badge,
+    .pill,
+    .status {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .badge {
+      background: var(--blue-soft);
+      color: var(--blue);
+    }
+
+    .status.enabled {
+      background: var(--green-soft);
+      color: var(--green);
+    }
+
+    .status.disabled {
+      background: var(--amber-soft);
+      color: var(--amber);
+    }
+
+    .status.deleted {
+      background: var(--red-soft);
+      color: var(--red);
+    }
+
+    .workspace {
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
+    }
+
+    .sidebar {
+      background: rgba(255, 255, 255, 0.92);
+      border-right: 1px solid var(--line);
+      padding: clamp(16px, 2vw, 22px) var(--sidebar-pad) 116px;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow: auto;
+    }
+
+    .sidebar .brand {
+      margin-bottom: 20px;
+    }
+
+    .module-switch {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 18px;
+    }
+
+    .module-btn {
+      flex: 1;
+      min-height: 38px;
+      padding: 0 12px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: var(--surface-soft);
+      font-weight: 700;
+      color: var(--muted);
+    }
+
+    .module-btn.active {
+      background: var(--blue-soft);
+      border-color: #cfe1ff;
+      color: var(--blue);
+    }
+
+    .nav-group + .nav-group {
+      margin-top: 20px;
+    }
+
+    .nav-label {
+      color: var(--muted);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 10px;
+      padding-left: 10px;
+    }
+
+    .nav-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .sidebar-body {
+      display: grid;
+      gap: 18px;
+    }
+
+    .nav-item {
+      width: 100%;
+      text-align: left;
+      padding: 12px 14px;
+      border-radius: 14px;
+      font-weight: 600;
+      color: var(--text);
+      border: 1px solid transparent;
+    }
+
+    .nav-item.active {
+      background: var(--blue-soft);
+      color: var(--blue);
+      border-color: #d0e0fb;
+    }
+
+    .sidebar-foot {
+      position: fixed;
+      left: var(--sidebar-pad);
+      bottom: 18px;
+      width: calc(var(--sidebar-width) - var(--sidebar-pad) - var(--sidebar-pad));
+      z-index: 12;
+    }
+
+    .main {
+      padding: clamp(16px, 2.2vw, 28px);
+    }
+
+    .header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+      margin-bottom: 18px;
+    }
+
+    .breadcrumb {
+      color: var(--muted);
+      font-size: 13px;
+      margin-bottom: 8px;
+    }
+
+    .title {
+      font-size: 30px;
+      line-height: 1.15;
+      margin: 0;
+    }
+
+    .account-box {
+      position: relative;
+    }
+
+    .account-btn {
+      width: 100%;
+      text-align: left;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: #fff;
+      padding: 12px 14px;
+    }
+
+    .account-menu {
+      position: absolute;
+      bottom: calc(100% + 8px);
+      left: 0;
+      width: 100%;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      box-shadow: var(--shadow);
+      padding: 10px;
+      z-index: 8;
+      display: grid;
+      gap: 8px;
+    }
+
+    .account-item {
+      width: 100%;
+      text-align: left;
+      border: 1px solid transparent;
+      border-radius: 14px;
+      padding: 12px;
+      background: var(--surface-soft);
+    }
+
+    .surface {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow);
+      padding: 22px;
+    }
+
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 12px;
+    }
+
+    .metric {
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 18px;
+      background: linear-gradient(180deg, #fff 0%, #f8fbff 100%);
+    }
+
+    .metric strong {
+      display: block;
+      font-size: 26px;
+      line-height: 1;
+      color: var(--blue);
+      margin-bottom: 10px;
+    }
+
+    .metric span {
+      display: block;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    .split {
+      display: grid;
+      grid-template-columns: minmax(280px, 0.95fr) minmax(0, 1.05fr);
+      gap: 16px;
+    }
+
+    .split-wide {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(320px, 0.95fr);
+      gap: 16px;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 14px;
+    }
+
+    .tab-btn {
+      min-height: 34px;
+      padding: 0 12px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: var(--surface-soft);
+      color: var(--muted);
+      font-weight: 700;
+    }
+
+    .tab-btn.active {
+      background: var(--blue-soft);
+      color: var(--blue);
+      border-color: #cfe1ff;
+    }
+
+    .table-wrap {
+      overflow: auto;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: #fff;
+    }
+
+    table {
+      width: 100%;
+      min-width: 700px;
+      border-collapse: collapse;
+    }
+
+    .table-action {
+      color: inherit;
+      font-weight: 700;
+    }
+
+    th,
+    td {
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      background: #f8fafc;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    .tree-wrap {
+      margin-top: 14px;
+    }
+
+    .org-tree,
+    .org-tree ul {
+      list-style: none;
+      padding-left: 20px;
+      margin: 0;
+      position: relative;
+    }
+
+    .org-tree ul::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      bottom: 8px;
+      left: 7px;
+      width: 1px;
+      background: #d9e3ef;
+    }
+
+    .org-tree li {
+      position: relative;
+      margin-top: 10px;
+    }
+
+    .org-tree li::before {
+      content: "";
+      position: absolute;
+      left: -13px;
+      top: 20px;
+      width: 12px;
+      height: 1px;
+      background: #d9e3ef;
+    }
+
+    .tree-node {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 14px 16px;
+      background: #fff;
+      cursor: pointer;
+    }
+
+    .tree-node.active {
+      background: var(--blue-soft);
+      border-color: #cfe1ff;
+    }
+
+    .tree-node-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      font-weight: 700;
+    }
+
+    .tree-node-meta {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    .tree-node-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 4px;
+    }
+
+    .tree-node-actions {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.18s ease;
+    }
+
+    .tree-node:hover .tree-node-actions,
+    .tree-node:focus-within .tree-node-actions,
+    .tree-node.active .tree-node-actions {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .roles {
+      display: grid;
+      gap: 12px;
+    }
+
+    .role-card {
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 16px;
+      background: #fff;
+    }
+
+    .role-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: flex-start;
+      margin-bottom: 10px;
+    }
+
+    .permission-grid {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .permission {
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: var(--surface-soft);
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .empty {
+      border: 1px dashed var(--line);
+      border-radius: 18px;
+      padding: 28px 16px;
+      text-align: center;
+      color: var(--muted);
+      background: var(--surface-soft);
+    }
+
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.42);
+      display: grid;
+      place-items: center;
+      padding: 20px;
+      z-index: 30;
+    }
+
+    .modal {
+      width: min(920px, 100%);
+      background: #fff;
+      border-radius: 26px;
+      border: 1px solid var(--line);
+      box-shadow: 0 24px 60px rgba(15, 23, 42, 0.2);
+      padding: 22px;
+      max-height: calc(100vh - 40px);
+      overflow: auto;
+    }
+
+    .modal.small {
+      width: min(560px, 100%);
+    }
+
+    .modal-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 14px;
+      margin-bottom: 16px;
+    }
+
+    .modal-title {
+      margin: 0;
+      font-size: 24px;
+    }
+
+    .close {
+      width: 36px;
+      height: 36px;
+      display: grid;
+      place-items: center;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: var(--surface-soft);
+      font-size: 18px;
+    }
+
+    .wizard-steps {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+
+    .wizard-step {
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 12px 14px;
+      background: var(--surface-soft);
+      color: var(--muted);
+      font-weight: 700;
+    }
+
+    .wizard-step.active {
+      background: var(--blue-soft);
+      color: var(--blue);
+      border-color: #cfe1ff;
+    }
+
+    .form-grid {
+      display: grid;
+      gap: 14px;
+    }
+
+    .two-col {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .check-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .check-item {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 12px 14px;
+      background: var(--surface-soft);
+    }
+
+    .tree-check {
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 12px;
+      background: var(--surface-soft);
+      max-height: 320px;
+      overflow: auto;
+    }
+
+    .tree-check ul {
+      list-style: none;
+      padding-left: 18px;
+      margin: 0;
+    }
+
+    .tree-check li + li {
+      margin-top: 8px;
+    }
+
+    .modal-foot {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      margin-top: 18px;
+    }
+
+    .toast {
+      position: fixed;
+      top: 18px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 40;
+      padding: 12px 16px;
+      border-radius: 999px;
+      box-shadow: var(--shadow);
+      color: #fff;
+      font-weight: 700;
+    }
+
+    .toast.success {
+      background: var(--green);
+    }
+
+    .toast.error {
+      background: var(--red);
+    }
+
+    .toast.info {
+      background: var(--blue);
+    }
+
+    @media (max-width: 1200px) {
+      .split,
+      .split-wide {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 980px) {
+      .auth-grid,
+      .workspace,
+      .metrics,
+      .two-col,
+      .wizard-steps {
+        grid-template-columns: 1fr;
+      }
+
+      .sidebar {
+        position: static;
+        height: auto;
+        border-right: none;
+        border-bottom: 1px solid var(--line);
+        padding-bottom: 18px;
+      }
+
+      .sidebar-foot {
+        position: static;
+        width: auto;
+      }
+    }
+
+    @media (max-width: 720px) {
+      .auth-shell {
+        width: min(100vw - 18px, 1280px);
+      }
+
+      .main {
+        padding: 14px;
+      }
+
+      .hero,
+      .card,
+      .surface,
+      .modal {
+        padding: 18px;
+      }
+
+      .page-title,
+      .title {
+        font-size: 24px;
+      }
+
+      table {
+        min-width: 620px;
+      }
+
+      .account-menu {
+        width: min(280px, calc(100vw - 40px));
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="app" class="app"></div>
+  <div id="modal-root"></div>
+  <div id="toast-root"></div>
+  <script>
+    const STORAGE_KEY = "frontis-unified-user-prd-v1-demo";
+    const SCHEMA_VERSION = "prd-v1-demo-2026-04-15-b";
+    const DEMO_CODE = "246810";
+    const LOGIN_MAX_FAILURES = 5;
+    const LOGIN_LOCK_MINUTES = 10;
+    const CODE_COOLDOWN_SECONDS = 60;
+
+    const PLATFORM_LABELS = {
+      cms: "运营平台",
+      fde: "FDE平台",
+      enterprise: "企业平台",
+    };
+
+    const MODULE_DEFS = {
+      cms: [
+        { key: "cmsHome", label: "首页" },
+        { key: "tenantList", label: "租户管理" },
+        { key: "orgMembers", label: "组织与成员" },
+        { key: "roles", label: "角色管理" },
+      ],
+      fdeBusiness: [
+        { key: "fdeBusinessHome", label: "首页" },
+        { key: "childTenants", label: "租户管理" },
+        { key: "orgMembers", label: "组织与成员" },
+        { key: "roles", label: "角色管理" },
+      ],
+      fdeDev: [
+        { key: "fdeDevHome", label: "首页" },
+        { key: "orgMembers", label: "组织与成员" },
+        { key: "roles", label: "角色管理" },
+      ],
+      enterprise: [
+        { key: "enterpriseHome", label: "首页" },
+        { key: "orgMembers", label: "组织与成员" },
+        { key: "roles", label: "角色管理" },
+      ],
+    };
+
+    function deepCopy(obj) {
+      return JSON.parse(JSON.stringify(obj));
+    }
+
+    function now() {
+      return "2026-04-15 10:00";
+    }
+
+    function uid(prefix) {
+      return prefix + "-" + Math.random().toString(36).slice(2, 9);
+    }
+
+    function createInitialState() {
+      const time = now();
+      const state = {
+        schemaVersion: SCHEMA_VERSION,
+        recentCombos: {},
+        auth: {
+          loginFailures: {},
+          codeCooldowns: {},
+        },
+        users: [
+          { id: "user-cms-1", name: "陈棠", phone: "13800000001" },
+          { id: "user-cms-2", name: "周箐", phone: "13800000002" },
+          { id: "user-special-1", name: "林曜", phone: "13800000003" },
+          { id: "user-special-2", name: "顾南", phone: "13800000004" },
+          { id: "user-top-admin", name: "沈予", phone: "13800000011" },
+          { id: "user-top-member", name: "宋闻", phone: "13800000012" },
+          { id: "user-top-leader", name: "季岚", phone: "13800000013" },
+          { id: "user-child-admin", name: "许洲", phone: "13800000014" },
+          { id: "user-single-admin", name: "唐颂", phone: "13800000015" },
+          { id: "user-single-member", name: "韩野", phone: "13800000016" },
+          { id: "user-multi", name: "梁舟", phone: "13800000017" },
+        ],
+        tenants: [
+          {
+            id: "tenant-special",
+            name: "衔远科技",
+            code: "XY-0001",
+            kind: "special",
+            parentId: "",
+            seats: 120,
+            remark: "",
+            status: "enabled",
+            linkedFdeMemberId: "",
+            createdAt: time,
+            permissions: {
+              platforms: { cms: true, fdeBusiness: true, fdeDev: true, enterprise: false },
+              modules: {
+                cms: ["cmsHome", "tenantList", "orgMembers", "roles"],
+                fdeBusiness: ["fdeBusinessHome", "childTenants"],
+                fdeDev: ["fdeDevHome"],
+                enterprise: [],
+              },
+            },
+            assetInfo: { cloudDevices: 30, localDevices: 12, seats: 120, points: 9600 },
+            orders: [],
+          },
+          {
+            id: "tenant-top",
+            name: "建发集团",
+            code: "TEN-1001",
+            kind: "top",
+            parentId: "",
+            seats: 80,
+            remark: "多租户顶级租户",
+            status: "enabled",
+            linkedFdeMemberId: "member-special-1",
+            createdAt: time,
+            permissions: {
+              platforms: { cms: true, fdeBusiness: true, fdeDev: true, enterprise: true },
+              modules: {
+                cms: ["cmsHome", "orgMembers", "roles"],
+                fdeBusiness: ["fdeBusinessHome", "childTenants", "orgMembers", "roles"],
+                fdeDev: ["fdeDevHome", "orgMembers", "roles"],
+                enterprise: ["enterpriseHome", "orgMembers", "roles"],
+              },
+            },
+            assetInfo: { cloudDevices: 18, localDevices: 8, seats: 80, points: 3600 },
+            orders: [
+              { no: "ORD-1001", type: "主订单", amount: "120万", status: "履约中", goods: "标准版 + Agent开发", createdAt: time },
+              { no: "ORD-1002", type: "增购", amount: "28万", status: "已完成", goods: "企业席位包", createdAt: time },
+            ],
+          },
+          {
+            id: "tenant-child",
+            name: "建发地产",
+            code: "TEN-1001-01",
+            kind: "child",
+            parentId: "tenant-top",
+            seats: 36,
+            remark: "",
+            status: "enabled",
+            linkedFdeMemberId: "member-special-2",
+            createdAt: time,
+            permissions: {
+              platforms: { cms: true, fdeBusiness: true, fdeDev: true, enterprise: true },
+              modules: {
+                cms: ["cmsHome", "orgMembers", "roles"],
+                fdeBusiness: ["fdeBusinessHome", "childTenants", "orgMembers", "roles"],
+                fdeDev: ["fdeDevHome", "orgMembers", "roles"],
+                enterprise: ["enterpriseHome", "orgMembers", "roles"],
+              },
+            },
+            assetInfo: { cloudDevices: 10, localDevices: 4, seats: 36, points: 1800 },
+            orders: [
+              { no: "ORD-2001", type: "子租户订单", amount: "42万", status: "履约中", goods: "开发模块授权", createdAt: time },
+            ],
+          },
+          {
+            id: "tenant-single",
+            name: "星海建设",
+            code: "TEN-2001",
+            kind: "single",
+            parentId: "",
+            seats: 48,
+            remark: "单租户",
+            status: "enabled",
+            linkedFdeMemberId: "member-special-1",
+            createdAt: time,
+            permissions: {
+              platforms: { cms: true, fdeBusiness: true, fdeDev: true, enterprise: true },
+              modules: {
+                cms: ["cmsHome", "orgMembers", "roles"],
+                fdeBusiness: ["fdeBusinessHome", "childTenants", "orgMembers", "roles"],
+                fdeDev: ["fdeDevHome", "orgMembers", "roles"],
+                enterprise: ["enterpriseHome", "orgMembers", "roles"],
+              },
+            },
+            assetInfo: { cloudDevices: 12, localDevices: 3, seats: 48, points: 2400 },
+            orders: [
+              { no: "ORD-3001", type: "主订单", amount: "66万", status: "已完成", goods: "企业侧标准版", createdAt: time },
+            ],
+          },
+        ],
+        roles: [
+          {
+            id: "role-special-ops",
+            tenantId: "tenant-special",
+            name: "运营管理员",
+            type: "preset",
+            builtInKey: "operatorAdmin",
+            pages: { cms: ["cmsHome", "tenantList"], fdeBusiness: [], fdeDev: [], enterprise: [] },
+          },
+          {
+            id: "role-special-custom",
+            tenantId: "tenant-special",
+            name: "平台支持",
+            type: "custom",
+            builtInKey: "",
+            pages: { cms: ["cmsHome", "tenantList"], fdeBusiness: ["fdeBusinessHome", "childTenants"], fdeDev: ["fdeDevHome"], enterprise: [] },
+          },
+          {
+            id: "role-top-admin",
+            tenantId: "tenant-top",
+            name: "租户管理员",
+            type: "preset",
+            builtInKey: "tenantAdmin",
+            pages: { cms: ["cmsHome", "orgMembers", "roles"], fdeBusiness: ["fdeBusinessHome", "childTenants", "orgMembers", "roles"], fdeDev: ["fdeDevHome", "orgMembers", "roles"], enterprise: ["enterpriseHome", "orgMembers", "roles"] },
+          },
+          {
+            id: "role-top-fde",
+            tenantId: "tenant-top",
+            name: "FDE员工",
+            type: "preset",
+            builtInKey: "fdeEmployee",
+            pages: { cms: [], fdeBusiness: ["fdeBusinessHome", "childTenants"], fdeDev: ["fdeDevHome"], enterprise: [] },
+          },
+          {
+            id: "role-top-dev",
+            tenantId: "tenant-top",
+            name: "FDE开发人员",
+            type: "preset",
+            builtInKey: "fdeDeveloper",
+            pages: { cms: [], fdeBusiness: [], fdeDev: ["fdeDevHome"], enterprise: [] },
+          },
+          {
+            id: "role-top-ent",
+            tenantId: "tenant-top",
+            name: "企业员工",
+            type: "preset",
+            builtInKey: "enterpriseEmployee",
+            pages: { cms: [], fdeBusiness: [], fdeDev: [], enterprise: ["enterpriseHome"] },
+          },
+          {
+            id: "role-top-custom",
+            tenantId: "tenant-top",
+            name: "项目协调员",
+            type: "custom",
+            builtInKey: "",
+            pages: { cms: [], fdeBusiness: ["fdeBusinessHome", "childTenants"], fdeDev: ["fdeDevHome"], enterprise: ["enterpriseHome"] },
+          },
+          {
+            id: "role-child-admin",
+            tenantId: "tenant-child",
+            name: "租户管理员",
+            type: "preset",
+            builtInKey: "tenantAdmin",
+            pages: { cms: ["cmsHome", "orgMembers", "roles"], fdeBusiness: ["fdeBusinessHome", "childTenants", "orgMembers", "roles"], fdeDev: ["fdeDevHome", "orgMembers", "roles"], enterprise: ["enterpriseHome", "orgMembers", "roles"] },
+          },
+          {
+            id: "role-child-dev",
+            tenantId: "tenant-child",
+            name: "FDE开发人员",
+            type: "preset",
+            builtInKey: "fdeDeveloper",
+            pages: { cms: [], fdeBusiness: ["fdeBusinessHome", "childTenants"], fdeDev: ["fdeDevHome"], enterprise: [] },
+          },
+          {
+            id: "role-child-ent",
+            tenantId: "tenant-child",
+            name: "企业员工",
+            type: "preset",
+            builtInKey: "enterpriseEmployee",
+            pages: { cms: [], fdeBusiness: [], fdeDev: [], enterprise: ["enterpriseHome"] },
+          },
+          {
+            id: "role-single-admin",
+            tenantId: "tenant-single",
+            name: "租户管理员",
+            type: "preset",
+            builtInKey: "tenantAdmin",
+            pages: { cms: ["cmsHome", "orgMembers", "roles"], fdeBusiness: ["fdeBusinessHome", "childTenants", "orgMembers", "roles"], fdeDev: ["fdeDevHome", "orgMembers", "roles"], enterprise: ["enterpriseHome", "orgMembers", "roles"] },
+          },
+          {
+            id: "role-single-ent",
+            tenantId: "tenant-single",
+            name: "企业员工",
+            type: "preset",
+            builtInKey: "enterpriseEmployee",
+            pages: { cms: [], fdeBusiness: [], fdeDev: [], enterprise: ["enterpriseHome"] },
+          },
+          {
+            id: "role-single-custom",
+            tenantId: "tenant-single",
+            name: "内控协同岗",
+            type: "custom",
+            builtInKey: "",
+            pages: { cms: [], fdeBusiness: [], fdeDev: ["fdeDevHome"], enterprise: ["enterpriseHome"] },
+          },
+        ],
+        nodes: [
+          { id: "org-special-root", tenantId: "tenant-special", name: "衔远科技", parentId: "", leaderMemberId: "" },
+          { id: "org-special-ops", tenantId: "tenant-special", name: "运营中心", parentId: "org-special-root", leaderMemberId: "member-special-cms" },
+          { id: "org-special-fde", tenantId: "tenant-special", name: "FDE支持中心", parentId: "org-special-root", leaderMemberId: "" },
+
+          { id: "org-top-root", tenantId: "tenant-top", name: "建发集团", parentId: "", leaderMemberId: "member-top-admin" },
+          { id: "org-top-fde", tenantId: "tenant-top", name: "FDE中心", parentId: "org-top-root", leaderMemberId: "member-top-leader" },
+          { id: "org-top-dev", tenantId: "tenant-top", name: "开发中心", parentId: "org-top-root", leaderMemberId: "" },
+          { id: "org-top-ent", tenantId: "tenant-top", name: "企业运营部", parentId: "org-top-root", leaderMemberId: "" },
+          { id: "org-top-east", tenantId: "tenant-top", name: "华东组", parentId: "org-top-fde", leaderMemberId: "" },
+
+          { id: "org-child-root", tenantId: "tenant-child", name: "建发地产", parentId: "", leaderMemberId: "member-child-admin" },
+          { id: "org-child-dev", tenantId: "tenant-child", name: "开发部", parentId: "org-child-root", leaderMemberId: "" },
+          { id: "org-child-ent", tenantId: "tenant-child", name: "经营部", parentId: "org-child-root", leaderMemberId: "" },
+
+          { id: "org-single-root", tenantId: "tenant-single", name: "星海建设", parentId: "", leaderMemberId: "member-single-admin" },
+          { id: "org-single-proj", tenantId: "tenant-single", name: "项目部", parentId: "org-single-root", leaderMemberId: "" },
+          { id: "org-single-fin", tenantId: "tenant-single", name: "财务部", parentId: "org-single-root", leaderMemberId: "" },
+        ],
+        members: [
+          { id: "member-special-cms", tenantId: "tenant-special", userId: "user-cms-1", orgIds: ["org-special-root", "org-special-ops"], roleIds: ["role-special-ops"], status: "enabled", assetCount: 0 },
+          { id: "member-special-ops", tenantId: "tenant-special", userId: "user-cms-2", orgIds: ["org-special-ops"], roleIds: ["role-special-ops"], status: "enabled", assetCount: 0 },
+          { id: "member-special-1", tenantId: "tenant-special", userId: "user-special-1", orgIds: ["org-special-fde"], roleIds: ["role-special-custom"], status: "enabled", assetCount: 0 },
+          { id: "member-special-2", tenantId: "tenant-special", userId: "user-special-2", orgIds: ["org-special-fde"], roleIds: ["role-special-custom"], status: "enabled", assetCount: 0 },
+
+          { id: "member-top-admin", tenantId: "tenant-top", userId: "user-top-admin", orgIds: ["org-top-root"], roleIds: ["role-top-admin"], status: "enabled", assetCount: 2 },
+          { id: "member-top-member", tenantId: "tenant-top", userId: "user-top-member", orgIds: ["org-top-fde", "org-top-east"], roleIds: ["role-top-fde", "role-top-dev"], status: "enabled", assetCount: 0 },
+          { id: "member-top-leader", tenantId: "tenant-top", userId: "user-top-leader", orgIds: ["org-top-fde", "org-top-ent"], roleIds: ["role-top-custom", "role-top-ent"], status: "enabled", assetCount: 1 },
+          { id: "member-top-multi", tenantId: "tenant-top", userId: "user-multi", orgIds: ["org-top-dev"], roleIds: ["role-top-dev"], status: "enabled", assetCount: 0 },
+
+          { id: "member-child-admin", tenantId: "tenant-child", userId: "user-child-admin", orgIds: ["org-child-root"], roleIds: ["role-child-admin"], status: "enabled", assetCount: 0 },
+          { id: "member-child-multi", tenantId: "tenant-child", userId: "user-multi", orgIds: ["org-child-ent"], roleIds: ["role-child-ent"], status: "enabled", assetCount: 0 },
+
+          { id: "member-single-admin", tenantId: "tenant-single", userId: "user-single-admin", orgIds: ["org-single-root"], roleIds: ["role-single-admin"], status: "enabled", assetCount: 0 },
+          { id: "member-single-member", tenantId: "tenant-single", userId: "user-single-member", orgIds: ["org-single-proj"], roleIds: ["role-single-ent"], status: "enabled", assetCount: 0 },
+          { id: "member-single-multi", tenantId: "tenant-single", userId: "user-multi", orgIds: ["org-single-fin"], roleIds: ["role-single-custom"], status: "enabled", assetCount: 0 },
+        ],
+      };
+      return state;
+    }
+
+    let state = loadState();
+    const ui = {
+      loginPhone: "",
+      loginCode: "",
+      sentPhone: "",
+      screen: "login",
+      selectedComboKey: "",
+      selectedTenantId: "",
+      currentPage: "",
+      currentTab: "",
+      selectedNodeId: "",
+      selectedTenantDetailTab: "basic",
+      searchKeyword: "",
+      filterStatus: "",
+      filterRoleId: "",
+      accountMenuOpen: false,
+      modal: null,
+      toast: null,
+      wizard: null,
+    };
+
+    const app = document.getElementById("app");
+    const modalRoot = document.getElementById("modal-root");
+    const toastRoot = document.getElementById("toast-root");
+
+    function loadState() {
+      try {
+        const raw = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
+        if (raw && raw.schemaVersion === SCHEMA_VERSION) return raw;
+      } catch (error) {}
+      const initial = createInitialState();
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(initial));
+      return initial;
+    }
+
+    function saveState() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    }
+
+    function resetDemo() {
+      state = createInitialState();
+      saveState();
+      Object.assign(ui, {
+        loginPhone: "",
+        loginCode: "",
+        sentPhone: "",
+        screen: "login",
+        selectedComboKey: "",
+        selectedTenantId: "",
+        currentPage: "",
+        currentTab: "",
+        selectedNodeId: "",
+        selectedTenantDetailTab: "basic",
+        searchKeyword: "",
+        filterStatus: "",
+        filterRoleId: "",
+        accountMenuOpen: false,
+        modal: null,
+        toast: null,
+        wizard: null,
+      });
+      render();
+      showToast("已重置", "success");
+    }
+
+    function escapeHtml(value) {
+      return String(value == null ? "" : value)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+    }
+
+    function getUser(userId) {
+      return state.users.find((item) => item.id === userId) || null;
+    }
+
+    function getTenant(tenantId) {
+      return state.tenants.find((item) => item.id === tenantId) || null;
+    }
+
+    function getRole(roleId) {
+      return state.roles.find((item) => item.id === roleId) || null;
+    }
+
+    function getNode(nodeId) {
+      return state.nodes.find((item) => item.id === nodeId) || null;
+    }
+
+    function getMember(memberId) {
+      return state.members.find((item) => item.id === memberId) || null;
+    }
+
+    function findUserByPhone(phone) {
+      return state.users.find((item) => item.phone === String(phone || "").trim()) || null;
+    }
+
+    function membersByTenant(tenantId) {
+      return state.members.filter((item) => item.tenantId === tenantId && item.status !== "deleted");
+    }
+
+    function rolesByTenant(tenantId) {
+      return state.roles.filter((item) => item.tenantId === tenantId);
+    }
+
+    function nodesByTenant(tenantId) {
+      return state.nodes.filter((item) => item.tenantId === tenantId);
+    }
+
+    function rootNode(tenantId) {
+      return nodesByTenant(tenantId).find((item) => !item.parentId) || null;
+    }
+
+    function childrenOf(nodeId) {
+      return state.nodes.filter((item) => item.parentId === nodeId);
+    }
+
+    function nodePath(nodeId) {
+      const names = [];
+      let cursor = getNode(nodeId);
+      const seen = new Set();
+      while (cursor && !seen.has(cursor.id)) {
+        seen.add(cursor.id);
+        names.unshift(cursor.name);
+        cursor = cursor.parentId ? getNode(cursor.parentId) : null;
+      }
+      return names.join(" / ");
+    }
+
+    function descendants(nodeId) {
+      const result = [];
+      function walk(id) {
+        result.push(id);
+        childrenOf(id).forEach((child) => walk(child.id));
+      }
+      walk(nodeId);
+      return result;
+    }
+
+    function memberName(memberId) {
+      const member = getMember(memberId);
+      if (!member) return "-";
+      return getUser(member.userId)?.name || "-";
+    }
+
+    function memberPhone(memberId) {
+      const member = getMember(memberId);
+      if (!member) return "-";
+      return getUser(member.userId)?.phone || "-";
+    }
+
+    function roleNames(roleIds) {
+      return roleIds.map((roleId) => getRole(roleId)?.name).filter(Boolean).join(" / ");
+    }
+
+    function memberRoleNames(member) {
+      return roleNames(member?.roleIds || []);
+    }
+
+    function isNodeLeaderMember(member, tenantId = member?.tenantId) {
+      if (!member || !tenantId) return false;
+      return nodesByTenant(tenantId).some((node) => node.leaderMemberId === member.id);
+    }
+
+    function memberIdentityLabel(member) {
+      if (!member) return "";
+      if (isTenantAdmin(member)) return "租户管理员";
+      if (isNodeLeaderMember(member)) return "负责人";
+      return "普通成员";
+    }
+
+    function memberDataScopeLabel(member) {
+      if (!member) return "-";
+      if (isTenantAdmin(member) || isOperatorAdmin(member)) return "全部数据";
+      if (isNodeLeaderMember(member)) return "负责节点及下级";
+      return "仅本人";
+    }
+
+    function comboIdentityMeta(combo) {
+      const member = getMember(combo.memberId);
+      return {
+        identity: memberIdentityLabel(member),
+        roles: memberRoleNames(member),
+      };
+    }
+
+    function effectiveRolePages(role, tenant = currentTenant()) {
+      if (!role) return { cms: [], fdeBusiness: [], fdeDev: [], enterprise: [] };
+      if (role.builtInKey === "tenantAdmin") {
+        return deepCopy(tenant.permissions.modules);
+      }
+      return deepCopy(role.pages);
+    }
+
+    function roleCount(roleId) {
+      return state.members.filter((item) => item.status !== "deleted" && item.roleIds.includes(roleId)).length;
+    }
+
+    function orderTotal(tenant) {
+      return tenant.orders.reduce((sum, item) => sum + Number(String(item.amount || "").replace(/[^0-9.]/g, "")), 0);
+    }
+
+    function assetSummary(tenant) {
+      return `${tenant.assetInfo.cloudDevices}云 / ${tenant.assetInfo.localDevices}本地 / ${tenant.assetInfo.seats}席 / ${tenant.assetInfo.points}积分`;
+    }
+
+    function orderSummary(tenant) {
+      return `${tenant.orders.length}笔 / ${orderTotal(tenant)}万`;
+    }
+
+    function normalizePhone(value) {
+      return String(value || "").trim();
+    }
+
+    function authBucket(phone) {
+      const key = normalizePhone(phone);
+      if (!state.auth) state.auth = { loginFailures: {}, codeCooldowns: {} };
+      if (!state.auth.loginFailures) state.auth.loginFailures = {};
+      if (!state.auth.codeCooldowns) state.auth.codeCooldowns = {};
+      return {
+        key,
+        failure: state.auth.loginFailures[key] || { count: 0, lockUntil: 0 },
+        codeCooldownUntil: state.auth.codeCooldowns[key] || 0,
+      };
+    }
+
+    function lockInfo(phone) {
+      const bucket = authBucket(phone);
+      const remainingMs = Math.max(0, bucket.failure.lockUntil - Date.now());
+      return {
+        locked: remainingMs > 0,
+        remainingSeconds: Math.ceil(remainingMs / 1000),
+        remainingMinutes: Math.ceil(remainingMs / 60000),
+      };
+    }
+
+    function recordLoginFailure(phone) {
+      const bucket = authBucket(phone);
+      const nextCount = Number(bucket.failure.count || 0) + 1;
+      const lockUntil = nextCount >= LOGIN_MAX_FAILURES ? Date.now() + LOGIN_LOCK_MINUTES * 60 * 1000 : 0;
+      state.auth.loginFailures[bucket.key] = { count: nextCount, lockUntil };
+      saveState();
+      return lockInfo(phone);
+    }
+
+    function clearLoginFailure(phone) {
+      const bucket = authBucket(phone);
+      delete state.auth.loginFailures[bucket.key];
+      saveState();
+    }
+
+    function loginError(phone) {
+      const info = recordLoginFailure(phone);
+      if (info.locked) {
+        showToast(`登录异常，请 ${info.remainingMinutes} 分钟后重试`, "error");
+        return;
+      }
+      showToast("登录异常，请稍后重试", "error");
+    }
+
+    function codeCooldownInfo(phone) {
+      const bucket = authBucket(phone);
+      const remainingMs = Math.max(0, bucket.codeCooldownUntil - Date.now());
+      return {
+        active: remainingMs > 0,
+        remainingSeconds: Math.ceil(remainingMs / 1000),
+      };
+    }
+
+    function recordCodeCooldown(phone) {
+      const bucket = authBucket(phone);
+      state.auth.codeCooldowns[bucket.key] = Date.now() + CODE_COOLDOWN_SECONDS * 1000;
+      saveState();
+    }
+
+    function intersectModules(list, allowed) {
+      return list.filter((item) => allowed.includes(item));
+    }
+
+    function memberPageAccessForPermissions(member, tenant, platformKey, permissions) {
+      const pages = new Set();
+      const enabledModules = permissions.modules[platformKey] || [];
+      const platformEnabled = Boolean(permissions.platforms[platformKey]);
+      member.roleIds.forEach((roleId) => {
+        const role = getRole(roleId);
+        if (!role) return;
+        if (role.builtInKey === "tenantAdmin") {
+          if (platformEnabled) enabledModules.forEach((page) => pages.add(page));
+          return;
+        }
+        if (role.builtInKey === "operatorAdmin") {
+          if (platformKey === "cms" && platformEnabled) enabledModules.forEach((page) => pages.add(page));
+          return;
+        }
+        intersectModules(role.pages[platformKey] || [], enabledModules).forEach((page) => pages.add(page));
+      });
+      return Array.from(pages);
+    }
+
+    function memberPlatformAccessForPermissions(member, tenant, permissions) {
+      const access = { cms: false, fdeBusiness: false, fdeDev: false, enterprise: false };
+      Object.keys(access).forEach((platformKey) => {
+        access[platformKey] = memberPageAccessForPermissions(member, tenant, platformKey, permissions).length > 0;
+      });
+      return access;
+    }
+
+    function responsibleFdePageSnapshot(tenant) {
+      return {
+        cms: tenant.permissions.platforms.cms ? ["cmsHome"] : [],
+        fdeBusiness: tenant.permissions.platforms.fdeBusiness ? ["fdeBusinessHome", "childTenants"] : [],
+        fdeDev: tenant.permissions.platforms.fdeDev ? ["fdeDevHome"] : [],
+        enterprise: tenant.permissions.platforms.enterprise ? ["enterpriseHome"] : [],
+      };
+    }
+
+    function platformAccessFromPages(pages) {
+      return {
+        cms: Boolean((pages.cms || []).length),
+        fdeBusiness: Boolean((pages.fdeBusiness || []).length),
+        fdeDev: Boolean((pages.fdeDev || []).length),
+        enterprise: Boolean((pages.enterprise || []).length),
+      };
+    }
+
+    function sessionPlatformAccess() {
+      if (state.session?.platformAccessSnapshot) return state.session.platformAccessSnapshot;
+      const member = currentMember();
+      const tenant = currentTenant();
+      return member && tenant ? memberPlatformAccess(member, tenant) : { cms: false, fdeBusiness: false, fdeDev: false, enterprise: false };
+    }
+
+    function captureSessionAccess(member, tenant) {
+      return {
+        platformAccessSnapshot: memberPlatformAccess(member, tenant),
+        pageAccessSnapshot: {
+          cms: memberPageAccess(member, tenant, "cms"),
+          fdeBusiness: memberPageAccess(member, tenant, "fdeBusiness"),
+          fdeDev: memberPageAccess(member, tenant, "fdeDev"),
+          enterprise: memberPageAccess(member, tenant, "enterprise"),
+        },
+      };
+    }
+
+    function normalizeTenantPermissions(tenant, nextPermissions) {
+      const normalized = deepCopy(nextPermissions);
+      if (!tenant.parentId) return normalized;
+      const parent = getTenant(tenant.parentId);
+      if (!parent) return normalized;
+      ["cms", "fdeBusiness", "fdeDev", "enterprise"].forEach((key) => {
+        normalized.platforms[key] = normalized.platforms[key] && parent.permissions.platforms[key];
+        normalized.modules[key] = intersectModules(normalized.modules[key] || [], parent.permissions.modules[key] || []);
+        if (!normalized.platforms[key]) normalized.modules[key] = [];
+      });
+      return normalized;
+    }
+
+    function countPermissionImpact(tenant, nextPermissions) {
+      const activeMembers = membersByTenant(tenant.id).filter((item) => item.status === "enabled");
+      return activeMembers.filter((member) => {
+        const beforePlatforms = memberPlatformAccessForPermissions(member, tenant, tenant.permissions);
+        const afterPlatforms = memberPlatformAccessForPermissions(member, tenant, nextPermissions);
+        return ["cms", "fdeBusiness", "fdeDev", "enterprise"].some((key) => {
+          if (beforePlatforms[key] && !afterPlatforms[key]) return true;
+          const beforePages = memberPageAccessForPermissions(member, tenant, key, tenant.permissions);
+          const afterPages = memberPageAccessForPermissions(member, tenant, key, nextPermissions);
+          return beforePages.some((page) => !afterPages.includes(page));
+        });
+      }).length;
+    }
+
+    function enabledPlatformKeys(tenant) {
+      return Object.entries(tenant.permissions.platforms)
+        .filter(([, value]) => Boolean(value))
+        .map(([key]) => key);
+    }
+
+    function memberPlatformAccess(member, tenant) {
+      return memberPlatformAccessForPermissions(member, tenant, tenant.permissions);
+    }
+
+    function memberPageAccess(member, tenant, platformKey) {
+      return memberPageAccessForPermissions(member, tenant, platformKey, tenant.permissions);
+    }
+
+    function isTenantAdmin(member) {
+      return member.roleIds.some((roleId) => getRole(roleId)?.builtInKey === "tenantAdmin");
+    }
+
+    function isOperatorAdmin(member) {
+      return member.roleIds.some((roleId) => getRole(roleId)?.builtInKey === "operatorAdmin");
+    }
+
+    function currentMember() {
+      if (!state.session?.memberId) return null;
+      return getMember(state.session.memberId);
+    }
+
+    function currentTenant() {
+      return getTenant(state.session?.tenantId || "");
+    }
+
+    function currentPlatform() {
+      return state.session?.platform || "";
+    }
+
+    function currentFdeModule() {
+      return state.session?.fdeModule || "fdeBusiness";
+    }
+
+    function availableCombosForUser(userId) {
+      const combos = [];
+      const comboKeys = new Set();
+      const enabledMembers = state.members.filter((item) => item.userId === userId && item.status === "enabled");
+
+      function pushCombo(member, tenant, platform, sublabel, pageAccessSnapshot = null, platformAccessSnapshot = null) {
+        const key = `${tenant.id}|${member.id}|${platform}`;
+        if (comboKeys.has(key)) return;
+        comboKeys.add(key);
+        combos.push({
+          key,
+          memberId: member.id,
+          tenantId: tenant.id,
+          platform,
+          label: PLATFORM_LABELS[platform],
+          sublabel,
+          pageAccessSnapshot,
+          platformAccessSnapshot,
+        });
+      }
+
+      enabledMembers.forEach((member) => {
+        const tenant = getTenant(member.tenantId);
+        if (!tenant || tenant.status !== "enabled") return;
+        const access = memberPlatformAccess(member, tenant);
+        if (access.cms) {
+          pushCombo(member, tenant, "cms", "");
+        }
+        if (access.fdeBusiness || access.fdeDev) {
+          pushCombo(member, tenant, "fde", [access.fdeBusiness ? "业务" : "", access.fdeDev ? "开发" : ""].filter(Boolean).join(" / "));
+        }
+        if (access.enterprise) {
+          pushCombo(member, tenant, "enterprise", "");
+        }
+      });
+
+      return combos.sort((a, b) => {
+        const tb = state.recentCombos[b.key] || 0;
+        const ta = state.recentCombos[a.key] || 0;
+        return tb - ta;
+      });
+    }
+
+    function tenantPlatformChoicesForUser(userId, tenantId) {
+      const tenant = getTenant(tenantId);
+      if (!tenant || tenant.status !== "enabled") return [];
+      const choices = [];
+      const directChoices = availableCombosForUser(userId).filter((item) => item.tenantId === tenantId);
+      const seen = new Set();
+      directChoices.forEach((item) => {
+        seen.add(item.key);
+        choices.push(item);
+      });
+      const linkedMember = state.members.find((item) => item.id === tenant.linkedFdeMemberId && item.userId === userId && item.status === "enabled");
+      if (linkedMember) {
+        const pageSnapshot = responsibleFdePageSnapshot(tenant);
+        const platformSnapshot = platformAccessFromPages(pageSnapshot);
+        if (platformSnapshot.cms) {
+          const key = `linked|${tenant.id}|${linkedMember.id}|cms`;
+          if (!seen.has(key)) choices.push({ key, memberId: linkedMember.id, tenantId: tenant.id, platform: "cms", label: PLATFORM_LABELS.cms, sublabel: "负责FDE", pageAccessSnapshot: pageSnapshot, platformAccessSnapshot: platformSnapshot });
+        }
+        if (platformSnapshot.fdeBusiness || platformSnapshot.fdeDev) {
+          const key = `linked|${tenant.id}|${linkedMember.id}|fde`;
+          if (!seen.has(key)) choices.push({ key, memberId: linkedMember.id, tenantId: tenant.id, platform: "fde", label: PLATFORM_LABELS.fde, sublabel: [platformSnapshot.fdeBusiness ? "业务" : "", platformSnapshot.fdeDev ? "开发" : "", "负责FDE"].filter(Boolean).join(" / "), pageAccessSnapshot: pageSnapshot, platformAccessSnapshot: platformSnapshot });
+        }
+        if (platformSnapshot.enterprise) {
+          const key = `linked|${tenant.id}|${linkedMember.id}|enterprise`;
+          if (!seen.has(key)) choices.push({ key, memberId: linkedMember.id, tenantId: tenant.id, platform: "enterprise", label: PLATFORM_LABELS.enterprise, sublabel: "负责FDE", pageAccessSnapshot: pageSnapshot, platformAccessSnapshot: platformSnapshot });
+        }
+      }
+      return choices;
+    }
+
+    function groupedCombosForUser(userId) {
+      const grouped = new Map();
+      availableCombosForUser(userId).forEach((combo) => {
+        if (!grouped.has(combo.tenantId)) grouped.set(combo.tenantId, { tenant: getTenant(combo.tenantId), combos: [], sortValue: 0 });
+        const group = grouped.get(combo.tenantId);
+        group.combos.push(combo);
+        group.sortValue = Math.max(group.sortValue, state.recentCombos[combo.key] || 0);
+      });
+      return Array.from(grouped.values()).sort((a, b) => b.sortValue - a.sortValue || a.tenant.name.localeCompare(b.tenant.name, "zh-CN"));
+    }
+
+    function updateRecentCombo(key) {
+      state.recentCombos[key] = Date.now();
+      saveState();
+    }
+
+    function login() {
+      const phone = normalizePhone(ui.loginPhone);
+      const loginLock = lockInfo(phone);
+      if (loginLock.locked) {
+        showToast(`登录异常，请 ${loginLock.remainingMinutes} 分钟后重试`, "error");
+        return;
+      }
+      const user = findUserByPhone(phone);
+      if (!user) {
+        loginError(phone);
+        return;
+      }
+      if (ui.sentPhone !== phone) {
+        loginError(phone);
+        return;
+      }
+      if (ui.loginCode.trim() !== DEMO_CODE) {
+        loginError(phone);
+        return;
+      }
+      clearLoginFailure(phone);
+      const combos = availableCombosForUser(user.id);
+      if (!combos.length) {
+        showToast("暂无可进入平台", "error");
+        return;
+      }
+      state.session = { userId: user.id, memberId: "", tenantId: "", platform: "", fdeModule: "fdeBusiness", platformAccessSnapshot: null, pageAccessSnapshot: null };
+      saveState();
+      if (combos.length === 1) {
+        enterCombo(combos[0]);
+        return;
+      }
+      ui.screen = "combo";
+      render();
+    }
+
+    function sendCode() {
+      const phone = normalizePhone(ui.loginPhone);
+      const cooldown = codeCooldownInfo(phone);
+      if (cooldown.active) {
+        showToast(`操作频繁，请 ${cooldown.remainingSeconds} 秒后重试`, "error");
+        return;
+      }
+      const user = findUserByPhone(phone);
+      if (!user) {
+        showToast("发送失败，请稍后重试", "error");
+        return;
+      }
+      ui.sentPhone = user.phone;
+      recordCodeCooldown(user.phone);
+      render();
+      showToast("验证码已发送", "success");
+    }
+
+    function enterCombo(combo) {
+      const member = getMember(combo.memberId);
+      const tenant = getTenant(combo.tenantId);
+      const snapshot = combo.pageAccessSnapshot
+        ? { pageAccessSnapshot: combo.pageAccessSnapshot, platformAccessSnapshot: combo.platformAccessSnapshot || platformAccessFromPages(combo.pageAccessSnapshot) }
+        : captureSessionAccess(member, tenant);
+      const access = snapshot.platformAccessSnapshot;
+      state.session = {
+        userId: member.userId,
+        memberId: member.id,
+        tenantId: tenant.id,
+        platform: combo.platform,
+        fdeModule: access.fdeBusiness ? "fdeBusiness" : "fdeDev",
+        platformAccessSnapshot: snapshot.platformAccessSnapshot,
+        pageAccessSnapshot: snapshot.pageAccessSnapshot,
+      };
+      saveState();
+      updateRecentCombo(combo.key);
+      ui.screen = "workspace";
+      ui.accountMenuOpen = false;
+      ui.searchKeyword = "";
+      ui.filterStatus = "";
+      ui.filterRoleId = "";
+      ui.selectedTenantDetailTab = "basic";
+      const initialPages = currentNavPages();
+      ui.currentPage = initialPages[0]?.key || "";
+      ui.selectedNodeId = rootNode(tenant.id)?.id || "";
+      render();
+    }
+
+    function logout() {
+      state.session = null;
+      saveState();
+      ui.screen = "login";
+      ui.loginPhone = "";
+      ui.loginCode = "";
+      ui.sentPhone = "";
+      ui.modal = null;
+      ui.accountMenuOpen = false;
+      render();
+    }
+
+    function currentPageAccess() {
+      const member = currentMember();
+      const tenant = currentTenant();
+      if (!member || !tenant) return [];
+      const pages = state.session?.pageAccessSnapshot;
+      if (pages) {
+        if (currentPlatform() === "cms") return pages.cms || [];
+        if (currentPlatform() === "fde") return pages[currentFdeModule()] || [];
+        return pages.enterprise || [];
+      }
+      if (currentPlatform() === "cms") return memberPageAccess(member, tenant, "cms");
+      if (currentPlatform() === "fde") return memberPageAccess(member, tenant, currentFdeModule());
+      return memberPageAccess(member, tenant, "enterprise");
+    }
+
+    function normalizedPlatformPages(platformKey) {
+      const member = currentMember();
+      const tenant = currentTenant();
+      if (!member || !tenant) return [];
+      const access = state.session?.pageAccessSnapshot || {
+        cms: memberPageAccess(member, tenant, "cms"),
+        fdeBusiness: memberPageAccess(member, tenant, "fdeBusiness"),
+        fdeDev: memberPageAccess(member, tenant, "fdeDev"),
+        enterprise: memberPageAccess(member, tenant, "enterprise"),
+      };
+
+      if (platformKey === "cms") {
+        if (isOperatorAdmin(member)) return ["cmsHome", "tenantList"];
+        if (isTenantAdmin(member)) return ["cmsHome", "tenantList", "orgMembers", "roles"];
+        if ((access.cms || []).includes("tenantList")) return ["cmsHome", "tenantList"];
+        return (access.cms || []).includes("cmsHome") ? ["cmsHome"] : [];
+      }
+
+      if (platformKey === "fdeBusiness") {
+        if (isTenantAdmin(member)) return ["fdeBusinessHome", "childTenants", "orgMembers", "roles"];
+        const hasFdeAccess = (access.fdeBusiness || []).length || (access.fdeDev || []).length;
+        return hasFdeAccess ? ["fdeBusinessHome", "childTenants"] : [];
+      }
+
+      if (platformKey === "fdeDev") {
+        if (isTenantAdmin(member)) return ["fdeDevHome", "orgMembers", "roles"];
+        const hasFdeAccess = (access.fdeBusiness || []).length || (access.fdeDev || []).length;
+        return hasFdeAccess ? ["fdeDevHome"] : [];
+      }
+
+      if (platformKey === "enterprise") {
+        if (isTenantAdmin(member)) return ["enterpriseHome", "orgMembers", "roles"];
+        return (access.enterprise || []).length ? ["enterpriseHome"] : [];
+      }
+
+      return [];
+    }
+
+    function currentNavPages() {
+      const platform = currentPlatform();
+      if (platform === "cms") {
+        return MODULE_DEFS.cms.filter((item) => normalizedPlatformPages("cms").includes(item.key));
+      }
+      if (platform === "fde") {
+        return MODULE_DEFS[currentFdeModule()].filter((item) => normalizedPlatformPages(currentFdeModule()).includes(item.key));
+      }
+      return MODULE_DEFS.enterprise.filter((item) => normalizedPlatformPages("enterprise").includes(item.key));
+    }
+
+    function currentSidebarPages() {
+      return currentNavPages().filter((item) => !["orgMembers", "roles"].includes(item.key));
+    }
+
+    function currentPlatformChoices() {
+      const member = currentMember();
+      const tenant = currentTenant();
+      if (!member || !tenant) return [];
+      const access = sessionPlatformAccess();
+      const choices = [];
+      if (access.cms) {
+        choices.push({ platform: "cms", label: PLATFORM_LABELS.cms, sublabel: "" });
+      }
+      if (access.fdeBusiness || access.fdeDev) {
+        choices.push({
+          platform: "fde",
+          label: PLATFORM_LABELS.fde,
+          sublabel: [access.fdeBusiness ? "业务" : "", access.fdeDev ? "开发" : ""].filter(Boolean).join(" / "),
+        });
+      }
+      if (access.enterprise) {
+        choices.push({ platform: "enterprise", label: PLATFORM_LABELS.enterprise, sublabel: "" });
+      }
+      return choices;
+    }
+
+    function currentFdeNavGroups() {
+      const member = currentMember();
+      if (!member) return [];
+      return [
+        {
+          module: "fdeBusiness",
+          label: "FDE业务",
+          items: MODULE_DEFS.fdeBusiness.filter((item) => normalizedPlatformPages("fdeBusiness").includes(item.key)),
+        },
+        {
+          module: "fdeDev",
+          label: "FDE开发",
+          items: MODULE_DEFS.fdeDev.filter((item) => normalizedPlatformPages("fdeDev").includes(item.key)),
+        },
+      ].filter((group) => group.items.length);
+    }
+
+    function currentScopeMemberIds() {
+      const member = currentMember();
+      const tenant = currentTenant();
+      if (!member || !tenant) return [];
+      if (isTenantAdmin(member) || isOperatorAdmin(member)) return membersByTenant(tenant.id).map((item) => item.id);
+      const leaderNodeIds = nodesByTenant(tenant.id)
+        .filter((node) => node.leaderMemberId === member.id)
+        .map((node) => node.id);
+      if (leaderNodeIds.length) {
+        const scopedNodeIds = Array.from(new Set(leaderNodeIds.flatMap((nodeId) => descendants(nodeId))));
+        return membersByTenant(tenant.id)
+          .filter((item) => item.orgIds.some((orgId) => scopedNodeIds.includes(orgId)))
+          .map((item) => item.id);
+      }
+      return [member.id];
+    }
+
+    function visibleMembersForSelectedNode() {
+      const tenant = currentTenant();
+      const selectedNodeId = ui.selectedNodeId || rootNode(tenant.id)?.id || "";
+      const scopedIds = new Set(currentScopeMemberIds());
+      const treeIds = selectedNodeId ? descendants(selectedNodeId) : [];
+      return membersByTenant(tenant.id)
+        .filter((item) => scopedIds.has(item.id))
+        .filter((item) => !selectedNodeId || item.orgIds.some((orgId) => treeIds.includes(orgId)))
+        .filter((item) => {
+          const user = getUser(item.userId);
+          if (ui.searchKeyword) {
+            const text = [user.name, user.phone].join(" ");
+            if (!text.includes(ui.searchKeyword)) return false;
+          }
+          if (ui.filterStatus && item.status !== ui.filterStatus) return false;
+          if (ui.filterRoleId && !item.roleIds.includes(ui.filterRoleId)) return false;
+          return true;
+        });
+    }
+
+    function nodeTreeHtml(selectedId) {
+      const tenant = currentTenant();
+      const root = rootNode(tenant.id);
+      const canManage = isTenantAdmin(currentMember()) || isOperatorAdmin(currentMember());
+      if (!root) return `<div class="empty">暂无组织树</div>`;
+      function walk(node) {
+        const children = childrenOf(node.id);
+        const leader = node.leaderMemberId ? memberName(node.leaderMemberId) : "未设置";
+        return `
+          <li>
+            <div class="tree-node ${selectedId === node.id ? "active" : ""}" onclick="window.demo.selectNode('${node.id}')">
+              <div class="tree-node-head">
+                <div class="tree-node-title">
+                  <span>${escapeHtml(node.name)}</span>
+                </div>
+                ${
+                  canManage
+                    ? `
+                        <div class="tree-node-actions">
+                          <button class="button small ghost" onclick="event.stopPropagation(); window.demo.createChildNode('${node.id}')">新建</button>
+                          <button class="button small ghost" onclick="event.stopPropagation(); window.demo.openModal('node-edit','${node.id}')">编辑</button>
+                          ${node.parentId ? `<button class="button small danger" onclick="event.stopPropagation(); window.demo.confirmDeleteNode('${node.id}')">删除</button>` : ""}
+                        </div>
+                      `
+                    : ""
+                }
+              </div>
+              <div class="tree-node-meta">负责人 ${escapeHtml(leader)}</div>
+            </div>
+            ${children.length ? `<ul>${children.map(walk).join("")}</ul>` : ""}
+          </li>
+        `;
+      }
+      return `<div class="tree-wrap"><ul class="org-tree">${walk(root)}</ul></div>`;
+    }
+
+    function renderLogin() {
+      const samples = [
+        { userId: "user-cms-1", tag: "CMS" },
+        { userId: "user-top-admin", tag: "FDE负责人" },
+        { userId: "user-top-member", tag: "FDE成员" },
+        { userId: "user-single-admin", tag: "企业管理员" },
+        { userId: "user-multi", tag: "多租户" },
+      ];
+      return `
+        <div class="auth-shell">
+          <div class="hero">
+            <div class="brand">
+              <div class="brand-mark">✦</div>
+              <div>
+                <div class="brand-title">Frontis AI</div>
+                <div class="brand-subtitle">统一用户体系</div>
+              </div>
+            </div>
+            <div class="auth-grid">
+              <div class="card">
+                <h1 class="page-title">Portal</h1>
+                <div class="field-group">
+                  <label>手机号</label>
+                  <input class="field-control" value="${escapeHtml(ui.loginPhone)}" oninput="window.demo.setLoginPhone(this.value)" />
+                </div>
+                <div class="field-group">
+                  <label>验证码</label>
+                  <div class="toolbar">
+                    <input class="field-control" style="flex:1;" value="${escapeHtml(ui.loginCode)}" oninput="window.demo.setLoginCode(this.value)" />
+                    <button class="button ghost" onclick="window.demo.sendCode()">获取验证码</button>
+                  </div>
+                </div>
+                <div class="toolbar" style="margin-top:18px;">
+                  <button class="button primary" onclick="window.demo.login()">登录</button>
+                  <button class="button ghost" onclick="window.demo.resetDemo()">重置</button>
+                </div>
+              </div>
+              <div class="card">
+                <div class="sample-list">
+                  ${samples
+                    .map((sample) => {
+                      const user = getUser(sample.userId);
+                      if (!user) return "";
+                      const combos = availableCombosForUser(user.id);
+                      const comboSummary = combos
+                        .map((item) => {
+                          const meta = comboIdentityMeta(item);
+                          return `${getTenant(item.tenantId).name} · ${item.label} · ${meta.identity}`;
+                        })
+                        .join(" ｜ ");
+                      return `
+                        <button class="sample-card" onclick="window.demo.useSample('${user.phone}')">
+                          <div class="sample-head">
+                            <div>
+                              <div style="font-weight:700;">${escapeHtml(user.name)}</div>
+                              <div class="meta">${escapeHtml(user.phone)}</div>
+                              <div class="meta">${escapeHtml(comboSummary)}</div>
+                            </div>
+                            <span class="badge">${escapeHtml(sample.tag)}</span>
+                          </div>
+                        </button>
+                      `;
+                    })
+                    .join("")}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderComboSelect() {
+      const user = getUser(state.session.userId);
+      const groups = groupedCombosForUser(user.id);
+      const sortedCombos = availableCombosForUser(user.id);
+      const recentKey = sortedCombos.length && state.recentCombos[sortedCombos[0].key] ? sortedCombos[0].key : "";
+      return `
+        <div class="auth-shell">
+          <div class="hero">
+            <div class="toolbar" style="justify-content:space-between; align-items:flex-start; margin-bottom:18px;">
+              <div class="brand" style="margin-bottom:0;">
+                <div class="brand-mark">✦</div>
+                <div>
+                  <div class="brand-title">选择入口</div>
+                  <div class="brand-subtitle">${escapeHtml(user.name)}</div>
+                </div>
+              </div>
+              <button class="button ghost" onclick="window.demo.logout()">退出登录</button>
+            </div>
+            <div class="choice-list">
+              ${groups
+                .map(
+                  ({ tenant, combos }) => `
+                    <div class="card">
+                      <div class="toolbar" style="justify-content:space-between; margin-bottom:14px;">
+                        <div>
+                          <div style="font-size:22px; font-weight:700;">${escapeHtml(tenant.name)}</div>
+                          <div class="meta">${escapeHtml(tenant.code)}</div>
+                        </div>
+                      </div>
+                      <div class="choice-list">
+                        ${combos
+                          .map((combo) => {
+                            const meta = comboIdentityMeta(combo);
+                            return `
+                              <button class="choice-card" onclick="window.demo.enterCombo('${combo.key}')">
+                                <div class="choice-head">
+                                  <div>
+                                    <div style="font-weight:700;">${escapeHtml(combo.label)}</div>
+                                    <div class="meta">${escapeHtml([combo.sublabel, meta.roles].filter(Boolean).join(" · "))}</div>
+                                  </div>
+                                  <div class="toolbar">
+                                    ${recentKey === combo.key ? `<span class="badge">最近使用</span>` : ""}
+                                    <span class="badge">${escapeHtml(meta.identity)}</span>
+                                    <span class="badge">进入</span>
+                                  </div>
+                                </div>
+                              </button>
+                            `;
+                          })
+                          .join("")}
+                      </div>
+                    </div>
+                  `,
+                )
+                .join("")}
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderAccountMenu() {
+      const user = getUser(state.session.userId);
+      const member = currentMember();
+      return `
+        <div class="account-box">
+          <button class="account-btn" onclick="window.demo.toggleAccountMenu()">
+            <div class="toolbar" style="justify-content:space-between; align-items:flex-start;">
+              <div style="font-weight:700;">${escapeHtml(user.name)}</div>
+              <span class="badge">${escapeHtml(memberIdentityLabel(member))}</span>
+            </div>
+            <div class="meta">${escapeHtml(currentTenant().name)} · ${escapeHtml(user.phone)}</div>
+            <div class="meta">${escapeHtml(memberRoleNames(member) || "-")}</div>
+          </button>
+          ${
+            ui.accountMenuOpen
+              ? `
+                  <div class="account-menu">
+                    <button class="account-item" onclick="window.demo.openModal('account-info')">
+                      <div style="font-weight:700;">账号信息</div>
+                    </button>
+                    ${
+                      isTenantAdmin(member)
+                        ? `
+                            <button class="account-item" onclick="window.demo.openModal('tenant-info')">
+                              <div style="font-weight:700;">租户信息</div>
+                            </button>
+                            <button class="account-item" onclick="window.demo.jumpPage('roles')">
+                              <div style="font-weight:700;">角色管理</div>
+                            </button>
+                            <button class="account-item" onclick="window.demo.jumpPage('orgMembers')">
+                              <div style="font-weight:700;">组织人员管理</div>
+                            </button>
+                          `
+                        : ""
+                    }
+                    ${
+                      currentPlatformChoices().length > 1
+                        ? `
+                            <button class="account-item" onclick="window.demo.openPlatformSwitch()">
+                              <div style="font-weight:700;">切换平台</div>
+                            </button>
+                          `
+                        : ""
+                    }
+                    <button class="account-item" onclick="window.demo.logout()">
+                      <div style="font-weight:700;">退出登录</div>
+                    </button>
+                  </div>
+                `
+              : ""
+          }
+        </div>
+      `;
+    }
+
+    function renderFdeSidebarGroups(groups) {
+      return groups
+        .map(
+          (group) => `
+            <div class="nav-group">
+              <div class="nav-label">${escapeHtml(group.label)}</div>
+              <div class="nav-list">
+                ${group.items
+                  .map(
+                    (item) => `<button class="nav-item ${ui.currentPage === item.key && currentFdeModule() === group.module ? "active" : ""}" onclick="window.demo.setFdePage('${group.module}','${item.key}')">${escapeHtml(item.label)}</button>`,
+                  )
+                  .join("")}
+              </div>
+            </div>
+          `,
+        )
+        .join("");
+    }
+
+    function renderCmsTenantManagement() {
+      const member = currentMember();
+      const current = currentTenant();
+      const tenants = state.tenants.filter((item) => {
+        if (item.kind === "special" || item.parentId) return false;
+        if (isOperatorAdmin(member)) return true;
+        if (isTenantAdmin(member)) return item.id === current.id;
+        return current.kind === "special" && item.linkedFdeMemberId === member.id;
+      });
+      return `
+        <div class="stack">
+          <section class="surface">
+            <div class="toolbar" style="justify-content:space-between; margin-bottom:14px;">
+              <h2>租户列表</h2>
+              ${isOperatorAdmin(member) ? `<button class="button primary" onclick="window.demo.openTenantWizard('cms')">创建租户</button>` : ""}
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>租户名称</th>
+                    <th>租户编号</th>
+                    <th>席位数量</th>
+                    <th>创建日期</th>
+                    <th>关联FDE人员</th>
+                    <th>租户资产</th>
+                    <th>订单总金额</th>
+                    <th>状态</th>
+                    <th>操作</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${tenants
+                    .map((tenant) => {
+                      const linked = getMember(tenant.linkedFdeMemberId);
+                      return `
+                        <tr>
+                          <td>
+                            <div style="font-weight:700;">${escapeHtml(tenant.name)}</div>
+                            <div class="meta">${escapeHtml(tenant.kind === "top" ? "顶级租户" : tenant.kind === "child" ? "子租户" : "单租户")}</div>
+                          </td>
+                          <td>${escapeHtml(tenant.code)}</td>
+                          <td>${tenant.seats}</td>
+                          <td>${escapeHtml(tenant.createdAt.slice(0, 10))}</td>
+                          <td>${escapeHtml(linked ? getUser(linked.userId).name : "-")}</td>
+                          <td>${assetSummary(tenant)}</td>
+                          <td>${orderTotal(tenant)}万</td>
+                          <td>${tenantStatusHtml(tenant.status)}</td>
+                          <td>
+                            <div class="toolbar">
+                              ${tenantPlatformChoicesForUser(state.session.userId, tenant.id).length ? `<button class="button small ghost" onclick="window.demo.openTenantPlatformEntry('${tenant.id}')">进入平台</button>` : ``}
+                              <button class="button small ghost" onclick="window.demo.openModal('tenant-basic','${tenant.id}')">编辑</button>
+                              <button class="button small ghost" onclick="window.demo.openModal('tenant-admin','${tenant.id}')">设置管理员</button>
+                              <button class="button small ghost" onclick="window.demo.openModal('tenant-fde','${tenant.id}')">配置FDE人员</button>
+                              ${isOperatorAdmin(member) ? `
+                                ${
+                                  tenant.status === "enabled"
+                                    ? `<button class="button small danger" onclick="window.demo.toggleTenantStatus('${tenant.id}','disabled')">停用</button>`
+                                    : `<button class="button small ghost" onclick="window.demo.toggleTenantStatus('${tenant.id}','enabled')">启用</button>`
+                                }
+                                ${tenant.status === "disabled"
+                                  ? `<button class="button small danger" onclick="window.demo.deleteTenant('${tenant.id}')">删除</button>`
+                                  : `<button class="button small danger" disabled style="opacity:.56; cursor:not-allowed;" title="请先停用再删除">删除</button>`}
+                              ` : ``}
+                            </div>
+                          </td>
+                        </tr>
+                      `;
+                    })
+                    .join("")}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        </div>
+      `;
+    }
+
+    function renderTenantDetail(tenant) {
+      const admins = membersByTenant(tenant.id).filter((member) => isTenantAdmin(member));
+      const tabs = [
+        { key: "basic", label: "基本信息" },
+        { key: "permissions", label: "权限配置" },
+        { key: "admins", label: "租户管理员" },
+        { key: "fde", label: "关联FDE人员" },
+        { key: "assets", label: "资产信息" },
+        { key: "orders", label: "订单信息" },
+      ];
+      return `
+        <div>
+          <div class="toolbar" style="justify-content:space-between;">
+            <div>
+              <div class="badge">${escapeHtml(tenant.name)}</div>
+              <h2 style="margin-top:10px;">${escapeHtml(tenant.code)}</h2>
+            </div>
+            <span class="status ${tenant.status}">${tenant.status === "enabled" ? "启用" : tenant.status === "disabled" ? "停用" : "已删除"}</span>
+          </div>
+          <div class="tabs">
+            ${tabs
+              .map(
+                (tab) => `<button class="tab-btn ${ui.selectedTenantDetailTab === tab.key ? "active" : ""}" onclick="window.demo.setTenantDetailTab('${tab.key}')">${escapeHtml(tab.label)}</button>`,
+              )
+              .join("")}
+          </div>
+          <div style="margin-top:16px;">
+            ${ui.selectedTenantDetailTab === "basic" ? renderTenantBasic(tenant) : ""}
+            ${ui.selectedTenantDetailTab === "permissions" ? renderTenantPermissions(tenant) : ""}
+            ${ui.selectedTenantDetailTab === "admins" ? renderTenantAdmins(tenant, admins) : ""}
+            ${ui.selectedTenantDetailTab === "fde" ? renderTenantFde(tenant) : ""}
+            ${ui.selectedTenantDetailTab === "assets" ? renderTenantAssets(tenant) : ""}
+            ${ui.selectedTenantDetailTab === "orders" ? renderTenantOrders(tenant) : ""}
+          </div>
+        </div>
+      `;
+    }
+
+    function renderTenantBasic(tenant) {
+      return `
+        <div class="stack">
+          <div class="toolbar" style="justify-content:space-between;">
+            <div style="font-weight:700;">基本信息</div>
+            <button class="button ghost" onclick="window.demo.openModal('tenant-basic','${tenant.id}')">编辑</button>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <tbody>
+                <tr><th>租户名称</th><td>${escapeHtml(tenant.name)}</td></tr>
+                <tr><th>租户编号</th><td>${escapeHtml(tenant.code)}</td></tr>
+                <tr><th>席位数量</th><td>${tenant.seats}</td></tr>
+                <tr><th>备注</th><td>${escapeHtml(tenant.remark || "-")}</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderTenantPermissions(tenant) {
+      const platformNames = {
+        cms: "运营平台",
+        fdeBusiness: "FDE业务",
+        fdeDev: "FDE开发",
+        enterprise: "企业侧",
+      };
+      return `
+        <div class="stack">
+          <div class="toolbar" style="justify-content:space-between;">
+            <div style="font-weight:700;">权限配置</div>
+            <button class="button ghost" onclick="window.demo.openModal('tenant-permissions','${tenant.id}')">编辑</button>
+          </div>
+          <div class="roles">
+            ${Object.entries(platformNames)
+              .map(([key, label]) => `
+                <div class="role-card">
+                  <div class="role-head">
+                    <div style="font-weight:700;">${escapeHtml(label)}</div>
+                    <span class="status ${tenant.permissions.platforms[key] ? "enabled" : "disabled"}">${tenant.permissions.platforms[key] ? "已开通" : "未开通"}</span>
+                  </div>
+                  <div class="permission-grid">
+                    ${(tenant.permissions.modules[key] || []).map((item) => `<span class="permission">${escapeHtml(moduleLabel(key, item))}</span>`).join("") || `<span class="permission">—</span>`}
+                  </div>
+                </div>
+              `)
+              .join("")}
+          </div>
+        </div>
+      `;
+    }
+
+    function renderTenantAdmins(tenant, admins) {
+      return `
+        <div class="stack">
+          <div class="toolbar" style="justify-content:space-between;">
+            <div style="font-weight:700;">租户管理员</div>
+            <button class="button ghost" onclick="window.demo.openModal('tenant-admin','${tenant.id}')">新增 / 移除</button>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>姓名</th>
+                  <th>手机号</th>
+                  <th>状态</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${
+                  admins.length
+                    ? admins
+                        .map((admin) => {
+                          const user = getUser(admin.userId);
+                          return `<tr><td>${escapeHtml(user.name)}</td><td>${escapeHtml(user.phone)}</td><td>${memberStatusHtml(admin.status)}</td></tr>`;
+                        })
+                        .join("")
+                    : `<tr><td colspan="3"><div class="empty" style="padding:24px;">暂无租户管理员</div></td></tr>`
+                }
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderTenantFde(tenant) {
+      const member = getMember(tenant.linkedFdeMemberId);
+      return `
+        <div class="stack">
+          <div class="toolbar" style="justify-content:space-between;">
+            <div style="font-weight:700;">关联FDE人员</div>
+            <button class="button ghost" onclick="window.demo.openModal('tenant-fde','${tenant.id}')">修改</button>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <tbody>
+                <tr><th>姓名</th><td>${escapeHtml(member ? getUser(member.userId).name : "-")}</td></tr>
+                <tr><th>手机号</th><td>${escapeHtml(member ? getUser(member.userId).phone : "-")}</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderTenantAssets(tenant) {
+      return `
+        <div class="table-wrap">
+          <table>
+            <tbody>
+              <tr><th>云端设备数</th><td>${tenant.assetInfo.cloudDevices}</td></tr>
+              <tr><th>本地设备数</th><td>${tenant.assetInfo.localDevices}</td></tr>
+              <tr><th>租户席位</th><td>${tenant.assetInfo.seats}</td></tr>
+              <tr><th>积分额度</th><td>${tenant.assetInfo.points}</td></tr>
+            </tbody>
+          </table>
+        </div>
+      `;
+    }
+
+    function renderTenantOrders(tenant) {
+      return `
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>订单编号</th>
+                <th>订单类型</th>
+                <th>商品</th>
+                <th>金额</th>
+                <th>订单状态</th>
+                <th>下单时间</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${tenant.orders
+                .map(
+                  (order) => `
+                    <tr>
+                      <td>${escapeHtml(order.no)}</td>
+                      <td>${escapeHtml(order.type)}</td>
+                      <td>${escapeHtml(order.goods)}</td>
+                      <td>${escapeHtml(order.amount)}</td>
+                      <td>${escapeHtml(order.status)}</td>
+                      <td>${escapeHtml(order.createdAt || tenant.createdAt)}</td>
+                    </tr>
+                  `,
+                )
+                .join("")}
+              <tr>
+                <td colspan="3" style="font-weight:700;">订单总金额</td>
+                <td colspan="3" style="font-weight:700;">${orderTotal(tenant)}万</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      `;
+    }
+
+    function tenantStatusHtml(status) {
+      if (status === "enabled") return `<span class="status enabled">启用</span>`;
+      if (status === "disabled") return `<span class="status disabled">停用</span>`;
+      return `<span class="status deleted">已删除</span>`;
+    }
+
+    function memberStatusHtml(status) {
+      if (status === "enabled") return `<span class="status enabled">启用</span>`;
+      return `<span class="status disabled">停用</span>`;
+    }
+
+    function moduleLabel(platformKey, moduleKey) {
+      const def = (MODULE_DEFS[platformKey] || []).find((item) => item.key === moduleKey);
+      return def ? def.label : moduleKey;
+    }
+
+    function renderSharedOrgMembersPage() {
+      const tenant = currentTenant();
+      const selectedNodeId = ui.selectedNodeId || rootNode(tenant.id)?.id || "";
+      const rows = visibleMembersForSelectedNode();
+      return `
+        <div class="split">
+          <section class="surface">
+            <div class="toolbar" style="justify-content:space-between;">
+              <h2>组织树</h2>
+            </div>
+            ${nodeTreeHtml(selectedNodeId)}
+          </section>
+          <section class="surface">
+            <div class="toolbar" style="justify-content:space-between;">
+              <h2>成员列表</h2>
+              ${(isTenantAdmin(currentMember()) || isOperatorAdmin(currentMember())) ? `<div class="toolbar"><button class="button ghost" onclick="window.demo.openModal('member-edit','create')">创建成员</button></div>` : ""}
+            </div>
+            <div class="toolbar" style="margin-top:14px;">
+              <input class="field-control" style="max-width:220px;" placeholder="姓名 / 手机号" value="${escapeHtml(ui.searchKeyword)}" oninput="window.demo.setSearch(this.value)" />
+              <select class="field-control" style="max-width:140px;" onchange="window.demo.setStatusFilter(this.value)">
+                <option value="">状态</option>
+                <option value="enabled" ${ui.filterStatus === "enabled" ? "selected" : ""}>启用</option>
+                <option value="disabled" ${ui.filterStatus === "disabled" ? "selected" : ""}>停用</option>
+              </select>
+              <select class="field-control" style="max-width:180px;" onchange="window.demo.setRoleFilter(this.value)">
+                <option value="">角色</option>
+                ${rolesByTenant(tenant.id).map((role) => `<option value="${role.id}" ${ui.filterRoleId === role.id ? "selected" : ""}>${escapeHtml(role.name)}</option>`).join("")}
+              </select>
+            </div>
+            <div class="table-wrap" style="margin-top:14px;">
+              <table>
+                <thead>
+                  <tr>
+                    <th>姓名</th>
+                    <th>手机号</th>
+                    <th>身份</th>
+                    <th>所属组织</th>
+                    <th>角色</th>
+                    <th>状态</th>
+                    <th>操作</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${
+                    rows.length
+                      ? rows
+                          .map((member) => {
+                            const user = getUser(member.userId);
+                            const selectedNode = getNode(selectedNodeId);
+                            const isLeader = selectedNode?.leaderMemberId === member.id;
+                            const canManage = isTenantAdmin(currentMember()) || isOperatorAdmin(currentMember());
+                            return `
+                              <tr>
+                                <td>${escapeHtml(user.name)}</td>
+                                <td>${escapeHtml(user.phone)}</td>
+                                <td>${escapeHtml(memberIdentityLabel(member))}</td>
+                                <td>${member.orgIds.map((id) => `<div class="meta">${escapeHtml(nodePath(id))}</div>`).join("")}</td>
+                                <td>${escapeHtml(roleNames(member.roleIds))}</td>
+                                <td>${memberStatusHtml(member.status)}</td>
+                                <td>
+                                  ${
+                                    canManage
+                                      ? `
+                                          <div class="toolbar">
+                                            <button class="button small ghost" onclick="window.demo.openModal('member-edit','${member.id}')">编辑</button>
+                                            ${
+                                              member.status === "enabled"
+                                                ? `<button class="button small danger" onclick="window.demo.toggleMemberStatus('${member.id}','disabled')">停用</button>`
+                                                : `<button class="button small ghost" onclick="window.demo.toggleMemberStatus('${member.id}','enabled')">启用</button>`
+                                            }
+                                            ${
+                                              isLeader
+                                                ? `<button class="button small ghost" onclick="window.demo.unsetLeader('${selectedNodeId}')">解除负责人</button>`
+                                                : `<button class="button small ghost" title="${selectedNode?.leaderMemberId ? `当前节点已有负责人 ${escapeHtml(memberName(selectedNode.leaderMemberId))}，请先解除` : "设为本部门负责人"}" onclick="window.demo.setLeader('${selectedNodeId}','${member.id}')">设为负责人</button>`
+                                            }
+                                            <button class="button small danger" onclick="window.demo.deleteMember('${member.id}')">删除</button>
+                                          </div>
+                                        `
+                                      : `<span class="meta">只读</span>`
+                                  }
+                                </td>
+                              </tr>
+                            `;
+                          })
+                          .join("")
+                      : `<tr><td colspan="7"><div class="empty" style="padding:24px;">暂无成员</div></td></tr>`
+                  }
+                </tbody>
+              </table>
+            </div>
+          </section>
+        </div>
+      `;
+    }
+
+    function renderRolesPage() {
+      const tenant = currentTenant();
+      const roles = rolesByTenant(tenant.id)
+        .filter((role) => !ui.searchKeyword || role.name.includes(ui.searchKeyword));
+      return `
+        <div class="stack">
+          <section class="surface">
+            <div class="toolbar" style="justify-content:space-between; margin-bottom:14px;">
+              <h2>角色列表</h2>
+              ${isTenantAdmin(currentMember()) || isOperatorAdmin(currentMember()) ? `<div class="toolbar"><input class="field-control" style="max-width:220px;" placeholder="角色名称" value="${escapeHtml(ui.searchKeyword)}" oninput="window.demo.setSearch(this.value)" /><button class="button primary" onclick="window.demo.openModal('role-edit','create')">创建角色</button></div>` : ""}
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>角色名称</th>
+                    <th>类型</th>
+                    <th>平台</th>
+                    <th>权限</th>
+                    <th>关联成员</th>
+                    <th>操作</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${roles.length ? roles
+                    .map((role) => {
+                      const pages = effectiveRolePages(role, tenant);
+                      return `
+                      <tr>
+                        <td style="font-weight:700;">${escapeHtml(role.name)}</td>
+                        <td>${escapeHtml(role.type === "preset" ? "预设" : "自定义")}</td>
+                        <td>${escapeHtml(platformOverview(role))}</td>
+                        <td>${escapeHtml(Object.entries(pages).flatMap(([key, pageList]) => (pageList || []).map((page) => `${key === "cms" ? "运营平台" : key === "fdeBusiness" ? "FDE业务" : key === "fdeDev" ? "FDE开发" : "企业侧"} · ${moduleLabel(key, page)}`)).join(" / ") || "—")}</td>
+                        <td>${roleCount(role.id)}</td>
+                        <td>
+                          ${(isTenantAdmin(currentMember()) || isOperatorAdmin(currentMember()))
+                            ? `<div class="toolbar">${role.builtInKey !== "tenantAdmin" ? `<button class="button small ghost" onclick="window.demo.openModal('role-edit','${role.id}')">编辑</button>` : `<span class="meta">系统角色</span>`}${role.type === "custom" ? `<button class="button small danger" onclick="window.demo.deleteRole('${role.id}')">删除</button>` : ""}</div>`
+                            : `<span class="meta">只读</span>`}
+                        </td>
+                      </tr>
+                    `;
+                    })
+                    .join("") : `<tr><td colspan="6"><div class="empty" style="padding:24px;">暂无角色</div></td></tr>`}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        </div>
+      `;
+    }
+
+    function platformOverview(role) {
+      const pages = effectiveRolePages(role, getTenant(role.tenantId));
+      const hits = [];
+      if ((pages.cms || []).length) hits.push("运营平台");
+      if ((pages.fdeBusiness || []).length || (pages.fdeDev || []).length) hits.push("FDE");
+      if ((pages.enterprise || []).length) hits.push("企业");
+      return hits.join(" / ") || "—";
+    }
+
+    function renderFdeChildTenantPage() {
+      const tenant = currentTenant();
+      const member = currentMember();
+      const rows = state.tenants.filter((item) => item.parentId === tenant.id && item.status !== "deleted");
+      const canCreate = isTenantAdmin(member) || tenant.linkedFdeMemberId === member.id;
+      return `
+        <div class="stack">
+          <section class="surface">
+            <div class="toolbar" style="justify-content:space-between; margin-bottom:14px;">
+              <h2>租户管理</h2>
+              ${canCreate ? `<button class="button primary" onclick="window.demo.openTenantWizard('child')">创建子租户</button>` : ""}
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>租户名称</th>
+                    <th>租户编号</th>
+                    <th>创建日期</th>
+                    <th>关联FDE人员</th>
+                    <th>租户资产</th>
+                    <th>订单信息</th>
+                    <th>状态</th>
+                    <th>操作</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${
+                    rows.length
+                      ? rows
+                          .map((child) => {
+                            const linked = getMember(child.linkedFdeMemberId);
+                            const childChoices = tenantPlatformChoicesForUser(state.session.userId, child.id);
+                            return `
+                              <tr>
+                                <td>${escapeHtml(child.name)}</td>
+                                <td>${escapeHtml(child.code)}</td>
+                                <td>${escapeHtml(child.createdAt.slice(0, 10))}</td>
+                                <td>${escapeHtml(linked ? getUser(linked.userId).name : "-")}</td>
+                                <td>${assetSummary(child)}</td>
+                                <td>${orderSummary(child)}</td>
+                                <td>${tenantStatusHtml(child.status)}</td>
+                                <td>
+                                  <div class="toolbar">
+                                    ${childChoices.length ? `<button class="button small ghost" onclick="window.demo.openTenantPlatformEntry('${child.id}')">进入平台</button>` : ""}
+                                    <button class="button small ghost" onclick="window.demo.openModal('tenant-basic','${child.id}')">编辑</button>
+                                    <button class="button small ghost" onclick="window.demo.openModal('tenant-fde','${child.id}')">配置FDE人员</button>
+                                    ${
+                                      child.status === "enabled"
+                                        ? `<button class="button small danger" onclick="window.demo.toggleTenantStatus('${child.id}','disabled')">停用</button>`
+                                        : `<button class="button small ghost" onclick="window.demo.toggleTenantStatus('${child.id}','enabled')">启用</button>`
+                                    }
+                                    ${child.status === "disabled"
+                                      ? `<button class="button small danger" onclick="window.demo.deleteTenant('${child.id}')">删除</button>`
+                                      : `<button class="button small danger" disabled style="opacity:.56; cursor:not-allowed;" title="请先停用再删除">删除</button>`}
+                                  </div>
+                                </td>
+                              </tr>
+                            `;
+                          })
+                          .join("")
+                      : `<tr><td colspan="8"><div class="empty" style="padding:24px;">暂无子租户</div></td></tr>`
+                  }
+                </tbody>
+              </table>
+            </div>
+          </section>
+        </div>
+      `;
+    }
+
+    function renderBlankHome(title) {
+      return `
+        <section class="surface" style="min-height:420px;">
+          <div style="font-size:18px; font-weight:700;">${escapeHtml(title)}</div>
+        </section>
+      `;
+    }
+
+    function renderFdeHome() {
+      return `
+        <div class="stack">
+          <section class="surface" style="min-height:220px;">
+            <div style="font-size:20px; font-weight:700;">FDE业务域</div>
+          </section>
+          <section class="surface" style="min-height:220px;">
+            <div style="font-size:20px; font-weight:700;">FDE开发域</div>
+          </section>
+        </div>
+      `;
+    }
+
+    function platformChip(key) {
+      const label = key === "fdeBusiness" ? "FDE业务" : key === "fdeDev" ? "FDE开发" : key === "enterprise" ? "企业侧" : key;
+      return `<span class="badge">${label}</span>`;
+    }
+
+    function renderWorkspace() {
+      const tenant = currentTenant();
+      const member = currentMember();
+      const platform = currentPlatform();
+      const accessiblePages = currentNavPages();
+      const sidebarPages = currentSidebarPages();
+      const fdeGroups = platform === "fde" ? currentFdeNavGroups() : [];
+      if (!accessiblePages.some((item) => item.key === ui.currentPage)) {
+        ui.currentPage = accessiblePages[0]?.key || "";
+      }
+      const titleMap = {
+        cmsHome: "首页",
+        fdeBusinessHome: "首页",
+        fdeDevHome: "首页",
+        enterpriseHome: "首页",
+        tenantList: "租户管理",
+        childTenants: "租户管理",
+        orgMembers: "组织与成员",
+        roles: "角色管理",
+      };
+      return `
+        <div class="workspace">
+          <aside class="sidebar">
+            <div class="brand">
+              <div class="brand-mark">✦</div>
+              <div>
+                <div class="brand-title" style="font-size:22px;">${escapeHtml(PLATFORM_LABELS[platform])}</div>
+                <div class="brand-subtitle">${escapeHtml(tenant.name)}</div>
+              </div>
+            </div>
+            <div class="sidebar-body">
+              ${
+                platform === "fde"
+                  ? renderFdeSidebarGroups(fdeGroups)
+                  : sidebarPages.length
+                  ? `
+                      <div class="nav-group">
+                        <div class="nav-label">${escapeHtml(platform === "fde" ? (currentFdeModule() === "fdeBusiness" ? "FDE业务" : "FDE开发") : PLATFORM_LABELS[platform])}</div>
+                        <div class="nav-list">
+                          ${sidebarPages
+                            .map(
+                              (item) => `<button class="nav-item ${ui.currentPage === item.key ? "active" : ""}" onclick="window.demo.setPage('${item.key}')">${escapeHtml(item.label)}</button>`,
+                            )
+                            .join("")}
+                        </div>
+                      </div>
+                    `
+                  : ""
+              }
+            </div>
+            <div class="sidebar-foot">
+              ${renderAccountMenu()}
+            </div>
+          </aside>
+          <main class="main">
+            <div class="header">
+              <div>
+                <div class="breadcrumb">Portal / ${escapeHtml(tenant.name)} / ${escapeHtml(PLATFORM_LABELS[platform])}</div>
+                <h1 class="title">${escapeHtml(titleMap[ui.currentPage] || "")}</h1>
+              </div>
+            </div>
+            ${
+              !accessiblePages.length
+                ? `<section class="surface" style="min-height:420px;"></section>`
+                : platform === "cms"
+                  ? ui.currentPage === "cmsHome"
+                    ? renderBlankHome("运营平台")
+                    : ui.currentPage === "tenantList"
+                    ? renderCmsTenantManagement()
+                    : ui.currentPage === "orgMembers"
+                      ? renderSharedOrgMembersPage()
+                      : renderRolesPage()
+                  : platform === "fde"
+                    ? ui.currentPage === "fdeBusinessHome" || ui.currentPage === "fdeDevHome"
+                      ? renderFdeHome()
+                      : ui.currentPage === "childTenants"
+                      ? renderFdeChildTenantPage()
+                      : ui.currentPage === "orgMembers"
+                        ? renderSharedOrgMembersPage()
+                        : renderRolesPage()
+                    : ui.currentPage === "enterpriseHome"
+                      ? renderBlankHome("企业平台")
+                      : ui.currentPage === "orgMembers"
+                        ? renderSharedOrgMembersPage()
+                        : renderRolesPage()
+            }
+          </main>
+        </div>
+      `;
+    }
+
+    function renderModal() {
+      if (!ui.modal && !ui.wizard) {
+        modalRoot.innerHTML = "";
+        return;
+      }
+
+      if (ui.wizard) {
+        modalRoot.innerHTML = renderTenantWizard();
+        return;
+      }
+
+      const modal = ui.modal;
+      if (modal.type === "account-info") {
+        const user = getUser(state.session.userId);
+        modalRoot.innerHTML = `
+          <div class="modal-backdrop" onclick="window.demo.closeModal()">
+            <div class="modal small" onclick="event.stopPropagation()">
+              <div class="modal-head">
+                <h3 class="modal-title">账号信息</h3>
+                <button class="close" onclick="window.demo.closeModal()">×</button>
+              </div>
+              <div class="table-wrap">
+                <table>
+                  <tbody>
+                    <tr><th>姓名</th><td>${escapeHtml(user.name)}</td></tr>
+                    <tr><th>手机号</th><td>${escapeHtml(user.phone)}</td></tr>
+                    <tr><th>当前身份</th><td>${escapeHtml(memberIdentityLabel(currentMember()))}</td></tr>
+                    <tr><th>当前角色</th><td>${escapeHtml(memberRoleNames(currentMember()) || "-")}</td></tr>
+                    <tr><th>数据权限</th><td>${escapeHtml(memberDataScopeLabel(currentMember()))}</td></tr>
+                  </tbody>
+                </table>
+              </div>
+              <div class="modal-foot">
+                <button type="button" class="button ghost" onclick="window.demo.openModal('phone-edit')">修改手机号</button>
+              </div>
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      if (modal.type === "phone-edit") {
+        const user = getUser(state.session.userId);
+        const payload = modal.payload || { phone: user.phone, code: "", sentPhone: "" };
+        modalRoot.innerHTML = `
+          <div class="modal-backdrop" onclick="window.demo.closeModal()">
+            <div class="modal small" onclick="event.stopPropagation()">
+              <div class="modal-head">
+                <h3 class="modal-title">修改手机号</h3>
+                <button class="close" onclick="window.demo.closeModal()">×</button>
+              </div>
+              <form onsubmit="window.demo.submitPhoneChange(event)">
+                <div class="field-group">
+                  <label>手机号</label>
+                  <input class="field-control" name="phone" value="${escapeHtml(payload.phone || user.phone)}" oninput="window.demo.setPhoneEditField('phone', this.value)" required />
+                </div>
+                <div class="field-group">
+                  <label>验证码</label>
+                  <div class="toolbar">
+                    <input class="field-control" style="flex:1;" name="code" value="${escapeHtml(payload.code || "")}" oninput="window.demo.setPhoneEditField('code', this.value)" required />
+                    <button type="button" class="button ghost" onclick="window.demo.sendPhoneChangeCode()">获取验证码</button>
+                  </div>
+                </div>
+                <div class="modal-foot">
+                  <button type="button" class="button ghost" onclick="window.demo.closeModal()">取消</button>
+                  <button type="submit" class="button primary">保存</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      if (modal.type === "platform-switch") {
+        const choices = currentPlatformChoices();
+        modalRoot.innerHTML = `
+          <div class="modal-backdrop" onclick="window.demo.closeModal()">
+            <div class="modal small" onclick="event.stopPropagation()">
+              <div class="modal-head">
+                <h3 class="modal-title">切换平台</h3>
+                <button class="close" onclick="window.demo.closeModal()">×</button>
+              </div>
+              <div class="choice-list">
+                ${choices
+                  .map(
+                    (choice) => `
+                      <button class="choice-card" onclick="window.demo.switchPlatform('${choice.platform}')">
+                        <div class="choice-head">
+                          <div>
+                            <div style="font-weight:700;">${escapeHtml(choice.label)}</div>
+                            <div class="meta">${escapeHtml(choice.sublabel)}</div>
+                          </div>
+                          <span class="badge">进入</span>
+                        </div>
+                      </button>
+                    `,
+                  )
+                  .join("")}
+              </div>
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      if (modal.type === "tenant-platform-entry") {
+        const choices = tenantPlatformChoicesForUser(state.session.userId, modal.payload);
+        modalRoot.innerHTML = `
+          <div class="modal-backdrop" onclick="window.demo.closeModal()">
+            <div class="modal small" onclick="event.stopPropagation()">
+              <div class="modal-head">
+                <h3 class="modal-title">进入平台</h3>
+                <button class="close" onclick="window.demo.closeModal()">×</button>
+              </div>
+              <div class="choice-list">
+                ${choices
+                  .map(
+                    (choice) => `
+                      <button class="choice-card" onclick="window.demo.enterCombo('${choice.key}')">
+                        <div class="choice-head">
+                          <div>
+                            <div style="font-weight:700;">${escapeHtml(choice.label)}</div>
+                            <div class="meta">${escapeHtml(choice.sublabel)}</div>
+                          </div>
+                          <span class="badge">进入</span>
+                        </div>
+                      </button>
+                    `,
+                  )
+                  .join("")}
+              </div>
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      if (modal.type === "confirm") {
+        const config = modal.payload || {};
+        modalRoot.innerHTML = `
+          <div class="modal-backdrop" onclick="window.demo.closeModal()">
+            <div class="modal small" onclick="event.stopPropagation()">
+              <div class="modal-head">
+                <h3 class="modal-title">${escapeHtml(config.title || "确认操作")}</h3>
+                <button class="close" onclick="window.demo.closeModal()">×</button>
+              </div>
+              <div class="meta-text">${escapeHtml(config.message || "")}</div>
+              <div class="modal-foot">
+                <button type="button" class="button ghost" onclick="window.demo.closeModal()">取消</button>
+                <button type="button" class="button ${config.danger ? "danger" : "primary"}" onclick="window.demo.confirmModalAction()">${escapeHtml(config.confirmText || "确认")}</button>
+              </div>
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      if (modal.type === "tenant-view") {
+        const tenant = getTenant(modal.payload);
+        modalRoot.innerHTML = `
+          <div class="modal-backdrop" onclick="window.demo.closeModal()">
+            <div class="modal" onclick="event.stopPropagation()">
+              <div class="modal-head">
+                <h3 class="modal-title">${escapeHtml(tenant.name)}</h3>
+                <button class="close" onclick="window.demo.closeModal()">×</button>
+              </div>
+              ${renderTenantDetail(tenant)}
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      if (modal.type === "tenant-info") {
+        const tenant = currentTenant();
+        modalRoot.innerHTML = `
+          <div class="modal-backdrop" onclick="window.demo.closeModal()">
+            <div class="modal small" onclick="event.stopPropagation()">
+              <div class="modal-head">
+                <h3 class="modal-title">租户信息</h3>
+                <button class="close" onclick="window.demo.closeModal()">×</button>
+              </div>
+              <div class="table-wrap">
+                <table>
+                  <tbody>
+                    <tr><th>租户名称</th><td>${escapeHtml(tenant.name)}</td></tr>
+                    <tr><th>租户编号</th><td>${escapeHtml(tenant.code)}</td></tr>
+                    <tr><th>席位使用</th><td>${membersByTenant(tenant.id).filter((item) => item.status !== "deleted").length} / ${tenant.seats}</td></tr>
+                    <tr><th>已开通权限</th><td>${enabledPlatformKeys(tenant).map((key) => (key === "cms" ? "运营平台" : key === "fdeBusiness" ? "FDE业务" : key === "fdeDev" ? "FDE开发" : "企业侧")).join(" / ") || "-"}</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      if (modal.type === "tenant-basic") {
+        const tenant = getTenant(modal.payload);
+        modalRoot.innerHTML = `
+          <div class="modal-backdrop" onclick="window.demo.closeModal()">
+            <div class="modal small" onclick="event.stopPropagation()">
+              <div class="modal-head">
+                <h3 class="modal-title">编辑基本信息</h3>
+                <button class="close" onclick="window.demo.closeModal()">×</button>
+              </div>
+              <form onsubmit="window.demo.submitTenantBasic(event, '${tenant.id}')">
+                <div class="form-grid">
+                  <div class="field-group"><label>租户名称</label><input class="field-control" name="name" value="${escapeHtml(tenant.name)}" required /></div>
+                  <div class="two-col">
+                    <div class="field-group"><label>租户编号</label><input class="field-control" name="code" value="${escapeHtml(tenant.code)}" required /></div>
+                    <div class="field-group"><label>席位数量</label><input class="field-control" type="number" name="seats" value="${tenant.seats}" required /></div>
+                  </div>
+                  <div class="field-group"><label>备注</label><textarea class="field-control" name="remark" rows="4">${escapeHtml(tenant.remark)}</textarea></div>
+                </div>
+                <div class="modal-foot">
+                  <button type="button" class="button ghost" onclick="window.demo.closeModal()">取消</button>
+                  <button type="submit" class="button primary">保存</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      if (modal.type === "tenant-permissions") {
+        const tenant = getTenant(modal.payload);
+        const parentTenant = tenant.parentId ? getTenant(tenant.parentId) : null;
+        const labels = {
+          cms: "运营平台",
+          fdeBusiness: "FDE业务",
+          fdeDev: "FDE开发",
+          enterprise: "企业侧",
+        };
+        modalRoot.innerHTML = `
+          <div class="modal-backdrop" onclick="window.demo.closeModal()">
+            <div class="modal" onclick="event.stopPropagation()">
+              <div class="modal-head">
+                <h3 class="modal-title">编辑权限配置</h3>
+                <button class="close" onclick="window.demo.closeModal()">×</button>
+              </div>
+              <form onsubmit="window.demo.submitTenantPermissions(event, '${tenant.id}')">
+                <div class="roles">
+                  ${Object.entries(labels)
+                    .map(([key, label]) => {
+                      const blockedByTenant = false;
+                      const blockedByParent = parentTenant ? !parentTenant.permissions.platforms[key] : false;
+                      const platformDisabled = blockedByTenant || blockedByParent;
+                      return `
+                        <div class="role-card">
+                          <div class="role-head">
+                            <div style="font-weight:700;">${escapeHtml(label)}</div>
+                            <label class="toolbar">
+                              <input type="checkbox" name="platform_${key}" ${tenant.permissions.platforms[key] ? "checked" : ""} ${platformDisabled ? "disabled" : ""} />
+                              <span>开通</span>
+                            </label>
+                          </div>
+                          <div class="check-list">
+                            ${(MODULE_DEFS[key] || [])
+                              .map((module) => {
+                                const blockedModule = platformDisabled || (parentTenant ? !parentTenant.permissions.modules[key].includes(module.key) : false);
+                                return `
+                                  <label class="check-item" style="${blockedModule ? "opacity:.52;" : ""}">
+                                    <input type="checkbox" name="module_${key}" value="${module.key}" ${tenant.permissions.modules[key].includes(module.key) ? "checked" : ""} ${blockedModule ? "disabled" : ""} />
+                                    <div style="font-weight:700;">${escapeHtml(module.label)}</div>
+                                  </label>
+                                `;
+                              })
+                              .join("")}
+                          </div>
+                        </div>
+                      `;
+                    })
+                    .join("")}
+                </div>
+                <div class="modal-foot">
+                  <button type="button" class="button ghost" onclick="window.demo.closeModal()">取消</button>
+                  <button type="submit" class="button primary">保存</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      if (modal.type === "tenant-admin") {
+        const tenant = getTenant(modal.payload);
+        const allMembers = membersByTenant(tenant.id).filter((item) => item.status === "enabled");
+        const checkedAdmins = new Set(membersByTenant(tenant.id).filter((item) => isTenantAdmin(item)).map((item) => item.id));
+        const payload = modal.payloadData || { createName: "", createPhone: "" };
+        modalRoot.innerHTML = `
+          <div class="modal-backdrop" onclick="window.demo.closeModal()">
+            <div class="modal" onclick="event.stopPropagation()">
+              <div class="modal-head">
+                <h3 class="modal-title">租户管理员</h3>
+                <button class="close" onclick="window.demo.closeModal()">×</button>
+              </div>
+              <form onsubmit="window.demo.submitTenantAdmins(event, '${tenant.id}')">
+                <div class="check-list">
+                  ${allMembers
+                    .map((member) => {
+                      const user = getUser(member.userId);
+                      return `
+                        <label class="check-item">
+                          <input type="checkbox" name="adminIds" value="${member.id}" ${checkedAdmins.has(member.id) ? "checked" : ""} />
+                          <div>
+                            <div style="font-weight:700;">${escapeHtml(user.name)}</div>
+                            <div class="meta">${escapeHtml(user.phone)} · ${escapeHtml(roleNames(member.roleIds))}</div>
+                          </div>
+                        </label>
+                      `;
+                    })
+                    .join("")}
+                </div>
+                <div class="form-grid" style="margin-top:16px;">
+                  <div class="two-col">
+                    <div class="field-group">
+                      <label>新建管理员姓名</label>
+                      <input class="field-control" value="${escapeHtml(payload.createName || "")}" oninput="window.demo.setTenantAdminDraft('createName', this.value)" />
+                    </div>
+                    <div class="field-group">
+                      <label>新建管理员手机号</label>
+                      <input class="field-control" value="${escapeHtml(payload.createPhone || "")}" oninput="window.demo.setTenantAdminDraft('createPhone', this.value)" />
+                    </div>
+                  </div>
+                </div>
+                <div class="modal-foot">
+                  <button type="button" class="button ghost" onclick="window.demo.closeModal()">取消</button>
+                  <button type="submit" class="button primary">保存</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      if (modal.type === "tenant-fde") {
+        const tenant = getTenant(modal.payload);
+        const candidates = membersByTenant("tenant-special");
+        modalRoot.innerHTML = `
+          <div class="modal-backdrop" onclick="window.demo.closeModal()">
+            <div class="modal small" onclick="event.stopPropagation()">
+              <div class="modal-head">
+                <h3 class="modal-title">关联FDE人员</h3>
+                <button class="close" onclick="window.demo.closeModal()">×</button>
+              </div>
+              <form onsubmit="window.demo.submitTenantFde(event, '${tenant.id}')">
+                <div class="field-group">
+                  <label>FDE人员</label>
+                  <select class="field-control" name="memberId">
+                    <option value="">未关联</option>
+                    ${candidates
+                      .map((member) => {
+                        const user = getUser(member.userId);
+                        return `<option value="${member.id}" ${tenant.linkedFdeMemberId === member.id ? "selected" : ""}>${escapeHtml(user.name)} / ${escapeHtml(user.phone)}</option>`;
+                      })
+                      .join("")}
+                  </select>
+                </div>
+                <div class="modal-foot">
+                  <button type="button" class="button ghost" onclick="window.demo.closeModal()">取消</button>
+                  <button type="submit" class="button primary">保存</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      if (modal.type === "node-edit") {
+        const selected = ui.selectedNodeId ? getNode(ui.selectedNodeId) : rootNode(currentTenant().id);
+        const editing = modal.payload !== "create" ? getNode(modal.payload) : null;
+        modalRoot.innerHTML = `
+          <div class="modal-backdrop" onclick="window.demo.closeModal()">
+            <div class="modal small" onclick="event.stopPropagation()">
+              <div class="modal-head">
+                <h3 class="modal-title">${editing ? "编辑节点" : "新建子节点"}</h3>
+                <button class="close" onclick="window.demo.closeModal()">×</button>
+              </div>
+              <form onsubmit="window.demo.submitNode(event, '${editing ? editing.id : ""}')">
+                ${editing ? "" : `<div class="field-group"><label>上级节点</label><input class="field-control" value="${escapeHtml(selected?.name || "")}" disabled /></div>`}
+                <div class="field-group"><label>节点名称</label><input class="field-control" name="name" value="${escapeHtml(editing?.name || "")}" required /></div>
+                <div class="modal-foot">
+                  <button type="button" class="button ghost" onclick="window.demo.closeModal()">取消</button>
+                  <button type="submit" class="button primary">${editing ? "保存" : "创建"}</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      if (modal.type === "member-edit") {
+        const editing = modal.payload !== "create" ? getMember(modal.payload) : null;
+        const tenant = currentTenant();
+        const roles = rolesByTenant(tenant.id).filter((role) => role.builtInKey !== "tenantAdmin");
+        const nodes = nodesByTenant(tenant.id);
+        const user = editing ? getUser(editing.userId) : null;
+        const selectedOrgIds = editing ? editing.orgIds : (ui.selectedNodeId ? [ui.selectedNodeId] : [rootNode(tenant.id)?.id].filter(Boolean));
+        modalRoot.innerHTML = `
+          <div class="modal-backdrop" onclick="window.demo.closeModal()">
+            <div class="modal" onclick="event.stopPropagation()">
+              <div class="modal-head">
+                <h3 class="modal-title">${editing ? "编辑成员" : "创建成员"}</h3>
+                <button class="close" onclick="window.demo.closeModal()">×</button>
+              </div>
+              <form onsubmit="window.demo.submitMember(event, '${editing ? editing.id : ""}')">
+                <div class="form-grid">
+                  <div class="two-col">
+                    <div class="field-group"><label>姓名</label><input class="field-control" name="name" value="${escapeHtml(user?.name || "")}" required /></div>
+                    <div class="field-group"><label>手机号</label><input class="field-control" name="phone" value="${escapeHtml(user?.phone || "")}" required /></div>
+                  </div>
+                  <div>
+                    <label style="display:block; margin-bottom:8px; font-weight:600;">所属组织节点</label>
+                    <div class="tree-check">
+                      ${renderNodeCheckboxTree(nodes, selectedOrgIds, !editing)}
+                    </div>
+                  </div>
+                  <div>
+                    <label style="display:block; margin-bottom:8px; font-weight:600;">角色</label>
+                    <div class="check-list">
+                      ${roles
+                        .map(
+                          (role) => `
+                            <label class="check-item">
+                              <input type="checkbox" name="roleIds" value="${role.id}" ${editing?.roleIds.includes(role.id) ? "checked" : ""} />
+                              <div>
+                                <div style="font-weight:700;">${escapeHtml(role.name)}</div>
+                                <div class="meta">${escapeHtml(platformOverview(role))}</div>
+                              </div>
+                            </label>
+                          `,
+                        )
+                        .join("")}
+                    </div>
+                  </div>
+                </div>
+                <div class="modal-foot">
+                  <button type="button" class="button ghost" onclick="window.demo.closeModal()">取消</button>
+                  <button type="submit" class="button primary">${editing ? "保存" : "创建"}</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      if (modal.type === "member-transfer") {
+        const member = getMember(modal.payload);
+        const candidates = membersByTenant(member.tenantId).filter((item) => item.id !== member.id && item.status === "enabled");
+        modalRoot.innerHTML = `
+          <div class="modal-backdrop" onclick="window.demo.closeModal()">
+            <div class="modal small" onclick="event.stopPropagation()">
+              <div class="modal-head">
+                <h3 class="modal-title">资产转移</h3>
+                <button class="close" onclick="window.demo.closeModal()">×</button>
+              </div>
+              <form onsubmit="window.demo.submitMemberTransfer(event, '${member.id}')">
+                <div class="field-group">
+                  <label>转移目标</label>
+                  <select class="field-control" name="targetId" required>
+                    <option value="">请选择</option>
+                    ${candidates
+                      .map((item) => `<option value="${item.id}">${escapeHtml(memberName(item.id))} / ${escapeHtml(memberPhone(item.id))}</option>`)
+                      .join("")}
+                  </select>
+                </div>
+                <div class="modal-foot">
+                  <button type="button" class="button ghost" onclick="window.demo.closeModal()">取消</button>
+                  <button type="submit" class="button primary">确认转移并删除</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      if (modal.type === "role-edit") {
+        const editing = modal.payload !== "create" ? getRole(modal.payload) : null;
+        const tenant = currentTenant();
+        modalRoot.innerHTML = `
+          <div class="modal-backdrop" onclick="window.demo.closeModal()">
+            <div class="modal" onclick="event.stopPropagation()">
+              <div class="modal-head">
+                <h3 class="modal-title">${editing ? "编辑角色" : "创建角色"}</h3>
+                <button class="close" onclick="window.demo.closeModal()">×</button>
+              </div>
+              <form onsubmit="window.demo.submitRole(event, '${editing ? editing.id : ""}')">
+                <div class="field-group">
+                  <label>角色名称</label>
+                  <input class="field-control" name="name" value="${escapeHtml(editing?.name || "")}" required ${editing?.type === "preset" ? "disabled" : ""} />
+                </div>
+                <div class="roles" style="margin-top:16px;">
+                  ${["cms", "fdeBusiness", "fdeDev", "enterprise"]
+                    .map(
+                      (key) => `
+                        <div class="role-card">
+                          <div class="role-head">
+                            <div style="font-weight:700;">${escapeHtml(key === "cms" ? "运营平台" : key === "fdeBusiness" ? "FDE业务" : key === "fdeDev" ? "FDE开发" : "企业侧")}</div>
+                          </div>
+                          <div class="check-list">
+                            ${(MODULE_DEFS[key] || [])
+                              .map(
+                                (module) => `
+                                  <label class="check-item" style="${tenant.permissions.modules[key].includes(module.key) ? "" : "opacity:.52;"}">
+                                    <input type="checkbox" name="page_${key}" value="${module.key}" ${editing?.pages[key]?.includes(module.key) ? "checked" : ""} ${tenant.permissions.modules[key].includes(module.key) ? "" : "disabled"} />
+                                    <div style="font-weight:700;">${escapeHtml(module.label)}</div>
+                                  </label>
+                                `,
+                              )
+                              .join("")}
+                          </div>
+                        </div>
+                      `,
+                    )
+                    .join("")}
+                </div>
+                <div class="modal-foot">
+                  <button type="button" class="button ghost" onclick="window.demo.closeModal()">取消</button>
+                  <button type="submit" class="button primary">${editing ? "保存" : "创建"}</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        `;
+        return;
+      }
+    }
+
+    function renderTenantWizard() {
+      const w = ui.wizard;
+      const isChild = w.mode === "child";
+      return `
+        <div class="modal-backdrop" onclick="window.demo.closeWizard()">
+          <div class="modal small" onclick="event.stopPropagation()">
+            <div class="modal-head">
+              <h3 class="modal-title">${isChild ? "创建子租户" : "创建租户"}</h3>
+              <button class="close" onclick="window.demo.closeWizard()">×</button>
+            </div>
+            <div>${renderWizardStep1(w)}</div>
+            <div class="modal-foot">
+              <button class="button ghost" onclick="window.demo.closeWizard()">取消</button>
+              <button class="button primary" onclick="window.demo.finishWizard()">创建</button>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderWizardStep1(w) {
+      return `
+        <div class="form-grid">
+          <div class="two-col">
+            <div class="field-group"><label>租户名称</label><input class="field-control" value="${escapeHtml(w.form.name)}" oninput="window.demo.setWizardField('name', this.value)" /></div>
+            <div class="field-group"><label>租户编号</label><input class="field-control" value="${escapeHtml(w.form.code)}" oninput="window.demo.setWizardField('code', this.value)" /></div>
+          </div>
+          <div class="field-group"><label>席位数量</label><input class="field-control" type="number" value="${escapeHtml(w.form.seats)}" oninput="window.demo.setWizardField('seats', this.value)" /></div>
+          <div class="field-group"><label>备注</label><textarea class="field-control" rows="4" oninput="window.demo.setWizardField('remark', this.value)">${escapeHtml(w.form.remark)}</textarea></div>
+        </div>
+      `;
+    }
+
+    function renderNodeCheckboxTree(nodes, selectedIds, singleSelect = false) {
+      const roots = nodes.filter((item) => !item.parentId);
+      function walk(node) {
+        const children = nodes.filter((item) => item.parentId === node.id);
+        return `
+          <li>
+            <label class="toolbar">
+              <input type="${singleSelect ? "radio" : "checkbox"}" name="orgIds" value="${node.id}" ${selectedIds.includes(node.id) ? "checked" : ""} />
+              <span>${escapeHtml(node.name)}</span>
+            </label>
+            ${children.length ? `<ul>${children.map(walk).join("")}</ul>` : ""}
+          </li>
+        `;
+      }
+      return `<ul>${roots.map(walk).join("")}</ul>`;
+    }
+
+    function showToast(message, type) {
+      ui.toast = { message, type };
+      renderToast();
+      clearTimeout(showToast.timer);
+      showToast.timer = setTimeout(() => {
+        ui.toast = null;
+        renderToast();
+      }, 2400);
+    }
+
+    function renderToast() {
+      if (!ui.toast) {
+        toastRoot.innerHTML = "";
+        return;
+      }
+      toastRoot.innerHTML = `<div class="toast ${escapeHtml(ui.toast.type || "info")}">${escapeHtml(ui.toast.message)}</div>`;
+    }
+
+    function render() {
+      if (ui.screen === "combo" && state.session?.userId) {
+        app.innerHTML = renderComboSelect();
+      } else if (!state.session) {
+        app.innerHTML = renderLogin();
+      } else {
+        app.innerHTML = renderWorkspace();
+      }
+      renderModal();
+      renderToast();
+    }
+
+    window.demo = {
+      setLoginPhone(value) {
+        ui.loginPhone = value;
+      },
+      setLoginCode(value) {
+        ui.loginCode = value;
+      },
+      useSample(phone) {
+        ui.loginPhone = phone;
+        ui.loginCode = DEMO_CODE;
+        ui.sentPhone = phone;
+        render();
+      },
+      sendCode,
+      login,
+      resetDemo,
+      logout,
+      openComboSelect() {
+        ui.screen = "combo";
+        state.session = { userId: state.session.userId, memberId: "", tenantId: "", platform: "", fdeModule: "fdeBusiness", platformAccessSnapshot: null, pageAccessSnapshot: null };
+        saveState();
+        render();
+      },
+      openPlatformSwitch() {
+        const choices = currentPlatformChoices();
+        if (choices.length <= 1) {
+          showToast("当前无可切换平台", "info");
+          return;
+        }
+        ui.accountMenuOpen = false;
+        ui.modal = { type: "platform-switch", payload: null };
+        renderModal();
+      },
+      openTenantPlatformEntry(tenantId) {
+        const choices = tenantPlatformChoicesForUser(state.session.userId, tenantId);
+        if (!choices.length) {
+          showToast("当前无可进入平台", "info");
+          return;
+        }
+        if (choices.length === 1) {
+          enterCombo(choices[0]);
+          return;
+        }
+        ui.accountMenuOpen = false;
+        ui.modal = { type: "tenant-platform-entry", payload: tenantId };
+        renderModal();
+      },
+      switchPlatform(platform) {
+        ui.modal = null;
+        ui.accountMenuOpen = false;
+        state.session.platform = platform;
+        if (platform === "fde") {
+          state.session.fdeModule = sessionPlatformAccess().fdeBusiness ? "fdeBusiness" : "fdeDev";
+        }
+        saveState();
+        const initialPages = currentNavPages();
+        ui.currentPage = initialPages[0]?.key || "";
+        render();
+      },
+      enterCombo(key) {
+        const userId = state.session.userId;
+        const combo = availableCombosForUser(userId).find((item) => item.key === key);
+        if (combo) enterCombo(combo);
+      },
+      toggleAccountMenu() {
+        ui.accountMenuOpen = !ui.accountMenuOpen;
+        render();
+      },
+      selectTenant(tenantId) {
+        ui.selectedTenantId = tenantId;
+        render();
+      },
+      setTenantDetailTab(tab) {
+        ui.selectedTenantDetailTab = tab;
+        render();
+      },
+      setPage(page) {
+        ui.currentPage = page;
+        ui.searchKeyword = "";
+        ui.filterStatus = "";
+        ui.filterRoleId = "";
+        render();
+      },
+      jumpPage(page) {
+        if (page === "orgMembers") ui.currentPage = "orgMembers";
+        if (page === "roles") ui.currentPage = "roles";
+        ui.accountMenuOpen = false;
+        render();
+      },
+      setFdeModule(module) {
+        state.session.fdeModule = module;
+        saveState();
+        const nav = currentNavPages();
+        ui.currentPage = nav[0]?.key || "";
+        render();
+      },
+      setFdePage(module, page) {
+        state.session.fdeModule = module;
+        ui.currentPage = page;
+        saveState();
+        render();
+      },
+      selectNode(nodeId) {
+        ui.selectedNodeId = nodeId;
+        render();
+      },
+      setSearch(value) {
+        ui.searchKeyword = value;
+        render();
+      },
+      setStatusFilter(value) {
+        ui.filterStatus = value;
+        render();
+      },
+      setRoleFilter(value) {
+        ui.filterRoleId = value;
+        render();
+      },
+      openModal(type, payload) {
+        if (type === "tenant-view") ui.selectedTenantDetailTab = "basic";
+        if (type === "role-edit" && payload && payload !== "create") {
+          const targetRole = getRole(payload);
+          if (targetRole?.builtInKey === "tenantAdmin") {
+            showToast("租户管理员是系统角色，不可编辑", "info");
+            return;
+          }
+        }
+        if (type === "phone-edit") {
+          const user = getUser(state.session.userId);
+          payload = { phone: user.phone, code: "", sentPhone: "" };
+        }
+        ui.accountMenuOpen = false;
+        if (type === "tenant-admin") {
+          ui.modal = { type, payload: payload || null, payloadData: { createName: "", createPhone: "" } };
+        } else {
+          ui.modal = { type, payload: payload || null };
+        }
+        renderModal();
+      },
+      closeModal() {
+        ui.modal = null;
+        renderModal();
+      },
+      setTenantAdminDraft(key, value) {
+        if (ui.modal?.type !== "tenant-admin") return;
+        ui.modal.payloadData = { ...(ui.modal.payloadData || {}), [key]: value };
+      },
+      confirmModalAction() {
+        const config = ui.modal?.payload || {};
+        const args = config.args || [];
+        ui.modal = null;
+        if (config.action === "member-status") return window.demo.applyMemberStatus(...args);
+        if (config.action === "tenant-status") return window.demo.applyTenantStatus(...args);
+        if (config.action === "tenant-delete") return window.demo.applyTenantDelete(...args);
+        if (config.action === "member-delete") return window.demo.applyMemberDelete(...args);
+        if (config.action === "role-delete") return window.demo.applyRoleDelete(...args);
+        if (config.action === "node-delete") return window.demo.applyNodeDelete(...args);
+        if (config.action === "tenant-permissions-save") return window.demo.applyTenantPermissions(...args);
+      },
+      submitPhoneChange(event) {
+        event.preventDefault();
+        const phone = String(new FormData(event.target).get("phone") || "").trim();
+        const code = String(new FormData(event.target).get("code") || "").trim();
+        const user = getUser(state.session.userId);
+        if (!phone) {
+          showToast("请输入手机号", "error");
+          return;
+        }
+        if (ui.modal?.payload?.sentPhone !== phone) {
+          showToast("请先获取验证码", "error");
+          return;
+        }
+        if (code !== DEMO_CODE) {
+          showToast("验证码错误", "error");
+          return;
+        }
+        const conflict = state.users.find((item) => item.phone === phone && item.id !== user.id);
+        if (conflict) {
+          showToast("手机号已存在", "error");
+          return;
+        }
+        user.phone = phone;
+        saveState();
+        ui.modal = null;
+        ui.loginPhone = phone;
+        ui.sentPhone = phone;
+        render();
+        showToast("已保存", "success");
+      },
+      setPhoneEditField(key, value) {
+        if (ui.modal?.type !== "phone-edit") return;
+        ui.modal.payload = { ...(ui.modal.payload || {}), [key]: value };
+      },
+      sendPhoneChangeCode() {
+        if (ui.modal?.type !== "phone-edit") return;
+        const phone = String(ui.modal.payload?.phone || "").trim();
+        if (!phone) {
+          showToast("请输入手机号", "error");
+          return;
+        }
+        ui.modal.payload = { ...(ui.modal.payload || {}), sentPhone: phone };
+        renderModal();
+        showToast("验证码已发送", "success");
+      },
+      createChildNode(nodeId) {
+        ui.selectedNodeId = nodeId;
+        ui.modal = { type: "node-edit", payload: "create" };
+        render();
+      },
+      confirmDeleteNode(nodeId) {
+        const node = getNode(nodeId);
+        if (childrenOf(nodeId).length) {
+          showToast("当前节点存在子节点，无法删除", "error");
+          return;
+        }
+        if (membersByTenant(currentTenant().id).some((member) => member.orgIds.includes(nodeId))) {
+          showToast("当前节点仍有成员归属，无法删除", "error");
+          return;
+        }
+        ui.modal = {
+          type: "confirm",
+          payload: {
+            title: "删除节点",
+            message: `确认删除 ${node.name}？`,
+            confirmText: "删除",
+            danger: true,
+            action: "node-delete",
+            args: [nodeId],
+          },
+        };
+        renderModal();
+      },
+      openTenantWizard(mode) {
+        const suggested = mode === "child";
+        const parent = mode === "child" ? currentTenant() : null;
+        ui.wizard = {
+          mode,
+          parentTenantId: parent?.id || "",
+          form: {
+            name: "",
+            code: mode === "child" ? `${parent.code}-${String(state.tenants.filter((item) => item.parentId === parent.id).length + 1).padStart(2, "0")}` : `TEN-${Math.floor(Math.random() * 9000 + 1000)}`,
+            seats: suggested ? 20 : 30,
+            remark: "",
+            platforms: { cms: false, fdeBusiness: false, fdeDev: false, enterprise: false },
+            modules: { cms: [], fdeBusiness: [], fdeDev: [], enterprise: [] },
+            linkedFdeMemberId: "",
+          },
+        };
+        renderModal();
+      },
+      closeWizard() {
+        ui.wizard = null;
+        renderModal();
+      },
+      setWizardField(key, value) {
+        ui.wizard.form[key] = value;
+      },
+      toggleWizardPlatform(key, checked) {
+        ui.wizard.form.platforms[key] = checked;
+        if (!checked) ui.wizard.form.modules[key] = [];
+        if (checked && !ui.wizard.form.modules[key].length) ui.wizard.form.modules[key] = MODULE_DEFS[key].map((item) => item.key);
+        renderModal();
+      },
+      toggleWizardModule(platformKey, moduleKey, checked) {
+        const list = new Set(ui.wizard.form.modules[platformKey]);
+        if (checked) list.add(moduleKey);
+        else list.delete(moduleKey);
+        ui.wizard.form.modules[platformKey] = Array.from(list);
+      },
+      finishWizard() {
+        const w = ui.wizard;
+        const seats = Number(w.form.seats);
+        if (!w.form.name.trim() || !w.form.code.trim() || !String(w.form.seats).trim()) {
+          showToast("请填写完整信息", "error");
+          return;
+        }
+        if (!Number.isInteger(seats) || seats <= 0) {
+          showToast("席位数量需为正整数", "error");
+          return;
+        }
+        const tenantId = uid("tenant");
+        const kind = w.mode === "child" ? "child" : "single";
+        const permissions = {
+          platforms: { cms: false, fdeBusiness: false, fdeDev: false, enterprise: false },
+          modules: { cms: [], fdeBusiness: [], fdeDev: [], enterprise: [] },
+        };
+        ["cms", "fdeBusiness", "fdeDev", "enterprise"].forEach((key) => {
+          permissions.platforms[key] = Boolean(w.form.platforms[key]);
+          permissions.modules[key] = permissions.platforms[key] ? deepCopy(w.form.modules[key]) : [];
+        });
+        const tenant = {
+          id: tenantId,
+          name: w.form.name.trim(),
+          code: w.form.code.trim(),
+          kind,
+          parentId: w.mode === "child" ? w.parentTenantId : "",
+          seats,
+          remark: w.form.remark.trim(),
+          status: "enabled",
+          linkedFdeMemberId: w.form.linkedFdeMemberId,
+          createdAt: now(),
+          permissions,
+          assetInfo: { cloudDevices: 0, localDevices: 0, seats, points: 0 },
+          orders: [],
+        };
+        state.tenants.push(tenant);
+        const rootId = uid("org");
+        state.nodes.push({ id: rootId, tenantId, name: tenant.name, parentId: "", leaderMemberId: "" });
+        const newRoles = [
+          {
+            id: uid("role"),
+            tenantId,
+            name: "租户管理员",
+            type: "preset",
+            builtInKey: "tenantAdmin",
+            pages: {
+              cms: ["cmsHome", "orgMembers", "roles"],
+              fdeBusiness: ["fdeBusinessHome", "childTenants", "orgMembers", "roles"],
+              fdeDev: ["fdeDevHome", "orgMembers", "roles"],
+              enterprise: ["enterpriseHome", "orgMembers", "roles"],
+            },
+          },
+          {
+            id: uid("role"),
+            tenantId,
+            name: "FDE员工",
+            type: "preset",
+            builtInKey: "fdeEmployee",
+            pages: { cms: [], fdeBusiness: ["fdeBusinessHome", "childTenants"], fdeDev: ["fdeDevHome"], enterprise: [] },
+          },
+          {
+            id: uid("role"),
+            tenantId,
+            name: "FDE开发人员",
+            type: "preset",
+            builtInKey: "fdeDeveloper",
+            pages: { cms: [], fdeBusiness: [], fdeDev: ["fdeDevHome"], enterprise: [] },
+          },
+          {
+            id: uid("role"),
+            tenantId,
+            name: "企业员工",
+            type: "preset",
+            builtInKey: "enterpriseEmployee",
+            pages: { cms: [], fdeBusiness: [], fdeDev: [], enterprise: ["enterpriseHome"] },
+          },
+        ];
+        state.roles.push(...newRoles);
+        saveState();
+        ui.wizard = null;
+        if (state.session?.platform === "cms") {
+          ui.selectedTenantId = tenantId;
+        }
+        render();
+        showToast("已创建，请在租户列表继续配置管理员", "success");
+      },
+      submitTenantBasic(event, tenantId) {
+        event.preventDefault();
+        const form = new FormData(event.target);
+        const tenant = getTenant(tenantId);
+        const seats = Number(form.get("seats") || 0);
+        if (!Number.isInteger(seats) || seats <= 0) {
+          showToast("席位数量需为正整数", "error");
+          return;
+        }
+        tenant.name = String(form.get("name") || "").trim();
+        tenant.code = String(form.get("code") || "").trim();
+        tenant.seats = seats;
+        tenant.remark = String(form.get("remark") || "").trim();
+        const root = rootNode(tenantId);
+        if (root) root.name = tenant.name;
+        saveState();
+        ui.modal = null;
+        render();
+        showToast("已保存", "success");
+      },
+      submitTenantPermissions(event, tenantId) {
+        event.preventDefault();
+        const form = new FormData(event.target);
+        const tenant = getTenant(tenantId);
+        const nextPermissions = {
+          platforms: { cms: false, fdeBusiness: false, fdeDev: false, enterprise: false },
+          modules: { cms: [], fdeBusiness: [], fdeDev: [], enterprise: [] },
+        };
+        ["cms", "fdeBusiness", "fdeDev", "enterprise"].forEach((key) => {
+          nextPermissions.platforms[key] = form.get(`platform_${key}`) === "on";
+          nextPermissions.modules[key] = form.getAll(`module_${key}`).map(String);
+          if (!nextPermissions.platforms[key]) nextPermissions.modules[key] = [];
+        });
+        const normalized = normalizeTenantPermissions(tenant, nextPermissions);
+        const affected = countPermissionImpact(tenant, normalized);
+        const reduced = ["cms", "fdeBusiness", "fdeDev", "enterprise"].some((key) => {
+          if (tenant.permissions.platforms[key] && !normalized.platforms[key]) return true;
+          return tenant.permissions.modules[key].some((item) => !normalized.modules[key].includes(item));
+        });
+        if (reduced) {
+          ui.modal = {
+            type: "confirm",
+            payload: {
+              title: "保存权限配置",
+              message: `将影响 ${affected} 名成员的权限。当前会话不中断，下次登录失效，确认保存？`,
+              confirmText: "确认保存",
+              danger: true,
+              action: "tenant-permissions-save",
+              args: [tenantId, normalized, affected],
+            },
+          };
+          renderModal();
+          return;
+        }
+        window.demo.applyTenantPermissions(tenantId, normalized, affected);
+      },
+      applyTenantPermissions(tenantId, normalized, affected = 0) {
+        const tenant = getTenant(tenantId);
+        tenant.permissions = normalized;
+        tenant.kind = tenant.parentId ? "child" : (normalized.platforms.fdeBusiness || normalized.modules.fdeBusiness.includes("childTenants") ? "top" : "single");
+        saveState();
+        ui.modal = null;
+        render();
+        showToast(affected ? `已保存，${affected} 名成员权限将于下次登录生效` : "已保存", "success");
+      },
+      submitTenantAdmins(event, tenantId) {
+        event.preventDefault();
+        const checked = new Set(new FormData(event.target).getAll("adminIds").map(String));
+        const adminRole = rolesByTenant(tenantId).find((role) => role.builtInKey === "tenantAdmin");
+        const draft = ui.modal?.payloadData || {};
+        const createName = String(draft.createName || "").trim();
+        const createPhone = String(draft.createPhone || "").trim();
+        if (checked.size > 3) {
+          showToast("最多 3 个", "error");
+          return;
+        }
+        if ((createName && !createPhone) || (!createName && createPhone)) {
+          showToast("请完整填写新建管理员信息", "error");
+          return;
+        }
+        if (createName && createPhone) {
+          let user = findUserByPhone(createPhone);
+          if (!user) {
+            user = { id: uid("user"), name: createName, phone: createPhone };
+            state.users.push(user);
+          } else {
+            user.name = createName;
+          }
+          let member = membersByTenant(tenantId).find((item) => item.userId === user.id);
+          if (!member) {
+            member = {
+              id: uid("member"),
+              tenantId,
+              userId: user.id,
+              orgIds: [rootNode(tenantId)?.id].filter(Boolean),
+              roleIds: [],
+              status: "enabled",
+              assetCount: 0,
+            };
+            state.members.push(member);
+          }
+          checked.add(member.id);
+        }
+        if (checked.size > 3) {
+          showToast("最多 3 个", "error");
+          return;
+        }
+        membersByTenant(tenantId).forEach((member) => {
+          if (checked.has(member.id)) {
+            if (!member.roleIds.includes(adminRole.id)) member.roleIds.unshift(adminRole.id);
+          } else {
+            member.roleIds = member.roleIds.filter((roleId) => roleId !== adminRole.id);
+          }
+        });
+        saveState();
+        ui.modal = null;
+        render();
+        showToast(checked.size ? "已保存，已短信通知租户管理员" : "已保存", "success");
+      },
+      submitTenantFde(event, tenantId) {
+        event.preventDefault();
+        const memberId = String(new FormData(event.target).get("memberId") || "").trim();
+        const tenant = getTenant(tenantId);
+        tenant.linkedFdeMemberId = memberId;
+        saveState();
+        ui.modal = null;
+        render();
+        showToast("已保存", "success");
+      },
+      toggleTenantStatus(tenantId, nextStatus) {
+        const tenant = getTenant(tenantId);
+        const affected = membersByTenant(tenantId).filter((item) => item.status !== "deleted").length;
+        ui.modal = {
+          type: "confirm",
+          payload: {
+            title: nextStatus === "enabled" ? "启用租户" : "停用租户",
+            message: `${tenant.name} 受影响成员 ${affected} 人。当前会话不中断，下次登录后失效，确认${nextStatus === "enabled" ? "启用" : "停用"}？`,
+            confirmText: nextStatus === "enabled" ? "启用" : "停用",
+            danger: nextStatus !== "enabled",
+            action: "tenant-status",
+            args: [tenantId, nextStatus],
+          },
+        };
+        renderModal();
+      },
+      applyTenantStatus(tenantId, nextStatus) {
+        const tenant = getTenant(tenantId);
+        tenant.status = nextStatus;
+        saveState();
+        render();
+        showToast(nextStatus === "enabled" ? "已启用" : "已停用", "success");
+      },
+      deleteTenant(tenantId) {
+        const tenant = getTenant(tenantId);
+        if (tenant.status !== "disabled") {
+          showToast("请先停用再删除", "error");
+          return;
+        }
+        const affected = membersByTenant(tenantId).filter((item) => item.status !== "deleted").length;
+        ui.modal = {
+          type: "confirm",
+          payload: {
+            title: "删除租户",
+            message: `${tenant.name} 受影响成员 ${affected} 人。当前会话不中断，下次登录后失效，确认删除？`,
+            confirmText: "删除",
+            danger: true,
+            action: "tenant-delete",
+            args: [tenantId],
+          },
+        };
+        renderModal();
+      },
+      applyTenantDelete(tenantId) {
+        const tenant = getTenant(tenantId);
+        if (tenant.status !== "disabled") {
+          showToast("请先停用再删除", "error");
+          return;
+        }
+        tenant.status = "deleted";
+        saveState();
+        render();
+        showToast("已删除", "success");
+      },
+      submitNode(event, nodeId) {
+        event.preventDefault();
+        const name = String(new FormData(event.target).get("name") || "").trim();
+        if (!name) {
+          showToast("请输入节点名称", "error");
+          return;
+        }
+        if (nodeId) {
+          const node = getNode(nodeId);
+          node.name = name;
+        } else {
+          const selected = getNode(ui.selectedNodeId) || rootNode(currentTenant().id);
+          state.nodes.push({ id: uid("org"), tenantId: currentTenant().id, name, parentId: selected.id, leaderMemberId: "" });
+        }
+        saveState();
+        ui.modal = null;
+        render();
+        showToast("已保存", "success");
+      },
+      applyNodeDelete(nodeId) {
+        if (childrenOf(nodeId).length) {
+          showToast("有子节点", "error");
+          return;
+        }
+        if (membersByTenant(currentTenant().id).some((member) => member.orgIds.includes(nodeId))) {
+          showToast("有成员归属", "error");
+          return;
+        }
+        state.nodes = state.nodes.filter((item) => item.id !== nodeId);
+        ui.selectedNodeId = rootNode(currentTenant().id)?.id || "";
+        saveState();
+        render();
+        showToast("已删除", "success");
+      },
+      submitMember(event, memberId) {
+        event.preventDefault();
+        const form = new FormData(event.target);
+        const name = String(form.get("name") || "").trim();
+        const phone = String(form.get("phone") || "").trim();
+        const orgIds = form.getAll("orgIds").map(String);
+        const roleIds = form.getAll("roleIds").map(String).filter((roleId) => getRole(roleId)?.builtInKey !== "tenantAdmin");
+        if (!name || !phone || !orgIds.length || !roleIds.length) {
+          showToast("请填写完整信息", "error");
+          return;
+        }
+        let user = findUserByPhone(phone);
+        const isNewUser = !user;
+        if (!user) {
+          user = { id: uid("user"), name, phone };
+          state.users.push(user);
+        } else {
+          user.name = name;
+        }
+        const tenantId = currentTenant().id;
+        const seatsUsed = membersByTenant(tenantId).filter((item) => item.status !== "deleted").length;
+        if (!memberId && isNewUser && seatsUsed >= currentTenant().seats) {
+          showToast("席位已满", "error");
+          return;
+        }
+        const existsInTenant = membersByTenant(tenantId).find((item) => item.userId === user.id && item.id !== memberId);
+        if (existsInTenant) {
+          showToast("该手机号已注册，请确认", "error");
+          return;
+        }
+        if (memberId) {
+          const member = getMember(memberId);
+          member.userId = user.id;
+          member.orgIds = orgIds;
+          member.roleIds = roleIds;
+        } else {
+          state.members.push({
+            id: uid("member"),
+            tenantId,
+            userId: user.id,
+            orgIds,
+            roleIds,
+            status: "enabled",
+            assetCount: 0,
+          });
+        }
+        saveState();
+        ui.modal = null;
+        render();
+        showToast(memberId ? "已保存" : "已创建，已短信通知成员", "success");
+      },
+      toggleMemberStatus(memberId, nextStatus) {
+        ui.modal = {
+          type: "confirm",
+          payload: {
+            title: nextStatus === "enabled" ? "启用成员" : "停用成员",
+            message: `确认${nextStatus === "enabled" ? "启用" : "停用"} ${memberName(memberId)}？`,
+            confirmText: nextStatus === "enabled" ? "启用" : "停用",
+            danger: nextStatus !== "enabled",
+            action: "member-status",
+            args: [memberId, nextStatus],
+          },
+        };
+        renderModal();
+      },
+      applyMemberStatus(memberId, nextStatus) {
+        const member = getMember(memberId);
+        member.status = nextStatus;
+        saveState();
+        render();
+        showToast(nextStatus === "enabled" ? "已启用" : "已停用", "success");
+      },
+      setLeader(nodeId, memberId) {
+        const node = getNode(nodeId);
+        if (node.leaderMemberId && node.leaderMemberId !== memberId) {
+          showToast("需先解除当前负责人", "error");
+          return;
+        }
+        node.leaderMemberId = memberId;
+        saveState();
+        render();
+        showToast("已设置", "success");
+      },
+      unsetLeader(nodeId) {
+        const node = getNode(nodeId);
+        node.leaderMemberId = "";
+        saveState();
+        render();
+        showToast("已解除", "success");
+      },
+      deleteMember(memberId) {
+        const member = getMember(memberId);
+        if (member.assetCount > 0) {
+          ui.modal = { type: "member-transfer", payload: memberId };
+          renderModal();
+          return;
+        }
+        ui.modal = {
+          type: "confirm",
+          payload: {
+            title: "删除成员",
+            message: `确认删除 ${memberName(memberId)}？`,
+            confirmText: "删除",
+            danger: true,
+            action: "member-delete",
+            args: [memberId],
+          },
+        };
+        renderModal();
+      },
+      applyMemberDelete(memberId) {
+        const member = getMember(memberId);
+        member.status = "deleted";
+        saveState();
+        render();
+        showToast("已删除", "success");
+      },
+      submitMemberTransfer(event, memberId) {
+        event.preventDefault();
+        const targetId = String(new FormData(event.target).get("targetId") || "").trim();
+        const member = getMember(memberId);
+        const target = getMember(targetId);
+        if (!target) {
+          showToast("请选择转移目标", "error");
+          return;
+        }
+        target.assetCount += member.assetCount;
+        member.assetCount = 0;
+        member.status = "deleted";
+        saveState();
+        ui.modal = null;
+        render();
+        showToast("已转移并删除", "success");
+      },
+      submitRole(event, roleId) {
+        event.preventDefault();
+        const form = new FormData(event.target);
+        const editing = roleId ? getRole(roleId) : null;
+        if (editing?.builtInKey === "tenantAdmin") {
+          showToast("租户管理员是系统角色，不可编辑", "error");
+          return;
+        }
+        const name = String(form.get("name") || editing?.name || "").trim();
+        const nextPages = { cms: [], fdeBusiness: [], fdeDev: [], enterprise: [] };
+        ["cms", "fdeBusiness", "fdeDev", "enterprise"].forEach((key) => {
+          nextPages[key] = form.getAll(`page_${key}`).map(String);
+        });
+        if (!name) {
+          showToast("请输入角色名称", "error");
+          return;
+        }
+        if (editing) {
+          editing.name = name;
+          editing.pages = nextPages;
+        } else {
+          state.roles.push({
+            id: uid("role"),
+            tenantId: currentTenant().id,
+            name,
+            type: "custom",
+            builtInKey: "",
+            pages: nextPages,
+          });
+        }
+        saveState();
+        ui.modal = null;
+        render();
+        showToast("已保存", "success");
+      },
+      deleteRole(roleId) {
+        const role = getRole(roleId);
+        if (!role || role.type !== "custom") return;
+        if (roleCount(roleId)) {
+          showToast("该角色仍有关联成员，无法删除", "error");
+          return;
+        }
+        ui.modal = {
+          type: "confirm",
+          payload: {
+            title: "删除角色",
+            message: `${role.name} 已关联 ${roleCount(roleId)} 个成员，删除后这些成员将失去对应权限，确认删除？`,
+            confirmText: "删除",
+            danger: true,
+            action: "role-delete",
+            args: [roleId],
+          },
+        };
+        renderModal();
+      },
+      applyRoleDelete(roleId) {
+        const role = getRole(roleId);
+        if (!role || role.type !== "custom") return;
+        state.members.forEach((member) => {
+          member.roleIds = member.roleIds.filter((item) => item !== roleId);
+        });
+        state.roles = state.roles.filter((item) => item.id !== roleId);
+        saveState();
+        render();
+        showToast("已删除", "success");
+      },
+    };
+
+    render();
+  </script>
+</body>
+</html>

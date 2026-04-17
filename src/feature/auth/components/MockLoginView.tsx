@@ -2,20 +2,20 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
 
 import { ArrowLeftOutlined } from "@ant-design/icons";
-import { Button, Input, message } from "antd";
+import { Avatar, Button, Input, Modal, Select, message } from "antd";
 import { Navigate, useNavigate, useSearchParams } from "react-router-dom";
 
+import { MOCK_AUTH_ACCOUNTS, getTenantCount, getTenantEntries } from "@/feature/auth/mockAccounts";
 import { useMockAuth } from "@/feature/auth/hooks/useMockAuth";
-import {
-  FDE_LEADER_MOCK_ACCOUNT,
-  FDE_MEMBER_MOCK_ACCOUNT,
-  MOCK_AUTH_ACCOUNTS,
-  getWorkspacePathByRole,
-} from "@/feature/auth/mockAccounts";
-import type { MockAuthRole } from "@/feature/auth/types";
-import { useAuthStore } from "@/store/auth";
+import type { MockAuthAccount, MockAuthTenantEntry } from "@/feature/auth/types";
 
 import styles from "./MockLoginView.module.less";
+
+const getTenantLogoText = (tenantName: string): string => {
+  const normalizedTenantName = tenantName.replace(/租户|服务组织/g, "").trim();
+
+  return Array.from(normalizedTenantName)[0] ?? "企";
+};
 
 /**
  * 原型系统模拟手机号验证码登录视图。
@@ -23,13 +23,20 @@ import styles from "./MockLoginView.module.less";
 export const MockLoginView = (): JSX.Element => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { login, resolvePostLoginPath, sendVerificationCode, session } = useMockAuth();
-  const setSession = useAuthStore(state => state.setSession);
+  const {
+    activateTenant,
+    activeIdentity,
+    login,
+    logout,
+    resolveSessionPath,
+    sendVerificationCode,
+    session,
+  } = useMockAuth();
   const [phoneValue, setPhoneValue] = useState<string>("");
   const [verificationCodeValue, setVerificationCodeValue] = useState<string>("");
   const [countdown, setCountdown] = useState<number>(0);
   const [sentPhone, setSentPhone] = useState<string>("");
-  const [pendingQuickLoginPath, setPendingQuickLoginPath] = useState<string>();
+  const [selectedAccountId, setSelectedAccountId] = useState<string>();
 
   const redirectPath = useMemo(() => {
     const targetPath = searchParams.get("redirect")?.trim();
@@ -53,9 +60,47 @@ export const MockLoginView = (): JSX.Element => {
     return () => window.clearTimeout(timer);
   }, [countdown]);
 
+  const selectedAccount = useMemo<MockAuthAccount | null>(
+    () => MOCK_AUTH_ACCOUNTS.find(item => item.accountId === selectedAccountId) ?? null,
+    [selectedAccountId],
+  );
+  const tenantEntries = useMemo<MockAuthTenantEntry[]>(() => {
+    if (!session || activeIdentity) {
+      return [];
+    }
+
+    return getTenantEntries(session.identities);
+  }, [activeIdentity, session]);
+  const shouldShowTenantSelectionModal = Boolean(
+    session && !activeIdentity && getTenantCount(session.identities) > 1,
+  );
+
   const handleBack = useCallback((): void => {
     navigate("/portal");
   }, [navigate]);
+
+  const handleSelectTenant = useCallback(
+    (tenantId: string): void => {
+      const result = activateTenant(tenantId, redirectPath);
+
+      if (!result.success) {
+        message.error(result.message);
+        return;
+      }
+
+      message.success(result.message);
+      navigate(result.redirectPath ?? "/portal", { replace: true });
+    },
+    [activateTenant, navigate, redirectPath],
+  );
+
+  const handleCloseTenantSelection = useCallback((): void => {
+    logout();
+  }, [logout]);
+
+  const handleLogout = useCallback((): void => {
+    logout();
+  }, [logout]);
 
   const handleSendVerificationCode = useCallback((): void => {
     if (countdown > 0) {
@@ -95,59 +140,77 @@ export const MockLoginView = (): JSX.Element => {
       }
 
       message.success(result.message);
+
+      if (result.session && !result.identity && getTenantCount(result.session.identities) > 1) {
+        return;
+      }
+
       navigate(result.redirectPath ?? "/portal", { replace: true });
     },
     [login, navigate, phoneValue, redirectPath, sentPhone, verificationCodeValue],
   );
 
-  const handleQuickLogin = useCallback(
-    (role: "employee" | "admin"): void => {
-      const account = MOCK_AUTH_ACCOUNTS.find(a => a.role === role);
+  const handlePresetAccountChange = useCallback((accountId: string): void => {
+    const matchedAccount = MOCK_AUTH_ACCOUNTS.find(item => item.accountId === accountId);
 
-      if (!account) {
-        return;
-      }
+    if (!matchedAccount) {
+      return;
+    }
 
-      const targetPath = getWorkspacePathByRole(role);
+    setSelectedAccountId(accountId);
+    setPhoneValue(matchedAccount.phone);
+    setVerificationCodeValue(matchedAccount.verificationCode);
+    setSentPhone(matchedAccount.phone);
+    setCountdown(0);
+  }, []);
 
-      setPendingQuickLoginPath(targetPath);
-      setSession({
-        userId: account.userId,
-        name: account.name,
-        phone: account.phone,
-        role: account.role,
-        loginAt: new Date().toISOString(),
-      });
-      navigate(targetPath, { replace: true });
-    },
-    [navigate, setSession],
+  const handlePhoneChange = useCallback((nextValue: string): void => {
+    setPhoneValue(nextValue);
+
+    if (selectedAccount && nextValue !== selectedAccount.phone) {
+      setSelectedAccountId(undefined);
+    }
+  }, [selectedAccount]);
+
+  const handleVerificationCodeChange = useCallback((nextValue: string): void => {
+    setVerificationCodeValue(nextValue);
+
+    if (selectedAccount && nextValue !== selectedAccount.verificationCode) {
+      setSelectedAccountId(undefined);
+    }
+  }, [selectedAccount]);
+
+  const selectedAccountTenantCount = useMemo<number>(() => {
+    if (!selectedAccount) {
+      return 0;
+    }
+
+    return new Set(selectedAccount.identities.map(identity => identity.tenantId)).size;
+  }, [selectedAccount]);
+
+  const selectedAccountEntryHint = useMemo<string>(() => {
+    if (!selectedAccount) {
+      return "选择预置账号后，将自动回填手机号和验证码。";
+    }
+
+    if (selectedAccountTenantCount > 1) {
+      return "当前预置账号登录后会弹出企业选择框，请先选择本次要进入的企业。";
+    }
+
+    return "当前预置账号会在点击左侧登录后直接进入默认系统，其他有权限的系统入口会在产品内展示。";
+  }, [selectedAccount, selectedAccountTenantCount]);
+
+  const presetOptions = useMemo(
+    () =>
+      MOCK_AUTH_ACCOUNTS.map(account => ({
+        label: `${account.roleLabel} · ${account.name}`,
+        value: account.accountId,
+      })),
+    [],
   );
 
-  const handleQuickFdeLogin = useCallback(
-    (role: Extract<MockAuthRole, "fdeMember" | "fdeAdmin">): void => {
-      const account = role === "fdeAdmin" ? FDE_LEADER_MOCK_ACCOUNT : FDE_MEMBER_MOCK_ACCOUNT;
-
-      setPendingQuickLoginPath("/fde");
-      setSession({
-        userId: account.userId,
-        name: account.name,
-        phone: account.phone,
-        role: account.role,
-        loginAt: new Date().toISOString(),
-      });
-      navigate("/fde", { replace: true });
-    },
-    [navigate, setSession],
-  );
-
-
-  if (session) {
-    return (
-      <Navigate
-        replace
-        to={pendingQuickLoginPath ?? resolvePostLoginPath(session.role, redirectPath)}
-      />
-    );
+  if (session && !shouldShowTenantSelectionModal) {
+    return <Navigate replace to={resolveSessionPath(session, redirectPath)} />;
   }
 
   return (
@@ -175,7 +238,7 @@ export const MockLoginView = (): JSX.Element => {
                 <span className={styles.formEyebrow}>验证码登录</span>
                 <h1 className={styles.formTitle}>欢迎登录</h1>
                 <p className={styles.formDescription}>
-                  输入已开通手机号并完成验证码校验后进入 Frontis AI 工作台。
+                  输入已开通手机号并完成验证码校验后进入 Frontis AI；多租户账号会在登录后弹出企业选择框。
                 </p>
               </div>
 
@@ -192,9 +255,7 @@ export const MockLoginView = (): JSX.Element => {
                     placeholder="请输入手机号"
                     size="large"
                     value={phoneValue}
-                    onChange={event =>
-                      setPhoneValue(event.target.value.replace(/\D/g, "").slice(0, 11))
-                    }
+                    onChange={event => handlePhoneChange(event.target.value.replace(/\D/g, "").slice(0, 11))}
                   />
                 </div>
 
@@ -211,9 +272,7 @@ export const MockLoginView = (): JSX.Element => {
                       placeholder="请输入 6 位验证码"
                       size="large"
                       value={verificationCodeValue}
-                      onChange={event =>
-                        setVerificationCodeValue(event.target.value.replace(/\D/g, "").slice(0, 6))
-                      }
+                      onChange={event => handleVerificationCodeChange(event.target.value.replace(/\D/g, "").slice(0, 6))}
                     />
                     <Button
                       size="large"
@@ -244,49 +303,85 @@ export const MockLoginView = (): JSX.Element => {
 
             <aside className={styles.quickLoginPanel}>
               <div className={styles.quickLoginSection}>
-                <p className={styles.quickLoginTitle}>快速体验入口</p>
+                <p className={styles.quickLoginTitle}>模拟账号填充</p>
                 <p className={styles.quickLoginDescription}>
-                  无需验证码，可直接进入员工、企业老板、FDE 成员或 FDE 负责人视角体验原型。
+                  选择预置账号后，系统会自动填充手机号和验证码；多租户账号登录后会弹出企业选择框。
                 </p>
-                <div className={styles.quickLoginButtons}>
-                  <button
-                    type="button"
-                    className={styles.quickLoginButton}
-                    onClick={() => handleQuickLogin("employee")}
-                  >
-                    <span className={styles.quickLoginIcon}>👤</span>
-                    <span>普通员工登录</span>
-                  </button>
-                  <button
-                    type="button"
-                    className={styles.quickLoginButton}
-                    onClick={() => handleQuickLogin("admin")}
-                  >
-                    <span className={styles.quickLoginIcon}>👔</span>
-                    <span>企业老板登录</span>
-                  </button>
-                  <button
-                    type="button"
-                    className={styles.quickLoginButton}
-                    onClick={() => handleQuickFdeLogin("fdeMember")}
-                  >
-                    <span className={styles.quickLoginIcon}>🛠</span>
-                    <span>FDE成员登录</span>
-                  </button>
-                  <button
-                    type="button"
-                    className={styles.quickLoginButton}
-                    onClick={() => handleQuickFdeLogin("fdeAdmin")}
-                  >
-                    <span className={styles.quickLoginIcon}>🧭</span>
-                    <span>FDE负责人登录</span>
-                  </button>
+                <div className={styles.selectorBlock}>
+                  <span className={styles.selectorLabel}>选择预置账号</span>
+                  <Select
+                    size="large"
+                    placeholder="请选择一个模拟账号"
+                    value={selectedAccountId}
+                    options={presetOptions}
+                    onChange={handlePresetAccountChange}
+                  />
+                </div>
+
+                <div className={styles.selectedSummary}>
+                  <p className={styles.summaryTitle}>
+                    {selectedAccount ? `${selectedAccount.roleLabel} · ${selectedAccount.name}` : "未选择模拟账号"}
+                  </p>
+                  <p className={styles.summaryDescription}>
+                    {selectedAccount ? selectedAccount.description : selectedAccountEntryHint}
+                  </p>
+                  <p className={styles.summaryHint}>{selectedAccountEntryHint}</p>
+
+                  {selectedAccount ? (
+                    <div className={styles.quickLoginFooter}>
+                      <span className={styles.quickLoginChip}>{selectedAccount.phone}</span>
+                      <span className={styles.quickLoginChip}>
+                        验证码 {selectedAccount.verificationCode}
+                      </span>
+                      <span className={styles.quickLoginChip}>
+                        {selectedAccountTenantCount} 个租户
+                      </span>
+                      <span className={styles.quickLoginChip}>
+                        {selectedAccount.identities.length} 个身份
+                      </span>
+                    </div>
+                  ) : null}
                 </div>
               </div>
             </aside>
           </div>
         </section>
       </div>
+
+      <Modal
+        open={shouldShowTenantSelectionModal}
+        title="选择进入企业"
+        onCancel={handleCloseTenantSelection}
+        footer={[
+          <Button key="logout" onClick={handleLogout}>
+            退出登录
+          </Button>,
+        ]}
+        width={460}
+        centered
+      >
+        <div className={styles.tenantSelection}>
+          <p className={styles.tenantSelectionHint}>
+            {session?.name} 已登录，请选择本次进入的企业。
+          </p>
+
+          <div className={styles.tenantList}>
+            {tenantEntries.map(tenant => (
+              <button
+                key={tenant.tenantId}
+                type="button"
+                className={styles.tenantButton}
+                onClick={() => handleSelectTenant(tenant.tenantId)}
+              >
+                <Avatar className={styles.tenantLogo}>
+                  {getTenantLogoText(tenant.tenantName)}
+                </Avatar>
+                <span className={styles.tenantName}>{tenant.tenantName}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 };

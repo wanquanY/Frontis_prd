@@ -1,0 +1,287 @@
+.page {
+  min-height: 100vh;
+  padding: 32px 24px 48px;
+  background:
+    radial-gradient(circle at top left, color-mix(in srgb, var(--primary) 14%, transparent) 0%, transparent 42%),
+    linear-gradient(180deg, color-mix(in srgb, var(--app-bg) 92%, var(--surface)) 0%, var(--app-bg) 100%);
+}
+
+.pageToolbar {
+  max-width: 1180px;
+  margin: 0 auto 20px;
+}
+
+.backButton {
+  min-height: 40px;
+  padding: 0 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid color-mix(in srgb, var(--text) 8%, var(--border));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--surface) 94%, transparent);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition:
+    border-color 160ms ease,
+    color 160ms ease,
+    transform 160ms ease;
+
+  &:hover {
+    transform: translateY(-1px);
+    border-color: color-mix(in srgb, var(--primary) 28%, var(--border));
+    color: var(--text);
+  }
+}
+
+.shell {
+  max-width: 1180px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.headerCard {
+  padding: 28px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 260px;
+  gap: 20px;
+  border: 1px solid color-mix(in srgb, var(--text) 8%, var(--border));
+  border-radius: 28px;
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--primary) 8%, var(--surface)) 0%, var(--surface) 52%),
+    var(--surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.headerBody {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.eyebrow {
+  color: var(--primary);
+  font-size: 12px;
+  line-height: 18px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.title {
+  margin: 0;
+  color: var(--text);
+  font-size: 30px;
+  line-height: 38px;
+  font-weight: 700;
+}
+
+.description {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 14px;
+  line-height: 22px;
+}
+
+.accountPanel {
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  border-radius: 22px;
+  background: color-mix(in srgb, var(--text) 3%, var(--surface));
+}
+
+.accountLabel {
+  color: var(--text-muted);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.accountName {
+  color: var(--text);
+  font-size: 20px;
+  line-height: 28px;
+}
+
+.accountMeta {
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.groupList {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.groupCard {
+  padding: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  border: 1px solid color-mix(in srgb, var(--text) 8%, var(--border));
+  border-radius: 24px;
+  background: color-mix(in srgb, var(--surface) 96%, transparent);
+}
+
+.groupHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.groupTitle {
+  color: var(--text);
+  font-size: 20px;
+  line-height: 28px;
+  font-weight: 700;
+}
+
+.groupMeta {
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.groupCount {
+  min-height: 28px;
+  padding: 0 12px;
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--primary) 8%, var(--surface));
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 18px;
+  font-weight: 600;
+}
+
+.identityGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.identityCard {
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  border: 1px solid color-mix(in srgb, var(--text) 8%, var(--border));
+  border-radius: 22px;
+  background: var(--surface);
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    transform 160ms ease;
+}
+
+.identityCard:hover {
+  transform: translateY(-1px);
+  border-color: color-mix(in srgb, var(--primary) 26%, var(--border));
+}
+
+.identityCardActive {
+  border-color: color-mix(in srgb, var(--primary) 36%, var(--border));
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--primary) 18%, transparent);
+}
+
+.identityCardTop {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.identityPlatform {
+  color: var(--primary);
+  font-size: 13px;
+  line-height: 20px;
+  font-weight: 700;
+}
+
+.identityRole {
+  color: var(--text);
+  font-size: 18px;
+  line-height: 26px;
+  font-weight: 600;
+}
+
+.identityTag {
+  min-height: 28px;
+  padding: 0 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--primary) 10%, var(--surface));
+  color: var(--primary);
+  font-size: 12px;
+  line-height: 18px;
+  font-weight: 600;
+}
+
+.identityDescription {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.identityFoot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.identitySubject {
+  color: var(--text);
+  font-size: 13px;
+  line-height: 20px;
+  font-weight: 600;
+}
+
+.identityMetaGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.identitySubtext {
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 20px;
+}
+
+@media (max-width: 900px) {
+  .headerCard {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .identityGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .page {
+    padding: 20px 16px 36px;
+  }
+
+  .headerCard,
+  .groupCard {
+    padding: 20px;
+  }
+
+  .identityFoot,
+  .groupHeader {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

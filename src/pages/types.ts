@@ -17,6 +17,7 @@ export type FrontisWebTabKey =
   | "store"
   | "devices"
   | "models"
+  | "access"
   | "organization"
   | "notifications";
 
@@ -33,7 +34,7 @@ export type StatusTone = "online" | "busy" | "idle" | "pending" | "paused" | "dr
 /**
  * 用户侧 AI 专家状态。
  */
-export type EmployeeStatus = "online" | "running" | "exception" | "offline";
+export type EmployeeStatus = "online" | "running" | "idle" | "exception" | "offline";
 
 /**
  * AI 员工连接模式。

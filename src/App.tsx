@@ -3,10 +3,18 @@ import { Navigate, Route, Routes } from "react-router-dom";
 
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { AuthRoute } from "@/feature/auth/components/AuthRoute";
+import { OperationsAuthRoute } from "@/feature/operations/components/OperationsAuthRoute";
 
 const FrontisPage = lazy(() => import("@/pages/FrontisPage"));
 const FrontisAdminPage = lazy(() => import("@/pages/FrontisAdminPage"));
+const IdentitySelectionPage = lazy(() => import("@/pages/identity/IdentitySelectionPage"));
 const LoginPage = lazy(() => import("@/pages/login/LoginPage"));
+const OperationsLoginPage = lazy(
+  () => import("@/pages/operations/login/OperationsLoginPage"),
+);
+const OperationsPlatformPage = lazy(
+  () => import("@/pages/operations/OperationsPlatformPage"),
+);
 const MarketingPortalShellPage = lazy(
   () => import("@/pages/marketingPortal/MarketingPortalShellPage"),
 );
@@ -45,6 +53,9 @@ const App = (): JSX.Element => {
         <Routes>
           <Route path="/" element={<Navigate replace to="/portal" />} />
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/ops/login" element={<OperationsLoginPage />} />
+          <Route path="/select-tenant" element={<IdentitySelectionPage />} />
+          <Route path="/select-identity" element={<Navigate replace to="/select-tenant" />} />
           <Route path="/portal" element={<MarketingPortalShellPage />}>
             <Route index element={<MarketingPortalHomePage />} />
             <Route path="agents" element={<MarketingPortalAgentsPage />} />
@@ -56,6 +67,54 @@ const App = (): JSX.Element => {
             <Route path="*" element={<Navigate replace to="/portal" />} />
           </Route>
           <Route
+            path="/ops"
+            element={
+              <OperationsAuthRoute>
+                <OperationsPlatformPage />
+              </OperationsAuthRoute>
+            }
+          />
+          <Route
+            path="/ops/tenants/:tenantId"
+            element={
+              <OperationsAuthRoute>
+                <OperationsPlatformPage />
+              </OperationsAuthRoute>
+            }
+          />
+          <Route
+            path="/ops/agents/:submissionId"
+            element={
+              <OperationsAuthRoute>
+                <Navigate replace to="/ops/agents" />
+              </OperationsAuthRoute>
+            }
+          />
+          <Route
+            path="/ops/products/:productId"
+            element={
+              <OperationsAuthRoute>
+                <OperationsPlatformPage />
+              </OperationsAuthRoute>
+            }
+          />
+          <Route
+            path="/ops/usage/:recordId"
+            element={
+              <OperationsAuthRoute>
+                <Navigate replace to="/ops/tenants" />
+              </OperationsAuthRoute>
+            }
+          />
+          <Route
+            path="/ops/:tabPath"
+            element={
+              <OperationsAuthRoute>
+                <OperationsPlatformPage />
+              </OperationsAuthRoute>
+            }
+          />
+          <Route
             path="/web/employee"
             element={
               <AuthRoute allowedRole={["employee", "admin"]}>
@@ -66,7 +125,7 @@ const App = (): JSX.Element => {
           <Route
             path="/web/admin"
             element={
-              <AuthRoute allowedRole={["admin", "fdeAdmin", "fdeMember"]}>
+              <AuthRoute allowedRole={["admin"]}>
                 <FrontisAdminPage />
               </AuthRoute>
             }
@@ -74,7 +133,7 @@ const App = (): JSX.Element => {
           <Route
             path="/web/admin/workspace"
             element={
-              <AuthRoute allowedRole={["admin", "fdeAdmin", "fdeMember"]}>
+              <AuthRoute allowedRole={["admin"]}>
                 <FrontisPage viewRole="admin" />
               </AuthRoute>
             }

@@ -6,8 +6,8 @@
   overflow-y: auto;
   overflow-x: hidden;
   background:
-    radial-gradient(circle at 12% 10%, rgba(0, 193, 212, 0.14) 0%, transparent 22%),
-    radial-gradient(circle at 86% 16%, rgba(20, 90, 255, 0.12) 0%, transparent 20%),
+    radial-gradient(circle at 14% 10%, rgba(0, 193, 212, 0.14) 0%, transparent 22%),
+    radial-gradient(circle at 84% 14%, rgba(20, 90, 255, 0.12) 0%, transparent 20%),
     linear-gradient(180deg, #f4f7fb 0%, #f8fbff 48%, #eef4fb 100%);
 }
 
@@ -20,37 +20,6 @@
   flex-direction: column;
   justify-content: center;
   margin: 0 auto;
-}
-
-.pageToolbar {
-  position: fixed;
-  top: 24px;
-  left: 24px;
-  z-index: 2;
-}
-
-.backButton {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  min-height: 36px;
-  padding: 0 12px;
-  border: 1px solid rgba(15, 28, 77, 0.08);
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.72);
-  color: #0f1c4d;
-  font-size: 14px;
-  line-height: 1;
-  transition:
-    transform 180ms ease,
-    box-shadow 180ms ease,
-    background 180ms ease;
-
-  &:hover {
-    transform: translateY(-1px);
-    background: rgba(255, 255, 255, 0.92);
-    box-shadow: var(--shadow-md);
-  }
 }
 
 .brandBlock {
@@ -264,12 +233,6 @@
   line-height: 1.7;
 }
 
-.summaryHint {
-  color: #00a8ba;
-  font-size: 12px;
-  line-height: 1.6;
-}
-
 .quickLoginFooter {
   display: flex;
   flex-wrap: wrap;
@@ -283,64 +246,6 @@
   color: var(--text-secondary);
   font-size: 11px;
   font-weight: 600;
-}
-
-.tenantSelection {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.tenantSelectionHint {
-  margin: 0;
-  color: var(--text-secondary);
-  font-size: 14px;
-  line-height: 22px;
-}
-
-.tenantList {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.tenantButton {
-  width: 100%;
-  padding: 14px 16px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  appearance: none;
-  border: 1px solid color-mix(in srgb, var(--text) 8%, var(--border));
-  border-radius: 16px;
-  background: color-mix(in srgb, var(--surface) 96%, transparent);
-  cursor: pointer;
-  text-align: left;
-  transition:
-    border-color 160ms ease,
-    transform 160ms ease,
-    box-shadow 160ms ease;
-
-  &:hover {
-    transform: translateY(-1px);
-    border-color: color-mix(in srgb, var(--primary) 26%, var(--border));
-    box-shadow: var(--shadow-sm);
-  }
-}
-
-.tenantLogo {
-  flex: 0 0 auto;
-  background: color-mix(in srgb, var(--primary) 12%, var(--surface));
-  color: var(--primary);
-  font-weight: 700;
-}
-
-.tenantName {
-  color: var(--text);
-  font-size: 15px;
-  line-height: 22px;
-  font-weight: 600;
-  text-align: left;
 }
 
 @media (max-height: 900px) {
@@ -374,15 +279,8 @@
 
 @media (max-width: 640px) {
   .page {
-    padding:
-      calc(env(safe-area-inset-top, 0px) + 76px)
-      12px
+    padding: calc(env(safe-area-inset-top, 0px) + 20px) 12px
       calc(env(safe-area-inset-bottom, 0px) + 20px);
-  }
-
-  .pageToolbar {
-    top: 16px;
-    left: 16px;
   }
 
   .shell {
@@ -419,20 +317,5 @@
 
   .formTitle {
     font-size: 30px;
-  }
-
-  .form {
-    gap: 16px;
-    margin-top: 20px;
-  }
-
-  .noticePanel {
-    margin-top: 18px;
-    padding: 16px;
-  }
-
-  .quickLoginSection {
-    padding: 18px;
-    border-radius: 18px;
   }
 }
