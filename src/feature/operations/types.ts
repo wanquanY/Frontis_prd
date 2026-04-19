@@ -9,10 +9,7 @@ export type OperationsRole = "superAdmin" | "operator";
 export type OperationsPlatformTabKey =
   | "tenants"
   | "agentPlaza"
-  | "agents"
-  | "products"
-  | "fulfillment"
-  | "resources";
+  | "agents";
 
 /**
  * 运营后台租户状态。
@@ -28,6 +25,11 @@ export type OperationsTenantType = "enterprise" | "internal";
  * Agent 提审状态。
  */
 export type OperationsAgentApprovalStatus = "pending" | "approved" | "rejected";
+
+/**
+ * AI专家广场展示状态。
+ */
+export type OperationsAgentPlazaStatus = "online" | "offline";
 
 /**
  * Agent 提审类型。
@@ -212,7 +214,9 @@ export interface OperationsTenant {
   industry: string;
   adminName: string;
   adminPhone: string;
+  hasFdeAccess: boolean;
   seatCount: number;
+  effectiveAt: string;
   expiresAt: string;
   moduleLabels: string[];
   members: OperationsTenantMember[];
@@ -230,7 +234,9 @@ export interface OperationsTenantForm {
   industry: string;
   adminName: string;
   adminPhone: string;
+  hasFdeAccess: boolean;
   seatCount: number;
+  effectiveAt: string;
   expiresAt: string;
   moduleLabels: string[];
 }
@@ -272,6 +278,12 @@ export interface OperationsAgentSubmission {
   currentScopeLabel?: string;
   rejectReason?: string;
   lastReviewedAt?: string;
+  plazaCategory?: OperationsAgentPlazaCategory;
+  plazaVisibility?: OperationsAgentPlazaVisibility;
+  visibleTenantIds?: string[];
+  visibleTenantNames?: string[];
+  plazaStatus?: OperationsAgentPlazaStatus;
+  plazaUpdatedAt?: string;
 }
 
 /**

@@ -18,9 +18,7 @@ import { isChatAttachmentFileAllowed } from "@/utils/chatAttachmentFileTypes";
 import {
   AI_CEO_AGENT_HOME_CONFIGS,
   AI_CEO_DEFAULT_HOME_CONFIG,
-  WORKSPACE_DEFAULT_AGENT_CONFIG_IDS,
 } from "@/constants/aiCeoHome";
-import { OWNED_EXPERT_TEAMS } from "./components/agentStore/agentStoreData";
 
 import { DialoguePrototypeView } from "./components/DialoguePrototypeView";
 import {
@@ -49,7 +47,6 @@ import {
   buildAttachmentItem,
   createComposerAttachment,
   createId,
-  getAvatarUrl,
   getExpertTeamScenarioLabel,
   getMetaagentAvatarUrl,
   revokeComposerAttachmentPreview,
@@ -70,9 +67,10 @@ interface FrontisPageProps {
 const DEFAULT_CONVERSATION_EMPLOYEE_ID = "employee-writer";
 const MANAGEMENT_USER_ROLES = new Set(["enterpriseAdmin"]);
 const ACTIVE_WORKSPACE_STATUSES = new Set<StatusTone>(["online", "busy", "idle"]);
-const DEFAULT_WORKSPACE_AGENT_ORDER: string[] = Object.values(WORKSPACE_DEFAULT_AGENT_CONFIG_IDS);
+const DEFAULT_WORKSPACE_AGENT_ORDER: string[] = [DEFAULT_CONVERSATION_EMPLOYEE_ID];
 const TEAM_MENTION_ALL_LABEL = "所有agent";
 const MAX_HOME_PROMPT_ITEM_COUNT = 6;
+const DEFAULT_WORKSPACE_AGENT_NAME = "MetaAegnt";
 const EXPERT_TEAM_MAIN_AGENT_NAME = "Metaagent";
 const EXPERT_TEAM_MAIN_AGENT_DESCRIPTION =
   "作为专家团默认主agent，负责理解需求、调度成员并统一交付。";
@@ -281,41 +279,44 @@ const buildCaseReplayState = (
 };
 
 const buildWorkspaceDefaultAgent = (
-  workspace: WorkspaceItem,
+  employee: EmployeeItem,
+  workspace: WorkspaceItem | null,
   currentUserId?: string,
   currentUserName?: string,
   nameOverride?: string,
 ): EmployeeItem | null => {
-  const agentId =
-    WORKSPACE_DEFAULT_AGENT_CONFIG_IDS[
-      workspace.id as keyof typeof WORKSPACE_DEFAULT_AGENT_CONFIG_IDS
-    ];
-
-  if (!agentId) {
-    return null;
-  }
-
-  const homeConfig = AI_CEO_AGENT_HOME_CONFIGS[agentId] ?? AI_CEO_DEFAULT_HOME_CONFIG;
+  const homeConfig = AI_CEO_AGENT_HOME_CONFIGS[employee.id] ?? AI_CEO_DEFAULT_HOME_CONFIG;
+  const resolvedWorkspaceId = workspace?.id ?? employee.workspaceId;
+  const isWorkspaceOnline = workspace ? ACTIVE_WORKSPACE_STATUSES.has(workspace.status) : true;
+  const resolvedConnectionMode = workspace
+    ? workspace.type === "cloud"
+      ? "cloud"
+      : "local"
+    : employee.connectionMode;
+  const resolvedModel = workspace
+    ? workspace.type === "cloud"
+      ? "gpt-4o"
+      : "local-runtime"
+    : employee.model;
 
   return {
-    id: agentId,
-    name: nameOverride?.trim() || `${workspace.name}默认Agent`,
-    avatarUrl: getAvatarUrl(agentId),
-    role: workspace.summary,
+    ...employee,
+    id: employee.id,
+    name: nameOverride?.trim() || DEFAULT_WORKSPACE_AGENT_NAME,
+    avatarUrl: getMetaagentAvatarUrl(employee.id),
+    role: "默认专家",
     portalRoles: ["admin", "employee"],
-    status: ACTIVE_WORKSPACE_STATUSES.has(workspace.status) ? "online" : "offline",
-    workspaceId: workspace.id,
-    connectionMode: workspace.type === "cloud" ? "cloud" : "local",
-    model: workspace.type === "cloud" ? "gpt-4o" : "local-runtime",
-    summary: homeConfig.intro,
-    lastAction: ACTIVE_WORKSPACE_STATUSES.has(workspace.status)
-      ? `已绑定 ${workspace.name}，可直接查看案例或开始提问`
-      : `${workspace.name} 当前未就绪，可先看案例回放和推荐问法`,
+    status: isWorkspaceOnline ? "online" : "offline",
+    workspaceId: resolvedWorkspaceId,
+    connectionMode: resolvedConnectionMode,
+    model: resolvedModel,
+    summary: "默认专家入口，负责理解需求并直接协助完成通用工作任务。",
+    lastAction: isWorkspaceOnline ? "默认已可用，可直接开始对话。" : "当前工作台未就绪，可稍后重试。",
     source: "openclaw",
     visibility: "all",
-    subAgentModel: workspace.type === "cloud" ? "gpt-4o-mini" : "device-runtime",
-    agentId: `default-agent-${workspace.id}`,
-    runtimeAgentId: `default-runtime-${workspace.id}`,
+    subAgentModel: resolvedConnectionMode === "cloud" ? "gpt-4o-mini" : "device-runtime",
+    agentId: `default-agent-${employee.id}`,
+    runtimeAgentId: `default-runtime-${employee.id}`,
     accessScopeSubjects:
       currentUserId && currentUserName
         ? [
@@ -327,58 +328,9 @@ const buildWorkspaceDefaultAgent = (
           ]
         : [],
     boundMembers: currentUserName ? [currentUserName] : [],
-    welcomeMessage: homeConfig.intro,
-    systemPrompt: `你是绑定在 ${workspace.name} 上的默认 Agent，优先帮助用户结合设备上下文完成任务整理、任务触达和结果收口。`,
+    welcomeMessage: `我是${nameOverride?.trim() || DEFAULT_WORKSPACE_AGENT_NAME}，可以直接帮你处理日常工作问题与协作任务。`,
+    systemPrompt: `你是${nameOverride?.trim() || DEFAULT_WORKSPACE_AGENT_NAME}，作为工作台默认专家，优先理解用户目标并直接协助完成通用工作任务。`,
     skills: homeConfig.skillItems.map(item => item.id),
-  };
-};
-
-/**
- * 基于企业后台已购专家团，构建工作台中的专家团会话入口。
- */
-const buildConversationExpertTeamEmployee = (
-  memberEmployees: EmployeeItem[],
-  team: (typeof OWNED_EXPERT_TEAMS)[number],
-): EmployeeItem | null => {
-  if (memberEmployees.length === 0) {
-    return null;
-  }
-
-  const primaryEmployee =
-    memberEmployees.find(item => item.id === team.memberIds[0]) ?? memberEmployees[0];
-  const uniqueSkillIds = Array.from(new Set(memberEmployees.flatMap(item => item.skills ?? [])));
-  const scenarioLabel = getExpertTeamScenarioLabel(team.description, team.name);
-
-  return {
-    id: team.id,
-    name: team.name,
-    avatarUrl: primaryEmployee.avatarUrl,
-    role: `${team.category}协作入口`,
-    isExpertTeam: true,
-    expertTeamId: team.id,
-    expertTeamMemberIds: memberEmployees.map(item => item.id),
-    expertTeamPrimaryMemberId: primaryEmployee.id,
-    portalRoles: ["admin", "employee"],
-    status: memberEmployees.some(item => item.status === "running")
-      ? "running"
-      : memberEmployees.some(item => item.status === "online")
-        ? "online"
-        : primaryEmployee.status,
-    workspaceId: team.workspaceId,
-    connectionMode: primaryEmployee.connectionMode,
-    model: primaryEmployee.model,
-    summary: `${scenarioLabel}等场景可由专家团协同处理。`,
-    lastAction: `包含 ${memberEmployees.map(item => item.name).join("、")} 共 ${memberEmployees.length} 位 AI 专家`,
-    source: primaryEmployee.source,
-    visibility: "all",
-    subAgentModel: primaryEmployee.subAgentModel,
-    agentId: `${team.id}-coordinator`,
-    runtimeAgentId: `${team.id}-runtime`,
-    accessScopeSubjects: primaryEmployee.accessScopeSubjects,
-    boundMembers: primaryEmployee.boundMembers,
-    welcomeMessage: `我是${EXPERT_TEAM_MAIN_AGENT_NAME}，${EXPERT_TEAM_MAIN_AGENT_DESCRIPTION}`,
-    systemPrompt: `你是${team.name}的协作入口，默认主agent是${EXPERT_TEAM_MAIN_AGENT_NAME}，${EXPERT_TEAM_MAIN_AGENT_DESCRIPTION}`,
-    skills: uniqueSkillIds,
   };
 };
 
@@ -585,9 +537,6 @@ const FrontisPage = ({ viewRole, embedded = false }: FrontisPageProps): JSX.Elem
   const [activeDialogueSessionId, setActiveDialogueSessionId] = useState<string>("");
   const [isDialogueHomeActive, setIsDialogueHomeActive] = useState<boolean>(true);
   const [selectedSkillIds, setSelectedSkillIds] = useState<string[]>([]);
-  const [defaultAgentNameOverrides, setDefaultAgentNameOverrides] = useState<
-    Record<string, string>
-  >({});
   const [activeCaseReplay, setActiveCaseReplay] = useState<CaseReplayState | null>(null);
   const [dialogueInputValue, setDialogueInputValue] = useState<string>("");
   const [dialogueAttachments, setDialogueAttachments] = useState<WorkspaceComposerAttachmentItem[]>(
@@ -624,12 +573,15 @@ const FrontisPage = ({ viewRole, embedded = false }: FrontisPageProps): JSX.Elem
     () =>
       roleVisibleEmployees.filter(item => {
         const isAssigned = currentUser?.assignedAgentIds.includes(item.id) ?? false;
-        if (!isAssigned) {
+
+        if (!isAssigned || item.id === DEFAULT_CONVERSATION_EMPLOYEE_ID) {
           return false;
         }
+
         if (viewRole === "admin") {
           return true;
         }
+
         return (
           item.visibility === "all" ||
           (currentUser
@@ -644,60 +596,53 @@ const FrontisPage = ({ viewRole, embedded = false }: FrontisPageProps): JSX.Elem
       }),
     [currentUser, roleVisibleEmployees, viewRole],
   );
-  const expertTeamEmployees = useMemo(
-    () =>
-      OWNED_EXPERT_TEAMS.map(team =>
-        buildConversationExpertTeamEmployee(
-          team.memberIds
-            .map(memberId => roleVisibleEmployees.find(item => item.id === memberId) ?? null)
-            .filter((item): item is EmployeeItem => item !== null),
-          team,
-        ),
-      ).filter((item): item is EmployeeItem => item !== null),
-    [roleVisibleEmployees],
-  );
   const deviceDefaultAgents = useMemo(
-    () =>
-      (currentUser?.assignedWorkspaceIds ?? [])
-        .map(workspaceId => workspaces.find(item => item.id === workspaceId) ?? null)
-        .map(workspace =>
-          workspace
-            ? buildWorkspaceDefaultAgent(
-                workspace,
-                currentUser?.id,
-                currentUser?.name,
-                defaultAgentNameOverrides[
-                  WORKSPACE_DEFAULT_AGENT_CONFIG_IDS[
-                    workspace.id as keyof typeof WORKSPACE_DEFAULT_AGENT_CONFIG_IDS
-                  ]
-                ],
-              )
-            : null,
-        )
-        .filter((item): item is EmployeeItem => item !== null),
-    [currentUser?.assignedWorkspaceIds, currentUser?.name, defaultAgentNameOverrides, workspaces],
+    () => {
+      const defaultEmployee =
+        roleVisibleEmployees.find(item => item.id === DEFAULT_CONVERSATION_EMPLOYEE_ID) ??
+        roleVisibleEmployees[0] ??
+        null;
+
+      if (!defaultEmployee) {
+        return [];
+      }
+
+      const defaultWorkspace =
+        (currentUser?.assignedWorkspaceIds ?? [])
+          .map(workspaceId => workspaces.find(item => item.id === workspaceId) ?? null)
+          .find((item): item is WorkspaceItem => item !== null) ??
+        workspaces.find(item => item.id === defaultEmployee.workspaceId) ??
+        workspaces[0] ??
+        null;
+
+      const defaultAgent = buildWorkspaceDefaultAgent(
+        defaultEmployee,
+        defaultWorkspace,
+        currentUser?.id,
+        currentUser?.name,
+      );
+
+      return defaultAgent ? [defaultAgent] : [];
+    },
+    [
+      currentUser?.assignedWorkspaceIds,
+      currentUser?.id,
+      currentUser?.name,
+      roleVisibleEmployees,
+      workspaces,
+    ],
   );
   const conversationEmployeeDirectory = useMemo(() => {
     const mergedEmployees = [...deviceDefaultAgents, ...assignedConversationEmployees];
+
     return mergedEmployees.filter(
       (item, index) => mergedEmployees.findIndex(candidate => candidate.id === item.id) === index,
     );
   }, [assignedConversationEmployees, deviceDefaultAgents]);
-  const conversationEmployees = useMemo(() => {
-    const expertTeamMemberIds = new Set(
-      expertTeamEmployees.flatMap(item => item.expertTeamMemberIds ?? []),
-    );
-    const mergedEmployees = [
-      ...deviceDefaultAgents,
-      ...expertTeamEmployees,
-      ...assignedConversationEmployees.filter(item => !expertTeamMemberIds.has(item.id)),
-    ];
-    const uniqueEmployees = mergedEmployees.filter(
-      (item, index) => mergedEmployees.findIndex(candidate => candidate.id === item.id) === index,
-    );
-
-    return sortConversationEmployees(uniqueEmployees);
-  }, [assignedConversationEmployees, deviceDefaultAgents, expertTeamEmployees]);
+  const conversationEmployees = useMemo(
+    () => sortConversationEmployees(conversationEmployeeDirectory),
+    [conversationEmployeeDirectory],
+  );
   const activeEmployee = useMemo(
     () =>
       conversationEmployees.find(item => item.id === activeEmployeeId) ??
@@ -1347,22 +1292,6 @@ const FrontisPage = ({ viewRole, embedded = false }: FrontisPageProps): JSX.Elem
     commitDialogue(activeCaseReplay.practiceQuestion, true);
   }, [activeCaseReplay, commitDialogue]);
 
-  const handleRenameDefaultAgent = useCallback((employeeId: string, nextName: string): void => {
-    if (!DEFAULT_WORKSPACE_AGENT_ORDER.includes(employeeId)) {
-      return;
-    }
-
-    const trimmedName = nextName.trim();
-    if (!trimmedName) {
-      return;
-    }
-
-    setDefaultAgentNameOverrides(prev => ({
-      ...prev,
-      [employeeId]: trimmedName,
-    }));
-  }, []);
-
   const handleSendDialogueHomePrompt = useCallback(
     (question: string): void => {
       commitDialogue(question, Boolean(activeCaseReplay));
@@ -1531,7 +1460,6 @@ const FrontisPage = ({ viewRole, embedded = false }: FrontisPageProps): JSX.Elem
           onCaseReplayAction={handleStartCasePractice}
           onHomePromptSend={handleSendDialogueHomePrompt}
           onHomeCaseSelect={handleOpenHomeCase}
-          onRenameDefaultAgent={handleRenameDefaultAgent}
           onRemoveDialogueSession={handleRemoveDialogueSession}
           onRenameDialogueSession={handleRenameDialogueSession}
           onEmployeeSelect={handleSelectEmployee}

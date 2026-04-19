@@ -4,7 +4,6 @@ import classNames from "classnames";
 import {
   ArrowLeftOutlined,
   ControlOutlined,
-  DashboardOutlined,
   LogoutOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
@@ -19,14 +18,12 @@ import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { getLoginPath, getSystemEntries, getTenantEntries } from "@/feature/auth/mockAccounts";
 import { useMockAuth } from "@/feature/auth/hooks/useMockAuth";
 import {
-  INITIAL_DIALOGUE_SESSIONS,
   INITIAL_EMPLOYEES,
   INITIAL_FRONTIS_WEB_USERS,
   INITIAL_ORGANIZATION_DEPARTMENTS,
   INITIAL_WORKSPACES,
 } from "@/mocks/mockData";
 
-import { BossDashboardView } from "./components/BossDashboardView";
 import { DeviceManagementView } from "./components/DeviceManagementView";
 import { AgentStoreView } from "./components/agentStore/AgentStoreView";
 import type { ExpertDeploymentState } from "./components/agentStore/types";
@@ -92,12 +89,6 @@ const syncRootDepartmentName = (
 
 const FRONTIS_ADMIN_TABS: FrontisWebTabItem[] = [
   {
-    key: "dashboard",
-    label: "驾驶舱",
-    icon: <DashboardOutlined />,
-    roles: ["admin"],
-  },
-  {
     key: "store",
     label: "AI专家管理",
     icon: <RobotOutlined />,
@@ -126,7 +117,7 @@ const resolveFrontisAdminTabKey = (tabKey: string | null): FrontisWebTabKey =>
     ? "organization"
     : tabKey && FRONTIS_ADMIN_TAB_KEYS.has(tabKey as FrontisWebTabKey)
     ? (tabKey as FrontisWebTabKey)
-    : "dashboard";
+    : "store";
 
 /**
  * 老板后台管理页面。
@@ -150,8 +141,6 @@ const FrontisAdminPage = (): JSX.Element => {
   const [departments, setDepartments] = useState<OrganizationDepartmentItem[]>(() =>
     syncRootDepartmentName(INITIAL_ORGANIZATION_DEPARTMENTS, activeIdentity?.tenantName),
   );
-  const dialogueSessions = INITIAL_DIALOGUE_SESSIONS;
-
   useEffect(() => {
     setDepartments(currentDepartments =>
       syncRootDepartmentName(currentDepartments, activeIdentity?.tenantName),
@@ -597,19 +586,6 @@ const FrontisAdminPage = (): JSX.Element => {
   const hasManagementAccess = currentUser ? MANAGEMENT_USER_ROLES.has(currentUser.role) : true;
 
   const renderContent = (): JSX.Element => {
-    if (activeTabKey === "dashboard") {
-      return (
-        <BossDashboardView
-          currentUserName={currentUser?.name}
-          dialogueSessions={dialogueSessions}
-          employees={employees}
-          onNavigateToTab={handleSelectTab}
-          users={effectiveUsers}
-          workspaces={workspaces}
-        />
-      );
-    }
-
     if (activeTabKey === "store") {
       return (
         <AgentStoreView
@@ -674,11 +650,16 @@ const FrontisAdminPage = (): JSX.Element => {
     }
 
     return (
-      <BossDashboardView
-        currentUserName={currentUser?.name}
-        dialogueSessions={dialogueSessions}
+      <AgentStoreView
+        deploymentByEmployeeId={deploymentByEmployeeId}
+        deviceOwners={deviceOwners}
         employees={employees}
+        organizationDepartments={departments}
         onNavigateToTab={handleSelectTab}
+        onAttachEmployeeToDevice={handleAttachEmployeeToDevice}
+        onDetachEmployeeFromDevice={handleDetachEmployeeToDevice}
+        onUpdateEmployeeDeviceAccess={handleUpdateEmployeeDeviceAccess}
+        onUpdateEmployeeModel={handleUpdateEmployeeModel}
         users={effectiveUsers}
         workspaces={workspaces}
       />

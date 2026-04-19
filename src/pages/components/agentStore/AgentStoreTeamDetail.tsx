@@ -238,8 +238,10 @@ export const AgentStoreTeamDetail = ({
                   employee,
                   deploymentByEmployeeId[employee.id],
                 );
+                const assetMeta = getExpertAssetMeta(employee);
                 const versionInfo = EXPERT_VERSION_INFO[employee.id] ?? { version: "v1.0" };
                 const hasNewVersion =
+                  assetMeta.source === "purchased" &&
                   Boolean(versionInfo.newVersion) && versionInfo.newVersion !== versionInfo.version;
 
                 return (

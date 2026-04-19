@@ -6,7 +6,6 @@ import type {
 } from "@/feature/workspace/types";
 import type { ArtifactItem } from "@/types/artifact";
 
-import { OWNED_EXPERT_TEAMS } from "./components/agentStore/agentStoreData";
 import type {
   AttachmentItem,
   ChatMessage,
@@ -79,41 +78,15 @@ export interface ConversationEmployeeGroupItem {
   items: EmployeeItem[];
 }
 
-const EXPERT_TEAM_NAME_PATTERN = /([A-Za-z0-9\u4e00-\u9fa5]+专家团)/;
-const EMPLOYEE_EXPERT_TEAM_NAME_MAP = new Map(
-  OWNED_EXPERT_TEAMS.flatMap(team =>
-    team.memberIds.map(memberId => [memberId, team.name] as const),
-  ),
-);
-
 const extractConversationEmployeeGroupTitle = (
   employee: EmployeeItem,
   defaultAgentIds: Set<string>,
 ): string => {
-  if (employee.isExpertTeam) {
-    return "AI专家团";
-  }
-
-  if (defaultAgentIds.has(employee.id) || employee.source === "openclaw") {
+  if (defaultAgentIds.has(employee.id)) {
     return "默认专家";
   }
 
-  const matchedTeamName = EMPLOYEE_EXPERT_TEAM_NAME_MAP.get(employee.id);
-
-  if (matchedTeamName) {
-    return matchedTeamName;
-  }
-
-  const matchedTitle = [
-    employee.role,
-    employee.summary,
-    employee.lastAction,
-    employee.welcomeMessage,
-  ]
-    .map(text => EXPERT_TEAM_NAME_PATTERN.exec(text)?.[1] ?? "")
-    .find(Boolean);
-
-  return matchedTitle || "其他AI专家";
+  return "其他专家";
 };
 
 /**

@@ -138,8 +138,7 @@ export const OperationsLoginView = (): JSX.Element => {
                 <span className={styles.formEyebrow}>独立入口</span>
                 <h1 className={styles.formTitle}>运营后台登录</h1>
                 <p className={styles.formDescription}>
-                  通过运营后台独立路由进入平台级控制台，统一处理租户管理、
-                  AI专家广场管理、AI专家审核、商品中心、订单审核与开通和资源池。
+                  通过运营后台独立路由进入平台级控制台，仅处理租户创建与管理员维护。
                 </p>
               </div>
 
@@ -201,7 +200,7 @@ export const OperationsLoginView = (): JSX.Element => {
               <div className={styles.noticePanel}>
                 <p className={styles.noticeTitle}>当前阶段范围</p>
                 <p className={styles.noticeText}>
-                  本期运营后台聚焦租户管理、AI专家广场管理、AI专家审核、商品中心、订单审核与开通和资源池 6 个核心模块。
+                  当前原型仅保留租户管理能力，用于创建租户和录入管理员。
                 </p>
               </div>
             </div>
@@ -210,7 +209,7 @@ export const OperationsLoginView = (): JSX.Element => {
               <div className={styles.quickLoginSection}>
                 <p className={styles.quickLoginTitle}>模拟账号填充</p>
                 <p className={styles.quickLoginDescription}>
-                  选择预置运营账号后，系统会自动填充手机号和验证码，直接进入对应的默认模块。
+                  选择预置运营账号后，系统会自动填充手机号和验证码，直接进入租户管理。
                 </p>
                 <div className={styles.selectorBlock}>
                   <span className={styles.selectorLabel}>选择运营账号</span>

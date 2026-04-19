@@ -1337,25 +1337,10 @@ export const FdeAgentDevView = ({ onNavigate }: FdeAgentDevViewProps = {}): JSX.
     setPublishForm(prev => ({
       ...prev,
       name: prev.name || selectedWorkspace?.name || "未命名 AI专家",
-      visibility: "enterprise",
+      visibility: "public",
     }));
     setIsRightPanelCollapsed(false);
   }, [selectedWorkspace?.name]);
-
-  const handleOpenCommodityApplicationPanel = useCallback(() => {
-    const agentName = publishForm.name.trim() || selectedWorkspace?.name || "未命名 AI专家";
-
-    setPublishPage("commodity");
-    setCommodityApplicationSuccess(false);
-    setPublishSuccess(false);
-    setCommodityApplicationForm({
-      proposedProductName: `${agentName} 标准版`,
-      reason: "",
-      targetCustomers: "",
-      notes: "",
-    });
-    setIsRightPanelCollapsed(false);
-  }, [publishForm.name, selectedWorkspace?.name]);
 
   const handleSubmitCommodityApplication = useCallback(() => {
     const agentName = publishForm.name.trim() || selectedWorkspace?.name || "未命名 AI专家";
@@ -1990,7 +1975,13 @@ export const FdeAgentDevView = ({ onNavigate }: FdeAgentDevViewProps = {}): JSX.
           <p className={styles.publishSuccessHint}>
             {publishType === "skill"
               ? `${publishForm.name} v${publishForm.version} 已成功发布。`
-              : `${publishForm.name} v${publishForm.version} 已发布到 AI专家广场，当前仅支持企业内使用。`}
+              : `${publishForm.name} v${publishForm.version} 已发布到 AI专家广场，当前范围：${
+                  publishForm.visibility === "public"
+                    ? "公开"
+                    : publishForm.visibility === "team"
+                      ? "团队共享"
+                      : "仅自己"
+                }。`}
           </p>
         </div>
       ) : !publishType ? (
@@ -2073,8 +2064,8 @@ export const FdeAgentDevView = ({ onNavigate }: FdeAgentDevViewProps = {}): JSX.
                         { value: "team", label: "团队" },
                       ]
                     : [
-                        { value: "enterprise", label: "全企业可见" },
-                        { value: "team", label: "指定团队" },
+                        { value: "public", label: "公开" },
+                        { value: "team", label: "团队共享" },
                         { value: "private", label: "仅自己" },
                       ]
                 }
@@ -2865,7 +2856,6 @@ export const FdeAgentDevView = ({ onNavigate }: FdeAgentDevViewProps = {}): JSX.
                 <a className={styles.deployStoreLink}><EditOutlined /> 体验页定制申请</a>
                 <a className={styles.deployStoreLink} onClick={() => { setPublishPage("assetLibrary"); setPublishType("agent"); setPublishSuccess(false); setCommodityApplicationSuccess(false); setIsRightPanelCollapsed(false); }}><UploadOutlined /> 上架到资产库</a>
                 <a className={styles.deployStoreLink} onClick={handleOpenAgentPublishPanel}><ShopOutlined /> 发布到AI专家广场</a>
-                <a className={styles.deployStoreLink} onClick={handleOpenCommodityApplicationPanel}><GlobalOutlined /> 申请发布为商品</a>
                 <a className={styles.deployStoreLink} onClick={() => {
                   setPublishPage("form");
                   setPublishType("skill");
@@ -3072,7 +3062,13 @@ export const FdeAgentDevView = ({ onNavigate }: FdeAgentDevViewProps = {}): JSX.
             <p className={styles.publishSuccessHint}>
               {publishType === "skill"
                 ? `${publishForm.name} v${publishForm.version} 已成功发布。`
-                : `${publishForm.name} v${publishForm.version} 已发布到 AI专家广场，当前仅支持企业内使用。`}
+                : `${publishForm.name} v${publishForm.version} 已发布到 AI专家广场，当前范围：${
+                    publishForm.visibility === "public"
+                      ? "公开"
+                      : publishForm.visibility === "team"
+                        ? "团队共享"
+                        : "仅自己"
+                  }。`}
             </p>
             <Button
               type="primary"
@@ -3166,8 +3162,8 @@ export const FdeAgentDevView = ({ onNavigate }: FdeAgentDevViewProps = {}): JSX.
                           { value: "team", label: "团队" },
                         ]
                       : [
-                          { value: "enterprise", label: "全企业可见" },
-                          { value: "team", label: "指定团队" },
+                          { value: "public", label: "公开" },
+                          { value: "team", label: "团队共享" },
                           { value: "private", label: "仅自己" },
                         ]
                   }

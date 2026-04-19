@@ -7,7 +7,6 @@ import {
   CloseOutlined,
   DatabaseOutlined,
   DownOutlined,
-  EditOutlined,
   FileTextOutlined,
   FolderOutlined,
   MoreOutlined,
@@ -102,7 +101,6 @@ interface DialoguePrototypeViewProps {
   onDialogueSessionSelect: (sessionId: string) => void;
   onFollowupClick: (question: string) => void;
   onHomePromptSend: (question: string) => void;
-  onRenameDefaultAgent: (employeeId: string, name: string) => void;
   onRemoveDialogueSession: (sessionId: string) => void;
   onRenameDialogueSession: (sessionId: string, title: string) => void;
   onEmployeeSelect: (employeeId: string) => void;
@@ -271,7 +269,6 @@ export const DialoguePrototypeView = ({
   onDialogueSessionSelect,
   onFollowupClick,
   onHomePromptSend,
-  onRenameDefaultAgent,
   onRemoveDialogueSession,
   onRenameDialogueSession,
   onEmployeeSelect,
@@ -284,7 +281,6 @@ export const DialoguePrototypeView = ({
   viewerName,
 }: DialoguePrototypeViewProps): JSX.Element => {
   const attachmentInputRef = useRef<HTMLInputElement | null>(null);
-  const agentNameInputRef = useRef<InputRef | null>(null);
   const sessionTitleInputRef = useRef<InputRef | null>(null);
   const employeeSwitcherRef = useRef<HTMLDivElement | null>(null);
   const skillTrackRef = useRef<HTMLDivElement | null>(null);
@@ -299,8 +295,6 @@ export const DialoguePrototypeView = ({
   const [activeResultId, setActiveResultId] = useState<string | null>(null);
   const [isArtifactPreviewing, setIsArtifactPreviewing] = useState<boolean>(false);
   const [isEmployeeSwitcherOpen, setIsEmployeeSwitcherOpen] = useState<boolean>(false);
-  const [editingAgentId, setEditingAgentId] = useState<string | null>(null);
-  const [editingAgentName, setEditingAgentName] = useState<string>("");
   const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
   const [editingSessionTitle, setEditingSessionTitle] = useState<string>("");
   const [skillTrackWidth, setSkillTrackWidth] = useState<number>(0);
@@ -497,11 +491,6 @@ export const DialoguePrototypeView = ({
     if (!editingSessionId) return;
     sessionTitleInputRef.current?.focus({ cursor: "all" });
   }, [editingSessionId]);
-
-  useEffect(() => {
-    if (!editingAgentId) return;
-    agentNameInputRef.current?.focus({ cursor: "all" });
-  }, [editingAgentId]);
 
   useEffect(() => {
     if (!isHomeVisible) {
@@ -717,8 +706,6 @@ export const DialoguePrototypeView = ({
 
   useEffect(() => {
     if (!isEmployeeSwitcherOpen) {
-      setEditingAgentId(null);
-      setEditingAgentName("");
       return undefined;
     }
 
@@ -737,13 +724,6 @@ export const DialoguePrototypeView = ({
       document.removeEventListener("mousedown", handlePointerDown);
     };
   }, [isEmployeeSwitcherOpen]);
-
-  useEffect(() => {
-    if (!editingAgentId) return;
-    if (allEmployees.some(item => item.id === editingAgentId)) return;
-    setEditingAgentId(null);
-    setEditingAgentName("");
-  }, [allEmployees, editingAgentId]);
 
   useEffect(() => {
     const skillTrackElement = skillTrackRef.current;
@@ -855,28 +835,6 @@ export const DialoguePrototypeView = ({
     event.stopPropagation();
   };
 
-  const handleStartRenameAgent = (employeeId: string, currentName: string): void => {
-    setEditingAgentId(employeeId);
-    setEditingAgentName(currentName);
-  };
-
-  const handleCancelRenameAgent = (): void => {
-    setEditingAgentId(null);
-    setEditingAgentName("");
-  };
-
-  const handleSubmitRenameAgent = (): void => {
-    if (!editingAgentId) return;
-    const nextName = editingAgentName.trim();
-    if (!nextName) {
-      handleCancelRenameAgent();
-      return;
-    }
-    onRenameDefaultAgent(editingAgentId, nextName);
-    setEditingAgentId(null);
-    setEditingAgentName("");
-  };
-
   const handleStartRenameSession = (sessionId: string, currentTitle: string): void => {
     setEditingSessionId(sessionId);
     setEditingSessionTitle(currentTitle);
@@ -931,21 +889,30 @@ export const DialoguePrototypeView = ({
         <div key={group.key} className={styles.dialogueSwitcherGroup}>
           <div className={styles.dialogueSwitcherGroupTitle}>{group.title}</div>
           {group.items.map(item => {
-            const isDefaultAgent = defaultAgentIds.includes(item.id);
-            const isEditingAgent = editingAgentId === item.id;
             const teamMembers = resolveExpertTeamMembersForItem(item);
 
             return (
               <div key={item.id} className={styles.dialogueSwitcherItemRow}>
-                {isEditingAgent ? (
-                  <div
-                    className={classNames(styles.dialogueSwitcherItem, {
-                      [styles.dialogueSwitcherItemActive]: item.id === activeEmployee.id,
-                      [styles.dialogueSwitcherItemEditing]: true,
-                    })}
-                  >
+                <button
+                  type="button"
+                  className={classNames(styles.dialogueSwitcherItem, {
+                    [styles.dialogueSwitcherItemActive]: item.id === activeEmployee.id,
+                  })}
+                  title={item.name}
+                  onClick={() => {
+                    onEmployeeSelect(item.id);
+                    setIsEmployeeSwitcherOpen(false);
+                  }}
+                >
+                  {item.isExpertTeam ? (
+                    <DialogueTeamAvatar team={item} members={teamMembers} />
+                  ) : (
                     <span className={styles.employeeAvatarWrap}>
-                      <Avatar src={item.avatarUrl} size={40} className={styles.dialogueHeroAvatar}>
+                      <Avatar
+                        src={item.avatarUrl}
+                        size={40}
+                        className={styles.dialogueHeroAvatar}
+                      >
                         {getAvatarText(item.name)}
                       </Avatar>
                       <span
@@ -956,81 +923,13 @@ export const DialoguePrototypeView = ({
                         })}
                       />
                     </span>
-                    <span className={styles.dialogueSwitcherItemBody}>
-                      <span className={styles.dialogueSwitcherAgentEditRow}>
-                        <Input
-                          ref={agentNameInputRef}
-                          size="small"
-                          value={editingAgentName}
-                          maxLength={24}
-                          placeholder="输入默认 Agent 名称"
-                          className={styles.dialogueSwitcherAgentEditInput}
-                          onChange={event => setEditingAgentName(event.target.value)}
-                          onPressEnter={handleSubmitRenameAgent}
-                          onBlur={handleSubmitRenameAgent}
-                          onKeyDown={event => {
-                            event.stopPropagation();
-                            if (event.key === "Escape") {
-                              handleCancelRenameAgent();
-                            }
-                          }}
-                        />
-                      </span>
+                  )}
+                  <span className={styles.dialogueSwitcherItemBody}>
+                    <span className={styles.dialogueSwitcherItemName} title={item.name}>
+                      {item.name}
                     </span>
-                  </div>
-                ) : (
-                  <button
-                    type="button"
-                    className={classNames(styles.dialogueSwitcherItem, {
-                      [styles.dialogueSwitcherItemActive]: item.id === activeEmployee.id,
-                    })}
-                    title={item.name}
-                    onClick={() => {
-                      onEmployeeSelect(item.id);
-                      setIsEmployeeSwitcherOpen(false);
-                    }}
-                  >
-                    {item.isExpertTeam ? (
-                      <DialogueTeamAvatar team={item} members={teamMembers} />
-                    ) : (
-                      <span className={styles.employeeAvatarWrap}>
-                        <Avatar
-                          src={item.avatarUrl}
-                          size={40}
-                          className={styles.dialogueHeroAvatar}
-                        >
-                          {getAvatarText(item.name)}
-                        </Avatar>
-                        <span
-                          className={classNames(styles.employeeStatusDot, {
-                            [styles.employeeStatusDotBusy]: item.status === "running",
-                            [styles.employeeStatusDotOffline]: item.status === "offline",
-                            [styles.employeeStatusDotError]: item.status === "exception",
-                          })}
-                        />
-                      </span>
-                    )}
-                    <span className={styles.dialogueSwitcherItemBody}>
-                      <span className={styles.dialogueSwitcherItemName} title={item.name}>
-                        {item.name}
-                      </span>
-                    </span>
-                  </button>
-                )}
-
-                {isDefaultAgent && !isEditingAgent ? (
-                  <button
-                    type="button"
-                    className={styles.dialogueSwitcherAgentAction}
-                    aria-label={`编辑 ${item.name} 名称`}
-                    onClick={event => {
-                      handleMenuButtonClick(event);
-                      handleStartRenameAgent(item.id, item.name);
-                    }}
-                  >
-                    <EditOutlined />
-                  </button>
-                ) : null}
+                  </span>
+                </button>
               </div>
             );
           })}
