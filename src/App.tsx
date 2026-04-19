@@ -3,7 +3,9 @@ import { Navigate, Route, Routes } from "react-router-dom";
 
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { AuthRoute } from "@/feature/auth/components/AuthRoute";
+import { useMockAuth } from "@/feature/auth/hooks/useMockAuth";
 import { OperationsAuthRoute } from "@/feature/operations/components/OperationsAuthRoute";
+import type { FrontisWebRole } from "@/pages/types";
 
 const FrontisAdminPage = lazy(() => import("@/pages/FrontisAdminPage"));
 const IdentitySelectionPage = lazy(() => import("@/pages/identity/IdentitySelectionPage"));
@@ -35,7 +37,15 @@ const MarketingPortalCaseDetailPage = lazy(
 const MarketingPortalContactPage = lazy(
   () => import("@/pages/marketingPortal/MarketingPortalContactPage"),
 );
-const FdeWorkbenchPage = lazy(() => import("@/pages/fde/FdeWorkbenchPage"));
+
+const getLegacyFdeRedirectPath = (role?: FrontisWebRole | null): string =>
+  role === "admin" ? "/web/admin/workspace/frontis-dev" : "/web/employee/frontis-dev";
+
+const LegacyFdeRouteRedirect = (): JSX.Element => {
+  const { session } = useMockAuth();
+
+  return <Navigate replace to={getLegacyFdeRedirectPath(session?.role)} />;
+};
 
 /**
  * App
@@ -153,20 +163,27 @@ const App = (): JSX.Element => {
           <Route
             path="/fde"
             element={
-              <AuthRoute allowedRole={["fdeAdmin", "fdeMember"]}>
-                <FdeWorkbenchPage />
+              <AuthRoute allowedRole={["employee", "admin"]}>
+                <LegacyFdeRouteRedirect />
               </AuthRoute>
             }
           />
           <Route
             path="/fde/:tabPath"
             element={
-              <AuthRoute allowedRole={["fdeAdmin", "fdeMember"]}>
-                <FdeWorkbenchPage />
+              <AuthRoute allowedRole={["employee", "admin"]}>
+                <LegacyFdeRouteRedirect />
               </AuthRoute>
             }
           />
-          <Route path="/fde-dev/*" element={<Navigate replace to="/fde" />} />
+          <Route
+            path="/fde-dev/*"
+            element={
+              <AuthRoute allowedRole={["employee", "admin"]}>
+                <LegacyFdeRouteRedirect />
+              </AuthRoute>
+            }
+          />
           <Route path="*" element={<Navigate replace to="/portal" />} />
         </Routes>
       </Suspense>

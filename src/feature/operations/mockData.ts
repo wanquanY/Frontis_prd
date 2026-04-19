@@ -3,7 +3,11 @@ import type {
   OperationsAgentSubmission,
   OperationsFulfillment,
   OperationsPlatformTabKey,
+  OperationsAgentPlazaCategory,
+  OperationsAgentPlazaVisibility,
   OperationsProduct,
+  OperationsProductSaleType,
+  OperationsProductTrialUnit,
   OperationsProductBillingMode,
   OperationsProductBillingSpec,
   OperationsProductDeliveryKind,
@@ -47,19 +51,24 @@ export const OPERATIONS_TAB_OPTIONS: Array<{
     description: "创建平台租户并维护基础业务资料。",
   },
   {
+    key: "agentPlaza",
+    label: "AI专家广场管理",
+    description: "管理已商品化 AI 专家的广场投放信息，维护分类、可见租户和展示状态。",
+  },
+  {
     key: "agents",
-    label: "Agent 审核",
-    description: "审核 FDE 提交的 Agent，控制平台供给准入。",
+    label: "AI专家审核",
+    description: "审核企业员工提交的商品化申请，审核通过后再进入商品中心转换为可售商品。",
   },
   {
     key: "products",
-    label: "商品管理",
-    description: "把可用供给包装成最小可售商品并维护上下架。",
+    label: "商品中心",
+    description: "复用商品中心，把已准入 AI 专家包装成最小可售商品并维护上下架。",
   },
   {
     key: "fulfillment",
-    label: "交付管理",
-    description: "承接订单交付实例，跟踪资源分配和开通状态。",
+    label: "订单审核与开通",
+    description: "承接客户侧下单后的订单审核、付款凭证核验与资源开通。",
   },
   {
     key: "resources",
@@ -87,9 +96,9 @@ export const OPERATIONS_ACCOUNT_OPTIONS: OperationsAccount[] = [
     phone: "13800008882",
     role: "operator",
     roleLabel: "平台运营",
-    description: "负责日常租户创建、Agent 审核、商品上架和费用观察。",
+    description: "负责日常租户维护、AI专家广场管理、AI专家审核、商品中心和订单审核开通。",
     verificationCode: "123456",
-    entryPath: "/ops/agents",
+    entryPath: "/ops/agentPlaza",
   },
 ];
 
@@ -134,37 +143,6 @@ export const OPERATIONS_INITIAL_TENANTS: OperationsTenant[] = [
   },
   {
     id: "ops-tenant-002",
-    name: "Frontis FDE 华东服务组",
-    code: "OPS-FDE-011",
-    type: "fde",
-    industry: "交付服务",
-    adminName: "王琳",
-    adminPhone: "13800000026",
-    seatCount: 36,
-    expiresAt: "2026-12-31",
-    moduleLabels: ["FDE业务管理", "FDE开发管理"],
-    members: [
-      {
-        id: "ops-tenant-002-member-001",
-        name: "王琳",
-        phone: "13800000026",
-        roleLabel: "管理员",
-        addedAt: "2026-03-28 14:05",
-      },
-      {
-        id: "ops-tenant-002-member-002",
-        name: "高捷",
-        phone: "13800000025",
-        roleLabel: "成员",
-        addedAt: "2026-03-30 16:40",
-      },
-    ],
-    status: "active",
-    createdAt: "2026-03-28 14:05",
-    updatedAt: "2026-04-16 16:42",
-  },
-  {
-    id: "ops-tenant-003",
     name: "百汇零售",
     code: "OPS-ENT-017",
     type: "enterprise",
@@ -176,7 +154,7 @@ export const OPERATIONS_INITIAL_TENANTS: OperationsTenant[] = [
     moduleLabels: ["FrontisAI工作台"],
     members: [
       {
-        id: "ops-tenant-003-member-001",
+        id: "ops-tenant-002-member-001",
         name: "周倩",
         phone: "13800002222",
         roleLabel: "管理员",
@@ -188,7 +166,7 @@ export const OPERATIONS_INITIAL_TENANTS: OperationsTenant[] = [
     updatedAt: "2026-04-14 09:12",
   },
   {
-    id: "ops-tenant-004",
+    id: "ops-tenant-003",
     name: "Frontis 内部运营组",
     code: "OPS-INT-001",
     type: "internal",
@@ -200,14 +178,14 @@ export const OPERATIONS_INITIAL_TENANTS: OperationsTenant[] = [
     moduleLabels: ["运营后台"],
     members: [
       {
-        id: "ops-tenant-004-member-001",
+        id: "ops-tenant-003-member-001",
         name: "周明越",
         phone: "13800008881",
         roleLabel: "管理员",
         addedAt: "2026-03-12 11:18",
       },
       {
-        id: "ops-tenant-004-member-002",
+        id: "ops-tenant-003-member-002",
         name: "陈可心",
         phone: "13800008882",
         roleLabel: "成员",
@@ -225,18 +203,26 @@ export const OPERATIONS_INITIAL_AGENT_SUBMISSIONS: OperationsAgentSubmission[] =
     id: "ops-agent-001",
     name: "零售经营复盘官",
     version: "v1.3.0",
-    submitter: "高捷 - Frontis FDE 华东服务组",
+    submitter: "张三 - 星澜服饰集团",
     submittedAt: "2026-04-16 13:20",
     status: "pending",
+    submissionType: "commodityApplication",
+    currentScopeLabel: "已发布到企业 AI专家广场",
+    submitReason: "该 Agent 已在团队内稳定使用，申请转成商品后可供零售类客户直接购买。",
+    targetCustomers: "零售连锁、门店经营分析团队",
     description: "面向零售客户的经营复盘 Agent，支持日报总结、异常门店识别和行动建议输出。",
   },
   {
     id: "ops-agent-002",
     name: "客户对账核验助手",
     version: "v2.0.1",
-    submitter: "孙尧 - Frontis FDE 总部租户",
+    submitter: "王晨 - 百汇零售",
     submittedAt: "2026-04-15 19:05",
     status: "approved",
+    submissionType: "commodityApplication",
+    currentScopeLabel: "已发布到企业 AI专家广场",
+    submitReason: "企业内部验证完成，希望标准化为财务场景商品供更多客户复用。",
+    targetCustomers: "财务共享中心、对账运营团队",
     description: "自动核对客户付款凭证与订单金额，辅助运营完成到账核验。",
     lastReviewedAt: "2026-04-16 10:15",
   },
@@ -244,9 +230,13 @@ export const OPERATIONS_INITIAL_AGENT_SUBMISSIONS: OperationsAgentSubmission[] =
     id: "ops-agent-003",
     name: "设备巡检助手",
     version: "v0.9.4",
-    submitter: "陈岚 - Frontis FDE 华南服务组",
+    submitter: "李雪 - 星澜服饰集团",
     submittedAt: "2026-04-14 17:40",
     status: "rejected",
+    submissionType: "commodityApplication",
+    currentScopeLabel: "已发布到企业 AI专家广场",
+    submitReason: "希望转为标准运维商品，对外提供巡检与告警能力。",
+    targetCustomers: "设备运维、巡检团队",
     description: "面向交付运维场景，识别设备在线状态、异常告警和建议修复动作。",
     rejectReason: "缺少异常工况下的结果说明，当前版本不适合直接进入平台资产池。",
     lastReviewedAt: "2026-04-15 10:30",
@@ -255,28 +245,55 @@ export const OPERATIONS_INITIAL_AGENT_SUBMISSIONS: OperationsAgentSubmission[] =
     id: "ops-agent-004",
     name: "商品运营素材助手",
     version: "v1.1.2",
-    submitter: "卢舟 - Frontis FDE 电商服务组",
+    submitter: "林若岚 - 星澜服饰集团",
     submittedAt: "2026-04-13 16:25",
     status: "approved",
+    submissionType: "commodityApplication",
+    currentScopeLabel: "已发布到企业 AI专家广场",
+    submitReason: "申请商品化后面向电商运营客户统一售卖。",
+    targetCustomers: "电商运营、内容团队",
     description: "生成商品卖点、详情页文案和推广素材建议，适合商品中心快速包装。",
     lastReviewedAt: "2026-04-14 09:40",
+  },
+  {
+    id: "ops-agent-005",
+    name: "制度问答助手",
+    version: "v1.0.3",
+    submitter: "陈可心 - Frontis 内部运营组",
+    submittedAt: "2026-04-12 11:10",
+    status: "approved",
+    submissionType: "commodityApplication",
+    currentScopeLabel: "已发布到企业 AI专家广场",
+    submitReason: "适合作为平台免费商品投放给全部租户体验。",
+    targetCustomers: "行政、HR、运营支持团队",
+    description: "基于制度库和流程说明回答员工常见问题，适合做平台通用免费专家。",
+    lastReviewedAt: "2026-04-12 17:20",
   },
 ];
 
 export const OPERATIONS_INITIAL_PRODUCTS: OperationsProduct[] = [
   {
     id: "ops-product-001",
-    name: "零售经营专家版",
+    name: "商品运营素材助手",
     supplyKind: "agent",
     deliveryKind: "softwareService",
+    saleType: "paid",
     billingMode: "subscription",
     meteringUnit: "duration",
     billingSpec: "year",
-    linkedAgentId: "ops-agent-001",
-    linkedAgentName: "零售经营复盘官",
-    description: "面向零售总部与区域经理的经营复盘商品，支持月度经营诊断与门店异常分析。",
-    price: 12800,
-    status: "draft",
+    linkedAgentId: "ops-agent-004",
+    linkedAgentName: "商品运营素材助手",
+    description: "该 AI专家 已通过商品化审核，请先完善售价、试用和售卖规则后再上架。",
+    price: 0,
+    supportsTrial: false,
+    trialUnit: "day",
+    trialValue: 7,
+    status: "pendingProductization",
+    plazaCategory: "通用",
+    plazaVisibility: "public",
+    visibleTenantIds: [],
+    visibleTenantNames: [],
+    plazaSort: 20,
     updatedAt: "2026-04-16 15:12",
   },
   {
@@ -284,6 +301,7 @@ export const OPERATIONS_INITIAL_PRODUCTS: OperationsProduct[] = [
     name: "对账核验标准版",
     supplyKind: "agent",
     deliveryKind: "softwareService",
+    saleType: "paid",
     billingMode: "subscription",
     meteringUnit: "duration",
     billingSpec: "year",
@@ -291,7 +309,15 @@ export const OPERATIONS_INITIAL_PRODUCTS: OperationsProduct[] = [
     linkedAgentName: "客户对账核验助手",
     description: "面向付款核验与运营对账的标准化 Agent 商品。",
     price: 6800,
+    supportsTrial: true,
+    trialUnit: "day",
+    trialValue: 14,
     status: "active",
+    plazaCategory: "供应链",
+    plazaVisibility: "public",
+    visibleTenantIds: [],
+    visibleTenantNames: [],
+    plazaSort: 10,
     updatedAt: "2026-04-16 10:42",
   },
   {
@@ -299,6 +325,7 @@ export const OPERATIONS_INITIAL_PRODUCTS: OperationsProduct[] = [
     name: "云端工作站 10 席位包",
     supplyKind: "standard",
     deliveryKind: "virtualDevice",
+    saleType: "paid",
     billingMode: "subscription",
     meteringUnit: "seat",
     billingSpec: "seat_10_year",
@@ -306,6 +333,9 @@ export const OPERATIONS_INITIAL_PRODUCTS: OperationsProduct[] = [
     resourcePoolName: "华东云端工作站资源池",
     description: "提供云端工作站资源和统一账号接入能力。",
     price: 9600,
+    supportsTrial: false,
+    trialUnit: "day",
+    trialValue: 7,
     status: "active",
     updatedAt: "2026-04-15 18:28",
   },
@@ -314,6 +344,7 @@ export const OPERATIONS_INITIAL_PRODUCTS: OperationsProduct[] = [
     name: "模型积分包 50 万",
     supplyKind: "standard",
     deliveryKind: "thirdPartyApi",
+    saleType: "paid",
     billingMode: "quotaPackage",
     meteringUnit: "token",
     billingSpec: "token_1m",
@@ -321,6 +352,9 @@ export const OPERATIONS_INITIAL_PRODUCTS: OperationsProduct[] = [
     resourcePoolName: "多模型 API 配额池",
     description: "提供标准模型调用额度，适合阶段性扩容。",
     price: 12000,
+    supportsTrial: false,
+    trialUnit: "count",
+    trialValue: 1000,
     status: "active",
     updatedAt: "2026-04-15 16:08",
   },
@@ -329,6 +363,7 @@ export const OPERATIONS_INITIAL_PRODUCTS: OperationsProduct[] = [
     name: "OCR 识别调用包 10000次",
     supplyKind: "standard",
     deliveryKind: "thirdPartyApi",
+    saleType: "paid",
     billingMode: "quotaPackage",
     meteringUnit: "call",
     billingSpec: "call_10k",
@@ -336,6 +371,9 @@ export const OPERATIONS_INITIAL_PRODUCTS: OperationsProduct[] = [
     resourcePoolName: "第三方 OCR 接口账号池",
     description: "提供按次调用的 OCR 识别能力，适合票据、回单和门店单据识别场景。",
     price: 100,
+    supportsTrial: false,
+    trialUnit: "count",
+    trialValue: 100,
     status: "active",
     updatedAt: "2026-04-17 10:08",
   },
@@ -344,6 +382,7 @@ export const OPERATIONS_INITIAL_PRODUCTS: OperationsProduct[] = [
     name: "门店巡检终端标准版",
     supplyKind: "standard",
     deliveryKind: "physicalDevice",
+    saleType: "paid",
     billingMode: "oneTime",
     meteringUnit: "device",
     billingSpec: "device_once",
@@ -351,6 +390,9 @@ export const OPERATIONS_INITIAL_PRODUCTS: OperationsProduct[] = [
     resourcePoolName: "硬件终端库存池",
     description: "提供门店巡检采集终端和基础安装包，适合线下巡检标准化部署。",
     price: 2499,
+    supportsTrial: false,
+    trialUnit: "day",
+    trialValue: 7,
     status: "active",
     updatedAt: "2026-04-17 10:40",
   },
@@ -359,13 +401,41 @@ export const OPERATIONS_INITIAL_PRODUCTS: OperationsProduct[] = [
     name: "实施陪跑服务包",
     supplyKind: "standard",
     deliveryKind: "softwareService",
+    saleType: "paid",
     billingMode: "oneTime",
     meteringUnit: "service",
     billingSpec: "service_once",
     description: "面向新客户上线期的实施培训、复盘陪跑和运营交接支持。",
     price: 5800,
+    supportsTrial: false,
+    trialUnit: "day",
+    trialValue: 7,
     status: "inactive",
     updatedAt: "2026-04-12 11:30",
+  },
+  {
+    id: "ops-product-007",
+    name: "制度问答助手免费版",
+    supplyKind: "agent",
+    deliveryKind: "softwareService",
+    saleType: "free",
+    billingMode: "subscription",
+    meteringUnit: "duration",
+    billingSpec: "year",
+    linkedAgentId: "ops-agent-005",
+    linkedAgentName: "制度问答助手",
+    description: "面向通用知识问答场景的免费 AI专家 商品，可直接领取开通。",
+    price: 0,
+    supportsTrial: false,
+    trialUnit: "day",
+    trialValue: 7,
+    status: "active",
+    plazaCategory: "办公协同",
+    plazaVisibility: "public",
+    visibleTenantIds: [],
+    visibleTenantNames: [],
+    plazaSort: 8,
+    updatedAt: "2026-04-17 14:10",
   },
 ];
 
@@ -390,8 +460,8 @@ export const OPERATIONS_INITIAL_FULFILLMENTS: OperationsFulfillment[] = [
   {
     id: "ops-fulfillment-002",
     orderNo: "OPS-ORDER-20260417-002",
-    tenantId: "ops-tenant-002",
-    tenantName: "Frontis FDE 华东服务组",
+    tenantId: "ops-tenant-003",
+    tenantName: "Frontis 内部运营组",
     productId: "ops-product-004",
     productName: "模型积分包 50 万",
     deliveryKind: "thirdPartyApi",
@@ -421,7 +491,7 @@ export const OPERATIONS_INITIAL_FULFILLMENTS: OperationsFulfillment[] = [
   {
     id: "ops-fulfillment-004",
     orderNo: "OPS-ORDER-20260417-004",
-    tenantId: "ops-tenant-004",
+    tenantId: "ops-tenant-003",
     tenantName: "Frontis 内部运营组",
     productId: "ops-product-hw-001",
     productName: "门店巡检终端标准版",
@@ -437,7 +507,7 @@ export const OPERATIONS_INITIAL_FULFILLMENTS: OperationsFulfillment[] = [
   {
     id: "ops-fulfillment-005",
     orderNo: "OPS-ORDER-20260417-005",
-    tenantId: "ops-tenant-003",
+    tenantId: "ops-tenant-002",
     tenantName: "百汇零售",
     productId: "ops-product-006",
     productName: "OCR 识别调用包 10000次",
@@ -454,8 +524,8 @@ export const OPERATIONS_INITIAL_FULFILLMENTS: OperationsFulfillment[] = [
   {
     id: "ops-fulfillment-006",
     orderNo: "OPS-ORDER-20260417-006",
-    tenantId: "ops-tenant-002",
-    tenantName: "Frontis FDE 华东服务组",
+    tenantId: "ops-tenant-001",
+    tenantName: "星澜服饰集团",
     productId: "ops-product-005",
     productName: "实施陪跑服务包",
     deliveryKind: "softwareService",
@@ -553,8 +623,8 @@ export const OPERATIONS_USAGE_RECORDS: OperationsUsageRecord[] = [
   },
   {
     id: "ops-usage-003",
-    tenantId: "ops-tenant-002",
-    tenantName: "Frontis FDE 华东服务组",
+    tenantId: "ops-tenant-001",
+    tenantName: "星澜服饰集团",
     productId: "ops-product-004",
     productName: "模型积分包 50 万",
     agentName: "多模型资源池",
@@ -566,7 +636,7 @@ export const OPERATIONS_USAGE_RECORDS: OperationsUsageRecord[] = [
   },
   {
     id: "ops-usage-004",
-    tenantId: "ops-tenant-004",
+    tenantId: "ops-tenant-003",
     tenantName: "Frontis 内部运营组",
     productId: "ops-product-005",
     productName: "实施陪跑服务包",
@@ -587,16 +657,32 @@ export const OPERATIONS_TENANT_STATUS_LABELS: Record<OperationsTenant["status"],
 
 export const OPERATIONS_TENANT_TYPE_LABELS: Record<OperationsTenant["type"], string> = {
   enterprise: "企业租户",
-  fde: "FDE 租户",
   internal: "内部租户",
 };
 
 export const OPERATIONS_TENANT_MODULE_OPTIONS: string[] = [
   "FrontisAI工作台",
-  "FDE业务管理",
-  "FDE开发管理",
   "运营后台",
 ];
+
+export const OPERATIONS_AGENT_PLAZA_CATEGORY_OPTIONS: Array<{
+  value: OperationsAgentPlazaCategory;
+  label: string;
+}> = [
+  { value: "通用", label: "通用" },
+  { value: "销售", label: "销售" },
+  { value: "生产", label: "生产" },
+  { value: "供应链", label: "供应链" },
+  { value: "办公协同", label: "办公协同" },
+];
+
+export const OPERATIONS_AGENT_PLAZA_VISIBILITY_LABELS: Record<
+  OperationsAgentPlazaVisibility,
+  string
+> = {
+  public: "全平台可见",
+  tenant: "指定租户可见",
+};
 
 export const OPERATIONS_AGENT_STATUS_LABELS: Record<
   OperationsAgentSubmission["status"],
@@ -608,9 +694,26 @@ export const OPERATIONS_AGENT_STATUS_LABELS: Record<
 };
 
 export const OPERATIONS_PRODUCT_STATUS_LABELS: Record<OperationsProduct["status"], string> = {
+  pendingProductization: "待商品化",
   draft: "草稿",
   active: "在售",
   inactive: "已下架",
+};
+
+export const OPERATIONS_PRODUCT_SALE_TYPE_LABELS: Record<
+  OperationsProductSaleType,
+  string
+> = {
+  free: "免费商品",
+  paid: "付费商品",
+};
+
+export const OPERATIONS_PRODUCT_TRIAL_UNIT_LABELS: Record<
+  OperationsProductTrialUnit,
+  string
+> = {
+  day: "天",
+  count: "次",
 };
 
 export const OPERATIONS_PRODUCT_SUPPLY_KIND_LABELS: Record<
@@ -689,6 +792,22 @@ export const OPERATIONS_PRODUCT_BILLING_MODE_OPTIONS: Array<{
   { value: "quotaPackage", label: "按量包" },
   { value: "postpaid", label: "按量后付费" },
   { value: "oneTime", label: "一次性服务" },
+];
+
+export const OPERATIONS_PRODUCT_SALE_TYPE_OPTIONS: Array<{
+  value: OperationsProductSaleType;
+  label: string;
+}> = [
+  { value: "free", label: "免费商品" },
+  { value: "paid", label: "付费商品" },
+];
+
+export const OPERATIONS_PRODUCT_TRIAL_UNIT_OPTIONS: Array<{
+  value: OperationsProductTrialUnit;
+  label: string;
+}> = [
+  { value: "day", label: "按天试用" },
+  { value: "count", label: "按次数试用" },
 ];
 
 export const OPERATIONS_PRODUCT_METERING_UNIT_OPTIONS: Array<{
@@ -886,6 +1005,7 @@ export const createEmptyOperationsProductForm = (): OperationsProductForm => ({
   name: "",
   supplyKind: "standard",
   deliveryKind: "softwareService",
+  saleType: "paid",
   billingMode: "subscription",
   meteringUnit: "duration",
   billingSpec: "year",
@@ -893,6 +1013,9 @@ export const createEmptyOperationsProductForm = (): OperationsProductForm => ({
   resourcePoolId: undefined,
   description: "",
   price: 0,
+  supportsTrial: false,
+  trialUnit: "day",
+  trialValue: 7,
 });
 
 export const createEmptyOperationsResourcePoolForm = (): OperationsResourcePoolForm => ({

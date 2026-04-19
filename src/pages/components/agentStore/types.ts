@@ -9,7 +9,7 @@ import type {
 } from "../../types";
 
 /**
- * AI 专家团视图组件入参。
+ * AI 专家管理视图组件入参。
  */
 export interface AgentStoreViewProps {
   deploymentByEmployeeId: Record<string, ExpertDeploymentState>;

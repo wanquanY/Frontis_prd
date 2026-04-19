@@ -1,9 +1,3 @@
-import {
-  FDE_PRIMARY_LEADER_MEMBER_ID,
-  FDE_PRIMARY_MEMBER_ID,
-  FDE_TEAM_MEMBERS,
-} from "@/feature/fde/mockData";
-import type { FdeTeamMemberItem } from "@/feature/fde/types";
 import { INITIAL_FRONTIS_WEB_USERS } from "@/mocks/mockData";
 import type { FrontisUserRole, FrontisWebRole } from "@/pages/types";
 
@@ -23,12 +17,6 @@ const ENTERPRISE_TENANT = {
   code: "ENT-2026-001",
 };
 
-const FDE_TENANT = {
-  id: "tenant-fde-demo",
-  name: "Frontis FDE 服务组织",
-  code: "FDE-2026-001",
-};
-
 const LOGIN_PATH = "/login";
 const TENANT_SELECTION_PATH = "/select-tenant";
 const DEFAULT_MOCK_VERIFICATION_CODE = "123456";
@@ -36,14 +24,10 @@ const ENTERPRISE_WORKSPACE_LABEL = "FrontisAI工作台";
 const PLATFORM_ORDER: Record<MockIdentityPlatform, number> = {
   enterpriseWorkspace: 0,
   enterpriseAdmin: 1,
-  fdeBusiness: 2,
-  fdeDev: 3,
 };
 const ROLE_ORDER: Record<MockAuthRole, number> = {
   employee: 0,
-  fdeMember: 0,
   admin: 1,
-  fdeAdmin: 1,
 };
 
 interface MockTenantInfo {
@@ -122,55 +106,11 @@ const buildEnterpriseIdentities = (
       roleLabel,
       description:
         workspaceRole === "admin"
-          ? "进入 FrontisAI工作台，企业管理员可在工作台内继续进入企业管理后台。"
+          ? "进入 FrontisAI工作台，企业管理员可继续使用企业管理能力。"
           : "进入 FrontisAI工作台，查看当前账号已分配的 AI 专家、对话与成果。",
       entryPath: workspaceRole === "admin" ? "/web/admin/workspace" : "/web/employee",
     }),
   ];
-
-  return identities;
-};
-
-const getFdeRole = (member: FdeTeamMemberItem): Extract<MockAuthRole, "fdeAdmin" | "fdeMember"> =>
-  member.role === "leader" || member.role === "admin" ? "fdeAdmin" : "fdeMember";
-
-const buildFdeIdentities = (member: FdeTeamMemberItem): MockAuthIdentity[] => {
-  const role = getFdeRole(member);
-  const identities: MockAuthIdentity[] = [
-    buildIdentity({
-      id: `${member.id}-business`,
-      subjectId: member.id,
-      subjectName: member.name,
-      tenantId: FDE_TENANT.id,
-      tenantName: FDE_TENANT.name,
-      tenantCode: FDE_TENANT.code,
-      platform: "fdeBusiness",
-      platformLabel: "FDE业务管理",
-      role,
-      roleLabel: member.title,
-      description: "进入 FDE 业务工作台，处理商机、交付、组织协同与成员管理。",
-      entryPath: role === "fdeAdmin" ? "/fde/dashboard" : "/fde/delivery",
-    }),
-  ];
-
-  if (member.permissionKeys.includes("agentDev")) {
-    identities.push(
-      buildIdentity({
-        id: `${member.id}-dev`,
-        subjectId: member.id,
-        subjectName: member.name,
-        tenantId: FDE_TENANT.id,
-        tenantName: FDE_TENANT.name,
-        tenantCode: FDE_TENANT.code,
-        platform: "fdeDev",
-        platformLabel: "FDE开发管理",
-        role,
-        roleLabel: member.title,
-        description: "进入 FDE 开发工作台，处理 Agent 开发、版本管理与上架准备。",
-        entryPath: "/fde/agent-dev",
-      }),
-    );
-  }
 
   return identities;
 };
@@ -205,33 +145,6 @@ const buildEnterpriseAccount = (
   };
 };
 
-const buildFdeAccount = (
-  userId: string,
-  verificationCode: string,
-  options: BuildMockAccountOptions,
-): MockAuthAccount => {
-  const targetMember = FDE_TEAM_MEMBERS.find(item => item.id === userId);
-
-  if (!targetMember) {
-    throw new Error(`未找到 FDE 模拟登录账号: ${userId}`);
-  }
-
-  const identities = buildFdeIdentities(targetMember);
-
-  return {
-    accountId: options.accountId,
-    userId: targetMember.id,
-    name: targetMember.name,
-    phone: targetMember.phone,
-    role: getFdeRole(targetMember),
-    roleLabel: targetMember.title,
-    description: options.description,
-    verificationCode,
-    identities,
-    quickLoginIdentityId: options.quickLoginIdentityId ?? `${targetMember.id}-business`,
-  };
-};
-
 const buildMultiTenantIdentity = (
   identityId: string,
   tenant: MockTenantInfo,
@@ -257,18 +170,6 @@ const MULTI_TENANT_ENTERPRISE_ADMIN_TENANT: MockTenantInfo = {
   code: "ENT-HQ-2026-001",
 };
 
-const MULTI_TENANT_FDE_LEADER_TENANT: MockTenantInfo = {
-  id: "tenant-fde-hq",
-  name: "Frontis FDE 总部租户",
-  code: "FDE-HQ-2026-001",
-};
-
-const MULTI_TENANT_FDE_ENGINEER_TENANT: MockTenantInfo = {
-  id: "tenant-fde-east-delivery",
-  name: "Frontis FDE 华东交付租户",
-  code: "FDE-EAST-2026-011",
-};
-
 export const ENTERPRISE_EMPLOYEE_MOCK_ACCOUNT: MockAuthAccount = buildEnterpriseAccount(
   "user-member-001",
   DEFAULT_MOCK_VERIFICATION_CODE,
@@ -278,30 +179,12 @@ export const ENTERPRISE_EMPLOYEE_MOCK_ACCOUNT: MockAuthAccount = buildEnterprise
   },
 );
 
-export const FDE_LEADER_MOCK_ACCOUNT: MockAuthAccount = buildFdeAccount(
-  FDE_PRIMARY_LEADER_MEMBER_ID,
-  DEFAULT_MOCK_VERIFICATION_CODE,
-  {
-    accountId: "mock-account-fde-leader",
-    description: "FDE 负责人账号，默认进入业务管理，可切换到开发管理视角。",
-  },
-);
-
 export const ENTERPRISE_ADMIN_MOCK_ACCOUNT: MockAuthAccount = buildEnterpriseAccount(
   "user-admin-001",
   DEFAULT_MOCK_VERIFICATION_CODE,
   {
     accountId: "mock-account-enterprise-admin",
-    description: "企业管理员账号，登录后进入 FrontisAI工作台，并可从工作台进入企业管理后台。",
-  },
-);
-
-export const FDE_ENGINEER_MOCK_ACCOUNT: MockAuthAccount = buildFdeAccount(
-  FDE_PRIMARY_MEMBER_ID,
-  DEFAULT_MOCK_VERIFICATION_CODE,
-  {
-    accountId: "mock-account-fde-engineer",
-    description: "普通 FDE 工程师账号，聚焦租户交付、版本协同和客户运行支持。",
+    description: "企业管理员账号，登录后进入 FrontisAI工作台，并可继续使用企业管理能力。",
   },
 );
 
@@ -313,58 +196,44 @@ export const MULTI_TENANT_MOCK_ACCOUNT: MockAuthAccount = {
   role: "admin",
   roleLabel: "多租户综合账号",
   description:
-    "一个账号同时挂载企业员工、企业管理员、FDE 负责人和 FDE 工程师四种身份，登录后默认进入 FrontisAI工作台，并可按权限进入其他系统。",
+    "一个账号同时挂载企业员工与企业管理员两种身份，登录后默认进入 FrontisAI工作台，并可在不同企业间切换。",
   verificationCode: DEFAULT_MOCK_VERIFICATION_CODE,
   quickLoginIdentityId: "multi-tenant-enterprise-employee",
   identities: [
-    buildMultiTenantIdentity("multi-tenant-enterprise-employee", MULTI_TENANT_ENTERPRISE_WORKSPACE_TENANT, {
-      subjectId: "user-member-001",
-      subjectName: "王晨",
-      platform: "enterpriseWorkspace",
-      platformLabel: ENTERPRISE_WORKSPACE_LABEL,
-      role: "employee",
-      roleLabel: "普通员工",
-      description: "以普通员工身份进入华东运营租户的 FrontisAI工作台，查看个人专家与工作成果。",
-      entryPath: "/web/employee",
-    }),
-    buildMultiTenantIdentity("multi-tenant-enterprise-admin", MULTI_TENANT_ENTERPRISE_ADMIN_TENANT, {
-      subjectId: "user-admin-001",
-      subjectName: "杨万泉",
-      platform: "enterpriseWorkspace",
-      platformLabel: ENTERPRISE_WORKSPACE_LABEL,
-      role: "admin",
-      roleLabel: "企业管理员",
-      description: "以企业管理员身份进入集团租户的 FrontisAI工作台，并可从工作台进入企业管理后台。",
-      entryPath: "/web/admin/workspace",
-    }),
-    buildMultiTenantIdentity("multi-tenant-fde-leader", MULTI_TENANT_FDE_LEADER_TENANT, {
-      subjectId: FDE_PRIMARY_LEADER_MEMBER_ID,
-      subjectName: "王琳",
-      platform: "fdeBusiness",
-      platformLabel: "FDE业务管理",
-      role: "fdeAdmin",
-      roleLabel: "FDE 团队负责人",
-      description: "以 FDE 负责人身份进入总部租户，统筹商机、交付、版本与团队协同。",
-      entryPath: "/fde/dashboard",
-    }),
-    buildMultiTenantIdentity("multi-tenant-fde-engineer", MULTI_TENANT_FDE_ENGINEER_TENANT, {
-      subjectId: FDE_PRIMARY_MEMBER_ID,
-      subjectName: "高捷",
-      platform: "fdeBusiness",
-      platformLabel: "FDE业务管理",
-      role: "fdeMember",
-      roleLabel: "FDE 配置工程师",
-      description: "以普通 FDE 工程师身份进入区域交付租户，处理订单配置、交付执行与版本协同。",
-      entryPath: "/fde/delivery",
-    }),
+    buildMultiTenantIdentity(
+      "multi-tenant-enterprise-employee",
+      MULTI_TENANT_ENTERPRISE_WORKSPACE_TENANT,
+      {
+        subjectId: "user-member-001",
+        subjectName: "王晨",
+        platform: "enterpriseWorkspace",
+        platformLabel: ENTERPRISE_WORKSPACE_LABEL,
+        role: "employee",
+        roleLabel: "普通员工",
+        description: "以普通员工身份进入华东运营租户的 FrontisAI工作台，查看个人专家与工作成果。",
+        entryPath: "/web/employee",
+      },
+    ),
+    buildMultiTenantIdentity(
+      "multi-tenant-enterprise-admin",
+      MULTI_TENANT_ENTERPRISE_ADMIN_TENANT,
+      {
+        subjectId: "user-admin-001",
+        subjectName: "杨万泉",
+        platform: "enterpriseWorkspace",
+        platformLabel: ENTERPRISE_WORKSPACE_LABEL,
+        role: "admin",
+        roleLabel: "企业管理员",
+        description: "以企业管理员身份进入集团租户的 FrontisAI工作台，并继续使用企业管理能力。",
+        entryPath: "/web/admin/workspace",
+      },
+    ),
   ],
 };
 
 export const MOCK_AUTH_ACCOUNTS: MockAuthAccount[] = [
   ENTERPRISE_EMPLOYEE_MOCK_ACCOUNT,
   ENTERPRISE_ADMIN_MOCK_ACCOUNT,
-  FDE_LEADER_MOCK_ACCOUNT,
-  FDE_ENGINEER_MOCK_ACCOUNT,
   MULTI_TENANT_MOCK_ACCOUNT,
 ];
 
@@ -382,19 +251,12 @@ export const getWorkspacePathByRole = (role: FrontisWebRole): string => {
 /**
  * 根据角色获取默认工作台路径。
  */
-export const getDefaultPathByRole = (role: FrontisWebRole): string =>
-  getWorkspacePathByRole(role);
+export const getDefaultPathByRole = (role: FrontisWebRole): string => getWorkspacePathByRole(role);
 
 /**
  * 获取任意模拟角色的默认落地路径。
  */
-export const getDefaultPathByMockRole = (role: MockAuthRole): string => {
-  if (role === "fdeAdmin" || role === "fdeMember") {
-    return "/fde/dashboard";
-  }
-
-  return getDefaultPathByRole(role);
-};
+export const getDefaultPathByMockRole = (role: MockAuthRole): string => getDefaultPathByRole(role);
 
 /**
  * 获取登录页路径。
@@ -442,24 +304,24 @@ export const getMockAccountByPhone = (phone: string): MockAuthAccount | null => 
 export const getMockAccountByAccountId = (accountId: string): MockAuthAccount | null =>
   MOCK_AUTH_ACCOUNTS.find(item => item.accountId === accountId) ?? null;
 
-const getSafeIdentities = (
-  identities?: MockAuthIdentity[] | null,
-): MockAuthIdentity[] => (Array.isArray(identities) ? identities : []);
+const getSafeIdentities = (identities?: MockAuthIdentity[] | null): MockAuthIdentity[] =>
+  Array.isArray(identities) ? identities : [];
 
 /**
  * 兼容旧版持久化会话，补齐缺失的 identities 字段。
  */
-export const normalizeMockSession = (
-  session: MockAuthSession | null,
-): MockAuthSession | null => {
+export const normalizeMockSession = (session: MockAuthSession | null): MockAuthSession | null => {
   if (!session) {
     return null;
   }
 
   const matchedAccount = getMockAccountByAccountId(session.accountId);
-  const nextIdentities = Array.isArray(session.identities)
-    ? session.identities
-    : matchedAccount?.identities ?? [];
+
+  if (!matchedAccount) {
+    return null;
+  }
+
+  const nextIdentities = matchedAccount.identities;
   const nextActiveIdentity =
     nextIdentities.find(identity => identity.id === session.activeIdentityId) ??
     nextIdentities.find(
@@ -489,9 +351,7 @@ export const normalizeMockSession = (
   };
 };
 
-const getTargetPlatformByPath = (
-  redirectPath?: string,
-): MockIdentityPlatform | null => {
+const getTargetPlatformByPath = (redirectPath?: string): MockIdentityPlatform | null => {
   const normalizedRedirectPath = normalizeRedirectPath(redirectPath);
 
   if (!normalizedRedirectPath) {
@@ -509,12 +369,8 @@ const getTargetPlatformByPath = (
     return "enterpriseAdmin";
   }
 
-  if (normalizedRedirectPath.startsWith("/fde/agent-dev")) {
-    return "fdeDev";
-  }
-
   if (normalizedRedirectPath.startsWith("/fde")) {
-    return "fdeBusiness";
+    return "enterpriseWorkspace";
   }
 
   return null;
@@ -530,7 +386,9 @@ export const getActiveSessionIdentity = (
     return null;
   }
 
-  return getSafeIdentities(session.identities).find(item => item.id === session.activeIdentityId) ?? null;
+  return (
+    getSafeIdentities(session.identities).find(item => item.id === session.activeIdentityId) ?? null
+  );
 };
 
 /**
@@ -539,7 +397,8 @@ export const getActiveSessionIdentity = (
 export const getIdentityById = (
   identities: MockAuthIdentity[] | undefined,
   identityId: string,
-): MockAuthIdentity | null => getSafeIdentities(identities).find(item => item.id === identityId) ?? null;
+): MockAuthIdentity | null =>
+  getSafeIdentities(identities).find(item => item.id === identityId) ?? null;
 
 /**
  * 获取指定租户下的所有身份。
@@ -566,18 +425,17 @@ const isRedirectAllowedForIdentity = (
     return false;
   }
 
-  if (identity.role === "fdeAdmin" || identity.role === "fdeMember") {
-    return normalizedRedirectPath.startsWith("/fde");
-  }
-
   if (identity.role === "admin") {
     return (
       normalizedRedirectPath.startsWith("/web/admin") ||
-      normalizedRedirectPath.startsWith("/web/employee")
+      normalizedRedirectPath.startsWith("/web/employee") ||
+      normalizedRedirectPath.startsWith("/fde")
     );
   }
 
-  return normalizedRedirectPath.startsWith("/web/employee");
+  return (
+    normalizedRedirectPath.startsWith("/web/employee") || normalizedRedirectPath.startsWith("/fde")
+  );
 };
 
 /**

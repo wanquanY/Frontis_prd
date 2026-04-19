@@ -58,6 +58,10 @@ import {
 import { Button, Checkbox, Dropdown, Input, Modal, Select, message } from "antd";
 import type { MenuProps } from "antd";
 
+import {
+  loadEnterpriseCommodityApplications,
+  saveEnterpriseCommodityApplications,
+} from "@/feature/fde/enterpriseCommodityApplications";
 import { FDE_AGENT_WORKSPACES } from "@/feature/fde/mockData";
 import type { FdeAgentFramework, FdeAgentWorkspace } from "@/feature/fde/types";
 
@@ -349,6 +353,7 @@ const DETAIL_METRICS = [
 /* ─── 部署配置 ─── */
 
 type DeployPage = "config" | "progress" | "store";
+type PublishPage = "form" | "assetLibrary" | "commodity" | null;
 
 const DEPLOY_CONFIG_ITEMS: { icon: JSX.Element; iconBg: string; title: string; subtitle?: string; trailing?: "chevron" | "checkbox" }[] = [
   { icon: <GlobalOutlined />, iconBg: "var(--deploy-icon-blue)", title: "部署域名" },
@@ -391,6 +396,13 @@ interface PublishFormState {
   selectedSkill: string;
 }
 
+interface CommodityApplicationFormState {
+  proposedProductName: string;
+  reason: string;
+  targetCustomers: string;
+  notes: string;
+}
+
 const DEFAULT_PUBLISH_FORM: PublishFormState = {
   name: "",
   version: "1.0.0",
@@ -401,6 +413,26 @@ const DEFAULT_PUBLISH_FORM: PublishFormState = {
   description: "",
   cover: "blue",
   selectedSkill: AGENT_SKILLS[0].key,
+};
+
+const DEFAULT_COMMODITY_APPLICATION_FORM: CommodityApplicationFormState = {
+  proposedProductName: "",
+  reason: "",
+  targetCustomers: "",
+  notes: "",
+};
+
+const DEFAULT_COMMODITY_SUBMITTER = "王晨 - 当前企业租户";
+
+const formatCurrentTimestamp = (): string => {
+  const currentDate = new Date();
+  const year = currentDate.getFullYear();
+  const month = `${currentDate.getMonth() + 1}`.padStart(2, "0");
+  const day = `${currentDate.getDate()}`.padStart(2, "0");
+  const hours = `${currentDate.getHours()}`.padStart(2, "0");
+  const minutes = `${currentDate.getMinutes()}`.padStart(2, "0");
+
+  return `${year}-${month}-${day} ${hours}:${minutes}`;
 };
 
 /* ─── 摘要卡片 ─── */
@@ -524,7 +556,7 @@ export const FdeAgentDevView = ({ onNavigate }: FdeAgentDevViewProps = {}): JSX.
   const [deployModel, setDeployModel] = useState("Claude Sonnet 4.6 线路1");
   const [showToolDetails, setShowToolDetails] = useState(false);
   const [toolDetailStep, setToolDetailStep] = useState(-1); // -1 = auto 跟随进度
-  const [publishPage, setPublishPage] = useState<"form" | "assetLibrary" | null>(null);
+  const [publishPage, setPublishPage] = useState<PublishPage>(null);
 
   /* ── 文件上传 ── */
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -583,6 +615,8 @@ export const FdeAgentDevView = ({ onNavigate }: FdeAgentDevViewProps = {}): JSX.
     setShowToolDetails(false);
     setDeployPage(null);
     setPublishPage(null);
+    setCommodityApplicationForm(DEFAULT_COMMODITY_APPLICATION_FORM);
+    setCommodityApplicationSuccess(false);
     setIsRightPanelCollapsed(true); // 默认关闭右侧成果面板
   };
 
@@ -667,6 +701,10 @@ export const FdeAgentDevView = ({ onNavigate }: FdeAgentDevViewProps = {}): JSX.
   const [publishType, setPublishType] = useState<"skill" | "agent" | null>(null);
   const [publishForm, setPublishForm] = useState<PublishFormState>(DEFAULT_PUBLISH_FORM);
   const [publishSuccess, setPublishSuccess] = useState(false);
+  const [commodityApplicationForm, setCommodityApplicationForm] =
+    useState<CommodityApplicationFormState>(DEFAULT_COMMODITY_APPLICATION_FORM);
+  const [commodityApplicationSuccess, setCommodityApplicationSuccess] =
+    useState(false);
 
   const chatBodyRef = useRef<HTMLDivElement>(null);
   const lineageCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -1044,6 +1082,8 @@ export const FdeAgentDevView = ({ onNavigate }: FdeAgentDevViewProps = {}): JSX.
     setPublishType(null);
     setPublishForm(DEFAULT_PUBLISH_FORM);
     setPublishSuccess(false);
+    setCommodityApplicationForm(DEFAULT_COMMODITY_APPLICATION_FORM);
+    setCommodityApplicationSuccess(false);
     setReportVersion(null);
     setDeployPage(null);
     setDeployProgressDone(0);
@@ -1274,13 +1314,95 @@ export const FdeAgentDevView = ({ onNavigate }: FdeAgentDevViewProps = {}): JSX.
     message.success(
       publishType === "skill"
         ? `Skill「${publishForm.name}」已成功发布到 Skill 广场`
-        : `Agent「${publishForm.name}」已成功发布到 Agent Store`,
+        : `AI专家「${publishForm.name}」已成功发布到 AI专家广场`,
     );
   }, [publishType, publishForm.name]);
 
   const updatePublishForm = useCallback((patch: Partial<PublishFormState>) => {
     setPublishForm(prev => ({ ...prev, ...patch }));
   }, []);
+
+  const updateCommodityApplicationForm = useCallback(
+    (patch: Partial<CommodityApplicationFormState>) => {
+      setCommodityApplicationForm(prev => ({ ...prev, ...patch }));
+    },
+    [],
+  );
+
+  const handleOpenAgentPublishPanel = useCallback(() => {
+    setPublishPage("form");
+    setPublishType("agent");
+    setPublishSuccess(false);
+    setCommodityApplicationSuccess(false);
+    setPublishForm(prev => ({
+      ...prev,
+      name: prev.name || selectedWorkspace?.name || "未命名 AI专家",
+      visibility: "enterprise",
+    }));
+    setIsRightPanelCollapsed(false);
+  }, [selectedWorkspace?.name]);
+
+  const handleOpenCommodityApplicationPanel = useCallback(() => {
+    const agentName = publishForm.name.trim() || selectedWorkspace?.name || "未命名 AI专家";
+
+    setPublishPage("commodity");
+    setCommodityApplicationSuccess(false);
+    setPublishSuccess(false);
+    setCommodityApplicationForm({
+      proposedProductName: `${agentName} 标准版`,
+      reason: "",
+      targetCustomers: "",
+      notes: "",
+    });
+    setIsRightPanelCollapsed(false);
+  }, [publishForm.name, selectedWorkspace?.name]);
+
+  const handleSubmitCommodityApplication = useCallback(() => {
+    const agentName = publishForm.name.trim() || selectedWorkspace?.name || "未命名 AI专家";
+    const proposedProductName = commodityApplicationForm.proposedProductName.trim();
+    const submitReason = commodityApplicationForm.reason.trim();
+
+    if (!proposedProductName) {
+      message.warning("请填写拟上架商品名");
+      return;
+    }
+
+    if (!submitReason) {
+      message.warning("请填写申请理由");
+      return;
+    }
+
+    const nextSubmission = {
+      id: `ops-agent-submission-${Date.now()}`,
+      name: agentName,
+      version: publishForm.version.trim() || selectedVersion,
+      submitter: DEFAULT_COMMODITY_SUBMITTER,
+      submittedAt: formatCurrentTimestamp(),
+      status: "pending" as const,
+      submissionType: "commodityApplication" as const,
+      proposedProductName,
+      submitReason,
+      targetCustomers: commodityApplicationForm.targetCustomers.trim() || undefined,
+      currentScopeLabel: "已发布到企业 AI专家广场",
+      description:
+        commodityApplicationForm.notes.trim() ||
+        "该 AI专家已发布到企业 AI专家广场，当前仅限企业内使用，申请审核通过后再由平台运营转换为可售商品。",
+    };
+    const currentApplications = loadEnterpriseCommodityApplications();
+
+    saveEnterpriseCommodityApplications([nextSubmission, ...currentApplications]);
+    setCommodityApplicationSuccess(true);
+    message.success(`已提交「${agentName}」的商品化申请`);
+  }, [
+    commodityApplicationForm.notes,
+    commodityApplicationForm.proposedProductName,
+    commodityApplicationForm.reason,
+    commodityApplicationForm.targetCustomers,
+    publishForm.name,
+    publishForm.version,
+    selectedVersion,
+    selectedWorkspace?.name,
+  ]);
 
   /* ── 切换流程标签时带入上下文 ── */
   const handleFlowTabChange = useCallback((tab: FlowTab) => {
@@ -1861,10 +1983,14 @@ export const FdeAgentDevView = ({ onNavigate }: FdeAgentDevViewProps = {}): JSX.
         <div className={styles.publishSuccessView}>
           <CheckCircleFilled style={{ fontSize: 48, color: "#3cbf7b" }} />
           <h3 className={styles.publishSuccessTitle}>
-            {publishType === "skill" ? "Skill 已发布到 Skill 广场" : "Agent 已发布到 Agent Store"}
+            {publishType === "skill"
+              ? "Skill 已发布到 Skill 广场"
+              : "AI专家已发布到 AI专家广场"}
           </h3>
           <p className={styles.publishSuccessHint}>
-            {publishForm.name} v{publishForm.version} 已成功发布。
+            {publishType === "skill"
+              ? `${publishForm.name} v${publishForm.version} 已成功发布。`
+              : `${publishForm.name} v${publishForm.version} 已发布到 AI专家广场，当前仅支持企业内使用。`}
           </p>
         </div>
       ) : !publishType ? (
@@ -1874,7 +2000,11 @@ export const FdeAgentDevView = ({ onNavigate }: FdeAgentDevViewProps = {}): JSX.
             <button type="button" className={styles.publishTypeCard} onClick={() => {
               setPublishType("skill");
               const sk = AGENT_SKILLS[0];
-              updatePublishForm({ selectedSkill: sk.key, name: sk.name });
+              updatePublishForm({
+                selectedSkill: sk.key,
+                name: sk.name,
+                visibility: "public",
+              });
             }}>
               <ThunderboltOutlined className={styles.publishTypeCardIcon} />
               <div className={styles.publishTypeCardCopy}>
@@ -1882,11 +2012,11 @@ export const FdeAgentDevView = ({ onNavigate }: FdeAgentDevViewProps = {}): JSX.
                 <span className={styles.publishTypeCardDesc}>选择一个 Skill 发布到 Skill 广场</span>
               </div>
             </button>
-            <button type="button" className={styles.publishTypeCard} onClick={() => setPublishType("agent")}>
+            <button type="button" className={styles.publishTypeCard} onClick={handleOpenAgentPublishPanel}>
               <AppstoreOutlined className={styles.publishTypeCardIcon} />
               <div className={styles.publishTypeCardCopy}>
-                <span className={styles.publishTypeCardTitle}>发布为 Agent</span>
-                <span className={styles.publishTypeCardDesc}>将当前 Agent 发布到 Agent Store</span>
+                <span className={styles.publishTypeCardTitle}>发布到 AI专家广场</span>
+                <span className={styles.publishTypeCardDesc}>将当前 AI专家发布到企业 AI专家广场</span>
               </div>
             </button>
           </div>
@@ -1929,10 +2059,27 @@ export const FdeAgentDevView = ({ onNavigate }: FdeAgentDevViewProps = {}): JSX.
                 <Input value={selectedFramework ?? ws.framework} disabled />
               </div>
             )}
-            <div className={styles.publishFormRow}>
-              <label className={styles.publishFormLabel}>可见性</label>
-              <Select value={publishForm.visibility} onChange={v => updatePublishForm({ visibility: v })} style={{ width: "100%" }} options={[{ value: "public", label: "公开" }, { value: "private", label: "仅自己" }, { value: "team", label: "团队" }]} />
-            </div>
+              <div className={styles.publishFormRow}>
+                <label className={styles.publishFormLabel}>可见性</label>
+              <Select
+                value={publishForm.visibility}
+                onChange={v => updatePublishForm({ visibility: v })}
+                style={{ width: "100%" }}
+                options={
+                  publishType === "skill"
+                    ? [
+                        { value: "public", label: "公开" },
+                        { value: "private", label: "仅自己" },
+                        { value: "team", label: "团队" },
+                      ]
+                    : [
+                        { value: "enterprise", label: "全企业可见" },
+                        { value: "team", label: "指定团队" },
+                        { value: "private", label: "仅自己" },
+                      ]
+                }
+              />
+              </div>
             <div className={styles.publishFormRow}>
               <label className={styles.publishFormLabel}>标签</label>
               <Input value={publishForm.tags} maxLength={200} placeholder="多个标签用逗号分隔" onChange={e => updatePublishForm({ tags: e.target.value })} />
@@ -1953,14 +2100,14 @@ export const FdeAgentDevView = ({ onNavigate }: FdeAgentDevViewProps = {}): JSX.
               ))}
             </div>
           </div>
-          <div className={styles.publishFooter}>
-            <Button onClick={() => setPublishType(null)}>上一步</Button>
-            <Button type="primary" icon={<RocketOutlined />} onClick={handleSubmitPublish}>
-              {publishType === "skill" ? "发布到 Skill 广场" : "发布到 Agent Store"}
-            </Button>
+            <div className={styles.publishFooter}>
+              <Button onClick={() => setPublishType(null)}>上一步</Button>
+              <Button type="primary" icon={<RocketOutlined />} onClick={handleSubmitPublish}>
+              {publishType === "skill" ? "发布到 Skill 广场" : "发布到 AI专家广场"}
+              </Button>
+            </div>
           </div>
-        </div>
-      )}
+        )}
     </div>
   );
 
@@ -2654,7 +2801,7 @@ export const FdeAgentDevView = ({ onNavigate }: FdeAgentDevViewProps = {}): JSX.
               <div className={styles.deployStatusIcon}><CloudServerOutlined /></div>
               <div>
                 <div className={styles.deployStatusTitle}>正在部署应用</div>
-                <div className={styles.deployStatusSubtitle}>请稍候，应用正在部署到Agent Store...</div>
+                <div className={styles.deployStatusSubtitle}>请稍候，应用正在部署到 AI专家广场...</div>
               </div>
             </div>
             <div className={styles.deployProgressBarWrap}>
@@ -2698,7 +2845,7 @@ export const FdeAgentDevView = ({ onNavigate }: FdeAgentDevViewProps = {}): JSX.
           </div>
         )}
 
-        {/* 发布上架（Agent Store） */}
+        {/* 发布与商品化 */}
         {deployPage === "store" && (
           <div className={styles.deployStoreWrap}>
             {/* 服务状态 */}
@@ -2716,9 +2863,22 @@ export const FdeAgentDevView = ({ onNavigate }: FdeAgentDevViewProps = {}): JSX.
                 <a className={styles.deployStoreLink}><HistoryOutlined /> 历史版本</a>
                 <a className={styles.deployStoreLink}><LineChartOutlined /> 运维监控</a>
                 <a className={styles.deployStoreLink}><EditOutlined /> 体验页定制申请</a>
-                <a className={styles.deployStoreLink} onClick={() => { setPublishPage("assetLibrary"); setPublishType("agent"); setPublishSuccess(false); setIsRightPanelCollapsed(false); }}><UploadOutlined /> 上架到资产库</a>
-                <a className={styles.deployStoreLink} onClick={() => { setPublishPage("form"); setPublishType("agent"); setPublishSuccess(false); setIsRightPanelCollapsed(false); }}><ShopOutlined /> 上架到AgentStore</a>
-                <a className={styles.deployStoreLink} onClick={() => { setPublishPage("form"); setPublishType("skill"); setPublishSuccess(false); setIsRightPanelCollapsed(false); }}><ThunderboltOutlined /> 发布为Skill</a>
+                <a className={styles.deployStoreLink} onClick={() => { setPublishPage("assetLibrary"); setPublishType("agent"); setPublishSuccess(false); setCommodityApplicationSuccess(false); setIsRightPanelCollapsed(false); }}><UploadOutlined /> 上架到资产库</a>
+                <a className={styles.deployStoreLink} onClick={handleOpenAgentPublishPanel}><ShopOutlined /> 发布到AI专家广场</a>
+                <a className={styles.deployStoreLink} onClick={handleOpenCommodityApplicationPanel}><GlobalOutlined /> 申请发布为商品</a>
+                <a className={styles.deployStoreLink} onClick={() => {
+                  setPublishPage("form");
+                  setPublishType("skill");
+                  setPublishSuccess(false);
+                  setCommodityApplicationSuccess(false);
+                  const sk = AGENT_SKILLS[0];
+                  setPublishForm({
+                    ...DEFAULT_PUBLISH_FORM,
+                    selectedSkill: sk.key,
+                    name: sk.name,
+                  });
+                  setIsRightPanelCollapsed(false);
+                }}><ThunderboltOutlined /> 发布为Skill</a>
               </div>
             </div>
 
@@ -2787,7 +2947,13 @@ export const FdeAgentDevView = ({ onNavigate }: FdeAgentDevViewProps = {}): JSX.
           </button>
         )}
         <span className={styles.rightTitle}>
-          {publishPage === "assetLibrary" ? "上架到资产库" : publishType === "skill" ? "发布为Skill" : "上架到AgentStore"}
+          {publishPage === "assetLibrary"
+            ? "上架到资产库"
+            : publishPage === "commodity"
+              ? "申请发布为商品"
+              : publishType === "skill"
+                ? "发布为Skill"
+                : "发布到AI专家广场"}
         </span>
         <button type="button" className={styles.rightToggleBtn} style={{ marginLeft: "auto" }} onClick={() => setPublishPage(null)}>
           <CloseOutlined />
@@ -2802,14 +2968,111 @@ export const FdeAgentDevView = ({ onNavigate }: FdeAgentDevViewProps = {}): JSX.
               <p className={styles.overviewText}>将 Agent 上架到企业资产库，供团队成员使用。</p>
             </div>
           </div>
+        ) : publishPage === "commodity" ? (
+          commodityApplicationSuccess ? (
+            <div className={styles.publishSuccessView}>
+              <CheckCircleFilled style={{ fontSize: 48, color: "#3cbf7b" }} />
+              <h3 className={styles.publishSuccessTitle}>商品化申请已提交</h3>
+              <p className={styles.publishSuccessHint}>
+                平台运营会在审核通过后将该 AI专家转换为商品，审核前仍仅支持企业内使用。
+              </p>
+            </div>
+          ) : (
+            <div className={styles.publishFormArea}>
+              <div className={styles.publishFormSection}>
+                <div className={styles.publishNoticeCard}>
+                  <div className={styles.publishNoticeTitle}>当前发布范围</div>
+                  <div className={styles.publishNoticeText}>
+                    该 AI专家发布到 AI专家广场后，仅支持当前企业内部使用。只有商品化申请审核通过后，平台运营才会在商品中心将其转换为可售商品。
+                  </div>
+                </div>
+              </div>
+              <div className={styles.publishFormSection}>
+                <h4 className={styles.publishSectionTitle}>商品化申请信息</h4>
+                <div className={styles.publishFormRow}>
+                  <label className={styles.publishFormLabel}>AI专家名称</label>
+                  <Input
+                    value={publishForm.name || selectedWorkspace?.name || "未命名 AI专家"}
+                    disabled
+                  />
+                </div>
+                <div className={styles.publishFormRow}>
+                  <label className={styles.publishFormLabel}>拟上架商品名 <span className={styles.publishRequired}>*</span></label>
+                  <Input
+                    value={commodityApplicationForm.proposedProductName}
+                    maxLength={200}
+                    placeholder="请输入拟上架商品名"
+                    onChange={event =>
+                      updateCommodityApplicationForm({
+                        proposedProductName: event.target.value,
+                      })
+                    }
+                  />
+                </div>
+                <div className={styles.publishFormRow}>
+                  <label className={styles.publishFormLabel}>申请理由 <span className={styles.publishRequired}>*</span></label>
+                  <Input.TextArea
+                    value={commodityApplicationForm.reason}
+                    maxLength={1000}
+                    rows={4}
+                    showCount
+                    placeholder="说明为什么需要发布为商品，以及面向外部客户的售卖价值。"
+                    onChange={event =>
+                      updateCommodityApplicationForm({ reason: event.target.value })
+                    }
+                  />
+                </div>
+                <div className={styles.publishFormRow}>
+                  <label className={styles.publishFormLabel}>适用客户</label>
+                  <Input
+                    value={commodityApplicationForm.targetCustomers}
+                    maxLength={200}
+                    placeholder="例如：零售连锁、财务共享中心、销售团队"
+                    onChange={event =>
+                      updateCommodityApplicationForm({
+                        targetCustomers: event.target.value,
+                      })
+                    }
+                  />
+                </div>
+                <div className={styles.publishFormRow}>
+                  <label className={styles.publishFormLabel}>补充说明</label>
+                  <Input.TextArea
+                    value={commodityApplicationForm.notes}
+                    maxLength={1000}
+                    rows={3}
+                    showCount
+                    placeholder="补充运营审核时需要关注的商品化信息。"
+                    onChange={event =>
+                      updateCommodityApplicationForm({ notes: event.target.value })
+                    }
+                  />
+                </div>
+              </div>
+              <div className={styles.publishFooter}>
+                <Button onClick={() => setPublishPage(null)}>取消</Button>
+                <Button
+                  type="primary"
+                  icon={<ShopOutlined />}
+                  onClick={handleSubmitCommodityApplication}
+                >
+                  提交商品化申请
+                </Button>
+              </div>
+            </div>
+          )
         ) : publishSuccess ? (
           <div className={styles.publishSuccessView}>
             <CheckCircleFilled style={{ fontSize: 48, color: "#3cbf7b" }} />
             <h3 className={styles.publishSuccessTitle}>
-              {publishType === "skill" ? "Skill 已发布到 Skill 广场" : "Agent 已发布到 Agent Store"}
+              {publishType === "skill"
+                ? "Skill 已发布到 Skill 广场"
+                : "AI专家已发布到 AI专家广场"}
             </h3>
             <p className={styles.publishSuccessHint}>
-              {publishForm.name} v{publishForm.version} 已成功发布。
+              {publishType === "skill"
+                ? `${publishForm.name} v${publishForm.version} 已成功发布。`
+                : `${publishForm.name} v${publishForm.version} 已发布到 AI专家广场，当前仅支持企业内使用。`}
             </p>
             <Button
               type="primary"
@@ -2830,7 +3093,11 @@ export const FdeAgentDevView = ({ onNavigate }: FdeAgentDevViewProps = {}): JSX.
               <button type="button" className={styles.publishTypeCard} onClick={() => {
                 setPublishType("skill");
                 const sk = AGENT_SKILLS[0];
-                updatePublishForm({ selectedSkill: sk.key, name: sk.name });
+                updatePublishForm({
+                  selectedSkill: sk.key,
+                  name: sk.name,
+                  visibility: "public",
+                });
               }}>
                 <ThunderboltOutlined className={styles.publishTypeCardIcon} />
                 <div className={styles.publishTypeCardCopy}>
@@ -2838,11 +3105,11 @@ export const FdeAgentDevView = ({ onNavigate }: FdeAgentDevViewProps = {}): JSX.
                   <span className={styles.publishTypeCardDesc}>选择一个 Skill 发布到 Skill 广场</span>
                 </div>
               </button>
-              <button type="button" className={styles.publishTypeCard} onClick={() => setPublishType("agent")}>
+              <button type="button" className={styles.publishTypeCard} onClick={handleOpenAgentPublishPanel}>
                 <AppstoreOutlined className={styles.publishTypeCardIcon} />
                 <div className={styles.publishTypeCardCopy}>
-                  <span className={styles.publishTypeCardTitle}>发布为 Agent</span>
-                  <span className={styles.publishTypeCardDesc}>将当前 Agent 发布到 Agent Store</span>
+                  <span className={styles.publishTypeCardTitle}>发布到 AI专家广场</span>
+                  <span className={styles.publishTypeCardDesc}>将当前 AI专家发布到企业 AI专家广场</span>
                 </div>
               </button>
             </div>
@@ -2887,7 +3154,24 @@ export const FdeAgentDevView = ({ onNavigate }: FdeAgentDevViewProps = {}): JSX.
               )}
               <div className={styles.publishFormRow}>
                 <label className={styles.publishFormLabel}>可见性</label>
-                <Select value={publishForm.visibility} onChange={v => updatePublishForm({ visibility: v })} style={{ width: "100%" }} options={[{ value: "public", label: "公开" }, { value: "private", label: "仅自己" }, { value: "team", label: "团队" }]} />
+                <Select
+                  value={publishForm.visibility}
+                  onChange={v => updatePublishForm({ visibility: v })}
+                  style={{ width: "100%" }}
+                  options={
+                    publishType === "skill"
+                      ? [
+                          { value: "public", label: "公开" },
+                          { value: "private", label: "仅自己" },
+                          { value: "team", label: "团队" },
+                        ]
+                      : [
+                          { value: "enterprise", label: "全企业可见" },
+                          { value: "team", label: "指定团队" },
+                          { value: "private", label: "仅自己" },
+                        ]
+                  }
+                />
               </div>
               <div className={styles.publishFormRow}>
                 <label className={styles.publishFormLabel}>标签</label>
@@ -2912,7 +3196,7 @@ export const FdeAgentDevView = ({ onNavigate }: FdeAgentDevViewProps = {}): JSX.
             <div className={styles.publishFooter}>
               <Button onClick={() => setPublishType(null)}>上一步</Button>
               <Button type="primary" icon={<RocketOutlined />} onClick={handleSubmitPublish}>
-                {publishType === "skill" ? "发布到 Skill 广场" : "发布到 Agent Store"}
+                {publishType === "skill" ? "发布到 Skill 广场" : "发布到 AI专家广场"}
               </Button>
             </div>
           </div>

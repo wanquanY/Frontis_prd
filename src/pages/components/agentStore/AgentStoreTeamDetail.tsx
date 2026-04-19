@@ -27,6 +27,7 @@ import {
   isProviderConfigured,
 } from "../FrontisWebViews";
 import adminStyles from "../FrontisAdminViews.module.less";
+import { getExpertAssetMeta, getExpertAssetRangeLabel } from "./expertAssetMeta";
 import {
   doesExpertRequireDeviceBinding,
   getExpertAccessScopeSummary,
@@ -172,7 +173,7 @@ const getDeviceConfiguredLabel = (
 };
 
 /**
- * AI 专家团/单个 AI 专家详情视图。
+ * AI 专家详情视图。
  */
 export const AgentStoreTeamDetail = ({
   deploymentByEmployeeId,
@@ -403,6 +404,11 @@ const ExpertConfigPanel = ({
   const isAssigned = assignedWorkspaceIds.length > 0;
   const isConfigured = isExpertAccessConfigured(employee, deploymentState);
   const canConfigureModel = requiresDeviceBinding ? isAssigned : true;
+  const assetMeta = getExpertAssetMeta(employee);
+  const assetRangeLabel = getExpertAssetRangeLabel(employee);
+  const requiresUpgradeConfirmation = assetMeta.source === "purchased";
+  const latestVersion = versionInfo.newVersion ?? versionInfo.version;
+  const effectiveVersion = requiresUpgradeConfirmation ? currentVersion : latestVersion;
 
   useEffect(() => {
     setAccessDraftsByWorkspaceId(
@@ -445,7 +451,10 @@ const ExpertConfigPanel = ({
   }, []);
 
   const hasNewVersion =
-    Boolean(versionInfo.newVersion) && currentVersion !== versionInfo.newVersion && !versionIgnored;
+    requiresUpgradeConfirmation &&
+    Boolean(versionInfo.newVersion) &&
+    currentVersion !== versionInfo.newVersion &&
+    !versionIgnored;
 
   const workspaceOptions = useMemo(
     () =>
@@ -773,7 +782,7 @@ const ExpertConfigPanel = ({
           <div className={styles.simpleExpertTitleRow}>
             <span className={styles.simpleExpertName}>{employee.name}</span>
             <span className={getVersionTagClassName(hasNewVersion)}>
-              {hasNewVersion ? `待升级至 ${versionInfo.newVersion}` : `当前 ${currentVersion}`}
+              {hasNewVersion ? `待升级至 ${versionInfo.newVersion}` : `当前 ${effectiveVersion}`}
             </span>
             <span className={getDeployTagClassName(isConfigured)}>
               {requiresDeviceBinding
@@ -782,6 +791,26 @@ const ExpertConfigPanel = ({
             </span>
           </div>
           <p className={styles.simpleExpertRole}>{employee.role}</p>
+          <div className={styles.simpleExpertGrid}>
+            <div className={styles.simpleExpertBlock}>
+              <span className={styles.simpleExpertBlockLabel}>来源</span>
+              <span className={styles.simpleExpertInfoValue}>{assetMeta.sourceLabel}</span>
+            </div>
+            <div className={styles.simpleExpertBlock}>
+              <span className={styles.simpleExpertBlockLabel}>{assetMeta.ownerLabel}</span>
+              <span className={styles.simpleExpertInfoValue}>{assetMeta.ownerName}</span>
+            </div>
+            <div className={styles.simpleExpertBlock}>
+              <span className={styles.simpleExpertBlockLabel}>
+                {assetMeta.source === "purchased" ? "获取方式" : "发布方式"}
+              </span>
+              <span className={styles.simpleExpertInfoValue}>{assetMeta.acquireLabel}</span>
+            </div>
+            <div className={styles.simpleExpertBlock}>
+              <span className={styles.simpleExpertBlockLabel}>使用范围</span>
+              <span className={styles.simpleExpertInfoValue}>{assetRangeLabel}</span>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -790,7 +819,7 @@ const ExpertConfigPanel = ({
         className={styles.expertConfigTabs}
         activeKey={activeTabKey}
         items={[
-          { key: "workspaceAccess", label: "设备和权限管理" },
+          { key: "workspaceAccess", label: "权限管理" },
           { key: "modelConfig", label: "模型配置" },
           { key: "versionControl", label: "版本处理" },
         ]}
@@ -1098,12 +1127,16 @@ const ExpertConfigPanel = ({
             <div className={styles.simpleExpertBlock}>
               <span className={styles.simpleExpertBlockLabel}>版本处理</span>
               <p className={styles.upgradeVersions}>
-                当前版本 {currentVersion}
-                {versionInfo.newVersion ? ` / 最新版本 ${versionInfo.newVersion}` : ""}
+                当前版本 {effectiveVersion}
+                {hasNewVersion ? ` / 最新版本 ${versionInfo.newVersion}` : ""}
               </p>
               <div className={styles.upgradeNotes}>
                 <p className={styles.upgradeNotesTitle}>
-                  {hasNewVersion ? "版本更新说明" : "当前版本说明"}
+                  {hasNewVersion
+                    ? "版本更新说明"
+                    : assetMeta.source === "purchased"
+                    ? "当前版本说明"
+                    : "当前发布说明"}
                 </p>
                 {(versionInfo.updateNotes ?? ["当前版本暂无额外说明。"]).map(note => (
                   <p key={note} className={styles.upgradeNoteItem}>
@@ -1122,7 +1155,11 @@ const ExpertConfigPanel = ({
                   </Button>
                 </div>
               ) : (
-                <span className={styles.simpleExpertHint}>当前版本已处理完成，无需额外操作。</span>
+                <span className={styles.simpleExpertHint}>
+                  {assetMeta.source === "purchased"
+                    ? "当前版本已处理完成，无需额外操作。"
+                    : "企业开发资产发布后自动同步，无需管理员确认。"}
+                </span>
               )}
             </div>
           </div>

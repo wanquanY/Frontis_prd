@@ -138,8 +138,8 @@ export const OperationsLoginView = (): JSX.Element => {
                 <span className={styles.formEyebrow}>独立入口</span>
                 <h1 className={styles.formTitle}>运营后台登录</h1>
                 <p className={styles.formDescription}>
-                  通过运营后台独立路由进入平台级控制台，统一处理租户承接、Agent 审核、
-                  商品供给和用量费用观察。
+                  通过运营后台独立路由进入平台级控制台，统一处理租户管理、
+                  AI专家广场管理、AI专家审核、商品中心、订单审核与开通和资源池。
                 </p>
               </div>
 
@@ -201,7 +201,7 @@ export const OperationsLoginView = (): JSX.Element => {
               <div className={styles.noticePanel}>
                 <p className={styles.noticeTitle}>当前阶段范围</p>
                 <p className={styles.noticeText}>
-                  本期运营后台只承接租户管理、Agent 审核、商品管理和用量费用 4 个最小模块。
+                  本期运营后台聚焦租户管理、AI专家广场管理、AI专家审核、商品中心、订单审核与开通和资源池 6 个核心模块。
                 </p>
               </div>
             </div>
@@ -232,7 +232,7 @@ export const OperationsLoginView = (): JSX.Element => {
                   <p className={styles.summaryDescription}>
                     {selectedAccount
                       ? selectedAccount.description
-                      : "平台运营账号与企业/FDE 账号独立，使用独立路由和独立登录页进入。"}
+                      : "平台运营账号与企业账号独立，使用独立路由和独立登录页进入。"}
                   </p>
 
                   {selectedAccount ? (

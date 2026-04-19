@@ -68,22 +68,22 @@ const TAB_ITEMS: UnifiedWorkbenchNavItem[] = [
     icon: <MessageOutlined />,
   },
   {
-    key: "frontisDev",
-    label: "Frontis 开发",
-    description: "进入 Agent 开发工作区。",
-    icon: <CodeOutlined />,
+    key: "agentStore",
+    label: "AI专家广场",
+    description: "浏览平台已上架 AI 专家。",
+    icon: <AppstoreOutlined />,
   },
   {
     key: "skillMarket",
-    label: "Skill 广场",
+    label: "技能广场",
     description: "查看并管理 Skill 资产。",
     icon: <ThunderboltOutlined />,
   },
   {
-    key: "agentStore",
-    label: "Agent 广场",
-    description: "查看 Agent 上架与版本情况。",
-    icon: <AppstoreOutlined />,
+    key: "frontisDev",
+    label: "开发与进化",
+    description: "进入 Agent 开发工作区。",
+    icon: <CodeOutlined />,
   },
 ];
 
@@ -112,6 +112,7 @@ export const UnifiedWorkbenchPage = ({ viewRole }: UnifiedWorkbenchPageProps): J
   const navigate = useNavigate();
   const { tabPath } = useParams<{ tabPath?: string }>();
   const { activateIdentity, activateTenant, activeIdentity, logout, session } = useMockAuth();
+  const isAdminIdentity = activeIdentity?.role === "admin" || session?.role === "admin";
 
   const routeTab = useMemo<UnifiedWorkbenchTabKey | null>(
     () => getTabKeyFromPath(tabPath),
@@ -122,7 +123,6 @@ export const UnifiedWorkbenchPage = ({ viewRole }: UnifiedWorkbenchPageProps): J
     () => TAB_ITEMS.find(item => item.key === activeTab) ?? TAB_ITEMS[0],
     [activeTab],
   );
-
   useEffect(() => {
     if (routeTab) {
       return;
@@ -182,7 +182,7 @@ export const UnifiedWorkbenchPage = ({ viewRole }: UnifiedWorkbenchPageProps): J
   );
 
   const accountMenuItems: MenuProps["items"] = [
-    ...(viewRole === "admin"
+    ...(isAdminIdentity
       ? [
           {
             key: "open-admin-management",
@@ -255,7 +255,12 @@ export const UnifiedWorkbenchPage = ({ viewRole }: UnifiedWorkbenchPageProps): J
     }
 
     if (activeTab === "agentStore") {
-      return <FdeAgentStoreView onNavigateToAgentDev={() => handleNavigateTab("frontisDev")} />;
+      return (
+        <FdeAgentStoreView
+          onNavigateToAgentDev={() => handleNavigateTab("frontisDev")}
+          viewerRole={viewRole}
+        />
+      );
     }
 
     return <FrontisPage viewRole={viewRole} embedded={true} />;
@@ -276,7 +281,7 @@ export const UnifiedWorkbenchPage = ({ viewRole }: UnifiedWorkbenchPageProps): J
             <button
               key={item.key}
               type="button"
-              title={item.description}
+              title={item.label}
               className={classNames(styles.navButton, {
                 [styles.navButtonActive]: item.key === activeTab,
               })}
@@ -305,9 +310,7 @@ export const UnifiedWorkbenchPage = ({ viewRole }: UnifiedWorkbenchPageProps): J
           {shouldShowFeatureHeader ? (
             <header className={styles.featureHeader}>
               <div className={styles.featureHeaderInfo}>
-                <div className={styles.featureHeaderEyebrow}>FDE 开发融合视图</div>
                 <h1 className={styles.featureHeaderTitle}>{activeTabItem.label}</h1>
-                <p className={styles.featureHeaderDescription}>{activeTabItem.description}</p>
               </div>
             </header>
           ) : null}

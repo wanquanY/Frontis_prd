@@ -6,7 +6,7 @@
 
 .listRoot {
   flex: 1; min-height: 0; display: flex; flex-direction: column;
-  overflow: hidden; background: var(--app-bg);
+  overflow: hidden; background: var(--surface);
 }
 
 .listHeader {
@@ -22,7 +22,7 @@
   :global(.ant-input-affix-wrapper) {
     height: 36px; padding: 0 10px; border-radius: 10px;
     border-color: var(--border);
-    background: color-mix(in srgb, var(--app-bg) 78%, var(--surface)); box-shadow: none;
+    background: var(--surface); box-shadow: none;
   }
   :global(.ant-input-affix-wrapper:hover),
   :global(.ant-input-affix-wrapper-focused) {
@@ -231,7 +231,7 @@
 .feedbackPanel {
   padding: 12px 16px; display: flex; flex-direction: column; gap: 8px;
   border-top: 1px solid color-mix(in srgb, var(--text) 6%, transparent);
-  background: color-mix(in srgb, var(--app-bg) 60%, var(--surface));
+  background: var(--surface);
   animation: fadeSlideIn 200ms ease both;
 }
 
@@ -248,7 +248,7 @@
 /* ═══ 中间面板 ═══ */
 
 .centerPanel {
-  flex: 1; min-width: 0; display: flex; flex-direction: column; background: var(--app-bg);
+  flex: 1; min-width: 0; display: flex; flex-direction: column; background: var(--surface);
 }
 
 /* 5 tab 栏 */
@@ -443,7 +443,7 @@
 .evoSuggestionItem {
   display: flex; flex-direction: column; gap: 4px;
   padding: 12px; border-radius: 10px;
-  background: color-mix(in srgb, var(--app-bg) 60%, var(--surface));
+  background: var(--surface);
 }
 
 .evoSuggestionHeader { display: flex; align-items: center; gap: 8px; }
@@ -603,6 +603,13 @@
 
 .publishFormArea { display: flex; flex-direction: column; gap: 24px; }
 .publishFormSection { display: flex; flex-direction: column; gap: 12px; }
+.publishNoticeCard {
+  display: flex; flex-direction: column; gap: 6px;
+  padding: 14px 16px; border: 1px solid color-mix(in srgb, var(--primary) 16%, transparent);
+  border-radius: 12px; background: color-mix(in srgb, var(--primary) 6%, white);
+}
+.publishNoticeTitle { color: var(--text); font-size: 13px; font-weight: 600; }
+.publishNoticeText { color: var(--text-secondary); font-size: 12px; line-height: 20px; }
 
 .publishSkillList { display: flex; flex-direction: column; gap: 6px; }
 .publishSkillItem {

@@ -1,126 +1,165 @@
 import { useCallback, useMemo, useState } from "react";
 
-import { ThunderboltOutlined } from "@ant-design/icons";
-import { Avatar } from "antd";
+import { message } from "antd";
 
+import { getAvatarUrl } from "@/pages/utils";
+import {
+  loadEnterpriseAgentOrders,
+  type EnterpriseAgentOrderRecord,
+} from "@/feature/fde/enterpriseAgentOrders";
 import type { EmployeeItem } from "../../types";
 import type { AgentStoreViewProps } from "./types";
-import { OWNED_EXPERT_TEAMS, RECOMMENDED_EXPERT_TEAMS } from "./agentStoreData";
-import { RecommendedTeamCard } from "./AgentStoreCards";
 import { AgentStoreTeamDetail, EXPERT_VERSION_INFO } from "./AgentStoreTeamDetail";
+import { getExpertAssetMeta, getExpertAssetRangeLabel } from "./expertAssetMeta";
 import {
   doesExpertRequireDeviceBinding,
   getPendingPermissionWorkspaceIdsForExpert,
   getAssignedWorkspaceIdsForExpert,
-  isExpertAccessConfigured,
   isPermissionAssignmentConfigured,
 } from "./utils";
 
 import adminStyles from "../FrontisAdminViews.module.less";
 import styles from "./AgentStoreView.module.less";
 
-type AgentEntryKind = "single" | "team";
-type AgentFilterKey = "all" | AgentEntryKind;
-type AgentStoreTabKey = "owned" | "recommended";
+type AgentFilterKey = "all" | "purchased" | "developed" | "pending";
 
 interface ManagementStatus {
   label: string;
   tone: "success" | "warning";
 }
 
-interface TeamCardItem {
-  description: string;
-  id: string;
-  kind: "team";
-  members: EmployeeItem[];
-  name: string;
-  status: ManagementStatus;
-}
-
 interface SingleCardItem {
+  acquireLabel: string;
+  avatarUrl?: string;
   description: string;
   employee: EmployeeItem;
+  entryType: "employee" | "order";
   id: string;
-  kind: "single";
   name: string;
+  ownerLabel: string;
+  ownerName: string;
+  orderNo?: string;
+  rangeLabel: string;
+  sourceLabel: string;
+  sourceType: "purchased" | "developed";
   status: ManagementStatus;
+  statusHint?: string;
+  versionLabel: string;
 }
 
-type ManagementCardItem = TeamCardItem | SingleCardItem;
+interface OrderedAssetCatalogItem {
+  avatarSeed: string;
+  description: string;
+  name: string;
+  versionLabel: string;
+}
 
 const FILTER_OPTIONS: Array<{ key: AgentFilterKey; label: string }> = [
-  { key: "all", label: "全部" },
-  { key: "team", label: "专家团" },
-  { key: "single", label: "专家" },
+  { key: "all", label: "全部资产" },
+  { key: "purchased", label: "企业采购" },
+  { key: "developed", label: "企业开发" },
+  { key: "pending", label: "待配置" },
 ];
-
-const getStatusClassName = (tone: "success" | "warning"): string =>
-  tone === "success"
-    ? `${adminStyles.consoleStatusTag} ${adminStyles.consoleStatusTagSuccess}`
-    : `${adminStyles.consoleStatusTag} ${adminStyles.consoleStatusTagWarning}`;
 
 const hasPendingUpgrade = (employeeId: string): boolean => {
   const versionInfo = EXPERT_VERSION_INFO[employeeId];
   return Boolean(versionInfo?.newVersion && versionInfo.newVersion !== versionInfo.version);
 };
 
-const getTeamStatus = (
-  members: EmployeeItem[],
-  deploymentByEmployeeId: AgentStoreViewProps["deploymentByEmployeeId"],
-): ManagementStatus => {
-  const pendingDeviceBindingCount = members.filter(
-    member =>
-      doesExpertRequireDeviceBinding(member) &&
-      !getAssignedWorkspaceIdsForExpert(member, deploymentByEmployeeId[member.id]).length,
-  ).length;
-  const pendingPermissionCount = members.filter(
-    member =>
-      !isExpertAccessConfigured(member, deploymentByEmployeeId[member.id]) &&
-      (!doesExpertRequireDeviceBinding(member) ||
-        getAssignedWorkspaceIdsForExpert(member, deploymentByEmployeeId[member.id]).length > 0),
-  ).length;
+const ORDERED_ASSET_CATALOG: Record<number, OrderedAssetCatalogItem> = {
+  1: {
+    avatarSeed: "employee-pm",
+    description: "根据客户画像与历史沟通记录，实时生成个性化销售话术与应对策略，提升转化率与客户满意度。",
+    name: "销售话术助手",
+    versionLabel: "v1.2.0",
+  },
+  3: {
+    avatarSeed: "employee-architect",
+    description: "智能追踪项目里程碑与任务进度，自动生成周报与风险预警，帮助 PM 高效管理交付节奏。",
+    name: "项目交付助手",
+    versionLabel: "v2.0.0",
+  },
+  4: {
+    avatarSeed: "employee-growth",
+    description: "专为广州联创科技定制的 CRM 系统集成 Agent，支持客户数据自动同步和销售流程自动化。",
+    name: "广州联创CRM集成",
+    versionLabel: "v1.0.0",
+  },
+  5: {
+    avatarSeed: "employee-qa",
+    description: "智能识别合同中的风险条款，自动提取关键日期、金额与义务，生成审核摘要。",
+    name: "合同审查助手",
+    versionLabel: "v1.1.0",
+  },
+  12: {
+    avatarSeed: "employee-data",
+    description: "自动处理权限申请，智能校验合规性并推送审批流。",
+    name: "权限审批助手",
+    versionLabel: "v1.2.0",
+  },
+};
 
-  if (pendingDeviceBindingCount > 0 || pendingPermissionCount > 0) {
-    let label = `待配置 ${pendingDeviceBindingCount + pendingPermissionCount} 个`;
-
-    if (pendingDeviceBindingCount > 0 && pendingPermissionCount === 0) {
-      label =
-        pendingDeviceBindingCount === members.length
-          ? "待绑定设备"
-          : `待绑定设备 ${pendingDeviceBindingCount} 个`;
-    }
-
-    if (pendingPermissionCount > 0 && pendingDeviceBindingCount === 0) {
-      label =
-        pendingPermissionCount === members.length
-          ? "待分配权限"
-          : `待分配权限 ${pendingPermissionCount} 个`;
-    }
-
+const getOrderedAssetStatus = (order: EnterpriseAgentOrderRecord): ManagementStatus => {
+  if (order.status === "active") {
     return {
-      label,
+      label: order.orderType === "trial" ? "试用中" : "已开通",
+      tone: "success",
+    };
+  }
+
+  if (order.status === "awaitingReceipt") {
+    return {
+      label: "待上传凭证",
       tone: "warning",
     };
   }
 
-  const pendingUpgradeCount = members.filter(member => hasPendingUpgrade(member.id)).length;
-  if (pendingUpgradeCount > 0) {
+  if (order.status === "reviewing") {
     return {
-      label: `待升级 ${pendingUpgradeCount} 个`,
+      label: "待审核",
+      tone: "warning",
+    };
+  }
+
+  if (order.status === "awaitingActivation") {
+    return {
+      label: "待开通",
       tone: "warning",
     };
   }
 
   return {
-    label: "已配置",
-    tone: "success",
+    label: "已驳回",
+    tone: "warning",
   };
+};
+
+const getOrderedAssetStatusHint = (order: EnterpriseAgentOrderRecord): string => {
+  if (order.status === "awaitingReceipt") {
+    return "订单已创建，待上传付款凭证并提交审核";
+  }
+
+  if (order.status === "reviewing") {
+    return "凭证已提交，等待平台运营审核";
+  }
+
+  if (order.status === "awaitingActivation") {
+    return "审核通过，等待平台开通交付";
+  }
+
+  if (order.status === "active") {
+    return order.orderType === "trial" ? "试用已开通，可继续观察效果" : "已完成开通，待进入企业配置";
+  }
+
+  return order.reviewNote ?? "订单已驳回，待重新下单";
 };
 
 const getSingleStatus = (
   employee: EmployeeItem,
   deploymentByEmployeeId: AgentStoreViewProps["deploymentByEmployeeId"],
 ): ManagementStatus => {
+  const assetMeta = getExpertAssetMeta(employee);
+
   if (doesExpertRequireDeviceBinding(employee)) {
     const assignedWorkspaceIds = getAssignedWorkspaceIdsForExpert(
       employee,
@@ -147,7 +186,7 @@ const getSingleStatus = (
     };
   }
 
-  if (hasPendingUpgrade(employee.id)) {
+  if (assetMeta.source === "purchased" && hasPendingUpgrade(employee.id)) {
     return {
       label: "待升级",
       tone: "warning",
@@ -161,7 +200,7 @@ const getSingleStatus = (
 };
 
 /**
- * 企业管理员侧 AI 专家团主视图。
+ * 企业管理员侧 AI 专家主视图。
  */
 export const AgentStoreView = ({
   deploymentByEmployeeId,
@@ -176,113 +215,147 @@ export const AgentStoreView = ({
   users,
   workspaces,
 }: AgentStoreViewProps): JSX.Element => {
-  const [activeTab, setActiveTab] = useState<AgentStoreTabKey>("owned");
   const [activeFilter, setActiveFilter] = useState<AgentFilterKey>("all");
-  const [selectedEntry, setSelectedEntry] = useState<{ id: string; kind: AgentEntryKind } | null>(null);
-
-  const teamMemberIds = useMemo(
-    () => new Set(OWNED_EXPERT_TEAMS.flatMap(team => team.memberIds)),
-    [],
+  const [selectedExpertId, setSelectedExpertId] = useState<string | null>(null);
+  const manageableExperts = useMemo(
+    () => employees.filter(employee => !doesExpertRequireDeviceBinding(employee)),
+    [employees],
   );
+  const orderedExpertCards = useMemo<SingleCardItem[]>(() => {
+    const enterpriseOrders = loadEnterpriseAgentOrders();
 
-  const standaloneExperts = useMemo(
-    () => employees.filter(employee => !teamMemberIds.has(employee.id)),
-    [employees, teamMemberIds],
-  );
+    return enterpriseOrders
+      .map(order => {
+        const catalogItem = ORDERED_ASSET_CATALOG[order.agentId];
 
-  const teamCards = useMemo<TeamCardItem[]>(
-    () =>
-      OWNED_EXPERT_TEAMS.map(team => {
-        const members = employees.filter(employee => team.memberIds.includes(employee.id));
+        if (!catalogItem) {
+          return null;
+        }
+
         return {
-          description: team.description,
-          id: team.id,
-          kind: "team",
-          members,
-          name: team.name,
-          status: getTeamStatus(members, deploymentByEmployeeId),
-        };
-      }),
-    [deploymentByEmployeeId, employees],
-  );
+          acquireLabel: order.orderType === "trial" ? "企业试用订单" : "企业采购订单",
+          avatarUrl: getAvatarUrl(catalogItem.avatarSeed),
+          description: catalogItem.description,
+          employee: {
+            accessScopeSubjects: [],
+            agentId: `enterprise-order-${order.agentId}`,
+            avatarUrl: getAvatarUrl(catalogItem.avatarSeed),
+            boundMembers: [],
+            connectionMode: "cloud",
+            id: `enterprise-order-${order.id}`,
+            lastAction: order.createdAt,
+            model: "Claude Sonnet 4.6",
+            name: catalogItem.name,
+            portalRoles: ["admin"],
+            role: "AI专家",
+            runtimeAgentId: `runtime-${order.id}`,
+            source: "coworker",
+            status: "online",
+            summary: catalogItem.description,
+            systemPrompt: "",
+            visibility: "bound",
+            welcomeMessage: "",
+            workspaceId: "workspace-cloud",
+          },
+          entryType: "order",
+          id: `order-${order.id}`,
+          name: catalogItem.name,
+          orderNo: order.orderNo,
+          ownerLabel: "采购人",
+          ownerName: order.contactName,
+          rangeLabel: order.status === "active" ? "企业内待配置" : "交付中",
+          sourceLabel: "企业采购",
+          sourceType: "purchased",
+          status: getOrderedAssetStatus(order),
+          statusHint: getOrderedAssetStatusHint(order),
+          versionLabel: catalogItem.versionLabel,
+        } satisfies SingleCardItem;
+      })
+      .filter((item): item is SingleCardItem => item !== null);
+  }, []);
 
   const singleCards = useMemo<SingleCardItem[]>(
     () =>
-      standaloneExperts.map(employee => ({
-        description: employee.summary,
-        employee,
-        id: employee.id,
-        kind: "single",
-        name: employee.name,
-        status: getSingleStatus(employee, deploymentByEmployeeId),
-      })),
-    [deploymentByEmployeeId, standaloneExperts],
+      manageableExperts.map(employee => {
+        const assetMeta = getExpertAssetMeta(employee);
+        const versionInfo = EXPERT_VERSION_INFO[employee.id] ?? { version: "v1.0" };
+
+        return {
+          acquireLabel: assetMeta.acquireLabel,
+          avatarUrl: employee.avatarUrl,
+          description: employee.summary,
+          employee,
+          entryType: "employee",
+          id: employee.id,
+          name: employee.name,
+          ownerLabel: assetMeta.ownerLabel,
+          ownerName: assetMeta.ownerName,
+          rangeLabel: getExpertAssetRangeLabel(employee),
+          sourceLabel: assetMeta.sourceLabel,
+          sourceType: assetMeta.source,
+          status: getSingleStatus(employee, deploymentByEmployeeId),
+          statusHint: "进入配置",
+          versionLabel: versionInfo.version,
+        };
+      }),
+    [deploymentByEmployeeId, manageableExperts],
+  );
+  const mergedCards = useMemo<SingleCardItem[]>(
+    () => [...orderedExpertCards, ...singleCards],
+    [orderedExpertCards, singleCards],
   );
 
-  const managementCards = useMemo<ManagementCardItem[]>(
-    () => [...teamCards, ...singleCards],
-    [singleCards, teamCards],
-  );
-
-  const filteredCards = useMemo<ManagementCardItem[]>(() => {
+  const filteredCards = useMemo<SingleCardItem[]>(() => {
     if (activeFilter === "all") {
-      return managementCards;
+      return mergedCards;
     }
 
-    return managementCards.filter(card => card.kind === activeFilter);
-  }, [activeFilter, managementCards]);
+    if (activeFilter === "purchased") {
+      return mergedCards.filter(card => card.sourceType === "purchased");
+    }
 
-  const selectedTeam = useMemo(
-    () =>
-      selectedEntry?.kind === "team"
-        ? OWNED_EXPERT_TEAMS.find(item => item.id === selectedEntry.id) ?? null
-        : null,
-    [selectedEntry],
+    if (activeFilter === "developed") {
+      return mergedCards.filter(card => card.sourceType === "developed");
+    }
+
+    if (activeFilter === "pending") {
+      return mergedCards.filter(card => card.status.tone === "warning");
+    }
+
+    return mergedCards;
+  }, [activeFilter, mergedCards]);
+
+  const selectedExpert = useMemo(
+    () => manageableExperts.find(employee => employee.id === selectedExpertId) ?? null,
+    [manageableExperts, selectedExpertId],
   );
 
-  const selectedStandaloneExpert = useMemo(
-    () =>
-      selectedEntry?.kind === "single"
-        ? standaloneExperts.find(employee => employee.id === selectedEntry.id) ?? null
-        : null,
-    [selectedEntry, standaloneExperts],
-  );
+  const handleSelectEntry = useCallback((entryId: string): void => {
+    const orderedCard = orderedExpertCards.find(card => card.id === entryId);
 
-  const selectedEmployees = useMemo(() => {
-    if (selectedTeam) {
-      return employees.filter(item => selectedTeam.memberIds.includes(item.id));
+    if (orderedCard) {
+      message.info(orderedCard.statusHint ?? "当前订单完成后会进入企业配置。");
+      return;
     }
 
-    if (selectedStandaloneExpert) {
-      return [selectedStandaloneExpert];
-    }
-
-    return [];
-  }, [employees, selectedStandaloneExpert, selectedTeam]);
-
-  const handleSelectEntry = useCallback((entryId: string, kind: AgentEntryKind): void => {
-    setSelectedEntry({ id: entryId, kind });
-  }, []);
+    setSelectedExpertId(entryId);
+  }, [orderedExpertCards]);
 
   const handleBack = useCallback((): void => {
-    setSelectedEntry(null);
+    setSelectedExpertId(null);
   }, []);
 
   const handleChangeFilter = useCallback((filterKey: AgentFilterKey): void => {
     setActiveFilter(filterKey);
   }, []);
 
-  const handleChangeTab = useCallback((tabKey: AgentStoreTabKey): void => {
-    setActiveTab(tabKey);
-  }, []);
-
-  if (selectedTeam || selectedStandaloneExpert) {
+  if (selectedExpert) {
     return (
       <AgentStoreTeamDetail
         deploymentByEmployeeId={deploymentByEmployeeId}
         deviceOwners={deviceOwners}
-        detailTitle={selectedTeam?.name ?? selectedStandaloneExpert?.name ?? ""}
-        employees={selectedEmployees}
+        detailTitle={selectedExpert.name}
+        employees={[selectedExpert]}
         organizationDepartments={organizationDepartments}
         onBack={handleBack}
         onAttachEmployeeToDevice={onAttachEmployeeToDevice}
@@ -300,117 +373,91 @@ export const AgentStoreView = ({
     <div className={adminStyles.consolePage}>
       <header className={adminStyles.consoleHeader}>
         <div className={adminStyles.consoleHeaderMain}>
-          <h1 className={adminStyles.consoleTitle}>AI专家团</h1>
+          <h1 className={adminStyles.consoleTitle}>AI专家管理</h1>
         </div>
       </header>
 
       <section className={adminStyles.consoleSection}>
         <div className={adminStyles.consoleTabs}>
-          <button
-            type="button"
-            className={
-              activeTab === "owned"
-                ? `${adminStyles.consoleTabButton} ${adminStyles.consoleTabButtonActive}`
-                : adminStyles.consoleTabButton
-            }
-            onClick={() => handleChangeTab("owned")}
-          >
-            我的AI专家团 ({managementCards.length})
-          </button>
-          <button
-            type="button"
-            className={
-              activeTab === "recommended"
-                ? `${adminStyles.consoleTabButton} ${adminStyles.consoleTabButtonActive}`
-                : adminStyles.consoleTabButton
-            }
-            onClick={() => handleChangeTab("recommended")}
-          >
-            推荐AI专家团 ({RECOMMENDED_EXPERT_TEAMS.length})
-          </button>
+          {FILTER_OPTIONS.map(filter => (
+            <button
+              key={filter.key}
+              type="button"
+              className={
+                activeFilter === filter.key
+                  ? `${adminStyles.consoleTabButton} ${adminStyles.consoleTabButtonActive}`
+                  : adminStyles.consoleTabButton
+              }
+              onClick={() => handleChangeFilter(filter.key)}
+            >
+              {filter.label}
+            </button>
+          ))}
         </div>
 
-        {activeTab === "owned" ? (
-          <>
-            <div className={adminStyles.consoleTabs}>
-              {FILTER_OPTIONS.map(filter => (
+        <div className={styles.assetCardGrid}>
+          {filteredCards.map(card => {
+            return (
+              <article key={card.id} className={styles.assetCard}>
                 <button
-                  key={filter.key}
                   type="button"
-                  className={
-                    activeFilter === filter.key
-                      ? `${adminStyles.consoleTabButton} ${adminStyles.consoleTabButtonActive}`
-                      : adminStyles.consoleTabButton
-                  }
-                  onClick={() => handleChangeFilter(filter.key)}
+                  className={styles.assetPreviewButton}
+                  onClick={() => handleSelectEntry(card.id)}
                 >
-                  {filter.label}
-                </button>
-              ))}
-            </div>
-
-            <div className={styles.expertCardGrid}>
-              {filteredCards.map(card => (
-                <button
-                  key={card.id}
-                  type="button"
-                  className={styles.expertSelectCard}
-                  onClick={() => handleSelectEntry(card.id, card.kind)}
-                >
-                  <div className={styles.managementCardHeader}>
-                    <div className={styles.managementCardTitleWrap}>
-                      <h3 className={styles.managementCardTitle}>{card.name}</h3>
-                    </div>
-                    <span className={getStatusClassName(card.status.tone)}>{card.status.label}</span>
+                  <div
+                    className={
+                      card.sourceType === "purchased"
+                        ? `${styles.assetVisualPanel} ${styles.assetVisualPanelPurchased}`
+                        : `${styles.assetVisualPanel} ${styles.assetVisualPanelDeveloped}`
+                    }
+                  >
+                    <span className={styles.assetVisibilityBadge}>{card.sourceLabel}</span>
+                    <div className={styles.assetVisualGlow} />
+                    <img
+                      alt={card.name}
+                      className={styles.assetPortrait}
+                      src={card.avatarUrl ?? card.employee.avatarUrl}
+                    />
                   </div>
-                  <p className={styles.managementCardDescription}>{card.description}</p>
-                  <div className={styles.managementCardFooter}>
-                    <div className={styles.managementAvatarStack}>
-                      {card.kind === "team" ? (
-                        <>
-                          {card.members.slice(0, 4).map(member => (
-                            <Avatar
-                              key={member.id}
-                              className={styles.managementAvatar}
-                              src={member.avatarUrl}
-                              size={34}
-                            >
-                              {member.name.slice(0, 1)}
-                            </Avatar>
-                          ))}
-                          {card.members.length > 4 ? (
-                            <span className={styles.managementAvatarMore}>+{card.members.length - 4}</span>
-                          ) : null}
-                        </>
-                      ) : (
-                        <Avatar className={styles.managementAvatar} src={card.employee.avatarUrl} size={34}>
-                          {card.employee.name.slice(0, 1)}
-                        </Avatar>
-                      )}
+
+                  <div className={styles.assetBody}>
+                    <div className={styles.assetTitleRow}>
+                      <h3 className={styles.assetTitle}>{card.name}</h3>
+                    <div className={styles.assetVersionMeta}>
+                      <span
+                        className={
+                            card.status.tone === "success"
+                              ? styles.assetPublishBadge
+                              : styles.assetPendingBadge
+                          }
+                        >
+                          {card.status.label}
+                        </span>
+                        <span className={styles.assetVersionText}>{card.versionLabel}</span>
+                      </div>
+                    </div>
+
+                    <div className={styles.assetBadgeRow}>
+                      <span className={styles.assetOwnerBadge}>
+                        {card.ownerLabel}：{card.ownerName}
+                      </span>
+                      <span className={styles.assetRangeBadge}>{card.rangeLabel}</span>
+                    </div>
+
+                    <p className={styles.assetDescription}>{card.description}</p>
+                    <div className={styles.assetDeliveryInfo}>
+                      <strong>{card.orderNo ?? card.acquireLabel}</strong>
+                      <span>{card.statusHint ?? "进入配置"}</span>
                     </div>
                   </div>
                 </button>
-              ))}
-            </div>
-          </>
-        ) : (
-          <div className={styles.cardList}>
-            <div className={styles.recBanner}>
-              <ThunderboltOutlined className={styles.recBannerIcon} />
-              <div>
-                <p className={styles.recBannerTitle}>智能推荐</p>
-                <p className={styles.recBannerDesc}>
-                  根据当前已配置的专家组合与常见企业场景，为你补充推荐可协同工作的 AI
-                  专家团。
-                </p>
-              </div>
-            </div>
-
-            {RECOMMENDED_EXPERT_TEAMS.map(team => (
-              <RecommendedTeamCard key={team.id} team={team} />
-            ))}
-          </div>
-        )}
+              </article>
+            );
+          })}
+        </div>
+        {!filteredCards.length ? (
+          <div className={styles.assetEmptyState}>当前筛选条件下暂无 AI 专家。</div>
+        ) : null}
       </section>
     </div>
   );

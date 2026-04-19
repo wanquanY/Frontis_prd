@@ -1,6 +1,8 @@
 .root {
   display: flex;
+  height: 100vh;
   min-height: 100vh;
+  overflow: hidden;
   background: var(--surface);
   color: var(--text);
 }
@@ -112,26 +114,30 @@
 
 .main {
   flex: 1;
+  height: 100%;
   min-width: 0;
   min-height: 0;
   display: flex;
+  overflow: hidden;
 }
 
 .mainPanel {
   flex: 1;
+  height: 100%;
   min-width: 0;
   min-height: 0;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
   background: var(--surface);
 }
 
 .featureHeader {
   flex-shrink: 0;
-  min-height: 74px;
-  padding: 16px 24px;
+  min-height: 58px;
+  padding: 12px 24px;
   border-bottom: 1px solid color-mix(in srgb, var(--text) 8%, transparent);
-  background: color-mix(in srgb, var(--surface) 96%, var(--app-bg));
+  background: var(--surface);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -142,31 +148,15 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 4px;
-}
-
-.featureHeaderEyebrow {
-  color: var(--primary);
-  font-size: 12px;
-  line-height: 18px;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  gap: 0;
 }
 
 .featureHeaderTitle {
   margin: 0;
   color: var(--text);
-  font-size: 20px;
-  line-height: 30px;
+  font-size: 18px;
+  line-height: 26px;
   font-weight: 600;
-}
-
-.featureHeaderDescription {
-  margin: 0;
-  color: var(--text-secondary);
-  font-size: 13px;
-  line-height: 20px;
 }
 
 .accountAvatar {
@@ -224,18 +214,22 @@
   min-width: 0;
   min-height: 0;
   display: flex;
+  overflow: hidden;
   background: var(--surface);
 }
 
 .featureContent {
-  overflow: auto;
-  background: color-mix(in srgb, var(--surface) 98%, var(--app-bg));
-}
-
-.featureContent > * {
   flex: 1;
   min-width: 0;
   min-height: 0;
+  display: block;
+  overflow-x: hidden;
+  overflow-y: auto;
+  background: var(--surface);
+}
+
+.featureContent > * {
+  min-width: 0;
 }
 
 .loadingState {

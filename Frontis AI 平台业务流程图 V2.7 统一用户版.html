@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Frontis AI 平台业务流程图 V2.7 统一用户版</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      background: #eef1f6; color: #0f172a;
+    }
+    .page-header {
+      background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 60%, #1e40af 100%);
+      color: white; padding: 16px 32px;
+      display: flex; align-items: center; justify-content: space-between;
+      box-shadow: 0 3px 16px rgba(0,0,0,0.35); position: sticky; top: 0; z-index: 100;
+    }
+    .page-header h1 { font-size: 20px; font-weight: 800; letter-spacing: 1px; display: flex; align-items: center; gap: 10px; }
+    .logo-dot { width: 10px; height: 10px; border-radius: 50%; background: #60a5fa; box-shadow: 0 0 8px #60a5fa; }
+    .header-right { display: flex; align-items: center; gap: 12px; }
+    .version-badge { background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.25); padding: 3px 12px; border-radius: 99px; font-size: 11px; color: #93c5fd; font-weight: 700; }
+    .hint-badge { font-size: 11px; color: #fbbf24; }
+    .main-content { padding: 16px 20px 28px; }
+
+    .legend-box {
+      background: white; border-radius: 10px; box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+      padding: 12px 18px; margin-bottom: 14px; display: flex; flex-wrap: wrap; gap: 20px; align-items: center;
+    }
+    .legend-section { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+    .legend-divider { width: 1px; height: 24px; background: #e2e8f0; }
+    .legend-title { font-size: 10px; font-weight: 800; color: #374151; text-transform: uppercase; }
+    .legend-item { display: flex; align-items: center; gap: 6px; font-size: 11px; color: #4b5563; }
+    .legend-dot { width: 20px; height: 12px; border-radius: 3px; }
+    .legend-diamond { width: 10px; height: 10px; transform: rotate(45deg); border-radius: 1px; }
+    .legend-capsule { width: 28px; height: 13px; border-radius: 7px; }
+
+    .scroll-wrap { overflow: auto; border-radius: 12px; box-shadow: 0 4px 28px rgba(0,0,0,0.13); background: #fff; }
+    .node-clickable { cursor: pointer; }
+    .node-clickable:hover .shape { filter: brightness(0.97) saturate(1.08); stroke-width: 3; }
+
+    #popup-overlay { display: none; position: fixed; inset: 0; background: rgba(15,23,42,0.35); z-index: 200; backdrop-filter: blur(2px); }
+    #popup-overlay.show { display: block; }
+    #popup-panel {
+      position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+      width: 640px; max-height: 80vh; background: #fff; border-radius: 16px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.25); z-index: 210; overflow: hidden; display: none; flex-direction: column;
+    }
+    #popup-panel.show { display: flex; }
+    .popup-header { display: flex; align-items: center; justify-content: space-between; padding: 18px 22px 12px; border-bottom: 1px solid #f1f5f9; }
+    .popup-header h2 { font-size: 18px; font-weight: 800; }
+    .popup-body { padding: 18px 22px 22px; overflow-y: auto; }
+    .popup-body p { font-size: 13px; color: #475569; line-height: 1.7; margin-bottom: 12px; }
+    .info-card { background: #f8fafc; border-left: 3px solid #3b82f6; border-radius: 10px; padding: 12px 14px; margin-bottom: 10px; }
+    .info-card.red { background: #fef2f2; border-left-color: #dc2626; }
+    .info-card.green { background: #f0fdf4; border-left-color: #16a34a; }
+    .info-card.amber { background: #fffbeb; border-left-color: #d97706; }
+    .info-card.purple { background: #faf5ff; border-left-color: #7e22ce; }
+    .info-card.cyan { background: #ecfeff; border-left-color: #0891b2; }
+    .info-card h4 { font-size: 12px; margin-bottom: 4px; }
+    .info-card ul { padding-left: 18px; font-size: 12px; color: #475569; line-height: 1.8; }
+    .close-btn { width: 32px; height: 32px; border: none; background: #f1f5f9; border-radius: 50%; cursor: pointer; color: #64748b; font-size: 16px; }
+    .tag { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 99px; font-weight: 600; margin-right: 6px; }
+    .tag-blue { background: #dbeafe; color: #1d4ed8; }
+    .tag-green { background: #dcfce7; color: #15803d; }
+    .tag-red { background: #fef2f2; color: #dc2626; }
+    .tag-amber { background: #fef3c7; color: #92400e; }
+    .tag-purple { background: #f3e8ff; color: #7e22ce; }
+    .tag-gray { background: #f1f5f9; color: #475569; }
+    .tag-pink { background: #fce7f3; color: #9d174d; }
+    .tag-cyan { background: #cffafe; color: #155e75; }
+    .tag-orange { background: #ffedd5; color: #9a3412; }
+    .tag-indigo { background: #e0e7ff; color: #4338ca; }
+  </style>
+</head>
+<body>
+  <div class="page-header">
+    <h1><span class="logo-dot"></span>Frontis AI 平台业务流程图</h1>
+    <div class="header-right">
+      <span class="version-badge">V2.7 统一用户版</span>
+      <span class="hint-badge">💡 三泳道承接统一用户主交付链路 · 点击节点查看详情</span>
+    </div>
+  </div>
+  <div class="main-content">
+    <div class="legend-box">
+      <div class="legend-section">
+        <div class="legend-title">泳道</div>
+        <div class="legend-item"><span class="legend-dot" style="background:#dbeafe;border:1px solid #1d4ed8"></span>平台运营</div>
+        <div class="legend-item"><span class="legend-dot" style="background:#f3e8ff;border:1px solid #a855f7"></span>企业管理员</div>
+        <div class="legend-item"><span class="legend-dot" style="background:#fff7ed;border:1px solid #f97316"></span>普通员工</div>
+      </div>
+      <div class="legend-divider"></div>
+      <div class="legend-section">
+        <div class="legend-title">节点</div>
+        <div class="legend-item"><span class="legend-dot" style="background:#e0f2fe;border:1px solid #0ea5e9"></span>普通流程节点</div>
+        <div class="legend-item"><span class="legend-diamond" style="background:#fef3c7;border:1px solid #f59e0b"></span>审批/判断节点</div>
+        <div class="legend-item"><span class="legend-capsule" style="background:#fee2e2;border:1px solid #ef4444"></span>关键状态节点</div>
+        <div class="legend-item"><span class="legend-dot" style="background:#fef2f2;border:2px solid #dc2626"></span><span style="color:#dc2626;font-weight:700;">商品/订单相关</span></div>
+      </div>
+      <div class="legend-divider"></div>
+      <div class="legend-section">
+        <div class="legend-title">阶段</div>
+        <div class="legend-item"><span class="legend-dot" style="background:#dbeeff;border:1px solid #93c5fd"></span>①平台初始化与租户创建</div>
+        <div class="legend-item"><span class="legend-dot" style="background:#e0f2fe;border:1px solid #60a5fa"></span>②企业接入与成员激活</div>
+        <div class="legend-item"><span class="legend-dot" style="background:#fef9c3;border:1px solid #fde047"></span>③AI专家广场运营与商品上架</div>
+        <div class="legend-item"><span class="legend-dot" style="background:#fce7f3;border:1px solid #f9a8d4"></span>④员工自研与共享申请</div>
+        <div class="legend-item"><span class="legend-dot" style="background:#ede9fe;border:1px solid #c4b5fd"></span>⑤选品采购与权益绑定</div>
+        <div class="legend-item"><span class="legend-dot" style="background:#cffafe;border:1px solid #67e8f9"></span>⑥租户交付与权限配置</div>
+        <div class="legend-item"><span class="legend-dot" style="background:#ffedd5;border:1px solid #fdba74"></span>⑦统一工作台正式使用</div>
+        <div class="legend-item"><span class="legend-dot" style="background:#e5e7eb;border:1px solid #9ca3af"></span>⑧续费升级与持续运营</div>
+      </div>
+      <div class="legend-divider"></div>
+      <div class="legend-section">
+        <div class="legend-title">说明</div>
+        <div class="legend-item">💡 员工既可自研个人 agent，也可使用管理员正式授权的能力</div>
+        <div class="legend-item">↺ 虚线表示回流、续费或持续运营</div>
+      </div>
+    </div>
+    <div class="scroll-wrap"><svg id="flowSvg" xmlns="http://www.w3.org/2000/svg"></svg></div>
+  </div>
+
+  <div id="popup-overlay" onclick="closePopup()"></div>
+  <div id="popup-panel">
+    <div class="popup-header"><div><div id="popup-badge" style="margin-bottom:6px;"></div><h2 id="popup-title"></h2></div><button class="close-btn" onclick="closePopup()">✕</button></div>
+    <div class="popup-body" id="popup-body"></div>
+  </div>
+
+<script>
+const LANES = [
+  { id:'ops', label:'平台运营', short:'ops console', color:'#1d4ed8', fill:'#dbeafe' },
+  { id:'admin', label:'企业管理员', short:'tenant console', color:'#7e22ce', fill:'#f3e8ff' },
+  { id:'employee', label:'普通员工', short:'workspace', color:'#c2410c', fill:'#fff7ed' },
+];
+const STAGES = [
+  { id:'s1', title:'① 平台初始化与租户创建', en:'Platform Initialization & Tenant Creation', fill:'#dbeeff', text:'#1d4ed8' },
+  { id:'s2', title:'② 企业接入与成员激活', en:'Tenant Activation & Member Onboarding', fill:'#e0f2fe', text:'#0369a1' },
+  { id:'s3', title:'③ AI专家广场运营与商品上架', en:'Expert Plaza Operation & Product Listing', fill:'#fef9c3', text:'#92400e', extraWidth:80 },
+  { id:'s4', title:'④ 员工自研与共享申请', en:'Employee Development & Sharing Request', fill:'#fce7f3', text:'#9d174d', extraWidth:60 },
+  { id:'s5', title:'⑤ 选品采购与权益绑定', en:'Selection, Purchase & Entitlement Binding', fill:'#ede9fe', text:'#6d28d9', extraWidth:80 },
+  { id:'s6', title:'⑥ 租户交付与权限配置', en:'Tenant Delivery & Authorization', fill:'#cffafe', text:'#155e75', extraWidth:120 },
+  { id:'s7', title:'⑦ 统一工作台正式使用', en:'Workspace Usage', fill:'#ffedd5', text:'#9a3412', extraWidth:40 },
+  { id:'s8', title:'⑧ 续费升级与持续运营', en:'Renewal, Upgrade & Ongoing Operation', fill:'#e5e7eb', text:'#4b5563', extraWidth:120 },
+];
+const NODES = [
+  // 阶段1 平台初始化与租户创建
+  { id:'N1', stage:'s1', lane:'ops', type:'rect', title:'初始化平台底座', sub:'租户/角色/供给/商品规则' },
+  { id:'N2', stage:'s1', lane:'ops', type:'rect', title:'创建租户', sub:'新建企业主体与账号上下文' },
+  { id:'N3', stage:'s1', lane:'ops', type:'rect', title:'建立统一角色权限基线', sub:'统一角色/菜单/数据权限规则' },
+  { id:'N4', stage:'s1', lane:'ops', type:'rect', title:'邀请企业管理员', sub:'发送激活入口与初始说明' },
+
+  // 阶段2 企业接入与成员激活
+  { id:'N5', stage:'s2', lane:'admin', type:'rect', title:'激活租户并首次登录', sub:'接受邀请进入企业后台', status:'【已激活】', statusType:'green' },
+  { id:'N6', stage:'s2', lane:'admin', type:'rect', title:'初始化组织与角色', sub:'部门/负责人/基础角色' },
+  { id:'N7', stage:'s2', lane:'admin', type:'rect', title:'邀请员工加入租户', sub:'导入名单或发送邀请' },
+  { id:'N8', stage:'s2', lane:'employee', type:'rect', title:'员工首次登录统一工作台', sub:'进入个人工作入口', status:'【已入驻】', statusType:'blue' },
+
+  // 阶段3 AI专家广场运营与商品上架
+  { id:'N9', stage:'s3', lane:'ops', type:'rect', title:'审核AI专家并维护广场配置', sub:'标签/简介/版本/适用场景' },
+  { id:'N10', stage:'s3', lane:'ops', type:'rect', title:'运营侧 AI专家广场上架', sub:'全平台可见 / 特定租户可见' },
+  { id:'N11', stage:'s3', lane:'ops', type:'rect', title:'🟥 复用商品中心上架商品', sub:'AI专家转商品或维护套餐', product:true, status:'【商品在售】', statusType:'red' },
+
+  // 阶段4 员工自研与共享申请
+  { id:'N12', stage:'s4', lane:'employee', type:'rect', title:'创建个人 Agent', sub:'Prompt / Skill / 知识 / 工具' },
+  { id:'N13', stage:'s4', lane:'employee', type:'rect', title:'选择开发模型并测试', sub:'在统一工作台内完成体验' },
+  { id:'N14', stage:'s4', lane:'employee', type:'diamond', title:'仅自己\n使用?' },
+  { id:'N15', stage:'s4', lane:'employee', type:'rect', title:'进入我的 Agent', sub:'个人立即可用', status:'【个人可用】', statusType:'green' },
+  { id:'N16', stage:'s4', lane:'employee', type:'rect', title:'提交团队共享申请', sub:'说明用途/目标成员' },
+  { id:'N17', stage:'s4', lane:'admin', type:'diamond', title:'同意\n共享?' },
+  { id:'N18', stage:'s4', lane:'admin', type:'rect', title:'审核通过并加入团队供给区', sub:'企业内可见但尚未正式授权', status:'【已共享】', statusType:'green' },
+
+  // 阶段5 选品采购与权益开通
+  { id:'N19', stage:'s5', lane:'admin', type:'rect', title:'浏览AI专家广场与已购能力', sub:'官方广场 + 团队共享 + 已购列表' },
+  { id:'N20', stage:'s5', lane:'admin', type:'diamond', title:'需要付费\n购买?' },
+  { id:'N21', stage:'s5', lane:'admin', type:'rect', title:'直接加入待配置清单', sub:'免费官方 / 内部共享 / 已购能力', status:'【待交付】', statusType:'amber' },
+  { id:'N22', stage:'s5', lane:'admin', type:'rect', title:'🟥 创建订单并提交付款', sub:'确认商品/版本/数量', product:true, status:'【待付款】', statusType:'red' },
+  { id:'N23', stage:'s5', lane:'ops', type:'rect', title:'🟥 确认付款并开通权益', sub:'商品权益挂到租户', product:true, status:'【权益已开通】', statusType:'green' },
+
+  // 阶段6 租户交付与权限配置
+  { id:'N24', stage:'s6', lane:'admin', type:'rect', title:'完成租户交付配置', sub:'版本/模型/分组/上架位', status:'【待授权】', statusType:'amber' },
+  { id:'N25', stage:'s6', lane:'admin', type:'rect', title:'配置部门/成员权限', sub:'全员 / 部门 / 指定成员' },
+  { id:'N26', stage:'s6', lane:'admin', type:'rect', title:'发布到员工可见列表', sub:'形成最终授权结果', status:'【已授权】', statusType:'green' },
+
+  // 阶段7 统一工作台正式使用
+  { id:'N27', stage:'s7', lane:'employee', type:'rect', title:'在工作台看到可用能力', sub:'个人 Agent + 已授权官方/团队 Agent' },
+  { id:'N28', stage:'s7', lane:'employee', type:'rect', title:'发起对话与任务执行', sub:'文件/Skill/历史会话' },
+  { id:'N29', stage:'s7', lane:'employee', type:'rect', title:'提交反馈或新需求', sub:'使用反馈 / 新购诉求 / 优化想法' },
+
+  // 阶段8 续费升级与持续运营
+  { id:'N30', stage:'s8', lane:'ops', type:'rect', title:'🟥 发布新版本或维护商品', sub:'升级包 / 调价 / 下架 / 可见性', product:true },
+  { id:'N31', stage:'s8', lane:'admin', type:'diamond', title:'需要付费\n续费/升级?' },
+  { id:'N32', stage:'s8', lane:'admin', type:'rect', title:'🟥 创建续费/升级订单', sub:'扩容 / 高阶版本 / 到期续费', product:true, status:'【待付款】', statusType:'red' },
+  { id:'N33', stage:'s8', lane:'admin', type:'rect', title:'更新租户配置并二次授权', sub:'应用新版本/新权益/新范围', status:'【已更新】', statusType:'green' },
+  { id:'N34', stage:'s8', lane:'employee', type:'rect', title:'使用新版能力继续工作', sub:'版本与权限生效后继续使用' },
+];
+const EDGES = [
+  ['N1','N2','blue'],
+  ['N2','N3','blue'],
+  ['N3','N4','blue'],
+  ['N4','N5','blue'],
+  ['N5','N6','purple'],
+  ['N6','N7','purple'],
+  ['N7','N8','purple'],
+  ['N3','N9','gray'],
+  ['N9','N10','blue'],
+  ['N10','N11','red'],
+  ['N8','N12','orange'],
+  ['N12','N13','orange'],
+  ['N13','N14','orange'],
+  ['N14','N15','green','是'],
+  ['N14','N16','orange','否'],
+  ['N16','N17','amber'],
+  ['N17','N18','green','通过'],
+  ['N7','N19','purple'],
+  ['N19','N20','purple'],
+  ['N20','N21','green','免费/内部'],
+  ['N20','N22','red','付费'],
+  ['N22','N23','cyan'],
+  ['N21','N24','purple'],
+  ['N23','N24','cyan'],
+  ['N24','N25','purple'],
+  ['N25','N26','purple'],
+  ['N26','N27','purple'],
+  ['N27','N28','orange'],
+  ['N28','N29','orange'],
+  ['N30','N31','blue'],
+  ['N31','N32','red','是'],
+  ['N31','N33','green','否，直接升级'],
+  ['N33','N34','green'],
+];
+const SPECIAL_EDGES = [
+  { from:'N10', to:'N19', color:'blue', dashed:true, label:'提供广场可见专家' },
+  { from:'N11', to:'N19', color:'red', dashed:true, label:'提供商品中心付费入口' },
+  { from:'N17', to:'N12', color:'red', dashed:true, label:'驳回→继续优化' },
+  { from:'N18', to:'N19', color:'purple', dashed:true, label:'进入团队供给列表' },
+  { from:'N15', to:'N27', color:'purple', dashed:true, label:'个人入口直达' },
+  { from:'N26', to:'N31', color:'gray', dashed:true, label:'到期/版本提醒' },
+  { from:'N29', to:'N12', color:'red', dashed:true, label:'反馈→继续优化自研' },
+  { from:'N29', to:'N30', color:'gray', dashed:true, label:'反馈沉淀到平台运营' },
+  { from:'N32', to:'N22', color:'purple', dashed:true, label:'↺ 回流购买链路' },
+];
+const COLORS = { gray:'#64748b', blue:'#2563eb', green:'#16a34a', amber:'#d97706', red:'#dc2626', purple:'#9333ea', cyan:'#0891b2', orange:'#ea580c' };
+function markerId(c){return ({gray:'arr',blue:'arr-b',green:'arr-g',amber:'arr-a',red:'arr-r',purple:'arr-p',cyan:'arr-c',orange:'arr-o'})[c]||'arr';}
+
+const POPUPS = {
+  N1:{badge:'<span class="tag tag-blue">平台运营</span><span class="tag tag-blue">① 平台初始化</span>',title:'初始化平台底座',body:'<div class="info-card"><ul><li>保留原有系统初始化逻辑不变。</li><li>初始化统一用户底座、租户模型、角色模型、供给池、商品与订单的基础规则。</li><li>后续统一工作台、企业后台、平台运营端都建立在这套底座上。</li></ul></div>'},
+  N2:{badge:'<span class="tag tag-blue">平台运营</span><span class="tag tag-blue">① 平台初始化</span>',title:'创建租户',body:'<div class="info-card"><ul><li>租户是后续购买、授权、交付、审计的根对象。</li><li>统一用户模式下，正式团队能力仍然必须先挂在租户下。</li></ul></div>'},
+  N3:{badge:'<span class="tag tag-blue">平台运营</span><span class="tag tag-blue">① 平台初始化</span>',title:'建立统一角色权限基线',body:'<div class="info-card"><ul><li>不再单独做“租户能力开通”动作，统一改为一套角色权限底座。</li><li>平台侧维护统一角色、菜单权限和数据权限规则。</li><li>后续每个租户都是在同一套角色权限模型下运行，而不是按租户单独开模块。</li></ul></div>'},
+  N4:{badge:'<span class="tag tag-blue">平台运营</span><span class="tag tag-blue">① 平台初始化</span>',title:'邀请企业管理员',body:'<div class="info-card"><ul><li>平台运营只对接企业管理员，不再引入 FDE 独立角色链路。</li><li>企业管理员是企业正式配置面的承接者。</li></ul></div>'},
+  N5:{badge:'<span class="tag tag-purple">企业管理员</span><span class="tag tag-cyan">② 企业接入</span>',title:'激活租户并首次登录',body:'<div class="info-card purple"><ul><li>企业管理员接受邀请后进入企业后台。</li><li>租户状态进入【已激活】，后续组织、成员、权限都在该租户内配置。</li></ul></div>'},
+  N6:{badge:'<span class="tag tag-purple">企业管理员</span><span class="tag tag-cyan">② 企业接入</span>',title:'初始化组织与角色',body:'<div class="info-card purple"><ul><li>建立部门、负责人、基础角色。</li><li>组织结构是后续 Agent 权限下发和部门可见范围控制的基础。</li></ul></div>'},
+  N7:{badge:'<span class="tag tag-purple">企业管理员</span><span class="tag tag-cyan">② 企业接入</span>',title:'邀请员工加入租户',body:'<div class="info-card purple"><ul><li>将普通员工正式拉入统一用户体系下的企业租户。</li><li>员工进入租户后才可能被授权官方能力或团队共享能力。</li></ul></div>'},
+  N8:{badge:'<span class="tag tag-orange">普通员工</span><span class="tag tag-cyan">② 企业接入</span>',title:'员工首次登录统一工作台',body:'<div class="info-card"><ul><li>员工获得统一工作台入口。</li><li>后续“开发”和“使用”都在同一个工作台内完成，不再拆成完全割裂的入口。</li></ul></div>'},
+  N9:{badge:'<span class="tag tag-blue">平台运营</span><span class="tag tag-amber">③ 平台供给</span>',title:'审核AI专家并维护广场配置',body:'<div class="info-card"><ul><li>平台运营审核平台侧 AI 专家，并维护广场展示信息。</li><li>配置内容包括：名称、简介、标签、适用场景、版本说明等。</li><li>这是 AI 专家进入运营侧广场前的准入与运营动作。</li></ul></div>'},
+  N10:{badge:'<span class="tag tag-blue">平台运营</span><span class="tag tag-amber">③ 平台供给</span>',title:'运营侧 AI专家广场上架',body:'<div class="info-card"><ul><li>平台运营在运营侧 AI 专家广场中上架专家。</li><li>上架时需配置可见范围：<strong>全平台可见</strong> 或 <strong>特定租户可见</strong>。</li><li>AI 专家进入广场后可以被发现，但是否正式使用仍要看后续购买和授权配置。</li></ul></div>'},
+  N11:{badge:'<span class="tag tag-red">🟥 商品/订单相关</span><span class="tag tag-amber">③ 平台供给</span>',title:'复用商品中心上架商品',body:'<div class="info-card red"><ul><li>原先的商品中心继续复用，不重新设计一套商品系统。</li><li>平台运营可将 AI 专家转成商品，也可维护套餐、价格和销售说明。</li><li>商品上架后进入后续购买、付款和权益绑定链路。</li></ul></div>'},
+  N12:{badge:'<span class="tag tag-orange">普通员工</span><span class="tag tag-pink">④ 员工自研</span>',title:'创建个人 Agent',body:'<div class="info-card"><ul><li>普通员工可在统一工作台内创建自己的 Agent。</li><li>适用于个人效率工具、部门内小场景或后续准备共享的能力原型。</li></ul></div>'},
+  N13:{badge:'<span class="tag tag-orange">普通员工</span><span class="tag tag-pink">④ 员工自研</span>',title:'选择开发模型并测试',body:'<div class="info-card"><ul><li>开发阶段允许员工选择开发模型并体验效果。</li><li>这里解决会议里提到的“统一工作台后，开发也需要能选模型”的问题。</li><li>正式对外授权后的运行模型，后续仍可由企业管理员在租户配置阶段收口管理。</li></ul></div>'},
+  N14:{badge:'<span class="tag tag-amber">判断节点</span><span class="tag tag-pink">④ 员工自研</span>',title:'仅自己使用？',body:'<div class="info-card amber"><ul><li>是：走个人 Agent 路径，直接进入“我的 Agent”。</li><li>否：进入团队共享申请，由企业管理员决定是否纳入团队供给区。</li></ul></div>'},
+  N15:{badge:'<span class="tag tag-orange">普通员工</span><span class="tag tag-pink">④ 员工自研</span>',title:'进入我的 Agent',body:'<div class="info-card"><ul><li>个人 Agent 只对本人可见和可用。</li><li>这条链路不需要购买，也不需要先进入团队授权。</li></ul></div>'},
+  N16:{badge:'<span class="tag tag-orange">普通员工</span><span class="tag tag-pink">④ 员工自研</span>',title:'提交团队共享申请',body:'<div class="info-card"><ul><li>员工明确共享目的、目标成员或业务场景。</li><li>共享并不等于全员自动可见，仍然要经过管理员审核和后续权限配置。</li></ul></div>'},
+  N17:{badge:'<span class="tag tag-amber">审批节点</span><span class="tag tag-pink">④ 员工自研</span>',title:'同意共享？',body:'<div class="info-card amber"><ul><li>企业管理员判断该 Agent 是否可进入团队供给区。</li><li>通过：成为企业内部可选择供给。</li><li>拒绝：回到员工继续优化，不进入正式授权链。</li></ul></div>'},
+  N18:{badge:'<span class="tag tag-purple">企业管理员</span><span class="tag tag-pink">④ 员工自研</span>',title:'审核通过并加入团队供给区',body:'<div class="info-card purple"><ul><li>表示该 Agent 已具备“企业内可被选择”的资格。</li><li>此时只是进入团队供给区，还没有正式发到所有员工列表。</li><li>后续仍要经过租户配置和权限下发，才会成为正式可用能力。</li></ul></div>'},
+  N19:{badge:'<span class="tag tag-purple">企业管理员</span><span class="tag tag-indigo">⑤ 选品采购</span>',title:'浏览AI专家广场与已购能力',body:'<div class="info-card purple"><ul><li>企业管理员统一浏览三类内容：平台运营上架的 AI 专家广场、企业内部共享供给、历史已购能力。</li><li>对于付费能力，可从广场进入商品中心对应商品完成采购。</li></ul></div>'},
+  N20:{badge:'<span class="tag tag-amber">判断节点</span><span class="tag tag-indigo">⑤ 选品采购</span>',title:'需要付费购买？',body:'<div class="info-card amber"><ul><li>免费官方能力、团队共享能力、历史已购能力，可以直接进入后续配置。</li><li>新的付费官方能力，需要通过商品中心对应商品进入订单和付款链路。</li></ul></div>'},
+  N21:{badge:'<span class="tag tag-purple">企业管理员</span><span class="tag tag-indigo">⑤ 选品采购</span>',title:'直接加入待配置清单',body:'<div class="info-card purple"><ul><li>适用于免费官方、团队共享或已有权益的能力。</li><li>这些能力不需要再购买，但仍需进入后续配置与成员授权步骤，才能正式下发给员工。</li></ul></div>'},
+  N22:{badge:'<span class="tag tag-red">🟥 商品/订单相关</span><span class="tag tag-indigo">⑤ 选品采购</span>',title:'创建订单并提交付款',body:'<div class="info-card red"><ul><li>企业管理员明确本次购买内容、版本、数量、备注。</li><li>订单绑定租户，后续权益开通和交付也都挂在该租户下。</li></ul></div>'},
+  N23:{badge:'<span class="tag tag-red">🟥 商品/订单相关</span><span class="tag tag-indigo">⑤ 选品采购</span>',title:'确认付款并开通权益',body:'<div class="info-card red"><ul><li>平台运营确认付款状态后，将正式权益挂到租户。</li><li>这一步完成后，租户层面才真正拥有该商品对应的可交付能力。</li></ul></div>'},
+  N24:{badge:'<span class="tag tag-purple">企业管理员</span><span class="tag tag-cyan">⑥ 交付配置</span>',title:'完成租户交付配置',body:'<div class="info-card purple"><ul><li>将已选中的 AI 专家或已购商品进行正式配置。</li><li>包括版本、运行模型、分组方式、展示位置等交付动作。</li><li>这是统一用户模式下的“正式交付”承接点。</li></ul></div>'},
+  N25:{badge:'<span class="tag tag-purple">企业管理员</span><span class="tag tag-cyan">⑥ 交付配置</span>',title:'配置部门/成员权限',body:'<div class="info-card purple"><ul><li>明确谁能看见、谁能使用。</li><li>至少支持全员、部门、指定成员三种授权粒度。</li><li>这里是统一工作台最终可见性的核心控制点。</li></ul></div>'},
+  N26:{badge:'<span class="tag tag-purple">企业管理员</span><span class="tag tag-cyan">⑥ 交付配置</span>',title:'发布到员工可见列表',body:'<div class="info-card purple"><ul><li>配置完成后，正式生成员工侧可见列表。</li><li>员工最终看到什么，取决于<strong>统一角色权限</strong>、成员授权范围和专家可见范围的共同结果。</li></ul></div>'},
+  N27:{badge:'<span class="tag tag-orange">普通员工</span><span class="tag tag-orange">⑦ 正式使用</span>',title:'在工作台看到可用能力',body:'<div class="info-card"><ul><li>员工看到两类内容：自己的个人 Agent，以及管理员正式授权的官方/团队能力。</li><li>这两类内容在同一个工作台入口汇合，形成统一体验。</li></ul></div>'},
+  N28:{badge:'<span class="tag tag-orange">普通员工</span><span class="tag tag-orange">⑦ 正式使用</span>',title:'发起对话与任务执行',body:'<div class="info-card"><ul><li>员工进入具体 Agent 发起对话，上传文件、选择 Skill、查看历史会话。</li><li>这一步是统一用户模式真正的价值落点：能力被交付后开始持续被使用。</li></ul></div>'},
+  N29:{badge:'<span class="tag tag-orange">普通员工</span><span class="tag tag-orange">⑦ 正式使用</span>',title:'提交反馈或新需求',body:'<div class="info-card"><ul><li>员工可以反馈使用问题、提出新增采购诉求，或继续优化自己的自研 Agent。</li><li>这里是统一工作台闭环里最重要的回流入口。</li></ul></div>'},
+  N30:{badge:'<span class="tag tag-red">🟥 商品/订单相关</span><span class="tag tag-gray">⑧ 持续运营</span>',title:'发布新版本或维护商品',body:'<div class="info-card red"><ul><li>平台运营持续维护 AI 专家广场和商品中心两套运营对象。</li><li>AI 专家侧维护版本、标签、可见范围；商品侧维护价格、上下架、套餐说明。</li><li>价格调整影响未来新订单，不追溯历史订单；升级说明会进入后续续费/升级决策。</li></ul></div>'},
+  N31:{badge:'<span class="tag tag-amber">判断节点</span><span class="tag tag-gray">⑧ 持续运营</span>',title:'需要付费续费/升级？',body:'<div class="info-card amber"><ul><li>否：属于免费升级或合同内调整，可直接更新租户配置。</li><li>是：需要续费、扩容或购买更高版本，回流到订单购买链路。</li></ul></div>'},
+  N32:{badge:'<span class="tag tag-red">🟥 商品/订单相关</span><span class="tag tag-gray">⑧ 持续运营</span>',title:'创建续费/升级订单',body:'<div class="info-card red"><ul><li>将续费、扩容、高阶版本升级收口为新的订单动作。</li><li>订单创建后回流到原有购买付款链路，不直接改租户结果。</li></ul></div>'},
+  N33:{badge:'<span class="tag tag-purple">企业管理员</span><span class="tag tag-gray">⑧ 持续运营</span>',title:'更新租户配置并二次授权',body:'<div class="info-card purple"><ul><li>免费升级或新的权益开通后，企业管理员重新应用配置并完成授权调整。</li><li>统一用户模式下，升级不是直接结束，而是再次回到“租户配置与授权”步骤收口。</li></ul></div>'},
+  N34:{badge:'<span class="tag tag-orange">普通员工</span><span class="tag tag-gray">⑧ 持续运营</span>',title:'使用新版能力继续工作',body:'<div class="info-card"><ul><li>更新完成后，员工继续在统一工作台里使用最新权限或最新版本。</li><li>这使整个流程形成“AI专家广场运营 / 商品中心上架 → 授权交付 → 使用反馈 → 续费升级”的闭环。</li></ul></div>'},
+};
+
+function closePopup(){document.getElementById('popup-overlay').classList.remove('show');document.getElementById('popup-panel').classList.remove('show');}
+function openPopup(id){const d=POPUPS[id];if(!d)return;document.getElementById('popup-badge').innerHTML=d.badge;document.getElementById('popup-title').textContent=d.title;document.getElementById('popup-body').innerHTML=d.body;document.getElementById('popup-overlay').classList.add('show');document.getElementById('popup-panel').classList.add('show');}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closePopup();});
+
+function estW(t,s=12){return t.replace(/[A-Z0-9\u4e00-\u9fff]/g,'aa').length*s*0.55;}
+function nodeW(n){return n.type==='diamond'?190:Math.max(170,estW(n.title.replace('🟥 ',''),12)+54, n.sub?estW(n.sub,10)+42:0, n.status?estW(n.status,10)+36:0);}
+function laneTheme(laneId){
+  return ({
+    ops:{ title:'#1e3a8a', sub:'#2563eb', badge:'#2563eb' },
+    admin:{ title:'#6b21a8', sub:'#7e22ce', badge:'#7e22ce' },
+    employee:{ title:'#9a3412', sub:'#ea580c', badge:'#c2410c' },
+  })[laneId] || { title:'#334155', sub:'#475569', badge:'#475569' };
+}
+
+function computeStageWidths(){
+  const GAP=30,CONN_GAP=58,PAD=42,MIN=500,TITLE_PAD=120;
+  const es=new Set(EDGES.map(([f,t])=>f+'->'+t));
+  return STAGES.map(st=>{
+    const sn=NODES.filter(n=>n.stage===st.id);
+    const laneSpans=LANES.map(la=>{
+      const rn=sn.filter(n=>n.lane===la.id); if(!rn.length) return 0;
+      let cursor=0;
+      let minX=Infinity;
+      let maxX=0;
+      rn.forEach((n,idx)=>{
+        const gap=idx?((es.has(rn[idx-1].id+'->'+n.id)||es.has(n.id+'->'+rn[idx-1].id))?CONN_GAP:GAP):0;
+        cursor+=gap;
+        const nx=cursor+(n.dx||0);
+        const nw=nodeW(n);
+        minX=Math.min(minX,nx);
+        maxX=Math.max(maxX,nx+nw);
+        cursor=nx+nw;
+      });
+      const leftOverflow=Math.max(0,-minX);
+      const rightSpan=Math.max(0,maxX);
+      return leftOverflow + rightSpan;
+    });
+    const maxLaneSpan=Math.max(...laneSpans,0);
+    const titleWidth=Math.max(estW(st.title,13),estW(st.en,10))+TITLE_PAD;
+    return {...st,width:Math.max(MIN,maxLaneSpan+PAD*2,titleWidth)+(st.extraWidth||0)};
+  });
+}
+
+function render(){
+  const svg=document.getElementById('flowSvg');
+  const LT=60, LH=148, LLW=132, HH=56, FH=60, NH=50, PHG=18;
+  const sw=computeStageWidths();
+  let xc=LLW; const sp={};
+  sw.forEach(s=>{sp[s.id]={x:xc,w:s.width}; xc+=s.width+PHG;});
+  const TW=xc, TH=LT+LANES.length*LH+FH;
+  svg.setAttribute('width',TW); svg.setAttribute('height',TH);
+
+  let h='';
+  h+=`<defs>
+    <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,1 L9,5 L0,9 Z" fill="#6b7280"></path></marker>
+    <marker id="arr-b" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,1 L9,5 L0,9 Z" fill="#2563eb"></path></marker>
+    <marker id="arr-g" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,1 L9,5 L0,9 Z" fill="#16a34a"></path></marker>
+    <marker id="arr-r" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,1 L9,5 L0,9 Z" fill="#dc2626"></path></marker>
+    <marker id="arr-p" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,1 L9,5 L0,9 Z" fill="#9333ea"></path></marker>
+    <marker id="arr-a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,1 L9,5 L0,9 Z" fill="#d97706"></path></marker>
+    <marker id="arr-c" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,1 L9,5 L0,9 Z" fill="#0891b2"></path></marker>
+    <marker id="arr-o" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,1 L9,5 L0,9 Z" fill="#ea580c"></path></marker>
+    <filter id="sh" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="rgba(0,0,0,0.1)"></feDropShadow></filter>
+    <filter id="sh-r" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="rgba(220,38,38,0.18)"></feDropShadow></filter>
+  </defs>`;
+
+  sw.forEach(s=>{const{x,w}=sp[s.id]; h+=`<rect x="${x}" y="0" width="${w}" height="${TH}" fill="${s.fill}" opacity="0.32"></rect>`;});
+  LANES.forEach((la,i)=>{h+=`<rect x="${LLW}" y="${LT+i*LH}" width="${TW-LLW}" height="${LH}" fill="${la.fill}" opacity="0.16"></rect>`;});
+  h+=`<rect x="${LLW}" y="0" width="${TW-LLW}" height="${HH}" fill="rgba(15,23,42,0.04)"></rect>`;
+  sw.forEach(s=>{const{x,w}=sp[s.id]; h+=`<rect x="${x+1}" y="4" width="${w-2}" height="48" rx="6" fill="${s.fill}" opacity="0.84"></rect>`; h+=`<text x="${x+w/2}" y="23" text-anchor="middle" font-size="13" font-weight="800" fill="${s.text}">${s.title}</text>`; h+=`<text x="${x+w/2}" y="40" text-anchor="middle" font-size="10" fill="${s.text}">${s.en}</text>`;});
+
+  LANES.forEach((la,i)=>{const y=LT+i*LH; h+=`<rect x="0" y="${y}" width="${LLW}" height="${LH}" fill="${la.color}"></rect>`; h+=`<text x="50" y="${y+16}" writing-mode="tb" glyph-orientation-vertical="0" font-size="12" font-weight="700" fill="white">${la.label}</text>`; h+=`<text x="86" y="${y+16}" writing-mode="tb" glyph-orientation-vertical="0" font-size="9" fill="white" opacity="0.75">${la.short}</text>`;});
+  h+=`<rect x="0" y="${LT+LANES.length*LH}" width="${TW}" height="${FH}" fill="#0f172a"></rect>`;
+
+  h+=`<line x1="${LLW}" y1="0" x2="${LLW}" y2="${TH}" stroke="#1e293b" stroke-width="2.5"></line>`;
+  for(let i=0;i<=LANES.length;i++){const y=LT+i*LH;h+=`<line x1="0" y1="${y}" x2="${TW}" y2="${y}" stroke="#cbd5e1" stroke-width="${i===0||i===LANES.length?1.5:2}"></line>`;}
+  sw.forEach((s,i)=>{if(i===0)return;const x=sp[s.id].x;h+=`<line x1="${x}" y1="56" x2="${x}" y2="${LT+LANES.length*LH}" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="8,5"></line>`;});
+
+  const np={};
+  sw.forEach(st=>{
+    const{x}=sp[st.id];
+    LANES.forEach((la,li)=>{
+      const rn=NODES.filter(n=>n.stage===st.id&&n.lane===la.id); if(!rn.length) return;
+      let cx=x+42; const cy=LT+li*LH+LH/2;
+      rn.forEach((n,idx)=>{
+        const nw=nodeW(n), nh=NH, nx=cx+(n.dx||0), ny=cy-nh/2, shapeH=n.type==='diamond'?78:nh;
+        np[n.id]={x:nx,y:ny,w:nw,h:nh,shapeH,cx:nx+nw/2,cy,stage:st.id,lane:la.id,type:n.type};
+        const hasEdge=idx<rn.length-1&&EDGES.some(([f,t])=>(f===n.id&&t===rn[idx+1].id)||(t===n.id&&f===rn[idx+1].id));
+        cx=nx+nw+(hasEdge?58:30);
+      });
+    });
+  });
+
+  function anchors(n){
+    const topY=n.cy-(n.shapeH||n.h)/2,bottomY=n.cy+(n.shapeH||n.h)/2;
+    return { left:{x:n.x,y:n.cy}, right:{x:n.x+n.w,y:n.cy}, top:{x:n.cx,y:topY}, bottom:{x:n.cx,y:bottomY} };
+  }
+  function laneIndex(id){ return LANES.findIndex(l=>l.id===id); }
+  function stageIndex(id){ return STAGES.findIndex(s=>s.id===id); }
+  function edgeBias(colorKey='gray', dashed=false){
+    const map={ gray:0, blue:-12, green:12, amber:-20, red:22, purple:30, cyan:-30, orange:16 };
+    return (map[colorKey]||0) + (dashed? (map[colorKey]>=0?12:-12) : 0);
+  }
+  function resolveAnchor(n, side){
+    return anchors(n)[side];
+  }
+  function routeMeta(a,b,colorKey,dashed,retreat){
+    const A=anchors(a), B=anchors(b);
+    const dx=b.cx-a.cx, dy=b.cy-a.cy;
+    const sameLane=a.lane===b.lane;
+    const sameStage=a.stage===b.stage;
+    const liA=laneIndex(a.lane), liB=laneIndex(b.lane);
+    const siA=stageIndex(a.stage), siB=stageIndex(b.stage);
+    const laneGap=Math.abs(liB-liA), stageGap=Math.abs(siB-siA);
+    const bias=edgeBias(colorKey,dashed);
+
+    if(retreat){
+      const lift=Math.min(A.top.y,B.top.y)-54-stageGap*14+Math.min(bias,0);
+      return { mode:'retreat-top', from:A.top, to:B.top, rail:lift, bias, sameLane, sameStage };
+    }
+
+    if(sameStage && !sameLane){
+      const nearColumn = Math.abs(dx) < 70;
+      const sideOffset = nearColumn ? 34 + laneGap * 8 : 0;
+
+      if(dy < 0){
+        const to = B.bottom;
+        const from = A.top;
+        const viaX = nearColumn ? Math.max(from.x, to.x) + sideOffset : ((from.x + to.x) / 2 + (dx >= 0 ? 12 : -12));
+        return { mode: dx < 0 ? 'same-stage-up-back' : 'same-stage-up', from, to, viaX, bias, laneGap, nearColumn };
+      }
+
+      const to = B.top;
+      const from = A.bottom;
+      const viaX = nearColumn ? Math.max(from.x, to.x) + sideOffset : ((from.x + to.x) / 2 + (dx >= 0 ? 12 : -12));
+      return { mode: dx < 0 ? 'same-stage-down-back' : 'same-stage-down', from, to, viaX, bias, laneGap, nearColumn };
+    }
+
+    if(sameLane && Math.abs(dx)>=Math.abs(dy)){
+      if(dx>=0){
+        const midX=(A.right.x+B.left.x)/2 + bias*0.35;
+        return { mode:'horizontal', from:A.right, to:B.left, rail:midX, bias, sameLane, sameStage };
+      }
+      const railY=Math.min(A.top.y,B.top.y)-50-stageGap*12+Math.min(bias,0);
+      return { mode:'horizontal-back', from:A.left, to:B.right, rail:railY, bias, sameLane, sameStage };
+    }
+
+    if(dy>=0){
+      const from=A.bottom;
+      const targetSide = (dashed && stageGap >= 2) ? 'bottom' : 'top';
+      const to=resolveAnchor(b, targetSide);
+      const railY=(from.y+to.y)/2 + bias + stageGap*6;
+      const enterShift=(siB-siA)*10;
+      return { mode:'vertical-down', from, to, rail:railY, enterShift, bias, sameLane, sameStage, laneGap, targetSide };
+    }
+
+    const from=A.top;
+    const to=resolveAnchor(b,'bottom');
+    const railY=(from.y+to.y)/2 + bias - stageGap*6;
+    const enterShift=(siB-siA)*10;
+    return { mode:'vertical-up', from, to, rail:railY, enterShift, bias, sameLane, sameStage, laneGap, targetSide:'bottom' };
+  }
+  function path(a,b,colorKey,dashed=false,retreat=false,level=0){
+    const meta=routeMeta(a,b,colorKey,dashed,retreat);
+    const f=meta.from, t=meta.to;
+    const levelShift=level*10*(meta.bias>=0?1:-1);
+
+    if(meta.mode==='horizontal'){
+      const mx=meta.rail + levelShift;
+      return `M ${f.x} ${f.y} L ${mx} ${f.y} L ${mx} ${t.y} L ${t.x} ${t.y}`;
+    }
+    if(meta.mode==='horizontal-back'){
+      const ry=meta.rail - level*12;
+      return `M ${f.x} ${f.y} L ${f.x-20} ${f.y} L ${f.x-20} ${ry} L ${t.x+20} ${ry} L ${t.x+20} ${t.y} L ${t.x} ${t.y}`;
+    }
+    if(meta.mode==='same-stage-up'){
+      const vx=meta.viaX + level*6;
+      const preY=t.y + 18;
+      return `M ${f.x} ${f.y} L ${vx} ${f.y} L ${vx} ${preY} L ${t.x} ${preY} L ${t.x} ${t.y}`;
+    }
+    if(meta.mode==='same-stage-down'){
+      const vx=meta.viaX + level*6;
+      const preY=t.y - 18;
+      return `M ${f.x} ${f.y} L ${vx} ${f.y} L ${vx} ${preY} L ${t.x} ${preY} L ${t.x} ${t.y}`;
+    }
+    if(meta.mode==='same-stage-up-back'){
+      const vx=meta.viaX - level*8;
+      const preY=t.y + 18;
+      return `M ${f.x} ${f.y} L ${vx} ${f.y} L ${vx} ${preY} L ${t.x} ${preY} L ${t.x} ${t.y}`;
+    }
+    if(meta.mode==='same-stage-down-back'){
+      const vx=meta.viaX - level*8;
+      const preY=t.y - 18;
+      return `M ${f.x} ${f.y} L ${vx} ${f.y} L ${vx} ${preY} L ${t.x} ${preY} L ${t.x} ${t.y}`;
+    }
+    if(meta.mode==='vertical-down' || meta.mode==='vertical-up'){
+      const ry=meta.rail + levelShift;
+      const tx=t.x + (meta.enterShift||0) + meta.bias*0.18;
+      const preY = meta.targetSide==='bottom' ? t.y+14 : t.y-14*(meta.mode==='vertical-down'?1:-1);
+      return `M ${f.x} ${f.y} L ${f.x} ${ry} L ${tx} ${ry} L ${tx} ${preY} L ${t.x} ${t.y}`;
+    }
+    if(meta.mode==='retreat-top'){
+      const ry=meta.rail - level*12;
+      return `M ${f.x} ${f.y} L ${f.x} ${ry} L ${t.x} ${ry} L ${t.x} ${t.y}`;
+    }
+    return `M ${f.x} ${f.y} L ${t.x} ${t.y}`;
+  }
+  function draw(a,b,ck,label,dashed,retreat,level=0){
+    const c=COLORS[ck]||COLORS.gray,mk=markerId(ck),d=path(a,b,ck,dashed,retreat,level);
+    const sw=dashed?1.9:2.2;
+    h+=`<path d="${d}" stroke="${c}" stroke-width="${sw}" fill="none" ${dashed?'stroke-dasharray="5,4"':''} marker-end="url(#${mk})"></path>`;
+    if(label){
+      let lx=(a.cx+b.cx)/2;
+      let ly=Math.min(a.y,b.y)-10-(level*8)+(dashed?-6:0);
+      if(a.stage===b.stage && a.lane!==b.lane){
+        lx = (a.cx*0.45 + b.cx*0.55);
+        ly = (a.cy+b.cy)/2 + (dashed?-10:-4);
+      }
+      if(dashed && b.cx < a.cx){
+        lx = Math.min(a.cx,b.cx) + 36;
+        ly = Math.min(a.y,b.y) - 16 - level*6;
+      }
+      h+=`<text x="${lx}" y="${ly}" text-anchor="middle" font-size="10" fill="${c}" font-weight="700">${label}</text>`;
+    }
+  }
+  EDGES.forEach(([a,b,ck,label],idx)=>{if(np[a]&&np[b])draw(np[a],np[b],ck,label,false,false,idx%2);});
+  SPECIAL_EDGES.forEach((e,idx)=>{if(!np[e.from]||!np[e.to])return;const retreat=np[e.to].cx<np[e.from].cx||np[e.to].cy<np[e.from].cy;draw(np[e.from],np[e.to],e.color,e.label,e.dashed,retreat,idx+1);});
+
+  h+=`<text x="${TW/2}" y="${TH-18}" text-anchor="middle" font-size="11" fill="#475569">Frontis AI Platform  ©  2026  —  BizFlow V2.7 Unified User</text>`;
+
+  NODES.forEach(n=>{
+    const p=np[n.id]; if(!p) return;
+    const ip=!!n.product;
+    const lane=LANES.find(l=>l.id===n.lane);
+    const theme=laneTheme(n.lane);
+    const stroke=ip?'#dc2626':(n.type==='diamond'?'#f59e0b':(lane?.color||'#334155'));
+    const fill=ip?'#fef2f2':(n.type==='diamond'?'#fef3c7':(lane?.fill||'#f8fafc'));
+    const filter=ip?'url(#sh-r)':'url(#sh)';
+    if(n.type==='diamond'){
+      const dW=p.w,dH=78,cx=p.cx,cy=p.cy,pts=`${cx},${cy-dH/2} ${cx+dW/2},${cy} ${cx},${cy+dH/2} ${cx-dW/2},${cy}`;
+      h+=`<g class="node-clickable" data-node="${n.id}" filter="${filter}"><polygon class="shape" points="${pts}" fill="${fill}" stroke="${stroke}" stroke-width="2.5"></polygon>`;
+      n.title.split('\n').forEach((l,i)=>{h+=`<text x="${cx}" y="${cy-5+i*16}" text-anchor="middle" font-size="10" fill="#78350f" font-weight="700">${l}</text>`;});
+      h+=`</g><circle cx="${p.x}" cy="${p.cy}" r="10" fill="#d97706"></circle><text x="${p.x}" y="${p.cy+4}" text-anchor="middle" font-size="9" fill="white" font-weight="700">${n.id}</text>`;
+    } else {
+      h+=`<g class="node-clickable" data-node="${n.id}" filter="${filter}"><rect class="shape" x="${p.x}" y="${p.y}" width="${p.w}" height="${p.h}" rx="8" fill="${fill}" stroke="${stroke}" stroke-width="${ip?2.5:2}"></rect>`;
+      h+=`<text x="${p.cx}" y="${p.y+21}" text-anchor="middle" font-size="10" fill="${ip?'#991b1b':theme.title}" font-weight="700">${n.title}</text>`;
+      if(n.sub)h+=`<text x="${p.cx}" y="${p.y+36}" text-anchor="middle" font-size="9" fill="${ip?'#dc2626':theme.sub}">${n.sub}</text>`;
+      h+=`</g>`;
+      h+=`<circle cx="${p.x}" cy="${p.cy}" r="10" fill="${ip?'#dc2626':theme.badge}"></circle><text x="${p.x}" y="${p.cy+4}" text-anchor="middle" font-size="9" fill="white" font-weight="700">${n.id}</text>`;
+      if(n.status){
+        const sm={amber:{f:'#fef3c7',s:'#f59e0b',t:'#92400e'},green:{f:'#d1fae5',s:'#10b981',t:'#065f46'},red:{f:'#fee2e2',s:'#ef4444',t:'#991b1b'},blue:{f:'#bfdbfe',s:'#3b82f6',t:'#1e40af'}};
+        const st=sm[n.statusType||'amber'];
+        const sw2=Math.max(108,estW(n.status,10)+20);
+        h+=`<rect x="${p.cx-sw2/2}" y="${p.y+p.h+8}" width="${sw2}" height="20" rx="10" fill="${st.f}" stroke="${st.s}" stroke-width="1.5"></rect><text x="${p.cx}" y="${p.y+p.h+22}" text-anchor="middle" font-size="10" fill="${st.t}" font-weight="700">${n.status}</text>`;
+      }
+    }
+  });
+
+  svg.innerHTML=h;
+  document.querySelectorAll('.node-clickable').forEach(el=>el.addEventListener('click',()=>{const id=el.getAttribute('data-node');if(id)openPopup(id);}));
+}
+render();
+</script>
+</body>
+</html>

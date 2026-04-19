@@ -1,6 +1,10 @@
 import { useCallback, useMemo, useState } from "react";
 
 import {
+  loadEnterpriseCommodityApplications,
+  saveEnterpriseCommodityApplications,
+} from "@/feature/fde/enterpriseCommodityApplications";
+import {
   OPERATIONS_AGENT_STATUS_LABELS,
   OPERATIONS_FULFILLMENT_STATUS_LABELS,
   OPERATIONS_INITIAL_AGENT_SUBMISSIONS,
@@ -8,6 +12,10 @@ import {
   OPERATIONS_INITIAL_PRODUCTS,
   OPERATIONS_INITIAL_RESOURCE_POOLS,
   OPERATIONS_INITIAL_TENANTS,
+  OPERATIONS_PRODUCT_SALE_TYPE_LABELS,
+  OPERATIONS_PRODUCT_SALE_TYPE_OPTIONS,
+  OPERATIONS_PRODUCT_TRIAL_UNIT_LABELS,
+  OPERATIONS_PRODUCT_TRIAL_UNIT_OPTIONS,
   OPERATIONS_PRODUCT_BILLING_MODE_LABELS,
   OPERATIONS_PRODUCT_BILLING_MODE_OPTIONS,
   OPERATIONS_PRODUCT_BILLING_SPEC_LABELS,
@@ -59,6 +67,8 @@ interface UseOperationsPlatformResult {
   fulfillmentStatusLabels: typeof OPERATIONS_FULFILLMENT_STATUS_LABELS;
   productStatusLabels: typeof OPERATIONS_PRODUCT_STATUS_LABELS;
   productSupplyKindLabels: typeof OPERATIONS_PRODUCT_SUPPLY_KIND_LABELS;
+  productSaleTypeLabels: typeof OPERATIONS_PRODUCT_SALE_TYPE_LABELS;
+  productTrialUnitLabels: typeof OPERATIONS_PRODUCT_TRIAL_UNIT_LABELS;
   productDeliveryKindLabels: typeof OPERATIONS_PRODUCT_DELIVERY_KIND_LABELS;
   productBillingModeLabels: typeof OPERATIONS_PRODUCT_BILLING_MODE_LABELS;
   productMeteringUnitLabels: typeof OPERATIONS_PRODUCT_METERING_UNIT_LABELS;
@@ -67,6 +77,8 @@ interface UseOperationsPlatformResult {
   resourcePoolAllocationModeLabels: typeof OPERATIONS_RESOURCE_POOL_ALLOCATION_MODE_LABELS;
   resourcePoolCapacityUnitLabels: typeof OPERATIONS_RESOURCE_POOL_CAPACITY_UNIT_LABELS;
   productDeliveryKindOptions: typeof OPERATIONS_PRODUCT_DELIVERY_KIND_OPTIONS;
+  productSaleTypeOptions: typeof OPERATIONS_PRODUCT_SALE_TYPE_OPTIONS;
+  productTrialUnitOptions: typeof OPERATIONS_PRODUCT_TRIAL_UNIT_OPTIONS;
   productBillingModeOptions: typeof OPERATIONS_PRODUCT_BILLING_MODE_OPTIONS;
   productMeteringUnitOptions: typeof OPERATIONS_PRODUCT_METERING_UNIT_OPTIONS;
   productBillingSpecOptions: typeof OPERATIONS_PRODUCT_BILLING_SPEC_OPTIONS;
@@ -84,6 +96,13 @@ interface UseOperationsPlatformResult {
   createResourcePool: (form: OperationsResourcePoolForm) => void;
   updateResourcePool: (resourcePoolId: string, form: OperationsResourcePoolForm) => void;
   updateProductStatus: (productId: string, status: OperationsProduct["status"]) => void;
+  updateAgentPlazaSettings: (
+    productId: string,
+    patch: Pick<
+      OperationsProduct,
+      "plazaCategory" | "plazaVisibility" | "visibleTenantIds" | "visibleTenantNames"
+    >,
+  ) => void;
 }
 
 const formatTimestamp = (): string => {
@@ -191,6 +210,7 @@ const buildProductFromForm = (
     name: form.name.trim(),
     supplyKind: form.supplyKind,
     deliveryKind: form.deliveryKind,
+    saleType: form.saleType,
     billingMode: form.billingMode,
     meteringUnit: form.meteringUnit,
     billingSpec: form.billingSpec,
@@ -199,11 +219,37 @@ const buildProductFromForm = (
     resourcePoolId,
     resourcePoolName: getResourcePoolNameById(resourcePools, resourcePoolId),
     description: form.description.trim(),
-    price: form.price,
+    price: form.saleType === "free" ? 0 : form.price,
+    supportsTrial: form.saleType === "paid" ? form.supportsTrial : false,
+    trialUnit: form.saleType === "paid" ? form.trialUnit : undefined,
+    trialValue:
+      form.saleType === "paid" && form.supportsTrial ? form.trialValue : undefined,
     status: "draft",
     updatedAt: formatTimestamp(),
   };
 };
+
+const buildPendingProductFromSubmission = (
+  submission: OperationsAgentSubmission,
+): OperationsProduct => ({
+  id: `ops-product-${Date.now()}`,
+  name: submission.proposedProductName?.trim() || `${submission.name} 商品版`,
+  supplyKind: "agent",
+  deliveryKind: "softwareService",
+  saleType: "paid",
+  billingMode: "subscription",
+  meteringUnit: "duration",
+  billingSpec: "year",
+  linkedAgentId: submission.id,
+  linkedAgentName: submission.name,
+  description: "该 AI专家 已通过商品化审核，请先完善售价、试用和售卖规则后再上架。",
+  price: 0,
+  supportsTrial: false,
+  trialUnit: "day",
+  trialValue: 7,
+  status: "pendingProductization",
+  updatedAt: formatTimestamp(),
+});
 
 const buildResourcePoolFromForm = (
   form: OperationsResourcePoolForm,
@@ -219,13 +265,50 @@ const buildResourcePoolFromForm = (
   updatedAt: formatTimestamp(),
 });
 
+const buildInitialAgentSubmissions = (): OperationsAgentSubmission[] => {
+  const persistedApplications = loadEnterpriseCommodityApplications();
+  const initialSubmissionIds = new Set(
+    OPERATIONS_INITIAL_AGENT_SUBMISSIONS.map(item => item.id),
+  );
+
+  return [
+    ...persistedApplications.filter(item => !initialSubmissionIds.has(item.id)),
+    ...OPERATIONS_INITIAL_AGENT_SUBMISSIONS,
+  ];
+};
+
+const syncCommodityApplicationReview = (
+  submissionId: string,
+  patch: Pick<
+    OperationsAgentSubmission,
+    "status" | "rejectReason" | "lastReviewedAt"
+  >,
+): void => {
+  const persistedApplications = loadEnterpriseCommodityApplications();
+
+  if (!persistedApplications.length) {
+    return;
+  }
+
+  const nextApplications = persistedApplications.map(item =>
+    item.id === submissionId
+      ? {
+          ...item,
+          ...patch,
+        }
+      : item,
+  );
+
+  saveEnterpriseCommodityApplications(nextApplications);
+};
+
 /**
  * 提供运营后台原型所需的本地 mock 状态和交互动作。
  */
 export const useOperationsPlatform = (): UseOperationsPlatformResult => {
   const [tenants, setTenants] = useState<OperationsTenant[]>(OPERATIONS_INITIAL_TENANTS);
   const [agentSubmissions, setAgentSubmissions] = useState<OperationsAgentSubmission[]>(
-    OPERATIONS_INITIAL_AGENT_SUBMISSIONS,
+    buildInitialAgentSubmissions,
   );
   const [products, setProducts] = useState<OperationsProduct[]>(OPERATIONS_INITIAL_PRODUCTS);
   const [fulfillments, setFulfillments] = useState<OperationsFulfillment[]>(
@@ -307,6 +390,10 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
   );
 
   const approveAgent = useCallback((submissionId: string): void => {
+    const reviewedAt = formatTimestamp();
+    const approvedSubmission =
+      agentSubmissions.find(item => item.id === submissionId) ?? null;
+
     setAgentSubmissions(currentSubmissions =>
       currentSubmissions.map(item =>
         item.id === submissionId
@@ -314,14 +401,32 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
               ...item,
               status: "approved",
               rejectReason: undefined,
-              lastReviewedAt: formatTimestamp(),
+              lastReviewedAt: reviewedAt,
             }
           : item,
       ),
     );
-  }, []);
+    syncCommodityApplicationReview(submissionId, {
+      status: "approved",
+      rejectReason: undefined,
+      lastReviewedAt: reviewedAt,
+    });
+    if (!approvedSubmission) {
+      return;
+    }
+
+    setProducts(currentProducts => {
+      if (currentProducts.some(item => item.linkedAgentId === submissionId)) {
+        return currentProducts;
+      }
+
+      return [buildPendingProductFromSubmission(approvedSubmission), ...currentProducts];
+    });
+  }, [agentSubmissions]);
 
   const rejectAgent = useCallback((submissionId: string, reason: string): void => {
+    const reviewedAt = formatTimestamp();
+
     setAgentSubmissions(currentSubmissions =>
       currentSubmissions.map(item =>
         item.id === submissionId
@@ -329,11 +434,16 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
               ...item,
               status: "rejected",
               rejectReason: reason.trim(),
-              lastReviewedAt: formatTimestamp(),
+              lastReviewedAt: reviewedAt,
             }
           : item,
       ),
     );
+    syncCommodityApplicationReview(submissionId, {
+      status: "rejected",
+      rejectReason: reason.trim(),
+      lastReviewedAt: reviewedAt,
+    });
   }, []);
 
   const createProduct = useCallback(
@@ -365,6 +475,7 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
             name: form.name.trim(),
             supplyKind: form.supplyKind,
             deliveryKind: form.deliveryKind,
+            saleType: form.saleType,
             billingMode: form.billingMode,
             meteringUnit: form.meteringUnit,
             billingSpec: form.billingSpec,
@@ -373,7 +484,15 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
             resourcePoolId,
             resourcePoolName: getResourcePoolNameById(resourcePools, resourcePoolId),
             description: form.description.trim(),
-            price: form.price,
+            price: form.saleType === "free" ? 0 : form.price,
+            supportsTrial: form.saleType === "paid" ? form.supportsTrial : false,
+            trialUnit: form.saleType === "paid" ? form.trialUnit : undefined,
+            trialValue:
+              form.saleType === "paid" && form.supportsTrial
+                ? form.trialValue
+                : undefined,
+            status:
+              item.status === "pendingProductization" ? "draft" : item.status,
             updatedAt: formatTimestamp(),
           };
         }),
@@ -453,6 +572,29 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
     [],
   );
 
+  const updateAgentPlazaSettings = useCallback(
+    (
+      productId: string,
+      patch: Pick<
+        OperationsProduct,
+        "plazaCategory" | "plazaVisibility" | "visibleTenantIds" | "visibleTenantNames"
+      >,
+    ): void => {
+      setProducts(currentProducts =>
+        currentProducts.map(item =>
+          item.id === productId
+            ? {
+                ...item,
+                ...patch,
+                updatedAt: formatTimestamp(),
+              }
+            : item,
+        ),
+      );
+    },
+    [],
+  );
+
   return {
     tenants,
     agentSubmissions,
@@ -469,6 +611,8 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
     fulfillmentStatusLabels: OPERATIONS_FULFILLMENT_STATUS_LABELS,
     productStatusLabels: OPERATIONS_PRODUCT_STATUS_LABELS,
     productSupplyKindLabels: OPERATIONS_PRODUCT_SUPPLY_KIND_LABELS,
+    productSaleTypeLabels: OPERATIONS_PRODUCT_SALE_TYPE_LABELS,
+    productTrialUnitLabels: OPERATIONS_PRODUCT_TRIAL_UNIT_LABELS,
     productDeliveryKindLabels: OPERATIONS_PRODUCT_DELIVERY_KIND_LABELS,
     productBillingModeLabels: OPERATIONS_PRODUCT_BILLING_MODE_LABELS,
     productMeteringUnitLabels: OPERATIONS_PRODUCT_METERING_UNIT_LABELS,
@@ -477,6 +621,8 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
     resourcePoolAllocationModeLabels: OPERATIONS_RESOURCE_POOL_ALLOCATION_MODE_LABELS,
     resourcePoolCapacityUnitLabels: OPERATIONS_RESOURCE_POOL_CAPACITY_UNIT_LABELS,
     productDeliveryKindOptions: OPERATIONS_PRODUCT_DELIVERY_KIND_OPTIONS,
+    productSaleTypeOptions: OPERATIONS_PRODUCT_SALE_TYPE_OPTIONS,
+    productTrialUnitOptions: OPERATIONS_PRODUCT_TRIAL_UNIT_OPTIONS,
     productBillingModeOptions: OPERATIONS_PRODUCT_BILLING_MODE_OPTIONS,
     productMeteringUnitOptions: OPERATIONS_PRODUCT_METERING_UNIT_OPTIONS,
     productBillingSpecOptions: OPERATIONS_PRODUCT_BILLING_SPEC_OPTIONS,
@@ -494,5 +640,6 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
     createResourcePool,
     updateResourcePool,
     updateProductStatus,
+    updateAgentPlazaSettings,
   };
 };

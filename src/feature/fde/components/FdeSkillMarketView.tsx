@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 
 import { PlusOutlined, SearchOutlined } from "@ant-design/icons";
-import { Button, Card, Modal, Tag } from "antd";
+import { Button, Card, Modal } from "antd";
 
 import styles from "./FdeSkillMarketView.module.less";
 
@@ -309,52 +309,51 @@ export const FdeSkillMarketView = ({
         />
       </div>
 
-      {/* 页面描述 */}
-      <div className={styles.pageDesc}>
-        Skill 及工具市场 · 浏览和管理可复用的 Skill、Workflow 和 MCP 工具
-      </div>
-
       {/* 控制栏 */}
       <div className={styles.controlsRow}>
         {/* 主标签 */}
         <div className={styles.marketTabs}>
-          <div
+          <button
+            type="button"
             className={`${styles.marketTab} ${
               primaryTab === "mcp" ? styles.marketTabActive : ""
             }`}
             onClick={() => setPrimaryTab("mcp")}
           >
             MCP工具
-          </div>
-          <div
+          </button>
+          <button
+            type="button"
             className={`${styles.marketTab} ${
               primaryTab === "skill" ? styles.marketTabActive : ""
             }`}
             onClick={() => setPrimaryTab("skill")}
           >
             Skill
-          </div>
+          </button>
         </div>
 
         {/* 子标签 */}
         {primaryTab === "skill" && (
           <div className={styles.subTabs}>
-            <div
+            <button
+              type="button"
               className={`${styles.subTab} ${
                 subTab === "public" ? styles.subTabActive : ""
               }`}
               onClick={() => setSubTab("public")}
             >
               公共
-            </div>
-            <div
+            </button>
+            <button
+              type="button"
               className={`${styles.subTab} ${
                 subTab === "mine" ? styles.subTabActive : ""
               }`}
               onClick={() => setSubTab("mine")}
             >
               我的
-            </div>
+            </button>
           </div>
         )}
 

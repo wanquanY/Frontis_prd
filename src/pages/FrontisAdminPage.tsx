@@ -3,7 +3,6 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import classNames from "classnames";
 import {
   ArrowLeftOutlined,
-  CloudServerOutlined,
   ControlOutlined,
   DashboardOutlined,
   LogoutOutlined,
@@ -100,14 +99,8 @@ const FRONTIS_ADMIN_TABS: FrontisWebTabItem[] = [
   },
   {
     key: "store",
-    label: "我的AI专家团",
+    label: "AI专家管理",
     icon: <RobotOutlined />,
-    roles: ["admin"],
-  },
-  {
-    key: "devices",
-    label: "设备管理",
-    icon: <CloudServerOutlined />,
     roles: ["admin"],
   },
   {

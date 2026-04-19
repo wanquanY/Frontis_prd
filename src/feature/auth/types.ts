@@ -1,11 +1,7 @@
 import type { FrontisWebRole } from "@/pages/types";
 
-export type MockAuthRole = FrontisWebRole | "fdeMember" | "fdeAdmin";
-export type MockIdentityPlatform =
-  | "enterpriseWorkspace"
-  | "enterpriseAdmin"
-  | "fdeBusiness"
-  | "fdeDev";
+export type MockAuthRole = FrontisWebRole;
+export type MockIdentityPlatform = "enterpriseWorkspace" | "enterpriseAdmin";
 
 /**
  * 统一用户的可选身份入口定义。

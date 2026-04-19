@@ -1419,6 +1419,7 @@ const FrontisPage = ({ viewRole, embedded = false }: FrontisPageProps): JSX.Elem
     () => getTenantEntries(session?.identities ?? [], activeIdentity?.tenantId),
     [activeIdentity?.tenantId, session?.identities],
   );
+  const isAdminIdentity = activeIdentity?.role === "admin" || session?.role === "admin";
   const handleOpenSystemEntry = useCallback(
     (identityId: string, entryPath: string): void => {
       const result = activateIdentity(identityId, entryPath);
@@ -1448,7 +1449,7 @@ const FrontisPage = ({ viewRole, embedded = false }: FrontisPageProps): JSX.Elem
   );
 
   const accountMenuItems: MenuProps["items"] = [
-    ...(viewRole === "admin"
+    ...(isAdminIdentity
       ? [
           {
             key: "open-admin-management",

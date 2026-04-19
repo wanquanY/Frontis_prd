@@ -6,7 +6,7 @@ import { Avatar, Dropdown, message } from "antd";
 import classNames from "classnames";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 
-import { getAdminManagementPath, getLoginPath } from "@/feature/auth/mockAccounts";
+import { getLoginPath } from "@/feature/auth/mockAccounts";
 import { useMockAuth } from "@/feature/auth/hooks/useMockAuth";
 import { PORTAL_NAV_ITEMS } from "@/feature/marketingPortal/portalData";
 import { getAvatarText } from "@/pages/utils";
@@ -33,29 +33,13 @@ export const MarketingPortalLayout = (): JSX.Element => {
       return [];
     }
 
-    return session.identities.flatMap(identity => {
-      const nextEntries: PortalModuleEntry[] = [
-        {
-          key: `identity-${identity.id}`,
-          identityId: identity.id,
-          label: identity.platformLabel,
-          description: `${identity.tenantName} · ${identity.roleLabel}`,
-          entryPath: identity.entryPath,
-        },
-      ];
-
-      if (identity.role === "admin" && identity.platform === "enterpriseWorkspace") {
-        nextEntries.push({
-          key: `identity-${identity.id}-management`,
-          identityId: identity.id,
-          label: "企业管理后台",
-          description: `${identity.tenantName} · 企业管理`,
-          entryPath: getAdminManagementPath(),
-        });
-      }
-
-      return nextEntries;
-    });
+    return session.identities.map(identity => ({
+      key: `identity-${identity.id}`,
+      identityId: identity.id,
+      label: identity.platformLabel,
+      description: `${identity.tenantName} · ${identity.roleLabel}`,
+      entryPath: identity.entryPath,
+    }));
   }, [session]);
 
   const handleOpenModule = useCallback(
@@ -181,9 +165,7 @@ export const MarketingPortalLayout = (): JSX.Element => {
             <span className={styles.footerMark}>F</span>
             <div>
               <p className={styles.footerTitle}>FrontisAI</p>
-              <p className={styles.footerSubtitle}>
-                可持续进化的AI专家团
-              </p>
+              <p className={styles.footerSubtitle}>可持续进化的AI专家团</p>
             </div>
           </div>
 

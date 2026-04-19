@@ -8,6 +8,7 @@ export type OperationsRole = "superAdmin" | "operator";
  */
 export type OperationsPlatformTabKey =
   | "tenants"
+  | "agentPlaza"
   | "agents"
   | "products"
   | "fulfillment"
@@ -21,12 +22,42 @@ export type OperationsTenantStatus = "pending" | "active" | "suspended";
 /**
  * 运营后台租户类型。
  */
-export type OperationsTenantType = "enterprise" | "fde" | "internal";
+export type OperationsTenantType = "enterprise" | "internal";
 
 /**
  * Agent 提审状态。
  */
 export type OperationsAgentApprovalStatus = "pending" | "approved" | "rejected";
+
+/**
+ * Agent 提审类型。
+ */
+export type OperationsAgentSubmissionType = "squarePublish" | "commodityApplication";
+
+/**
+ * AI专家广场分类。
+ */
+export type OperationsAgentPlazaCategory =
+  | "通用"
+  | "销售"
+  | "生产"
+  | "供应链"
+  | "办公协同";
+
+/**
+ * AI专家广场可见范围。
+ */
+export type OperationsAgentPlazaVisibility = "public" | "tenant";
+
+/**
+ * 商品售卖类型。
+ */
+export type OperationsProductSaleType = "free" | "paid";
+
+/**
+ * 商品试用规则。
+ */
+export type OperationsProductTrialUnit = "day" | "count";
 
 /**
  * 商品供给类型。
@@ -82,7 +113,11 @@ export type OperationsProductBillingSpec =
 /**
  * 商品状态。
  */
-export type OperationsProductStatus = "draft" | "active" | "inactive";
+export type OperationsProductStatus =
+  | "pendingProductization"
+  | "draft"
+  | "active"
+  | "inactive";
 
 /**
  * 交付实例状态。
@@ -230,6 +265,11 @@ export interface OperationsAgentSubmission {
   submittedAt: string;
   status: OperationsAgentApprovalStatus;
   description: string;
+  submissionType?: OperationsAgentSubmissionType;
+  proposedProductName?: string;
+  submitReason?: string;
+  targetCustomers?: string;
+  currentScopeLabel?: string;
   rejectReason?: string;
   lastReviewedAt?: string;
 }
@@ -242,6 +282,7 @@ export interface OperationsProduct {
   name: string;
   supplyKind: OperationsProductSupplyKind;
   deliveryKind: OperationsProductDeliveryKind;
+  saleType: OperationsProductSaleType;
   billingMode: OperationsProductBillingMode;
   meteringUnit: OperationsProductMeteringUnit;
   billingSpec: OperationsProductBillingSpec;
@@ -251,7 +292,15 @@ export interface OperationsProduct {
   resourcePoolName?: string;
   description: string;
   price: number;
+  supportsTrial: boolean;
+  trialUnit?: OperationsProductTrialUnit;
+  trialValue?: number;
   status: OperationsProductStatus;
+  plazaCategory?: OperationsAgentPlazaCategory;
+  plazaVisibility?: OperationsAgentPlazaVisibility;
+  visibleTenantIds?: string[];
+  visibleTenantNames?: string[];
+  plazaSort?: number;
   updatedAt: string;
 }
 
@@ -262,6 +311,7 @@ export interface OperationsProductForm {
   name: string;
   supplyKind: OperationsProductSupplyKind;
   deliveryKind: OperationsProductDeliveryKind;
+  saleType: OperationsProductSaleType;
   billingMode: OperationsProductBillingMode;
   meteringUnit: OperationsProductMeteringUnit;
   billingSpec: OperationsProductBillingSpec;
@@ -269,6 +319,9 @@ export interface OperationsProductForm {
   resourcePoolId?: string;
   description: string;
   price: number;
+  supportsTrial: boolean;
+  trialUnit: OperationsProductTrialUnit;
+  trialValue: number;
 }
 
 /**
