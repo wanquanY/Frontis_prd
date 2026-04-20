@@ -70,7 +70,7 @@ const TAB_ITEMS: UnifiedWorkbenchNavItem[] = [
   {
     key: "agentStore",
     label: "AI专家广场",
-    description: "浏览平台已上架 AI 专家。",
+    description: "浏览当前租户可见并可添加使用的 AI 专家。",
     icon: <AppstoreOutlined />,
   },
   {

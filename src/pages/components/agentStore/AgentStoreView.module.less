@@ -1017,14 +1017,14 @@
 
 .detailAgentPanel {
   min-width: 0;
-  max-width: 720px;
+  max-width: 920px;
 }
 
 .expertSelectHeader,
 .expertSelectIdentity,
 .expertConfigPanelHeader {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 12px;
 }
 
@@ -1036,7 +1036,7 @@
 .expertConfigPanelIdentity {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 8px;
 }
 
 .expertSelectTitleRow {
@@ -1090,9 +1090,92 @@
   gap: 18px;
 }
 
+.expertConfigPanelHeader {
+  padding: 18px;
+  border: 1px solid color-mix(in srgb, var(--text) 8%, transparent);
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--surface) 98%, var(--app-bg));
+}
+
+.expertConfigPanelAvatar {
+  flex-shrink: 0;
+  border-radius: 16px;
+  box-shadow: var(--shadow-sm);
+}
+
+.expertConfigMetaRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.expertConfigMetaItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--text) 4%, transparent);
+}
+
+.expertConfigMetaLabel {
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.expertConfigMetaValue {
+  color: var(--text);
+  font-size: 12px;
+  line-height: 18px;
+  font-weight: 600;
+}
+
+.expertConfigSummaryGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.expertConfigSummaryCard {
+  min-width: 0;
+  padding: 16px;
+  border: 1px solid color-mix(in srgb, var(--text) 8%, transparent);
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--surface) 98%, var(--app-bg));
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.expertConfigSummaryLabel {
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.expertConfigSummaryValue {
+  color: var(--text);
+  font-size: 15px;
+  line-height: 22px;
+  font-weight: 700;
+}
+
+.expertConfigSummaryHint {
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 18px;
+}
+
 .expertConfigTabs {
   :global(.ant-tabs-nav) {
     margin-bottom: 0;
+  }
+
+  :global(.ant-tabs-tab) {
+    padding: 10px 0 12px;
+    font-weight: 600;
   }
 }
 
@@ -1251,14 +1334,19 @@
   border-radius: 14px;
   background: color-mix(in srgb, var(--surface) 98%, var(--app-bg));
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 12px;
   justify-content: space-between;
+  transition:
+    border-color 160ms ease,
+    background 160ms ease,
+    box-shadow 160ms ease;
 }
 
 .assignedWorkspaceCardActive {
   border-color: color-mix(in srgb, var(--primary) 22%, var(--border));
   background: color-mix(in srgb, var(--primary) 5%, var(--surface));
+  box-shadow: var(--shadow-sm);
 }
 
 .assignedWorkspaceMain {
@@ -1316,6 +1404,7 @@
   display: flex;
   flex-direction: column;
   gap: 16px;
+  min-height: 100%;
 }
 
 .devicePermissionHeader {
@@ -1400,6 +1489,10 @@
   }
 
   .simpleExpertGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .expertConfigSummaryGrid {
     grid-template-columns: 1fr;
   }
 

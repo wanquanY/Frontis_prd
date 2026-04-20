@@ -51,7 +51,7 @@ const EXPERT_ASSET_META_OVERRIDES: Record<string, ExpertAssetMetaOverride> = {
 
 const getAcquireLabel = (employee: EmployeeItem): string => {
   if (employee.visibility === "all") {
-    return "公开发布";
+    return "企业公开发布";
   }
 
   if (employee.accessScopeSubjects.length > 0) {
@@ -81,7 +81,7 @@ export const getExpertAssetMeta = (employee: EmployeeItem): ExpertAssetMeta => {
  */
 export const getExpertAssetRangeLabel = (employee: EmployeeItem): string => {
   if (employee.visibility === "all") {
-    return "公开";
+    return "企业公开";
   }
 
   if (employee.visibility === "bound" && employee.accessScopeSubjects.length === 0) {

@@ -31,21 +31,21 @@ interface SingleCardItem {
   ownerName: string;
   rangeLabel: string;
   sourceLabel: string;
-  status: ManagementStatus;
+  status: ManagementStatus | null;
   statusHint?: string;
   versionLabel: string;
 }
 
 const FILTER_OPTIONS: Array<{ key: AgentFilterKey; label: string }> = [
   { key: "all", label: "全部AI专家" },
-  { key: "public", label: "公开" },
+  { key: "public", label: "企业公开" },
   { key: "shared", label: "团队共享" },
   { key: "personal", label: "个人发布" },
 ];
 
 const getSingleStatus = (
   employee: EmployeeItem,
-): ManagementStatus => {
+): ManagementStatus | null => {
   if (doesExpertRequireDeviceBinding(employee)) {
     return {
       label: "待配置",
@@ -60,10 +60,7 @@ const getSingleStatus = (
     };
   }
 
-  return {
-    label: "已可用",
-    tone: "success",
-  };
+  return null;
 };
 
 const getFilterKey = (employee: EmployeeItem): AgentFilterKey => {
@@ -226,15 +223,17 @@ export const AgentStoreView = ({
                   <div className={styles.assetTitleRow}>
                     <h3 className={styles.assetTitle}>{card.name}</h3>
                     <div className={styles.assetVersionMeta}>
-                      <span
-                        className={
-                          card.status.tone === "success"
-                            ? styles.assetPublishBadge
-                            : styles.assetPendingBadge
-                        }
-                      >
-                        {card.status.label}
-                      </span>
+                      {card.status ? (
+                        <span
+                          className={
+                            card.status.tone === "success"
+                              ? styles.assetPublishBadge
+                              : styles.assetPendingBadge
+                          }
+                        >
+                          {card.status.label}
+                        </span>
+                      ) : null}
                       <span className={styles.assetVersionText}>{card.versionLabel}</span>
                     </div>
                   </div>

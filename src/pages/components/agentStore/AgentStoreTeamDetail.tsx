@@ -27,7 +27,7 @@ import {
   isProviderConfigured,
 } from "../FrontisWebViews";
 import adminStyles from "../FrontisAdminViews.module.less";
-import { getExpertAssetMeta, getExpertAssetRangeLabel } from "./expertAssetMeta";
+import { getExpertAssetMeta } from "./expertAssetMeta";
 import {
   doesExpertRequireDeviceBinding,
   getExpertAccessScopeSummary,
@@ -404,10 +404,8 @@ const ExpertConfigPanel = ({
   const [currentVersion, setCurrentVersion] = useState<string>(versionInfo.version);
   const requiresDeviceBinding = doesExpertRequireDeviceBinding(employee);
   const isAssigned = assignedWorkspaceIds.length > 0;
-  const isConfigured = isExpertAccessConfigured(employee, deploymentState);
   const canConfigureModel = requiresDeviceBinding ? isAssigned : true;
   const assetMeta = getExpertAssetMeta(employee);
-  const assetRangeLabel = getExpertAssetRangeLabel(employee);
   const requiresUpgradeConfirmation = assetMeta.source === "purchased";
   const latestVersion = versionInfo.newVersion ?? versionInfo.version;
   const effectiveVersion = requiresUpgradeConfirmation ? currentVersion : latestVersion;
@@ -457,6 +455,19 @@ const ExpertConfigPanel = ({
     Boolean(versionInfo.newVersion) &&
     currentVersion !== versionInfo.newVersion &&
     !versionIgnored;
+  const permissionAccessSummary = getExpertAccessScopeSummary(
+    permissionAccessDraft.visibility,
+    permissionAccessDraft.accessScopeSubjects,
+  );
+  const modelStatusLabel = hasAnyProvider ? selectedModel : "待配置";
+  const modelStatusHint = hasAnyProvider
+    ? canConfigureModel
+      ? "当前生效模型"
+      : "绑定设备后生效"
+    : "需先完成管理员模型配置";
+  const versionStatusLabel = hasNewVersion
+    ? `待升级至 ${versionInfo.newVersion}`
+    : `当前 ${effectiveVersion}`;
 
   const workspaceOptions = useMemo(
     () =>
@@ -533,10 +544,6 @@ const ExpertConfigPanel = ({
       organizationDepartments,
     );
   }, [organizationDepartments, selectedAccessOwnerId, selectedAccessState, users]);
-  const permissionAccessSummary = getExpertAccessScopeSummary(
-    permissionAccessDraft.visibility,
-    permissionAccessDraft.accessScopeSubjects,
-  );
   const permissionTreeValues = useMemo(
     () =>
       permissionAccessDraft.accessScopeSubjects.map(subject => ({
@@ -777,42 +784,39 @@ const ExpertConfigPanel = ({
   return (
     <div className={styles.expertConfigPanel}>
       <div className={styles.expertConfigPanelHeader}>
-        <Avatar src={employee.avatarUrl} size={44}>
+        <Avatar className={styles.expertConfigPanelAvatar} src={employee.avatarUrl} size={52}>
           {employee.name.slice(0, 1)}
         </Avatar>
         <div className={styles.expertConfigPanelIdentity}>
           <div className={styles.simpleExpertTitleRow}>
             <span className={styles.simpleExpertName}>{employee.name}</span>
-            <span className={getVersionTagClassName(hasNewVersion)}>
-              {hasNewVersion ? `待升级至 ${versionInfo.newVersion}` : `当前 ${effectiveVersion}`}
-            </span>
-            <span className={getDeployTagClassName(isConfigured)}>
-              {requiresDeviceBinding
-                ? getDeviceConfiguredLabel(employee, deploymentState)
-                : permissionAccessSummary}
-            </span>
           </div>
           <p className={styles.simpleExpertRole}>{employee.role}</p>
-          <div className={styles.simpleExpertGrid}>
-            <div className={styles.simpleExpertBlock}>
-              <span className={styles.simpleExpertBlockLabel}>来源</span>
-              <span className={styles.simpleExpertInfoValue}>{assetMeta.sourceLabel}</span>
-            </div>
-            <div className={styles.simpleExpertBlock}>
-              <span className={styles.simpleExpertBlockLabel}>{assetMeta.ownerLabel}</span>
-              <span className={styles.simpleExpertInfoValue}>{assetMeta.ownerName}</span>
-            </div>
-            <div className={styles.simpleExpertBlock}>
-              <span className={styles.simpleExpertBlockLabel}>
-                {assetMeta.source === "purchased" ? "获取方式" : "发布方式"}
-              </span>
-              <span className={styles.simpleExpertInfoValue}>{assetMeta.acquireLabel}</span>
-            </div>
-            <div className={styles.simpleExpertBlock}>
-              <span className={styles.simpleExpertBlockLabel}>使用范围</span>
-              <span className={styles.simpleExpertInfoValue}>{assetRangeLabel}</span>
-            </div>
+          <div className={styles.expertConfigMetaRow}>
+            <span className={styles.expertConfigMetaItem}>
+              <span className={styles.expertConfigMetaLabel}>来源</span>
+              <span className={styles.expertConfigMetaValue}>{assetMeta.sourceLabel}</span>
+            </span>
+            <span className={styles.expertConfigMetaItem}>
+              <span className={styles.expertConfigMetaLabel}>{assetMeta.ownerLabel}</span>
+              <span className={styles.expertConfigMetaValue}>{assetMeta.ownerName}</span>
+            </span>
           </div>
+        </div>
+      </div>
+
+      <div className={styles.expertConfigSummaryGrid}>
+        <div className={styles.expertConfigSummaryCard}>
+          <span className={styles.expertConfigSummaryLabel}>当前模型</span>
+          <span className={styles.expertConfigSummaryValue}>{modelStatusLabel}</span>
+          <span className={styles.expertConfigSummaryHint}>{modelStatusHint}</span>
+        </div>
+        <div className={styles.expertConfigSummaryCard}>
+          <span className={styles.expertConfigSummaryLabel}>版本状态</span>
+          <span className={getVersionTagClassName(hasNewVersion)}>{versionStatusLabel}</span>
+          <span className={styles.expertConfigSummaryHint}>
+            {hasNewVersion ? "可在版本处理里查看更新说明" : "当前版本已生效"}
+          </span>
         </div>
       </div>
 
@@ -832,78 +836,42 @@ const ExpertConfigPanel = ({
         <div className={styles.expertConfigTabPanel}>
           {requiresDeviceBinding ? (
             <div className={styles.expertConfigSinglePanel}>
-              <div className={styles.simpleExpertBlock}>
-                <div className={styles.deviceWorkspacePanelHeader}>
-                  <div className={styles.deviceWorkspacePanelHead}>
-                    <span className={styles.simpleExpertBlockLabel}>设备分配</span>
-                    <span className={styles.simpleExpertHint}>
-                      该 AI
-                      专家需要先绑定设备，再按设备配置可用权限。如已设置设备拥有者，设备拥有者默认可使用，但仍需确认该设备上的权限范围。
-                    </span>
+              <div className={styles.deviceWorkspaceLayout}>
+                <div className={styles.deviceWorkspacePanel}>
+                  <div className={styles.deviceWorkspacePanelHeader}>
+                    <div className={styles.deviceWorkspacePanelHead}>
+                      <span className={styles.simpleExpertBlockLabel}>设备分配</span>
+                      <span className={styles.simpleExpertHint}>
+                        先绑定设备，再为当前选中设备配置可用范围。
+                      </span>
+                    </div>
+                    <Button
+                      size="small"
+                      disabled={!availableWorkspaceOptions.length}
+                      onClick={handleAttachAllWorkspaces}
+                    >
+                      一键全部分配
+                    </Button>
                   </div>
-                  <Button
-                    size="small"
-                    disabled={!availableWorkspaceOptions.length}
-                    onClick={handleAttachAllWorkspaces}
-                  >
-                    一键全部分配
-                  </Button>
-                </div>
-                <div className={styles.deviceBindingActions}>
-                  <Select
-                    className={adminStyles.consoleControl}
-                    placeholder="选择要新增分配的设备"
-                    size="small"
-                    value={draftWorkspaceId}
-                    onChange={value => setDraftWorkspaceId(value)}
-                    options={availableWorkspaceOptions}
-                  />
-                  <Button
-                    size="small"
-                    type="primary"
-                    disabled={!availableWorkspaceOptions.length}
-                    onClick={handleAttachWorkspaceClick}
-                  >
-                    新增分配
-                  </Button>
-                </div>
-                {assignedWorkspaceEntries.length ? (
-                  <div className={styles.assignedWorkspaceList}>
-                    {assignedWorkspaceEntries.map(({ ownerName, workspace }) => (
-                      <div key={workspace.id} className={styles.assignedWorkspaceCard}>
-                        <div className={styles.assignedWorkspaceMain}>
-                          <div className={styles.assignedWorkspaceHeader}>
-                            <span className={styles.assignedWorkspaceName}>{workspace.name}</span>
-                            <span className={styles.assignedWorkspacePermission}>已绑定设备</span>
-                          </div>
-                          <span className={styles.assignedWorkspaceMeta}>
-                            {ownerName ? `设备拥有者：${ownerName}` : "暂未设置设备拥有者"}
-                          </span>
-                        </div>
-                        <Button
-                          size="small"
-                          danger
-                          onClick={() => handleRemoveWorkspace(workspace.id)}
-                        >
-                          移除
-                        </Button>
-                      </div>
-                    ))}
+                  <div className={styles.deviceBindingActions}>
+                    <Select
+                      className={adminStyles.consoleControl}
+                      placeholder="选择要新增分配的设备"
+                      size="small"
+                      value={draftWorkspaceId}
+                      onChange={value => setDraftWorkspaceId(value)}
+                      options={availableWorkspaceOptions}
+                    />
+                    <Button
+                      size="small"
+                      type="primary"
+                      disabled={!availableWorkspaceOptions.length}
+                      onClick={handleAttachWorkspaceClick}
+                    >
+                      新增分配
+                    </Button>
                   </div>
-                ) : (
-                  <div className={styles.deviceWorkspaceEmpty}>
-                    当前还没有绑定设备。你可以先新增单个设备，或者直接一键分配到全部设备。
-                  </div>
-                )}
-              </div>
-
-              <div className={styles.simpleExpertBlock}>
-                <span className={styles.simpleExpertBlockLabel}>权限管理</span>
-                <span className={styles.simpleExpertHint}>
-                  每个已绑定设备都要单独配置可用范围；如已设置设备拥有者，设备拥有者会默认包含在实际可用成员中。
-                </span>
-                {assignedWorkspaceEntries.length ? (
-                  <>
+                  {assignedWorkspaceEntries.length ? (
                     <div className={styles.assignedWorkspaceList}>
                       {assignedWorkspaceEntries.map(({ accessState, ownerName, workspace }) => {
                         const isCurrentWorkspace = selectedAccessWorkspaceId === workspace.id;
@@ -946,95 +914,114 @@ const ExpertConfigPanel = ({
                                     : "当前尚未配置组织范围"}
                               </span>
                             </button>
+                            <Button
+                              size="small"
+                              danger
+                              onClick={() => handleRemoveWorkspace(workspace.id)}
+                            >
+                              移除
+                            </Button>
                           </div>
                         );
                       })}
                     </div>
+                  ) : (
+                    <div className={styles.deviceWorkspaceEmpty}>
+                      当前还没有绑定设备。你可以先新增单个设备，或者直接一键分配到全部设备。
+                    </div>
+                  )}
+                </div>
 
-                    {selectedAccessWorkspace && selectedAccessState ? (
-                      <div className={styles.devicePermissionCard}>
-                        <div className={styles.devicePermissionHeader}>
-                          <div className={styles.devicePermissionIdentity}>
-                            <span className={styles.devicePermissionName}>
-                              {selectedAccessWorkspace.name}
-                            </span>
-                            <span className={styles.devicePermissionMeta}>
-                              {selectedAccessOwnerName
-                                ? `设备拥有者：${selectedAccessOwnerName}`
-                                : "暂未设置设备拥有者"}
-                            </span>
-                            <span className={styles.devicePermissionMeta}>
-                              {selectedAccessState.visibility === "all"
-                                ? "当前对全公司开放"
-                                : selectedEffectiveMembers.length
-                                  ? `当前组织范围：${buildAccessScopeSummary(selectedAccessState.accessScopeSubjects)}`
-                                  : "当前尚未配置组织范围"}
-                            </span>
-                          </div>
-                          <span className={styles.devicePermissionStatus}>
-                            {isDeviceAccessConfigured(selectedAccessState)
-                              ? "已配置权限"
-                              : "待分配权限"}
+                <div className={styles.deviceWorkspacePanel}>
+                  <div className={styles.deviceWorkspacePanelHead}>
+                    <span className={styles.simpleExpertBlockLabel}>设备权限</span>
+                    <span className={styles.simpleExpertHint}>
+                      设备拥有者默认可用，其余成员按组织范围生效。
+                    </span>
+                  </div>
+                  {selectedAccessWorkspace && selectedAccessState ? (
+                    <div className={styles.devicePermissionCard}>
+                      <div className={styles.devicePermissionHeader}>
+                        <div className={styles.devicePermissionIdentity}>
+                          <span className={styles.devicePermissionName}>
+                            {selectedAccessWorkspace.name}
+                          </span>
+                          <span className={styles.devicePermissionMeta}>
+                            {selectedAccessOwnerName
+                              ? `设备拥有者：${selectedAccessOwnerName}`
+                              : "暂未设置设备拥有者"}
+                          </span>
+                          <span className={styles.devicePermissionMeta}>
+                            {selectedAccessState.visibility === "all"
+                              ? "当前对全公司开放"
+                              : selectedEffectiveMembers.length
+                                ? `当前组织范围：${buildAccessScopeSummary(selectedAccessState.accessScopeSubjects)}`
+                                : "当前尚未配置组织范围"}
                           </span>
                         </div>
-
-                        <div className={styles.devicePermissionControls}>
-                          <Radio.Group
-                            value={selectedAccessState.visibility}
-                            onChange={event => handleChangeAccessVisibility(event.target.value)}
-                            size="small"
-                          >
-                            <Radio value="all">全公司可用</Radio>
-                            <Radio value="bound">按组织范围配置</Radio>
-                          </Radio.Group>
-                          {selectedAccessState.visibility === "bound" ? (
-                            <TreeSelect
-                              className={adminStyles.consoleControl}
-                              treeCheckable={true}
-                              treeCheckStrictly={true}
-                              showCheckedStrategy={TreeSelect.SHOW_PARENT}
-                              placeholder="选择当前设备可使用的组织范围"
-                              size="small"
-                              value={selectedAccessTreeValues}
-                              onChange={value =>
-                                handleChangeAccessSubjects(Array.isArray(value) ? value : [])
-                              }
-                              treeData={organizationTreeData}
-                              allowClear={true}
-                              showSearch={true}
-                            />
-                          ) : null}
-                        </div>
-
-                        <span className={styles.simpleExpertHint}>
-                          {selectedAccessState.visibility === "all"
-                            ? "保存后该设备上的此 AI 专家将对全公司开放。"
-                            : selectedAccessState.accessScopeSubjects.length
-                              ? `保存后该设备将开放给 ${buildAccessScopeSummary(selectedAccessState.accessScopeSubjects)}${selectedAccessOwnerName ? "，设备拥有者默认可用。" : "。"}`
-                              : selectedAccessOwnerName
-                                ? "当前还没有配置组织范围；保存后仅设备拥有者默认可使用。"
-                                : "当前还没有配置组织范围，且该设备尚未设置拥有者。"}
+                        <span className={styles.devicePermissionStatus}>
+                          {isDeviceAccessConfigured(selectedAccessState)
+                            ? "已配置权限"
+                            : "待分配权限"}
                         </span>
-
-                        <div className={adminStyles.consoleActions}>
-                          <Button size="small" type="primary" onClick={handleSaveExpertAccess}>
-                            保存当前设备权限
-                          </Button>
-                        </div>
                       </div>
-                    ) : null}
-                  </>
-                ) : (
-                  <div className={styles.deviceWorkspaceEmpty}>
-                    请先完成设备分配，再为每个设备配置可用权限。
-                  </div>
-                )}
+
+                      <div className={styles.devicePermissionControls}>
+                        <Radio.Group
+                          value={selectedAccessState.visibility}
+                          onChange={event => handleChangeAccessVisibility(event.target.value)}
+                          size="small"
+                        >
+                          <Radio value="all">全公司可用</Radio>
+                          <Radio value="bound">按组织范围配置</Radio>
+                        </Radio.Group>
+                        {selectedAccessState.visibility === "bound" ? (
+                          <TreeSelect
+                            className={adminStyles.consoleControl}
+                            treeCheckable={true}
+                            treeCheckStrictly={true}
+                            showCheckedStrategy={TreeSelect.SHOW_PARENT}
+                            placeholder="选择当前设备可使用的组织范围"
+                            size="small"
+                            value={selectedAccessTreeValues}
+                            onChange={value =>
+                              handleChangeAccessSubjects(Array.isArray(value) ? value : [])
+                            }
+                            treeData={organizationTreeData}
+                            allowClear={true}
+                            showSearch={true}
+                          />
+                        ) : null}
+                      </div>
+
+                      <span className={styles.simpleExpertHint}>
+                        {selectedAccessState.visibility === "all"
+                          ? "保存后该设备上的此 AI 专家将对全公司开放。"
+                          : selectedAccessState.accessScopeSubjects.length
+                            ? `保存后该设备将开放给 ${buildAccessScopeSummary(selectedAccessState.accessScopeSubjects)}${selectedAccessOwnerName ? "，设备拥有者默认可用。" : "。"}`
+                            : selectedAccessOwnerName
+                              ? "当前还没有配置组织范围；保存后仅设备拥有者默认可使用。"
+                              : "当前还没有配置组织范围，且该设备尚未设置拥有者。"}
+                      </span>
+
+                      <div className={adminStyles.consoleActions}>
+                        <Button size="small" type="primary" onClick={handleSaveExpertAccess}>
+                          保存当前设备权限
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className={styles.deviceWorkspaceEmpty}>
+                      请先完成设备分配，再为当前设备配置可用权限。
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           ) : (
             <div className={styles.expertConfigSinglePanel}>
               <div className={styles.simpleExpertBlock}>
-                <span className={styles.simpleExpertBlockLabel}>权限管理</span>
+                <span className={styles.simpleExpertBlockLabel}>可用范围</span>
                 <span className={styles.simpleExpertHint}>
                   该 AI 专家不依赖设备绑定，直接配置可用范围即可生效。
                 </span>
@@ -1087,7 +1074,7 @@ const ExpertConfigPanel = ({
         <div className={styles.expertConfigTabPanel}>
           <div className={styles.expertConfigSinglePanel}>
             <div className={styles.simpleExpertBlock}>
-              <span className={styles.simpleExpertBlockLabel}>模型配置</span>
+              <span className={styles.simpleExpertBlockLabel}>当前模型</span>
               {hasAnyProvider ? (
                 <>
                   <Select
@@ -1127,7 +1114,7 @@ const ExpertConfigPanel = ({
         <div className={styles.expertConfigTabPanel}>
           <div className={styles.expertConfigSinglePanel}>
             <div className={styles.simpleExpertBlock}>
-              <span className={styles.simpleExpertBlockLabel}>版本处理</span>
+              <span className={styles.simpleExpertBlockLabel}>版本信息</span>
               <p className={styles.upgradeVersions}>
                 当前版本 {effectiveVersion}
                 {hasNewVersion ? ` / 最新版本 ${versionInfo.newVersion}` : ""}

@@ -33,8 +33,10 @@ interface VersionItem {
 }
 
 type AgentScope = "public" | "team" | "personal";
-type AgentShelfFilter = "all" | "public" | "shared" | "mine";
+type AgentShelfFilter = "all" | "enterprise" | "platform" | "mine";
 type BusinessLineFilter = "all" | "general" | "production" | "sales" | "supplyChain";
+type AgentSourceType = "enterprise" | "platform";
+type AgentDistributionScope = "enterpriseOnly" | "allTenants" | "assignedTenants";
 
 interface AgentItem {
   id: number;
@@ -46,7 +48,9 @@ interface AgentItem {
   techShape: string;
   model: string;
   runtime: string;
-  source: string;
+  ownerName: string;
+  sourceType: AgentSourceType;
+  distributionScope: AgentDistributionScope;
   submitTime: string;
   scope: AgentScope;
   sharedTargetLabel?: string;
@@ -97,7 +101,9 @@ const AGENTS: AgentItem[] = [
     techShape: "对话型",
     model: "Claude Sonnet 4.6",
     runtime: "标准Runtime",
-    source: "杨万泉",
+    ownerName: "杨万泉",
+    sourceType: "enterprise",
+    distributionScope: "enterpriseOnly",
     submitTime: "2026-04-01 09:30",
     scope: "public",
     installCount: 128,
@@ -124,7 +130,9 @@ const AGENTS: AgentItem[] = [
     techShape: "触发型",
     model: "Claude Sonnet 4.6",
     runtime: "标准Runtime",
-    source: "李婷",
+    ownerName: "李婷",
+    sourceType: "enterprise",
+    distributionScope: "enterpriseOnly",
     submitTime: "2026-03-28 14:20",
     scope: "team",
     sharedTargetLabel: "销售部、客户成功部",
@@ -151,7 +159,9 @@ const AGENTS: AgentItem[] = [
     techShape: "工作流型",
     model: "Claude Sonnet 4.6",
     runtime: "标准Runtime",
-    source: "王晨",
+    ownerName: "王晨",
+    sourceType: "enterprise",
+    distributionScope: "enterpriseOnly",
     submitTime: "2026-03-25 10:00",
     scope: "public",
     installCount: 203,
@@ -177,7 +187,9 @@ const AGENTS: AgentItem[] = [
     techShape: "知识型",
     model: "Claude Sonnet 4.6",
     runtime: "标准Runtime",
-    source: "赵六",
+    ownerName: "赵六",
+    sourceType: "enterprise",
+    distributionScope: "enterpriseOnly",
     submitTime: "2026-03-30 16:00",
     scope: "public",
     installCount: 34,
@@ -200,7 +212,9 @@ const AGENTS: AgentItem[] = [
     techShape: "创作型",
     model: "Claude Sonnet 4.6",
     runtime: "标准Runtime",
-    source: "杨万泉",
+    ownerName: "杨万泉",
+    sourceType: "enterprise",
+    distributionScope: "enterpriseOnly",
     submitTime: "2026-03-20 08:00",
     scope: "personal",
     installCount: 1,
@@ -226,7 +240,9 @@ const AGENTS: AgentItem[] = [
     techShape: "知识型",
     model: "Claude Sonnet 4.6",
     runtime: "标准Runtime",
-    source: "周可",
+    ownerName: "周可",
+    sourceType: "enterprise",
+    distributionScope: "enterpriseOnly",
     submitTime: "2026-03-22 14:00",
     scope: "team",
     sharedTargetLabel: "产品部、设计部",
@@ -250,7 +266,9 @@ const AGENTS: AgentItem[] = [
     techShape: "工作流型",
     model: "Claude Sonnet 4.6",
     runtime: "标准Runtime",
-    source: "赵六",
+    ownerName: "赵六",
+    sourceType: "enterprise",
+    distributionScope: "enterpriseOnly",
     submitTime: "2026-03-18 14:00",
     scope: "public",
     installCount: 89,
@@ -263,12 +281,69 @@ const AGENTS: AgentItem[] = [
     ],
     versions: [{ v: "v1.2.0", desc: "新增批量审批", date: "2026-04-08", cur: true }],
   },
+  {
+    id: 8,
+    name: "行业方案顾问",
+    version: "v3.1.0",
+    domain: "management",
+    desc: "沉淀 Frontis 平台跨行业最佳实践，帮助业务团队快速生成行业方案建议、价值主张和实施路径。",
+    scene: "方案咨询",
+    techShape: "知识型",
+    model: "Claude Sonnet 4.6",
+    runtime: "增强Runtime",
+    ownerName: "Frontis 平台",
+    sourceType: "platform",
+    distributionScope: "allTenants",
+    submitTime: "2026-04-02 11:00",
+    scope: "public",
+    installCount: 416,
+    activeUsers: 1089,
+    rating: 4.8,
+    updatedAt: "2026-04-16",
+    skills: [
+      { name: "行业知识检索", type: "知识型" },
+      { name: "方案结构生成", type: "创作型" },
+    ],
+    versions: [
+      { v: "v3.1.0", desc: "新增制造与零售行业模板", date: "2026-04-16", cur: true },
+      { v: "v3.0.0", desc: "升级平台知识库", date: "2026-04-03" },
+    ],
+  },
+  {
+    id: 9,
+    name: "线索清洗助手",
+    version: "v2.3.1",
+    domain: "sales",
+    desc: "对导入线索进行字段补全、重复识别与优先级标注，帮助销售团队快速完成线索分层。",
+    scene: "线索管理",
+    techShape: "工作流型",
+    model: "Claude Sonnet 4.6",
+    runtime: "增强Runtime",
+    ownerName: "Frontis 平台",
+    sourceType: "platform",
+    distributionScope: "assignedTenants",
+    submitTime: "2026-04-06 15:40",
+    scope: "team",
+    sharedTargetLabel: "销售部、市场部",
+    installCount: 264,
+    activeUsers: 512,
+    rating: 4.6,
+    updatedAt: "2026-04-17",
+    skills: [
+      { name: "线索去重", type: "脚本型" },
+      { name: "优先级打分", type: "知识型" },
+    ],
+    versions: [
+      { v: "v2.3.1", desc: "支持 CRM 字段映射", date: "2026-04-17", cur: true },
+      { v: "v2.2.0", desc: "新增行业标签清洗", date: "2026-04-09" },
+    ],
+  },
 ];
 
 const SHELF_FILTER_OPTIONS: Array<{ label: string; value: AgentShelfFilter }> = [
   { label: "全部", value: "all" },
-  { label: "公开", value: "public" },
-  { label: "团队共享", value: "shared" },
+  { label: "企业自研", value: "enterprise" },
+  { label: "FrontisAI发布", value: "platform" },
   { label: "我的", value: "mine" },
 ];
 
@@ -300,32 +375,14 @@ const getBusinessLineValue = (domain: string): Exclude<BusinessLineFilter, "all"
 const getBusinessLineLabel = (domain: string): string =>
   BUSINESS_LINE_LABEL_MAP[getBusinessLineValue(domain)];
 
-const getScopeLabel = (scope: AgentScope): string => {
-  if (scope === "team") {
-    return "团队共享";
-  }
-
-  if (scope === "personal") {
-    return "我的";
-  }
-
-  return "公开";
-};
-
 const isOwnedByCurrentUser = (agent: AgentItem, currentEmployeeName: string): boolean =>
-  agent.source === currentEmployeeName;
+  agent.ownerName === currentEmployeeName && agent.sourceType === "enterprise";
 
-const getUsageRuleLabel = (agent: AgentItem): string => {
-  if (agent.scope === "personal") {
-    return "开发者可手动添加到工作台使用";
-  }
+const getSourceLabel = (agent: AgentItem): string =>
+  agent.sourceType === "platform" ? "FrontisAI发布" : "企业自研";
 
-  if (agent.scope === "team") {
-    return "被共享成员可直接添加使用";
-  }
-
-  return "所有用户均可直接添加使用";
-};
+const getSourceDescription = (agent: AgentItem): string =>
+  agent.sourceType === "platform" ? "FrontisAI发布 AI专家" : "企业自研 AI专家";
 
 const getActionLabel = (isAdded: boolean): string => {
   return isAdded ? "已添加" : "添加到工作台";
@@ -365,7 +422,7 @@ const buildShelfApplicationId = (agentId: number, tenantId?: string): string =>
   `ops-agent-square-${tenantId ?? "default"}-${agentId}`;
 
 /**
- * AI 专家广场视图，当前按“发布后手动添加到工作台使用”的最小范围设计。
+ * AI 专家广场视图，统一承接企业自研与平台投放专家的浏览和添加。
  */
 export const FdeAgentStoreView = ({
   onNavigateToAgentDev,
@@ -394,11 +451,11 @@ export const FdeAgentStoreView = ({
           return false;
         }
 
-        if (shelfFilter === "public" && agent.scope !== "public") {
+        if (shelfFilter === "enterprise" && agent.sourceType !== "enterprise") {
           return false;
         }
 
-        if (shelfFilter === "shared" && agent.scope !== "team") {
+        if (shelfFilter === "platform" && agent.sourceType !== "platform") {
           return false;
         }
 
@@ -450,7 +507,10 @@ export const FdeAgentStoreView = ({
   const canApplyShelf = useMemo(
     () =>
       Boolean(
-        selectedAgent && selectedAgent.source === currentEmployeeName && activeTenantHasFdeAccess,
+        selectedAgent &&
+          selectedAgent.sourceType === "enterprise" &&
+          selectedAgent.ownerName === currentEmployeeName &&
+          activeTenantHasFdeAccess,
       ),
     [activeTenantHasFdeAccess, currentEmployeeName, selectedAgent],
   );
@@ -507,7 +567,12 @@ export const FdeAgentStoreView = ({
       submittedAt: formatSubmittedAt(),
       status: "pending",
       submissionType: "squarePublish",
-      currentScopeLabel: getScopeLabel(selectedAgent.scope),
+      currentScopeLabel:
+        selectedAgent.scope === "public"
+          ? "企业公开"
+          : selectedAgent.scope === "team"
+            ? "团队共享"
+            : "仅自己",
       submitReason: applicationReason,
       description: selectedAgent.desc,
       rejectReason: undefined,
@@ -612,7 +677,7 @@ export const FdeAgentStoreView = ({
                       background: DOMAIN_TONE_MAP[agent.domain] ?? DOMAIN_TONE_MAP.management,
                     }}
                   >
-                    <span className={styles.visibilityBadge}>{getScopeLabel(agent.scope)}</span>
+                    <span className={styles.visibilityBadge}>{getSourceLabel(agent)}</span>
                     <div className={styles.visualGlow} />
                     <img
                       alt={agent.name}
@@ -621,32 +686,24 @@ export const FdeAgentStoreView = ({
                     />
                   </div>
 
-                  <div className={styles.cardBody}>
-                    <div className={styles.cardTitleRow}>
-                      <h3 className={styles.cardTitle}>{agent.name}</h3>
-                      <div className={styles.cardVersionMeta}>
-                        <span className={styles.publishBadge}>已发布</span>
-                        <span className={styles.versionText}>{agent.version}</span>
+                    <div className={styles.cardBody}>
+                      <div className={styles.cardTitleRow}>
+                        <h3 className={styles.cardTitle}>{agent.name}</h3>
+                        <div className={styles.cardVersionMeta}>
+                          <span className={styles.versionBadge}>{agent.version}</span>
+                        </div>
                       </div>
-                    </div>
 
                     <div className={styles.badgeRow}>
                       <span className={`${styles.miniBadge} ${styles.domainBadge}`}>
                         {getBusinessLineLabel(agent.domain)}
                       </span>
-                      <span className={`${styles.miniBadge} ${styles.scopeBadge}`}>
-                        {agent.scope === "team"
-                          ? (agent.sharedTargetLabel ?? "团队共享")
-                          : agent.scope === "personal"
-                            ? "个人发布"
-                            : "所有人可用"}
-                      </span>
                     </div>
 
                     <p className={styles.agentDescription}>{agent.desc}</p>
                     <div className={styles.cardDeliveryInfo}>
-                      <strong>{agent.source}</strong>
-                      <span>{getUsageRuleLabel(agent)}</span>
+                      <strong>{agent.ownerName}</strong>
+                      <span>{getSourceDescription(agent)}</span>
                     </div>
                   </div>
                 </button>
@@ -733,9 +790,9 @@ export const FdeAgentStoreView = ({
       >
         <div className={styles.shelfApplicationBody}>
           <div className={styles.shelfApplicationIntro}>
-            <div className={styles.shelfApplicationIntroBadge}>平台 AI专家广场</div>
+            <div className={styles.shelfApplicationIntroBadge}>平台审核</div>
             <p className={styles.shelfApplicationIntroText}>
-              提交后将进入平台侧审核，审核通过后可在 AI专家广场面向更多租户展示和使用。
+              提交后将进入平台侧审核，审核通过后可扩大当前 AI专家 的可见范围，面向更多租户展示和使用。
             </p>
           </div>
 
@@ -775,7 +832,7 @@ export const FdeAgentStoreView = ({
                 className={styles.shelfApplicationTextarea}
                 rows={5}
                 value={shelfApplicationEditor.reason}
-                placeholder="请说明该 AI专家 的适用场景、稳定性表现，以及为什么值得上架到平台广场"
+                placeholder="请说明该 AI专家 的适用场景、稳定性表现，以及为什么适合扩大到更多租户可见"
                 onChange={event =>
                   setShelfApplicationEditor(currentState => ({
                     ...currentState,

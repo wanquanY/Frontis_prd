@@ -1368,16 +1368,16 @@ export const FdeAgentDevView = ({ onNavigate }: FdeAgentDevViewProps = {}): JSX.
       proposedProductName,
       submitReason,
       targetCustomers: commodityApplicationForm.targetCustomers.trim() || undefined,
-      currentScopeLabel: "已发布到企业 AI专家广场",
+      currentScopeLabel: "已发布到 AI专家广场",
       description:
         commodityApplicationForm.notes.trim() ||
-        "该 AI专家已发布到企业 AI专家广场，当前仅限企业内使用，申请审核通过后再由平台运营转换为可售商品。",
+        "该 AI专家已发布到 AI专家广场，当前按企业内权限范围可见可用。上架申请审核通过后，可进一步扩大到更多租户可见。",
     };
     const currentApplications = loadEnterpriseCommodityApplications();
 
     saveEnterpriseCommodityApplications([nextSubmission, ...currentApplications]);
     setCommodityApplicationSuccess(true);
-    message.success(`已提交「${agentName}」的商品化申请`);
+    message.success(`已提交「${agentName}」的上架申请`);
   }, [
     commodityApplicationForm.notes,
     commodityApplicationForm.proposedProductName,
@@ -1977,7 +1977,7 @@ export const FdeAgentDevView = ({ onNavigate }: FdeAgentDevViewProps = {}): JSX.
               ? `${publishForm.name} v${publishForm.version} 已成功发布。`
               : `${publishForm.name} v${publishForm.version} 已发布到 AI专家广场，当前范围：${
                   publishForm.visibility === "public"
-                    ? "公开"
+                    ? "企业公开"
                     : publishForm.visibility === "team"
                       ? "团队共享"
                       : "仅自己"
@@ -2007,7 +2007,7 @@ export const FdeAgentDevView = ({ onNavigate }: FdeAgentDevViewProps = {}): JSX.
               <AppstoreOutlined className={styles.publishTypeCardIcon} />
               <div className={styles.publishTypeCardCopy}>
                 <span className={styles.publishTypeCardTitle}>发布到 AI专家广场</span>
-                <span className={styles.publishTypeCardDesc}>将当前 AI专家发布到企业 AI专家广场</span>
+                <span className={styles.publishTypeCardDesc}>将当前 AI专家发布到统一广场并按权限范围可见</span>
               </div>
             </button>
           </div>
@@ -2059,12 +2059,12 @@ export const FdeAgentDevView = ({ onNavigate }: FdeAgentDevViewProps = {}): JSX.
                 options={
                   publishType === "skill"
                     ? [
-                        { value: "public", label: "公开" },
+                        { value: "public", label: "企业公开" },
                         { value: "private", label: "仅自己" },
                         { value: "team", label: "团队" },
                       ]
                     : [
-                        { value: "public", label: "公开" },
+                        { value: "public", label: "企业公开" },
                         { value: "team", label: "团队共享" },
                         { value: "private", label: "仅自己" },
                       ]
@@ -2836,7 +2836,7 @@ export const FdeAgentDevView = ({ onNavigate }: FdeAgentDevViewProps = {}): JSX.
           </div>
         )}
 
-        {/* 发布与商品化 */}
+        {/* 发布与上架 */}
         {deployPage === "store" && (
           <div className={styles.deployStoreWrap}>
             {/* 服务状态 */}
@@ -2855,7 +2855,7 @@ export const FdeAgentDevView = ({ onNavigate }: FdeAgentDevViewProps = {}): JSX.
                 <a className={styles.deployStoreLink}><LineChartOutlined /> 运维监控</a>
                 <a className={styles.deployStoreLink}><EditOutlined /> 体验页定制申请</a>
                 <a className={styles.deployStoreLink} onClick={() => { setPublishPage("assetLibrary"); setPublishType("agent"); setPublishSuccess(false); setCommodityApplicationSuccess(false); setIsRightPanelCollapsed(false); }}><UploadOutlined /> 上架到资产库</a>
-                <a className={styles.deployStoreLink} onClick={handleOpenAgentPublishPanel}><ShopOutlined /> 发布到AI专家广场</a>
+                <a className={styles.deployStoreLink} onClick={handleOpenAgentPublishPanel}><ShopOutlined /> 发布到 AI专家广场</a>
                 <a className={styles.deployStoreLink} onClick={() => {
                   setPublishPage("form");
                   setPublishType("skill");
@@ -2943,7 +2943,7 @@ export const FdeAgentDevView = ({ onNavigate }: FdeAgentDevViewProps = {}): JSX.
               ? "申请发布为商品"
               : publishType === "skill"
                 ? "发布为Skill"
-                : "发布到AI专家广场"}
+                : "发布到 AI专家广场"}
         </span>
         <button type="button" className={styles.rightToggleBtn} style={{ marginLeft: "auto" }} onClick={() => setPublishPage(null)}>
           <CloseOutlined />
@@ -2962,7 +2962,7 @@ export const FdeAgentDevView = ({ onNavigate }: FdeAgentDevViewProps = {}): JSX.
           commodityApplicationSuccess ? (
             <div className={styles.publishSuccessView}>
               <CheckCircleFilled style={{ fontSize: 48, color: "#3cbf7b" }} />
-              <h3 className={styles.publishSuccessTitle}>商品化申请已提交</h3>
+              <h3 className={styles.publishSuccessTitle}>上架申请已提交</h3>
               <p className={styles.publishSuccessHint}>
                 平台运营会在审核通过后将该 AI专家转换为商品，审核前仍仅支持企业内使用。
               </p>
@@ -2973,12 +2973,12 @@ export const FdeAgentDevView = ({ onNavigate }: FdeAgentDevViewProps = {}): JSX.
                 <div className={styles.publishNoticeCard}>
                   <div className={styles.publishNoticeTitle}>当前发布范围</div>
                   <div className={styles.publishNoticeText}>
-                    该 AI专家发布到 AI专家广场后，仅支持当前企业内部使用。只有商品化申请审核通过后，平台运营才会在商品中心将其转换为可售商品。
+                    该 AI专家发布到 AI专家广场后，将按当前权限范围在本企业内可见可用。只有上架申请审核通过后，平台运营才会将其扩大到更多租户可见。
                   </div>
                 </div>
               </div>
               <div className={styles.publishFormSection}>
-                <h4 className={styles.publishSectionTitle}>商品化申请信息</h4>
+                <h4 className={styles.publishSectionTitle}>上架申请信息</h4>
                 <div className={styles.publishFormRow}>
                   <label className={styles.publishFormLabel}>AI专家名称</label>
                   <Input
@@ -3032,7 +3032,7 @@ export const FdeAgentDevView = ({ onNavigate }: FdeAgentDevViewProps = {}): JSX.
                     maxLength={1000}
                     rows={3}
                     showCount
-                    placeholder="补充运营审核时需要关注的商品化信息。"
+                    placeholder="补充运营审核时需要关注的上架信息。"
                     onChange={event =>
                       updateCommodityApplicationForm({ notes: event.target.value })
                     }
@@ -3046,7 +3046,7 @@ export const FdeAgentDevView = ({ onNavigate }: FdeAgentDevViewProps = {}): JSX.
                   icon={<ShopOutlined />}
                   onClick={handleSubmitCommodityApplication}
                 >
-                  提交商品化申请
+                  提交上架申请
                 </Button>
               </div>
             </div>
@@ -3064,7 +3064,7 @@ export const FdeAgentDevView = ({ onNavigate }: FdeAgentDevViewProps = {}): JSX.
                 ? `${publishForm.name} v${publishForm.version} 已成功发布。`
                 : `${publishForm.name} v${publishForm.version} 已发布到 AI专家广场，当前范围：${
                     publishForm.visibility === "public"
-                      ? "公开"
+                      ? "企业公开"
                       : publishForm.visibility === "team"
                         ? "团队共享"
                         : "仅自己"
@@ -3105,7 +3105,7 @@ export const FdeAgentDevView = ({ onNavigate }: FdeAgentDevViewProps = {}): JSX.
                 <AppstoreOutlined className={styles.publishTypeCardIcon} />
                 <div className={styles.publishTypeCardCopy}>
                   <span className={styles.publishTypeCardTitle}>发布到 AI专家广场</span>
-                  <span className={styles.publishTypeCardDesc}>将当前 AI专家发布到企业 AI专家广场</span>
+                  <span className={styles.publishTypeCardDesc}>将当前 AI专家发布到统一广场并按权限范围可见</span>
                 </div>
               </button>
             </div>
@@ -3157,12 +3157,12 @@ export const FdeAgentDevView = ({ onNavigate }: FdeAgentDevViewProps = {}): JSX.
                   options={
                     publishType === "skill"
                       ? [
-                          { value: "public", label: "公开" },
+                          { value: "public", label: "企业公开" },
                           { value: "private", label: "仅自己" },
                           { value: "team", label: "团队" },
                         ]
                       : [
-                          { value: "public", label: "公开" },
+                          { value: "public", label: "企业公开" },
                           { value: "team", label: "团队共享" },
                           { value: "private", label: "仅自己" },
                         ]
