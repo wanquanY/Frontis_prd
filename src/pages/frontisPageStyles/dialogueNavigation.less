@@ -6,6 +6,20 @@
   gap: 0;
 }
 
+.dialogueShellResizing {
+  will-change: grid-template-columns;
+}
+
+.dialogueShellResizing .dialogueMainCard,
+.dialogueShellResizing .dialogueArtifactsCard {
+  user-select: none;
+}
+
+.dialogueShellResizing .dialogueArtifactsCard iframe,
+.dialogueShellResizing .dialogueMainCard iframe {
+  pointer-events: none;
+}
+
 .dialogueShellArtifactsHidden {
   grid-template-columns: 252px minmax(0, 1fr);
 }
@@ -233,11 +247,19 @@
   cursor: pointer;
 }
 
+.dialogueCollapsedAvatarButton.dialogueCollapsedBrandButton {
+  position: absolute;
+  top: 14px;
+  left: 16px;
+}
+
 .dialogueCollapsedAvatarWrap {
   width: 40px;
   height: 40px;
   position: relative;
   display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .dialogueCollapsedAvatar {
@@ -327,6 +349,12 @@
   font-weight: 700;
   opacity: 1;
   transform: scale(1);
+}
+
+.dialogueCollapsedBrandLogo .employeeAvatarWrap,
+.dialogueCollapsedBrandLogo .dialogueTeamAvatarStack {
+  width: 40px;
+  height: 40px;
 }
 
 .dialogueCollapsedBrandExpand {
