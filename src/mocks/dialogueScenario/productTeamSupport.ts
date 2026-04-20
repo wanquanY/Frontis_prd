@@ -1,13 +1,9 @@
 import type { ArtifactItem } from "@/types/artifact";
 import {
-  PRODUCT_TEAM_ACCEPTANCE_DOCUMENT_CONTENT,
-  PRODUCT_TEAM_ARCHITECTURE_DOCUMENT_CONTENT,
-  PRODUCT_TEAM_COLLAB_DELIVERY_DOCUMENT_CONTENT,
+  PRODUCT_TEAM_BUSINESS_JOURNEY_HTML_DOCUMENT_CONTENT,
+  PRODUCT_TEAM_COMPLETE_PRD_V2_DOCUMENT_CONTENT,
   PRODUCT_TEAM_MAIN_AGENT_NAME,
-  PRODUCT_TEAM_METRICS_DOCUMENT_CONTENT,
-  PRODUCT_TEAM_RISK_DOCUMENT_CONTENT,
   PRODUCT_TEAM_RISK_QUESTION,
-  PRODUCT_TEAM_USER_RESEARCH_DOCUMENT_CONTENT,
 } from "@/mocks/dialogueScenario/productTeamScenarioMock";
 
 import type { DialogueGeneratedPanelStatus, DialogueGeneratedResultItem } from "@/pages/types";
@@ -76,6 +72,16 @@ export interface ProductTeamScenarioSupportHelpers {
     producedAt: string,
     fileSize: string,
   ) => ArtifactItem;
+  createHtmlArtifact: (
+    sessionId: string,
+    suffix: string,
+    fileName: string,
+    producerName: string,
+    taskName: string,
+    content: string,
+    producedAt: string,
+    fileSize: string,
+  ) => ArtifactItem;
   buildArtifactGroup: (...artifacts: Array<ArtifactItem | undefined>) => ArtifactItem[];
   resolveTextArtifactSize: (content: string) => string;
   createScenarioDispatchResultItem: (
@@ -91,84 +97,30 @@ export const buildProductTeamArtifacts = (
   sessionId: string,
   mode: "delivery" | "risk",
 ): ArtifactItem[] => {
-  const deliveryArtifact = helpers.createMarkdownArtifact(
+  const completePrdArtifact = helpers.createMarkdownArtifact(
     sessionId,
-    "team-product-collab-delivery",
-    "产研协作专家团协同交付方案.md",
+    "team-product-complete-prd-v2",
+    "Frontis AI · 完整 PRD V2.md",
     PRODUCT_TEAM_MAIN_AGENT_NAME,
-    "协同交付方案",
-    PRODUCT_TEAM_COLLAB_DELIVERY_DOCUMENT_CONTENT,
+    "完整 PRD 交付",
+    PRODUCT_TEAM_COMPLETE_PRD_V2_DOCUMENT_CONTENT,
     "刚刚",
-    helpers.resolveTextArtifactSize(PRODUCT_TEAM_COLLAB_DELIVERY_DOCUMENT_CONTENT),
+    helpers.resolveTextArtifactSize(PRODUCT_TEAM_COMPLETE_PRD_V2_DOCUMENT_CONTENT),
   );
-  const architectureArtifact = helpers.createMarkdownArtifact(
+  const businessJourneyArtifact = helpers.createHtmlArtifact(
     sessionId,
-    "team-product-architecture",
-    "产研协作专家团架构边界与依赖表.md",
-    "架构规划师",
-    "架构边界梳理",
-    PRODUCT_TEAM_ARCHITECTURE_DOCUMENT_CONTENT,
+    "team-product-business-journey",
+    "Frontis AI 平台业务流程图 V2.7 统一用户版.html",
+    PRODUCT_TEAM_MAIN_AGENT_NAME,
+    "业务旅程构造交付",
+    PRODUCT_TEAM_BUSINESS_JOURNEY_HTML_DOCUMENT_CONTENT,
     "刚刚",
-    helpers.resolveTextArtifactSize(PRODUCT_TEAM_ARCHITECTURE_DOCUMENT_CONTENT),
-  );
-  const metricsArtifact = helpers.createJsonArtifact(
-    sessionId,
-    "team-product-metrics",
-    "产研协作专家团指标与埋点草案.json",
-    "数据洞察师",
-    "埋点与灰度观察",
-    PRODUCT_TEAM_METRICS_DOCUMENT_CONTENT,
-    "刚刚",
-    helpers.resolveTextArtifactSize(PRODUCT_TEAM_METRICS_DOCUMENT_CONTENT),
-  );
-  const acceptanceArtifact = helpers.createMarkdownArtifact(
-    sessionId,
-    "team-product-acceptance",
-    "产研协作专家团上线前验收与回归清单.md",
-    "交付验收官",
-    "上线前验收与回归",
-    PRODUCT_TEAM_ACCEPTANCE_DOCUMENT_CONTENT,
-    "刚刚",
-    helpers.resolveTextArtifactSize(PRODUCT_TEAM_ACCEPTANCE_DOCUMENT_CONTENT),
-  );
-  const userResearchArtifact = helpers.createMarkdownArtifact(
-    sessionId,
-    "team-product-user-research",
-    "产研协作专家团用户感知复核纪要.md",
-    "用户访谈官",
-    "用户感知复核",
-    PRODUCT_TEAM_USER_RESEARCH_DOCUMENT_CONTENT,
-    "刚刚",
-    helpers.resolveTextArtifactSize(PRODUCT_TEAM_USER_RESEARCH_DOCUMENT_CONTENT),
+    helpers.resolveTextArtifactSize(PRODUCT_TEAM_BUSINESS_JOURNEY_HTML_DOCUMENT_CONTENT),
   );
 
-  if (mode === "risk") {
-    return helpers.buildArtifactGroup(
-      deliveryArtifact,
-      architectureArtifact,
-      acceptanceArtifact,
-      metricsArtifact,
-      userResearchArtifact,
-      helpers.createMarkdownArtifact(
-        sessionId,
-        "team-product-collab-risk",
-        "产研协作专家团上线风险清单.md",
-        "交付验收官",
-        "上线风险评估",
-        PRODUCT_TEAM_RISK_DOCUMENT_CONTENT,
-        "刚刚",
-        helpers.resolveTextArtifactSize(PRODUCT_TEAM_RISK_DOCUMENT_CONTENT),
-      ),
-    );
-  }
+  void mode;
 
-  return helpers.buildArtifactGroup(
-    deliveryArtifact,
-    architectureArtifact,
-    acceptanceArtifact,
-    metricsArtifact,
-    userResearchArtifact,
-  );
+  return helpers.buildArtifactGroup(completePrdArtifact, businessJourneyArtifact);
 };
 
 /**

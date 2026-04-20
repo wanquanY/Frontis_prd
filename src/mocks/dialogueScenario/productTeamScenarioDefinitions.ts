@@ -11,6 +11,7 @@ import type { DialogueScenarioDefinition } from "@/types/dialogueScenario";
 import { dialogueScenarioRuntimeHelpers } from "@/utils/dialogueScenarioRuntime";
 
 const productTeamScenarioSupportHelpers: ProductTeamScenarioSupportHelpers = {
+  createHtmlArtifact: dialogueScenarioRuntimeHelpers.createHtmlArtifact,
   createMarkdownArtifact: dialogueScenarioRuntimeHelpers.createMarkdownArtifact,
   createJsonArtifact: dialogueScenarioRuntimeHelpers.createJsonArtifact,
   buildArtifactGroup: dialogueScenarioRuntimeHelpers.buildArtifactGroup,

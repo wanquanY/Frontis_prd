@@ -202,14 +202,14 @@ const SKILL_BUTTON_GAP = 6;
 const SKILL_BUTTON_BASE_WIDTH = 44;
 const SELECTED_SKILL_BUTTON_BASE_WIDTH = 68;
 const DIALOGUE_SIDE_PANEL_WIDTH_KEY = "frontis-dialogue-side-panel-width";
-const DIALOGUE_ARTIFACT_LIST_PANEL_DEFAULT_WIDTH = 336;
-const DIALOGUE_ARTIFACT_PREVIEW_PANEL_DEFAULT_WIDTH = 620;
+const DIALOGUE_ARTIFACT_LIST_PANEL_DEFAULT_WIDTH = 380;
+const DIALOGUE_ARTIFACT_PREVIEW_PANEL_DEFAULT_WIDTH = 860;
 const DIALOGUE_RESULT_PANEL_DEFAULT_WIDTH = 960;
-const DIALOGUE_SIDE_PANEL_MIN_WIDTH = 320;
-const DIALOGUE_SIDE_PANEL_MAX_WIDTH = 960;
+const DIALOGUE_SIDE_PANEL_MIN_WIDTH = 360;
+const DIALOGUE_SIDE_PANEL_MAX_WIDTH = 1180;
 const TEAM_MENTION_ALL_OPTION_ID = "team-mention-all";
 const TEAM_MENTION_ALL_LABEL = "所有agent";
-const EXPERT_TEAM_MAIN_AGENT_NAME = "Metaagent";
+const EXPERT_TEAM_MAIN_AGENT_NAME = "MetaAegnt";
 const SKILL_BUTTON_FONT =
   '500 14px "PingFang SC", system-ui, -apple-system, "Segoe UI", Arial, sans-serif';
 
@@ -324,7 +324,7 @@ export const DialoguePrototypeView = ({
       const sidebarReservedWidth = 252;
       const viewportLimitedMax = Math.min(
         DIALOGUE_SIDE_PANEL_MAX_WIDTH,
-        Math.max(DIALOGUE_SIDE_PANEL_MIN_WIDTH, viewportWidth - sidebarReservedWidth - 360),
+        Math.max(DIALOGUE_SIDE_PANEL_MIN_WIDTH, viewportWidth - sidebarReservedWidth - 180),
       );
 
       return Math.min(viewportLimitedMax, Math.max(DIALOGUE_SIDE_PANEL_MIN_WIDTH, width));
@@ -440,18 +440,40 @@ export const DialoguePrototypeView = ({
     };
 
     activeExpertTeamMembers.forEach(member => {
+      const isMainCoordinatorMember =
+        member.name === activeEmployee.name ||
+        member.id === activeEmployee.expertTeamPrimaryMemberId;
+
       actorAvatarEntries[member.id] = {
-        icon: member.avatarUrl,
+        icon: isMainCoordinatorMember ? activeEmployee.avatarUrl : member.avatarUrl,
         name: member.name,
       };
-      actorAvatarEntries[member.name] = {
-        icon: member.avatarUrl,
-        name: member.name,
-      };
+
+      if (!isMainCoordinatorMember) {
+        actorAvatarEntries[member.name] = {
+          icon: member.avatarUrl,
+          name: member.name,
+        };
+      }
     });
 
     return actorAvatarEntries;
-  }, [activeEmployee.avatarUrl, activeEmployee.id, activeEmployee.name, activeExpertTeamMembers]);
+  }, [
+    activeEmployee.avatarUrl,
+    activeEmployee.expertTeamPrimaryMemberId,
+    activeEmployee.id,
+    activeEmployee.name,
+    activeExpertTeamMembers,
+  ]);
+  const isMetaCoordinatorAgent = useCallback(
+    (employee: EmployeeItem): boolean =>
+      employee.isExpertTeam &&
+      defaultAgentIds.includes(employee.id) &&
+      employee.name === EXPERT_TEAM_MAIN_AGENT_NAME,
+    [defaultAgentIds],
+  );
+  const shouldShowExpertTeamUi =
+    activeEmployee.isExpertTeam && !isMetaCoordinatorAgent(activeEmployee);
   const expertTeamMentionOptions = useMemo<WorkspaceComposerMentionOption[]>(
     () =>
       activeEmployee.isExpertTeam
@@ -904,15 +926,11 @@ export const DialoguePrototypeView = ({
                     setIsEmployeeSwitcherOpen(false);
                   }}
                 >
-                  {item.isExpertTeam ? (
+                  {item.isExpertTeam && !isMetaCoordinatorAgent(item) ? (
                     <DialogueTeamAvatar team={item} members={teamMembers} />
                   ) : (
                     <span className={styles.employeeAvatarWrap}>
-                      <Avatar
-                        src={item.avatarUrl}
-                        size={40}
-                        className={styles.dialogueHeroAvatar}
-                      >
+                      <Avatar src={item.avatarUrl} size={40} className={styles.dialogueHeroAvatar}>
                         {getAvatarText(item.name)}
                       </Avatar>
                       <span
@@ -1107,7 +1125,7 @@ export const DialoguePrototypeView = ({
     </div>
   );
   const expertTeamMemberAvatars =
-    activeEmployee.isExpertTeam && activeExpertTeamMembers.length > 0 ? (
+    shouldShowExpertTeamUi && activeExpertTeamMembers.length > 0 ? (
       <>
         {activeExpertTeamMembers.map(member => {
           const isMainAgent = member.name === EXPERT_TEAM_MAIN_AGENT_NAME;
@@ -1187,21 +1205,21 @@ export const DialoguePrototypeView = ({
   ) : null;
   const expertTeamScenarioLabel = useMemo(
     () =>
-      activeEmployee.isExpertTeam
+      shouldShowExpertTeamUi
         ? getExpertTeamScenarioLabel(activeEmployee.summary, activeEmployee.name)
         : "",
-    [activeEmployee.isExpertTeam, activeEmployee.name, activeEmployee.summary],
+    [activeEmployee.name, activeEmployee.summary, shouldShowExpertTeamUi],
   );
   const expertTeamHomeLabel = useMemo(() => {
-    if (!activeEmployee.isExpertTeam) {
+    if (!shouldShowExpertTeamUi) {
       return "";
     }
 
     const normalizedTeamName = activeEmployee.name.replace(/专家团$/, "").trim();
 
     return normalizedTeamName || expertTeamScenarioLabel || activeEmployee.name;
-  }, [activeEmployee.isExpertTeam, activeEmployee.name, expertTeamScenarioLabel]);
-  const dialogueHomeHeroTitle = activeEmployee.isExpertTeam
+  }, [activeEmployee.name, expertTeamScenarioLabel, shouldShowExpertTeamUi]);
+  const dialogueHomeHeroTitle = shouldShowExpertTeamUi
     ? `Hi ${viewerName}，请说你的${expertTeamHomeLabel}需求`
     : `Hi ${viewerName}，有什么可以帮你的？`;
 
@@ -1228,7 +1246,7 @@ export const DialoguePrototypeView = ({
             onClick={() => setIsEmployeeSwitcherOpen(current => !current)}
           >
             <span className={styles.dialogueAgentSelectCurrent}>
-              {activeEmployee.isExpertTeam ? (
+              {shouldShowExpertTeamUi ? (
                 <DialogueTeamAvatar team={activeEmployee} members={activeExpertTeamMembers} />
               ) : (
                 <span className={styles.employeeAvatarWrap}>
@@ -1378,7 +1396,7 @@ export const DialoguePrototypeView = ({
       <section className={styles.dialogueMainCard}>
         {!isHomeVisible ? (
           <div className={styles.dialogueViewToolbar}>
-            {expertTeamToolbarStrip}
+            {shouldShowExpertTeamUi ? expertTeamToolbarStrip : null}
             <div className={styles.dialogueViewToolbarGroup}>
               <button
                 type="button"
@@ -1399,10 +1417,10 @@ export const DialoguePrototypeView = ({
           <div className={styles.dialogueHomeLayout}>
             <div
               className={classNames(styles.dialogueHomeHero, {
-                [styles.dialogueHomeHeroExpertTeam]: activeEmployee.isExpertTeam,
+                [styles.dialogueHomeHeroExpertTeam]: shouldShowExpertTeamUi,
               })}
             >
-              {activeEmployee.isExpertTeam ? (
+              {shouldShowExpertTeamUi ? (
                 expertTeamMemberStrip
               ) : (
                 <Avatar

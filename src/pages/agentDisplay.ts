@@ -8,7 +8,7 @@ import type { DialogueSessionItem, EmployeeItem, FrontisWebRole } from "./types"
 
 const CEO_WRITER_AGENT_ID = "employee-writer";
 const BOSS_SIDE_CEO_WRITER_NAME = "CEO分身";
-const EMPLOYEE_SIDE_CEO_WRITER_NAME = "AI CEO教练";
+const EMPLOYEE_SIDE_CEO_WRITER_NAME = "MetaAegnt";
 const CEO_WRITER_DISPLAY_NAMES = [BOSS_SIDE_CEO_WRITER_NAME, EMPLOYEE_SIDE_CEO_WRITER_NAME];
 
 const replaceCeoWriterDisplayName = (value: string, viewRole: FrontisWebRole): string => {
@@ -86,7 +86,14 @@ export const mapDialogueSessionForRole = (
     ...session,
     messages: session.messages.map(message => ({
       ...message,
-      author: message.role === "assistant" && assistantName ? assistantName : message.author,
+      author:
+        message.role === "assistant" &&
+        assistantName &&
+        (message.author.trim() === BOSS_SIDE_CEO_WRITER_NAME ||
+          message.author.trim() === EMPLOYEE_SIDE_CEO_WRITER_NAME ||
+          message.author.trim().length === 0)
+          ? assistantName
+          : message.author,
       attachments: message.attachments?.map(attachment => ({ ...attachment })),
       blocks: message.blocks ? JSON.parse(JSON.stringify(message.blocks)) : undefined,
       followupSuggestions: message.followupSuggestions

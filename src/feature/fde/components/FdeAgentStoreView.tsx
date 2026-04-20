@@ -99,7 +99,7 @@ const AGENTS: AgentItem[] = [
     techShape: "对话型",
     model: "Claude Sonnet 4.6",
     runtime: "标准Runtime",
-    source: "张三",
+    source: "杨万泉",
     submitTime: "2026-04-01 09:30",
     scope: "public",
     installCount: 128,
@@ -126,7 +126,7 @@ const AGENTS: AgentItem[] = [
     techShape: "触发型",
     model: "Claude Sonnet 4.6",
     runtime: "标准Runtime",
-    source: "张三",
+    source: "李婷",
     submitTime: "2026-03-28 14:20",
     scope: "team",
     sharedTargetLabel: "销售部、客户成功部",
@@ -153,7 +153,7 @@ const AGENTS: AgentItem[] = [
     techShape: "工作流型",
     model: "Claude Sonnet 4.6",
     runtime: "标准Runtime",
-    source: "李四",
+    source: "王晨",
     submitTime: "2026-03-25 10:00",
     scope: "public",
     installCount: 203,
@@ -202,7 +202,7 @@ const AGENTS: AgentItem[] = [
     techShape: "创作型",
     model: "Claude Sonnet 4.6",
     runtime: "标准Runtime",
-    source: "张三",
+    source: "杨万泉",
     submitTime: "2026-03-20 08:00",
     scope: "personal",
     installCount: 1,
@@ -228,7 +228,7 @@ const AGENTS: AgentItem[] = [
     techShape: "知识型",
     model: "Claude Sonnet 4.6",
     runtime: "标准Runtime",
-    source: "王五",
+    source: "周可",
     submitTime: "2026-03-22 14:00",
     scope: "team",
     sharedTargetLabel: "产品部、设计部",
@@ -333,6 +333,9 @@ const getDetailScopeLabel = (agent: AgentItem): string => {
   return "所有租户可见";
 };
 
+const isOwnedByCurrentUser = (agent: AgentItem, currentEmployeeName: string): boolean =>
+  agent.source === currentEmployeeName;
+
 const getUsageRuleLabel = (agent: AgentItem): string => {
   if (agent.scope === "personal") {
     return "仅开发者自己使用";
@@ -345,8 +348,12 @@ const getUsageRuleLabel = (agent: AgentItem): string => {
   return "所有用户均可直接添加使用";
 };
 
-const getActionLabel = (agent: AgentItem, isAdded: boolean): string => {
-  if (agent.scope === "personal") {
+const getActionLabel = (
+  agent: AgentItem,
+  isAdded: boolean,
+  currentEmployeeName: string,
+): string => {
+  if (agent.scope === "personal" && isOwnedByCurrentUser(agent, currentEmployeeName)) {
     return "进入开发";
   }
 
@@ -412,6 +419,10 @@ export const FdeAgentStoreView = ({
   const filteredAgents = useMemo(
     () =>
       AGENTS.filter(agent => {
+        if (agent.scope === "personal" && !isOwnedByCurrentUser(agent, currentEmployeeName)) {
+          return false;
+        }
+
         if (shelfFilter === "public" && agent.scope !== "public") {
           return false;
         }
@@ -422,7 +433,7 @@ export const FdeAgentStoreView = ({
 
         if (
           shelfFilter === "mine" &&
-          !(agent.scope === "personal" || agent.source === currentEmployeeName)
+          !isOwnedByCurrentUser(agent, currentEmployeeName)
         ) {
           return false;
         }
@@ -556,7 +567,7 @@ export const FdeAgentStoreView = ({
 
   const handleUseAgent = useCallback(
     (agent: AgentItem): void => {
-      if (agent.scope === "personal") {
+      if (agent.scope === "personal" && isOwnedByCurrentUser(agent, currentEmployeeName)) {
         if (onNavigateToAgentDev) {
           onNavigateToAgentDev();
         } else {
@@ -573,7 +584,7 @@ export const FdeAgentStoreView = ({
       setAddedAgentIds(currentIds => [...currentIds, agent.id]);
       message.success(`已将「${agent.name}」添加到工作台。`);
     },
-    [addedAgentIds, onNavigateToAgentDev],
+    [addedAgentIds, currentEmployeeName, onNavigateToAgentDev],
   );
 
   const detailContent = useMemo((): JSX.Element | null => {
@@ -722,7 +733,8 @@ export const FdeAgentStoreView = ({
             <div className={styles.detailKeyValueItem}>
               <span className={styles.detailKeyValueLabel}>当前状态</span>
               <strong className={styles.detailKeyValueValue}>
-                {selectedAgent.scope === "personal"
+                {selectedAgent.scope === "personal" &&
+                isOwnedByCurrentUser(selectedAgent, currentEmployeeName)
                   ? "仅自己可用"
                   : selectedAgentAdded
                     ? "已添加到工作台"
@@ -893,7 +905,7 @@ export const FdeAgentStoreView = ({
                     type="default"
                     onClick={() => handleUseAgent(agent)}
                   >
-                    {getActionLabel(agent, isAdded)}
+                    {getActionLabel(agent, isAdded, currentEmployeeName)}
                   </Button>
                 </div>
               </article>
@@ -961,7 +973,7 @@ export const FdeAgentStoreView = ({
                   className={getDetailActionToneClassName(selectedAgent, selectedAgentAdded)}
                   onClick={() => handleUseAgent(selectedAgent)}
                 >
-                  {getActionLabel(selectedAgent, selectedAgentAdded)}
+                  {getActionLabel(selectedAgent, selectedAgentAdded, currentEmployeeName)}
                 </Button>
               </div>
             </div>

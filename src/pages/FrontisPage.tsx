@@ -71,9 +71,13 @@ const DEFAULT_WORKSPACE_AGENT_ORDER: string[] = [DEFAULT_CONVERSATION_EMPLOYEE_I
 const TEAM_MENTION_ALL_LABEL = "所有agent";
 const MAX_HOME_PROMPT_ITEM_COUNT = 6;
 const DEFAULT_WORKSPACE_AGENT_NAME = "MetaAegnt";
-const EXPERT_TEAM_MAIN_AGENT_NAME = "Metaagent";
+const EXPERT_TEAM_MAIN_AGENT_NAME = DEFAULT_WORKSPACE_AGENT_NAME;
+const META_AGENT_SCENARIO_TEAM_ID = "team-product";
+const META_AGENT_PRIMARY_SEED_SOURCE_ID = "dialogue-seed-team-product-collab";
+const META_AGENT_PRIMARY_SEED_SESSION_ID = "dialogue-seed-metaagent-collab";
+const META_AGENT_RISK_SEED_SESSION_ID = "dialogue-seed-metaagent-risk";
 const EXPERT_TEAM_MAIN_AGENT_DESCRIPTION =
-  "作为专家团默认主agent，负责理解需求、调度成员并统一交付。";
+  "作为默认主Agent，负责理解需求、调度你有权限使用的专家并统一交付。";
 const PRODUCT_TEAM_COLLAB_QUESTION = "帮我把这个需求拆成核心模块、边界和依赖关系。";
 const PRODUCT_TEAM_RISK_QUESTION = "这版方案上线前，架构层面最需要提前规避哪些风险？";
 
@@ -102,6 +106,77 @@ const resolveScenarioFrameMessages = (
           followupSuggestions: frame.followupSuggestions,
         },
       ];
+
+const replaceMetaAgentCopy = (value: string): string =>
+  value
+    .replace(/产研协作专家团/g, DEFAULT_WORKSPACE_AGENT_NAME)
+    .replace(/Metaagent/g, DEFAULT_WORKSPACE_AGENT_NAME)
+    .replace(/默认Agent/g, DEFAULT_WORKSPACE_AGENT_NAME)
+    .replace(/工作站/g, "")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+
+const buildMetaAgentSeedSessions = (): DialogueSessionItem[] => {
+  const sourceSession = INITIAL_DIALOGUE_SESSIONS.find(
+    item => item.id === META_AGENT_PRIMARY_SEED_SOURCE_ID,
+  );
+  const primarySession = sourceSession
+    ? {
+        ...sourceSession,
+        id: META_AGENT_PRIMARY_SEED_SESSION_ID,
+        employeeId: DEFAULT_CONVERSATION_EMPLOYEE_ID,
+        title: "MetaAegnt 协同拆解需求",
+        preview: "MetaAegnt 已协调产品、架构、增长等专家完成首轮拆解，并汇总成统一执行方案。",
+        messages: sourceSession.messages.map(message => ({
+          ...message,
+          author: replaceMetaAgentCopy(message.author),
+          content: replaceMetaAgentCopy(message.content),
+        })),
+      }
+    : null;
+  const riskSession: DialogueSessionItem = {
+    id: META_AGENT_RISK_SEED_SESSION_ID,
+    employeeId: DEFAULT_CONVERSATION_EMPLOYEE_ID,
+    title: "MetaAegnt 上线风险评审",
+    preview: "MetaAegnt 已汇总架构、验收与数据视角的风险清单，并给出优先级建议。",
+    updatedAt: "11:15",
+    messages: [
+      {
+        id: "metaagent-risk-user-1",
+        role: "user",
+        author: "你",
+        content: PRODUCT_TEAM_RISK_QUESTION,
+        timeLabel: "11:15",
+      },
+      {
+        id: "metaagent-risk-assistant-1",
+        role: "assistant",
+        author: DEFAULT_WORKSPACE_AGENT_NAME,
+        content:
+          "我已拉起架构规划师、交付验收官和数据洞察师协同评审，当前先给你一版统一风险结论和处理优先级。",
+        timeLabel: "11:15",
+      },
+    ],
+  };
+
+  return [primarySession, riskSession].filter((item): item is DialogueSessionItem => item !== null);
+};
+
+const INITIAL_META_AGENT_SEED_SESSIONS = buildMetaAgentSeedSessions();
+const NORMALIZED_INITIAL_DIALOGUE_SESSIONS = [
+  ...INITIAL_DIALOGUE_SESSIONS.filter(item => item.employeeId !== DEFAULT_CONVERSATION_EMPLOYEE_ID),
+  ...INITIAL_META_AGENT_SEED_SESSIONS,
+];
+const NORMALIZED_INITIAL_DIALOGUE_ARTIFACTS: Record<string, ArtifactItem[]> = {
+  ...INITIAL_DIALOGUE_ARTIFACTS,
+  [META_AGENT_PRIMARY_SEED_SESSION_ID]:
+    INITIAL_DIALOGUE_ARTIFACTS[META_AGENT_PRIMARY_SEED_SOURCE_ID] ?? [],
+};
+const NORMALIZED_INITIAL_DIALOGUE_RESULTS: Record<string, DialogueGeneratedResultItem[]> = {
+  ...INITIAL_DIALOGUE_RESULTS,
+  [META_AGENT_PRIMARY_SEED_SESSION_ID]:
+    INITIAL_DIALOGUE_RESULTS[META_AGENT_PRIMARY_SEED_SOURCE_ID] ?? [],
+};
 
 const clampHomePromptItems = (config: AiCeoAgentHomeConfig): AiCeoAgentHomeConfig => ({
   ...config,
@@ -193,7 +268,11 @@ const buildCaseReplayState = (
   const replaySessionId = createId(`dialogue-case-${item.id}`);
   const practiceQuestion = resolveCasePracticeQuestion(item);
   const replay = item.replayScenarioQuestion
-    ? buildDialogueScenarioReplay(employee.id, item.replayScenarioQuestion, replaySessionId)
+    ? buildDialogueScenarioReplay(
+        resolveDialogueScenarioEmployeeId(employee),
+        item.replayScenarioQuestion,
+        replaySessionId,
+      )
     : null;
 
   if (!replay) {
@@ -281,6 +360,7 @@ const buildCaseReplayState = (
 const buildWorkspaceDefaultAgent = (
   employee: EmployeeItem,
   workspace: WorkspaceItem | null,
+  memberEmployees: EmployeeItem[],
   currentUserId?: string,
   currentUserName?: string,
   nameOverride?: string,
@@ -298,20 +378,33 @@ const buildWorkspaceDefaultAgent = (
       ? "gpt-4o"
       : "local-runtime"
     : employee.model;
+  const resolvedName = nameOverride?.trim() || DEFAULT_WORKSPACE_AGENT_NAME;
+  const primaryMember = memberEmployees.find(item => item.id === employee.id) ?? memberEmployees[0];
+  const canCoordinateExperts = memberEmployees.length > 0;
 
   return {
     ...employee,
     id: employee.id,
-    name: nameOverride?.trim() || DEFAULT_WORKSPACE_AGENT_NAME,
+    name: resolvedName,
     avatarUrl: getMetaagentAvatarUrl(employee.id),
     role: "默认专家",
+    isExpertTeam: canCoordinateExperts,
+    expertTeamId: canCoordinateExperts ? META_AGENT_SCENARIO_TEAM_ID : undefined,
+    expertTeamMemberIds: canCoordinateExperts ? memberEmployees.map(item => item.id) : undefined,
+    expertTeamPrimaryMemberId: canCoordinateExperts ? primaryMember?.id : undefined,
     portalRoles: ["admin", "employee"],
     status: isWorkspaceOnline ? "online" : "offline",
     workspaceId: resolvedWorkspaceId,
     connectionMode: resolvedConnectionMode,
     model: resolvedModel,
-    summary: "默认专家入口，负责理解需求并直接协助完成通用工作任务。",
-    lastAction: isWorkspaceOnline ? "默认已可用，可直接开始对话。" : "当前工作台未就绪，可稍后重试。",
+    summary: canCoordinateExperts
+      ? "默认专家入口，可结合需求调度你有权限使用的全部 AI 专家协同完成任务。"
+      : "默认专家入口，负责理解需求并直接协助完成通用工作任务。",
+    lastAction: isWorkspaceOnline
+      ? canCoordinateExperts
+        ? `默认已可用，可按需调度 ${memberEmployees.length} 位专家协同工作。`
+        : "默认已可用，可直接开始对话。"
+      : "当前工作台未就绪，可稍后重试。",
     source: "openclaw",
     visibility: "all",
     subAgentModel: resolvedConnectionMode === "cloud" ? "gpt-4o-mini" : "device-runtime",
@@ -328,10 +421,95 @@ const buildWorkspaceDefaultAgent = (
           ]
         : [],
     boundMembers: currentUserName ? [currentUserName] : [],
-    welcomeMessage: `我是${nameOverride?.trim() || DEFAULT_WORKSPACE_AGENT_NAME}，可以直接帮你处理日常工作问题与协作任务。`,
-    systemPrompt: `你是${nameOverride?.trim() || DEFAULT_WORKSPACE_AGENT_NAME}，作为工作台默认专家，优先理解用户目标并直接协助完成通用工作任务。`,
+    welcomeMessage: canCoordinateExperts
+      ? `我是${resolvedName}，会先理解你的需求，再调度你当前有权限使用的专家一起完成任务。`
+      : `我是${resolvedName}，可以直接帮你处理日常工作问题与协作任务。`,
+    systemPrompt: canCoordinateExperts
+      ? `你是${resolvedName}，作为工作台默认主Agent，先理解用户目标，再调度用户当前有权限使用的专家协同完成任务，并统一输出结果。`
+      : `你是${resolvedName}，作为工作台默认专家，优先理解用户目标并直接协助完成通用工作任务。`,
     skills: homeConfig.skillItems.map(item => item.id),
   };
+};
+
+const buildMetaAgentHomeConfig = (
+  memberEmployees: EmployeeItem[],
+  primaryConfig: AiCeoAgentHomeConfig,
+): AiCeoAgentHomeConfig => {
+  const mergedSkillItems = Array.from(
+    new Map(
+      memberEmployees.flatMap(item => {
+        const config = AI_CEO_AGENT_HOME_CONFIGS[item.id] ?? AI_CEO_DEFAULT_HOME_CONFIG;
+        return config.skillItems.map(skill => [skill.id, skill] as const);
+      }),
+    ).values(),
+  );
+  const metaPromptItems = [
+    { id: "metaagent-1", question: PRODUCT_TEAM_COLLAB_QUESTION },
+    { id: "metaagent-2", question: PRODUCT_TEAM_RISK_QUESTION },
+    { id: "metaagent-3", question: "结合我的目标，帮我协调有权限的专家给出分工方案和最终交付清单。" },
+    { id: "metaagent-4", question: "先判断这个需求该调用哪些专家，再给我一版统一输出。" },
+  ];
+  const fallbackCaseImage = primaryConfig.caseItems?.[0]?.coverImage;
+  const metaCaseItems: AiCeoHomeCaseItem[] = [
+    {
+      id: "metaagent-case-collab",
+      scene: "多专家协同",
+      title: "MetaAegnt 协同拆解需求",
+      summary: "MetaAegnt 先识别问题，再调度产品、架构、增长等专家分工协作并统一交付。",
+      coverImage: fallbackCaseImage,
+      replayScenarioQuestion: PRODUCT_TEAM_COLLAB_QUESTION,
+      messages: [
+        {
+          id: "metaagent-case-collab-1",
+          role: "user",
+          actor: "你",
+          content: PRODUCT_TEAM_COLLAB_QUESTION,
+        },
+        {
+          id: "metaagent-case-collab-2",
+          role: "assistant",
+          actor: DEFAULT_WORKSPACE_AGENT_NAME,
+          content: "我会先拆解需求，再调度相关专家协同分析，最后统一给你一版可执行方案。",
+        },
+      ],
+    },
+    {
+      id: "metaagent-case-risk",
+      scene: "风险评审",
+      title: "MetaAegnt 协同评估上线风险",
+      summary: "MetaAegnt 汇总架构、质量与数据视角，统一输出上线风险和治理建议。",
+      coverImage: primaryConfig.caseItems?.[1]?.coverImage ?? fallbackCaseImage,
+      replayScenarioQuestion: PRODUCT_TEAM_RISK_QUESTION,
+      messages: [
+        {
+          id: "metaagent-case-risk-1",
+          role: "user",
+          actor: "你",
+          content: PRODUCT_TEAM_RISK_QUESTION,
+        },
+        {
+          id: "metaagent-case-risk-2",
+          role: "assistant",
+          actor: DEFAULT_WORKSPACE_AGENT_NAME,
+          content: "我会调度相关专家一起评审，把关键风险、影响范围和处理建议统一整理出来。",
+        },
+      ],
+    },
+  ];
+
+  return clampHomePromptItems({
+    intro: `我是${DEFAULT_WORKSPACE_AGENT_NAME}，会先理解你的目标，再调用你当前有权限使用的专家协同完成任务。`,
+    guideLabel: DEFAULT_WORKSPACE_AGENT_NAME,
+    guideTitle: "适合处理需要多位 AI 专家协同的复杂需求，直接描述目标、背景和限制条件即可。",
+    guideItems: [
+      "我会先判断需要哪些专家参与，再统一拆解分工与交付节奏。",
+      "你可以直接描述问题，也可以用 @所有agent 触发全员协同分析。",
+      "最终输出会由我统一整合，不需要你分别和每个专家反复沟通。",
+    ],
+    skillItems: mergedSkillItems,
+    promptItems: metaPromptItems,
+    caseItems: metaCaseItems,
+  });
 };
 
 /**
@@ -388,6 +566,9 @@ const buildExpertTeamHomeConfig = (
         viewRole,
       )
     : resolveRoleAwareHomeConfig("employee-writer", AI_CEO_DEFAULT_HOME_CONFIG, viewRole);
+  if (expertTeam.name === DEFAULT_WORKSPACE_AGENT_NAME) {
+    return buildMetaAgentHomeConfig(memberEmployees, primaryConfig);
+  }
   const mergedSkillItems = Array.from(
     new Map(
       memberEmployees.flatMap(item => {
@@ -431,6 +612,23 @@ const buildExpertTeamHomeConfig = (
     promptItems,
     caseItems: primaryConfig.caseItems,
   });
+};
+
+const resolveDialogueScenarioEmployeeId = (employee: EmployeeItem): string =>
+  employee.isExpertTeam && employee.expertTeamId ? employee.expertTeamId : employee.id;
+
+const resolveMetaAgentFallbackQuestion = (content: string): string => {
+  const normalizedContent = content.trim();
+  if (
+    normalizedContent.includes("风险") ||
+    normalizedContent.includes("上线") ||
+    normalizedContent.includes("灰度") ||
+    normalizedContent.includes("验收")
+  ) {
+    return PRODUCT_TEAM_RISK_QUESTION;
+  }
+
+  return PRODUCT_TEAM_COLLAB_QUESTION;
 };
 
 /**
@@ -524,13 +722,13 @@ const FrontisPage = ({ viewRole, embedded = false }: FrontisPageProps): JSX.Elem
   const navigate = useNavigate();
   const { activateIdentity, activateTenant, activeIdentity, logout, session } = useMockAuth();
   const [dialogueSessions, setDialogueSessions] = useState<DialogueSessionItem[]>(() =>
-    INITIAL_DIALOGUE_SESSIONS.map(item => mapDialogueSessionForRole(item, viewRole)),
+    NORMALIZED_INITIAL_DIALOGUE_SESSIONS.map(item => mapDialogueSessionForRole(item, viewRole)),
   );
   const [dialogueArtifactsBySession, setDialogueArtifactsBySession] = useState<
     Record<string, ArtifactItem[]>
-  >(INITIAL_DIALOGUE_ARTIFACTS);
+  >(NORMALIZED_INITIAL_DIALOGUE_ARTIFACTS);
   const [dialogueResultsBySession, setDialogueResultsBySession] =
-    useState<Record<string, DialogueGeneratedResultItem[]>>(INITIAL_DIALOGUE_RESULTS);
+    useState<Record<string, DialogueGeneratedResultItem[]>>(NORMALIZED_INITIAL_DIALOGUE_RESULTS);
   const [activeEmployeeId, setActiveEmployeeId] = useState<string>(
     DEFAULT_CONVERSATION_EMPLOYEE_ID,
   );
@@ -618,6 +816,7 @@ const FrontisPage = ({ viewRole, embedded = false }: FrontisPageProps): JSX.Elem
       const defaultAgent = buildWorkspaceDefaultAgent(
         defaultEmployee,
         defaultWorkspace,
+        assignedConversationEmployees,
         currentUser?.id,
         currentUser?.name,
       );
@@ -628,6 +827,7 @@ const FrontisPage = ({ viewRole, embedded = false }: FrontisPageProps): JSX.Elem
       currentUser?.assignedWorkspaceIds,
       currentUser?.id,
       currentUser?.name,
+      assignedConversationEmployees,
       roleVisibleEmployees,
       workspaces,
     ],
@@ -959,6 +1159,13 @@ const FrontisPage = ({ viewRole, embedded = false }: FrontisPageProps): JSX.Elem
         conversationEmployeeDirectory,
       );
       const respondingEmployee = teamRouting?.targetEmployee ?? activeEmployee;
+      const collaborativeMembers =
+        teamRouting?.mode === "all"
+          ? teamRouting.teamMembers.filter(item => item.id !== teamRouting.primaryEmployee.id)
+          : [];
+      const collaborativeMemberNamesLabel = collaborativeMembers.length
+        ? collaborativeMembers.map(item => item.name).join("、")
+        : "当前可用专家";
 
       const fallbackContent = "已发送附件，请结合文件内容继续处理。";
       const normalizedScenarioQuestion = content
@@ -966,10 +1173,27 @@ const FrontisPage = ({ viewRole, embedded = false }: FrontisPageProps): JSX.Elem
         .replace(/\s+/g, " ")
         .trim();
       const scenarioQuestion = normalizedScenarioQuestion || fallbackContent;
+      const isMetaAgentDialogue =
+        activeEmployee.isExpertTeam && activeEmployee.name === DEFAULT_WORKSPACE_AGENT_NAME;
+      const exactTeamScenario =
+        activeEmployee.isExpertTeam
+          ? findDialogueScenario(
+              resolveDialogueScenarioEmployeeId(activeEmployee),
+              scenarioQuestion,
+              createId("dialogue-scenario"),
+            )
+          : null;
+      const metaAgentFallbackScenario =
+        !exactTeamScenario && isMetaAgentDialogue
+          ? findDialogueScenario(
+              META_AGENT_SCENARIO_TEAM_ID,
+              resolveMetaAgentFallbackQuestion(scenarioQuestion),
+              createId("dialogue-scenario"),
+            )
+          : null;
       const matchedScenario =
-        (activeEmployee.isExpertTeam
-          ? findDialogueScenario(activeEmployee.id, scenarioQuestion, createId("dialogue-scenario"))
-          : null) ??
+        exactTeamScenario ??
+        metaAgentFallbackScenario ??
         findDialogueScenario(
           respondingEmployee.id,
           scenarioQuestion,
@@ -1187,9 +1411,7 @@ const FrontisPage = ({ viewRole, embedded = false }: FrontisPageProps): JSX.Elem
 
       const responseText =
         teamRouting?.mode === "all"
-          ? `${teamRouting.primaryEmployee.name} 已召集 ${teamRouting.teamMembers
-              .map(item => item.name)
-              .join("、")} 协同处理，我会先汇总每位专家的判断，再给你最终结论。`
+          ? `${teamRouting.primaryEmployee.name} 已召集 ${collaborativeMemberNamesLabel} 协同处理，我会先汇总每位专家的判断，再给你最终结论。`
           : selectedSkills.length
             ? `已按「${selectedSkillNamesLabel}」开始处理，我会先聚焦这些技能来回应你的需求。`
             : activeEmployee.isExpertTeam
@@ -1200,7 +1422,7 @@ const FrontisPage = ({ viewRole, embedded = false }: FrontisPageProps): JSX.Elem
         const nextAssistantMessages =
           teamRouting?.mode === "all"
             ? [
-                ...teamRouting.teamMembers.slice(0, 3).map(member => ({
+                ...collaborativeMembers.slice(0, 3).map(member => ({
                   id: createId("dialogue"),
                   role: "assistant" as const,
                   author: member.name,
@@ -1252,8 +1474,9 @@ const FrontisPage = ({ viewRole, embedded = false }: FrontisPageProps): JSX.Elem
       clearDialogueTimers,
       conversationEmployeeDirectory,
       dialogueAttachments,
-      effectiveSelectedSkills.length,
+      effectiveSelectedSkills,
       selectedSkillNamesLabel,
+      selectedSkills.length,
       updateDialogueSession,
     ],
   );

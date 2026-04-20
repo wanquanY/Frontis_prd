@@ -1196,6 +1196,28 @@ const createJsonArtifact = (
   mimeType: "application/json",
 });
 
+const createHtmlArtifact = (
+  sessionId: string,
+  suffix: string,
+  fileName: string,
+  producerName: string,
+  taskName: string,
+  content: string,
+  producedAt: string,
+  fileSize: string,
+): ArtifactItem => ({
+  id: `${sessionId}-${suffix}`,
+  artifactId: `${sessionId}-${suffix}`,
+  fileName,
+  fileType: "html",
+  producerName,
+  producedAt,
+  fileSize,
+  taskName,
+  canonicalPath: createDataUrl("text/html", content),
+  mimeType: "text/html",
+});
+
 const createSvgArtifact = (
   sessionId: string,
   suffix: string,
@@ -1392,6 +1414,7 @@ export const dialogueScenarioRuntimeHelpers = {
   buildScenarioMessageSnapshot,
   createAssistantMessageBlock,
   createGeneratedResultItem,
+  createHtmlArtifact,
   createImageArtifact,
   createJsonArtifact,
   createMarkdownArtifact,

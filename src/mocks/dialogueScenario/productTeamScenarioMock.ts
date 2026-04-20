@@ -1,7 +1,10 @@
+import frontisBusinessJourneyHtmlDocumentContent from "../../../Frontis AI 平台业务流程图 V2.7 统一用户版.html?raw";
+import frontisCompletePrdV2DocumentContent from "../../../Frontis AI · 完整 PRD V2.md?raw";
+
 /**
  * 产研协作专家团默认主 agent 名称。
  */
-export const PRODUCT_TEAM_MAIN_AGENT_NAME = "Metaagent";
+export const PRODUCT_TEAM_MAIN_AGENT_NAME = "MetaAegnt";
 
 /**
  * 产研协作专家团首轮触发问题。
@@ -223,6 +226,17 @@ export const PRODUCT_TEAM_USER_RESEARCH_DOCUMENT_CONTENT = `# 产研协作专家
 - 至少保留 1 个“右侧可查看”的结果面板
 - 主专家最后明确引用成员产物，再统一给结论
 `;
+
+/**
+ * Frontis AI 平台统一用户版业务旅程 HTML 交付内容。
+ */
+export const PRODUCT_TEAM_BUSINESS_JOURNEY_HTML_DOCUMENT_CONTENT =
+  frontisBusinessJourneyHtmlDocumentContent;
+
+/**
+ * Frontis AI 完整 PRD V2 文档内容。
+ */
+export const PRODUCT_TEAM_COMPLETE_PRD_V2_DOCUMENT_CONTENT = frontisCompletePrdV2DocumentContent;
 
 /**
  * 产研协作专家团上线风险清单文档内容。

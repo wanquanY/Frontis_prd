@@ -1,5 +1,6 @@
-import { Spin } from "antd";
 import { useCallback, useEffect, useMemo, useState, type ChangeEvent } from "react";
+import { Spin } from "antd";
+import classNames from "classnames";
 
 import { MarkdownRenderer } from "@/components/MarkdownRenderer";
 import { useArtifactPreview } from "@/feature/workspace/hooks/useArtifactPreview";
@@ -19,6 +20,8 @@ interface ArtifactPreviewPanelProps {
   onPreviewStateChange?: (previewing: boolean) => void;
   preferredFileId?: string;
 }
+
+type HtmlPreviewMode = "preview" | "source";
 
 const CloseIcon = ({ className }: { className?: string }): JSX.Element => (
   <svg
@@ -70,6 +73,7 @@ export const ArtifactPreviewPanel = ({
 }: ArtifactPreviewPanelProps): JSX.Element => {
   const [keyword, setKeyword] = useState("");
   const [selectedFileId, setSelectedFileId] = useState<string>();
+  const [htmlPreviewMode, setHtmlPreviewMode] = useState<HtmlPreviewMode>("preview");
 
   const filteredFiles = useMemo(() => {
     const normalized = normalizeKeyword(keyword);
@@ -107,6 +111,10 @@ export const ArtifactPreviewPanel = ({
     onPreviewStateChange?.(Boolean(selectedFile));
   }, [onPreviewStateChange, selectedFile]);
 
+  useEffect(() => {
+    setHtmlPreviewMode("preview");
+  }, [selectedFileId]);
+
   const handleClosePanel = useCallback(() => {
     setSelectedFileId(undefined);
     onClose?.();
@@ -124,6 +132,28 @@ export const ArtifactPreviewPanel = ({
     if (!selectedFile || !onDownloadFile) return;
     onDownloadFile(selectedFile);
   }, [onDownloadFile, selectedFile]);
+
+  const handleSwitchHtmlPreviewMode = useCallback((mode: HtmlPreviewMode) => {
+    setHtmlPreviewMode(mode);
+  }, []);
+
+  const handleOpenHtmlDelivery = useCallback(() => {
+    if (!selectedFile || previewState.previewType !== "html" || !previewState.previewBody.trim()) {
+      return;
+    }
+
+    const previewWindow = window.open("", "_blank");
+    if (!previewWindow) {
+      return;
+    }
+
+    previewWindow.document.open();
+    previewWindow.document.write(previewState.previewBody);
+    previewWindow.document.close();
+    previewWindow.document.title = selectedFile.fileName;
+  }, [previewState.previewBody, previewState.previewType, selectedFile]);
+
+  const shouldShowHtmlTabs = previewState.previewType === "html";
 
   const renderDetailPreview = useCallback((): JSX.Element => {
     if (!selectedFile) {
@@ -211,14 +241,24 @@ export const ArtifactPreviewPanel = ({
 
     if (previewState.previewType === "html") {
       return previewState.previewBody.trim() ? (
-        <div className={styles.iframeStage}>
-          <iframe
-            className={styles.previewIframe}
-            title={`预览: ${selectedFile.fileName}`}
-            srcDoc={previewState.previewBody}
-            sandbox="allow-scripts allow-same-origin"
-          />
-        </div>
+        htmlPreviewMode === "source" ? (
+          <div className={styles.codeStage}>
+            <pre className={styles.codeBlock}>
+              <code>{previewState.previewBody}</code>
+            </pre>
+          </div>
+        ) : (
+          <div className={styles.htmlStage}>
+            <div className={styles.htmlViewport}>
+              <iframe
+                className={styles.previewIframe}
+                title={`预览: ${selectedFile.fileName}`}
+                srcDoc={previewState.previewBody}
+                sandbox="allow-scripts allow-same-origin"
+              />
+            </div>
+          </div>
+        )
       ) : (
         <div className={styles.previewStateBox} role="alert">
           <div className={styles.previewStateTitle}>暂无可预览内容</div>
@@ -269,7 +309,7 @@ export const ArtifactPreviewPanel = ({
         <div className={styles.previewStateText}>你仍然可以下载该文件后在本地查看。</div>
       </div>
     );
-  }, [previewState, selectedFile]);
+  }, [htmlPreviewMode, previewState, selectedFile]);
 
   return (
     <aside className={styles.panel} aria-label="成果文件面板">
@@ -292,15 +332,63 @@ export const ArtifactPreviewPanel = ({
         </div>
       ) : (
         <div className={styles.previewHeader}>
-          <button
-            type="button"
-            className={styles.backButton}
-            aria-label="返回成果列表"
-            onClick={handleBackToList}
-          >
-            ← 返回
-          </button>
+          <div className={styles.previewHeaderInfo}>
+            <button
+              type="button"
+              className={styles.backButton}
+              aria-label="返回成果列表"
+              onClick={handleBackToList}
+            >
+              ← 返回
+            </button>
+            <div className={styles.previewHeaderMeta}>
+              <div className={styles.previewHeaderTitle} title={selectedFile.fileName}>
+                {selectedFile.fileName}
+              </div>
+              <div className={styles.previewHeaderSubtitle}>
+                {selectedFile.fileSize} · {selectedFile.producedAt}
+              </div>
+            </div>
+          </div>
           <div className={styles.previewHeaderActions}>
+            {shouldShowHtmlTabs ? (
+              <div className={styles.previewTabGroup} role="tablist" aria-label="HTML 预览模式">
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={htmlPreviewMode === "preview"}
+                  className={classNames(
+                    styles.previewTab,
+                    htmlPreviewMode === "preview" ? styles.previewTabActive : undefined,
+                  )}
+                  onClick={() => handleSwitchHtmlPreviewMode("preview")}
+                >
+                  预览
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={htmlPreviewMode === "source"}
+                  className={classNames(
+                    styles.previewTab,
+                    htmlPreviewMode === "source" ? styles.previewTabActive : undefined,
+                  )}
+                  onClick={() => handleSwitchHtmlPreviewMode("source")}
+                >
+                  源码
+                </button>
+              </div>
+            ) : null}
+            {shouldShowHtmlTabs ? (
+              <button
+                type="button"
+                className={styles.previewHeaderButton}
+                onClick={handleOpenHtmlDelivery}
+                disabled={!previewState.previewBody.trim()}
+              >
+                新窗口交付
+              </button>
+            ) : null}
             <button
               type="button"
               className={styles.previewHeaderButton}

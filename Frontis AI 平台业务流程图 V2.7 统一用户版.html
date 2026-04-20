@@ -77,8 +77,8 @@
   <div class="page-header">
     <h1><span class="logo-dot"></span>Frontis AI 平台业务流程图</h1>
     <div class="header-right">
-      <span class="version-badge">V2.7 统一用户版</span>
-      <span class="hint-badge">💡 三泳道承接统一用户主交付链路 · 点击节点查看详情</span>
+      <span class="version-badge">V2.7 原型同步版</span>
+      <span class="hint-badge">💡 按最新原型重构：开发 → 发布 → 使用，默认 MetaAegnt 协同为主链，申请上架为辅链</span>
     </div>
   </div>
   <div class="main-content">
@@ -95,25 +95,25 @@
         <div class="legend-item"><span class="legend-dot" style="background:#e0f2fe;border:1px solid #0ea5e9"></span>普通流程节点</div>
         <div class="legend-item"><span class="legend-diamond" style="background:#fef3c7;border:1px solid #f59e0b"></span>审批/判断节点</div>
         <div class="legend-item"><span class="legend-capsule" style="background:#fee2e2;border:1px solid #ef4444"></span>关键状态节点</div>
-        <div class="legend-item"><span class="legend-dot" style="background:#fef2f2;border:2px solid #dc2626"></span><span style="color:#dc2626;font-weight:700;">商品/订单相关</span></div>
+        <div class="legend-item"><span class="legend-dot" style="background:#ecfeff;border:2px solid #0891b2"></span><span style="color:#0f766e;font-weight:700;">平台广场运营相关</span></div>
       </div>
       <div class="legend-divider"></div>
       <div class="legend-section">
         <div class="legend-title">阶段</div>
         <div class="legend-item"><span class="legend-dot" style="background:#dbeeff;border:1px solid #93c5fd"></span>①平台初始化与租户创建</div>
         <div class="legend-item"><span class="legend-dot" style="background:#e0f2fe;border:1px solid #60a5fa"></span>②企业接入与成员激活</div>
-        <div class="legend-item"><span class="legend-dot" style="background:#fef9c3;border:1px solid #fde047"></span>③AI专家广场运营与商品上架</div>
-        <div class="legend-item"><span class="legend-dot" style="background:#fce7f3;border:1px solid #f9a8d4"></span>④员工自研与共享申请</div>
-        <div class="legend-item"><span class="legend-dot" style="background:#ede9fe;border:1px solid #c4b5fd"></span>⑤选品采购与权益绑定</div>
-        <div class="legend-item"><span class="legend-dot" style="background:#cffafe;border:1px solid #67e8f9"></span>⑥租户交付与权限配置</div>
-        <div class="legend-item"><span class="legend-dot" style="background:#ffedd5;border:1px solid #fdba74"></span>⑦统一工作台正式使用</div>
-        <div class="legend-item"><span class="legend-dot" style="background:#e5e7eb;border:1px solid #9ca3af"></span>⑧续费升级与持续运营</div>
+        <div class="legend-item"><span class="legend-dot" style="background:#fce7f3;border:1px solid #f9a8d4"></span>③开发与进化</div>
+        <div class="legend-item"><span class="legend-dot" style="background:#ede9fe;border:1px solid #c4b5fd"></span>④发布到 AI专家广场</div>
+        <div class="legend-item"><span class="legend-dot" style="background:#cffafe;border:1px solid #67e8f9"></span>⑤企业后台治理与配置</div>
+        <div class="legend-item"><span class="legend-dot" style="background:#ffedd5;border:1px solid #fdba74"></span>⑥工作台默认入口与使用</div>
+        <div class="legend-item"><span class="legend-dot" style="background:#e5e7eb;border:1px solid #9ca3af"></span>⑦申请上架与运营审批</div>
+        <div class="legend-item"><span class="legend-dot" style="background:#ecfeff;border:1px solid #67e8f9"></span>⑧平台广场运营管理</div>
       </div>
       <div class="legend-divider"></div>
       <div class="legend-section">
         <div class="legend-title">说明</div>
-        <div class="legend-item">💡 员工既可自研个人 agent，也可使用管理员正式授权的能力</div>
-        <div class="legend-item">↺ 虚线表示回流、续费或持续运营</div>
+        <div class="legend-item">💡 当前主链是开发、发布、使用；每个用户登录即拥有默认 MetaAegnt</div>
+        <div class="legend-item">↺ 虚线表示治理回流、继续优化或平台广场运营支线</div>
       </div>
     </div>
     <div class="scroll-wrap"><svg id="flowSvg" xmlns="http://www.w3.org/2000/svg"></svg></div>
@@ -134,148 +134,151 @@ const LANES = [
 const STAGES = [
   { id:'s1', title:'① 平台初始化与租户创建', en:'Platform Initialization & Tenant Creation', fill:'#dbeeff', text:'#1d4ed8' },
   { id:'s2', title:'② 企业接入与成员激活', en:'Tenant Activation & Member Onboarding', fill:'#e0f2fe', text:'#0369a1' },
-  { id:'s3', title:'③ AI专家广场运营与商品上架', en:'Expert Plaza Operation & Product Listing', fill:'#fef9c3', text:'#92400e', extraWidth:80 },
-  { id:'s4', title:'④ 员工自研与共享申请', en:'Employee Development & Sharing Request', fill:'#fce7f3', text:'#9d174d', extraWidth:60 },
-  { id:'s5', title:'⑤ 选品采购与权益绑定', en:'Selection, Purchase & Entitlement Binding', fill:'#ede9fe', text:'#6d28d9', extraWidth:80 },
-  { id:'s6', title:'⑥ 租户交付与权限配置', en:'Tenant Delivery & Authorization', fill:'#cffafe', text:'#155e75', extraWidth:120 },
-  { id:'s7', title:'⑦ 统一工作台正式使用', en:'Workspace Usage', fill:'#ffedd5', text:'#9a3412', extraWidth:40 },
-  { id:'s8', title:'⑧ 续费升级与持续运营', en:'Renewal, Upgrade & Ongoing Operation', fill:'#e5e7eb', text:'#4b5563', extraWidth:120 },
+  { id:'s3', title:'③ 开发与进化', en:'Development & Evolution', fill:'#fce7f3', text:'#9d174d', extraWidth:40 },
+  { id:'s4', title:'④ 发布到 AI专家广场', en:'Publish to Expert Plaza', fill:'#ede9fe', text:'#6d28d9', extraWidth:40 },
+  { id:'s5', title:'⑤ 企业后台治理与配置', en:'Enterprise Governance & Configuration', fill:'#cffafe', text:'#155e75', extraWidth:100 },
+  { id:'s6', title:'⑥ 工作台默认入口与使用', en:'Default Entry & Workspace Use', fill:'#ffedd5', text:'#9a3412', extraWidth:140 },
+  { id:'s7', title:'⑦ 申请上架与运营审批', en:'Listing Application & Review', fill:'#e5e7eb', text:'#4b5563', extraWidth:80 },
+  { id:'s8', title:'⑧ 平台广场运营管理', en:'Plaza Operations Management', fill:'#ecfeff', text:'#0f766e', extraWidth:90 },
 ];
 const NODES = [
   // 阶段1 平台初始化与租户创建
-  { id:'N1', stage:'s1', lane:'ops', type:'rect', title:'初始化平台底座', sub:'租户/角色/供给/商品规则' },
-  { id:'N2', stage:'s1', lane:'ops', type:'rect', title:'创建租户', sub:'新建企业主体与账号上下文' },
-  { id:'N3', stage:'s1', lane:'ops', type:'rect', title:'建立统一角色权限基线', sub:'统一角色/菜单/数据权限规则' },
-  { id:'N4', stage:'s1', lane:'ops', type:'rect', title:'邀请企业管理员', sub:'发送激活入口与初始说明' },
+  { id:'N1', stage:'s1', lane:'ops', type:'rect', title:'初始化平台底座', sub:'统一租户 / 身份 / 广场基础规则' },
+  { id:'N2', stage:'s1', lane:'ops', type:'rect', title:'创建租户', sub:'建立企业主体与账号上下文' },
+  { id:'N3', stage:'s1', lane:'ops', type:'rect', title:'配置管理员与 FDE 权限', sub:'管理员账号 + 是否允许申请上架', status:'【租户已创建】', statusType:'blue' },
 
   // 阶段2 企业接入与成员激活
-  { id:'N5', stage:'s2', lane:'admin', type:'rect', title:'激活租户并首次登录', sub:'接受邀请进入企业后台', status:'【已激活】', statusType:'green' },
-  { id:'N6', stage:'s2', lane:'admin', type:'rect', title:'初始化组织与角色', sub:'部门/负责人/基础角色' },
-  { id:'N7', stage:'s2', lane:'admin', type:'rect', title:'邀请员工加入租户', sub:'导入名单或发送邀请' },
-  { id:'N8', stage:'s2', lane:'employee', type:'rect', title:'员工首次登录统一工作台', sub:'进入个人工作入口', status:'【已入驻】', statusType:'blue' },
+  { id:'N4', stage:'s2', lane:'admin', type:'rect', title:'激活租户并首次登录', sub:'进入企业管理后台', status:'【已激活】', statusType:'green' },
+  { id:'N5', stage:'s2', lane:'admin', type:'rect', title:'初始化组织管理', sub:'部门 / 成员 / 企业角色' },
+  { id:'N6', stage:'s2', lane:'admin', type:'rect', title:'初始化模型配置', sub:'企业可用模型范围与默认模型' },
+  { id:'N7', stage:'s2', lane:'admin', type:'rect', title:'邀请员工加入租户', sub:'形成统一工作台使用入口' },
+  { id:'N8', stage:'s2', lane:'employee', type:'rect', title:'员工首次登录工作台', sub:'进入个人使用与开发入口', status:'【已入驻】', statusType:'blue' },
 
-  // 阶段3 AI专家广场运营与商品上架
-  { id:'N9', stage:'s3', lane:'ops', type:'rect', title:'审核AI专家并维护广场配置', sub:'标签/简介/版本/适用场景' },
-  { id:'N10', stage:'s3', lane:'ops', type:'rect', title:'运营侧 AI专家广场上架', sub:'全平台可见 / 特定租户可见' },
-  { id:'N11', stage:'s3', lane:'ops', type:'rect', title:'🟥 复用商品中心上架商品', sub:'AI专家转商品或维护套餐', product:true, status:'【商品在售】', statusType:'red' },
+  // 阶段3 开发与进化
+  { id:'N9', stage:'s3', lane:'employee', type:'rect', title:'开发与进化', sub:'开发 Agent / Skill / 测试与进化', status:'【开发中】', statusType:'blue' },
+  { id:'N11', stage:'s3', lane:'employee', type:'rect', title:'形成可发布版本', sub:'完成验证后准备进入发布', status:'【可发布】', statusType:'green' },
 
-  // 阶段4 员工自研与共享申请
-  { id:'N12', stage:'s4', lane:'employee', type:'rect', title:'创建个人 Agent', sub:'Prompt / Skill / 知识 / 工具' },
-  { id:'N13', stage:'s4', lane:'employee', type:'rect', title:'选择开发模型并测试', sub:'在统一工作台内完成体验' },
-  { id:'N14', stage:'s4', lane:'employee', type:'diamond', title:'仅自己\n使用?' },
-  { id:'N15', stage:'s4', lane:'employee', type:'rect', title:'进入我的 Agent', sub:'个人立即可用', status:'【个人可用】', statusType:'green' },
-  { id:'N16', stage:'s4', lane:'employee', type:'rect', title:'提交团队共享申请', sub:'说明用途/目标成员' },
-  { id:'N17', stage:'s4', lane:'admin', type:'diamond', title:'同意\n共享?' },
-  { id:'N18', stage:'s4', lane:'admin', type:'rect', title:'审核通过并加入团队供给区', sub:'企业内可见但尚未正式授权', status:'【已共享】', statusType:'green' },
+  // 阶段4 发布到 AI专家广场
+  { id:'N12', stage:'s4', lane:'employee', type:'diamond', title:'选择发布\n范围' },
+  { id:'N13', stage:'s4', lane:'employee', type:'rect', title:'发布为个人', sub:'仅自己可见与使用', status:'【个人可用】', statusType:'green' },
+  { id:'N14', stage:'s4', lane:'employee', type:'rect', title:'发布为团队共享', sub:'指定部门 / 成员可见', status:'【团队共享】', statusType:'green' },
+  { id:'N15', stage:'s4', lane:'employee', type:'rect', title:'发布为公开', sub:'平台内所有租户用户可见可用', status:'【公开发布】', statusType:'green' },
 
-  // 阶段5 选品采购与权益开通
-  { id:'N19', stage:'s5', lane:'admin', type:'rect', title:'浏览AI专家广场与已购能力', sub:'官方广场 + 团队共享 + 已购列表' },
-  { id:'N20', stage:'s5', lane:'admin', type:'diamond', title:'需要付费\n购买?' },
-  { id:'N21', stage:'s5', lane:'admin', type:'rect', title:'直接加入待配置清单', sub:'免费官方 / 内部共享 / 已购能力', status:'【待交付】', statusType:'amber' },
-  { id:'N22', stage:'s5', lane:'admin', type:'rect', title:'🟥 创建订单并提交付款', sub:'确认商品/版本/数量', product:true, status:'【待付款】', statusType:'red' },
-  { id:'N23', stage:'s5', lane:'ops', type:'rect', title:'🟥 确认付款并开通权益', sub:'商品权益挂到租户', product:true, status:'【权益已开通】', statusType:'green' },
+  // 阶段5 企业后台治理与配置
+  { id:'N16', stage:'s5', lane:'admin', type:'rect', title:'AI专家管理查看企业内专家', sub:'查看来源 / 开发者 / 发布范围' },
+  { id:'N17', stage:'s5', lane:'admin', type:'rect', title:'配置使用范围与权限', sub:'全员 / 部门 / 指定成员' },
+  { id:'N18', stage:'s5', lane:'admin', type:'rect', title:'配置绑定模型', sub:'在企业可用模型范围内选择' },
+  { id:'N19', stage:'s5', lane:'admin', type:'rect', title:'治理结果生效', sub:'企业内 AI专家状态完成收口', status:'【企业侧已生效】', statusType:'green' },
 
-  // 阶段6 租户交付与权限配置
-  { id:'N24', stage:'s6', lane:'admin', type:'rect', title:'完成租户交付配置', sub:'版本/模型/分组/上架位', status:'【待授权】', statusType:'amber' },
-  { id:'N25', stage:'s6', lane:'admin', type:'rect', title:'配置部门/成员权限', sub:'全员 / 部门 / 指定成员' },
-  { id:'N26', stage:'s6', lane:'admin', type:'rect', title:'发布到员工可见列表', sub:'形成最终授权结果', status:'【已授权】', statusType:'green' },
+  // 阶段6 工作台添加与使用
+  { id:'N20A', stage:'s6', lane:'employee', type:'rect', title:'登录即拥有默认 MetaAegnt', sub:'每个用户默认协同入口', status:'【默认专家】', statusType:'blue' },
+  { id:'N20', stage:'s6', lane:'employee', type:'rect', title:'浏览 AI专家广场', sub:'全部 / 公开 / 团队共享 / 我的' },
+  { id:'N21', stage:'s6', lane:'employee', type:'rect', title:'添加其他专家到工作台', sub:'公开与团队共享专家直接添加' },
+  { id:'N21A', stage:'s6', lane:'employee', type:'rect', title:'进入工作台专家列表', sub:'默认专家 / 其他专家' },
+  { id:'N21B', stage:'s6', lane:'employee', type:'diamond', title:'选择 MetaAegnt\n还是其他专家?' },
+  { id:'N22', stage:'s6', lane:'employee', type:'rect', title:'MetaAegnt 调度权限内专家', sub:'主 Agent 拆解任务并调度协同' },
+  { id:'N22A', stage:'s6', lane:'employee', type:'rect', title:'其他专家一对一使用', sub:'围绕单专家直接发起会话' },
+  { id:'N23', stage:'s6', lane:'employee', type:'rect', title:'沉淀历史会话、结果与成果', sub:'历史记录 / 结果卡片 / 成果文件' },
 
-  // 阶段7 统一工作台正式使用
-  { id:'N27', stage:'s7', lane:'employee', type:'rect', title:'在工作台看到可用能力', sub:'个人 Agent + 已授权官方/团队 Agent' },
-  { id:'N28', stage:'s7', lane:'employee', type:'rect', title:'发起对话与任务执行', sub:'文件/Skill/历史会话' },
-  { id:'N29', stage:'s7', lane:'employee', type:'rect', title:'提交反馈或新需求', sub:'使用反馈 / 新购诉求 / 优化想法' },
+  // 阶段7 申请上架与运营审批
+  { id:'N24', stage:'s7', lane:'employee', type:'diamond', title:'自己开发且\n租户有FDE?' },
+  { id:'N25', stage:'s7', lane:'employee', type:'rect', title:'提交上架申请', sub:'填写上架名称与申请理由', status:'【待审批】', statusType:'amber' },
+  { id:'N26', stage:'s7', lane:'ops', type:'diamond', title:'通过上架\n审批?' },
+  { id:'N27', stage:'s7', lane:'ops', type:'rect', title:'进入可运营专家池', sub:'可进入运营侧广场管理', status:'【审批通过】', statusType:'green' },
+  { id:'N28', stage:'s7', lane:'employee', type:'rect', title:'驳回后继续优化', sub:'修改后可重新申请', status:'【已驳回】', statusType:'red' },
 
-  // 阶段8 续费升级与持续运营
-  { id:'N30', stage:'s8', lane:'ops', type:'rect', title:'🟥 发布新版本或维护商品', sub:'升级包 / 调价 / 下架 / 可见性', product:true },
-  { id:'N31', stage:'s8', lane:'admin', type:'diamond', title:'需要付费\n续费/升级?' },
-  { id:'N32', stage:'s8', lane:'admin', type:'rect', title:'🟥 创建续费/升级订单', sub:'扩容 / 高阶版本 / 到期续费', product:true, status:'【待付款】', statusType:'red' },
-  { id:'N33', stage:'s8', lane:'admin', type:'rect', title:'更新租户配置并二次授权', sub:'应用新版本/新权益/新范围', status:'【已更新】', statusType:'green' },
-  { id:'N34', stage:'s8', lane:'employee', type:'rect', title:'使用新版能力继续工作', sub:'版本与权限生效后继续使用' },
+  // 阶段8 平台广场管理与公开投放
+  { id:'N29', stage:'s8', lane:'ops', type:'rect', title:'AI专家广场管理', sub:'仅管理已审批通过专家' },
+  { id:'N30', stage:'s8', lane:'ops', type:'rect', title:'设置分类与可见范围', sub:'分类 / 全平台可见 / 指定租户可见' },
+  { id:'N31', stage:'s8', lane:'ops', type:'rect', title:'平台广场精选展示', sub:'进入运营位与平台投放位', status:'【展示中】', statusType:'green' },
+  { id:'N32', stage:'s8', lane:'employee', type:'rect', title:'被更多用户发现并使用', sub:'在平台广场中被浏览、添加和使用' },
 ];
 const EDGES = [
   ['N1','N2','blue'],
   ['N2','N3','blue'],
   ['N3','N4','blue'],
-  ['N4','N5','blue'],
+  ['N4','N5','purple'],
   ['N5','N6','purple'],
   ['N6','N7','purple'],
   ['N7','N8','purple'],
-  ['N3','N9','gray'],
-  ['N9','N10','blue'],
-  ['N10','N11','red'],
-  ['N8','N12','orange'],
-  ['N12','N13','orange'],
-  ['N13','N14','orange'],
-  ['N14','N15','green','是'],
-  ['N14','N16','orange','否'],
-  ['N16','N17','amber'],
-  ['N17','N18','green','通过'],
-  ['N7','N19','purple'],
-  ['N19','N20','purple'],
-  ['N20','N21','green','免费/内部'],
-  ['N20','N22','red','付费'],
-  ['N22','N23','cyan'],
-  ['N21','N24','purple'],
-  ['N23','N24','cyan'],
-  ['N24','N25','purple'],
-  ['N25','N26','purple'],
-  ['N26','N27','purple'],
-  ['N27','N28','orange'],
-  ['N28','N29','orange'],
-  ['N30','N31','blue'],
-  ['N31','N32','red','是'],
-  ['N31','N33','green','否，直接升级'],
-  ['N33','N34','green'],
+  ['N8','N9','orange'],
+  ['N9','N11','orange'],
+  ['N11','N12','orange'],
+  ['N12','N13','green','个人'],
+  ['N12','N14','purple','团队共享'],
+  ['N12','N15','blue','公开'],
+  ['N16','N17','purple'],
+  ['N17','N18','purple'],
+  ['N18','N19','green'],
+  ['N20','N21','orange'],
+  ['N20A','N21A','orange'],
+  ['N21','N21A','orange'],
+  ['N21A','N21B','orange'],
+  ['N21B','N22','blue','MetaAegnt'],
+  ['N21B','N22A','purple','其他专家'],
+  ['N22','N23','orange'],
+  ['N22A','N23','orange'],
+  ['N24','N25','orange','是'],
+  ['N25','N26','blue'],
+  ['N26','N27','green','通过'],
+  ['N26','N28','red','驳回'],
+  ['N27','N29','cyan'],
+  ['N29','N30','cyan'],
+  ['N30','N31','cyan'],
+  ['N31','N32','green'],
 ];
 const SPECIAL_EDGES = [
-  { from:'N10', to:'N19', color:'blue', dashed:true, label:'提供广场可见专家' },
-  { from:'N11', to:'N19', color:'red', dashed:true, label:'提供商品中心付费入口' },
-  { from:'N17', to:'N12', color:'red', dashed:true, label:'驳回→继续优化' },
-  { from:'N18', to:'N19', color:'purple', dashed:true, label:'进入团队供给列表' },
-  { from:'N15', to:'N27', color:'purple', dashed:true, label:'个人入口直达' },
-  { from:'N26', to:'N31', color:'gray', dashed:true, label:'到期/版本提醒' },
-  { from:'N29', to:'N12', color:'red', dashed:true, label:'反馈→继续优化自研' },
-  { from:'N29', to:'N30', color:'gray', dashed:true, label:'反馈沉淀到平台运营' },
-  { from:'N32', to:'N22', color:'purple', dashed:true, label:'↺ 回流购买链路' },
+  { from:'N8', to:'N20A', color:'blue', dashed:true, label:'登录即具备默认 MetaAegnt' },
+  { from:'N13', to:'N20', color:'purple', dashed:true, label:'我的专家可见' },
+  { from:'N14', to:'N16', color:'purple', dashed:true, label:'企业后台纳入治理' },
+  { from:'N14', to:'N20', color:'purple', dashed:true, label:'团队共享可见' },
+  { from:'N15', to:'N16', color:'blue', dashed:true, label:'公开专家进入企业治理视图' },
+  { from:'N15', to:'N20', color:'blue', dashed:true, label:'公开专家直接可见' },
+  { from:'N19', to:'N21A', color:'cyan', dashed:true, label:'企业配置结果同步工作台专家列表' },
+  { from:'N11', to:'N24', color:'gray', dashed:true, label:'自己开发可发起上架申请' },
+  { from:'N28', to:'N9', color:'red', dashed:true, label:'驳回→继续优化' },
+  { from:'N23', to:'N9', color:'red', dashed:true, label:'使用反馈→继续迭代' },
+  { from:'N32', to:'N20', color:'cyan', dashed:true, label:'平台广场流量进入使用链路' },
 ];
 const COLORS = { gray:'#64748b', blue:'#2563eb', green:'#16a34a', amber:'#d97706', red:'#dc2626', purple:'#9333ea', cyan:'#0891b2', orange:'#ea580c' };
 function markerId(c){return ({gray:'arr',blue:'arr-b',green:'arr-g',amber:'arr-a',red:'arr-r',purple:'arr-p',cyan:'arr-c',orange:'arr-o'})[c]||'arr';}
 
 const POPUPS = {
-  N1:{badge:'<span class="tag tag-blue">平台运营</span><span class="tag tag-blue">① 平台初始化</span>',title:'初始化平台底座',body:'<div class="info-card"><ul><li>保留原有系统初始化逻辑不变。</li><li>初始化统一用户底座、租户模型、角色模型、供给池、商品与订单的基础规则。</li><li>后续统一工作台、企业后台、平台运营端都建立在这套底座上。</li></ul></div>'},
-  N2:{badge:'<span class="tag tag-blue">平台运营</span><span class="tag tag-blue">① 平台初始化</span>',title:'创建租户',body:'<div class="info-card"><ul><li>租户是后续购买、授权、交付、审计的根对象。</li><li>统一用户模式下，正式团队能力仍然必须先挂在租户下。</li></ul></div>'},
-  N3:{badge:'<span class="tag tag-blue">平台运营</span><span class="tag tag-blue">① 平台初始化</span>',title:'建立统一角色权限基线',body:'<div class="info-card"><ul><li>不再单独做“租户能力开通”动作，统一改为一套角色权限底座。</li><li>平台侧维护统一角色、菜单权限和数据权限规则。</li><li>后续每个租户都是在同一套角色权限模型下运行，而不是按租户单独开模块。</li></ul></div>'},
-  N4:{badge:'<span class="tag tag-blue">平台运营</span><span class="tag tag-blue">① 平台初始化</span>',title:'邀请企业管理员',body:'<div class="info-card"><ul><li>平台运营只对接企业管理员，不再引入 FDE 独立角色链路。</li><li>企业管理员是企业正式配置面的承接者。</li></ul></div>'},
-  N5:{badge:'<span class="tag tag-purple">企业管理员</span><span class="tag tag-cyan">② 企业接入</span>',title:'激活租户并首次登录',body:'<div class="info-card purple"><ul><li>企业管理员接受邀请后进入企业后台。</li><li>租户状态进入【已激活】，后续组织、成员、权限都在该租户内配置。</li></ul></div>'},
-  N6:{badge:'<span class="tag tag-purple">企业管理员</span><span class="tag tag-cyan">② 企业接入</span>',title:'初始化组织与角色',body:'<div class="info-card purple"><ul><li>建立部门、负责人、基础角色。</li><li>组织结构是后续 Agent 权限下发和部门可见范围控制的基础。</li></ul></div>'},
-  N7:{badge:'<span class="tag tag-purple">企业管理员</span><span class="tag tag-cyan">② 企业接入</span>',title:'邀请员工加入租户',body:'<div class="info-card purple"><ul><li>将普通员工正式拉入统一用户体系下的企业租户。</li><li>员工进入租户后才可能被授权官方能力或团队共享能力。</li></ul></div>'},
-  N8:{badge:'<span class="tag tag-orange">普通员工</span><span class="tag tag-cyan">② 企业接入</span>',title:'员工首次登录统一工作台',body:'<div class="info-card"><ul><li>员工获得统一工作台入口。</li><li>后续“开发”和“使用”都在同一个工作台内完成，不再拆成完全割裂的入口。</li></ul></div>'},
-  N9:{badge:'<span class="tag tag-blue">平台运营</span><span class="tag tag-amber">③ 平台供给</span>',title:'审核AI专家并维护广场配置',body:'<div class="info-card"><ul><li>平台运营审核平台侧 AI 专家，并维护广场展示信息。</li><li>配置内容包括：名称、简介、标签、适用场景、版本说明等。</li><li>这是 AI 专家进入运营侧广场前的准入与运营动作。</li></ul></div>'},
-  N10:{badge:'<span class="tag tag-blue">平台运营</span><span class="tag tag-amber">③ 平台供给</span>',title:'运营侧 AI专家广场上架',body:'<div class="info-card"><ul><li>平台运营在运营侧 AI 专家广场中上架专家。</li><li>上架时需配置可见范围：<strong>全平台可见</strong> 或 <strong>特定租户可见</strong>。</li><li>AI 专家进入广场后可以被发现，但是否正式使用仍要看后续购买和授权配置。</li></ul></div>'},
-  N11:{badge:'<span class="tag tag-red">🟥 商品/订单相关</span><span class="tag tag-amber">③ 平台供给</span>',title:'复用商品中心上架商品',body:'<div class="info-card red"><ul><li>原先的商品中心继续复用，不重新设计一套商品系统。</li><li>平台运营可将 AI 专家转成商品，也可维护套餐、价格和销售说明。</li><li>商品上架后进入后续购买、付款和权益绑定链路。</li></ul></div>'},
-  N12:{badge:'<span class="tag tag-orange">普通员工</span><span class="tag tag-pink">④ 员工自研</span>',title:'创建个人 Agent',body:'<div class="info-card"><ul><li>普通员工可在统一工作台内创建自己的 Agent。</li><li>适用于个人效率工具、部门内小场景或后续准备共享的能力原型。</li></ul></div>'},
-  N13:{badge:'<span class="tag tag-orange">普通员工</span><span class="tag tag-pink">④ 员工自研</span>',title:'选择开发模型并测试',body:'<div class="info-card"><ul><li>开发阶段允许员工选择开发模型并体验效果。</li><li>这里解决会议里提到的“统一工作台后，开发也需要能选模型”的问题。</li><li>正式对外授权后的运行模型，后续仍可由企业管理员在租户配置阶段收口管理。</li></ul></div>'},
-  N14:{badge:'<span class="tag tag-amber">判断节点</span><span class="tag tag-pink">④ 员工自研</span>',title:'仅自己使用？',body:'<div class="info-card amber"><ul><li>是：走个人 Agent 路径，直接进入“我的 Agent”。</li><li>否：进入团队共享申请，由企业管理员决定是否纳入团队供给区。</li></ul></div>'},
-  N15:{badge:'<span class="tag tag-orange">普通员工</span><span class="tag tag-pink">④ 员工自研</span>',title:'进入我的 Agent',body:'<div class="info-card"><ul><li>个人 Agent 只对本人可见和可用。</li><li>这条链路不需要购买，也不需要先进入团队授权。</li></ul></div>'},
-  N16:{badge:'<span class="tag tag-orange">普通员工</span><span class="tag tag-pink">④ 员工自研</span>',title:'提交团队共享申请',body:'<div class="info-card"><ul><li>员工明确共享目的、目标成员或业务场景。</li><li>共享并不等于全员自动可见，仍然要经过管理员审核和后续权限配置。</li></ul></div>'},
-  N17:{badge:'<span class="tag tag-amber">审批节点</span><span class="tag tag-pink">④ 员工自研</span>',title:'同意共享？',body:'<div class="info-card amber"><ul><li>企业管理员判断该 Agent 是否可进入团队供给区。</li><li>通过：成为企业内部可选择供给。</li><li>拒绝：回到员工继续优化，不进入正式授权链。</li></ul></div>'},
-  N18:{badge:'<span class="tag tag-purple">企业管理员</span><span class="tag tag-pink">④ 员工自研</span>',title:'审核通过并加入团队供给区',body:'<div class="info-card purple"><ul><li>表示该 Agent 已具备“企业内可被选择”的资格。</li><li>此时只是进入团队供给区，还没有正式发到所有员工列表。</li><li>后续仍要经过租户配置和权限下发，才会成为正式可用能力。</li></ul></div>'},
-  N19:{badge:'<span class="tag tag-purple">企业管理员</span><span class="tag tag-indigo">⑤ 选品采购</span>',title:'浏览AI专家广场与已购能力',body:'<div class="info-card purple"><ul><li>企业管理员统一浏览三类内容：平台运营上架的 AI 专家广场、企业内部共享供给、历史已购能力。</li><li>对于付费能力，可从广场进入商品中心对应商品完成采购。</li></ul></div>'},
-  N20:{badge:'<span class="tag tag-amber">判断节点</span><span class="tag tag-indigo">⑤ 选品采购</span>',title:'需要付费购买？',body:'<div class="info-card amber"><ul><li>免费官方能力、团队共享能力、历史已购能力，可以直接进入后续配置。</li><li>新的付费官方能力，需要通过商品中心对应商品进入订单和付款链路。</li></ul></div>'},
-  N21:{badge:'<span class="tag tag-purple">企业管理员</span><span class="tag tag-indigo">⑤ 选品采购</span>',title:'直接加入待配置清单',body:'<div class="info-card purple"><ul><li>适用于免费官方、团队共享或已有权益的能力。</li><li>这些能力不需要再购买，但仍需进入后续配置与成员授权步骤，才能正式下发给员工。</li></ul></div>'},
-  N22:{badge:'<span class="tag tag-red">🟥 商品/订单相关</span><span class="tag tag-indigo">⑤ 选品采购</span>',title:'创建订单并提交付款',body:'<div class="info-card red"><ul><li>企业管理员明确本次购买内容、版本、数量、备注。</li><li>订单绑定租户，后续权益开通和交付也都挂在该租户下。</li></ul></div>'},
-  N23:{badge:'<span class="tag tag-red">🟥 商品/订单相关</span><span class="tag tag-indigo">⑤ 选品采购</span>',title:'确认付款并开通权益',body:'<div class="info-card red"><ul><li>平台运营确认付款状态后，将正式权益挂到租户。</li><li>这一步完成后，租户层面才真正拥有该商品对应的可交付能力。</li></ul></div>'},
-  N24:{badge:'<span class="tag tag-purple">企业管理员</span><span class="tag tag-cyan">⑥ 交付配置</span>',title:'完成租户交付配置',body:'<div class="info-card purple"><ul><li>将已选中的 AI 专家或已购商品进行正式配置。</li><li>包括版本、运行模型、分组方式、展示位置等交付动作。</li><li>这是统一用户模式下的“正式交付”承接点。</li></ul></div>'},
-  N25:{badge:'<span class="tag tag-purple">企业管理员</span><span class="tag tag-cyan">⑥ 交付配置</span>',title:'配置部门/成员权限',body:'<div class="info-card purple"><ul><li>明确谁能看见、谁能使用。</li><li>至少支持全员、部门、指定成员三种授权粒度。</li><li>这里是统一工作台最终可见性的核心控制点。</li></ul></div>'},
-  N26:{badge:'<span class="tag tag-purple">企业管理员</span><span class="tag tag-cyan">⑥ 交付配置</span>',title:'发布到员工可见列表',body:'<div class="info-card purple"><ul><li>配置完成后，正式生成员工侧可见列表。</li><li>员工最终看到什么，取决于<strong>统一角色权限</strong>、成员授权范围和专家可见范围的共同结果。</li></ul></div>'},
-  N27:{badge:'<span class="tag tag-orange">普通员工</span><span class="tag tag-orange">⑦ 正式使用</span>',title:'在工作台看到可用能力',body:'<div class="info-card"><ul><li>员工看到两类内容：自己的个人 Agent，以及管理员正式授权的官方/团队能力。</li><li>这两类内容在同一个工作台入口汇合，形成统一体验。</li></ul></div>'},
-  N28:{badge:'<span class="tag tag-orange">普通员工</span><span class="tag tag-orange">⑦ 正式使用</span>',title:'发起对话与任务执行',body:'<div class="info-card"><ul><li>员工进入具体 Agent 发起对话，上传文件、选择 Skill、查看历史会话。</li><li>这一步是统一用户模式真正的价值落点：能力被交付后开始持续被使用。</li></ul></div>'},
-  N29:{badge:'<span class="tag tag-orange">普通员工</span><span class="tag tag-orange">⑦ 正式使用</span>',title:'提交反馈或新需求',body:'<div class="info-card"><ul><li>员工可以反馈使用问题、提出新增采购诉求，或继续优化自己的自研 Agent。</li><li>这里是统一工作台闭环里最重要的回流入口。</li></ul></div>'},
-  N30:{badge:'<span class="tag tag-red">🟥 商品/订单相关</span><span class="tag tag-gray">⑧ 持续运营</span>',title:'发布新版本或维护商品',body:'<div class="info-card red"><ul><li>平台运营持续维护 AI 专家广场和商品中心两套运营对象。</li><li>AI 专家侧维护版本、标签、可见范围；商品侧维护价格、上下架、套餐说明。</li><li>价格调整影响未来新订单，不追溯历史订单；升级说明会进入后续续费/升级决策。</li></ul></div>'},
-  N31:{badge:'<span class="tag tag-amber">判断节点</span><span class="tag tag-gray">⑧ 持续运营</span>',title:'需要付费续费/升级？',body:'<div class="info-card amber"><ul><li>否：属于免费升级或合同内调整，可直接更新租户配置。</li><li>是：需要续费、扩容或购买更高版本，回流到订单购买链路。</li></ul></div>'},
-  N32:{badge:'<span class="tag tag-red">🟥 商品/订单相关</span><span class="tag tag-gray">⑧ 持续运营</span>',title:'创建续费/升级订单',body:'<div class="info-card red"><ul><li>将续费、扩容、高阶版本升级收口为新的订单动作。</li><li>订单创建后回流到原有购买付款链路，不直接改租户结果。</li></ul></div>'},
-  N33:{badge:'<span class="tag tag-purple">企业管理员</span><span class="tag tag-gray">⑧ 持续运营</span>',title:'更新租户配置并二次授权',body:'<div class="info-card purple"><ul><li>免费升级或新的权益开通后，企业管理员重新应用配置并完成授权调整。</li><li>统一用户模式下，升级不是直接结束，而是再次回到“租户配置与授权”步骤收口。</li></ul></div>'},
-  N34:{badge:'<span class="tag tag-orange">普通员工</span><span class="tag tag-gray">⑧ 持续运营</span>',title:'使用新版能力继续工作',body:'<div class="info-card"><ul><li>更新完成后，员工继续在统一工作台里使用最新权限或最新版本。</li><li>这使整个流程形成“AI专家广场运营 / 商品中心上架 → 授权交付 → 使用反馈 → 续费升级”的闭环。</li></ul></div>'},
+  N1:{badge:'<span class="tag tag-blue">平台运营</span><span class="tag tag-blue">① 平台初始化</span>',title:'初始化平台底座',body:'<div class="info-card"><ul><li>建立统一用户底座、租户模型、身份模型与 AI专家广场基础规则。</li><li>当前版本主链已经收口为开发、发布、使用，不再以购买和订单为中心。</li><li>运营侧只保留租户管理、上架审批、广场管理三类能力。</li></ul></div>'},
+  N2:{badge:'<span class="tag tag-blue">平台运营</span><span class="tag tag-blue">① 平台初始化</span>',title:'创建租户',body:'<div class="info-card"><ul><li>租户是企业接入 Frontis AI 的根对象。</li><li>后续管理员、员工、企业后台配置和 FDE 权限都建立在租户上下文中。</li></ul></div>'},
+  N3:{badge:'<span class="tag tag-blue">平台运营</span><span class="tag tag-blue">① 平台初始化</span>',title:'配置管理员与 FDE 权限',body:'<div class="info-card"><ul><li>创建租户时同时配置企业管理员。</li><li>可设置该租户是否开通 FDE 权限。</li><li>只有开通 FDE 权限的租户，员工开发的 AI专家 才允许发起“申请上架”。</li></ul></div>'},
+  N4:{badge:'<span class="tag tag-purple">企业管理员</span><span class="tag tag-cyan">② 企业接入</span>',title:'激活租户并首次登录',body:'<div class="info-card purple"><ul><li>企业管理员接受邀请后进入企业管理后台。</li><li>后台当前主入口已收口为 AI专家管理、模型配置、组织管理。</li></ul></div>'},
+  N5:{badge:'<span class="tag tag-purple">企业管理员</span><span class="tag tag-cyan">② 企业接入</span>',title:'初始化组织管理',body:'<div class="info-card purple"><ul><li>建立部门、成员与企业角色。</li><li>组织结构是后续权限配置和团队共享范围的基础。</li></ul></div>'},
+  N6:{badge:'<span class="tag tag-purple">企业管理员</span><span class="tag tag-cyan">② 企业接入</span>',title:'初始化模型配置',body:'<div class="info-card purple"><ul><li>维护企业当前可用模型范围与默认模型。</li><li>企业后台中的 AI专家配置，需要在这里已开通的模型范围内选择绑定模型。</li></ul></div>'},
+  N7:{badge:'<span class="tag tag-purple">企业管理员</span><span class="tag tag-cyan">② 企业接入</span>',title:'邀请员工加入租户',body:'<div class="info-card purple"><ul><li>员工正式加入租户后，才能看到企业内 AI专家 并开始开发或使用。</li><li>当前版本不再涉及采购、试用、支付开通。</li></ul></div>'},
+  N8:{badge:'<span class="tag tag-orange">普通员工</span><span class="tag tag-cyan">② 企业接入</span>',title:'员工首次登录工作台',body:'<div class="info-card"><ul><li>员工从统一工作台进入 Frontis AI。</li><li>后续对话工作台、AI专家广场、开发与进化都在同一入口下收口。</li><li>每个用户登录后都会默认拥有系统级默认专家 MetaAegnt。</li></ul></div>'},
+  N9:{badge:'<span class="tag tag-orange">普通员工</span><span class="tag tag-pink">③ 开发与进化</span>',title:'开发与进化',body:'<div class="info-card"><ul><li>员工在开发与进化中统一完成能力构建与迭代，可开发 Agent、Skill，并配置 Prompt、工具、知识等能力。</li><li>同一节点内还承接测试、调优、效果验证和持续进化，形成从开发到验证的一体化过程。</li></ul></div>'},
+  N11:{badge:'<span class="tag tag-orange">普通员工</span><span class="tag tag-pink">③ 开发与进化</span>',title:'形成可发布版本',body:'<div class="info-card"><ul><li>完成开发、测试与进化后，AI专家达到可用水平，进入发布范围选择。</li><li>发布与上架是两件事：发布解决使用范围，上架走运营审批支线。</li></ul></div>'},
+  N12:{badge:'<span class="tag tag-amber">判断节点</span><span class="tag tag-indigo">④ 发布</span>',title:'选择发布范围',body:'<div class="info-card amber"><ul><li>发布范围只有三种：个人、团队共享、公开。</li><li>这一步决定 AI专家后续谁能看到、谁能使用，以及是否适合继续走平台上架支线。</li></ul></div>'},
+  N13:{badge:'<span class="tag tag-orange">普通员工</span><span class="tag tag-indigo">④ 发布</span>',title:'发布为个人',body:'<div class="info-card"><ul><li>个人发布后，仅开发者本人可见和可用。</li><li>在 AI专家广场中归入“我的”范围，并可继续进入开发。</li></ul></div>'},
+  N14:{badge:'<span class="tag tag-orange">普通员工</span><span class="tag tag-indigo">④ 发布</span>',title:'发布为团队共享',body:'<div class="info-card"><ul><li>团队共享后，指定部门或成员可以在广场中看到并添加使用。</li><li>这是企业内部小范围协作的主要发布方式。</li></ul></div>'},
+  N15:{badge:'<span class="tag tag-orange">普通员工</span><span class="tag tag-indigo">④ 发布</span>',title:'发布为公开',body:'<div class="info-card"><ul><li>公开发布后，该 AI专家 在平台内对所有租户所有用户可见可用。</li><li>这是当前版本“无需购买、可直接添加使用”的公开能力路径。</li></ul></div>'},
+  N16:{badge:'<span class="tag tag-purple">企业管理员</span><span class="tag tag-cyan">⑤ 企业治理</span>',title:'AI专家管理查看企业内专家',body:'<div class="info-card purple"><ul><li>企业后台中的 AI专家管理统一展示企业内全部 AI专家。</li><li>管理员关注的是开发者、来源、发布范围和当前状态，而不是订单或采购信息。</li></ul></div>'},
+  N17:{badge:'<span class="tag tag-purple">企业管理员</span><span class="tag tag-cyan">⑤ 企业治理</span>',title:'配置使用范围与权限',body:'<div class="info-card purple"><ul><li>AI专家配置的一项核心能力是权限配置。</li><li>管理员可基于组织结构设置全员、部门或指定成员的可用范围。</li></ul></div>'},
+  N18:{badge:'<span class="tag tag-purple">企业管理员</span><span class="tag tag-cyan">⑤ 企业治理</span>',title:'配置绑定模型',body:'<div class="info-card purple"><ul><li>AI专家配置的另一项核心能力是模型配置。</li><li>管理员需要在企业已开通模型范围内，为具体 AI专家 选择运行模型。</li></ul></div>'},
+  N19:{badge:'<span class="tag tag-purple">企业管理员</span><span class="tag tag-cyan">⑤ 企业治理</span>',title:'治理结果生效',body:'<div class="info-card purple"><ul><li>组织配置、模型配置和 AI专家配置收口后，企业侧治理结果生效。</li><li>治理结果会同步到员工工作台专家列表，影响哪些专家可见、可用以及使用什么模型。</li></ul></div>'},
+  N20A:{badge:'<span class="tag tag-orange">普通员工</span><span class="tag tag-orange">⑥ 工作台使用</span>',title:'登录即拥有默认 MetaAegnt',body:'<div class="info-card"><ul><li>每个用户登录工作台后，系统都会默认提供一个 MetaAegnt 作为统一协同入口。</li><li>用户无需先浏览广场或添加其它专家，也可以直接围绕 MetaAegnt 发起任务。</li></ul></div>'},
+  N20:{badge:'<span class="tag tag-orange">普通员工</span><span class="tag tag-orange">⑥ 工作台使用</span>',title:'浏览 AI专家广场',body:'<div class="info-card"><ul><li>AI专家广场按 `全部 / 公开 / 团队共享 / 我的` 展示当前用户可见专家。</li><li>用户从使用视角查找 AI专家，而不是从后台治理视角查找。</li></ul></div>'},
+  N21:{badge:'<span class="tag tag-orange">普通员工</span><span class="tag tag-orange">⑥ 工作台使用</span>',title:'添加其他专家到工作台',body:'<div class="info-card"><ul><li>公开专家和团队共享专家可直接添加到工作台。</li><li>个人专家不需要重复添加，而是直接在“我的”范围中使用或进入开发。</li></ul></div>'},
+  N21A:{badge:'<span class="tag tag-orange">普通员工</span><span class="tag tag-orange">⑥ 工作台使用</span>',title:'进入工作台专家列表',body:'<div class="info-card"><ul><li>工作台专家列表固定分为 `默认专家 / 其他专家` 两类。</li><li>默认专家中当前只有 MetaAegnt；其他专家则来自用户有权限使用并已进入工作台的 AI专家。</li></ul></div>'},
+  N21B:{badge:'<span class="tag tag-amber">判断节点</span><span class="tag tag-orange">⑥ 工作台使用</span>',title:'选择 MetaAegnt 还是其他专家？',body:'<div class="info-card amber"><ul><li>用户如果选择默认专家 MetaAegnt，则进入协同调度模式。</li><li>用户如果主动选择其它 AI专家，则进入该专家的一对一使用模式，不再由 MetaAegnt 代为调度。</li></ul></div>'},
+  N22:{badge:'<span class="tag tag-orange">普通员工</span><span class="tag tag-orange">⑥ 工作台使用</span>',title:'MetaAegnt 调度权限内专家',body:'<div class="info-card"><ul><li>MetaAegnt 在收到任务后，会先理解目标，再从当前用户“有权限使用”的 AI专家集合中判断是否需要调度协同。</li><li>被调度的专家会在会话中以独立 AI专家身份出现，展示各自头像、名称、消息内容和工具执行过程，最后由 MetaAegnt 汇总交付。</li></ul></div>'},
+  N22A:{badge:'<span class="tag tag-orange">普通员工</span><span class="tag tag-orange">⑥ 工作台使用</span>',title:'其他专家一对一使用',body:'<div class="info-card"><ul><li>当用户在专家列表中主动选择 MetaAegnt 之外的其它专家时，会进入一对一单独使用模式。</li><li>此时会话只围绕该专家自身能力展开，不再自动拉起其它专家参与协同。</li></ul></div>'},
+  N23:{badge:'<span class="tag tag-orange">普通员工</span><span class="tag tag-orange">⑥ 工作台使用</span>',title:'沉淀历史会话、结果与成果',body:'<div class="info-card"><ul><li>会话中会沉淀历史记录、结构化结果卡片和成果文件。</li><li>用户可继续使用成果，也可以回流到开发与进化继续优化 AI专家。</li></ul></div>'},
+  N24:{badge:'<span class="tag tag-amber">判断节点</span><span class="tag tag-gray">⑦ 上架申请</span>',title:'自己开发且租户有FDE？',body:'<div class="info-card amber"><ul><li>只有“自己开发”的 AI专家 才允许申请上架。</li><li>并且当前租户必须已开通 FDE 权限，详情页才会显示申请入口。</li></ul></div>'},
+  N25:{badge:'<span class="tag tag-orange">普通员工</span><span class="tag tag-gray">⑦ 上架申请</span>',title:'提交上架申请',body:'<div class="info-card"><ul><li>员工在 AI专家详情页提交上架申请。</li><li>申请内容包括上架名称和申请理由，提交后状态进入【待审批】。</li></ul></div>'},
+  N26:{badge:'<span class="tag tag-amber">审批节点</span><span class="tag tag-gray">⑦ 上架申请</span>',title:'通过上架审批？',body:'<div class="info-card amber"><ul><li>平台运营在运营端处理 AI专家上架审批。</li><li>通过后进入 AI专家广场管理；驳回后回到员工继续优化并可重新申请。</li></ul></div>'},
+  N27:{badge:'<span class="tag tag-blue">平台运营</span><span class="tag tag-gray">⑦ 上架申请</span>',title:'进入可运营专家池',body:'<div class="info-card"><ul><li>审批通过后，该 AI专家 获得进入运营侧广场管理的资格。</li><li>审批通过不改变它在原租户内的发布和使用状态，只增加平台运营入口。</li></ul></div>'},
+  N28:{badge:'<span class="tag tag-orange">普通员工</span><span class="tag tag-gray">⑦ 上架申请</span>',title:'驳回后继续优化',body:'<div class="info-card red"><ul><li>若被驳回，员工根据原因继续优化 AI专家。</li><li>优化完成后可再次提交上架申请。</li></ul></div>'},
+  N29:{badge:'<span class="tag tag-blue">平台运营</span><span class="tag tag-cyan">⑧ 平台运营</span>',title:'AI专家广场管理',body:'<div class="info-card cyan"><ul><li>运营侧只管理已审批通过的 AI专家。</li><li>该模块负责维护平台广场中的分类、精选和定向投放，不改变公开发布本身的基础可见可用规则。</li></ul></div>'},
+  N30:{badge:'<span class="tag tag-blue">平台运营</span><span class="tag tag-cyan">⑧ 平台运营</span>',title:'设置分类与可见范围',body:'<div class="info-card cyan"><ul><li>运营可为 AI专家 设置广场分类。</li><li>可见范围支持全平台可见或指定租户可见，用于实现定向投放。</li></ul></div>'},
+  N31:{badge:'<span class="tag tag-blue">平台运营</span><span class="tag tag-cyan">⑧ 平台运营</span>',title:'平台广场精选展示',body:'<div class="info-card cyan"><ul><li>配置完成后，AI专家 进入平台广场运营位或精选展示位。</li><li>该阶段解决的是“被更多用户发现”，不是基础使用权限本身。</li></ul></div>'},
+  N32:{badge:'<span class="tag tag-orange">普通员工</span><span class="tag tag-cyan">⑧ 平台运营</span>',title:'被更多用户发现并使用',body:'<div class="info-card"><ul><li>更多租户用户在平台广场中浏览到该专家，并进一步添加到工作台使用。</li><li>平台广场管理为使用链路带来额外曝光和流量回流。</li></ul></div>'},
 };
 
 function closePopup(){document.getElementById('popup-overlay').classList.remove('show');document.getElementById('popup-panel').classList.remove('show');}
@@ -506,7 +509,7 @@ function render(){
   EDGES.forEach(([a,b,ck,label],idx)=>{if(np[a]&&np[b])draw(np[a],np[b],ck,label,false,false,idx%2);});
   SPECIAL_EDGES.forEach((e,idx)=>{if(!np[e.from]||!np[e.to])return;const retreat=np[e.to].cx<np[e.from].cx||np[e.to].cy<np[e.from].cy;draw(np[e.from],np[e.to],e.color,e.label,e.dashed,retreat,idx+1);});
 
-  h+=`<text x="${TW/2}" y="${TH-18}" text-anchor="middle" font-size="11" fill="#475569">Frontis AI Platform  ©  2026  —  BizFlow V2.7 Unified User</text>`;
+  h+=`<text x="${TW/2}" y="${TH-18}" text-anchor="middle" font-size="11" fill="#475569">Frontis AI Platform  ©  2026  —  BizFlow V2.7 Latest Prototype Sync</text>`;
 
   NODES.forEach(n=>{
     const p=np[n.id]; if(!p) return;
