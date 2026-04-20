@@ -69,7 +69,6 @@ interface ShelfApplicationEditorState {
   reason: string;
 }
 
-const CURRENT_EMPLOYEE_NAME = "张三";
 const AGENT_FRAMEWORK_NAME = "Syngent";
 const AGENT_AVATAR_SEEDS: string[] = [
   "employee-pm",
@@ -394,7 +393,7 @@ export const FdeAgentStoreView = ({
   onNavigateToAgentDev,
   viewerRole = "employee",
 }: FdeAgentStoreViewProps): JSX.Element => {
-  const { activeIdentity } = useMockAuth();
+  const { activeIdentity, session } = useMockAuth();
   const [shelfFilter, setShelfFilter] = useState<AgentShelfFilter>("all");
   const [businessLineFilter, setBusinessLineFilter] = useState<BusinessLineFilter>("all");
   const [detailTab, setDetailTab] = useState<AgentDetailTabKey>("basic");
@@ -408,6 +407,7 @@ export const FdeAgentStoreView = ({
     name: "",
     reason: "",
   });
+  const currentEmployeeName = activeIdentity?.subjectName ?? session?.name ?? "";
 
   const filteredAgents = useMemo(
     () =>
@@ -422,7 +422,7 @@ export const FdeAgentStoreView = ({
 
         if (
           shelfFilter === "mine" &&
-          !(agent.scope === "personal" || agent.source === CURRENT_EMPLOYEE_NAME)
+          !(agent.scope === "personal" || agent.source === currentEmployeeName)
         ) {
           return false;
         }
@@ -436,7 +436,7 @@ export const FdeAgentStoreView = ({
 
         return true;
       }),
-    [businessLineFilter, shelfFilter],
+    [businessLineFilter, currentEmployeeName, shelfFilter],
   );
 
   const selectedAgentAdded = useMemo(
@@ -472,10 +472,10 @@ export const FdeAgentStoreView = ({
     () =>
       Boolean(
         selectedAgent &&
-          selectedAgent.source === CURRENT_EMPLOYEE_NAME &&
+          selectedAgent.source === currentEmployeeName &&
           activeTenantHasFdeAccess,
       ),
-    [activeTenantHasFdeAccess, selectedAgent],
+    [activeTenantHasFdeAccess, currentEmployeeName, selectedAgent],
   );
 
   const handleOpenDetail = useCallback((agent: AgentItem): void => {
@@ -520,7 +520,7 @@ export const FdeAgentStoreView = ({
       id: submissionId,
       name: applicationName,
       version: selectedAgent.version,
-      submitter: `${CURRENT_EMPLOYEE_NAME} - ${activeIdentity.tenantName}`,
+      submitter: `${currentEmployeeName} - ${activeIdentity.tenantName}`,
       submittedAt: formatSubmittedAt(),
       status: "pending",
       submissionType: "squarePublish",
@@ -546,7 +546,13 @@ export const FdeAgentStoreView = ({
       reason: "",
     });
     message.success("上架申请已提交，等待运营审批。");
-  }, [activeIdentity?.tenantId, activeIdentity?.tenantName, selectedAgent, shelfApplicationEditor]);
+  }, [
+    activeIdentity?.tenantId,
+    activeIdentity?.tenantName,
+    currentEmployeeName,
+    selectedAgent,
+    shelfApplicationEditor,
+  ]);
 
   const handleUseAgent = useCallback(
     (agent: AgentItem): void => {
@@ -727,7 +733,7 @@ export const FdeAgentStoreView = ({
               <span className={styles.detailKeyValueLabel}>最近更新</span>
               <strong className={styles.detailKeyValueValue}>{selectedAgent.updatedAt}</strong>
             </div>
-            {selectedAgent.source === CURRENT_EMPLOYEE_NAME ? (
+            {selectedAgent.source === currentEmployeeName ? (
               <div className={styles.detailKeyValueItem}>
                 <span className={styles.detailKeyValueLabel}>上架申请</span>
                 <strong className={styles.detailKeyValueValue}>
@@ -789,6 +795,7 @@ export const FdeAgentStoreView = ({
     );
   }, [
     activeTenantHasFdeAccess,
+    currentEmployeeName,
     detailTab,
     selectedAgent,
     selectedAgentAdded,
