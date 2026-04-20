@@ -1246,6 +1246,203 @@
   }
 }
 
+.shelfApplicationModalWrap {
+  overflow: hidden;
+
+  :global(.ant-modal) {
+    max-width: calc(100vw - 32px);
+    max-width: calc(100dvw - 32px);
+  }
+}
+
+.shelfApplicationModal {
+  :global {
+    .ant-modal-content {
+      padding: 0;
+      border-radius: 24px;
+      overflow: hidden;
+      box-shadow: 0 24px 60px rgba(15, 23, 42, 0.14);
+    }
+
+    .ant-modal-header {
+      margin-bottom: 0;
+      padding: 24px 28px 0;
+      background: transparent;
+    }
+
+    .ant-modal-body {
+      padding: 0;
+    }
+
+    .ant-modal-close {
+      top: 18px;
+      right: 18px;
+      color: var(--text-secondary);
+    }
+  }
+}
+
+.shelfApplicationModalTitle {
+  color: var(--text-primary);
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.shelfApplicationBody {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding: 20px 28px 28px;
+}
+
+.shelfApplicationIntro {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 18px 20px;
+  border: 1px solid rgba(14, 165, 233, 0.12);
+  border-radius: 18px;
+  background: linear-gradient(180deg, #f7fcff 0%, #fbfdff 100%);
+}
+
+.shelfApplicationIntroBadge {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  height: 28px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: rgba(14, 165, 233, 0.1);
+  color: #0284c7;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.shelfApplicationIntroText {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.75;
+}
+
+.shelfApplicationForm {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px 20px;
+}
+
+.shelfApplicationField {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.shelfApplicationFieldFull {
+  grid-column: 1 / -1;
+}
+
+.shelfApplicationLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.shelfApplicationRequired {
+  color: #ef4444;
+  font-size: 12px;
+  line-height: 1;
+}
+
+.shelfApplicationInput,
+.shelfApplicationTextarea {
+  :global(.ant-input),
+  :global(.ant-input-affix-wrapper),
+  :global(.ant-input-textarea textarea) {
+    border: 1px solid var(--select-border);
+    border-radius: 14px;
+    box-shadow: none;
+    background: #fbfcfe;
+    color: var(--text-primary);
+    font-size: 14px;
+    line-height: 1.6;
+    transition:
+      border-color 0.18s ease,
+      box-shadow 0.18s ease,
+      background 0.18s ease;
+
+    &:hover {
+      border-color: rgba(14, 165, 233, 0.28);
+    }
+
+    &:focus,
+    &:focus-within {
+      border-color: rgba(14, 165, 233, 0.48);
+      box-shadow: 0 0 0 4px rgba(14, 165, 233, 0.08);
+      background: #ffffff;
+    }
+  }
+
+  :global(.ant-input) {
+    height: 46px;
+    padding: 0 14px;
+  }
+}
+
+.shelfApplicationTextarea {
+  :global(.ant-input-textarea textarea) {
+    min-height: 132px;
+    padding: 12px 14px;
+    resize: vertical;
+  }
+}
+
+.shelfApplicationActionBar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  padding-top: 4px;
+}
+
+.shelfApplicationCancelButton,
+.shelfApplicationSubmitButton {
+  height: 42px;
+  min-width: 110px;
+  padding: 0 18px;
+  border-radius: 12px;
+  box-shadow: none;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.shelfApplicationCancelButton {
+  border: 1px solid var(--select-border);
+  background: #ffffff;
+  color: var(--text-primary);
+
+  &:hover,
+  &:focus {
+    border-color: rgba(14, 165, 233, 0.24) !important;
+    color: var(--text-primary) !important;
+  }
+}
+
+.shelfApplicationSubmitButton {
+  border: 0;
+  background: linear-gradient(135deg, #14b8c9 0%, #06b6d4 100%);
+  color: #ffffff !important;
+
+  &:hover,
+  &:focus {
+    background: linear-gradient(135deg, #0fa6b6 0%, #089ec0 100%) !important;
+    color: #ffffff !important;
+  }
+}
+
 @media (max-width: 1280px) {
   .agentGrid {
     grid-template-columns: repeat(auto-fill, minmax(268px, 1fr));
@@ -1300,6 +1497,22 @@
       .ant-modal-header {
         padding-right: 20px;
         padding-left: 20px;
+      }
+    }
+  }
+
+  .shelfApplicationModalWrap {
+    :global(.ant-modal) {
+      max-width: calc(100vw - 24px);
+      max-width: calc(100dvw - 24px);
+      margin: 16px auto 0;
+    }
+  }
+
+  .shelfApplicationModal {
+    :global {
+      .ant-modal-header {
+        padding: 22px 20px 0;
       }
     }
   }
@@ -1403,6 +1616,25 @@
 
   .detailCloseButton {
     min-width: 88px;
+  }
+
+  .shelfApplicationBody {
+    gap: 20px;
+    padding: 18px 20px 22px;
+  }
+
+  .shelfApplicationForm {
+    grid-template-columns: 1fr;
+  }
+
+  .shelfApplicationActionBar {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+
+  .shelfApplicationCancelButton,
+  .shelfApplicationSubmitButton {
+    width: 100%;
   }
 
   .versionItem {

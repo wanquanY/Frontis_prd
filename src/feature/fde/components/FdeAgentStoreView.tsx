@@ -5,12 +5,8 @@ import { Button, Empty, Input, Modal, Select, message } from "antd";
 
 import { useMockAuth } from "@/feature/auth/hooks/useMockAuth";
 import { getAvatarUrl } from "@/pages/utils";
-import {
-  OPERATIONS_INITIAL_TENANTS,
-} from "@/feature/operations/mockData";
-import {
-  loadStoredOperationsTenants,
-} from "@/feature/operations/tenantStorage";
+import { OPERATIONS_INITIAL_TENANTS } from "@/feature/operations/mockData";
+import { loadStoredOperationsTenants } from "@/feature/operations/tenantStorage";
 import type { OperationsAgentSubmission } from "@/feature/operations/types";
 import {
   loadEnterpriseCommodityApplications,
@@ -68,6 +64,9 @@ interface ShelfApplicationEditorState {
   name: string;
   reason: string;
 }
+
+const SHELF_APPLICATION_NAME_FIELD_ID = "fde-agent-store-shelf-name";
+const SHELF_APPLICATION_REASON_FIELD_ID = "fde-agent-store-shelf-reason";
 
 const AGENT_FRAMEWORK_NAME = "Syngent";
 const AGENT_AVATAR_SEEDS: string[] = [
@@ -409,11 +408,13 @@ export const FdeAgentStoreView = ({
   const [commodityApplications, setCommodityApplications] = useState<OperationsAgentSubmission[]>(
     () => loadEnterpriseCommodityApplications(),
   );
-  const [shelfApplicationEditor, setShelfApplicationEditor] = useState<ShelfApplicationEditorState>({
-    open: false,
-    name: "",
-    reason: "",
-  });
+  const [shelfApplicationEditor, setShelfApplicationEditor] = useState<ShelfApplicationEditorState>(
+    {
+      open: false,
+      name: "",
+      reason: "",
+    },
+  );
   const currentEmployeeName = activeIdentity?.subjectName ?? session?.name ?? "";
 
   const filteredAgents = useMemo(
@@ -431,10 +432,7 @@ export const FdeAgentStoreView = ({
           return false;
         }
 
-        if (
-          shelfFilter === "mine" &&
-          !isOwnedByCurrentUser(agent, currentEmployeeName)
-        ) {
+        if (shelfFilter === "mine" && !isOwnedByCurrentUser(agent, currentEmployeeName)) {
           return false;
         }
 
@@ -482,9 +480,7 @@ export const FdeAgentStoreView = ({
   const canApplyShelf = useMemo(
     () =>
       Boolean(
-        selectedAgent &&
-          selectedAgent.source === currentEmployeeName &&
-          activeTenantHasFdeAccess,
+        selectedAgent && selectedAgent.source === currentEmployeeName && activeTenantHasFdeAccess,
       ),
     [activeTenantHasFdeAccess, currentEmployeeName, selectedAgent],
   );
@@ -498,6 +494,14 @@ export const FdeAgentStoreView = ({
   const handleCloseDetail = useCallback((): void => {
     setSelectedAgent(null);
     setDetailTab("basic");
+  }, []);
+
+  const handleCloseShelfApplication = useCallback((): void => {
+    setShelfApplicationEditor({
+      open: false,
+      name: "",
+      reason: "",
+    });
   }, []);
 
   const handleOpenShelfApplication = useCallback((): void => {
@@ -600,7 +604,10 @@ export const FdeAgentStoreView = ({
             <div className={styles.detailBlockDivider} />
             <div className={styles.detailSkillGrid}>
               {selectedAgent.skills.map(skill => (
-                <article key={`${selectedAgent.id}-${skill.name}`} className={styles.detailSkillCard}>
+                <article
+                  key={`${selectedAgent.id}-${skill.name}`}
+                  className={styles.detailSkillCard}
+                >
                   <span className={styles.detailSkillTypeTag}>{skill.type}</span>
                   <h4 className={styles.detailSkillCardTitle}>{skill.name}</h4>
                   <p className={styles.detailSkillCardText}>
@@ -628,9 +635,7 @@ export const FdeAgentStoreView = ({
                     <p>{version.desc}</p>
                   </div>
                   <div className={styles.versionMeta}>
-                    {version.cur ? (
-                      <span className={styles.detailMetaChip}>当前版本</span>
-                    ) : null}
+                    {version.cur ? <span className={styles.detailMetaChip}>当前版本</span> : null}
                     <span>{version.date}</span>
                   </div>
                 </div>
@@ -695,7 +700,9 @@ export const FdeAgentStoreView = ({
                 </span>
                 <span className={styles.detailScopeRow}>
                   发布范围：
-                  <span className={styles.detailMetaChip}>{getScopeLabel(selectedAgent.scope)}</span>
+                  <span className={styles.detailMetaChip}>
+                    {getScopeLabel(selectedAgent.scope)}
+                  </span>
                 </span>
               </div>
             </div>
@@ -714,11 +721,15 @@ export const FdeAgentStoreView = ({
           <div className={styles.detailKeyValueGrid}>
             <div className={styles.detailKeyValueItem}>
               <span className={styles.detailKeyValueLabel}>发布方式</span>
-              <strong className={styles.detailKeyValueValue}>{getScopeLabel(selectedAgent.scope)}</strong>
+              <strong className={styles.detailKeyValueValue}>
+                {getScopeLabel(selectedAgent.scope)}
+              </strong>
             </div>
             <div className={styles.detailKeyValueItem}>
               <span className={styles.detailKeyValueLabel}>可见范围</span>
-              <strong className={styles.detailKeyValueValue}>{getDetailScopeLabel(selectedAgent)}</strong>
+              <strong className={styles.detailKeyValueValue}>
+                {getDetailScopeLabel(selectedAgent)}
+              </strong>
             </div>
             <div className={styles.detailKeyValueItem}>
               <span className={styles.detailKeyValueLabel}>当前角色</span>
@@ -728,7 +739,9 @@ export const FdeAgentStoreView = ({
             </div>
             <div className={styles.detailKeyValueItem}>
               <span className={styles.detailKeyValueLabel}>使用方式</span>
-              <strong className={styles.detailKeyValueValue}>{getUsageRuleLabel(selectedAgent)}</strong>
+              <strong className={styles.detailKeyValueValue}>
+                {getUsageRuleLabel(selectedAgent)}
+              </strong>
             </div>
             <div className={styles.detailKeyValueItem}>
               <span className={styles.detailKeyValueLabel}>当前状态</span>
@@ -856,8 +869,7 @@ export const FdeAgentStoreView = ({
                   <div
                     className={styles.visualPanel}
                     style={{
-                      background:
-                        DOMAIN_TONE_MAP[agent.domain] ?? DOMAIN_TONE_MAP.management,
+                      background: DOMAIN_TONE_MAP[agent.domain] ?? DOMAIN_TONE_MAP.management,
                     }}
                   >
                     <span className={styles.visibilityBadge}>{getScopeLabel(agent.scope)}</span>
@@ -884,7 +896,7 @@ export const FdeAgentStoreView = ({
                       </span>
                       <span className={`${styles.miniBadge} ${styles.scopeBadge}`}>
                         {agent.scope === "team"
-                          ? agent.sharedTargetLabel ?? "团队共享"
+                          ? (agent.sharedTargetLabel ?? "团队共享")
                           : agent.scope === "personal"
                             ? "个人发布"
                             : "所有人可用"}
@@ -923,7 +935,9 @@ export const FdeAgentStoreView = ({
         wrapClassName={styles.detailModalWrap}
         footer={null}
         open={Boolean(selectedAgent)}
-        title={<span className={styles.detailModalTitle}>{selectedAgent?.name ?? "AI专家详情"}</span>}
+        title={
+          <span className={styles.detailModalTitle}>{selectedAgent?.name ?? "AI专家详情"}</span>
+        }
         width={680}
         onCancel={handleCloseDetail}
         destroyOnHidden
@@ -954,7 +968,10 @@ export const FdeAgentStoreView = ({
                 {canApplyShelf ? (
                   <Button
                     className={styles.detailSecondaryButton}
-                    disabled={selectedAgentSubmission?.status === "pending" || selectedAgentSubmission?.status === "approved"}
+                    disabled={
+                      selectedAgentSubmission?.status === "pending" ||
+                      selectedAgentSubmission?.status === "approved"
+                    }
                     onClick={handleOpenShelfApplication}
                   >
                     {selectedAgentSubmission?.status === "approved"
@@ -982,45 +999,83 @@ export const FdeAgentStoreView = ({
       </Modal>
 
       <Modal
+        className={styles.shelfApplicationModal}
+        wrapClassName={styles.shelfApplicationModalWrap}
+        footer={null}
         open={shelfApplicationEditor.open}
-        title="申请上架"
-        onCancel={() =>
-          setShelfApplicationEditor({
-            open: false,
-            name: "",
-            reason: "",
-          })
-        }
-        onOk={handleSubmitShelfApplication}
+        title={<span className={styles.shelfApplicationModalTitle}>申请上架</span>}
+        width={640}
+        onCancel={handleCloseShelfApplication}
         destroyOnHidden
       >
-        <div className={styles.detailKeyValueGrid}>
-          <div className={styles.detailKeyValueItem}>
-            <span className={styles.detailKeyValueLabel}>上架名称</span>
-            <Input
-              value={shelfApplicationEditor.name}
-              placeholder="请输入上架名称"
-              onChange={event =>
-                setShelfApplicationEditor(currentState => ({
-                  ...currentState,
-                  name: event.target.value,
-                }))
-              }
-            />
+        <div className={styles.shelfApplicationBody}>
+          <div className={styles.shelfApplicationIntro}>
+            <div className={styles.shelfApplicationIntroBadge}>平台 AI专家广场</div>
+            <p className={styles.shelfApplicationIntroText}>
+              提交后将进入平台侧审核，审核通过后可在 AI专家广场面向更多租户展示和使用。
+            </p>
           </div>
-          <div className={styles.detailKeyValueItem}>
-            <span className={styles.detailKeyValueLabel}>申请理由</span>
-            <Input.TextArea
-              rows={4}
-              value={shelfApplicationEditor.reason}
-              placeholder="请输入申请理由"
-              onChange={event =>
-                setShelfApplicationEditor(currentState => ({
-                  ...currentState,
-                  reason: event.target.value,
-                }))
-              }
-            />
+
+          <div className={styles.shelfApplicationForm}>
+            <div className={styles.shelfApplicationField}>
+              <label
+                className={styles.shelfApplicationLabel}
+                htmlFor={SHELF_APPLICATION_NAME_FIELD_ID}
+              >
+                上架名称
+                <span className={styles.shelfApplicationRequired}>*</span>
+              </label>
+              <Input
+                id={SHELF_APPLICATION_NAME_FIELD_ID}
+                className={styles.shelfApplicationInput}
+                value={shelfApplicationEditor.name}
+                placeholder="请输入上架名称"
+                onChange={event =>
+                  setShelfApplicationEditor(currentState => ({
+                    ...currentState,
+                    name: event.target.value,
+                  }))
+                }
+              />
+            </div>
+
+            <div className={`${styles.shelfApplicationField} ${styles.shelfApplicationFieldFull}`}>
+              <label
+                className={styles.shelfApplicationLabel}
+                htmlFor={SHELF_APPLICATION_REASON_FIELD_ID}
+              >
+                申请理由
+                <span className={styles.shelfApplicationRequired}>*</span>
+              </label>
+              <Input.TextArea
+                id={SHELF_APPLICATION_REASON_FIELD_ID}
+                className={styles.shelfApplicationTextarea}
+                rows={5}
+                value={shelfApplicationEditor.reason}
+                placeholder="请说明该 AI专家 的适用场景、稳定性表现，以及为什么值得上架到平台广场"
+                onChange={event =>
+                  setShelfApplicationEditor(currentState => ({
+                    ...currentState,
+                    reason: event.target.value,
+                  }))
+                }
+              />
+            </div>
+          </div>
+
+          <div className={styles.shelfApplicationActionBar}>
+            <Button
+              className={styles.shelfApplicationCancelButton}
+              onClick={handleCloseShelfApplication}
+            >
+              取消
+            </Button>
+            <Button
+              className={styles.shelfApplicationSubmitButton}
+              onClick={handleSubmitShelfApplication}
+            >
+              提交申请
+            </Button>
           </div>
         </div>
       </Modal>
