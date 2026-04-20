@@ -33,7 +33,6 @@ interface VersionItem {
 }
 
 type AgentScope = "public" | "team" | "personal";
-type AgentDetailTabKey = "basic" | "skills" | "versions" | "operations";
 type AgentShelfFilter = "all" | "public" | "shared" | "mine";
 type BusinessLineFilter = "all" | "general" | "production" | "sales" | "supplyChain";
 
@@ -68,7 +67,6 @@ interface ShelfApplicationEditorState {
 const SHELF_APPLICATION_NAME_FIELD_ID = "fde-agent-store-shelf-name";
 const SHELF_APPLICATION_REASON_FIELD_ID = "fde-agent-store-shelf-reason";
 
-const AGENT_FRAMEWORK_NAME = "Syngent";
 const AGENT_AVATAR_SEEDS: string[] = [
   "employee-pm",
   "employee-designer",
@@ -79,6 +77,7 @@ const AGENT_AVATAR_SEEDS: string[] = [
   "employee-architect",
   "employee-growth",
 ];
+const AGENT_DETAIL_PLACEHOLDER_TEXT = "AI专家详情不分功能和展现信息参考原孙楠设计";
 
 const DOMAIN_TONE_MAP: Record<string, string> = {
   sales: "linear-gradient(180deg, #dff4ff 0%, #ebf8ff 58%, #f5fbff 100%)",
@@ -281,13 +280,6 @@ const BUSINESS_LINE_OPTIONS: Array<{ label: string; value: BusinessLineFilter }>
   { label: "供应链", value: "supplyChain" },
 ];
 
-const DETAIL_TAB_OPTIONS: Array<{ key: AgentDetailTabKey; label: string }> = [
-  { key: "basic", label: "基础信息" },
-  { key: "skills", label: "关联Skill" },
-  { key: "versions", label: "版本信息" },
-  { key: "operations", label: "运营数据" },
-];
-
 const DOMAIN_BUSINESS_LINE_MAP: Record<string, Exclude<BusinessLineFilter, "all">> = {
   sales: "sales",
   delivery: "production",
@@ -320,24 +312,12 @@ const getScopeLabel = (scope: AgentScope): string => {
   return "公开";
 };
 
-const getDetailScopeLabel = (agent: AgentItem): string => {
-  if (agent.scope === "team") {
-    return agent.sharedTargetLabel ?? "指定团队";
-  }
-
-  if (agent.scope === "personal") {
-    return "仅自己可见";
-  }
-
-  return "所有租户可见";
-};
-
 const isOwnedByCurrentUser = (agent: AgentItem, currentEmployeeName: string): boolean =>
   agent.source === currentEmployeeName;
 
 const getUsageRuleLabel = (agent: AgentItem): string => {
   if (agent.scope === "personal") {
-    return "仅开发者自己使用";
+    return "开发者可手动添加到工作台使用";
   }
 
   if (agent.scope === "team") {
@@ -347,15 +327,7 @@ const getUsageRuleLabel = (agent: AgentItem): string => {
   return "所有用户均可直接添加使用";
 };
 
-const getActionLabel = (
-  agent: AgentItem,
-  isAdded: boolean,
-  currentEmployeeName: string,
-): string => {
-  if (agent.scope === "personal" && isOwnedByCurrentUser(agent, currentEmployeeName)) {
-    return "进入开发";
-  }
-
+const getActionLabel = (isAdded: boolean): string => {
   return isAdded ? "已添加" : "添加到工作台";
 };
 
@@ -393,16 +365,14 @@ const buildShelfApplicationId = (agentId: number, tenantId?: string): string =>
   `ops-agent-square-${tenantId ?? "default"}-${agentId}`;
 
 /**
- * AI 专家广场视图，当前按“发布后直接使用”的最小范围设计。
+ * AI 专家广场视图，当前按“发布后手动添加到工作台使用”的最小范围设计。
  */
 export const FdeAgentStoreView = ({
   onNavigateToAgentDev,
-  viewerRole = "employee",
 }: FdeAgentStoreViewProps): JSX.Element => {
   const { activeIdentity, session } = useMockAuth();
   const [shelfFilter, setShelfFilter] = useState<AgentShelfFilter>("all");
   const [businessLineFilter, setBusinessLineFilter] = useState<BusinessLineFilter>("all");
-  const [detailTab, setDetailTab] = useState<AgentDetailTabKey>("basic");
   const [selectedAgent, setSelectedAgent] = useState<AgentItem | null>(null);
   const [addedAgentIds, setAddedAgentIds] = useState<number[]>([]);
   const [commodityApplications, setCommodityApplications] = useState<OperationsAgentSubmission[]>(
@@ -488,12 +458,10 @@ export const FdeAgentStoreView = ({
   const handleOpenDetail = useCallback((agent: AgentItem): void => {
     setCommodityApplications(loadEnterpriseCommodityApplications());
     setSelectedAgent(agent);
-    setDetailTab("basic");
   }, []);
 
   const handleCloseDetail = useCallback((): void => {
     setSelectedAgent(null);
-    setDetailTab("basic");
   }, []);
 
   const handleCloseShelfApplication = useCallback((): void => {
@@ -571,15 +539,6 @@ export const FdeAgentStoreView = ({
 
   const handleUseAgent = useCallback(
     (agent: AgentItem): void => {
-      if (agent.scope === "personal" && isOwnedByCurrentUser(agent, currentEmployeeName)) {
-        if (onNavigateToAgentDev) {
-          onNavigateToAgentDev();
-        } else {
-          message.info("请前往开发与进化继续完善这个 AI专家。");
-        }
-        return;
-      }
-
       if (addedAgentIds.includes(agent.id)) {
         message.info(`「${agent.name}」已经在你的工作台中。`);
         return;
@@ -588,7 +547,7 @@ export const FdeAgentStoreView = ({
       setAddedAgentIds(currentIds => [...currentIds, agent.id]);
       message.success(`已将「${agent.name}」添加到工作台。`);
     },
-    [addedAgentIds, currentEmployeeName, onNavigateToAgentDev],
+    [addedAgentIds],
   );
 
   const detailContent = useMemo((): JSX.Element | null => {
@@ -596,237 +555,18 @@ export const FdeAgentStoreView = ({
       return null;
     }
 
-    if (detailTab === "skills") {
-      return (
-        <div className={styles.detailPaneBody}>
-          <section className={styles.detailBlock}>
-            <h3 className={styles.detailBlockTitle}>关联Skill</h3>
-            <div className={styles.detailBlockDivider} />
-            <div className={styles.detailSkillGrid}>
-              {selectedAgent.skills.map(skill => (
-                <article
-                  key={`${selectedAgent.id}-${skill.name}`}
-                  className={styles.detailSkillCard}
-                >
-                  <span className={styles.detailSkillTypeTag}>{skill.type}</span>
-                  <h4 className={styles.detailSkillCardTitle}>{skill.name}</h4>
-                  <p className={styles.detailSkillCardText}>
-                    用于支撑 {selectedAgent.scene} 场景下的核心执行能力。
-                  </p>
-                </article>
-              ))}
-            </div>
-          </section>
-        </div>
-      );
-    }
-
-    if (detailTab === "versions") {
-      return (
-        <div className={styles.detailPaneBody}>
-          <section className={styles.detailBlock}>
-            <h3 className={styles.detailBlockTitle}>版本信息</h3>
-            <div className={styles.detailBlockDivider} />
-            <div className={styles.versionList}>
-              {selectedAgent.versions.map(version => (
-                <div key={`${selectedAgent.id}-${version.v}`} className={styles.versionItem}>
-                  <div>
-                    <strong>{version.v}</strong>
-                    <p>{version.desc}</p>
-                  </div>
-                  <div className={styles.versionMeta}>
-                    {version.cur ? <span className={styles.detailMetaChip}>当前版本</span> : null}
-                    <span>{version.date}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </section>
-        </div>
-      );
-    }
-
-    if (detailTab === "operations") {
-      return (
-        <div className={styles.detailPaneBody}>
-          <section className={styles.detailBlock}>
-            <h3 className={styles.detailBlockTitle}>运营数据</h3>
-            <div className={styles.detailBlockDivider} />
-            <div className={styles.detailOperationGrid}>
-              <div className={styles.detailMetricCard}>
-                <span className={styles.detailMetricLabel}>当前状态</span>
-                <strong className={styles.detailMetricValue}>已发布</strong>
-              </div>
-              <div className={styles.detailMetricCard}>
-                <span className={styles.detailMetricLabel}>添加次数</span>
-                <strong className={styles.detailMetricValue}>{selectedAgent.installCount}</strong>
-              </div>
-              <div className={styles.detailMetricCard}>
-                <span className={styles.detailMetricLabel}>活跃用户</span>
-                <strong className={styles.detailMetricValue}>{selectedAgent.activeUsers}</strong>
-              </div>
-              <div className={styles.detailMetricCard}>
-                <span className={styles.detailMetricLabel}>评分</span>
-                <strong className={styles.detailMetricValue}>{selectedAgent.rating} / 5.0</strong>
-              </div>
-            </div>
-          </section>
-        </div>
-      );
-    }
-
     return (
       <div className={styles.detailPaneBody}>
         <section className={styles.detailBlock}>
-          <h3 className={styles.detailBlockTitle}>基础信息</h3>
+          <h3 className={styles.detailBlockTitle}>{selectedAgent.name}</h3>
           <div className={styles.detailBlockDivider} />
-          <div className={styles.detailProfileCard}>
-            <img
-              alt={selectedAgent.name}
-              className={styles.detailAvatar}
-              src={getAvatarUrl(getAgentAvatarSeed(selectedAgent.id))}
-            />
-            <div className={styles.detailProfileMain}>
-              <div className={styles.detailProfileTitleRow}>
-                <h4 className={styles.detailProfileTitle}>{selectedAgent.name}</h4>
-                <span className={styles.detailStatusBadge}>已发布</span>
-              </div>
-              <div className={styles.detailProfileMetaRow}>
-                <span>
-                  开发者：<strong>{selectedAgent.source}</strong>
-                </span>
-                <span>
-                  发布时间：<strong>{selectedAgent.submitTime.split(" ")[0]}</strong>
-                </span>
-                <span className={styles.detailScopeRow}>
-                  发布范围：
-                  <span className={styles.detailMetaChip}>
-                    {getScopeLabel(selectedAgent.scope)}
-                  </span>
-                </span>
-              </div>
-            </div>
-          </div>
-          <div className={styles.detailIntroSection}>
-            <h4 className={styles.detailSubTitle}>简介</h4>
-            <div className={styles.detailIntroCard}>
-              <p>{selectedAgent.desc}</p>
-            </div>
-          </div>
-        </section>
-
-        <section className={styles.detailBlock}>
-          <h3 className={styles.detailBlockTitle}>发布与使用</h3>
-          <div className={styles.detailBlockDivider} />
-          <div className={styles.detailKeyValueGrid}>
-            <div className={styles.detailKeyValueItem}>
-              <span className={styles.detailKeyValueLabel}>发布方式</span>
-              <strong className={styles.detailKeyValueValue}>
-                {getScopeLabel(selectedAgent.scope)}
-              </strong>
-            </div>
-            <div className={styles.detailKeyValueItem}>
-              <span className={styles.detailKeyValueLabel}>可见范围</span>
-              <strong className={styles.detailKeyValueValue}>
-                {getDetailScopeLabel(selectedAgent)}
-              </strong>
-            </div>
-            <div className={styles.detailKeyValueItem}>
-              <span className={styles.detailKeyValueLabel}>当前角色</span>
-              <strong className={styles.detailKeyValueValue}>
-                {viewerRole === "admin" ? "管理员" : "普通员工"}
-              </strong>
-            </div>
-            <div className={styles.detailKeyValueItem}>
-              <span className={styles.detailKeyValueLabel}>使用方式</span>
-              <strong className={styles.detailKeyValueValue}>
-                {getUsageRuleLabel(selectedAgent)}
-              </strong>
-            </div>
-            <div className={styles.detailKeyValueItem}>
-              <span className={styles.detailKeyValueLabel}>当前状态</span>
-              <strong className={styles.detailKeyValueValue}>
-                {selectedAgent.scope === "personal" &&
-                isOwnedByCurrentUser(selectedAgent, currentEmployeeName)
-                  ? "仅自己可用"
-                  : selectedAgentAdded
-                    ? "已添加到工作台"
-                    : "可直接添加"}
-              </strong>
-            </div>
-            <div className={styles.detailKeyValueItem}>
-              <span className={styles.detailKeyValueLabel}>最近更新</span>
-              <strong className={styles.detailKeyValueValue}>{selectedAgent.updatedAt}</strong>
-            </div>
-            {selectedAgent.source === currentEmployeeName ? (
-              <div className={styles.detailKeyValueItem}>
-                <span className={styles.detailKeyValueLabel}>上架申请</span>
-                <strong className={styles.detailKeyValueValue}>
-                  {activeTenantHasFdeAccess
-                    ? selectedAgentSubmission?.status === "approved"
-                      ? "已通过审批"
-                      : selectedAgentSubmission?.status === "pending"
-                        ? "待审批"
-                        : selectedAgentSubmission?.status === "rejected"
-                          ? "已驳回，可重新申请"
-                          : "未申请"
-                    : "当前租户未开通FDE权限"}
-                </strong>
-              </div>
-            ) : null}
-          </div>
-        </section>
-
-        <section className={styles.detailBlock}>
-          <h3 className={styles.detailBlockTitle}>业务信息</h3>
-          <div className={styles.detailBlockDivider} />
-          <div className={styles.detailKeyValueGrid}>
-            <div className={styles.detailKeyValueItem}>
-              <span className={styles.detailKeyValueLabel}>业务领域</span>
-              <strong className={styles.detailKeyValueValue}>
-                {getBusinessLineLabel(selectedAgent.domain)}
-              </strong>
-            </div>
-            <div className={styles.detailKeyValueItem}>
-              <span className={styles.detailKeyValueLabel}>业务场景</span>
-              <strong className={styles.detailKeyValueValue}>{selectedAgent.scene}</strong>
-            </div>
-          </div>
-        </section>
-
-        <section className={styles.detailBlock}>
-          <h3 className={styles.detailBlockTitle}>技术配置</h3>
-          <div className={styles.detailBlockDivider} />
-          <div className={styles.detailKeyValueGrid}>
-            <div className={styles.detailKeyValueItem}>
-              <span className={styles.detailKeyValueLabel}>AGENT 框架</span>
-              <strong className={styles.detailKeyValueValue}>{AGENT_FRAMEWORK_NAME}</strong>
-            </div>
-            <div className={styles.detailKeyValueItem}>
-              <span className={styles.detailKeyValueLabel}>技术形态</span>
-              <strong className={styles.detailKeyValueValue}>{selectedAgent.techShape}</strong>
-            </div>
-            <div className={styles.detailKeyValueItem}>
-              <span className={styles.detailKeyValueLabel}>绑定模型</span>
-              <strong className={styles.detailKeyValueValue}>{selectedAgent.model}</strong>
-            </div>
-            <div className={styles.detailKeyValueItem}>
-              <span className={styles.detailKeyValueLabel}>Runtime 类型</span>
-              <strong className={styles.detailKeyValueValue}>{selectedAgent.runtime}</strong>
-            </div>
+          <div className={styles.detailPlaceholderCard}>
+            <p>{AGENT_DETAIL_PLACEHOLDER_TEXT}</p>
           </div>
         </section>
       </div>
     );
-  }, [
-    activeTenantHasFdeAccess,
-    currentEmployeeName,
-    detailTab,
-    selectedAgent,
-    selectedAgentAdded,
-    selectedAgentSubmission,
-    viewerRole,
-  ]);
+  }, [selectedAgent]);
 
   return (
     <div className={styles.root}>
@@ -917,7 +657,7 @@ export const FdeAgentStoreView = ({
                     type="default"
                     onClick={() => handleUseAgent(agent)}
                   >
-                    {getActionLabel(agent, isAdded, currentEmployeeName)}
+                    {getActionLabel(isAdded)}
                   </Button>
                 </div>
               </article>
@@ -944,23 +684,6 @@ export const FdeAgentStoreView = ({
       >
         {selectedAgent ? (
           <div className={styles.detailShell}>
-            <div className={styles.detailTabBar}>
-              {DETAIL_TAB_OPTIONS.map(item => (
-                <button
-                  key={item.key}
-                  type="button"
-                  className={
-                    detailTab === item.key
-                      ? `${styles.detailTabButton} ${styles.detailTabButtonActive}`
-                      : styles.detailTabButton
-                  }
-                  onClick={() => setDetailTab(item.key)}
-                >
-                  {item.label}
-                </button>
-              ))}
-            </div>
-
             <div className={styles.detailScrollArea}>{detailContent}</div>
 
             <div className={styles.detailActionBar}>
@@ -990,7 +713,7 @@ export const FdeAgentStoreView = ({
                   className={getDetailActionToneClassName(selectedAgent, selectedAgentAdded)}
                   onClick={() => handleUseAgent(selectedAgent)}
                 >
-                  {getActionLabel(selectedAgent, selectedAgentAdded, currentEmployeeName)}
+                  {getActionLabel(selectedAgentAdded)}
                 </Button>
               </div>
             </div>

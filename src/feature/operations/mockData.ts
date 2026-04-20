@@ -53,12 +53,12 @@ export const OPERATIONS_TAB_OPTIONS: Array<{
   {
     key: "agents",
     label: "AI专家上架审批",
-    description: "审核具备 FDE 权限的租户员工提交的 AI专家上架申请。",
+    description: "审核已开通 AI专家开发服务的租户员工提交的 AI专家上架申请。",
   },
   {
     key: "agentPlaza",
     label: "AI专家广场管理",
-    description: "维护已审批通过 AI 专家的广场分类、展示状态和可见范围。",
+    description: "维护已审批通过 AI 专家的广场分类、上架状态和可见范围。",
   },
 ];
 
@@ -70,7 +70,7 @@ export const OPERATIONS_ACCOUNT_OPTIONS: OperationsAccount[] = [
     phone: "13800008881",
     role: "superAdmin",
     roleLabel: "平台超管",
-    description: "负责平台租户创建、FDE权限配置、AI专家上架审批和广场管理。",
+    description: "负责平台租户创建、AI专家开发服务配置、AI专家上架审批和广场管理。",
     verificationCode: "123456",
     entryPath: "/ops/tenants",
   },
@@ -695,10 +695,7 @@ export const OPERATIONS_TENANT_TYPE_LABELS: Record<OperationsTenant["type"], str
   internal: "内部租户",
 };
 
-export const OPERATIONS_TENANT_MODULE_OPTIONS: string[] = [
-  "FrontisAI工作台",
-  "运营后台",
-];
+export const OPERATIONS_TENANT_MODULE_OPTIONS: string[] = ["FrontisAI工作台", "运营后台"];
 
 export const OPERATIONS_AGENT_PLAZA_CATEGORY_OPTIONS: Array<{
   value: OperationsAgentPlazaCategory;
@@ -719,10 +716,7 @@ export const OPERATIONS_AGENT_PLAZA_VISIBILITY_LABELS: Record<
   tenant: "指定租户可见",
 };
 
-export const OPERATIONS_AGENT_STATUS_LABELS: Record<
-  OperationsAgentSubmission["status"],
-  string
-> = {
+export const OPERATIONS_AGENT_STATUS_LABELS: Record<OperationsAgentSubmission["status"], string> = {
   pending: "待审核",
   approved: "审核通过",
   rejected: "审核驳回",
@@ -735,18 +729,12 @@ export const OPERATIONS_PRODUCT_STATUS_LABELS: Record<OperationsProduct["status"
   inactive: "已下架",
 };
 
-export const OPERATIONS_PRODUCT_SALE_TYPE_LABELS: Record<
-  OperationsProductSaleType,
-  string
-> = {
+export const OPERATIONS_PRODUCT_SALE_TYPE_LABELS: Record<OperationsProductSaleType, string> = {
   free: "免费商品",
   paid: "付费商品",
 };
 
-export const OPERATIONS_PRODUCT_TRIAL_UNIT_LABELS: Record<
-  OperationsProductTrialUnit,
-  string
-> = {
+export const OPERATIONS_PRODUCT_TRIAL_UNIT_LABELS: Record<OperationsProductTrialUnit, string> = {
   day: "天",
   count: "次",
 };
@@ -779,15 +767,13 @@ export const OPERATIONS_PRODUCT_DELIVERY_KIND_OPTIONS: Array<{
   { value: "thirdPartyApi", label: "第三方接口" },
 ];
 
-export const OPERATIONS_PRODUCT_BILLING_MODE_LABELS: Record<
-  OperationsProductBillingMode,
-  string
-> = {
-  subscription: "订阅制",
-  quotaPackage: "按量包",
-  postpaid: "按量后付费",
-  oneTime: "一次性服务",
-};
+export const OPERATIONS_PRODUCT_BILLING_MODE_LABELS: Record<OperationsProductBillingMode, string> =
+  {
+    subscription: "订阅制",
+    quotaPackage: "按量包",
+    postpaid: "按量后付费",
+    oneTime: "一次性服务",
+  };
 
 export const OPERATIONS_PRODUCT_METERING_UNIT_LABELS: Record<
   OperationsProductMeteringUnit,
@@ -802,22 +788,20 @@ export const OPERATIONS_PRODUCT_METERING_UNIT_LABELS: Record<
   service: "服务次数",
 };
 
-export const OPERATIONS_PRODUCT_BILLING_SPEC_LABELS: Record<
-  OperationsProductBillingSpec,
-  string
-> = {
-  year: "1年",
-  month: "1月",
-  device_once: "1台",
-  seat_10_year: "10席 / 年",
-  seat_50_year: "50席 / 年",
-  package_once: "1包",
-  call_1k: "1000次调用",
-  call_10k: "10000次调用",
-  token_1m: "100万 Tokens",
-  token_5m: "500万 Tokens",
-  service_once: "1次",
-};
+export const OPERATIONS_PRODUCT_BILLING_SPEC_LABELS: Record<OperationsProductBillingSpec, string> =
+  {
+    year: "1年",
+    month: "1月",
+    device_once: "1台",
+    seat_10_year: "10席 / 年",
+    seat_50_year: "50席 / 年",
+    package_once: "1包",
+    call_1k: "1000次调用",
+    call_10k: "10000次调用",
+    token_1m: "100万 Tokens",
+    token_5m: "500万 Tokens",
+    service_once: "1次",
+  };
 
 export const OPERATIONS_PRODUCT_BILLING_MODE_OPTIONS: Array<{
   value: OperationsProductBillingMode;
@@ -932,21 +916,16 @@ export const OPERATIONS_PRODUCT_BILLING_SPEC_OPTIONS: Array<{
   },
 ];
 
-export const OPERATIONS_FULFILLMENT_STATUS_LABELS: Record<
-  OperationsFulfillment["status"],
-  string
-> = {
-  pending: "待分配",
-  allocating: "分配中",
-  delivering: "交付中",
-  active: "已开通",
-  completed: "已完成",
-};
+export const OPERATIONS_FULFILLMENT_STATUS_LABELS: Record<OperationsFulfillment["status"], string> =
+  {
+    pending: "待分配",
+    allocating: "分配中",
+    delivering: "交付中",
+    active: "已开通",
+    completed: "已完成",
+  };
 
-export const OPERATIONS_RESOURCE_POOL_TYPE_LABELS: Record<
-  OperationsResourcePoolType,
-  string
-> = {
+export const OPERATIONS_RESOURCE_POOL_TYPE_LABELS: Record<OperationsResourcePoolType, string> = {
   physicalDevice: "实体设备",
   virtualDevice: "云端虚拟设备",
   thirdPartyApi: "第三方接口",

@@ -9,7 +9,7 @@ import {
   MenuUnfoldOutlined,
 } from "@ant-design/icons";
 import type { MenuProps } from "antd";
-import { Avatar, Button, Dropdown, Empty, Input, Modal, Select, message } from "antd";
+import { Avatar, Button, Dropdown, Empty, Input, Modal, Select, Switch, message } from "antd";
 import classNames from "classnames";
 import { useNavigate, useParams } from "react-router-dom";
 
@@ -125,7 +125,8 @@ const getTabKeyFromPath = (tabPath?: string, tenantId?: string): OperationsPlatf
   return "tenants";
 };
 
-const buildTenantDetailPath = (tenantId: string): string => `${OPERATIONS_TENANT_LIST_PATH}/${tenantId}`;
+const buildTenantDetailPath = (tenantId: string): string =>
+  `${OPERATIONS_TENANT_LIST_PATH}/${tenantId}`;
 
 const formatTenantValidity = (tenant: OperationsTenant): string =>
   `${tenant.effectiveAt} 至 ${tenant.expiresAt}`;
@@ -146,15 +147,18 @@ const getAgentStatusClassName = (status: OperationsAgentSubmission["status"]): s
     status === "rejected" && adminStyles.consoleStatusTagDanger,
   );
 
-const getPlazaStatusClassName = (status: NonNullable<OperationsAgentSubmission["plazaStatus"]>): string =>
+const getPlazaStatusClassName = (
+  status: NonNullable<OperationsAgentSubmission["plazaStatus"]>,
+): string =>
   classNames(
     adminStyles.consoleStatusTag,
     status === "online" && adminStyles.consoleStatusTagSuccess,
     status === "offline" && adminStyles.consoleStatusTagWarning,
   );
 
-const getPlazaStatusLabel = (status: NonNullable<OperationsAgentSubmission["plazaStatus"]>): string =>
-  status === "online" ? "展示中" : "已下线";
+const getPlazaStatusLabel = (
+  status: NonNullable<OperationsAgentSubmission["plazaStatus"]>,
+): string => (status === "online" ? "上架" : "下架");
 
 const TenantConsole = ({
   tenants,
@@ -208,7 +212,7 @@ const TenantConsole = ({
                 <tr>
                   <th>租户</th>
                   <th>管理员</th>
-                  <th>FDE权限</th>
+                  <th>AI专家开发服务</th>
                   <th>有效期</th>
                   <th>状态</th>
                   <th>更新时间</th>
@@ -289,7 +293,9 @@ const TenantDetailConsole = ({
           <h1 className={adminStyles.consoleTitle}>{tenant.name}</h1>
         </div>
         <div className={adminStyles.consoleActions}>
-          <span className={getTenantStatusClassName(tenant.status)}>{statusLabels[tenant.status]}</span>
+          <span className={getTenantStatusClassName(tenant.status)}>
+            {statusLabels[tenant.status]}
+          </span>
           <Button onClick={() => onEdit(tenant)}>编辑资料</Button>
           <Button onClick={() => onToggleStatus(tenant)}>
             {tenant.status === "suspended" ? "启用租户" : "停用租户"}
@@ -319,9 +325,9 @@ const TenantDetailConsole = ({
                 </span>
               </div>
               <div className={adminStyles.consoleInfoRow}>
-                <span className={adminStyles.consoleInfoLabel}>FDE权限</span>
+                <span className={adminStyles.consoleInfoLabel}>AI专家开发服务</span>
                 <span className={adminStyles.consoleInfoValue}>
-                  {tenant.hasFdeAccess ? "已开通，员工可申请上架" : "未开通"}
+                  {tenant.hasFdeAccess ? "已开通，员工可提交上架申请" : "未开通"}
                 </span>
               </div>
               <div className={adminStyles.consoleInfoRow}>
@@ -344,13 +350,11 @@ const TenantDetailConsole = ({
   );
 };
 
-const AgentConsole = ({
-  submissions,
-  statusLabels,
-  onReview,
-}: AgentConsoleProps): JSX.Element => {
+const AgentConsole = ({ submissions, statusLabels, onReview }: AgentConsoleProps): JSX.Element => {
   const [keyword, setKeyword] = useState<string>("");
-  const [statusFilter, setStatusFilter] = useState<"all" | OperationsAgentSubmission["status"]>("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | OperationsAgentSubmission["status"]>(
+    "all",
+  );
 
   const filteredSubmissions = useMemo(
     () =>
@@ -465,12 +469,7 @@ const AgentPlazaConsole = ({
   const filteredSubmissions = useMemo(
     () =>
       submissions.filter(item =>
-        [
-          item.name,
-          item.version,
-          item.plazaCategory ?? "",
-          ...(item.visibleTenantNames ?? []),
-        ]
+        [item.name, item.version, item.plazaCategory ?? "", ...(item.visibleTenantNames ?? [])]
           .join(" ")
           .toLowerCase()
           .includes(keyword.trim().toLowerCase()),
@@ -489,7 +488,7 @@ const AgentPlazaConsole = ({
         <div className={adminStyles.consoleHeaderMain}>
           <h1 className={adminStyles.consoleTitle}>AI专家广场管理</h1>
           <p className={adminStyles.consoleSubtitle}>
-            管理已审批通过 AI专家 的广场分类、展示状态和租户可见范围。
+            管理已审批通过 AI专家 的广场分类、上架状态和租户可见范围。
           </p>
         </div>
         <div className={adminStyles.consoleHeaderSide}>
@@ -521,7 +520,7 @@ const AgentPlazaConsole = ({
                   <th>版本</th>
                   <th>广场分类</th>
                   <th>可见范围</th>
-                  <th>展示状态</th>
+                  <th>上架状态</th>
                   <th>最近处理</th>
                   <th>操作</th>
                 </tr>
@@ -550,7 +549,9 @@ const AgentPlazaConsole = ({
                       <td>{submission.plazaCategory ?? "通用"}</td>
                       <td>{visibilityLabel}</td>
                       <td>
-                        <span className={getPlazaStatusClassName(submission.plazaStatus ?? "offline")}>
+                        <span
+                          className={getPlazaStatusClassName(submission.plazaStatus ?? "offline")}
+                        >
                           {getPlazaStatusLabel(submission.plazaStatus ?? "offline")}
                         </span>
                       </td>
@@ -821,7 +822,7 @@ export const OperationsPlatformView = (): JSX.Element => {
   const currentReviewSubmission = useMemo(
     () =>
       agentReview.submissionId
-        ? agentSubmissions.find(item => item.id === agentReview.submissionId) ?? null
+        ? (agentSubmissions.find(item => item.id === agentReview.submissionId) ?? null)
         : null,
     [agentReview.submissionId, agentSubmissions],
   );
@@ -1083,7 +1084,7 @@ export const OperationsPlatformView = (): JSX.Element => {
 
           <div className={styles.modalField}>
             <label className={styles.modalLabel} htmlFor={TENANT_FIELD_IDS.hasFdeAccess}>
-              FDE权限
+              AI专家开发服务
             </label>
             <Select<boolean>
               id={TENANT_FIELD_IDS.hasFdeAccess}
@@ -1193,11 +1194,15 @@ export const OperationsPlatformView = (): JSX.Element => {
             </div>
             <div className={adminStyles.consoleInfoRow}>
               <span className={adminStyles.consoleInfoLabel}>版本</span>
-              <span className={adminStyles.consoleInfoValue}>{currentReviewSubmission.version}</span>
+              <span className={adminStyles.consoleInfoValue}>
+                {currentReviewSubmission.version}
+              </span>
             </div>
             <div className={adminStyles.consoleInfoRow}>
               <span className={adminStyles.consoleInfoLabel}>提交人</span>
-              <span className={adminStyles.consoleInfoValue}>{currentReviewSubmission.submitter}</span>
+              <span className={adminStyles.consoleInfoValue}>
+                {currentReviewSubmission.submitter}
+              </span>
             </div>
             <div className={adminStyles.consoleInfoRow}>
               <span className={adminStyles.consoleInfoLabel}>当前范围</span>
@@ -1318,19 +1323,25 @@ export const OperationsPlatformView = (): JSX.Element => {
 
           <div className={styles.modalField}>
             <label className={styles.modalLabel} htmlFor={AGENT_PLAZA_FIELD_IDS.status}>
-              展示状态
+              上架状态
             </label>
-            <Select
-              id={AGENT_PLAZA_FIELD_IDS.status}
-              value={plazaEditor.status}
-              options={[
-                { value: "online", label: "展示中" },
-                { value: "offline", label: "已下线" },
-              ]}
-              onChange={value =>
-                setPlazaEditor(currentState => ({ ...currentState, status: value }))
-              }
-            />
+            <div className={styles.statusSwitchRow}>
+              <Switch
+                id={AGENT_PLAZA_FIELD_IDS.status}
+                checked={plazaEditor.status === "online"}
+                checkedChildren="上架"
+                unCheckedChildren="下架"
+                onChange={checked =>
+                  setPlazaEditor(currentState => ({
+                    ...currentState,
+                    status: checked ? "online" : "offline",
+                  }))
+                }
+              />
+              <span className={styles.statusSwitchText}>
+                {plazaEditor.status === "online" ? "当前为上架" : "当前为下架"}
+              </span>
+            </div>
           </div>
 
           {plazaEditor.visibility === "tenant" ? (

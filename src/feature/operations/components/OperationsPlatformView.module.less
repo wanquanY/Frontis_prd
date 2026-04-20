@@ -315,7 +315,11 @@
 .trendBarFill {
   height: 100%;
   border-radius: inherit;
-  background: linear-gradient(90deg, var(--primary), color-mix(in srgb, var(--primary) 50%, #0f1c4d));
+  background: linear-gradient(
+    90deg,
+    var(--primary),
+    color-mix(in srgb, var(--primary) 50%, #0f1c4d)
+  );
 }
 
 .formGrid {
@@ -328,6 +332,19 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
+}
+
+.statusSwitchRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 32px;
+}
+
+.statusSwitchText {
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 20px;
 }
 
 .modalFieldWide {

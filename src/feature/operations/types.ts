@@ -6,10 +6,7 @@ export type OperationsRole = "superAdmin" | "operator";
 /**
  * 运营后台一级导航 key。
  */
-export type OperationsPlatformTabKey =
-  | "tenants"
-  | "agentPlaza"
-  | "agents";
+export type OperationsPlatformTabKey = "tenants" | "agentPlaza" | "agents";
 
 /**
  * 运营后台租户状态。
@@ -27,7 +24,7 @@ export type OperationsTenantType = "enterprise" | "internal";
 export type OperationsAgentApprovalStatus = "pending" | "approved" | "rejected";
 
 /**
- * AI专家广场展示状态。
+ * AI专家广场上架状态。
  */
 export type OperationsAgentPlazaStatus = "online" | "offline";
 
@@ -39,12 +36,7 @@ export type OperationsAgentSubmissionType = "squarePublish" | "commodityApplicat
 /**
  * AI专家广场分类。
  */
-export type OperationsAgentPlazaCategory =
-  | "通用"
-  | "销售"
-  | "生产"
-  | "供应链"
-  | "办公协同";
+export type OperationsAgentPlazaCategory = "通用" | "销售" | "生产" | "供应链" | "办公协同";
 
 /**
  * AI专家广场可见范围。
@@ -78,11 +70,7 @@ export type OperationsProductDeliveryKind =
 /**
  * 商品计费模式。
  */
-export type OperationsProductBillingMode =
-  | "subscription"
-  | "quotaPackage"
-  | "postpaid"
-  | "oneTime";
+export type OperationsProductBillingMode = "subscription" | "quotaPackage" | "postpaid" | "oneTime";
 
 /**
  * 商品计量对象。
@@ -115,11 +103,7 @@ export type OperationsProductBillingSpec =
 /**
  * 商品状态。
  */
-export type OperationsProductStatus =
-  | "pendingProductization"
-  | "draft"
-  | "active"
-  | "inactive";
+export type OperationsProductStatus = "pendingProductization" | "draft" | "active" | "inactive";
 
 /**
  * 交付实例状态。
@@ -134,10 +118,7 @@ export type OperationsFulfillmentStatus =
 /**
  * 资源池类型。
  */
-export type OperationsResourcePoolType =
-  | "physicalDevice"
-  | "virtualDevice"
-  | "thirdPartyApi";
+export type OperationsResourcePoolType = "physicalDevice" | "virtualDevice" | "thirdPartyApi";
 
 /**
  * 资源池分配方式。

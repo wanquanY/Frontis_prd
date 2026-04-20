@@ -145,7 +145,7 @@ const NODES = [
   // 阶段1 平台初始化与租户创建
   { id:'N1', stage:'s1', lane:'ops', type:'rect', title:'初始化平台底座', sub:'统一租户 / 身份 / 广场基础规则' },
   { id:'N2', stage:'s1', lane:'ops', type:'rect', title:'创建租户', sub:'建立企业主体与账号上下文' },
-  { id:'N3', stage:'s1', lane:'ops', type:'rect', title:'配置管理员与 FDE 权限', sub:'管理员账号 + 是否允许申请上架', status:'【租户已创建】', statusType:'blue' },
+  { id:'N3', stage:'s1', lane:'ops', type:'rect', title:'配置管理员与 AI专家开发服务', sub:'管理员账号 + 是否允许申请上架', status:'【租户已创建】', statusType:'blue' },
 
   // 阶段2 企业接入与成员激活
   { id:'N4', stage:'s2', lane:'admin', type:'rect', title:'激活租户并首次登录', sub:'进入企业管理后台', status:'【已激活】', statusType:'green' },
@@ -181,7 +181,7 @@ const NODES = [
   { id:'N23', stage:'s6', lane:'employee', type:'rect', title:'沉淀历史会话、结果与成果', sub:'历史记录 / 结果卡片 / 成果文件' },
 
   // 阶段7 申请上架与运营审批
-  { id:'N24', stage:'s7', lane:'employee', type:'diamond', title:'自己开发且\n租户有FDE?' },
+  { id:'N24', stage:'s7', lane:'employee', type:'diamond', title:'自己开发且\n已开通AI专家开发服务?' },
   { id:'N25', stage:'s7', lane:'employee', type:'rect', title:'提交上架申请', sub:'填写上架名称与申请理由', status:'【待审批】', statusType:'amber' },
   { id:'N26', stage:'s7', lane:'ops', type:'diamond', title:'通过上架\n审批?' },
   { id:'N27', stage:'s7', lane:'ops', type:'rect', title:'进入可运营专家池', sub:'可进入运营侧广场管理', status:'【审批通过】', statusType:'green' },
@@ -189,8 +189,8 @@ const NODES = [
 
   // 阶段8 平台广场管理与公开投放
   { id:'N29', stage:'s8', lane:'ops', type:'rect', title:'AI专家广场管理', sub:'仅管理已审批通过专家' },
-  { id:'N30', stage:'s8', lane:'ops', type:'rect', title:'设置分类与可见范围', sub:'分类 / 全平台可见 / 指定租户可见' },
-  { id:'N31', stage:'s8', lane:'ops', type:'rect', title:'平台广场精选展示', sub:'进入运营位与平台投放位', status:'【展示中】', statusType:'green' },
+  { id:'N30', stage:'s8', lane:'ops', type:'rect', title:'设置分类、可见范围与上架状态', sub:'分类 / 全平台可见 / 指定租户可见 / 上架状态' },
+  { id:'N31', stage:'s8', lane:'ops', type:'rect', title:'平台广场精选展示', sub:'进入运营位与平台投放位', status:'【上架】', statusType:'green' },
   { id:'N32', stage:'s8', lane:'employee', type:'rect', title:'被更多用户发现并使用', sub:'在平台广场中被浏览、添加和使用' },
 ];
 const EDGES = [
@@ -245,8 +245,8 @@ function markerId(c){return ({gray:'arr',blue:'arr-b',green:'arr-g',amber:'arr-a
 
 const POPUPS = {
   N1:{badge:'<span class="tag tag-blue">平台运营</span><span class="tag tag-blue">① 平台初始化</span>',title:'初始化平台底座',body:'<div class="info-card"><ul><li>建立统一用户底座、租户模型、身份模型与 AI专家广场基础规则。</li><li>当前版本主链已经收口为开发、发布、使用，不再以购买和订单为中心。</li><li>运营侧只保留租户管理、上架审批、广场管理三类能力。</li></ul></div>'},
-  N2:{badge:'<span class="tag tag-blue">平台运营</span><span class="tag tag-blue">① 平台初始化</span>',title:'创建租户',body:'<div class="info-card"><ul><li>租户是企业接入 Frontis AI 的根对象。</li><li>后续管理员、员工、企业后台配置和 FDE 权限都建立在租户上下文中。</li></ul></div>'},
-  N3:{badge:'<span class="tag tag-blue">平台运营</span><span class="tag tag-blue">① 平台初始化</span>',title:'配置管理员与 FDE 权限',body:'<div class="info-card"><ul><li>创建租户时同时配置企业管理员。</li><li>可设置该租户是否开通 FDE 权限。</li><li>只有开通 FDE 权限的租户，员工开发的 AI专家 才允许发起“申请上架”。</li></ul></div>'},
+  N2:{badge:'<span class="tag tag-blue">平台运营</span><span class="tag tag-blue">① 平台初始化</span>',title:'创建租户',body:'<div class="info-card"><ul><li>租户是企业接入 Frontis AI 的根对象。</li><li>后续管理员、员工、企业后台配置和 AI专家开发服务都建立在租户上下文中。</li></ul></div>'},
+  N3:{badge:'<span class="tag tag-blue">平台运营</span><span class="tag tag-blue">① 平台初始化</span>',title:'配置管理员与 AI专家开发服务',body:'<div class="info-card"><ul><li>创建租户时同时配置企业管理员。</li><li>可设置该租户是否开通 AI专家开发服务。</li><li>只有开通 AI专家开发服务的租户，员工开发的 AI专家 才允许发起“申请上架”。</li></ul></div>'},
   N4:{badge:'<span class="tag tag-purple">企业管理员</span><span class="tag tag-cyan">② 企业接入</span>',title:'激活租户并首次登录',body:'<div class="info-card purple"><ul><li>企业管理员接受邀请后进入企业管理后台。</li><li>后台当前主入口已收口为 AI专家管理、模型配置、组织管理。</li></ul></div>'},
   N5:{badge:'<span class="tag tag-purple">企业管理员</span><span class="tag tag-cyan">② 企业接入</span>',title:'初始化组织管理',body:'<div class="info-card purple"><ul><li>建立部门、成员与企业角色。</li><li>组织结构是后续权限配置和团队共享范围的基础。</li></ul></div>'},
   N6:{badge:'<span class="tag tag-purple">企业管理员</span><span class="tag tag-cyan">② 企业接入</span>',title:'初始化模型配置',body:'<div class="info-card purple"><ul><li>维护企业当前可用模型范围与默认模型。</li><li>企业后台中的 AI专家配置，需要在这里已开通的模型范围内选择绑定模型。</li></ul></div>'},
@@ -270,13 +270,13 @@ const POPUPS = {
   N22:{badge:'<span class="tag tag-orange">普通员工</span><span class="tag tag-orange">⑥ 工作台使用</span>',title:'MetaAegnt 调度权限内专家',body:'<div class="info-card"><ul><li>MetaAegnt 在收到任务后，会先理解目标，再从当前用户“有权限使用”的 AI专家集合中判断是否需要调度协同。</li><li>被调度的专家会在会话中以独立 AI专家身份出现，展示各自头像、名称、消息内容和工具执行过程，最后由 MetaAegnt 汇总交付。</li></ul></div>'},
   N22A:{badge:'<span class="tag tag-orange">普通员工</span><span class="tag tag-orange">⑥ 工作台使用</span>',title:'其他专家一对一使用',body:'<div class="info-card"><ul><li>当用户在专家列表中主动选择 MetaAegnt 之外的其它专家时，会进入一对一单独使用模式。</li><li>此时会话只围绕该专家自身能力展开，不再自动拉起其它专家参与协同。</li></ul></div>'},
   N23:{badge:'<span class="tag tag-orange">普通员工</span><span class="tag tag-orange">⑥ 工作台使用</span>',title:'沉淀历史会话、结果与成果',body:'<div class="info-card"><ul><li>会话中会沉淀历史记录、结构化结果卡片和成果文件。</li><li>用户可继续使用成果，也可以回流到开发与进化继续优化 AI专家。</li></ul></div>'},
-  N24:{badge:'<span class="tag tag-amber">判断节点</span><span class="tag tag-gray">⑦ 上架申请</span>',title:'自己开发且租户有FDE？',body:'<div class="info-card amber"><ul><li>只有“自己开发”的 AI专家 才允许申请上架。</li><li>并且当前租户必须已开通 FDE 权限，详情页才会显示申请入口。</li></ul></div>'},
+  N24:{badge:'<span class="tag tag-amber">判断节点</span><span class="tag tag-gray">⑦ 上架申请</span>',title:'自己开发且已开通AI专家开发服务？',body:'<div class="info-card amber"><ul><li>只有“自己开发”的 AI专家 才允许申请上架。</li><li>并且当前租户必须已开通 AI专家开发服务，详情页才会显示申请入口。</li></ul></div>'},
   N25:{badge:'<span class="tag tag-orange">普通员工</span><span class="tag tag-gray">⑦ 上架申请</span>',title:'提交上架申请',body:'<div class="info-card"><ul><li>员工在 AI专家详情页提交上架申请。</li><li>申请内容包括上架名称和申请理由，提交后状态进入【待审批】。</li></ul></div>'},
   N26:{badge:'<span class="tag tag-amber">审批节点</span><span class="tag tag-gray">⑦ 上架申请</span>',title:'通过上架审批？',body:'<div class="info-card amber"><ul><li>平台运营在运营端处理 AI专家上架审批。</li><li>通过后进入 AI专家广场管理；驳回后回到员工继续优化并可重新申请。</li></ul></div>'},
   N27:{badge:'<span class="tag tag-blue">平台运营</span><span class="tag tag-gray">⑦ 上架申请</span>',title:'进入可运营专家池',body:'<div class="info-card"><ul><li>审批通过后，该 AI专家 获得进入运营侧广场管理的资格。</li><li>审批通过不改变它在原租户内的发布和使用状态，只增加平台运营入口。</li></ul></div>'},
   N28:{badge:'<span class="tag tag-orange">普通员工</span><span class="tag tag-gray">⑦ 上架申请</span>',title:'驳回后继续优化',body:'<div class="info-card red"><ul><li>若被驳回，员工根据原因继续优化 AI专家。</li><li>优化完成后可再次提交上架申请。</li></ul></div>'},
   N29:{badge:'<span class="tag tag-blue">平台运营</span><span class="tag tag-cyan">⑧ 平台运营</span>',title:'AI专家广场管理',body:'<div class="info-card cyan"><ul><li>运营侧只管理已审批通过的 AI专家。</li><li>该模块负责维护平台广场中的分类、精选和定向投放，不改变公开发布本身的基础可见可用规则。</li></ul></div>'},
-  N30:{badge:'<span class="tag tag-blue">平台运营</span><span class="tag tag-cyan">⑧ 平台运营</span>',title:'设置分类与可见范围',body:'<div class="info-card cyan"><ul><li>运营可为 AI专家 设置广场分类。</li><li>可见范围支持全平台可见或指定租户可见，用于实现定向投放。</li></ul></div>'},
+  N30:{badge:'<span class="tag tag-blue">平台运营</span><span class="tag tag-cyan">⑧ 平台运营</span>',title:'设置分类、可见范围与上架状态',body:'<div class="info-card cyan"><ul><li>运营可为 AI专家 设置广场分类。</li><li>可见范围支持全平台可见或指定租户可见，用于实现定向投放。</li><li>上架状态用于控制该 AI专家 当前是否在平台广场中对目标租户生效。</li></ul></div>'},
   N31:{badge:'<span class="tag tag-blue">平台运营</span><span class="tag tag-cyan">⑧ 平台运营</span>',title:'平台广场精选展示',body:'<div class="info-card cyan"><ul><li>配置完成后，AI专家 进入平台广场运营位或精选展示位。</li><li>该阶段解决的是“被更多用户发现”，不是基础使用权限本身。</li></ul></div>'},
   N32:{badge:'<span class="tag tag-orange">普通员工</span><span class="tag tag-cyan">⑧ 平台运营</span>',title:'被更多用户发现并使用',body:'<div class="info-card"><ul><li>更多租户用户在平台广场中浏览到该专家，并进一步添加到工作台使用。</li><li>平台广场管理为使用链路带来额外曝光和流量回流。</li></ul></div>'},
 };
