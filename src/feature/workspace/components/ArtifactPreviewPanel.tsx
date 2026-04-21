@@ -345,9 +345,6 @@ export const ArtifactPreviewPanel = ({
               <div className={styles.previewHeaderTitle} title={selectedFile.fileName}>
                 {selectedFile.fileName}
               </div>
-              <div className={styles.previewHeaderSubtitle}>
-                {selectedFile.fileSize} · {selectedFile.producedAt}
-              </div>
             </div>
           </div>
           <div className={styles.previewHeaderActions}>

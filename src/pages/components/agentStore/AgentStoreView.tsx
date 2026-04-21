@@ -30,9 +30,7 @@ interface SingleCardItem {
   ownerLabel: string;
   ownerName: string;
   rangeLabel: string;
-  sourceLabel: string;
   status: ManagementStatus | null;
-  statusHint?: string;
   versionLabel: string;
 }
 
@@ -103,7 +101,10 @@ export const AgentStoreView = ({
     () =>
       manageableExperts.map(employee => {
         const assetMeta = getExpertAssetMeta(employee);
-        const versionInfo = EXPERT_VERSION_INFO[employee.id] ?? { version: "v1.0" };
+        const versionInfo = EXPERT_VERSION_INFO[employee.id] ?? {
+          currentVersion: "v1.0",
+          records: [],
+        };
 
         return {
           acquireLabel: assetMeta.acquireLabel,
@@ -115,10 +116,8 @@ export const AgentStoreView = ({
           ownerLabel: assetMeta.ownerLabel,
           ownerName: assetMeta.ownerName,
           rangeLabel: getExpertAssetRangeLabel(employee),
-          sourceLabel: assetMeta.sourceLabel,
           status: getSingleStatus(employee),
-          statusHint: "进入配置",
-          versionLabel: versionInfo.version,
+          versionLabel: versionInfo.currentVersion,
         };
       }),
     [manageableExperts],
@@ -174,6 +173,9 @@ export const AgentStoreView = ({
       <header className={adminStyles.consoleHeader}>
         <div className={adminStyles.consoleHeaderMain}>
           <h1 className={adminStyles.consoleTitle}>AI专家管理</h1>
+          <p className={adminStyles.consoleSubtitle}>
+            当前仅管理企业内开发并发布的 AI 专家，平台发布专家暂不在企业后台治理。
+          </p>
         </div>
       </header>
 
@@ -246,10 +248,6 @@ export const AgentStoreView = ({
                   </div>
 
                   <p className={styles.assetDescription}>{card.description}</p>
-                  <div className={styles.assetDeliveryInfo}>
-                    <strong>{card.sourceLabel}</strong>
-                    <span>{card.statusHint ?? "进入配置"}</span>
-                  </div>
                 </div>
               </button>
             </article>

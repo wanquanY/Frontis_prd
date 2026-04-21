@@ -86,7 +86,6 @@ interface DialoguePrototypeViewProps {
   dialogueInputValue: string;
   dialogueMessages: ChatMessage[];
   dialogueSessions: DialogueSessionItem[];
-  followupSuggestions: string[];
   caseReplayActionLabel?: string;
   caseReplayOpenPanel?: "artifacts" | "results" | null;
   homeCaseItems?: AiCeoHomeCaseItem[];
@@ -101,7 +100,6 @@ interface DialoguePrototypeViewProps {
   onDialogueInputChange: (value: string) => void;
   onHomeCaseSelect: (item: AiCeoHomeCaseItem) => void;
   onDialogueSessionSelect: (sessionId: string) => void;
-  onFollowupClick: (question: string) => void;
   onHomePromptSend: (question: string) => void;
   onRemoveDialogueSession: (sessionId: string) => void;
   onRenameDialogueSession: (sessionId: string, title: string) => void;
@@ -255,7 +253,6 @@ export const DialoguePrototypeView = ({
   dialogueInputValue,
   dialogueMessages,
   dialogueSessions,
-  followupSuggestions,
   caseReplayActionLabel,
   caseReplayOpenPanel,
   homeCaseItems,
@@ -270,7 +267,6 @@ export const DialoguePrototypeView = ({
   onDialogueInputChange,
   onHomeCaseSelect,
   onDialogueSessionSelect,
-  onFollowupClick,
   onHomePromptSend,
   onRemoveDialogueSession,
   onRenameDialogueSession,
@@ -1579,7 +1575,6 @@ export const DialoguePrototypeView = ({
                 <WorkspaceChatPanel
                   blocks={chatBlocks}
                   messages={chatMessages}
-                  followupSuggestions={followupSuggestions}
                   actorAvatars={dialogueActorAvatars}
                   currentSessionId={activeDialogueSession?.id ?? activeEmployee.id}
                   isStreaming={isDialogueResponding}
@@ -1588,7 +1583,6 @@ export const DialoguePrototypeView = ({
                   workspaceSummary={activeEmployee.summary}
                   greeting="输入消息或上传文件，开始协作"
                   showMessageMeta={true}
-                  onFollowupClick={onFollowupClick}
                   onOpenArtifact={handleOpenArtifact}
                   onOpenResult={handleOpenResult}
                 />

@@ -14,41 +14,6 @@ export interface ExpertAssetMeta {
   sourceLabel: string;
 }
 
-interface ExpertAssetMetaOverride {
-  acquireLabel?: string;
-  ownerName: string;
-}
-
-const EXPERT_ASSET_META_OVERRIDES: Record<string, ExpertAssetMetaOverride> = {
-  "live-ops-agent-01": {
-    ownerName: "王晨",
-  },
-  "xiaocanmama-ip-agent-01": {
-    ownerName: "李婷",
-  },
-  "ceo-chat-send-01": {
-    ownerName: "杨万泉",
-  },
-  "product-manager-agent-01": {
-    ownerName: "杨万泉",
-  },
-  "prd-architect-agent-01": {
-    ownerName: "陈雪梅",
-  },
-  "prd-growth-agent-01": {
-    ownerName: "王晨",
-  },
-  "prd-qa-agent-01": {
-    ownerName: "赵立",
-  },
-  "prd-data-agent-01": {
-    ownerName: "周可",
-  },
-  "prd-user-research-agent-01": {
-    ownerName: "李婷",
-  },
-};
-
 const getAcquireLabel = (employee: EmployeeItem): string => {
   if (employee.visibility === "all") {
     return "企业公开发布";
@@ -65,12 +30,10 @@ const getAcquireLabel = (employee: EmployeeItem): string => {
  * 获取 AI 专家的资产来源与责任人信息。
  */
 export const getExpertAssetMeta = (employee: EmployeeItem): ExpertAssetMeta => {
-  const override = EXPERT_ASSET_META_OVERRIDES[employee.agentId];
-
   return {
-    acquireLabel: override?.acquireLabel ?? getAcquireLabel(employee),
+    acquireLabel: getAcquireLabel(employee),
     ownerLabel: "开发者",
-    ownerName: override?.ownerName ?? "Frontis 产品组",
+    ownerName: employee.developerName ?? "未标注开发者",
     source: "developed",
     sourceLabel: "企业开发",
   };

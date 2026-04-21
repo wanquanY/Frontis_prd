@@ -1451,6 +1451,79 @@
   gap: 12px;
 }
 
+.versionRecordList {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.versionRecordCard {
+  padding: 16px;
+  border: 1px solid color-mix(in srgb, var(--text) 8%, transparent);
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--surface) 99%, var(--app-bg));
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.versionRecordHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.versionRecordLead {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.versionRecordVersion {
+  color: var(--text);
+  font-size: 15px;
+  line-height: 22px;
+  font-weight: 700;
+}
+
+.versionRecordBadgeCurrent,
+.versionRecordBadgeHistory {
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+  padding: 0 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  line-height: 18px;
+  font-weight: 700;
+}
+
+.versionRecordBadgeCurrent {
+  background: color-mix(in srgb, var(--primary) 10%, transparent);
+  color: var(--primary);
+}
+
+.versionRecordBadgeHistory {
+  background: color-mix(in srgb, var(--text) 5%, transparent);
+  color: var(--text-secondary);
+}
+
+.versionRecordMeta {
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.versionRecordSummary {
+  margin: 0;
+  color: var(--text);
+  font-size: 13px;
+  line-height: 20px;
+}
+
 /* ── Responsive ── */
 
 @media (max-width: 960px) {

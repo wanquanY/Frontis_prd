@@ -41,60 +41,244 @@ import {
 
 import styles from "./AgentStoreView.module.less";
 
+interface ExpertVersionRecord {
+  changeNotes: string[];
+  publishedAt: string;
+  publisherName: string;
+  summary: string;
+  version: string;
+}
+
+interface ExpertVersionInfo {
+  currentVersion: string;
+  records: ExpertVersionRecord[];
+}
+
+const buildVersionInfo = (records: ExpertVersionRecord[]): ExpertVersionInfo => ({
+  currentVersion: records[0]?.version ?? "v1.0",
+  records,
+});
+
 /**
- * AI 专家版本信息。
+ * 企业自研 AI 专家版本记录。
  */
-export const EXPERT_VERSION_INFO: Record<
-  string,
-  { updateNotes?: string[]; version: string; newVersion?: string }
-> = {
-  "employee-pm": {
-    version: "v2.1",
-    newVersion: "v2.2",
-    updateNotes: ["新增经营结论摘要模板", "补充多轮差异解释能力"],
-  },
-  "employee-designer": {
-    version: "v1.8",
-    newVersion: "v1.9",
-    updateNotes: ["补充更细的员工评估维度", "新增证据摘要视图"],
-  },
-  "employee-research": { version: "v1.5" },
-  "employee-ops": { version: "v1.3" },
-  "employee-writer": {
-    version: "v1.6",
-    newVersion: "v1.7",
-    updateNotes: ["优化 CEO 口吻一致性", "新增经营问答收口模板"],
-  },
-  "employee-sales": { version: "v2.0" },
-  "employee-architect": {
-    version: "v1.4",
-    newVersion: "v1.5",
-    updateNotes: ["补充架构约束检查项", "新增模块依赖说明模板"],
-  },
-  "employee-growth": {
-    version: "v1.2",
-    newVersion: "v1.3",
-    updateNotes: ["新增漏斗实验模板", "补充首屏转化指标口径"],
-  },
-  "employee-qa": {
-    version: "v1.1",
-    newVersion: "v1.2",
-    updateNotes: ["新增回归范围分层建议", "补充上线前验收卡点"],
-  },
-  "employee-data": {
-    version: "v1.3",
-    newVersion: "v1.4",
-    updateNotes: ["补充看板指标字典", "新增异常波动解释模板"],
-  },
-  "employee-user-researcher": {
-    version: "v1.2",
-    newVersion: "v1.3",
-    updateNotes: ["新增访谈纪要结构化输出", "补充用户痛点优先级对比视图"],
-  },
-  "employee-local-ops": { version: "v1.1" },
+export const EXPERT_VERSION_INFO: Record<string, ExpertVersionInfo> = {
+  "employee-pm": buildVersionInfo([
+    {
+      changeNotes: ["新增经营结论摘要模板", "补充多轮差异解释能力"],
+      publishedAt: "2026-04-18",
+      publisherName: "王晨",
+      summary: "补强序列总览专家在经营复盘场景下的总结与追问能力。",
+      version: "v2.2",
+    },
+    {
+      changeNotes: ["优化评分解释结构", "统一序列预警口径"],
+      publishedAt: "2026-03-26",
+      publisherName: "王晨",
+      summary: "重构经营管理视图的解释链路，作为当前稳定基线版本。",
+      version: "v2.1",
+    },
+    {
+      changeNotes: ["建立基础评分框架", "接入预警摘要模版"],
+      publishedAt: "2026-02-12",
+      publisherName: "王晨",
+      summary: "首个企业内发布版本。",
+      version: "v2.0",
+    },
+  ]),
+  "employee-designer": buildVersionInfo([
+    {
+      changeNotes: ["补充更细的员工评估维度", "新增证据摘要视图"],
+      publishedAt: "2026-04-11",
+      publisherName: "李婷",
+      summary: "增强设计评估专家的证据透出与可解释性。",
+      version: "v1.9",
+    },
+    {
+      changeNotes: ["完善评估结论模板", "补充评审建议话术"],
+      publishedAt: "2026-03-08",
+      publisherName: "李婷",
+      summary: "优化设计评审输出结构。",
+      version: "v1.8",
+    },
+    {
+      changeNotes: ["建立设计评审基础模版"],
+      publishedAt: "2026-01-20",
+      publisherName: "李婷",
+      summary: "首个企业内发布版本。",
+      version: "v1.7",
+    },
+  ]),
+  "employee-research": buildVersionInfo([
+    {
+      changeNotes: ["补充洞察摘要模版", "完善访谈标签归类"],
+      publishedAt: "2026-03-29",
+      publisherName: "陈雪梅",
+      summary: "优化研究专家在用户洞察汇总场景下的输出质量。",
+      version: "v1.5",
+    },
+    {
+      changeNotes: ["接入基础访谈纪要结构"],
+      publishedAt: "2026-02-16",
+      publisherName: "陈雪梅",
+      summary: "首个企业内发布版本。",
+      version: "v1.4",
+    },
+  ]),
+  "employee-ops": buildVersionInfo([
+    {
+      changeNotes: ["补充经营异常说明模版", "优化复盘结论格式"],
+      publishedAt: "2026-03-15",
+      publisherName: "王晨",
+      summary: "提升经营专家在异常经营跟踪场景下的表达一致性。",
+      version: "v1.3",
+    },
+    {
+      changeNotes: ["建立基础经营周报模版"],
+      publishedAt: "2026-01-28",
+      publisherName: "王晨",
+      summary: "首个企业内发布版本。",
+      version: "v1.2",
+    },
+  ]),
+  "employee-writer": buildVersionInfo([
+    {
+      changeNotes: ["优化 CEO 口吻一致性", "新增经营问答收口模板"],
+      publishedAt: "2026-04-17",
+      publisherName: "杨万泉",
+      summary: "补强 CEO 专家在经营答复与汇报场景下的稳定性。",
+      version: "v1.7",
+    },
+    {
+      changeNotes: ["增强高层简报模版", "补充长文本压缩策略"],
+      publishedAt: "2026-03-10",
+      publisherName: "杨万泉",
+      summary: "优化高层汇报与对外表达的一致性。",
+      version: "v1.6",
+    },
+    {
+      changeNotes: ["建立基础 CEO 话术框架"],
+      publishedAt: "2026-02-03",
+      publisherName: "杨万泉",
+      summary: "首个企业内发布版本。",
+      version: "v1.5",
+    },
+  ]),
+  "employee-sales": buildVersionInfo([
+    {
+      changeNotes: ["补充商机阶段提醒模版", "优化销售异议处理建议"],
+      publishedAt: "2026-04-09",
+      publisherName: "赵立",
+      summary: "升级销售跟进提醒专家在阶段判断上的输出准确性。",
+      version: "v2.0",
+    },
+    {
+      changeNotes: ["建立商机跟进基础场景"],
+      publishedAt: "2026-02-27",
+      publisherName: "赵立",
+      summary: "首个企业内发布版本。",
+      version: "v1.9",
+    },
+  ]),
+  "employee-architect": buildVersionInfo([
+    {
+      changeNotes: ["补充架构约束检查项", "新增模块依赖说明模板"],
+      publishedAt: "2026-04-19",
+      publisherName: "陈雪梅",
+      summary: "增强架构专家在方案评审时的边界检查能力。",
+      version: "v1.5",
+    },
+    {
+      changeNotes: ["规范技术方案输出结构", "补充风险说明模板"],
+      publishedAt: "2026-03-14",
+      publisherName: "陈雪梅",
+      summary: "优化技术方案评审输出的一致性。",
+      version: "v1.4",
+    },
+    {
+      changeNotes: ["建立基础架构评审模版"],
+      publishedAt: "2026-01-31",
+      publisherName: "陈雪梅",
+      summary: "首个企业内发布版本。",
+      version: "v1.3",
+    },
+  ]),
+  "employee-growth": buildVersionInfo([
+    {
+      changeNotes: ["新增漏斗实验模板", "补充首屏转化指标口径"],
+      publishedAt: "2026-04-12",
+      publisherName: "王晨",
+      summary: "完善增长专家在转化诊断场景下的输出模版。",
+      version: "v1.3",
+    },
+    {
+      changeNotes: ["建立增长分析基础指标模版"],
+      publishedAt: "2026-02-18",
+      publisherName: "王晨",
+      summary: "首个企业内发布版本。",
+      version: "v1.2",
+    },
+  ]),
+  "employee-qa": buildVersionInfo([
+    {
+      changeNotes: ["新增回归范围分层建议", "补充上线前验收卡点"],
+      publishedAt: "2026-04-10",
+      publisherName: "赵立",
+      summary: "增强 QA 专家在回归和上线验收场景下的风险提示能力。",
+      version: "v1.2",
+    },
+    {
+      changeNotes: ["建立基础测试评审模版"],
+      publishedAt: "2026-02-14",
+      publisherName: "赵立",
+      summary: "首个企业内发布版本。",
+      version: "v1.1",
+    },
+  ]),
+  "employee-data": buildVersionInfo([
+    {
+      changeNotes: ["补充看板指标字典", "新增异常波动解释模板"],
+      publishedAt: "2026-04-16",
+      publisherName: "周可",
+      summary: "提升数据专家在指标解释与异常排查场景下的输出完整度。",
+      version: "v1.4",
+    },
+    {
+      changeNotes: ["建立核心指标看板说明模版"],
+      publishedAt: "2026-02-22",
+      publisherName: "周可",
+      summary: "首个企业内发布版本。",
+      version: "v1.3",
+    },
+  ]),
+  "employee-user-researcher": buildVersionInfo([
+    {
+      changeNotes: ["新增访谈纪要结构化输出", "补充用户痛点优先级对比视图"],
+      publishedAt: "2026-04-13",
+      publisherName: "李婷",
+      summary: "完善用户研究专家在洞察沉淀与汇总场景下的结构化输出。",
+      version: "v1.3",
+    },
+    {
+      changeNotes: ["建立访谈摘要基础模版"],
+      publishedAt: "2026-02-19",
+      publisherName: "李婷",
+      summary: "首个企业内发布版本。",
+      version: "v1.2",
+    },
+  ]),
+  "employee-local-ops": buildVersionInfo([
+    {
+      changeNotes: ["建立本地经营专家初版能力"],
+      publishedAt: "2026-03-05",
+      publisherName: "王晨",
+      summary: "首个企业内发布版本。",
+      version: "v1.1",
+    },
+  ]),
 };
 
-type ExpertConfigTabKey = "workspaceAccess" | "modelConfig" | "versionControl";
+type ExpertConfigTabKey = "workspaceAccess" | "modelConfig" | "versionHistory";
 
 interface AgentStoreTeamDetailProps {
   deploymentByEmployeeId: Record<string, ExpertDeploymentState>;
@@ -138,10 +322,8 @@ const mapTreeNodesToSelectData = (nodes: OrganizationTreeNode[]): OrganizationTr
     value: toTreeValue(node.type, node.id),
   }));
 
-const getVersionTagClassName = (hasNewVersion: boolean): string =>
-  hasNewVersion
-    ? `${adminStyles.consoleStatusTag} ${adminStyles.consoleStatusTagWarning}`
-    : `${adminStyles.consoleStatusTag} ${adminStyles.consoleStatusTagSuccess}`;
+const getVersionTagClassName = (): string =>
+  `${adminStyles.consoleStatusTag} ${adminStyles.consoleStatusTagPrimary}`;
 
 const getDeployTagClassName = (isAssigned: boolean): string =>
   isAssigned
@@ -238,11 +420,7 @@ export const AgentStoreTeamDetail = ({
                   employee,
                   deploymentByEmployeeId[employee.id],
                 );
-                const assetMeta = getExpertAssetMeta(employee);
-                const versionInfo = EXPERT_VERSION_INFO[employee.id] ?? { version: "v1.0" };
-                const hasNewVersion =
-                  assetMeta.source === "purchased" &&
-                  Boolean(versionInfo.newVersion) && versionInfo.newVersion !== versionInfo.version;
+                const versionInfo = EXPERT_VERSION_INFO[employee.id] ?? buildVersionInfo([]);
 
                 return (
                   <button
@@ -284,8 +462,8 @@ export const AgentStoreTeamDetail = ({
                               )
                             : "待分配权限"}
                       </span>
-                      <span className={getVersionTagClassName(hasNewVersion)}>
-                        {hasNewVersion ? `待升级 ${versionInfo.newVersion}` : versionInfo.version}
+                      <span className={getVersionTagClassName()}>
+                        {`当前 ${versionInfo.currentVersion}`}
                       </span>
                     </div>
                   </button>
@@ -384,6 +562,10 @@ const ExpertConfigPanel = ({
     () => buildAccessScopeSubjectLookup(organizationDepartments, users),
     [organizationDepartments, users],
   );
+  const assetMeta = getExpertAssetMeta(employee);
+  const versionInfo = EXPERT_VERSION_INFO[employee.id] ?? buildVersionInfo([]);
+  const versionRecords = versionInfo.records;
+  const currentVersion = versionInfo.currentVersion;
   const normalizeTreeValuesToSubjects = useCallback(
     (
       nextValues: Array<OrganizationTreeValue | { value: OrganizationTreeValue }>,
@@ -399,16 +581,9 @@ const ExpertConfigPanel = ({
       ),
     [accessScopeSubjectLookup, organizationDepartments],
   );
-  const [versionIgnored, setVersionIgnored] = useState<boolean>(false);
-  const versionInfo = EXPERT_VERSION_INFO[employee.id] ?? { version: "v1.0" };
-  const [currentVersion, setCurrentVersion] = useState<string>(versionInfo.version);
   const requiresDeviceBinding = doesExpertRequireDeviceBinding(employee);
   const isAssigned = assignedWorkspaceIds.length > 0;
   const canConfigureModel = requiresDeviceBinding ? isAssigned : true;
-  const assetMeta = getExpertAssetMeta(employee);
-  const requiresUpgradeConfirmation = assetMeta.source === "purchased";
-  const latestVersion = versionInfo.newVersion ?? versionInfo.version;
-  const effectiveVersion = requiresUpgradeConfirmation ? currentVersion : latestVersion;
 
   useEffect(() => {
     setAccessDraftsByWorkspaceId(
@@ -449,12 +624,6 @@ const ExpertConfigPanel = ({
       hasAnyProvider: nextOptions.length > 0,
     };
   }, []);
-
-  const hasNewVersion =
-    requiresUpgradeConfirmation &&
-    Boolean(versionInfo.newVersion) &&
-    currentVersion !== versionInfo.newVersion &&
-    !versionIgnored;
   const permissionAccessSummary = getExpertAccessScopeSummary(
     permissionAccessDraft.visibility,
     permissionAccessDraft.accessScopeSubjects,
@@ -465,9 +634,7 @@ const ExpertConfigPanel = ({
       ? "当前生效模型"
       : "绑定设备后生效"
     : "需先完成管理员模型配置";
-  const versionStatusLabel = hasNewVersion
-    ? `待升级至 ${versionInfo.newVersion}`
-    : `当前 ${effectiveVersion}`;
+  const versionStatusLabel = `${versionRecords.length} 个版本`;
 
   const workspaceOptions = useMemo(
     () =>
@@ -757,25 +924,11 @@ const ExpertConfigPanel = ({
     [employee.id, employee.name, isAssigned, onUpdateModel, requiresDeviceBinding],
   );
 
-  const handleUpgrade = useCallback((): void => {
-    if (!versionInfo.newVersion) {
-      return;
-    }
-
-    setCurrentVersion(versionInfo.newVersion);
-    setVersionIgnored(false);
-    message.success(`${employee.name} 已升级到 ${versionInfo.newVersion}`);
-  }, [employee.name, versionInfo.newVersion]);
-
-  const handleIgnoreVersion = useCallback((): void => {
-    setVersionIgnored(true);
-    message.info("已忽略本次升级提醒");
-  }, []);
   const handleTabChange = useCallback((nextTabKey: string): void => {
     if (
       nextTabKey === "workspaceAccess" ||
       nextTabKey === "modelConfig" ||
-      nextTabKey === "versionControl"
+      nextTabKey === "versionHistory"
     ) {
       setActiveTabKey(nextTabKey);
     }
@@ -794,10 +947,6 @@ const ExpertConfigPanel = ({
           <p className={styles.simpleExpertRole}>{employee.role}</p>
           <div className={styles.expertConfigMetaRow}>
             <span className={styles.expertConfigMetaItem}>
-              <span className={styles.expertConfigMetaLabel}>来源</span>
-              <span className={styles.expertConfigMetaValue}>{assetMeta.sourceLabel}</span>
-            </span>
-            <span className={styles.expertConfigMetaItem}>
               <span className={styles.expertConfigMetaLabel}>{assetMeta.ownerLabel}</span>
               <span className={styles.expertConfigMetaValue}>{assetMeta.ownerName}</span>
             </span>
@@ -812,10 +961,10 @@ const ExpertConfigPanel = ({
           <span className={styles.expertConfigSummaryHint}>{modelStatusHint}</span>
         </div>
         <div className={styles.expertConfigSummaryCard}>
-          <span className={styles.expertConfigSummaryLabel}>版本状态</span>
-          <span className={getVersionTagClassName(hasNewVersion)}>{versionStatusLabel}</span>
+          <span className={styles.expertConfigSummaryLabel}>版本记录</span>
+          <span className={getVersionTagClassName()}>{versionStatusLabel}</span>
           <span className={styles.expertConfigSummaryHint}>
-            {hasNewVersion ? "可在版本处理里查看更新说明" : "当前版本已生效"}
+            {`当前生效 ${currentVersion}，仅作发布记录，无需企业管理员审核`}
           </span>
         </div>
       </div>
@@ -827,7 +976,7 @@ const ExpertConfigPanel = ({
         items={[
           { key: "workspaceAccess", label: "权限管理" },
           { key: "modelConfig", label: "模型配置" },
-          { key: "versionControl", label: "版本处理" },
+          { key: "versionHistory", label: "版本记录" },
         ]}
         onChange={handleTabChange}
       />
@@ -1110,46 +1259,50 @@ const ExpertConfigPanel = ({
         </div>
       ) : null}
 
-      {activeTabKey === "versionControl" ? (
+      {activeTabKey === "versionHistory" ? (
         <div className={styles.expertConfigTabPanel}>
           <div className={styles.expertConfigSinglePanel}>
             <div className={styles.simpleExpertBlock}>
-              <span className={styles.simpleExpertBlockLabel}>版本信息</span>
+              <span className={styles.simpleExpertBlockLabel}>版本历史</span>
               <p className={styles.upgradeVersions}>
-                当前版本 {effectiveVersion}
-                {hasNewVersion ? ` / 最新版本 ${versionInfo.newVersion}` : ""}
+                {`当前生效版本 ${currentVersion}，共记录 ${versionRecords.length} 个版本。`}
               </p>
-              <div className={styles.upgradeNotes}>
-                <p className={styles.upgradeNotesTitle}>
-                  {hasNewVersion
-                    ? "版本更新说明"
-                    : assetMeta.source === "purchased"
-                    ? "当前版本说明"
-                    : "当前发布说明"}
-                </p>
-                {(versionInfo.updateNotes ?? ["当前版本暂无额外说明。"]).map(note => (
-                  <p key={note} className={styles.upgradeNoteItem}>
-                    <CheckCircleOutlined className={styles.upgradeCheckIcon} />
-                    {note}
-                  </p>
+              <span className={styles.simpleExpertHint}>
+                企业自研 AI 专家发布后会自动记入版本记录，当前仅用于查看和追溯，不涉及企业管理员审核。
+              </span>
+              <div className={styles.versionRecordList}>
+                {versionRecords.map((record, index) => (
+                  <article key={record.version} className={styles.versionRecordCard}>
+                    <div className={styles.versionRecordHeader}>
+                      <div className={styles.versionRecordLead}>
+                        <span className={styles.versionRecordVersion}>{record.version}</span>
+                        <span
+                          className={
+                            index === 0
+                              ? styles.versionRecordBadgeCurrent
+                              : styles.versionRecordBadgeHistory
+                          }
+                        >
+                          {index === 0 ? "当前生效" : "历史版本"}
+                        </span>
+                      </div>
+                      <span className={styles.versionRecordMeta}>
+                        {`${record.publishedAt} · 发布人 ${record.publisherName}`}
+                      </span>
+                    </div>
+                    <p className={styles.versionRecordSummary}>{record.summary}</p>
+                    <div className={styles.upgradeNotes}>
+                      <p className={styles.upgradeNotesTitle}>变更说明</p>
+                      {record.changeNotes.map(note => (
+                        <p key={`${record.version}-${note}`} className={styles.upgradeNoteItem}>
+                          <CheckCircleOutlined className={styles.upgradeCheckIcon} />
+                          {note}
+                        </p>
+                      ))}
+                    </div>
+                  </article>
                 ))}
               </div>
-              {hasNewVersion ? (
-                <div className={adminStyles.consoleActions}>
-                  <Button size="small" type="primary" onClick={handleUpgrade}>
-                    接受升级
-                  </Button>
-                  <Button size="small" onClick={handleIgnoreVersion}>
-                    忽略升级
-                  </Button>
-                </div>
-              ) : (
-                <span className={styles.simpleExpertHint}>
-                  {assetMeta.source === "purchased"
-                    ? "当前版本已处理完成，无需额外操作。"
-                    : "企业开发资产发布后自动同步，无需管理员确认。"}
-                </span>
-              )}
             </div>
           </div>
         </div>

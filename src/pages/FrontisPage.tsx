@@ -878,13 +878,6 @@ const FrontisPage = ({ viewRole, embedded = false }: FrontisPageProps): JSX.Elem
     () => activeDialogueSession?.messages ?? [],
     [activeDialogueSession],
   );
-  const dialogueFollowupSuggestions = useMemo(() => {
-    const lastMessage = dialogueMessages[dialogueMessages.length - 1];
-    if (!lastMessage || lastMessage.role !== "assistant") {
-      return [];
-    }
-    return lastMessage.followupSuggestions ?? [];
-  }, [dialogueMessages]);
   const activeDialogueArtifacts = useMemo(
     () =>
       activeCaseReplay
@@ -1665,7 +1658,6 @@ const FrontisPage = ({ viewRole, embedded = false }: FrontisPageProps): JSX.Elem
           dialogueInputValue={dialogueInputValue}
           dialogueMessages={dialogueMessages}
           dialogueSessions={employeeDialogueSessions}
-          followupSuggestions={dialogueFollowupSuggestions}
           homeCaseItems={activeAgentHomeConfig.caseItems}
           homePromptItems={activeAgentHomeConfig.promptItems}
           homeSkillItems={activeAgentHomeConfig.skillItems}
@@ -1676,7 +1668,6 @@ const FrontisPage = ({ viewRole, embedded = false }: FrontisPageProps): JSX.Elem
           onDialogueAttachmentsSelected={handleDialogueAttachmentsSelected}
           onDialogueInputChange={setDialogueInputValue}
           onDialogueSessionSelect={handleSelectDialogueSession}
-          onFollowupClick={handleSendDialogueHomePrompt}
           isCaseReplayMode={Boolean(activeCaseReplay)}
           caseReplayActionLabel="立即实践"
           caseReplayOpenPanel={activeCaseReplay?.openPanel ?? null}

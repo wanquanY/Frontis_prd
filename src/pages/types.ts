@@ -142,6 +142,8 @@ export interface EmployeeItem {
   lastAction: string;
   source: EmployeeSource;
   visibility: EmployeeVisibility;
+  /** AI 专家开发者姓名，原型中用于后台资产归属展示。 */
+  developerName?: string;
   subAgentModel?: string;
   agentId: string;
   runtimeAgentId: string;
