@@ -476,6 +476,7 @@ export const DialoguePrototypeView = ({
       employee.name === EXPERT_TEAM_MAIN_AGENT_NAME,
     [defaultAgentIds],
   );
+  const supportsDialogueSessions = !isMetaCoordinatorAgent(activeEmployee);
   const shouldShowExpertTeamUi =
     activeEmployee.isExpertTeam && !isMetaCoordinatorAgent(activeEmployee);
   const expertTeamMentionOptions = useMemo<WorkspaceComposerMentionOption[]>(
@@ -1403,93 +1404,100 @@ export const DialoguePrototypeView = ({
               ) : null}
             </div>
 
-            <button
-              type="button"
-              className={styles.dialogueNewSessionButton}
-              onClick={onCreateDialogueSession}
-            >
-              <PlusOutlined />
-              <span>新对话</span>
-            </button>
+            {supportsDialogueSessions ? (
+              <>
+                <button
+                  type="button"
+                  className={styles.dialogueNewSessionButton}
+                  onClick={onCreateDialogueSession}
+                >
+                  <PlusOutlined />
+                  <span>新对话</span>
+                </button>
 
-            <div className={styles.dialogueSessionSection}>
-              <div className={styles.dialogueSessionHeading}>最近对话</div>
-              <div className={styles.dialogueSessionList}>
-                {dialogueSessions.length > 0 ? (
-                  dialogueSessions.map(item => {
-                    return (
-                      <div
-                        key={item.id}
-                        className={classNames(styles.dialogueSessionItem, {
-                          [styles.dialogueSessionItemActive]: item.id === activeDialogueSession?.id,
-                        })}
-                      >
-                        {editingSessionId === item.id ? (
-                          <div className={styles.dialogueSessionEditor}>
-                            <Input
-                              ref={sessionTitleInputRef}
-                              size="small"
-                              value={editingSessionTitle}
-                              placeholder="输入会话名称"
-                              onClick={event => event.stopPropagation()}
-                              onChange={event => setEditingSessionTitle(event.target.value)}
-                              onPressEnter={() => handleSubmitRenameSession()}
-                            />
-                            <div className={styles.dialogueSessionEditorActions}>
-                              <button
-                                type="button"
-                                className={styles.dialogueSessionEditorButton}
-                                aria-label="保存会话名称"
-                                onClick={handleSubmitRenameSession}
-                              >
-                                <CheckOutlined />
-                              </button>
-                              <button
-                                type="button"
-                                className={styles.dialogueSessionEditorButton}
-                                aria-label="取消重命名"
-                                onClick={handleCancelRenameSession}
-                              >
-                                <CloseOutlined />
-                              </button>
-                            </div>
+                <div className={styles.dialogueSessionSection}>
+                  <div className={styles.dialogueSessionHeading}>最近对话</div>
+                  <div className={styles.dialogueSessionList}>
+                    {dialogueSessions.length > 0 ? (
+                      dialogueSessions.map(item => {
+                        return (
+                          <div
+                            key={item.id}
+                            className={classNames(styles.dialogueSessionItem, {
+                              [styles.dialogueSessionItemActive]:
+                                item.id === activeDialogueSession?.id,
+                            })}
+                          >
+                            {editingSessionId === item.id ? (
+                              <div className={styles.dialogueSessionEditor}>
+                                <Input
+                                  ref={sessionTitleInputRef}
+                                  size="small"
+                                  value={editingSessionTitle}
+                                  placeholder="输入会话名称"
+                                  onClick={event => event.stopPropagation()}
+                                  onChange={event => setEditingSessionTitle(event.target.value)}
+                                  onPressEnter={() => handleSubmitRenameSession()}
+                                />
+                                <div className={styles.dialogueSessionEditorActions}>
+                                  <button
+                                    type="button"
+                                    className={styles.dialogueSessionEditorButton}
+                                    aria-label="保存会话名称"
+                                    onClick={handleSubmitRenameSession}
+                                  >
+                                    <CheckOutlined />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className={styles.dialogueSessionEditorButton}
+                                    aria-label="取消重命名"
+                                    onClick={handleCancelRenameSession}
+                                  >
+                                    <CloseOutlined />
+                                  </button>
+                                </div>
+                              </div>
+                            ) : (
+                              <>
+                                <button
+                                  type="button"
+                                  className={styles.dialogueSessionMainButton}
+                                  onClick={() => onDialogueSessionSelect(item.id)}
+                                >
+                                  <span className={styles.dialogueSessionContent}>
+                                    <span className={styles.dialogueSessionTitle}>{item.title}</span>
+                                    <span className={styles.dialogueSessionTime}>
+                                      {item.updatedAt}
+                                    </span>
+                                  </span>
+                                </button>
+                                <Dropdown
+                                  menu={{ items: getDialogueSessionMenuItems(item.id, item.title) }}
+                                  trigger={["click"]}
+                                >
+                                  <button
+                                    type="button"
+                                    className={styles.dialogueSessionMenuButton}
+                                    aria-label="会话操作"
+                                    onClick={handleMenuButtonClick}
+                                    onKeyDown={handleMenuButtonKeyDown}
+                                  >
+                                    <MoreOutlined />
+                                  </button>
+                                </Dropdown>
+                              </>
+                            )}
                           </div>
-                        ) : (
-                          <>
-                            <button
-                              type="button"
-                              className={styles.dialogueSessionMainButton}
-                              onClick={() => onDialogueSessionSelect(item.id)}
-                            >
-                              <span className={styles.dialogueSessionContent}>
-                                <span className={styles.dialogueSessionTitle}>{item.title}</span>
-                                <span className={styles.dialogueSessionTime}>{item.updatedAt}</span>
-                              </span>
-                            </button>
-                            <Dropdown
-                              menu={{ items: getDialogueSessionMenuItems(item.id, item.title) }}
-                              trigger={["click"]}
-                            >
-                              <button
-                                type="button"
-                                className={styles.dialogueSessionMenuButton}
-                                aria-label="会话操作"
-                                onClick={handleMenuButtonClick}
-                                onKeyDown={handleMenuButtonKeyDown}
-                              >
-                                <MoreOutlined />
-                              </button>
-                            </Dropdown>
-                          </>
-                        )}
-                      </div>
-                    );
-                  })
-                ) : (
-                  <div className={styles.dialogueSessionEmpty}>当前 AI 专家还没有历史会话</div>
-                )}
-              </div>
-            </div>
+                        );
+                      })
+                    ) : (
+                      <div className={styles.dialogueSessionEmpty}>当前 AI 专家还没有历史会话</div>
+                    )}
+                  </div>
+                </div>
+              </>
+            ) : null}
 
             {showAccountEntry ? (
               <div className={classNames(styles.sidebarBottom, styles.dialogueSidebarFooter)}>
