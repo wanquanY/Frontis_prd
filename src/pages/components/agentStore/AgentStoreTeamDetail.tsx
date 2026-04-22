@@ -7,6 +7,7 @@ import {
   buildAccessScopeSubjectLookup,
   buildAccessScopeSummary,
   buildOrganizationTree,
+  getOrganizationRootDepartmentName,
   normalizeAccessScopeSubjects,
 } from "@/utils/organizationAccess";
 import type {
@@ -446,6 +447,7 @@ export const AgentStoreTeamDetail = ({
                             : getExpertAccessScopeSummary(
                                 employee.visibility,
                                 employee.accessScopeSubjects,
+                                organizationDepartments,
                               )}
                         </span>
                       </div>
@@ -562,6 +564,10 @@ const ExpertConfigPanel = ({
     () => buildAccessScopeSubjectLookup(organizationDepartments, users),
     [organizationDepartments, users],
   );
+  const rootDepartmentName = useMemo(
+    () => getOrganizationRootDepartmentName(organizationDepartments),
+    [organizationDepartments],
+  );
   const assetMeta = getExpertAssetMeta(employee);
   const versionInfo = EXPERT_VERSION_INFO[employee.id] ?? buildVersionInfo([]);
   const versionRecords = versionInfo.records;
@@ -627,6 +633,7 @@ const ExpertConfigPanel = ({
   const permissionAccessSummary = getExpertAccessScopeSummary(
     permissionAccessDraft.visibility,
     permissionAccessDraft.accessScopeSubjects,
+    organizationDepartments,
   );
   const modelStatusLabel = hasAnyProvider ? selectedModel : "待配置";
   const modelStatusHint = hasAnyProvider
@@ -1057,9 +1064,9 @@ const ExpertConfigPanel = ({
                               </span>
                               <span className={styles.assignedWorkspaceMeta}>
                                 {accessState.visibility === "all"
-                                  ? "当前对全公司开放"
+                                  ? `当前对${rootDepartmentName}开放`
                                   : effectiveMembers.length
-                                    ? `当前组织范围：${buildAccessScopeSummary(accessState.accessScopeSubjects)}`
+                                    ? `当前组织范围：${buildAccessScopeSummary(accessState.accessScopeSubjects, organizationDepartments)}`
                                     : "当前尚未配置组织范围"}
                               </span>
                             </button>
@@ -1102,9 +1109,9 @@ const ExpertConfigPanel = ({
                           </span>
                           <span className={styles.devicePermissionMeta}>
                             {selectedAccessState.visibility === "all"
-                              ? "当前对全公司开放"
+                              ? `当前对${rootDepartmentName}开放`
                               : selectedEffectiveMembers.length
-                                ? `当前组织范围：${buildAccessScopeSummary(selectedAccessState.accessScopeSubjects)}`
+                                ? `当前组织范围：${buildAccessScopeSummary(selectedAccessState.accessScopeSubjects, organizationDepartments)}`
                                 : "当前尚未配置组织范围"}
                           </span>
                         </div>
@@ -1121,7 +1128,7 @@ const ExpertConfigPanel = ({
                           onChange={event => handleChangeAccessVisibility(event.target.value)}
                           size="small"
                         >
-                          <Radio value="all">全公司可用</Radio>
+                          <Radio value="all">{`${rootDepartmentName}可用`}</Radio>
                           <Radio value="bound">按组织范围配置</Radio>
                         </Radio.Group>
                         {selectedAccessState.visibility === "bound" ? (
@@ -1145,9 +1152,9 @@ const ExpertConfigPanel = ({
 
                       <span className={styles.simpleExpertHint}>
                         {selectedAccessState.visibility === "all"
-                          ? "保存后该设备上的此 AI 专家将对全公司开放。"
+                          ? `保存后该设备上的此 AI 专家将对${rootDepartmentName}开放。`
                           : selectedAccessState.accessScopeSubjects.length
-                            ? `保存后该设备将开放给 ${buildAccessScopeSummary(selectedAccessState.accessScopeSubjects)}${selectedAccessOwnerName ? "，设备拥有者默认可用。" : "。"}`
+                            ? `保存后该设备将开放给 ${buildAccessScopeSummary(selectedAccessState.accessScopeSubjects, organizationDepartments)}${selectedAccessOwnerName ? "，设备拥有者默认可用。" : "。"}`
                             : selectedAccessOwnerName
                               ? "当前还没有配置组织范围；保存后仅设备拥有者默认可使用。"
                               : "当前还没有配置组织范围，且该设备尚未设置拥有者。"}
@@ -1180,7 +1187,7 @@ const ExpertConfigPanel = ({
                     onChange={event => handleChangeAccessVisibility(event.target.value)}
                     size="small"
                   >
-                    <Radio value="all">全公司可用</Radio>
+                    <Radio value="all">{`${rootDepartmentName}可用`}</Radio>
                     <Radio value="bound">按组织范围配置</Radio>
                   </Radio.Group>
                   {permissionAccessDraft.visibility === "bound" ? (
@@ -1203,7 +1210,7 @@ const ExpertConfigPanel = ({
                 </div>
                 <span className={styles.simpleExpertHint}>
                   {permissionAccessDraft.visibility === "all"
-                    ? "保存后将对全公司成员开放。"
+                    ? `保存后将对${rootDepartmentName}开放。`
                     : permissionAccessDraft.accessScopeSubjects.length
                       ? `保存后将开放给 ${permissionAccessSummary}。`
                       : "当前尚未选择任何组织范围。"}

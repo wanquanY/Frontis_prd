@@ -19,6 +19,14 @@ export const COMPANY_SCOPE_SUBJECT_NAME = "全公司";
 const createSubjectKey = (subjectType: OrganizationSubjectType, subjectId: string): string =>
   `${subjectType}:${subjectId}`;
 
+/**
+ * 获取组织树的根部门名称。
+ */
+export const getOrganizationRootDepartmentName = (
+  departments: OrganizationDepartmentItem[],
+): string =>
+  departments.find(department => department.parentId === null)?.name ?? COMPANY_SCOPE_SUBJECT_NAME;
+
 const collectDescendantDepartmentIds = (
   departmentId: string,
   departments: OrganizationDepartmentItem[],
@@ -131,16 +139,9 @@ export const buildOrganizationTree = (
     type: "department",
   });
 
-  return [
-    {
-      children: departments
-        .filter(department => department.parentId === null)
-        .map(department => buildDepartmentNode(department)),
-      id: COMPANY_SCOPE_SUBJECT_ID,
-      name: COMPANY_SCOPE_SUBJECT_NAME,
-      type: "company",
-    },
-  ];
+  return departments
+    .filter(department => department.parentId === null)
+    .map(department => buildDepartmentNode(department));
 };
 
 /**
@@ -227,13 +228,16 @@ export const hasUserInAccessScope = (
 /**
  * 生成组织范围摘要，用于页面卡片与详情展示。
  */
-export const buildAccessScopeSummary = (subjects: AccessScopeSubject[]): string => {
+export const buildAccessScopeSummary = (
+  subjects: AccessScopeSubject[],
+  departments?: OrganizationDepartmentItem[],
+): string => {
   if (!subjects.length) {
     return "未配置组织范围";
   }
 
   if (subjects.some(subject => subject.subjectType === "company")) {
-    return "全公司";
+    return departments?.length ? getOrganizationRootDepartmentName(departments) : "全公司";
   }
 
   const subjectNames = subjects.map(subject => subject.subjectName);

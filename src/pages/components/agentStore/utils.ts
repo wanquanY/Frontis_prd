@@ -1,5 +1,6 @@
 import {
   buildAccessScopeSummary,
+  getOrganizationRootDepartmentName,
   hasUserInAccessScope,
   resolveUserIdsFromAccessScope,
 } from "@/utils/organizationAccess";
@@ -201,10 +202,11 @@ export const hasUserAccessToExpert = (
 export const getExpertAccessScopeSummary = (
   visibility: EmployeeItem["visibility"],
   accessScopeSubjects: EmployeeItem["accessScopeSubjects"],
+  organizationDepartments?: OrganizationDepartmentItem[],
 ): string => {
   if (visibility === "all") {
-    return "全公司可用";
+    return `${organizationDepartments?.length ? getOrganizationRootDepartmentName(organizationDepartments) : "全公司"}可用`;
   }
 
-  return buildAccessScopeSummary(accessScopeSubjects);
+  return buildAccessScopeSummary(accessScopeSubjects, organizationDepartments);
 };
