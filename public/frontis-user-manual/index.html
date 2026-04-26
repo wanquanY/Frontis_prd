@@ -471,6 +471,25 @@
         border-bottom: 0;
       }
 
+      .featureBlock {
+        scroll-margin-top: 28px;
+        margin-top: 30px;
+        padding-top: 24px;
+        border-top: 1px solid var(--line);
+      }
+
+      .featureBlock h3 {
+        margin: 0;
+        font-size: 22px;
+      }
+
+      .featureBlock p {
+        max-width: 860px;
+        margin: 10px 0 0;
+        color: var(--muted);
+        line-height: 1.78;
+      }
+
       .tagList {
         display: flex;
         flex-wrap: wrap;
@@ -683,8 +702,9 @@
           <div class="navGroup">
             <a class="navParent" href="#admin">企业管理</a>
             <div class="navSub">
-              <a href="#admin">AI专家管理</a>
-              <a href="#admin">组织管理</a>
+              <a href="#admin-experts">AI专家管理</a>
+              <a href="#admin-organization">组织管理</a>
+              <a href="#admin-members">添加成员与角色</a>
             </div>
           </div>
           <div class="navGroup">
@@ -1749,8 +1769,8 @@ knowledge/
               <div>
                 <h2>企业管理</h2>
                 <p class="sectionIntro">
-                  进入当前组织后，具备企业管理员权限的用户可进入企业管理台，用于查看企业内部 AI 专家并维护组织成员。
-                  入口位于用户工作台左下角用户菜单。
+                  进入当前组织后，具备企业管理员权限的用户可进入企业管理台。企业管理台用于查看本企业可用的
+                  AI 专家，并维护企业成员和成员权限。入口位于用户工作台左下角用户菜单。
                 </p>
               </div>
               <span class="roleBadge">Chrome · 企业管理台</span>
@@ -1763,11 +1783,11 @@ knowledge/
               </article>
               <article class="card">
                 <h3>查看 AI 专家</h3>
-                <p>在 AI专家管理中查看企业内 AI 专家的版本、发布方式和使用范围。</p>
+                <p>在 AI专家管理中查看企业内 AI 专家的版本、来源、发布方式和当前可用状态。</p>
               </article>
               <article class="card">
                 <h3>维护组织成员</h3>
-                <p>在组织管理中维护企业成员、部门和团队信息。</p>
+                <p>在组织管理中添加成员，并根据职责选择“普通成员”或“企业管理员”。</p>
               </article>
             </div>
 
@@ -1791,16 +1811,120 @@ knowledge/
                 <tbody>
                   <tr>
                     <td>AI专家管理</td>
-                    <td>查看企业内 AI 专家的版本、发布方式和使用范围。</td>
-                    <td>确认常用专家是否显示正常，使用范围是否符合预期。</td>
+                    <td>查看企业内 AI 专家的名称、版本、来源、业务领域、技术形态和可用状态。</td>
+                    <td>确认员工需要使用的 AI 专家已经出现在列表中；如需查看某个专家详情，可进入详情弹窗查看基础信息、关联 Skill、版本信息和运营数据。</td>
                   </tr>
                   <tr>
                     <td>组织管理</td>
-                    <td>维护企业成员、部门和团队。</td>
-                    <td>确认管理员、业务成员和专家开发者位于正确组织中。</td>
+                    <td>维护企业成员和成员角色。</td>
+                    <td>添加成员时填写成员信息，并选择角色。当前支持“普通成员”和“企业管理员”。</td>
                   </tr>
                 </tbody>
               </table>
+            </div>
+
+            <div class="featureBlock" id="admin-experts">
+              <h3>AI专家管理</h3>
+              <p>
+                AI专家管理用于查看本企业当前可用的 AI 专家。企业管理员可以在这里确认专家是否已经进入企业可用范围，
+                以及专家的版本、来源和基础配置是否符合当前业务使用需要。
+              </p>
+              <div class="table">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>查看内容</th>
+                      <th>说明</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>专家基础信息</td>
+                      <td>包括名称、头像、简介、业务领域、业务场景、来源和版本。</td>
+                    </tr>
+                    <tr>
+                      <td>关联能力</td>
+                      <td>查看该 AI 专家关联的 Skill、版本信息和运营数据，判断是否适合当前团队使用。</td>
+                    </tr>
+                    <tr>
+                      <td>可用状态</td>
+                      <td>确认专家是否已经对企业内成员开放，避免员工在工作台中找不到需要使用的 AI 专家。</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="featureBlock" id="admin-organization">
+              <h3>组织管理</h3>
+              <p>
+                组织管理用于维护企业成员。企业管理员可将员工加入当前企业，并根据员工在企业中的职责分配角色。
+                成员加入后，才能在该企业组织下使用对应的系统入口和 AI 专家能力。
+              </p>
+            </div>
+
+            <div class="featureBlock" id="admin-members">
+              <h3>添加成员与角色</h3>
+              <ol class="steps">
+                <li>
+                  <b>1</b>
+                  <div>
+                    <strong>进入组织管理</strong>
+                    <span>进入企业管理台后，打开组织管理，进入成员维护页面。</span>
+                  </div>
+                </li>
+                <li>
+                  <b>2</b>
+                  <div>
+                    <strong>添加成员</strong>
+                    <span>点击添加成员，按页面要求填写成员信息。</span>
+                  </div>
+                </li>
+                <li>
+                  <b>3</b>
+                  <div>
+                    <strong>选择角色</strong>
+                    <span>当前支持“普通成员”和“企业管理员”。普通成员用于日常使用 AI 专家；企业管理员可进入企业管理台维护成员和企业内 AI 专家。</span>
+                  </div>
+                </li>
+                <li>
+                  <b>4</b>
+                  <div>
+                    <strong>保存并确认</strong>
+                    <span>保存后回到成员列表，确认成员已加入企业，且角色显示正确。</span>
+                  </div>
+                </li>
+              </ol>
+
+              <div class="table">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>角色</th>
+                      <th>适用对象</th>
+                      <th>主要权限</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>普通成员</td>
+                      <td>日常使用 AI 专家的企业员工。</td>
+                      <td>进入用户工作台，使用企业已开放的 AI 专家和相关功能。</td>
+                    </tr>
+                    <tr>
+                      <td>企业管理员</td>
+                      <td>负责企业内成员和 AI 专家可用性维护的管理员。</td>
+                      <td>除日常使用外，可进入企业管理台，维护组织成员并查看企业内 AI 专家。</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div class="callout">
+                <p>
+                  建议：只给需要维护企业成员或企业内 AI 专家的人员设置“企业管理员”。普通业务使用者保持“普通成员”即可。
+                </p>
+              </div>
             </div>
           </section>
 
@@ -1944,7 +2068,7 @@ knowledge/
                 <ol class="steps">
                   <li><b>1</b><div><strong>进入企业管理台</strong><span>进入组织后，在左下角用户菜单选择企业管理后台。</span></div></li>
                   <li><b>2</b><div><strong>查看专家列表</strong><span>确认企业内常用 AI 专家显示正常。</span></div></li>
-                  <li><b>3</b><div><strong>查看组织成员</strong><span>确认管理员、业务成员和开发者位于正确组织中。</span></div></li>
+                  <li><b>3</b><div><strong>维护组织成员</strong><span>添加成员时选择“普通成员”或“企业管理员”，保存后确认成员角色正确。</span></div></li>
                 </ol>
               </article>
             </div>
