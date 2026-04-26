@@ -656,6 +656,7 @@
             <a class="navParent" href="#employee">使用 AI 专家</a>
             <div class="navSub">
               <a href="#employee">专家工作台</a>
+              <a href="#task-agent-dispatch">MA 调度 Task Agent</a>
               <a href="#employee">专家广场</a>
               <a href="#evolution">进化实验室</a>
             </div>
@@ -802,13 +803,13 @@
               <article class="card">
                 <h3>MA 默认入口</h3>
                 <p>
-                  MA 是专家工作台的默认入口，适合需求拆解、信息整理、任务规划和综合答复。
+                  MA 是专家工作台的默认入口，适合需求拆解、信息整理、任务规划、派发任务和综合答复。
                 </p>
               </article>
               <article class="card">
                 <h3>切换 AI 专家</h3>
                 <p>
-                  点击左上角当前专家区域，可查看已添加的 AI 专家。选择专家后，当前对话会切换到对应专家。
+                  点击左上角当前专家区域，可查看已添加到工作台的 AI 专家。选择专家后，当前对话会切换到对应专家。
                 </p>
               </article>
               <article class="card">
@@ -817,6 +818,83 @@
                   AI 专家生成的文档、方案、表格等内容，会集中展示在右侧成果列表中，便于后续查看和继续处理。
                 </p>
               </article>
+            </div>
+
+            <div class="docBlock" id="task-agent-dispatch">
+              <div class="sectionHeader" style="margin-top: 42px">
+                <div>
+                  <h3>MA 调度 Task Agent</h3>
+                  <p class="sectionIntro">
+                    MA 可以把任务派发给其他 Task Agent 执行，再把执行状态和结果汇总回来。
+                    需要注意的是：被 MA 调度的 Task Agent 必须已经添加到当前工作台；如果没有添加，
+                    需要先到专家广场添加，或由管理员确认该专家对当前组织可见。
+                  </p>
+                </div>
+                <span class="roleBadge">重点说明</span>
+              </div>
+
+              <div class="screenshot screenshotFull">
+                <img src="assets/ma-task-agent-dispatch.png" alt="MA 调度其他 Task Agent 执行任务截图" />
+                <div class="caption">
+                  <span>MA 调度销售教练执行任务，并返回任务 ID、执行状态和任务结果。</span>
+                  <span>调度案例</span>
+                </div>
+              </div>
+
+              <div class="grid3">
+                <article class="card">
+                  <h3>先添加到工作台</h3>
+                  <p>
+                    MA 调度的对象来自当前工作台已添加的 AI 专家。需要使用某个专家前，先在专家广场添加到工作台。
+                  </p>
+                </article>
+                <article class="card">
+                  <h3>MA 负责派发和汇总</h3>
+                  <p>
+                    用户可以直接告诉 MA 要调度哪个专家做什么。MA 会发起任务、跟踪状态，并在结果返回后汇总给用户。
+                  </p>
+                </article>
+                <article class="card">
+                  <h3>需要单独交互时切换专家</h3>
+                  <p>
+                    如果不想通过 MA 派发，而是要直接和某个 AI 专家对话，可点击左上角当前专家区域切换到该专家。
+                  </p>
+                </article>
+              </div>
+
+              <div class="table" style="margin-top: 18px">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>使用场景</th>
+                      <th>适合方式</th>
+                      <th>示例说法</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>多步骤任务，需要 MA 统筹</td>
+                      <td>让 MA 调度 Task Agent</td>
+                      <td>“请调用销售教练，帮我生成一段客户异议处理话术，并把结果汇总给我。”</td>
+                    </tr>
+                    <tr>
+                      <td>招聘、销售、招标等明确专项任务</td>
+                      <td>直接切换到对应专家</td>
+                      <td>点击左上角当前专家区域，切换到招聘助手、销售教练或招标合规助手后直接提问。</td>
+                    </tr>
+                    <tr>
+                      <td>需要多个专家分别给建议</td>
+                      <td>先由 MA 拆解，再派发</td>
+                      <td>“请让销售教练给话术建议，再让财务分析助手看一下报价风险。”</td>
+                    </tr>
+                    <tr>
+                      <td>持续围绕一个专业主题深入追问</td>
+                      <td>切换到该 AI 专家单独交互</td>
+                      <td>例如持续和销售教练打磨拜访话术，或持续和客服专家优化回复模板。</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
             </div>
 
             <ol class="steps">
@@ -830,26 +908,40 @@
               <li>
                 <b>2</b>
                 <div>
-                  <strong>使用 MA 发起对话</strong>
-                  <span>在输入框输入任务或问题，MA 会根据内容给出回答或处理建议。</span>
+                  <strong>确认可调度专家</strong>
+                  <span>MA 调度 Task Agent 前，需要先把对应 AI 专家添加到工作台。未添加的专家不能直接被 MA 调度。</span>
                 </div>
               </li>
               <li>
                 <b>3</b>
                 <div>
-                  <strong>按任务切换专家</strong>
-                  <span>如果任务属于招聘、财务、招标、销售等明确场景，可从左上角当前专家区域切换到对应 AI 专家。</span>
+                  <strong>使用 MA 发起对话</strong>
+                  <span>在输入框输入任务或问题，MA 会根据内容给出回答、处理建议，或调度已添加的 Task Agent 执行任务。</span>
                 </div>
               </li>
               <li>
                 <b>4</b>
+                <div>
+                  <strong>让 MA 派发任务</strong>
+                  <span>需要其他 AI 专家参与时，可以说明“调用某个专家做某件事”。MA 会记录任务状态，并在结果返回后汇总。</span>
+                </div>
+              </li>
+              <li>
+                <b>5</b>
+                <div>
+                  <strong>需要单独交互时切换专家</strong>
+                  <span>如果任务属于招聘、财务、招标、销售等明确场景，也可以从左上角当前专家区域切换到对应 AI 专家直接对话。</span>
+                </div>
+              </li>
+              <li>
+                <b>6</b>
                 <div>
                   <strong>在专家广场添加专家</strong>
                   <span>可通过搜索或分类浏览查找专家，进入详情页确认能力后添加到工作区。</span>
                 </div>
               </li>
               <li>
-                <b>5</b>
+                <b>7</b>
                 <div>
                   <strong>在进化实验室创建专家</strong>
                   <span>如需创建或更新 AI 专家、技能，可进入进化实验室操作。</span>
