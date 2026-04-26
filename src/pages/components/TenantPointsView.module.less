@@ -1,0 +1,256 @@
+.tabBar {
+  display: flex;
+  gap: 32px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid color-mix(in srgb, var(--text) 12%, var(--surface));
+}
+
+.tabButton {
+  position: relative;
+  padding: 0 2px 14px;
+  border: 0;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.tabButtonActive {
+  color: var(--primary);
+}
+
+.tabButtonActive::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  bottom: -1px;
+  left: 0;
+  height: 3px;
+  border-radius: 999px;
+  background: var(--primary);
+}
+
+.rangeBar {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px;
+  border: 1px solid color-mix(in srgb, var(--text) 10%, var(--border));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--text) 3%, var(--surface));
+}
+
+.rangeButton {
+  min-height: 30px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 20px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.rangeButtonActive {
+  background: var(--surface);
+  color: var(--primary);
+  box-shadow: var(--shadow-sm);
+}
+
+.orderNoButton {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  font-size: 14px;
+  line-height: 22px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.orderNoButton:hover {
+  color: var(--primary);
+}
+
+.sourceTagGroup {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  max-width: 320px;
+}
+
+.sourceTag {
+  min-height: 24px;
+  max-width: 144px;
+  padding: 0 8px;
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--primary) 8%, var(--surface));
+  color: var(--text);
+  font-size: 12px;
+  line-height: 18px;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sourceMoreTag {
+  max-width: none;
+  background: color-mix(in srgb, var(--text) 8%, var(--surface));
+  color: var(--text-secondary);
+}
+
+.sourcePopoverContent {
+  min-width: 280px;
+  max-width: 360px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sourcePopoverItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  color: var(--text);
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.sourcePopoverItem span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sourcePopoverItem strong {
+  flex-shrink: 0;
+}
+
+.orderDetailModal {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.orderDetailSummary {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid color-mix(in srgb, var(--text) 10%, var(--border));
+}
+
+.orderDetailSummaryMain,
+.orderDetailSummarySide,
+.orderDetailItem {
+  display: flex;
+  flex-direction: column;
+}
+
+.orderDetailSummaryMain,
+.orderDetailItem {
+  gap: 4px;
+}
+
+.orderDetailSummarySide {
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.orderDetailSummaryTitle,
+.orderDetailAmount,
+.orderDetailValue {
+  color: var(--text);
+  font-weight: 700;
+}
+
+.orderDetailSummaryTitle {
+  font-size: 20px;
+  line-height: 28px;
+}
+
+.orderDetailSummaryMeta,
+.orderDetailLabel {
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.orderDetailAmount {
+  font-size: 24px;
+  line-height: 32px;
+}
+
+.orderDetailGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px 24px;
+}
+
+.orderDetailValue {
+  font-size: 14px;
+  line-height: 22px;
+}
+
+.usageDetailModal {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.usageDetailSummary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  border-top: 1px solid color-mix(in srgb, var(--text) 10%, var(--border));
+  border-bottom: 1px solid color-mix(in srgb, var(--text) 10%, var(--border));
+}
+
+.usageDetailSummaryItem {
+  padding: 12px;
+  border-right: 1px solid color-mix(in srgb, var(--text) 10%, var(--border));
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.usageDetailSummaryItem:last-child {
+  border-right: 0;
+}
+
+.usageDetailLabel {
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.usageDetailSection {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.usageDetailTitle {
+  margin: 0;
+  color: var(--text);
+  font-size: 15px;
+  line-height: 22px;
+  font-weight: 700;
+}
+
+.emptyCell {
+  padding: 40px 0;
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 20px;
+  text-align: center;
+}

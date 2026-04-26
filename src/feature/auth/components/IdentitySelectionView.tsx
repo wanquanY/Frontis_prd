@@ -19,7 +19,7 @@ interface TenantGroup {
 }
 
 /**
- * 多租户账号的企业选择视图。
+ * 多租户账号的租户选择视图。
  */
 export const IdentitySelectionView = (): JSX.Element => {
   const navigate = useNavigate();
@@ -117,29 +117,29 @@ export const IdentitySelectionView = (): JSX.Element => {
       <div className={styles.shell}>
         <section className={styles.headerCard}>
           <div className={styles.headerBody}>
-            <span className={styles.eyebrow}>多租户企业选择</span>
-            <h1 className={styles.title}>选择本次进入企业</h1>
+            <span className={styles.eyebrow}>多租户选择</span>
+            <h1 className={styles.title}>选择本次进入租户</h1>
             <p className={styles.description}>
-              当前账号挂载了多个企业，请先选择本次要进入的企业；进入后系统会按该企业下的权限展示可用模块，并支持在菜单中切换企业。
+              当前账号挂载了多个租户，请先选择本次要进入的租户；进入后系统会按该租户下的权限展示可用模块，并支持在菜单中切换租户。
             </p>
           </div>
           <div className={styles.accountPanel}>
             <span className={styles.accountLabel}>当前账号</span>
             <strong className={styles.accountName}>{session.name}</strong>
             <span className={styles.accountMeta}>{session.phone}</span>
-            <span className={styles.accountMeta}>{tenantGroups.length} 个企业可进入</span>
+            <span className={styles.accountMeta}>{tenantGroups.length} 个租户可进入</span>
           </div>
         </section>
 
         <section className={styles.groupCard}>
           <div className={styles.groupHeader}>
             <div>
-              <div className={styles.groupTitle}>可进入企业列表</div>
+              <div className={styles.groupTitle}>可进入租户列表</div>
               <div className={styles.groupMeta}>
-                每个企业下可进入的系统由租户内角色和权限决定。
+                每个租户下可进入的系统由租户内角色和权限决定。
               </div>
             </div>
-            <span className={styles.groupCount}>{tenantGroups.length} 个企业</span>
+            <span className={styles.groupCount}>{tenantGroups.length} 个租户</span>
           </div>
 
           <div className={styles.identityGrid}>
@@ -153,13 +153,13 @@ export const IdentitySelectionView = (): JSX.Element => {
                 >
                   <div className={styles.identityCardTop}>
                     <div>
-                      <div className={styles.identityPlatform}>企业 / 租户</div>
+                      <div className={styles.identityPlatform}>租户</div>
                       <div className={styles.identityRole}>{group.tenantName}</div>
                     </div>
                     {isActiveTenant ? (
                       <span className={styles.identityTag}>
                         <CheckCircleOutlined />
-                        当前企业
+                        当前租户
                       </span>
                     ) : null}
                   </div>
@@ -180,7 +180,7 @@ export const IdentitySelectionView = (): JSX.Element => {
                       icon={<LoginOutlined />}
                       onClick={() => handleSelectTenant(group.tenantId)}
                     >
-                      {isActiveTenant ? "继续进入" : "进入该企业"}
+                      {isActiveTenant ? "继续进入" : "进入该租户"}
                     </Button>
                   </div>
                 </article>

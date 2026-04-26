@@ -4,13 +4,15 @@ import classNames from "classnames";
 import {
   DeleteOutlined,
   EditOutlined,
-  ImportOutlined,
   PlusOutlined,
 } from "@ant-design/icons";
 import { Button, Input, Modal, Popconfirm, Select, message } from "antd";
 
 import type {
-  EmployeeItem,
+  MockTenantInviteMemberParams,
+  MockTenantManagementSnapshot,
+} from "@/feature/auth/types";
+import type {
   FrontisUserRole,
   FrontisUserStatus,
   FrontisWebUserItem,
@@ -22,9 +24,9 @@ import { getRoleLabel, getUserStatusLabel } from "./FrontisWebViews";
 
 export interface OrganizationManagementViewProps {
   departments: OrganizationDepartmentItem[];
-  employees: EmployeeItem[];
   onAddDepartment: (dept: OrganizationDepartmentItem) => void;
-  onAddUsers: (users: FrontisWebUserItem[]) => void;
+  onInviteTenantMember?: (params: MockTenantInviteMemberParams) => boolean;
+  onOpenSeatPurchase?: () => void;
   onRemoveDepartment: (deptId: string) => void;
   onRemoveUser: (userId: string) => void;
   onSetDepartmentLeader: (deptId: string, userId: string | undefined) => void;
@@ -35,6 +37,7 @@ export interface OrganizationManagementViewProps {
   ) => void;
   onUpdateUserDepartment: (userId: string, departmentId: string) => void;
   onUpdateUserStatus: (userId: string, status: FrontisUserStatus) => void;
+  tenantSnapshot?: MockTenantManagementSnapshot | null;
   users: FrontisWebUserItem[];
   embedded?: boolean;
 }
@@ -52,15 +55,10 @@ interface DraftUserForm {
 }
 
 const MEMBER_ROLE_OPTIONS: Array<{ label: string; value: FrontisUserRole }> = [
-  { label: "企业管理员", value: "enterpriseAdmin" },
+  { label: "租户管理员", value: "enterpriseAdmin" },
   { label: "部门负责人", value: "departmentLead" },
-  { label: "普通员工", value: "employee" },
+  { label: "租户成员", value: "employee" },
 ];
-
-const buildAssignedAgentIds = (
-  role: FrontisUserRole,
-  employees: EmployeeItem[],
-): string[] => employees.map(item => item.id);
 
 /**
  * 获取部门及其所有后代部门 id 集合。
@@ -148,9 +146,9 @@ const flattenDepartmentTree = (
 export const OrganizationManagementView = ({
   departments,
   embedded = false,
-  employees,
   onAddDepartment,
-  onAddUsers,
+  onInviteTenantMember,
+  onOpenSeatPurchase,
   onRemoveDepartment,
   onRemoveUser,
   onSetDepartmentLeader,
@@ -158,6 +156,7 @@ export const OrganizationManagementView = ({
   onUpdateUser,
   onUpdateUserDepartment,
   onUpdateUserStatus,
+  tenantSnapshot,
   users,
 }: OrganizationManagementViewProps): JSX.Element => {
   /* ---------- 选中部门 ---------- */
@@ -170,7 +169,6 @@ export const OrganizationManagementView = ({
   const [isDeptEditOpen, setIsDeptEditOpen] = useState(false);
   const [isUserCreateOpen, setIsUserCreateOpen] = useState(false);
   const [isUserEditOpen, setIsUserEditOpen] = useState(false);
-  const [isImportOpen, setIsImportOpen] = useState(false);
 
   const [draftDept, setDraftDept] = useState<DraftDepartmentForm>({ name: "", parentId: null });
   const [draftUser, setDraftUser] = useState<DraftUserForm>({
@@ -180,7 +178,6 @@ export const OrganizationManagementView = ({
     role: "employee",
   });
   const [editingUserId, setEditingUserId] = useState("");
-  const [importText, setImportText] = useState("");
 
   /* ---------- 派生数据 ---------- */
   const flatDepts = useMemo(
@@ -344,24 +341,26 @@ export const OrganizationManagementView = ({
       return;
     }
 
-    onAddUsers([
-      {
-        assignedAgentIds: buildAssignedAgentIds(draftUser.role, employees),
-        departmentId: draftUser.departmentId || selectedDept?.id || "dept-default",
-        dialogueCount: 0,
-        id: `user-${Date.now()}`,
-        lastActiveAt: "从未使用",
-        name: nextName,
-        phone: nextPhone,
-        resultCount: 0,
-        role: draftUser.role,
-        status: "active",
-        tokenUsage: 0,
-      },
-    ]);
+    if (!onInviteTenantMember) {
+      return;
+    }
+
+    const hasInvited = onInviteTenantMember({
+      departmentId: draftUser.departmentId || selectedDept?.id || "dept-default",
+      inviterName:
+        tenantSnapshot?.users.find(item => item.id === tenantSnapshot.adminUserId)?.name ?? "当前管理员",
+      name: nextName,
+      phone: nextPhone,
+      role: draftUser.role,
+    });
+
+    if (!hasInvited) {
+      return;
+    }
+
     setIsUserCreateOpen(false);
-    message.success(`已添加员工：${nextName}`);
-  }, [draftUser, employees, onAddUsers, selectedDept]);
+    message.success(`已邀请成员：${nextName}`);
+  }, [draftUser, onInviteTenantMember, selectedDept, tenantSnapshot]);
 
   const handleSubmitUserEdit = useCallback((): void => {
     if (!editingUserId) {
@@ -389,7 +388,7 @@ export const OrganizationManagementView = ({
 
     setIsUserEditOpen(false);
     setEditingUserId("");
-    message.success(`已更新员工：${nextName}`);
+    message.success(`已更新成员：${nextName}`);
   }, [draftUser, editingUserId, onUpdateUser, onUpdateUserDepartment, users]);
 
   const handleSetLeader = useCallback(
@@ -405,47 +404,6 @@ export const OrganizationManagementView = ({
     },
     [onSetDepartmentLeader, selectedDept, users],
   );
-
-  const handleImportUsers = useCallback((): void => {
-    const rows = importText
-      .split("\n")
-      .map(item => item.trim())
-      .filter(Boolean);
-
-    if (!rows.length) {
-      message.warning("请输入导入内容");
-      return;
-    }
-
-    const nextUsers: FrontisWebUserItem[] = rows.map((row, index) => {
-      const [name = "", phone = "", roleValue = "employee"] = row
-        .split(",")
-        .map(item => item.trim());
-      const normalizedRole: FrontisUserRole =
-        roleValue === "enterpriseAdmin" || roleValue === "departmentLead" || roleValue === "employee"
-          ? roleValue
-          : "employee";
-
-      return {
-        assignedAgentIds: buildAssignedAgentIds(normalizedRole, employees),
-        departmentId: selectedDept?.id ?? "dept-default",
-        dialogueCount: 0,
-        id: `imported-user-${Date.now()}-${index}`,
-        lastActiveAt: "从未使用",
-        name: name || `导入员工${index + 1}`,
-        phone: phone || `1380000${String(index).padStart(4, "0")}`,
-        resultCount: 0,
-        role: normalizedRole,
-        status: "active",
-        tokenUsage: 0,
-      };
-    });
-
-    onAddUsers(nextUsers);
-    setImportText("");
-    setIsImportOpen(false);
-    message.success(`已导入 ${nextUsers.length} 个员工`);
-  }, [employees, importText, onAddUsers, selectedDept]);
 
   /* ---------- 部门树左侧 ---------- */
   const renderDepartmentTree = (): JSX.Element => (
@@ -536,9 +494,11 @@ export const OrganizationManagementView = ({
     return (
       <div className={adminStyles.consoleContentPane}>
         <div className={adminStyles.consolePaneHeader}>
-          <h2 className={adminStyles.consolePaneTitle}>{selectedDept.name} · 成员</h2>
-          <div className={adminStyles.consoleSidebarItemMeta} style={{ marginTop: 4 }}>
-            {buildDepartmentPath(departments, selectedDept.id)}
+          <div className={adminStyles.consolePaneHeaderMain}>
+            <h2 className={adminStyles.consolePaneTitle}>{selectedDept.name} · 成员</h2>
+            <div className={adminStyles.consoleSidebarItemMeta}>
+              {buildDepartmentPath(departments, selectedDept.id)}
+            </div>
           </div>
         </div>
 
@@ -562,16 +522,6 @@ export const OrganizationManagementView = ({
               {directChildren.length}
             </span>
           </div>
-        </div>
-
-        {/* 操作按钮 */}
-        <div className={adminStyles.consoleActions} style={{ marginTop: 16 }}>
-          <Button icon={<ImportOutlined />} onClick={() => setIsImportOpen(true)}>
-            Excel导入
-          </Button>
-          <Button type="primary" icon={<PlusOutlined />} onClick={handleOpenUserCreate}>
-            添加员工
-          </Button>
         </div>
 
         {/* 成员表 */}
@@ -687,12 +637,62 @@ export const OrganizationManagementView = ({
         <header className={adminStyles.consoleHeader}>
           <div className={adminStyles.consoleHeaderMain}>
             <h1 className={adminStyles.consoleTitle}>组织管理</h1>
-            <p className={adminStyles.consoleSubtitle}>
-              管理企业组织架构，维护部门结构与人员信息。
-            </p>
+          </div>
+          <div className={adminStyles.consoleActions}>
+            {tenantSnapshot ? (
+              <>
+                <span className={adminStyles.consoleMetaTag}>
+                  {tenantSnapshot.edition === "team" ? "团队版" : "个人版"}
+                </span>
+                <span className={adminStyles.consoleMetaTag}>
+                  已用席位 {tenantSnapshot.usedSeats}/{tenantSnapshot.totalSeats}
+                </span>
+              </>
+            ) : null}
+            {onOpenSeatPurchase ? <Button onClick={onOpenSeatPurchase}>扩容席位</Button> : null}
+            {onInviteTenantMember ? (
+              <Button type="primary" icon={<PlusOutlined />} onClick={handleOpenUserCreate}>
+                邀请成员
+              </Button>
+            ) : null}
           </div>
         </header>
       )}
+
+      {tenantSnapshot ? (
+        <div className={adminStyles.consoleSummaryStrip}>
+          <div className={adminStyles.consoleSummaryItem}>
+            <span className={adminStyles.consoleSummaryLabel}>当前成员</span>
+            <span className={adminStyles.consoleSummaryValue} style={{ fontSize: 16, lineHeight: "24px" }}>
+              {tenantSnapshot.users.length}
+            </span>
+          </div>
+          <div className={adminStyles.consoleSummaryItem}>
+            <span className={adminStyles.consoleSummaryLabel}>席位使用</span>
+            <span className={adminStyles.consoleSummaryValue} style={{ fontSize: 16, lineHeight: "24px" }}>
+              {tenantSnapshot.usedSeats}/{tenantSnapshot.totalSeats}
+            </span>
+          </div>
+          <div className={adminStyles.consoleSummaryItem}>
+            <span className={adminStyles.consoleSummaryLabel}>剩余可邀请</span>
+            <span className={adminStyles.consoleSummaryValue} style={{ fontSize: 16, lineHeight: "24px" }}>
+              {Math.max(tenantSnapshot.totalSeats - tenantSnapshot.usedSeats, 0)}
+            </span>
+          </div>
+          <div className={adminStyles.consoleSummaryItem}>
+            <span className={adminStyles.consoleSummaryLabel}>基础席位</span>
+            <span className={adminStyles.consoleSummaryValue} style={{ fontSize: 16, lineHeight: "24px" }}>
+              {tenantSnapshot.includedSeats}
+            </span>
+          </div>
+          <div className={adminStyles.consoleSummaryItem}>
+            <span className={adminStyles.consoleSummaryLabel}>扩容席位</span>
+            <span className={adminStyles.consoleSummaryValue} style={{ fontSize: 16, lineHeight: "24px" }}>
+              {tenantSnapshot.extraSeatCount}
+            </span>
+          </div>
+        </div>
+      ) : null}
 
       <div className={adminStyles.consoleSplitLayout}>
         {renderDepartmentTree()}
@@ -753,11 +753,11 @@ export const OrganizationManagementView = ({
         </div>
       </Modal>
 
-      {/* 添加员工 */}
+      {/* 邀请成员 */}
       <Modal
-        title="添加员工"
+        title="邀请成员加入租户"
         open={isUserCreateOpen}
-        okText="创建"
+        okText="发送邀请"
         cancelText="取消"
         onCancel={() => {
           setIsUserCreateOpen(false);
@@ -769,7 +769,7 @@ export const OrganizationManagementView = ({
           <div className={adminStyles.consoleInfoRow}>
             <span className={adminStyles.consoleInfoLabel}>姓名</span>
             <Input
-              placeholder="请输入员工姓名"
+              placeholder="请输入成员姓名"
               value={draftUser.name}
               onChange={event =>
                 setDraftUser(current => ({ ...current, name: event.target.value }))
@@ -782,7 +782,10 @@ export const OrganizationManagementView = ({
               placeholder="请输入手机号"
               value={draftUser.phone}
               onChange={event =>
-                setDraftUser(current => ({ ...current, phone: event.target.value }))
+                setDraftUser(current => ({
+                  ...current,
+                  phone: event.target.value.replace(/\D/g, "").slice(0, 11),
+                }))
               }
             />
           </div>
@@ -811,9 +814,9 @@ export const OrganizationManagementView = ({
         </div>
       </Modal>
 
-      {/* 编辑员工 */}
+      {/* 编辑成员 */}
       <Modal
-        title="编辑员工"
+        title="编辑成员"
         open={isUserEditOpen}
         okText="保存"
         cancelText="取消"
@@ -827,7 +830,7 @@ export const OrganizationManagementView = ({
           <div className={adminStyles.consoleInfoRow}>
             <span className={adminStyles.consoleInfoLabel}>姓名</span>
             <Input
-              placeholder="请输入员工姓名"
+              placeholder="请输入成员姓名"
               value={draftUser.name}
               onChange={event =>
                 setDraftUser(current => ({ ...current, name: event.target.value }))
@@ -858,40 +861,6 @@ export const OrganizationManagementView = ({
               onChange={value =>
                 setDraftUser(current => ({ ...current, role: value }))
               }
-            />
-          </div>
-        </div>
-      </Modal>
-
-      {/* Excel导入 */}
-      <Modal
-        title="Excel导入员工"
-        open={isImportOpen}
-        okText="开始导入"
-        cancelText="取消"
-        onCancel={() => setIsImportOpen(false)}
-        onOk={handleImportUsers}
-      >
-        <div className={adminStyles.consoleRows}>
-          <div className={adminStyles.consoleInfoRow}>
-            <span className={adminStyles.consoleInfoLabel}>导入目标</span>
-            <span className={adminStyles.consoleInfoValue}>
-              {selectedDept ? buildDepartmentPath(departments, selectedDept.id) : "未选择部门"}
-            </span>
-          </div>
-          <div className={adminStyles.consoleInfoRow}>
-            <span className={adminStyles.consoleInfoLabel}>导入格式</span>
-            <span className={adminStyles.consoleInfoValue}>每行一人：姓名,手机号,角色</span>
-          </div>
-          <div className={adminStyles.consoleInfoRow}>
-            <span className={adminStyles.consoleInfoLabel}>粘贴内容</span>
-            <Input.TextArea
-              rows={8}
-              placeholder={
-                "张三,13800000021,employee\n李四,13800000022,departmentLead\n王五,13800000023,enterpriseAdmin"
-              }
-              value={importText}
-              onChange={event => setImportText(event.target.value)}
             />
           </div>
         </div>

@@ -58,6 +58,8 @@ import {
 import { Button, Checkbox, Dropdown, Input, Modal, Select, message } from "antd";
 import type { MenuProps } from "antd";
 
+import { useMockAuth } from "@/feature/auth/hooks/useMockAuth";
+import { getMockTenantManagementSnapshot } from "@/feature/auth/mockTenantRegistry";
 import {
   loadEnterpriseCommodityApplications,
   saveEnterpriseCommodityApplications,
@@ -422,8 +424,6 @@ const DEFAULT_COMMODITY_APPLICATION_FORM: CommodityApplicationFormState = {
   notes: "",
 };
 
-const DEFAULT_COMMODITY_SUBMITTER = "王晨 - 当前企业租户";
-
 const formatCurrentTimestamp = (): string => {
   const currentDate = new Date();
   const year = currentDate.getFullYear();
@@ -510,6 +510,15 @@ const SummaryCard = (): JSX.Element => (
    ═══════════════════════════════════════════════════════════ */
 
 export const FdeAgentDevView = ({ onNavigate }: FdeAgentDevViewProps = {}): JSX.Element => {
+  const { activeIdentity, session } = useMockAuth();
+  const tenantSnapshot = useMemo(
+    () => getMockTenantManagementSnapshot(activeIdentity?.tenantId),
+    [activeIdentity?.tenantId],
+  );
+  const currentTenantName = activeIdentity?.tenantName ?? "当前企业租户";
+  const currentUserName = activeIdentity?.subjectName ?? session?.name ?? "当前用户";
+  const hasAgentListingAccess = Boolean(tenantSnapshot?.hasAgentListingAccess);
+
   /* ── 顶层页面状态 ── */
   const [page, setPage] = useState<"list" | "detail">("list");
   const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string | null>(null);
@@ -1342,7 +1351,32 @@ export const FdeAgentDevView = ({ onNavigate }: FdeAgentDevViewProps = {}): JSX.
     setIsRightPanelCollapsed(false);
   }, [selectedWorkspace?.name]);
 
+  const handleOpenCommodityApplicationPanel = useCallback(() => {
+    if (!hasAgentListingAccess) {
+      message.warning("当前租户未开通 AI专家上架服务，可继续开发和企业内使用，暂不能提交上架申请。");
+      return;
+    }
+
+    const agentName = publishForm.name.trim() || selectedWorkspace?.name || "未命名 AI专家";
+
+    setPublishPage("commodity");
+    setPublishType("agent");
+    setPublishSuccess(false);
+    setCommodityApplicationSuccess(false);
+    setCommodityApplicationForm(currentForm => ({
+      ...currentForm,
+      proposedProductName:
+        currentForm.proposedProductName.trim() || `${agentName} 标准版`,
+    }));
+    setIsRightPanelCollapsed(false);
+  }, [hasAgentListingAccess, publishForm.name, selectedWorkspace?.name]);
+
   const handleSubmitCommodityApplication = useCallback(() => {
+    if (!hasAgentListingAccess) {
+      message.warning("当前租户未开通 AI专家上架服务，可继续开发和企业内使用，暂不能提交上架申请。");
+      return;
+    }
+
     const agentName = publishForm.name.trim() || selectedWorkspace?.name || "未命名 AI专家";
     const proposedProductName = commodityApplicationForm.proposedProductName.trim();
     const submitReason = commodityApplicationForm.reason.trim();
@@ -1361,7 +1395,7 @@ export const FdeAgentDevView = ({ onNavigate }: FdeAgentDevViewProps = {}): JSX.
       id: `ops-agent-submission-${Date.now()}`,
       name: agentName,
       version: publishForm.version.trim() || selectedVersion,
-      submitter: DEFAULT_COMMODITY_SUBMITTER,
+      submitter: `${currentUserName} - ${currentTenantName}`,
       submittedAt: formatCurrentTimestamp(),
       status: "pending" as const,
       submissionType: "commodityApplication" as const,
@@ -1383,6 +1417,9 @@ export const FdeAgentDevView = ({ onNavigate }: FdeAgentDevViewProps = {}): JSX.
     commodityApplicationForm.proposedProductName,
     commodityApplicationForm.reason,
     commodityApplicationForm.targetCustomers,
+    currentTenantName,
+    currentUserName,
+    hasAgentListingAccess,
     publishForm.name,
     publishForm.version,
     selectedVersion,
@@ -2973,7 +3010,9 @@ export const FdeAgentDevView = ({ onNavigate }: FdeAgentDevViewProps = {}): JSX.
                 <div className={styles.publishNoticeCard}>
                   <div className={styles.publishNoticeTitle}>当前发布范围</div>
                   <div className={styles.publishNoticeText}>
-                    该 AI专家发布到 AI专家广场后，将按当前权限范围在本企业内可见可用。只有上架申请审核通过后，平台运营才会将其扩大到更多租户可见。
+                    {hasAgentListingAccess
+                      ? "该 AI专家发布到 AI专家广场后，将按当前权限范围在本企业内可见可用。只有上架申请审核通过后，平台运营才会将其转换为商品并进入售卖配置。"
+                      : "当前租户未开通 AI专家上架服务，可继续开发、自用和发布到企业内广场，暂不能提交平台上架申请。"}
                   </div>
                 </div>
               </div>
@@ -3044,6 +3083,12 @@ export const FdeAgentDevView = ({ onNavigate }: FdeAgentDevViewProps = {}): JSX.
                 <Button
                   type="primary"
                   icon={<ShopOutlined />}
+                  disabled={!hasAgentListingAccess}
+                  title={
+                    hasAgentListingAccess
+                      ? undefined
+                      : "当前租户未开通 AI专家上架服务"
+                  }
                   onClick={handleSubmitCommodityApplication}
                 >
                   提交上架申请
@@ -3070,8 +3115,16 @@ export const FdeAgentDevView = ({ onNavigate }: FdeAgentDevViewProps = {}): JSX.
                         : "仅自己"
                   }。`}
             </p>
+            {publishType === "agent" ? (
+              <Button
+                type="primary"
+                icon={<ShopOutlined />}
+                onClick={handleOpenCommodityApplicationPanel}
+              >
+                提交上架申请
+              </Button>
+            ) : null}
             <Button
-              type="primary"
               style={{ marginTop: 16 }}
               onClick={() => {
                 onNavigate?.("agentStore", publishForm.name);

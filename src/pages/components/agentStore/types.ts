@@ -7,11 +7,13 @@ import type {
   OrganizationDepartmentItem,
   WorkspaceItem,
 } from "../../types";
+import type { MockTenantManagementSnapshot } from "@/feature/auth/types";
 
 /**
  * AI 专家管理视图组件入参。
  */
 export interface AgentStoreViewProps {
+  currentUserName?: string;
   deploymentByEmployeeId: Record<string, ExpertDeploymentState>;
   deviceOwners: Record<string, string | null>;
   employees: EmployeeItem[];
@@ -26,6 +28,7 @@ export interface AgentStoreViewProps {
     accessScopeSubjects: AccessScopeSubject[],
   ) => void;
   onUpdateEmployeeModel: (employeeId: string, model: string) => void;
+  tenantSnapshot: MockTenantManagementSnapshot;
   users: FrontisWebUserItem[];
   workspaces: WorkspaceItem[];
 }

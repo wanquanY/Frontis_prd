@@ -11,6 +11,7 @@ const FrontisAdminPage = lazy(() => import("@/pages/FrontisAdminPage"));
 const IdentitySelectionPage = lazy(() => import("@/pages/identity/IdentitySelectionPage"));
 const LoginPage = lazy(() => import("@/pages/login/LoginPage"));
 const UnifiedWorkbenchPage = lazy(() => import("@/pages/unifiedWorkbench/UnifiedWorkbenchPage"));
+const UserManualPage = lazy(() => import("@/pages/UserManualPage"));
 const OperationsLoginPage = lazy(() => import("@/pages/operations/login/OperationsLoginPage"));
 const OperationsPlatformPage = lazy(() => import("@/pages/operations/OperationsPlatformPage"));
 const MarketingPortalShellPage = lazy(
@@ -60,6 +61,7 @@ const App = (): JSX.Element => {
           <Route path="/" element={<Navigate replace to="/portal" />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/ops/login" element={<OperationsLoginPage />} />
+          <Route path="/user-manual" element={<UserManualPage />} />
           <Route path="/select-tenant" element={<IdentitySelectionPage />} />
           <Route path="/select-identity" element={<Navigate replace to="/select-tenant" />} />
           <Route path="/portal" element={<MarketingPortalShellPage />}>

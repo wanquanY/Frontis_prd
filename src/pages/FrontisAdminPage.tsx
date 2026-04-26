@@ -7,6 +7,7 @@ import {
   LogoutOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
+  ReadOutlined,
   RobotOutlined,
   AppstoreOutlined,
   TeamOutlined,
@@ -16,15 +17,32 @@ import { Avatar, Dropdown, message } from "antd";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 
 import { getLoginPath, getSystemEntries, getTenantEntries } from "@/feature/auth/mockAccounts";
+import {
+  activateMockTenantTeamPlan,
+  addMockTenantSeats,
+  inviteMockTenantMemberAccount,
+  rechargeMockTenantPoints,
+  updateMockTenantUsers,
+} from "@/feature/auth/mockAccounts";
 import { useMockAuth } from "@/feature/auth/hooks/useMockAuth";
+import { getMockTenantManagementSnapshot } from "@/feature/auth/mockTenantRegistry";
+import type {
+  MockTenantInviteMemberParams,
+  MockTenantManagementSnapshot,
+} from "@/feature/auth/types";
+import { loadOperationsRegistrationStrategy } from "@/feature/operations/platformConfigStorage";
+import { MANAGEMENT_CONSOLE_LABEL, PRODUCT_LOGO_TEXT, PRODUCT_NAME } from "@/constants/brand";
+import type { MockPointsPackageOption } from "@/feature/points/types";
+import { getMockTenantSeatPricing } from "@/feature/tenantPlan/mockTenantPlanCommerce";
+import type { MockTenantPlanPackageOption } from "@/feature/tenantPlan/types";
 import {
   INITIAL_EMPLOYEES,
-  INITIAL_FRONTIS_WEB_USERS,
   INITIAL_ORGANIZATION_DEPARTMENTS,
   INITIAL_WORKSPACES,
 } from "@/mocks/mockData";
 
 import { DeviceManagementView } from "./components/DeviceManagementView";
+import { AccountDropdownPanel } from "./components/AccountDropdownPanel";
 import { AgentStoreView } from "./components/agentStore/AgentStoreView";
 import type { ExpertDeploymentState } from "./components/agentStore/types";
 import {
@@ -34,6 +52,12 @@ import {
 } from "./components/agentStore/utils";
 import { ModelConfigurationView } from "./components/ModelConfigurationView";
 import { OrganizationManagementView } from "./components/OrganizationManagementView";
+import { TenantPointsRechargeModal } from "./components/TenantPointsRechargeModal";
+import { TenantReferralInviteModal } from "./components/TenantReferralInviteModal";
+import { TenantOverviewView } from "./components/TenantOverviewView";
+import { TenantPointsView } from "./components/TenantPointsView";
+import { TenantSeatPurchaseModal } from "./components/TenantSeatPurchaseModal";
+import { TenantTeamPlanPurchaseModal } from "./components/TenantTeamPlanPurchaseModal";
 import type {
   AccessScopeSubject,
   EmployeeItem,
@@ -56,6 +80,7 @@ const INITIAL_DEVICE_OWNERS: Record<string, string | null> = {
   "workspace-local-sh": "user-member-001",
   "workspace-edge-hz": "user-admin-001",
 };
+const USER_MANUAL_ROUTE_PATH = "/user-manual";
 
 const syncRootDepartmentName = (
   departments: OrganizationDepartmentItem[],
@@ -89,6 +114,18 @@ const syncRootDepartmentName = (
 
 const FRONTIS_ADMIN_TABS: FrontisWebTabItem[] = [
   {
+    key: "overview",
+    label: "租户总览",
+    icon: <AppstoreOutlined />,
+    roles: ["admin"],
+  },
+  {
+    key: "points",
+    label: "积分管理",
+    icon: <ControlOutlined />,
+    roles: ["admin"],
+  },
+  {
     key: "store",
     label: "AI专家管理",
     icon: <RobotOutlined />,
@@ -108,16 +145,14 @@ const FRONTIS_ADMIN_TABS: FrontisWebTabItem[] = [
   },
 ];
 
-const FRONTIS_ADMIN_TAB_KEYS = new Set<FrontisWebTabKey>(
-  FRONTIS_ADMIN_TABS.map(item => item.key),
-);
+const FRONTIS_ADMIN_TAB_KEYS = new Set<FrontisWebTabKey>(FRONTIS_ADMIN_TABS.map(item => item.key));
 
 const resolveFrontisAdminTabKey = (tabKey: string | null): FrontisWebTabKey =>
   tabKey === "access"
     ? "organization"
     : tabKey && FRONTIS_ADMIN_TAB_KEYS.has(tabKey as FrontisWebTabKey)
-    ? (tabKey as FrontisWebTabKey)
-    : "store";
+      ? (tabKey as FrontisWebTabKey)
+      : "overview";
 
 /**
  * 老板后台管理页面。
@@ -127,17 +162,33 @@ const FrontisAdminPage = (): JSX.Element => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { activateIdentity, activateTenant, activeIdentity, logout, session } = useMockAuth();
+  const initialTenantSnapshot = useMemo<MockTenantManagementSnapshot | null>(
+    () => getMockTenantManagementSnapshot(activeIdentity?.tenantId),
+    [activeIdentity?.tenantId],
+  );
   const [activeTabKey, setActiveTabKey] = useState<FrontisWebTabKey>(() =>
     resolveFrontisAdminTabKey(searchParams.get("tab")),
   );
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(false);
-  const [employees, setEmployees] = useState<EmployeeItem[]>(INITIAL_EMPLOYEES);
-  const [users, setUsers] = useState<FrontisWebUserItem[]>(INITIAL_FRONTIS_WEB_USERS);
-  const [workspaces, setWorkspaces] = useState<WorkspaceItem[]>(INITIAL_WORKSPACES);
-  const [deploymentByEmployeeId, setDeploymentByEmployeeId] = useState<Record<string, ExpertDeploymentState>>(
-    () => buildInitialExpertDeploymentByEmployeeId(INITIAL_EMPLOYEES),
+  const [isAccountMenuOpen, setIsAccountMenuOpen] = useState<boolean>(false);
+  const [isRechargeModalOpen, setIsRechargeModalOpen] = useState<boolean>(false);
+  const [isReferralInviteModalOpen, setIsReferralInviteModalOpen] = useState<boolean>(false);
+  const [referralStrategy, setReferralStrategy] = useState(() =>
+    loadOperationsRegistrationStrategy(),
   );
-  const [deviceOwners, setDeviceOwners] = useState<Record<string, string | null>>(INITIAL_DEVICE_OWNERS);
+  const [isSeatPurchaseModalOpen, setIsSeatPurchaseModalOpen] = useState<boolean>(false);
+  const [isTeamPlanPurchaseModalOpen, setIsTeamPlanPurchaseModalOpen] = useState<boolean>(false);
+  const [employees, setEmployees] = useState<EmployeeItem[]>(INITIAL_EMPLOYEES);
+  const [tenantSnapshot, setTenantSnapshot] = useState<MockTenantManagementSnapshot | null>(
+    initialTenantSnapshot,
+  );
+  const [users, setUsers] = useState<FrontisWebUserItem[]>(initialTenantSnapshot?.users ?? []);
+  const [workspaces, setWorkspaces] = useState<WorkspaceItem[]>(INITIAL_WORKSPACES);
+  const [deploymentByEmployeeId, setDeploymentByEmployeeId] = useState<
+    Record<string, ExpertDeploymentState>
+  >(() => buildInitialExpertDeploymentByEmployeeId(INITIAL_EMPLOYEES));
+  const [deviceOwners, setDeviceOwners] =
+    useState<Record<string, string | null>>(INITIAL_DEVICE_OWNERS);
   const [departments, setDepartments] = useState<OrganizationDepartmentItem[]>(() =>
     syncRootDepartmentName(INITIAL_ORGANIZATION_DEPARTMENTS, activeIdentity?.tenantName),
   );
@@ -146,6 +197,25 @@ const FrontisAdminPage = (): JSX.Element => {
       syncRootDepartmentName(currentDepartments, activeIdentity?.tenantName),
     );
   }, [activeIdentity?.tenantName]);
+
+  useEffect(() => {
+    const nextSnapshot = getMockTenantManagementSnapshot(activeIdentity?.tenantId);
+
+    if (!nextSnapshot) {
+      return;
+    }
+
+    setTenantSnapshot(nextSnapshot);
+    setUsers(nextSnapshot.users);
+  }, [activeIdentity?.tenantId]);
+
+  const visibleAdminTabs = useMemo<FrontisWebTabItem[]>(
+    () =>
+      FRONTIS_ADMIN_TABS.filter(item =>
+        item.key === "organization" ? tenantSnapshot?.edition === "team" : true,
+      ),
+    [tenantSnapshot?.edition],
+  );
 
   const effectiveUsers = useMemo(
     () =>
@@ -167,15 +237,33 @@ const FrontisAdminPage = (): JSX.Element => {
     [deploymentByEmployeeId, departments, deviceOwners, employees, users],
   );
 
+  const syncUsersToTenant = useCallback(
+    (nextUsers: FrontisWebUserItem[]): void => {
+      if (!activeIdentity?.tenantId) {
+        return;
+      }
+
+      const nextSnapshot = updateMockTenantUsers(activeIdentity.tenantId, nextUsers);
+
+      if (!nextSnapshot) {
+        return;
+      }
+
+      setTenantSnapshot(nextSnapshot);
+    },
+    [activeIdentity?.tenantId],
+  );
+
   const currentUser = useMemo(
     () =>
       effectiveUsers.find(item => item.id === session?.userId) ??
-      effectiveUsers.find(item => MANAGEMENT_USER_ROLES.has(item.role) && item.status === "active") ??
+      effectiveUsers.find(
+        item => MANAGEMENT_USER_ROLES.has(item.role) && item.status === "active",
+      ) ??
       effectiveUsers.find(item => MANAGEMENT_USER_ROLES.has(item.role)) ??
       null,
     [effectiveUsers, session?.userId],
   );
-
   useEffect(() => {
     const nextTabKey = resolveFrontisAdminTabKey(searchParams.get("tab"));
 
@@ -183,6 +271,21 @@ const FrontisAdminPage = (): JSX.Element => {
       setActiveTabKey(nextTabKey);
     }
   }, [activeTabKey, searchParams]);
+
+  useEffect(() => {
+    if (!tenantSnapshot) {
+      return;
+    }
+
+    if (visibleAdminTabs.some(item => item.key === activeTabKey)) {
+      return;
+    }
+
+    setActiveTabKey("overview");
+    const nextParams = new URLSearchParams(searchParams);
+    nextParams.set("tab", "overview");
+    setSearchParams(nextParams);
+  }, [activeTabKey, searchParams, setSearchParams, tenantSnapshot, visibleAdminTabs]);
 
   const handleAttachEmployeeToDevice = useCallback(
     (employeeId: string, workspaceId: string): void => {
@@ -219,25 +322,30 @@ const FrontisAdminPage = (): JSX.Element => {
     [employees],
   );
 
-  const handleDetachEmployeeFromDevice = useCallback((employeeId: string, workspaceId: string): void => {
-    setDeploymentByEmployeeId(prev => {
-      const currentState = prev[employeeId];
-      if (!currentState) {
-        return prev;
-      }
+  const handleDetachEmployeeFromDevice = useCallback(
+    (employeeId: string, workspaceId: string): void => {
+      setDeploymentByEmployeeId(prev => {
+        const currentState = prev[employeeId];
+        if (!currentState) {
+          return prev;
+        }
 
-      const nextAccessByWorkspaceId = { ...currentState.accessByWorkspaceId };
-      delete nextAccessByWorkspaceId[workspaceId];
+        const nextAccessByWorkspaceId = { ...currentState.accessByWorkspaceId };
+        delete nextAccessByWorkspaceId[workspaceId];
 
-      return {
-        ...prev,
-        [employeeId]: {
-          accessByWorkspaceId: nextAccessByWorkspaceId,
-          assignedWorkspaceIds: currentState.assignedWorkspaceIds.filter(id => id !== workspaceId),
-        },
-      };
-    });
-  }, []);
+        return {
+          ...prev,
+          [employeeId]: {
+            accessByWorkspaceId: nextAccessByWorkspaceId,
+            assignedWorkspaceIds: currentState.assignedWorkspaceIds.filter(
+              id => id !== workspaceId,
+            ),
+          },
+        };
+      });
+    },
+    [],
+  );
 
   const handleUpdateEmployeeDeviceAccess = useCallback(
     (
@@ -310,21 +418,10 @@ const FrontisAdminPage = (): JSX.Element => {
     setEmployees(prev => prev.map(item => ({ ...item, model })));
   }, []);
 
-  const handleAddUsers = useCallback((nextUsers: FrontisWebUserItem[]): void => {
-    setUsers(prev => {
-      const existingIds = new Set(prev.map(item => item.id));
-      const deduplicatedUsers = nextUsers.filter(item => !existingIds.has(item.id));
-      return [...prev, ...deduplicatedUsers];
-    });
-  }, []);
-
   const handleUpdateUser = useCallback(
-    (
-      userId: string,
-      updates: Pick<FrontisWebUserItem, "name" | "phone" | "role">,
-    ): void => {
-      setUsers(prev =>
-        prev.map(item =>
+    (userId: string, updates: Pick<FrontisWebUserItem, "name" | "phone" | "role">): void => {
+      setUsers(prev => {
+        const nextUsers = prev.map(item =>
           item.id === userId
             ? {
                 ...item,
@@ -337,28 +434,48 @@ const FrontisAdminPage = (): JSX.Element => {
                 role: updates.role,
               }
             : item,
-        ),
-      );
+        );
+
+        syncUsersToTenant(nextUsers);
+
+        return nextUsers;
+      });
     },
-    [employees],
+    [employees, syncUsersToTenant],
   );
 
-  const handleUpdateUserStatus = useCallback((userId: string, status: FrontisUserStatus): void => {
-    setUsers(prev =>
-      prev.map(item =>
-        item.id === userId
-          ? {
-              ...item,
-              status,
-            }
-          : item,
-      ),
-    );
-  }, []);
+  const handleUpdateUserStatus = useCallback(
+    (userId: string, status: FrontisUserStatus): void => {
+      setUsers(prev => {
+        const nextUsers = prev.map(item =>
+          item.id === userId
+            ? {
+                ...item,
+                status,
+              }
+            : item,
+        );
 
-  const handleRemoveUser = useCallback((userId: string): void => {
-    setUsers(prev => prev.filter(item => item.id !== userId));
-  }, []);
+        syncUsersToTenant(nextUsers);
+
+        return nextUsers;
+      });
+    },
+    [syncUsersToTenant],
+  );
+
+  const handleRemoveUser = useCallback(
+    (userId: string): void => {
+      setUsers(prev => {
+        const nextUsers = prev.filter(item => item.id !== userId);
+
+        syncUsersToTenant(nextUsers);
+
+        return nextUsers;
+      });
+    },
+    [syncUsersToTenant],
+  );
 
   const handleAddDepartment = useCallback((dept: OrganizationDepartmentItem): void => {
     setDepartments(prev => [...prev, dept]);
@@ -388,11 +505,15 @@ const FrontisAdminPage = (): JSX.Element => {
 
   const handleUpdateUserDepartment = useCallback(
     (userId: string, departmentId: string): void => {
-      setUsers(prev =>
-        prev.map(item => (item.id === userId ? { ...item, departmentId } : item)),
-      );
+      setUsers(prev => {
+        const nextUsers = prev.map(item => (item.id === userId ? { ...item, departmentId } : item));
+
+        syncUsersToTenant(nextUsers);
+
+        return nextUsers;
+      });
     },
-    [],
+    [syncUsersToTenant],
   );
 
   const handleAssignDeviceOwner = useCallback((deviceId: string, ownerId: string | null): void => {
@@ -418,36 +539,39 @@ const FrontisAdminPage = (): JSX.Element => {
     );
   }, []);
 
-  const handleAddWorkspace = useCallback((workspace: WorkspaceItem, ownerId: string | null): void => {
-    setWorkspaces(prev => {
-      if (prev.some(item => item.id === workspace.id)) {
-        return prev;
-      }
-
-      return [...prev, workspace];
-    });
-
-    setDeviceOwners(prev => ({
-      ...prev,
-      [workspace.id]: ownerId,
-    }));
-
-    setUsers(prev =>
-      prev.map(item => {
-        const nextWorkspaceIds = new Set(item.assignedWorkspaceIds ?? []);
-        nextWorkspaceIds.delete(workspace.id);
-
-        if (item.id === ownerId) {
-          nextWorkspaceIds.add(workspace.id);
+  const handleAddWorkspace = useCallback(
+    (workspace: WorkspaceItem, ownerId: string | null): void => {
+      setWorkspaces(prev => {
+        if (prev.some(item => item.id === workspace.id)) {
+          return prev;
         }
 
-        return {
-          ...item,
-          assignedWorkspaceIds: Array.from(nextWorkspaceIds),
-        };
-      }),
-    );
-  }, []);
+        return [...prev, workspace];
+      });
+
+      setDeviceOwners(prev => ({
+        ...prev,
+        [workspace.id]: ownerId,
+      }));
+
+      setUsers(prev =>
+        prev.map(item => {
+          const nextWorkspaceIds = new Set(item.assignedWorkspaceIds ?? []);
+          nextWorkspaceIds.delete(workspace.id);
+
+          if (item.id === ownerId) {
+            nextWorkspaceIds.add(workspace.id);
+          }
+
+          return {
+            ...item,
+            assignedWorkspaceIds: Array.from(nextWorkspaceIds),
+          };
+        }),
+      );
+    },
+    [],
+  );
 
   const handleRemoveWorkspace = useCallback((workspaceId: string): void => {
     setWorkspaces(prev => prev.filter(item => item.id !== workspaceId));
@@ -486,6 +610,140 @@ const FrontisAdminPage = (): JSX.Element => {
     );
   }, []);
 
+  const handleOpenRechargeModal = useCallback((): void => {
+    setIsAccountMenuOpen(false);
+    setIsRechargeModalOpen(true);
+  }, []);
+  const handleCloseRechargeModal = useCallback((): void => {
+    setIsRechargeModalOpen(false);
+  }, []);
+  const handleOpenReferralInviteModal = useCallback((): void => {
+    setReferralStrategy(loadOperationsRegistrationStrategy());
+    setIsAccountMenuOpen(false);
+    setIsReferralInviteModalOpen(true);
+  }, []);
+  const handleCloseReferralInviteModal = useCallback((): void => {
+    setIsReferralInviteModalOpen(false);
+  }, []);
+  const handleOpenTeamPlanPurchaseModal = useCallback((): void => {
+    setIsTeamPlanPurchaseModalOpen(true);
+  }, []);
+  const handleCloseTeamPlanPurchaseModal = useCallback((): void => {
+    setIsTeamPlanPurchaseModalOpen(false);
+  }, []);
+  const handleOpenSeatPurchaseModal = useCallback((): void => {
+    setIsSeatPurchaseModalOpen(true);
+  }, []);
+  const handleCloseSeatPurchaseModal = useCallback((): void => {
+    setIsSeatPurchaseModalOpen(false);
+  }, []);
+  const handleConfirmRecharge = useCallback(
+    (selectedPackage: MockPointsPackageOption): boolean => {
+      if (!activeIdentity?.tenantId || !currentUser) {
+        return false;
+      }
+
+      const nextSnapshot = rechargeMockTenantPoints(
+        activeIdentity.tenantId,
+        selectedPackage.points,
+        currentUser.name,
+        {
+          title: `${selectedPackage.title}到账`,
+          description: `统一扫码支付 ¥${selectedPackage.price}，购买 ${selectedPackage.points.toLocaleString("zh-CN")} 积分。`,
+          packageId: selectedPackage.id,
+          packageTitle: selectedPackage.title,
+          price: selectedPackage.price,
+          paymentChannelLabel: "统一扫码支付",
+        },
+      );
+
+      if (!nextSnapshot) {
+        message.warning("当前租户暂不可充值，请刷新后重试。");
+        return false;
+      }
+
+      setTenantSnapshot(nextSnapshot);
+      message.success(
+        `${selectedPackage.title}已到账，当前积分 +${selectedPackage.points.toLocaleString(
+          "zh-CN",
+        )}。`,
+      );
+      return true;
+    },
+    [activeIdentity?.tenantId, currentUser],
+  );
+
+  const handleConfirmTeamPlanPurchase = useCallback(
+    (selectedPackage: MockTenantPlanPackageOption): boolean => {
+      if (!activeIdentity?.tenantId) {
+        return false;
+      }
+
+      const nextSnapshot = activateMockTenantTeamPlan(activeIdentity.tenantId, selectedPackage);
+
+      if (!nextSnapshot) {
+        message.warning("当前租户暂无法开通团队版，请刷新后重试。");
+        return false;
+      }
+
+      setTenantSnapshot(nextSnapshot);
+      message.success(`${selectedPackage.title}已开通，组织管理已解锁。`);
+      return true;
+    },
+    [activeIdentity?.tenantId],
+  );
+
+  const handleConfirmSeatPurchase = useCallback(
+    (seatCount: number): boolean => {
+      if (!activeIdentity?.tenantId) {
+        return false;
+      }
+
+      const nextSnapshot = addMockTenantSeats(activeIdentity.tenantId, seatCount);
+
+      if (!nextSnapshot) {
+        message.warning("当前租户暂不可扩容席位，请刷新后重试。");
+        return false;
+      }
+
+      setTenantSnapshot(nextSnapshot);
+      message.success(`已为当前租户扩容 ${seatCount} 个席位。`);
+      return true;
+    },
+    [activeIdentity?.tenantId],
+  );
+
+  const handleInviteTenantMember = useCallback(
+    (params: MockTenantInviteMemberParams): boolean => {
+      if (!activeIdentity?.tenantId || !tenantSnapshot) {
+        return false;
+      }
+
+      if (tenantSnapshot.edition !== "team") {
+        message.warning("当前租户仍是个人版，请先开通团队版。");
+        return false;
+      }
+
+      if (tenantSnapshot.usedSeats >= tenantSnapshot.totalSeats) {
+        message.warning("当前席位不足，请先扩容席位。");
+        return false;
+      }
+
+      const result = inviteMockTenantMemberAccount(activeIdentity.tenantId, params);
+
+      if (!result) {
+        message.warning("邀请失败，请确认手机号未注册且当前席位仍有余量。");
+        return false;
+      }
+
+      setTenantSnapshot(result.snapshot);
+      setUsers(result.snapshot.users);
+      message.success("成员已加入当前租户，并可直接使用该租户积分。");
+      return true;
+    },
+    [activeIdentity?.tenantId, tenantSnapshot],
+  );
+
   const handleLogout = useCallback((): void => {
     const redirectPath = `${location.pathname}${location.search}`;
 
@@ -495,7 +753,12 @@ const FrontisAdminPage = (): JSX.Element => {
   }, [location.pathname, location.search, logout, navigate]);
 
   const systemEntries = useMemo(
-    () => getSystemEntries(session?.identities ?? [], activeIdentity?.tenantId, session?.activeIdentityId),
+    () =>
+      getSystemEntries(
+        session?.identities ?? [],
+        activeIdentity?.tenantId,
+        session?.activeIdentityId,
+      ),
     [activeIdentity?.tenantId, session?.activeIdentityId, session?.identities],
   );
   const tenantEntries = useMemo(
@@ -529,8 +792,21 @@ const FrontisAdminPage = (): JSX.Element => {
     },
     [activateTenant, location.pathname, location.search, navigate],
   );
+  const handleOpenUserManual = useCallback((): void => {
+    setIsAccountMenuOpen(false);
+    window.open(USER_MANUAL_ROUTE_PATH, "_blank", "noopener,noreferrer");
+  }, []);
 
   const accountMenuItems: MenuProps["items"] = [
+    {
+      key: "open-user-manual",
+      icon: <ReadOutlined />,
+      label: "产品使用指南",
+      onClick: handleOpenUserManual,
+    },
+    {
+      type: "divider" as const,
+    },
     ...systemEntries.map(entry => ({
       key: `system-entry-${entry.identityId}`,
       icon: <AppstoreOutlined />,
@@ -586,9 +862,42 @@ const FrontisAdminPage = (): JSX.Element => {
   const hasManagementAccess = currentUser ? MANAGEMENT_USER_ROLES.has(currentUser.role) : true;
 
   const renderContent = (): JSX.Element => {
+    if (!tenantSnapshot) {
+      return (
+        <div className={styles.emptyPanel}>
+          <h2 className={styles.emptyPanelTitle}>当前租户信息未加载</h2>
+          <p className={styles.emptyPanelDescription}>
+            请返回工作台后重新进入管理后台，系统会按当前租户加载积分、席位和成员数据。
+          </p>
+        </div>
+      );
+    }
+
+    if (activeTabKey === "overview") {
+      return (
+        <TenantOverviewView
+          tenantSnapshot={tenantSnapshot}
+          onOpenTeamPlanPurchase={
+            tenantSnapshot.edition === "personal" ? handleOpenTeamPlanPurchaseModal : undefined
+          }
+        />
+      );
+    }
+
+    if (activeTabKey === "points") {
+      return (
+        <TenantPointsView
+          tenantSnapshot={tenantSnapshot}
+          onOpenInvite={handleOpenReferralInviteModal}
+          onOpenRecharge={handleOpenRechargeModal}
+        />
+      );
+    }
+
     if (activeTabKey === "store") {
       return (
         <AgentStoreView
+          currentUserName={currentUser?.name}
           deploymentByEmployeeId={deploymentByEmployeeId}
           deviceOwners={deviceOwners}
           employees={employees}
@@ -598,6 +907,7 @@ const FrontisAdminPage = (): JSX.Element => {
           onNavigateToTab={handleSelectTab}
           onUpdateEmployeeDeviceAccess={handleUpdateEmployeeDeviceAccess}
           onUpdateEmployeeModel={handleUpdateEmployeeModel}
+          tenantSnapshot={tenantSnapshot}
           users={effectiveUsers}
           workspaces={workspaces}
         />
@@ -634,9 +944,9 @@ const FrontisAdminPage = (): JSX.Element => {
       return (
         <OrganizationManagementView
           departments={departments}
-          employees={employees}
           onAddDepartment={handleAddDepartment}
-          onAddUsers={handleAddUsers}
+          onInviteTenantMember={handleInviteTenantMember}
+          onOpenSeatPurchase={handleOpenSeatPurchaseModal}
           onRemoveDepartment={handleRemoveDepartment}
           onRemoveUser={handleRemoveUser}
           onSetDepartmentLeader={handleSetDepartmentLeader}
@@ -644,6 +954,7 @@ const FrontisAdminPage = (): JSX.Element => {
           onUpdateUser={handleUpdateUser}
           onUpdateUserDepartment={handleUpdateUserDepartment}
           onUpdateUserStatus={handleUpdateUserStatus}
+          tenantSnapshot={tenantSnapshot}
           users={effectiveUsers}
         />
       );
@@ -651,15 +962,17 @@ const FrontisAdminPage = (): JSX.Element => {
 
     return (
       <AgentStoreView
+        currentUserName={currentUser?.name}
         deploymentByEmployeeId={deploymentByEmployeeId}
         deviceOwners={deviceOwners}
         employees={employees}
         organizationDepartments={departments}
         onNavigateToTab={handleSelectTab}
         onAttachEmployeeToDevice={handleAttachEmployeeToDevice}
-        onDetachEmployeeFromDevice={handleDetachEmployeeToDevice}
+        onDetachEmployeeFromDevice={handleDetachEmployeeFromDevice}
         onUpdateEmployeeDeviceAccess={handleUpdateEmployeeDeviceAccess}
         onUpdateEmployeeModel={handleUpdateEmployeeModel}
+        tenantSnapshot={tenantSnapshot}
         users={effectiveUsers}
         workspaces={workspaces}
       />
@@ -685,11 +998,11 @@ const FrontisAdminPage = (): JSX.Element => {
                   [styles.brandCardCollapsed]: isSidebarCollapsed,
                 })}
               >
-                <span className={styles.brandLogo}>F</span>
+                <span className={styles.brandLogo}>{PRODUCT_LOGO_TEXT}</span>
                 {isSidebarCollapsed ? null : (
                   <div className={styles.brandCopy}>
-                    <div className={styles.brandTitle}>Frontis AI</div>
-                    <div className={styles.brandSubtitle}>管理后台</div>
+                    <div className={styles.brandTitle}>{PRODUCT_NAME}</div>
+                    <div className={styles.brandSubtitle}>{MANAGEMENT_CONSOLE_LABEL}</div>
                   </div>
                 )}
               </div>
@@ -722,7 +1035,7 @@ const FrontisAdminPage = (): JSX.Element => {
               [styles.adminSidebarSectionCollapsed]: isSidebarCollapsed,
             })}
           >
-            {FRONTIS_ADMIN_TABS.map(item => (
+            {visibleAdminTabs.map(item => (
               <button
                 key={item.key}
                 type="button"
@@ -747,6 +1060,22 @@ const FrontisAdminPage = (): JSX.Element => {
               menu={{ items: accountMenuItems }}
               placement={isSidebarCollapsed ? "topRight" : "topLeft"}
               trigger={["click"]}
+              open={isAccountMenuOpen}
+              onOpenChange={setIsAccountMenuOpen}
+              dropdownRender={menu => (
+                <AccountDropdownPanel
+                  accountName={currentUser?.name ?? "未登录"}
+                  tenantName={activeIdentity?.tenantName}
+                  pointsBalance={tenantSnapshot?.pointsBalance}
+                  onOpenInvite={
+                    tenantSnapshot && referralStrategy.referralEnabled
+                      ? handleOpenReferralInviteModal
+                      : undefined
+                  }
+                  onOpenRecharge={tenantSnapshot ? handleOpenRechargeModal : undefined}
+                  menu={menu}
+                />
+              )}
             >
               <button
                 type="button"
@@ -755,7 +1084,7 @@ const FrontisAdminPage = (): JSX.Element => {
                 })}
                 aria-label="打开账户菜单"
               >
-                <Avatar className={styles.accountAvatar} size={36}>
+                <Avatar className={styles.accountAvatar} size={30}>
                   {currentUser ? currentUser.name.slice(0, 1) : "U"}
                 </Avatar>
                 {isSidebarCollapsed ? null : (
@@ -770,16 +1099,26 @@ const FrontisAdminPage = (): JSX.Element => {
 
         <main className={styles.adminMain}>
           <div className={classNames(styles.mainPanel, styles.adminMainPanel)}>
-            <div className={classNames(styles.content, styles.featureContent, styles.adminFeatureContent)}>
+            <div
+              className={classNames(
+                styles.content,
+                styles.featureContent,
+                styles.adminFeatureContent,
+              )}
+            >
               {hasManagementAccess ? (
                 renderContent()
               ) : (
                 <div className={styles.emptyPanel}>
                   <h2 className={styles.emptyPanelTitle}>当前账号无管理后台权限</h2>
                   <p className={styles.emptyPanelDescription}>
-                    普通员工只能使用对话工作台。请使用企业老板或企业管理员账号进入管理后台。
+                    当前成员只能使用工作台。请使用租户管理员账号进入管理后台。
                   </p>
-                  <button type="button" className={styles.emptyPanelAction} onClick={handleBackToEmployeeWorkspace}>
+                  <button
+                    type="button"
+                    className={styles.emptyPanelAction}
+                    onClick={handleBackToEmployeeWorkspace}
+                  >
                     返回对话工作台
                   </button>
                 </div>
@@ -788,6 +1127,41 @@ const FrontisAdminPage = (): JSX.Element => {
           </div>
         </main>
       </div>
+
+      <TenantPointsRechargeModal
+        open={isRechargeModalOpen}
+        pointsBalance={tenantSnapshot?.pointsBalance ?? 0}
+        tenantName={activeIdentity?.tenantName}
+        onCancel={handleCloseRechargeModal}
+        onConfirmPurchase={handleConfirmRecharge}
+      />
+      {tenantSnapshot ? (
+        <TenantReferralInviteModal
+          accountName={currentUser?.name ?? "当前用户"}
+          inviteeRewardPoints={referralStrategy.referralInviteeRewardPoints}
+          inviterRewardPoints={referralStrategy.referralInviterRewardPoints}
+          open={isReferralInviteModalOpen}
+          referralRecords={tenantSnapshot.referralRecords}
+          tenantCode={tenantSnapshot.tenantCode}
+          onClose={handleCloseReferralInviteModal}
+        />
+      ) : null}
+      <TenantTeamPlanPurchaseModal
+        currentPlanLabel={tenantSnapshot?.planLabel ?? "个人版"}
+        open={isTeamPlanPurchaseModalOpen}
+        tenantName={activeIdentity?.tenantName}
+        onCancel={handleCloseTeamPlanPurchaseModal}
+        onConfirmPurchase={handleConfirmTeamPlanPurchase}
+      />
+      <TenantSeatPurchaseModal
+        currentSeats={tenantSnapshot?.totalSeats ?? 0}
+        open={isSeatPurchaseModalOpen}
+        seatPricing={getMockTenantSeatPricing()}
+        tenantName={activeIdentity?.tenantName}
+        usedSeats={tenantSnapshot?.usedSeats ?? 0}
+        onCancel={handleCloseSeatPurchaseModal}
+        onConfirmPurchase={handleConfirmSeatPurchase}
+      />
     </div>
   );
 };

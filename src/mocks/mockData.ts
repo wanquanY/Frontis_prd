@@ -181,6 +181,32 @@ export const INITIAL_WORKSPACES: WorkspaceItem[] = [
  */
 export const INITIAL_EMPLOYEES: EmployeeItem[] = [
   {
+    id: "employee-personal-product-designer",
+    name: "需求拆解助手",
+    avatarUrl: getAvatarUrl("employee-personal-product-designer"),
+    role: "负责个人项目的需求收敛、结构拆解与执行建议整理",
+    portalRoles: ["admin", "employee"],
+    status: "online",
+    workspaceId: "workspace-cloud",
+    connectionMode: "cloud",
+    model: "gpt-4o",
+    summary: "面向个人工作室使用的需求拆解 AI 专家，负责把模糊需求快速整理成可执行结构。",
+    lastAction: "已输出工作轨迹与管理后台改版的拆解建议。",
+    source: "coworker",
+    visibility: "bound",
+    developerName: "李想",
+    subAgentModel: "gpt-4o-mini",
+    agentId: "personal-studio-product-designer-01",
+    runtimeAgentId: "rt-personal-studio-product-designer-01",
+    accessScopeSubjects: [],
+    boundMembers: ["李想"],
+    welcomeMessage: "你告诉我目标和现状，我会先帮你拆清楚要做什么、先做什么。",
+    systemPrompt:
+      "你是一名需求拆解助手，负责帮助个人工作室梳理需求背景、拆解工作步骤并形成可执行建议。",
+    skills: ["requirements_summary", "backlog_breakdown"],
+    expertSetupMode: "permission",
+  },
+  {
     id: "employee-pm",
     name: "序列总览专家",
     avatarUrl: getAvatarUrl("employee-pm"),

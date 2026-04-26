@@ -4,7 +4,28 @@ import type { OperationsTenant } from "@/feature/operations/types";
  * 运营后台租户原型在本地存储中的 key。
  */
 export const OPERATIONS_TENANTS_STORAGE_KEY = "frontis.operations.tenants";
-const DEFAULT_MOCK_FDE_TENANT_ID = "tenant-enterprise-demo";
+
+interface StoredOperationsTenant
+  extends Omit<OperationsTenant, "hasAgentListingAccess" | "effectiveAt"> {
+  hasAgentListingAccess?: boolean;
+  hasAgentDevAccess?: boolean;
+  effectiveAt?: string;
+}
+
+const normalizeStoredTenant = (tenant: StoredOperationsTenant): OperationsTenant => {
+  const { hasAgentListingAccess, hasAgentDevAccess, effectiveAt, ...restTenant } = tenant;
+
+  return {
+    ...restTenant,
+    hasAgentListingAccess:
+      typeof hasAgentListingAccess === "boolean"
+        ? hasAgentListingAccess
+        : typeof hasAgentDevAccess === "boolean"
+          ? hasAgentDevAccess
+          : false,
+    effectiveAt: effectiveAt ?? "",
+  };
+};
 
 /**
  * 从本地存储读取运营后台租户列表。
@@ -28,38 +49,15 @@ export const loadStoredOperationsTenants = (): OperationsTenant[] | null => {
     }
 
     const tenantItems = parsedValue.filter(
-      (item): item is OperationsTenant =>
+      (item): item is StoredOperationsTenant =>
         typeof item === "object" &&
         item !== null &&
         "id" in item &&
         "name" in item &&
-        "adminName" in item &&
-        "hasFdeAccess" in item,
+        "adminName" in item,
     );
 
-    const normalizedTenantItems = tenantItems.map(item =>
-      item.id === DEFAULT_MOCK_FDE_TENANT_ID && !item.hasFdeAccess
-        ? {
-            ...item,
-            hasFdeAccess: true,
-          }
-        : item,
-    );
-
-    const hasNormalized =
-      normalizedTenantItems.length === tenantItems.length &&
-      normalizedTenantItems.some(
-        (item, index) => item.id === DEFAULT_MOCK_FDE_TENANT_ID && item !== tenantItems[index],
-      );
-
-    if (hasNormalized) {
-      window.localStorage.setItem(
-        OPERATIONS_TENANTS_STORAGE_KEY,
-        JSON.stringify(normalizedTenantItems),
-      );
-    }
-
-    return normalizedTenantItems;
+    return tenantItems.map(normalizeStoredTenant);
   } catch {
     return null;
   }

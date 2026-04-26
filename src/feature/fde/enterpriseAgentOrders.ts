@@ -1,129 +1,129 @@
+import dayjs from "dayjs";
+
+import type { OperationsProductSubscriptionPlanKey } from "@/feature/operations/types";
+
 /**
- * 企业侧 AI 专家订单在本地原型中的持久化 key。
+ * AI 专家商品订单在原型中的持久化 key。
  */
 export const ENTERPRISE_AGENT_ORDER_STORAGE_KEY = "frontis.enterprise.agent.orders";
 
 export type EnterpriseAgentOrderType = "trial" | "purchase";
-export type EnterpriseAgentPaymentMethod = "bankTransfer" | "offlineContract";
-export type EnterpriseAgentOrderStatus =
-  | "awaitingReceipt"
-  | "reviewing"
-  | "awaitingActivation"
-  | "active"
-  | "rejected";
-export type EnterpriseAgentReceiptStatus =
-  | "notRequired"
-  | "notSubmitted"
-  | "submitted"
-  | "confirmed";
+export type EnterpriseAgentOrderStatus = "trialing" | "active" | "expired";
 
 /**
- * 企业侧 AI 专家订单记录。
+ * AI 专家商品订单记录。
  */
 export interface EnterpriseAgentOrderRecord {
   id: string;
-  agentId: number;
+  tenantId: string;
+  tenantName: string;
+  productId: string;
+  productName: string;
+  agentName: string;
   orderNo: string;
   orderType: EnterpriseAgentOrderType;
   status: EnterpriseAgentOrderStatus;
-  paymentMethod?: EnterpriseAgentPaymentMethod;
-  companyName: string;
-  contactName: string;
-  contactPhone: string;
-  createdAt: string;
+  amount: number;
   priceLabel: string;
-  remark?: string;
-  receiptStatus: EnterpriseAgentReceiptStatus;
-  receiptFileName?: string;
-  receiptSubmittedAt?: string;
-  reviewNote?: string;
+  subscriptionPlanKey?: OperationsProductSubscriptionPlanKey;
+  subscriptionPlanLabel?: string;
+  subscriptionDurationLabel?: string;
+  paymentChannelLabel: string;
+  purchaserName: string;
+  createdAt: string;
+  startsAt: string;
+  paidAt?: string;
   expiresAt?: string;
 }
+
+const PRESET_ENTERPRISE_AGENT_ORDERS: EnterpriseAgentOrderRecord[] = [
+  {
+    id: "enterprise-agent-order-personal-001",
+    tenantId: "tenant-personal-studio-demo",
+    tenantName: "李想的工作室",
+    productId: "ops-product-002",
+    productName: "对账核验标准版",
+    agentName: "客户对账核验助手",
+    orderNo: "EAO-20260421-001",
+    orderType: "purchase",
+    status: "active",
+    amount: 399,
+    priceLabel: "¥399",
+    subscriptionPlanKey: "month",
+    subscriptionPlanLabel: "包月",
+    subscriptionDurationLabel: "30天",
+    paymentChannelLabel: "统一扫码支付",
+    purchaserName: "李想",
+    createdAt: "2026-04-21 20:18",
+    startsAt: "2026-04-21 20:19",
+    paidAt: "2026-04-21 20:19",
+    expiresAt: "2026-05-21 23:59",
+  },
+];
 
 const normalizeEnterpriseAgentOrder = (
   order: EnterpriseAgentOrderRecord,
 ): EnterpriseAgentOrderRecord => {
-  if (order.orderType === "trial") {
-    return {
-      ...order,
-      paymentMethod: undefined,
-      receiptStatus: "notRequired",
-      receiptFileName: undefined,
-      receiptSubmittedAt: undefined,
-    };
-  }
-
-  if (order.status === "awaitingReceipt") {
-    return {
-      ...order,
-      paymentMethod: "bankTransfer",
-      receiptStatus: "notSubmitted",
-      receiptFileName: undefined,
-      receiptSubmittedAt: undefined,
-    };
-  }
-
-  if (order.status === "reviewing") {
-    return {
-      ...order,
-      paymentMethod: "bankTransfer",
-      receiptStatus: "submitted",
-    };
-  }
-
-  if (order.status === "awaitingActivation" || order.status === "active") {
-    return {
-      ...order,
-      paymentMethod: "bankTransfer",
-      receiptStatus: "confirmed",
-    };
-  }
+  const nextStatus =
+    order.orderType === "trial" &&
+    order.expiresAt &&
+    dayjs(order.expiresAt).isBefore(dayjs(), "minute")
+      ? "expired"
+      : order.status;
 
   return {
     ...order,
-    paymentMethod: "bankTransfer",
+    status: nextStatus,
   };
 };
 
+const isValidEnterpriseAgentOrder = (
+  value: unknown,
+): value is EnterpriseAgentOrderRecord =>
+  typeof value === "object" &&
+  value !== null &&
+  "id" in value &&
+  "tenantId" in value &&
+  "productId" in value &&
+  "orderNo" in value &&
+  "orderType" in value &&
+  "status" in value;
+
 /**
- * 从本地存储读取企业 AI 专家订单。
+ * 从本地存储读取 AI 专家商品订单。
  */
 export const loadEnterpriseAgentOrders = (): EnterpriseAgentOrderRecord[] => {
   if (typeof window === "undefined") {
-    return [];
+    return PRESET_ENTERPRISE_AGENT_ORDERS.map(normalizeEnterpriseAgentOrder);
   }
 
   try {
     const rawValue = window.localStorage.getItem(ENTERPRISE_AGENT_ORDER_STORAGE_KEY);
+    const storedOrders = !rawValue
+      ? []
+      : (() => {
+          const parsedValue = JSON.parse(rawValue) as unknown;
 
-    if (!rawValue) {
-      return [];
-    }
+          if (!Array.isArray(parsedValue)) {
+            return [];
+          }
 
-    const parsedValue = JSON.parse(rawValue) as unknown;
+          return parsedValue.filter(isValidEnterpriseAgentOrder);
+        })();
+    const mergedOrders = new Map<string, EnterpriseAgentOrderRecord>();
 
-    if (!Array.isArray(parsedValue)) {
-      return [];
-    }
+    [...PRESET_ENTERPRISE_AGENT_ORDERS, ...storedOrders].forEach(order => {
+      mergedOrders.set(order.id, normalizeEnterpriseAgentOrder(order));
+    });
 
-    return parsedValue
-      .filter(
-        (item): item is EnterpriseAgentOrderRecord =>
-          typeof item === "object" &&
-          item !== null &&
-          "id" in item &&
-          "agentId" in item &&
-          "orderNo" in item &&
-          "status" in item,
-      )
-      .map(normalizeEnterpriseAgentOrder);
+    return Array.from(mergedOrders.values());
   } catch {
-    return [];
+    return PRESET_ENTERPRISE_AGENT_ORDERS.map(normalizeEnterpriseAgentOrder);
   }
 };
 
 /**
- * 将企业 AI 专家订单写入本地存储。
+ * 将 AI 专家商品订单写入本地存储。
  */
 export const saveEnterpriseAgentOrders = (orders: EnterpriseAgentOrderRecord[]): void => {
   if (typeof window === "undefined") {

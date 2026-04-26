@@ -105,6 +105,18 @@
   background: color-mix(in srgb, var(--primary) 12%, transparent);
 }
 
+.navIconPlain {
+  background: transparent;
+}
+
+.navButtonActive .navIconPlain {
+  background: transparent;
+}
+
+.navAvatar {
+  background: color-mix(in srgb, var(--primary) 8%, var(--surface));
+}
+
 .navText {
   font-size: 12px;
   line-height: 18px;
@@ -170,14 +182,18 @@
 
 .navAccountButton {
   width: 100%;
-  padding: 12px 8px;
+  min-height: 42px;
+  padding: 6px 8px;
   border: 0;
-  border-radius: 20px;
-  background: color-mix(in srgb, var(--text) 3%, transparent);
+  border-radius: 14px;
+  background: transparent;
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 6px;
+  justify-content: flex-start;
+  gap: 8px;
+  min-width: 0;
+  text-align: left;
+  overflow: hidden;
   cursor: pointer;
   transition:
     background 160ms ease,
@@ -188,13 +204,20 @@
   }
 }
 
+.navAccountButtonOpen {
+  background: color-mix(in srgb, var(--text) 5%, transparent);
+}
+
 .navAccountName {
+  flex: 1;
+  min-width: 0;
   color: var(--text);
-  font-size: 12px;
-  line-height: 18px;
+  font-size: 11px;
+  line-height: 16px;
   font-weight: 600;
-  text-align: center;
-  word-break: break-word;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .accountCopy {

@@ -5,7 +5,8 @@ import { ArrowLeftOutlined } from "@ant-design/icons";
 import { Avatar, Button, Input, Modal, Select, message } from "antd";
 import { Navigate, useNavigate, useSearchParams } from "react-router-dom";
 
-import { MOCK_AUTH_ACCOUNTS, getTenantCount, getTenantEntries } from "@/feature/auth/mockAccounts";
+import { PRODUCT_LOGO_TEXT, PRODUCT_NAME, PRODUCT_SLOGAN } from "@/constants/brand";
+import { getTenantCount, getTenantEntries } from "@/feature/auth/mockAccounts";
 import { useMockAuth } from "@/feature/auth/hooks/useMockAuth";
 import type { MockAuthAccount, MockAuthTenantEntry } from "@/feature/auth/types";
 
@@ -14,7 +15,7 @@ import styles from "./MockLoginView.module.less";
 const getTenantLogoText = (tenantName: string): string => {
   const normalizedTenantName = tenantName.replace(/租户|服务组织/g, "").trim();
 
-  return Array.from(normalizedTenantName)[0] ?? "企";
+  return Array.from(normalizedTenantName)[0] ?? "租";
 };
 
 /**
@@ -27,7 +28,9 @@ export const MockLoginView = (): JSX.Element => {
     activateTenant,
     activeIdentity,
     login,
+    mockAccounts,
     logout,
+    register,
     resolveSessionPath,
     sendVerificationCode,
     session,
@@ -37,6 +40,14 @@ export const MockLoginView = (): JSX.Element => {
   const [countdown, setCountdown] = useState<number>(0);
   const [sentPhone, setSentPhone] = useState<string>("");
   const [selectedAccountId, setSelectedAccountId] = useState<string>();
+  const [isRegisterModalOpen, setIsRegisterModalOpen] = useState<boolean>(false);
+  const [registerName, setRegisterName] = useState<string>("");
+  const [registerTenantName, setRegisterTenantName] = useState<string>("");
+  const [registerPhone, setRegisterPhone] = useState<string>("");
+  const [registerCode, setRegisterCode] = useState<string>("");
+  const [registerCountdown, setRegisterCountdown] = useState<number>(0);
+  const [sentRegisterPhone, setSentRegisterPhone] = useState<string>("");
+  const [registerRedirectPath, setRegisterRedirectPath] = useState<string | null>(null);
 
   const redirectPath = useMemo(() => {
     const targetPath = searchParams.get("redirect")?.trim();
@@ -60,9 +71,21 @@ export const MockLoginView = (): JSX.Element => {
     return () => window.clearTimeout(timer);
   }, [countdown]);
 
+  useEffect(() => {
+    if (registerCountdown <= 0) {
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      setRegisterCountdown(current => current - 1);
+    }, 1000);
+
+    return () => window.clearTimeout(timer);
+  }, [registerCountdown]);
+
   const selectedAccount = useMemo<MockAuthAccount | null>(
-    () => MOCK_AUTH_ACCOUNTS.find(item => item.accountId === selectedAccountId) ?? null,
-    [selectedAccountId],
+    () => mockAccounts.find(item => item.accountId === selectedAccountId) ?? null,
+    [mockAccounts, selectedAccountId],
   );
   const tenantEntries = useMemo<MockAuthTenantEntry[]>(() => {
     if (!session || activeIdentity) {
@@ -107,7 +130,7 @@ export const MockLoginView = (): JSX.Element => {
       return;
     }
 
-    const result = sendVerificationCode(phoneValue);
+    const result = sendVerificationCode(phoneValue, "login");
 
     if (!result.success) {
       message.warning(result.message);
@@ -150,35 +173,44 @@ export const MockLoginView = (): JSX.Element => {
     [login, navigate, phoneValue, redirectPath, sentPhone, verificationCodeValue],
   );
 
-  const handlePresetAccountChange = useCallback((accountId: string): void => {
-    const matchedAccount = MOCK_AUTH_ACCOUNTS.find(item => item.accountId === accountId);
+  const handlePresetAccountChange = useCallback(
+    (accountId: string): void => {
+      const matchedAccount = mockAccounts.find(item => item.accountId === accountId);
 
-    if (!matchedAccount) {
-      return;
-    }
+      if (!matchedAccount) {
+        return;
+      }
 
-    setSelectedAccountId(accountId);
-    setPhoneValue(matchedAccount.phone);
-    setVerificationCodeValue(matchedAccount.verificationCode);
-    setSentPhone(matchedAccount.phone);
-    setCountdown(0);
-  }, []);
+      setSelectedAccountId(accountId);
+      setPhoneValue(matchedAccount.phone);
+      setVerificationCodeValue(matchedAccount.verificationCode);
+      setSentPhone(matchedAccount.phone);
+      setCountdown(0);
+    },
+    [mockAccounts],
+  );
 
-  const handlePhoneChange = useCallback((nextValue: string): void => {
-    setPhoneValue(nextValue);
+  const handlePhoneChange = useCallback(
+    (nextValue: string): void => {
+      setPhoneValue(nextValue);
 
-    if (selectedAccount && nextValue !== selectedAccount.phone) {
-      setSelectedAccountId(undefined);
-    }
-  }, [selectedAccount]);
+      if (selectedAccount && nextValue !== selectedAccount.phone) {
+        setSelectedAccountId(undefined);
+      }
+    },
+    [selectedAccount],
+  );
 
-  const handleVerificationCodeChange = useCallback((nextValue: string): void => {
-    setVerificationCodeValue(nextValue);
+  const handleVerificationCodeChange = useCallback(
+    (nextValue: string): void => {
+      setVerificationCodeValue(nextValue);
 
-    if (selectedAccount && nextValue !== selectedAccount.verificationCode) {
-      setSelectedAccountId(undefined);
-    }
-  }, [selectedAccount]);
+      if (selectedAccount && nextValue !== selectedAccount.verificationCode) {
+        setSelectedAccountId(undefined);
+      }
+    },
+    [selectedAccount],
+  );
 
   const selectedAccountTenantCount = useMemo<number>(() => {
     if (!selectedAccount) {
@@ -194,7 +226,7 @@ export const MockLoginView = (): JSX.Element => {
     }
 
     if (selectedAccountTenantCount > 1) {
-      return "当前预置账号登录后会弹出企业选择框，请先选择本次要进入的企业。";
+      return "当前预置账号登录后会弹出租户选择框，请先选择本次要进入的租户。";
     }
 
     return "当前预置账号会在点击左侧登录后直接进入默认系统，其他有权限的系统入口会在产品内展示。";
@@ -202,15 +234,77 @@ export const MockLoginView = (): JSX.Element => {
 
   const presetOptions = useMemo(
     () =>
-      MOCK_AUTH_ACCOUNTS.map(account => ({
+      mockAccounts.map(account => ({
         label: `${account.roleLabel} · ${account.name}`,
         value: account.accountId,
       })),
-    [],
+    [mockAccounts],
   );
 
+  const handleOpenRegisterModal = useCallback((): void => {
+    setIsRegisterModalOpen(true);
+  }, []);
+
+  const handleCloseRegisterModal = useCallback((): void => {
+    setIsRegisterModalOpen(false);
+    setRegisterName("");
+    setRegisterTenantName("");
+    setRegisterPhone("");
+    setRegisterCode("");
+    setRegisterCountdown(0);
+    setSentRegisterPhone("");
+  }, []);
+
+  const handleSendRegisterCode = useCallback((): void => {
+    if (registerCountdown > 0) {
+      return;
+    }
+
+    const result = sendVerificationCode(registerPhone, "register");
+
+    if (!result.success) {
+      message.warning(result.message);
+      return;
+    }
+
+    setSentRegisterPhone(registerPhone.trim());
+    setRegisterCountdown(60);
+    message.success("注册验证码已发送，请注意查收。");
+  }, [registerCountdown, registerPhone, sendVerificationCode]);
+
+  const handleSubmitRegister = useCallback((): void => {
+    if (sentRegisterPhone !== registerPhone.trim()) {
+      message.warning("请先获取验证码。");
+      return;
+    }
+
+    const result = register({
+      name: registerName,
+      phone: registerPhone,
+      tenantName: registerTenantName,
+      verificationCode: registerCode,
+    });
+
+    if (!result.success) {
+      message.error(result.message);
+      return;
+    }
+
+    message.success(result.message);
+    setRegisterRedirectPath(result.redirectPath ?? "/web/admin/workspace/agent-store");
+    handleCloseRegisterModal();
+  }, [
+    handleCloseRegisterModal,
+    register,
+    registerCode,
+    registerName,
+    registerPhone,
+    registerTenantName,
+    sentRegisterPhone,
+  ]);
+
   if (session && !shouldShowTenantSelectionModal) {
-    return <Navigate replace to={resolveSessionPath(session, redirectPath)} />;
+    return <Navigate replace to={registerRedirectPath ?? resolveSessionPath(session, redirectPath)} />;
   }
 
   return (
@@ -224,10 +318,10 @@ export const MockLoginView = (): JSX.Element => {
 
       <div className={styles.shell}>
         <div className={styles.brandBlock}>
-          <div className={styles.brandMark}>F</div>
+          <div className={styles.brandMark}>{PRODUCT_LOGO_TEXT}</div>
           <div className={styles.brandCopy}>
-            <p className={styles.brandTitle}>Frontis AI</p>
-            <p className={styles.brandSubtitle}>企业 AI 员工工作台</p>
+            <p className={styles.brandTitle}>{PRODUCT_NAME}</p>
+            <p className={styles.brandSubtitle}>{PRODUCT_SLOGAN}</p>
           </div>
         </div>
 
@@ -238,7 +332,7 @@ export const MockLoginView = (): JSX.Element => {
                 <span className={styles.formEyebrow}>验证码登录</span>
                 <h1 className={styles.formTitle}>欢迎登录</h1>
                 <p className={styles.formDescription}>
-                  输入已开通手机号并完成验证码校验后进入 Frontis AI；多租户账号会在登录后弹出企业选择框。
+                  {`输入手机号并完成验证码校验后进入${PRODUCT_NAME}；多租户账号会在登录后弹出租户选择框。`}
                 </p>
               </div>
 
@@ -274,11 +368,7 @@ export const MockLoginView = (): JSX.Element => {
                       value={verificationCodeValue}
                       onChange={event => handleVerificationCodeChange(event.target.value.replace(/\D/g, "").slice(0, 6))}
                     />
-                    <Button
-                      size="large"
-                      onClick={handleSendVerificationCode}
-                      disabled={countdown > 0}
-                    >
+                    <Button size="large" onClick={handleSendVerificationCode} disabled={countdown > 0}>
                       {countdown > 0 ? `${countdown}s后重试` : "获取验证码"}
                     </Button>
                   </div>
@@ -297,7 +387,14 @@ export const MockLoginView = (): JSX.Element => {
 
               <div className={styles.noticePanel}>
                 <p className={styles.noticeTitle}>登录说明</p>
-                <p className={styles.noticeText}>登录即代表你同意平台服务协议与隐私政策。</p>
+                <p className={styles.noticeText}>
+                  登录即代表你同意平台服务协议与隐私政策。还没有租户时，可直接自注册并创建 1 席个人版租户。
+                </p>
+                <div className={styles.noticeActions}>
+                  <Button type="link" onClick={handleOpenRegisterModal}>
+                    自注册创建租户
+                  </Button>
+                </div>
               </div>
             </div>
 
@@ -305,7 +402,7 @@ export const MockLoginView = (): JSX.Element => {
               <div className={styles.quickLoginSection}>
                 <p className={styles.quickLoginTitle}>模拟账号填充</p>
                 <p className={styles.quickLoginDescription}>
-                  选择预置账号后，系统会自动填充手机号和验证码；多租户账号登录后会弹出企业选择框。
+                  选择预置账号后，系统会自动填充手机号和验证码；多租户账号登录后会弹出租户选择框。
                 </p>
                 <div className={styles.selectorBlock}>
                   <span className={styles.selectorLabel}>选择预置账号</span>
@@ -350,7 +447,7 @@ export const MockLoginView = (): JSX.Element => {
 
       <Modal
         open={shouldShowTenantSelectionModal}
-        title="选择进入企业"
+        title="选择进入租户"
         onCancel={handleCloseTenantSelection}
         footer={[
           <Button key="logout" onClick={handleLogout}>
@@ -362,7 +459,7 @@ export const MockLoginView = (): JSX.Element => {
       >
         <div className={styles.tenantSelection}>
           <p className={styles.tenantSelectionHint}>
-            {session?.name} 已登录，请选择本次进入的企业。
+            {session?.name} 已登录，请选择本次进入的租户。
           </p>
 
           <div className={styles.tenantList}>
@@ -379,6 +476,91 @@ export const MockLoginView = (): JSX.Element => {
                 <span className={styles.tenantName}>{tenant.tenantName}</span>
               </button>
             ))}
+          </div>
+        </div>
+      </Modal>
+
+      <Modal
+        open={isRegisterModalOpen}
+        title="自注册创建租户"
+        okText="完成注册"
+        cancelText="取消"
+        onCancel={handleCloseRegisterModal}
+        onOk={handleSubmitRegister}
+        okButtonProps={{
+          disabled:
+            !registerName.trim() ||
+            !registerTenantName.trim() ||
+            !registerPhone.trim() ||
+            registerCode.trim().length !== 6,
+        }}
+      >
+        <div className={styles.registerPanel}>
+          <p className={styles.registerDescription}>
+            完成注册后，系统会自动为你创建 1 席个人版租户，可在管理后台后续开通团队版。
+          </p>
+
+          <div className={styles.fieldGroup}>
+            <label className={styles.fieldLabel} htmlFor="mock-register-name">
+              你的姓名
+            </label>
+            <Input
+              id="mock-register-name"
+              placeholder="请输入姓名"
+              size="large"
+              value={registerName}
+              onChange={event => setRegisterName(event.target.value)}
+            />
+          </div>
+
+          <div className={styles.fieldGroup}>
+            <label className={styles.fieldLabel} htmlFor="mock-register-tenant">
+              租户名称
+            </label>
+            <Input
+              id="mock-register-tenant"
+              placeholder="例如：李想的工作室"
+              size="large"
+              value={registerTenantName}
+              onChange={event => setRegisterTenantName(event.target.value)}
+            />
+          </div>
+
+          <div className={styles.fieldGroup}>
+            <label className={styles.fieldLabel} htmlFor="mock-register-phone">
+              手机号
+            </label>
+            <Input
+              id="mock-register-phone"
+              autoComplete="tel"
+              inputMode="numeric"
+              maxLength={11}
+              placeholder="请输入手机号"
+              size="large"
+              value={registerPhone}
+              onChange={event => setRegisterPhone(event.target.value.replace(/\D/g, "").slice(0, 11))}
+            />
+          </div>
+
+          <div className={styles.fieldGroup}>
+            <label className={styles.fieldLabel} htmlFor="mock-register-code">
+              验证码
+            </label>
+            <div className={styles.codeRow}>
+              <Input
+                id="mock-register-code"
+                autoComplete="one-time-code"
+                inputMode="numeric"
+                maxLength={6}
+                placeholder="请输入 6 位验证码"
+                size="large"
+                value={registerCode}
+                onChange={event => setRegisterCode(event.target.value.replace(/\D/g, "").slice(0, 6))}
+              />
+              <Button size="large" onClick={handleSendRegisterCode} disabled={registerCountdown > 0}>
+                {registerCountdown > 0 ? `${registerCountdown}s后重试` : "获取验证码"}
+              </Button>
+            </div>
           </div>
         </div>
       </Modal>

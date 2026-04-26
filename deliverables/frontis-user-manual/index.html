@@ -1,0 +1,1880 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Frontis AI 用户使用手册｜V0.5</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #f7f8fb;
+        --surface: #ffffff;
+        --surface-soft: #f3f6fb;
+        --ink: #172033;
+        --muted: #56627a;
+        --quiet: #8a94a7;
+        --line: #dfe5ef;
+        --line-strong: #c8d2e2;
+        --primary: #235ecf;
+        --primary-soft: #edf3ff;
+        --accent: #0f766e;
+        --warning: #946200;
+        --content: 960px;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
+      body {
+        margin: 0;
+        font-family:
+          Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+          "PingFang SC", "Microsoft YaHei", sans-serif;
+        color: var(--ink);
+        background: var(--bg);
+        letter-spacing: 0;
+      }
+
+      a {
+        color: inherit;
+        text-decoration: none;
+      }
+
+      img {
+        display: block;
+        max-width: 100%;
+      }
+
+      .page {
+        min-height: 100vh;
+      }
+
+      .hero {
+        padding: 52px 32px 40px;
+        color: var(--ink);
+        background: var(--surface);
+        border-bottom: 1px solid var(--line);
+      }
+
+      .heroInner {
+        width: min(1180px, 100%);
+        margin: 0 auto;
+      }
+
+      .eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 16px;
+        padding: 6px 10px;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        background: var(--surface-soft);
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 700;
+      }
+
+      h1 {
+        max-width: 820px;
+        margin: 0;
+        font-size: clamp(36px, 5vw, 62px);
+        line-height: 1.05;
+        letter-spacing: 0;
+      }
+
+      .heroLead {
+        max-width: 820px;
+        margin: 20px 0 0;
+        color: var(--muted);
+        font-size: 18px;
+        line-height: 1.76;
+      }
+
+      .heroMeta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 24px;
+      }
+
+      .metaPill {
+        padding: 8px 12px;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        background: #ffffff;
+        color: var(--muted);
+        font-size: 13px;
+        font-weight: 700;
+      }
+
+      .layout {
+        display: grid;
+        grid-template-columns: 224px minmax(0, var(--content));
+        gap: 56px;
+        width: min(1240px, calc(100% - 48px));
+        margin: 36px auto 72px;
+        align-items: start;
+      }
+
+      .sideNav {
+        position: sticky;
+        top: 24px;
+        align-self: start;
+        max-height: calc(100vh - 48px);
+        overflow: auto;
+        padding: 4px 0 0 0;
+        border-right: 1px solid var(--line);
+      }
+
+      .sideNav strong {
+        display: block;
+        margin: 0 0 12px;
+        font-size: 12px;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: var(--quiet);
+      }
+
+      .sideNav a {
+        display: block;
+        padding: 8px 14px 8px 0;
+        border-right: 2px solid transparent;
+        color: var(--muted);
+        font-size: 14px;
+        font-weight: 600;
+      }
+
+      .sideNav a:hover {
+        color: var(--primary);
+        border-right-color: var(--primary);
+      }
+
+      .navGroup {
+        margin: 0 0 4px;
+      }
+
+      .navParent {
+        font-weight: 800;
+      }
+
+      .navSub {
+        margin: 0 0 6px 10px;
+        padding-left: 12px;
+        border-left: 1px solid var(--line);
+      }
+
+      .navSub a {
+        padding: 5px 14px 5px 0;
+        color: var(--quiet);
+        font-size: 12px;
+        font-weight: 600;
+        line-height: 1.35;
+      }
+
+      .content {
+        display: grid;
+        gap: 0;
+        background: transparent;
+      }
+
+      .section {
+        padding: 42px 44px;
+        border-bottom: 1px solid var(--line);
+        background: var(--surface);
+      }
+
+      .section:last-child {
+        border-bottom: 0;
+      }
+
+      .sectionHeader {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 18px;
+        align-items: start;
+        margin-bottom: 28px;
+      }
+
+      h2,
+      h3,
+      h4 {
+        margin: 0;
+        letter-spacing: 0;
+      }
+
+      h2 {
+        font-size: 30px;
+        line-height: 1.2;
+      }
+
+      h3 {
+        font-size: 18px;
+        line-height: 1.35;
+      }
+
+      h4 {
+        font-size: 16px;
+      }
+
+      .sectionIntro {
+        max-width: 760px;
+        margin: 12px 0 0;
+        color: var(--muted);
+        line-height: 1.78;
+      }
+
+      .roleBadge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: auto;
+        padding: 6px 10px;
+        border-radius: 999px;
+        color: var(--primary);
+        background: var(--primary-soft);
+        font-size: 12px;
+        font-weight: 800;
+      }
+
+      .grid3,
+      .grid2 {
+        display: grid;
+        gap: 0;
+      }
+
+      .grid3 {
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        border-top: 1px solid var(--line);
+        border-bottom: 1px solid var(--line);
+      }
+
+      .grid2 {
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 24px;
+      }
+
+      .card {
+        padding: 24px 22px;
+        border-right: 1px solid var(--line);
+        background: transparent;
+      }
+
+      .card:last-child {
+        border-right: 0;
+      }
+
+      .card h3,
+      .card h4 {
+        margin-bottom: 8px;
+      }
+
+      .card p {
+        margin: 0;
+        color: var(--muted);
+        line-height: 1.7;
+      }
+
+      .number {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 28px;
+        height: 28px;
+        margin-bottom: 12px;
+        border-radius: 50%;
+        color: var(--primary);
+        background: var(--primary-soft);
+        font-size: 13px;
+        font-weight: 800;
+      }
+
+      .flow {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: 0;
+        margin: 4px 0 34px;
+        border-top: 1px solid var(--line-strong);
+      }
+
+      .flowItem {
+        position: relative;
+        min-height: 112px;
+        padding: 22px 16px 0 0;
+        background: transparent;
+      }
+
+      .flowItem::after {
+        content: "";
+        position: absolute;
+        top: -5px;
+        left: 0;
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+        background: var(--primary);
+      }
+
+      .flowItem strong {
+        display: block;
+        margin-bottom: 8px;
+        font-size: 15px;
+      }
+
+      .flowItem span {
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.6;
+      }
+
+      .screenshot {
+        overflow: hidden;
+        margin-top: 24px;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: #ffffff;
+      }
+
+      .screenshot img {
+        width: 100%;
+        aspect-ratio: 16 / 9;
+        object-fit: cover;
+        object-position: top left;
+      }
+
+      .screenshotFull img {
+        height: auto;
+        aspect-ratio: auto;
+        object-fit: contain;
+      }
+
+      .caption {
+        display: flex;
+        justify-content: space-between;
+        gap: 14px;
+        padding: 12px 14px;
+        color: var(--muted);
+        background: #f8fafd;
+        border-top: 1px solid var(--line);
+        font-size: 13px;
+        line-height: 1.55;
+      }
+
+      .caption span:last-child {
+        color: var(--quiet);
+        white-space: nowrap;
+      }
+
+      .callout {
+        margin-top: 24px;
+        padding: 16px 18px;
+        border-left: 3px solid var(--accent);
+        background: #f0fdfa;
+      }
+
+      .callout.warning {
+        border-left-color: var(--warning);
+        background: #fffbeb;
+      }
+
+      .callout p {
+        margin: 0;
+        color: #315b55;
+        line-height: 1.74;
+      }
+
+      .callout.warning p {
+        color: #674d26;
+      }
+
+      .steps {
+        display: grid;
+        gap: 0;
+        margin: 22px 0 0;
+        padding: 0;
+        list-style: none;
+        border-top: 1px solid var(--line);
+      }
+
+      .steps li {
+        display: grid;
+        grid-template-columns: 34px minmax(0, 1fr);
+        gap: 12px;
+        align-items: start;
+        padding: 16px 0;
+        border-bottom: 1px solid var(--line);
+        background: transparent;
+      }
+
+      .steps b {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        color: var(--primary);
+        background: var(--primary-soft);
+        font-size: 13px;
+      }
+
+      .steps strong {
+        display: block;
+        margin-bottom: 5px;
+      }
+
+      .steps span {
+        display: block;
+        color: var(--muted);
+        line-height: 1.65;
+      }
+
+      .table {
+        overflow: hidden;
+        margin-top: 18px;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        background: #ffffff;
+      }
+
+      th,
+      td {
+        padding: 14px 16px;
+        border-bottom: 1px solid var(--line);
+        text-align: left;
+        vertical-align: top;
+        line-height: 1.55;
+      }
+
+      th {
+        color: var(--ink);
+        background: #f8fafd;
+        font-size: 13px;
+      }
+
+      td {
+        color: var(--muted);
+        font-size: 14px;
+      }
+
+      tr:last-child td {
+        border-bottom: 0;
+      }
+
+      .tagList {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 14px;
+      }
+
+      .tag {
+        padding: 5px 8px;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        color: var(--muted);
+        background: #ffffff;
+        font-size: 12px;
+        font-weight: 700;
+      }
+
+      .docBlock {
+        scroll-margin-top: 28px;
+      }
+
+      .docBlock h3 {
+        scroll-margin-top: 28px;
+        margin-top: 38px;
+        padding-top: 4px;
+        font-size: 24px;
+      }
+
+      .docBlock h4 {
+        scroll-margin-top: 28px;
+        margin-top: 24px;
+        font-size: 17px;
+      }
+
+      .docBlock p {
+        margin: 10px 0 0;
+        color: var(--muted);
+        line-height: 1.78;
+      }
+
+      .docToc {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 0;
+        margin-top: 22px;
+        border-top: 1px solid var(--line);
+        border-bottom: 1px solid var(--line);
+      }
+
+      .docToc a {
+        padding: 12px 14px;
+        border-right: 1px solid var(--line);
+        border-bottom: 1px solid var(--line);
+        color: var(--muted);
+        font-size: 13px;
+        font-weight: 700;
+        line-height: 1.45;
+      }
+
+      .docToc a:hover {
+        color: var(--primary);
+        background: var(--primary-soft);
+      }
+
+      .codeSample {
+        margin: 14px 0 0;
+        padding: 16px;
+        overflow: auto;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: #f8fafd;
+        color: var(--ink);
+        font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+        font-size: 13px;
+        line-height: 1.65;
+      }
+
+      .noteList {
+        margin: 12px 0 0;
+        padding-left: 20px;
+        color: var(--muted);
+        line-height: 1.75;
+      }
+
+      .footer {
+        width: min(1240px, calc(100% - 40px));
+        margin: 0 auto 46px;
+        color: var(--quiet);
+        font-size: 13px;
+        line-height: 1.7;
+      }
+
+      @media (max-width: 980px) {
+        .layout {
+          grid-template-columns: 1fr;
+          gap: 24px;
+        }
+
+        .sideNav {
+          position: relative;
+          top: auto;
+          border-right: 0;
+          border-bottom: 1px solid var(--line);
+          padding-bottom: 12px;
+        }
+
+        .grid3,
+        .grid2,
+        .flow {
+          grid-template-columns: 1fr;
+        }
+
+        .card {
+          border-right: 0;
+          border-bottom: 1px solid var(--line);
+        }
+
+        .card:last-child {
+          border-bottom: 0;
+        }
+
+        .sectionHeader {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      @media (max-width: 640px) {
+        .hero {
+          padding: 40px 20px 28px;
+        }
+
+        .layout,
+        .footer {
+          width: min(100% - 24px, 1240px);
+        }
+
+        .section {
+          padding: 28px 20px;
+        }
+
+        .caption {
+          display: block;
+        }
+
+        .caption span:last-child {
+          display: block;
+          margin-top: 4px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="page">
+      <section class="hero">
+        <div class="heroInner">
+          <div class="eyebrow">Frontis AI · 使用指南 · V0.5</div>
+          <h1>Frontis AI 使用指南</h1>
+          <p class="heroLead">
+            本指南按照用户实际使用路径整理：使用手机号验证码登录；如果账号加入了多个组织，
+            需要选择本次进入的组织；进入组织后，系统会根据账号权限展示可用入口。
+          </p>
+          <div class="heroMeta">
+            <span class="metaPill">版本：V0.5</span>
+            <span class="metaPill">员工使用：AI专家协作系统</span>
+            <span class="metaPill">企业管理：企业管理台</span>
+            <span class="metaPill">平台运营：运营管理系统</span>
+          </div>
+        </div>
+      </section>
+
+      <div class="layout">
+        <nav class="sideNav" aria-label="手册导航">
+          <strong>目录</strong>
+          <div class="navGroup">
+            <a class="navParent" href="#overview">登录与入口选择</a>
+            <div class="navSub">
+              <a href="#overview">手机号登录</a>
+              <a href="#overview">选择组织</a>
+              <a href="#overview">选择系统入口</a>
+            </div>
+          </div>
+          <div class="navGroup">
+            <a class="navParent" href="#employee">使用 AI 专家</a>
+            <div class="navSub">
+              <a href="#employee">专家工作台</a>
+              <a href="#employee">专家广场</a>
+              <a href="#evolution">进化实验室</a>
+            </div>
+          </div>
+          <div class="navGroup">
+            <a class="navParent" href="#evolution">进化实验室</a>
+            <div class="navSub">
+              <a href="#evolution-position">一、产品定位</a>
+              <a href="#evolution-layout">二、整体布局</a>
+              <a href="#evolution-left">三、任务侧边栏</a>
+              <a href="#evolution-middle">四、对话画布</a>
+              <a href="#evolution-right">五、Agent 面板</a>
+              <a href="#evolution-feature">六、进化功能详解</a>
+              <a href="#evolution-version">6.5 进化版本管理</a>
+              <a href="#evolution-report">6.6 评测报告</a>
+              <a href="#evolution-core">七、核心功能</a>
+              <a href="#evolution-test">7.1 测试</a>
+              <a href="#evolution-try">7.2 试用</a>
+              <a href="#evolution-publish">7.3 发布上架</a>
+              <a href="#evolution-lifecycle">八、生命周期</a>
+              <a href="#evolution-performance">九、性能及其他</a>
+            </div>
+          </div>
+          <div class="navGroup">
+            <a class="navParent" href="#admin">企业管理</a>
+            <div class="navSub">
+              <a href="#admin">AI专家管理</a>
+              <a href="#admin">组织管理</a>
+            </div>
+          </div>
+          <div class="navGroup">
+            <a class="navParent" href="#ops">平台运营</a>
+            <div class="navSub">
+              <a href="#ops">租户管理</a>
+              <a href="#ops">上架审批</a>
+              <a href="#ops">广场运营</a>
+            </div>
+          </div>
+          <div class="navGroup">
+            <a class="navParent" href="#rules">常见说明</a>
+            <a class="navParent" href="#checklist">快速检查</a>
+          </div>
+        </nav>
+
+        <div class="content">
+          <section class="section" id="overview">
+            <div class="sectionHeader">
+              <div>
+                <h2>登录与入口选择</h2>
+                <p class="sectionIntro">
+                  完成登录和组织选择后，系统会根据当前账号在该组织下的权限，
+                  展示可进入的系统入口。
+                </p>
+              </div>
+              <span class="roleBadge">用户旅程</span>
+            </div>
+
+            <div class="flow">
+              <div class="flowItem">
+                <strong>手机号登录</strong>
+                <span>输入手机号，获取验证码并完成登录。</span>
+              </div>
+              <div class="flowItem">
+                <strong>选择组织</strong>
+                <span>如果账号属于多个组织，选择本次要进入的组织。</span>
+              </div>
+              <div class="flowItem">
+                <strong>选择系统入口</strong>
+                <span>系统根据当前组织和账号权限展示可进入的系统。</span>
+              </div>
+              <div class="flowItem">
+                <strong>进入系统</strong>
+                <span>进入 AI专家协作系统、企业管理台或运营管理系统。</span>
+              </div>
+              <div class="flowItem">
+                <strong>开始使用</strong>
+                <span>按对应系统的功能说明完成日常使用或管理操作。</span>
+              </div>
+            </div>
+
+            <div class="grid3">
+              <article class="card cardSoft">
+                <span class="number">1</span>
+                <h3>AI专家协作系统</h3>
+                <p>
+                  面向日常使用场景。进入后可使用专家工作台、专家广场、技能中心和进化实验室。
+                </p>
+                <div class="tagList">
+                  <span class="tag">专家工作台</span>
+                  <span class="tag">专家广场</span>
+                  <span class="tag">技能中心</span>
+                  <span class="tag">进化实验室</span>
+                </div>
+              </article>
+              <article class="card cardSoft">
+                <span class="number">2</span>
+                <h3>企业管理台</h3>
+                <p>
+                  面向企业管理员。用于查看企业内 AI 专家并维护组织成员。
+                  可从用户工作台左下角用户菜单进入。
+                </p>
+                <div class="tagList">
+                  <span class="tag">AI专家管理</span>
+                  <span class="tag">组织管理</span>
+                </div>
+              </article>
+              <article class="card cardSoft">
+                <span class="number">3</span>
+                <h3>运营管理系统</h3>
+                <p>
+                  面向平台运营人员。用于管理企业账号、处理 AI 专家上架申请，
+                  并维护平台专家广场展示。
+                </p>
+                <div class="tagList">
+                  <span class="tag">租户管理</span>
+                  <span class="tag">上架审批</span>
+                  <span class="tag">广场运营</span>
+                </div>
+              </article>
+            </div>
+          </section>
+
+          <section class="section" id="employee">
+            <div class="sectionHeader">
+              <div>
+                <h2>使用 AI 专家</h2>
+                <p class="sectionIntro">
+                  进入 AI专家协作系统后，默认从专家工作台开始使用。页面默认选中 MA，适合处理综合类任务；
+                  如需特定领域能力，可通过左上角当前专家区域切换到其他 AI 专家。
+                </p>
+              </div>
+              <span class="roleBadge">Chrome · 用户工作台</span>
+            </div>
+
+            <div class="screenshot">
+              <img src="assets/workspace-metaagent.png" alt="用户工作台专家工作台截图" />
+              <div class="caption">
+                <span>专家工作台：默认选中 MA。可通过左上角当前专家区域切换专家，并在右侧成果列表查看生成内容。</span>
+                <span>关键截图</span>
+              </div>
+            </div>
+
+            <div class="grid3">
+              <article class="card">
+                <h3>MA 默认入口</h3>
+                <p>
+                  MA 是专家工作台的默认入口，适合需求拆解、信息整理、任务规划和综合答复。
+                </p>
+              </article>
+              <article class="card">
+                <h3>切换 AI 专家</h3>
+                <p>
+                  点击左上角当前专家区域，可查看已添加的 AI 专家。选择专家后，当前对话会切换到对应专家。
+                </p>
+              </article>
+              <article class="card">
+                <h3>查看成果列表</h3>
+                <p>
+                  AI 专家生成的文档、方案、表格等内容，会集中展示在右侧成果列表中，便于后续查看和继续处理。
+                </p>
+              </article>
+            </div>
+
+            <ol class="steps">
+              <li>
+                <b>1</b>
+                <div>
+                  <strong>登录并选择组织</strong>
+                  <span>登录并选择组织后，进入 AI专家协作系统。左侧菜单可进入专家工作台、专家广场、技能中心和进化实验室。</span>
+                </div>
+              </li>
+              <li>
+                <b>2</b>
+                <div>
+                  <strong>使用 MA 发起对话</strong>
+                  <span>在输入框输入任务或问题，MA 会根据内容给出回答或处理建议。</span>
+                </div>
+              </li>
+              <li>
+                <b>3</b>
+                <div>
+                  <strong>按任务切换专家</strong>
+                  <span>如果任务属于招聘、财务、招标、销售等明确场景，可从左上角当前专家区域切换到对应 AI 专家。</span>
+                </div>
+              </li>
+              <li>
+                <b>4</b>
+                <div>
+                  <strong>在专家广场添加专家</strong>
+                  <span>可通过搜索或分类浏览查找专家，进入详情页确认能力后添加到工作区。</span>
+                </div>
+              </li>
+              <li>
+                <b>5</b>
+                <div>
+                  <strong>在进化实验室创建专家</strong>
+                  <span>如需创建或更新 AI 专家、技能，可进入进化实验室操作。</span>
+                </div>
+              </li>
+            </ol>
+
+            <div class="grid2">
+              <div class="screenshot">
+                <img src="assets/workspace-agent-plaza.png" alt="AI专家广场截图" />
+                <div class="caption">
+                  <span>专家广场：浏览、搜索并添加可用 AI 专家。</span>
+                  <span>添加专家</span>
+                </div>
+              </div>
+              <div class="screenshot">
+                <img src="assets/workspace-agent-detail.png" alt="AI专家详情截图" />
+                <div class="caption">
+                  <span>专家详情：查看专家能力、关联技能、版本信息和运营数据。</span>
+                  <span>详情弹窗</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="screenshot">
+              <img src="assets/workspace-evolution-lab.png" alt="进化实验室截图" />
+              <div class="caption">
+                <span>进化实验室：创建、更新和发布 AI 专家或技能。</span>
+                <span>开发入口</span>
+              </div>
+            </div>
+
+            <div class="docBlock" id="evolution">
+              <div class="sectionHeader" style="margin-top: 42px">
+                <div>
+                  <h3>进化实验室：Agent 工作空间功能说明</h3>
+                  <p class="sectionIntro">
+                    以下内容按照《Agent 工作空间产品功能说明》整理。进化实验室用于调研、构建、测试、
+                    发布和进化单个 Agent，每个 Workspace 对应一个 Agent 的全生命周期管理空间。
+                  </p>
+                </div>
+                <span class="roleBadge">V2.0 · 2026-04-26</span>
+              </div>
+
+              <div class="docToc" aria-label="Agent 工作空间目录">
+                <a href="#evolution-position">一、产品定位</a>
+                <a href="#evolution-layout">二、整体布局</a>
+                <a href="#evolution-left">三、左栏：任务侧边栏</a>
+                <a href="#evolution-middle">四、中栏：MetaAgent 对话画布</a>
+                <a href="#evolution-right">五、右栏：Agent 面板</a>
+                <a href="#evolution-feature">六、进化功能详解</a>
+                <a href="#evolution-core">七、工作空间核心功能</a>
+                <a href="#evolution-lifecycle">八、Agent 全生命周期状态流转</a>
+                <a href="#evolution-performance">九、性能及其他</a>
+              </div>
+
+              <h3 id="evolution-position">一、产品定位</h3>
+              <p>
+                进化实验室 - Agent Workspace 是 FrontisOS 中用户调研、构建、测试、发布和进化单个 Agent
+                的持久化工作环境，致力成为企业选、用、育、留 AI 员工的一站式平台。
+              </p>
+              <p>
+                核心理念是：每个 Workspace = 一个 Agent 的全生命周期管理空间。它以“对话”为主要交互方式，
+                以“Agent 产物”为核心关注对象，并在此基础上加入 RL 驱动进化和企业级发布上架能力。
+              </p>
+
+              <h3 id="evolution-layout">二、整体布局</h3>
+              <p>
+                Agent 工作空间是专家的 Agent 构建入口页。每张卡片代表一个独立的 Agent 工作空间，承载一个
+                Agent 的完整研发资产，包括 Skill、工具箱、知识库、对话历史和版本等。从这里选择进入某个
+                工作空间，即可开启该 Agent 的研发、测试、评测、发布等全流程工作。
+              </p>
+
+              <h4>1. 进化实验室卡片</h4>
+              <div class="table">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>信息</th>
+                      <th>说明</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>图标 + 首字标识</td>
+                      <td>按业务分类配色，如客、供、析、招、销、创。</td>
+                    </tr>
+                    <tr>
+                      <td>名称</td>
+                      <td>例如智能客服、供应链协同。</td>
+                    </tr>
+                    <tr>
+                      <td>描述</td>
+                      <td>展示该 Agent 的核心定位与覆盖能力，内容过长时省略。</td>
+                    </tr>
+                    <tr>
+                      <td>操作</td>
+                      <td>支持重命名，修改名称和描述；支持删除，删除后当前工作空间不可见。</td>
+                    </tr>
+                    <tr>
+                      <td>整卡点击</td>
+                      <td>进入该 Agent 的三联工作台：左侧任务流、中间对话区、右侧研发 / 评测 / 发布面板。</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <h4>2. 典型操作流</h4>
+              <ol class="steps">
+                <li>
+                  <b>1</b>
+                  <div>
+                    <strong>查找已有 Agent</strong>
+                    <span>在搜索框输入关键词，卡片即时过滤，点击目标卡片进入。</span>
+                  </div>
+                </li>
+                <li>
+                  <b>2</b>
+                  <div>
+                    <strong>新建 Agent</strong>
+                    <span>点击“+ 新建工作空间”，填写名称和描述，可选择框架，点击“创建”后自动生成默认 Skill 集并进入新工作空间。</span>
+                  </div>
+                </li>
+              </ol>
+
+              <h4>3. 工作空间三栏结构</h4>
+              <div class="screenshot">
+                <img src="assets/evolution-workspace-three-column.png" alt="Agent 工作空间三栏界面截图" />
+                <div class="caption">
+                  <span>Agent 工作空间采用三栏结构：左侧任务侧边栏，中间对话画布，右侧 Agent 面板。</span>
+                  <span>PDF 截图</span>
+                </div>
+              </div>
+
+              <div class="table" style="margin-top: 18px">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>区域</th>
+                      <th>核心职责</th>
+                      <th>备注</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>左栏 · 任务侧边栏</td>
+                      <td>管理所有任务，切换上下文。</td>
+                      <td>按照调研、开发、测试、使用流程进行排布和分级分类管理。</td>
+                    </tr>
+                    <tr>
+                      <td>中栏 · 对话画布</td>
+                      <td>以对话驱动所有构建与测试操作。</td>
+                      <td>LUI 对话形式和 MetaAgent 对话。</td>
+                    </tr>
+                    <tr>
+                      <td>右侧 Agent 面板</td>
+                      <td>Agent 结构树、状态指标、修改历史。</td>
+                      <td>Agent 骨架支持编辑；Agent 状态展示核心效果指标；版本历史记录工作空间文件历史和发版情况。</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <h4>4. Header 信息栏</h4>
+              <div class="table">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>区域</th>
+                      <th>元素</th>
+                      <th>说明</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>左区</td>
+                      <td>Agent 头像 + 名称</td>
+                      <td>点击可编辑 Agent 名称，名称最长 32 字符。</td>
+                    </tr>
+                    <tr>
+                      <td>左区</td>
+                      <td>版本号徽章，如 v2.1</td>
+                      <td>下拉可切换历史版本快照，只读预览。</td>
+                    </tr>
+                    <tr>
+                      <td>右区</td>
+                      <td>进化按钮</td>
+                      <td>当有进化历史记录或者触发过进化行为时展示可点击状态，初始状态下置灰。</td>
+                    </tr>
+                    <tr>
+                      <td>右区</td>
+                      <td>试用按钮</td>
+                      <td>随时可用，进入 Try 模式，右栏收起。</td>
+                    </tr>
+                    <tr>
+                      <td>右区</td>
+                      <td>发布按钮 + 橙色徽章</td>
+                      <td>橙色圆形徽章显示“未发布编辑数”，无未发布变更时徽章隐藏。</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <h4>5. 通知条</h4>
+              <p>
+                当有新的回流数据或检测到 Skill 失败时，页面会出现通知条。通知内容显示“新反馈数据”和
+                “Skill 失败”数量，点击“查看”会跳转到 Status 面板，进入进化中心查看进化历史记录和评测文档。
+              </p>
+
+              <h3 id="evolution-left">三、左栏：任务侧边栏</h3>
+              <p>
+                每个 Task 是一个独立对话上下文，服务于单一目的。任务之间可并行运行，切换任务不会打断
+                其他正在执行的任务。
+              </p>
+              <div class="table">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>任务类型</th>
+                      <th>说明</th>
+                      <th>典型操作</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>调研 Research</td>
+                      <td>导入文档、分析需求、生成 PRD、沉淀行业知识。</td>
+                      <td>用户上传文档，Agent 分析总结。调研是可选步骤。</td>
+                    </tr>
+                    <tr>
+                      <td>开发 Build</td>
+                      <td>构建 Skill、配置 Soul、编辑 agent.md。</td>
+                      <td>用户描述意图，Agent 生成并修改文件。</td>
+                    </tr>
+                    <tr>
+                      <td>测试 Test</td>
+                      <td>模拟测试 Agent 功能和效果。</td>
+                      <td>系统运行测试脚本，返回指标结果。</td>
+                    </tr>
+                    <tr>
+                      <td>试用 Try</td>
+                      <td>以最终用户身份与 Agent 对话。</td>
+                      <td>用户扮演客户，验证体验。</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div class="screenshot">
+                <img src="assets/evolution-empty-workspace.png" alt="进化实验室首次进入引导截图" />
+                <div class="caption">
+                  <span>空 Workspace 展示引导页，推荐创建第一个任务，并提供调研、开发、测试、试用入口。</span>
+                  <span>首次进入</span>
+                </div>
+              </div>
+
+              <h3 id="evolution-middle">四、中栏：MetaAgent 对话画布</h3>
+              <p>
+                核心原则是 Language UI，所有构建和测试操作均通过对话完成。
+              </p>
+              <div class="table">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>消息类型</th>
+                      <th>说明</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>用户消息</td>
+                      <td>描述意图、上传文件、发出指令。</td>
+                    </tr>
+                    <tr>
+                      <td>Agent 消息</td>
+                      <td>执行结果 + Artifact Tag，标注修改了哪些文件。</td>
+                    </tr>
+                    <tr>
+                      <td>系统消息</td>
+                      <td>测试启动、进化触发等系统事件。</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <h4>Artifact Tag 规范</h4>
+              <p>
+                每当 Agent 修改了右侧面板中的产物，会在消息底部以等宽徽章标注修改内容。
+              </p>
+              <pre class="codeSample">-> skills/leadeep-search/fetch_transcript.py  created
+-> soul.md                                    updated
+-> agent.md                                  secrets section updated</pre>
+
+              <h4>对话附件</h4>
+              <p>
+                对话过程中产生的中间文件，如分析结果、临时文档等，会以轻量浮动图标展示，点击后展开为附件列表。
+                这些附件与右侧 Agent 结构面板相互隔离，避免和正式 Agent 产物混淆。
+              </p>
+
+              <h4>Skill 生成状态</h4>
+              <p>
+                Skill 生成耗时较长时，对话中会显示进行中状态。用户可以切换到其他任务，不会打断当前生成过程。
+                右侧 Composition 树中，正在生成的 Skill 旁会显示活跃指示器。
+              </p>
+
+              <h3 id="evolution-right">五、右栏：Agent 面板</h3>
+              <p>
+                右侧面板是 Agent 的全局视图，包含 Composition、Status 和 History 三个 Tab。
+              </p>
+
+              <h4>Tab 1：Composition（Agent 结构树）</h4>
+              <p>Composition 展示 Agent 的完整文件结构，分为两个区域。</p>
+              <pre class="codeSample">Zone 1 — Agent Package（随发布上架）
+agent.md                     身份与能力定义，支持编辑
+soul.md                      人格、语气、行为约束，支持编辑
+skills/
+  leadeep-search/
+    SKILL.md
+    fetch_transcript.py
+    extract_actions.py
+  decision-tree/
+    SKILL.md
+    analyze.py
+  meeting-summary/
+    SKILL.md
+    summarize.py</pre>
+              <pre class="codeSample">Zone 2 — Workspace Resources（仅开发时参考，不随发布打包）
+knowledge/
+  industry-analysis.md       行业分析
+  product-prd.md             PRD 文档
+  domain-glossary.md         领域术语表
+  meeting-transcripts/       会议纪要
+  competitor-research/       竞品调研</pre>
+              <p>
+                Zone 1 标注 published 徽章，Zone 2 标注 dev only 徽章。Knowledge 是开发者的准备材料，
+                不随发布打包。点击任意文件可在右侧打开预览和编辑，保存后同步生效。
+              </p>
+
+              <h4>Tab 2：Status（Agent 状态指标）</h4>
+              <div class="table">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>指标</th>
+                      <th>类型</th>
+                      <th>说明</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>任务完成率</td>
+                      <td>百分比 + 环比增减</td>
+                      <td>Agent 完成用户任务的比例。</td>
+                    </tr>
+                    <tr>
+                      <td>Skill 触发准确率</td>
+                      <td>百分比 + 环比增减</td>
+                      <td>正确选择并执行 Skill 的比例。</td>
+                    </tr>
+                    <tr>
+                      <td>执行耗时</td>
+                      <td>绝对值，秒</td>
+                      <td>平均任务执行时间。</td>
+                    </tr>
+                    <tr>
+                      <td>Token 消耗</td>
+                      <td>绝对值</td>
+                      <td>平均每次任务的 Token 开销。</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <ul class="noteList">
+                <li>测试按钮：点击后自动在左侧新建一个 Test 类型任务。</li>
+                <li>进化按钮：仅当有回流数据时可用，否则置灰；点击触发一键进化。</li>
+                <li>回流数据入口：位于进化按钮下方，点击展开二级页面查看详情。</li>
+              </ul>
+
+              <h4>Tab 3：History（修改历史）</h4>
+              <p>
+                History 是线性修改日志。核心规则是：只有发布才产生版本号。日常每次文件修改，包括开发、进化、
+                手动编辑，都是修改日志中的一个条目，没有版本号。只有点击发布时，才创建带版本号的快照，如
+                v1、v2、v3。
+              </p>
+              <div class="table">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>条目类型</th>
+                      <th>说明</th>
+                      <th>视觉</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>edit</td>
+                      <td>文件修改。</td>
+                      <td>文件类型图标 + 文件名 + 变更摘要。</td>
+                    </tr>
+                    <tr>
+                      <td>evolve</td>
+                      <td>进化触发。</td>
+                      <td>粉色进化图标 + 事件描述。</td>
+                    </tr>
+                    <tr>
+                      <td>test</td>
+                      <td>测试执行修改。</td>
+                      <td>橙色测试图标 + 结果摘要。</td>
+                    </tr>
+                    <tr>
+                      <td>publish</td>
+                      <td>发布上架。</td>
+                      <td>绿色高亮 + 版本号 vN + sessions 数。</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <p>每个条目展示变更摘要、操作者和时间戳。</p>
+
+              <h3 id="evolution-feature">六、进化功能详解</h3>
+              <h4>6.1 进化入口</h4>
+              <div class="screenshot">
+                <img src="assets/evolution-entry-notification.png" alt="进化入口和回流数据提示截图" />
+                <div class="caption">
+                  <span>进化入口位于顶部右上角。出现回流数据提示时，可点击进入进化处理。</span>
+                  <span>PDF 截图</span>
+                </div>
+              </div>
+              <div class="table">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>场景</th>
+                      <th>行为</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>无历史消息</td>
+                      <td>进入静态进化中心，查看历史进化记录。</td>
+                    </tr>
+                    <tr>
+                      <td>有待执行的进化任务推送</td>
+                      <td>执行待进化任务。</td>
+                    </tr>
+                    <tr>
+                      <td>数据集过少 / 距上次进化不超过 1 周</td>
+                      <td>按钮置灰，不可点击。时间和数据量可后台配置。</td>
+                    </tr>
+                    <tr>
+                      <td>用户关闭右上角推送通知</td>
+                      <td>进化按钮上显示可进化次数。</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <h4>6.2 进化推送逻辑</h4>
+              <ol class="steps">
+                <li><b>1</b><div><strong>推送通知</strong><span>后台自动清洗回流数据，产生可进化的新版本时，全局 alert 信息条推送通知。</span></div></li>
+                <li><b>2</b><div><strong>打开进化面板</strong><span>点击右上角进化按钮也可以打开进化面板。</span></div></li>
+                <li><b>3</b><div><strong>数据分析</strong><span>点击进化按钮后，展示数据分析加载动效。</span></div></li>
+                <li><b>4</b><div><strong>进入审批详情</strong><span>加载完成后进入审批详情界面。</span></div></li>
+                <li><b>5</b><div><strong>同步状态</strong><span>左侧列表同步展示“分析中 / 待审批 / 已完成”标签。</span></div></li>
+              </ol>
+
+              <h4>6.3 进化审批流程</h4>
+              <div class="table">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>操作</th>
+                      <th>说明</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>批准</td>
+                      <td>用户阅读完报告、接受进化内容，系统更新 Agent 文件。</td>
+                    </tr>
+                    <tr>
+                      <td>驳回</td>
+                      <td>不进行操作，但在左侧列表保留记录。</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <h4>6.4 进化触发方式</h4>
+              <ul class="noteList">
+                <li>方式 1：主动推送。回流数据达到阈值，Notification Bar 自动出现，用户点击“查看”进入进化。</li>
+                <li>方式 2：手动触发。在 Status 面板点击进化按钮。</li>
+                <li>执行过程：一键触发，后台自动执行，完成后推送通知。</li>
+                <li>进化结果：记录在 History 修改日志中，类型为 evolve。Status 面板指标不自动更新，需手动再次测试刷新。</li>
+              </ul>
+
+              <h4 id="evolution-version">6.5 进化版本管理</h4>
+              <ul class="noteList">
+                <li>每次进化或上传文件产生的是候选版本，发布后生成正式版本并在版本记录中展示。</li>
+                <li>候选版本每次只展示最新一个，避免版本爆炸。</li>
+                <li>版本启用失败时，Toast 提示“启用失败，请重试”。</li>
+              </ul>
+
+              <h4 id="evolution-report">6.6 评测报告</h4>
+              <p>
+                进化完成后生成评测报告。报告结构面向用户视角，覆盖总结、进化细节、指标对比和 Skill 能力提升等内容。
+                仅进化产生的版本展示评测报告，普通开发版本不展示。
+              </p>
+              <div class="screenshot screenshotFull">
+                <img src="assets/evolution-report-example.png" alt="进化评测报告截图" />
+                <div class="caption">
+                  <span>进化评测报告包含总结模块、进化细节、雷达图和指标对比、Skill 能力提升等内容。</span>
+                  <span>PDF 截图</span>
+                </div>
+              </div>
+              <div class="table">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>模块</th>
+                      <th>内容</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>总结模块</td>
+                      <td>一句话总结，如 Agent 综合能力提升、优化能力数量、认证通过数量。</td>
+                    </tr>
+                    <tr>
+                      <td>进化细节</td>
+                      <td>关键提升亮点、需关注维度、发现的问题、执行的优化和预期效果。</td>
+                    </tr>
+                    <tr>
+                      <td>三路评测</td>
+                      <td>回归安全、目标达成、边界鲁棒。</td>
+                    </tr>
+                    <tr>
+                      <td>雷达图和指标对比说明</td>
+                      <td>12 维度能力画像，按用户体验、执行能力、推理质量、工程质量分组。</td>
+                    </tr>
+                    <tr>
+                      <td>Skill 能力提升</td>
+                      <td>展示 Skill 分数值提升及执行的优化内容。</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <h3 id="evolution-core">七、工作空间核心功能</h3>
+              <h4 id="evolution-test">7.1 测试</h4>
+              <div class="table">
+                <table>
+                  <tbody>
+                    <tr>
+                      <td>触发方式</td>
+                      <td>Status 面板测试按钮 / 手动新建 Test 类型任务。</td>
+                    </tr>
+                    <tr>
+                      <td>执行内容</td>
+                      <td>使用 Skill 的 eval 模式进行功能测试。</td>
+                    </tr>
+                    <tr>
+                      <td>测试结果</td>
+                      <td>在对话中呈现，展示报告和结果。</td>
+                    </tr>
+                    <tr>
+                      <td>测试次数</td>
+                      <td>可无限次测试，每次为独立任务。</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <h4 id="evolution-try">7.2 试用</h4>
+              <p>
+                试用用于模拟用户进行使用，回流数据可用于进化，支持在对话信息中进行打分和反馈。
+                试用后体验达到标准可进行发布。
+              </p>
+              <div class="table">
+                <table>
+                  <tbody>
+                    <tr>
+                      <td>触发方式</td>
+                      <td>新建 Try 类型任务 / Status 面板试用按钮。</td>
+                    </tr>
+                    <tr>
+                      <td>默认版本</td>
+                      <td>最新状态，本期不支持选择历史版本。</td>
+                    </tr>
+                    <tr>
+                      <td>界面变化</td>
+                      <td>右侧 Agent 面板自动收起，用户可手动展开；中栏进入纯对话模式。</td>
+                    </tr>
+                    <tr>
+                      <td>开场提示</td>
+                      <td>“欢迎使用 [Agent名称]，请与我开始对话吧”，该提示是引导语，非 Agent 发言。</td>
+                    </tr>
+                    <tr>
+                      <td>试用产出</td>
+                      <td>对话中生成的文件以轻量附件展示，不进入 Composition 结构树。</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <h4 id="evolution-publish">7.3 发布上架</h4>
+              <div class="grid2">
+                <div class="screenshot">
+                  <img src="assets/evolution-publish-form.png" alt="发布到 Agent Store 表单截图" />
+                  <div class="caption">
+                    <span>发布到 Agent Store 时填写头像、可见性、业务场景、Agent 框架、运行时模型等信息。</span>
+                    <span>PDF 截图</span>
+                  </div>
+                </div>
+                <div class="screenshot screenshotFull">
+                  <img src="assets/evolution-lifecycle-flow.png" alt="Agent 全生命周期状态流转截图" />
+                  <div class="caption">
+                    <span>Agent 从空工作空间进入调研、开发、测试、试用、发布、上架和后续进化流程。</span>
+                    <span>流程图</span>
+                  </div>
+                </div>
+              </div>
+              <div class="table">
+                <table>
+                  <tbody>
+                    <tr>
+                      <td>触发入口</td>
+                      <td>Header 发布按钮 / History 面板底部按钮。</td>
+                    </tr>
+                    <tr>
+                      <td>执行方式</td>
+                      <td>弹窗确认，非对话，包含头像选择和基本信息填写。</td>
+                    </tr>
+                    <tr>
+                      <td>发布内容</td>
+                      <td>Agent Package，包括 agent.md、soul.md、skills，不含 Knowledge。</td>
+                    </tr>
+                    <tr>
+                      <td>发布去向</td>
+                      <td>资源包推送到 Agent Store，等待审核。</td>
+                    </tr>
+                    <tr>
+                      <td>版本快照</td>
+                      <td>发布成功后在 History 中创建带版本号的 publish 条目。</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <h4>发布表单字段</h4>
+              <div class="table">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>字段</th>
+                      <th>类型</th>
+                      <th>说明</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>版本号</td>
+                      <td>只读输入框</td>
+                      <td>自动生成，如 1.0.0；每次发布递增。</td>
+                    </tr>
+                    <tr>
+                      <td>头像</td>
+                      <td>选择按钮组</td>
+                      <td>按通用、生产、销售、供应链等分类选择，支持换一下。</td>
+                    </tr>
+                    <tr>
+                      <td>可见性</td>
+                      <td>下拉框</td>
+                      <td>公开 / 仅自己 / 团队。</td>
+                    </tr>
+                    <tr>
+                      <td>业务场景</td>
+                      <td>单行输入框</td>
+                      <td>输入 Agent 对应的业务场景。</td>
+                    </tr>
+                    <tr>
+                      <td>Agent 框架</td>
+                      <td>下拉框</td>
+                      <td>MetaAgent（默认）/ Syngent / SynClaw。</td>
+                    </tr>
+                    <tr>
+                      <td>推荐问</td>
+                      <td>文本输入</td>
+                      <td>默认 3 个，可配置，供客户端显示。</td>
+                    </tr>
+                    <tr>
+                      <td>运行时模型</td>
+                      <td>下拉框选择</td>
+                      <td>支持用户自定义，可按照试用效果选择。</td>
+                    </tr>
+                    <tr>
+                      <td>发布到 Agent Store</td>
+                      <td>提交按钮</td>
+                      <td>确认信息后提交发布。</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <h3 id="evolution-lifecycle">八、Agent 全生命周期状态流转</h3>
+              <p>
+                Agent 的生命周期从空 Workspace 开始，经过调研、开发、测试、试用、发布、上架、使用反馈和进化，
+                形成持续更新的闭环。
+              </p>
+              <div class="screenshot screenshotFull">
+                <img src="assets/evolution-lifecycle-flow.png" alt="Agent 全生命周期状态流转截图" />
+                <div class="caption">
+                  <span>Agent 全生命周期状态流转图。</span>
+                  <span>PDF 截图</span>
+                </div>
+              </div>
+
+              <h3 id="evolution-performance">九、性能及其他</h3>
+              <div class="table">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>项目</th>
+                      <th>要求</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>性能</td>
+                      <td>版本树加载 ≤ 2s；评测报告切换 ≤ 1s；指标 5s 内刷新。</td>
+                    </tr>
+                    <tr>
+                      <td>兼容性</td>
+                      <td>Chrome / Edge 及国产化浏览器；支持 1280px ~ 2560px 宽度。</td>
+                    </tr>
+                    <tr>
+                      <td>权限</td>
+                      <td>仅 Agent 创建者及被授权的运营者可进入进化及效能中心。</td>
+                    </tr>
+                    <tr>
+                      <td>数据安全</td>
+                      <td>用户对话数据回流前须经过脱敏处理。</td>
+                    </tr>
+                    <tr>
+                      <td>易用性</td>
+                      <td>一键操作，无专业门槛。</td>
+                    </tr>
+                    <tr>
+                      <td>可扩展性</td>
+                      <td>支持新增指标接入。</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <ol class="steps">
+                <li>
+                  <b>1</b>
+                  <div>
+                    <strong>进入进化实验室</strong>
+                    <span>从 AI专家协作系统左侧菜单进入进化实验室，选择已有工作空间或创建新的工作空间。</span>
+                  </div>
+                </li>
+                <li>
+                  <b>2</b>
+                  <div>
+                    <strong>用对话描述要做的事</strong>
+                    <span>在对话区说明专家要完成的任务，也可以上传材料，作为专家能力调整的参考。</span>
+                  </div>
+                </li>
+                <li>
+                  <b>3</b>
+                  <div>
+                    <strong>查看 Agent 面板</strong>
+                    <span>在右侧查看 Agent 骨架、Agent 状态和版本历史，确认文件、技能和版本记录是否符合预期。</span>
+                  </div>
+                </li>
+                <li>
+                  <b>4</b>
+                  <div>
+                    <strong>测试和试用</strong>
+                    <span>先用测试验证功能，再用试用模拟真实对话。试用过程中产生的反馈可用于后续进化。</span>
+                  </div>
+                </li>
+                <li>
+                  <b>5</b>
+                  <div>
+                    <strong>发布并提交上架</strong>
+                    <span>确认可用后发布到 Agent Store。如需进入平台专家广场，还需要提交上架申请并等待平台运营审核。</span>
+                  </div>
+                </li>
+              </ol>
+            </div>
+
+            <div class="callout warning">
+              <p>
+                提示：发布和上架是两个动作。发布用于企业内部使用；如需展示到平台专家广场，
+                需要提交上架申请并等待平台运营审核。
+              </p>
+            </div>
+          </section>
+
+          <section class="section" id="admin">
+            <div class="sectionHeader">
+              <div>
+                <h2>企业管理</h2>
+                <p class="sectionIntro">
+                  进入当前组织后，具备企业管理员权限的用户可进入企业管理台，用于查看企业内部 AI 专家并维护组织成员。
+                  入口位于用户工作台左下角用户菜单。
+                </p>
+              </div>
+              <span class="roleBadge">Chrome · 企业管理台</span>
+            </div>
+
+            <div class="grid3">
+              <article class="card">
+                <h3>进入企业管理台</h3>
+                <p>在用户工作台左下角点击用户头像，选择“企业管理后台”，进入企业管理台。</p>
+              </article>
+              <article class="card">
+                <h3>查看 AI 专家</h3>
+                <p>在 AI专家管理中查看企业内 AI 专家的版本、发布方式和使用范围。</p>
+              </article>
+              <article class="card">
+                <h3>维护组织成员</h3>
+                <p>在组织管理中维护企业成员、部门和团队信息。</p>
+              </article>
+            </div>
+
+            <div class="screenshot">
+              <img src="assets/enterprise-admin-ai-expert-management.png?v=20260426-2" alt="企业管理台 AI专家管理截图" />
+              <div class="caption">
+                <span>企业管理台：在 AI专家管理中查看企业内 AI 专家。</span>
+                <span>企业后台</span>
+              </div>
+            </div>
+
+            <div class="table" style="margin-top: 18px">
+              <table>
+                <thead>
+                  <tr>
+                    <th>菜单</th>
+                    <th>功能</th>
+                    <th>建议操作</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>AI专家管理</td>
+                    <td>查看企业内 AI 专家的版本、发布方式和使用范围。</td>
+                    <td>确认常用专家是否显示正常，使用范围是否符合预期。</td>
+                  </tr>
+                  <tr>
+                    <td>组织管理</td>
+                    <td>维护企业成员、部门和团队。</td>
+                    <td>确认管理员、业务成员和专家开发者位于正确组织中。</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <section class="section" id="ops">
+            <div class="sectionHeader">
+              <div>
+                <h2>平台运营</h2>
+                <p class="sectionIntro">
+                  具备平台运营权限的用户可进入运营管理系统，用于管理企业账号、处理 AI 专家上架申请，
+                  并维护平台专家广场的展示内容。
+                </p>
+              </div>
+              <span class="roleBadge">Edge · 运营管理系统</span>
+            </div>
+
+            <div class="grid3">
+              <article class="card">
+                <span class="number">A</span>
+                <h3>租户管理</h3>
+                <p>创建企业账号、设置企业管理员，并维护企业启用状态。</p>
+              </article>
+              <article class="card">
+                <span class="number">B</span>
+                <h3>AI专家上架审批</h3>
+                <p>查看并处理 AI 专家上架申请。</p>
+              </article>
+              <article class="card">
+                <span class="number">C</span>
+                <h3>AI专家广场管理</h3>
+                <p>维护已通过审核的专家，设置分类、展示范围和上下架状态。</p>
+              </article>
+            </div>
+
+            <div class="grid2">
+              <div class="screenshot">
+                <img src="assets/ops-agent-review.png?v=20260426-2" alt="运营后台 AI专家上架审批截图" />
+                <div class="caption">
+                  <span>AI专家上架审批：查看申请记录，并处理待审核专家。</span>
+                  <span>审批流</span>
+                </div>
+              </div>
+              <div class="screenshot">
+                <img src="assets/ops-agent-plaza-management.png?v=20260426-2" alt="运营后台 AI专家广场管理截图" />
+                <div class="caption">
+                  <span>AI专家广场管理：设置专家分类、展示范围，并控制是否上架。</span>
+                  <span>运营配置</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="callout">
+              <p>
+                提示：审批通过后，还要到 AI专家广场管理里设置分类、展示范围和上架状态。
+                设置完成后，用户才会在专家广场里看到它。
+              </p>
+            </div>
+          </section>
+
+          <section class="section" id="rules">
+            <div class="sectionHeader">
+              <div>
+                <h2>常见说明</h2>
+                <p class="sectionIntro">
+                  以下说明用于区分几个常见操作，便于在使用和管理时保持一致。
+                </p>
+              </div>
+              <span class="roleBadge">简单说明</span>
+            </div>
+
+            <div class="table">
+              <table>
+                <thead>
+                  <tr>
+                    <th>事项</th>
+                    <th>说明</th>
+                    <th>适用角色</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>发布和上架</td>
+                    <td>发布用于企业内部使用；上架用于进入平台专家广场展示。</td>
+                    <td>员工、企业管理员、平台运营</td>
+                  </tr>
+                  <tr>
+                    <td>企业公开</td>
+                    <td>企业公开仅表示在当前企业内部公开，不会自动进入平台专家广场。</td>
+                    <td>员工、企业管理员</td>
+                  </tr>
+                  <tr>
+                    <td>能不能申请上架</td>
+                    <td>企业开通 AI 专家开发服务后，开发者可提交上架申请。</td>
+                    <td>平台运营、员工</td>
+                  </tr>
+                  <tr>
+                    <td>谁能在广场看到专家</td>
+                    <td>由平台运营在 AI专家广场管理中设置，可面向全平台或指定企业展示。</td>
+                    <td>平台运营</td>
+                  </tr>
+                  <tr>
+                    <td>购买和支付</td>
+                    <td>当前使用流程不包含购买、订单和支付操作。</td>
+                    <td>全部角色</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <section class="section" id="checklist">
+            <div class="sectionHeader">
+              <div>
+                <h2>快速检查</h2>
+                <p class="sectionIntro">
+                  建议先按登录旅程完成前置检查，再按角色检查进入系统后的主要功能。
+                </p>
+              </div>
+              <span class="roleBadge">上线培训</span>
+            </div>
+
+            <div class="grid3">
+              <article class="card">
+                <h3>登录与组织</h3>
+                <ol class="steps">
+                  <li><b>1</b><div><strong>手机号登录</strong><span>输入手机号，获取验证码并完成登录。</span></div></li>
+                  <li><b>2</b><div><strong>选择组织</strong><span>如果账号加入多个组织，选择本次要进入的组织。</span></div></li>
+                  <li><b>3</b><div><strong>确认系统入口</strong><span>进入组织后，确认当前账号可看到对应的系统入口。</span></div></li>
+                </ol>
+              </article>
+              <article class="card">
+                <h3>普通员工</h3>
+                <ol class="steps">
+                  <li><b>1</b><div><strong>进入 AI专家协作系统</strong><span>选择系统入口后进入用户工作台。</span></div></li>
+                  <li><b>2</b><div><strong>发起 MA 对话</strong><span>在专家工作台输入一个任务或问题。</span></div></li>
+                  <li><b>3</b><div><strong>切换 AI 专家</strong><span>点击左上角当前专家区域，切换到其他 AI 专家。</span></div></li>
+                  <li><b>4</b><div><strong>查看成果列表</strong><span>确认生成内容可在右侧成果列表中查看。</span></div></li>
+                </ol>
+              </article>
+              <article class="card">
+                <h3>企业管理员</h3>
+                <ol class="steps">
+                  <li><b>1</b><div><strong>进入企业管理台</strong><span>进入组织后，在左下角用户菜单选择企业管理后台。</span></div></li>
+                  <li><b>2</b><div><strong>查看专家列表</strong><span>确认企业内常用 AI 专家显示正常。</span></div></li>
+                  <li><b>3</b><div><strong>查看组织成员</strong><span>确认管理员、业务成员和开发者位于正确组织中。</span></div></li>
+                </ol>
+              </article>
+            </div>
+
+            <div class="grid3">
+              <article class="card">
+                <h3>平台运营</h3>
+                <ol class="steps">
+                  <li><b>1</b><div><strong>进入运营管理系统</strong><span>使用具备平台运营权限的账号进入运营后台。</span></div></li>
+                  <li><b>2</b><div><strong>查看企业账号</strong><span>确认企业和管理员信息正确。</span></div></li>
+                  <li><b>3</b><div><strong>处理上架申请</strong><span>在 AI专家上架审批中处理待审核专家。</span></div></li>
+                  <li><b>4</b><div><strong>设置广场展示</strong><span>在 AI专家广场管理中设置分类、展示范围和上架状态。</span></div></li>
+                </ol>
+              </article>
+            </div>
+          </section>
+        </div>
+      </div>
+
+      <footer class="footer">
+        本手册根据当前线上页面和实际操作截图整理。截图采集范围包括 Chrome 用户工作台/企业管理台与 Edge 运营管理系统。
+      </footer>
+    </main>
+  </body>
+</html>

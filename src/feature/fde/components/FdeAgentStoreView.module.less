@@ -660,6 +660,14 @@
   }
 }
 
+.detailPlaceholderLabel {
+  margin: 0;
+  color: #111827;
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.5;
+}
+
 .detailPlaceholderCard {
   display: flex;
   align-items: center;
@@ -725,6 +733,152 @@
   color: #0ea5e9;
   font-size: 12px;
   font-weight: 700;
+}
+
+.subscriptionPlanGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.subscriptionPlanCard {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 16px;
+  padding: 18px 18px 16px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 20px;
+  background: #ffffff;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color 0.18s ease,
+    box-shadow 0.18s ease,
+    transform 0.18s ease;
+
+  &:hover {
+    transform: translateY(-2px);
+    border-color: rgba(14, 165, 233, 0.24);
+    box-shadow: 0 12px 24px rgba(15, 23, 42, 0.06);
+  }
+}
+
+.subscriptionPlanCardSelected {
+  border-color: rgba(14, 165, 233, 0.28);
+  background: linear-gradient(180deg, rgba(14, 165, 233, 0.06) 0%, rgba(255, 255, 255, 1) 100%);
+  box-shadow: 0 14px 28px rgba(14, 165, 233, 0.08);
+}
+
+.subscriptionPlanCardHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.subscriptionPlanTitleRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.subscriptionPlanTitle {
+  color: var(--text-primary);
+  font-size: 20px;
+  line-height: 1.35;
+  font-weight: 700;
+}
+
+.subscriptionPlanTag,
+.subscriptionPlanSelectedMark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 52px;
+  height: 24px;
+  padding: 0 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.subscriptionPlanTag {
+  background: rgba(15, 23, 42, 0.08);
+  color: var(--text-primary);
+}
+
+.subscriptionPlanSelectedMark {
+  background: rgba(14, 165, 233, 0.12);
+  color: #0284c7;
+}
+
+.subscriptionPlanDescription {
+  margin: 6px 0 0;
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.subscriptionPlanPriceBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.subscriptionPlanPriceRow,
+.subscriptionPlanMetaRow {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.subscriptionPlanPrice {
+  color: var(--text-primary);
+  font-size: 34px;
+  line-height: 1.1;
+  font-weight: 700;
+}
+
+.subscriptionPlanOriginalPrice {
+  color: var(--text-tertiary);
+  font-size: 18px;
+  text-decoration: line-through;
+}
+
+.subscriptionPlanMetaRow {
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.subscriptionPlanFeatureList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+
+  li {
+    position: relative;
+    padding-left: 18px;
+    color: var(--text-primary);
+    font-size: 13px;
+    line-height: 1.6;
+
+    &::before {
+      content: "✓";
+      position: absolute;
+      top: 0;
+      left: 0;
+      color: #111827;
+      font-weight: 700;
+    }
+  }
 }
 
 .detailKeyValueGrid {
@@ -1262,6 +1416,164 @@
   }
 }
 
+.commercePayHeader {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.commercePayTitle {
+  color: var(--text-primary);
+  font-size: 18px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.commercePayAmount {
+  margin-top: 4px;
+  color: var(--text-primary);
+  font-size: 30px;
+  line-height: 1.2;
+  font-weight: 800;
+  text-align: center;
+}
+
+.commercePayCountdown {
+  color: #ef4444;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.commercePayPlanMeta {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.6;
+  text-align: center;
+}
+
+.commercePayPlanMeta strong {
+  color: var(--text-primary);
+  font-size: 15px;
+  line-height: 1.4;
+}
+
+.commerceQrWrap {
+  display: flex;
+  justify-content: center;
+}
+
+.commerceQrCard {
+  padding: 8px;
+  border-radius: 18px;
+  background: #f7fafc;
+  box-shadow: var(--shadow-sm);
+}
+
+.commerceQrButton {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  transition:
+    transform 0.16s ease,
+    box-shadow 0.16s ease;
+
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+  }
+}
+
+.commerceQrImage {
+  display: block;
+  width: 240px;
+  height: 240px;
+}
+
+.commercePayFooter {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.commercePayHint {
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.7;
+  text-align: center;
+}
+
+.commercePayMethods {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.commercePayMethodItem {
+  min-width: 56px;
+  height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.commercePayMethodWechat {
+  background: #1aad19;
+}
+
+.commercePayMethodAlipay {
+  background: #1677ff;
+}
+
+.commercePayMethodDouyin {
+  background: #111827;
+}
+
+.commerceSuccessPanel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding-top: 10px;
+}
+
+.commerceSuccessIcon {
+  color: #16a34a;
+  font-size: 42px;
+}
+
+.commerceSuccessTitle {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.commerceSuccessText {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 14px;
+  line-height: 1.7;
+}
+
 .shelfApplicationModalWrap {
   overflow: hidden;
 
@@ -1491,6 +1803,14 @@
   .detailSkillGrid,
   .detailOperationGrid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .subscriptionPlanGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .subscriptionPlanPrice {
+    font-size: 30px;
   }
 }
 

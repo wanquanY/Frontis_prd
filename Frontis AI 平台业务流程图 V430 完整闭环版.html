@@ -1,0 +1,1351 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Frontis AI 平台业务流程图 V430 完整闭环版</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      background: #eef1f6;
+      color: #0f172a;
+    }
+    .page-header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+      padding: 16px 32px;
+      background: linear-gradient(135deg, #0f172a 0%, #164e63 58%, #0f766e 100%);
+      color: #fff;
+      box-shadow: 0 3px 16px rgba(0, 0, 0, 0.35);
+    }
+    .page-header h1 {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 20px;
+      font-weight: 800;
+      letter-spacing: 1px;
+      white-space: nowrap;
+    }
+    .logo-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #5eead4;
+      box-shadow: 0 0 8px #5eead4;
+    }
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
+    .version-badge {
+      flex: 0 0 auto;
+      padding: 3px 12px;
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      border-radius: 99px;
+      background: rgba(255, 255, 255, 0.12);
+      color: #99f6e4;
+      font-size: 11px;
+      font-weight: 700;
+    }
+    .hint-badge {
+      color: #fde68a;
+      font-size: 11px;
+      line-height: 18px;
+    }
+    .main-content { padding: 16px 20px 28px; }
+    .legend-box {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 18px;
+      margin-bottom: 14px;
+      padding: 12px 18px;
+      border-radius: 10px;
+      background: #fff;
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.07);
+    }
+    .legend-section {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 12px;
+    }
+    .legend-divider {
+      width: 1px;
+      height: 24px;
+      background: #e2e8f0;
+    }
+    .legend-title {
+      color: #374151;
+      font-size: 10px;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: #4b5563;
+      font-size: 11px;
+      white-space: nowrap;
+    }
+    .legend-dot {
+      width: 20px;
+      height: 12px;
+      border-radius: 3px;
+    }
+    .legend-diamond {
+      width: 10px;
+      height: 10px;
+      border-radius: 1px;
+      transform: rotate(45deg);
+    }
+    .legend-capsule {
+      width: 28px;
+      height: 13px;
+      border-radius: 7px;
+    }
+    .scroll-wrap {
+      overflow: auto;
+      border-radius: 12px;
+      background: #fff;
+      box-shadow: 0 4px 28px rgba(0, 0, 0, 0.13);
+    }
+    .node-clickable { cursor: pointer; }
+    .node-clickable:hover .shape {
+      filter: brightness(0.97) saturate(1.08);
+      stroke-width: 3;
+    }
+    #popup-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 200;
+      background: rgba(15, 23, 42, 0.35);
+      backdrop-filter: blur(2px);
+    }
+    #popup-overlay.show { display: block; }
+    #popup-panel {
+      display: none;
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      z-index: 210;
+      width: 680px;
+      max-height: 80vh;
+      overflow: hidden;
+      flex-direction: column;
+      transform: translate(-50%, -50%);
+      border-radius: 16px;
+      background: #fff;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+    }
+    #popup-panel.show { display: flex; }
+    .popup-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 18px 22px 12px;
+      border-bottom: 1px solid #f1f5f9;
+    }
+    .popup-header h2 { font-size: 18px; font-weight: 800; }
+    .popup-body {
+      overflow-y: auto;
+      padding: 18px 22px 22px;
+    }
+    .popup-body p {
+      margin-bottom: 12px;
+      color: #475569;
+      font-size: 13px;
+      line-height: 1.7;
+    }
+    .info-card {
+      margin-bottom: 10px;
+      padding: 12px 14px;
+      border-left: 3px solid #0ea5e9;
+      border-radius: 10px;
+      background: #f8fafc;
+    }
+    .info-card.red { background: #fef2f2; border-left-color: #dc2626; }
+    .info-card.green { background: #f0fdf4; border-left-color: #16a34a; }
+    .info-card.amber { background: #fffbeb; border-left-color: #d97706; }
+    .info-card.purple { background: #faf5ff; border-left-color: #7e22ce; }
+    .info-card.cyan { background: #ecfeff; border-left-color: #0891b2; }
+    .info-card h4 {
+      margin-bottom: 4px;
+      font-size: 12px;
+    }
+    .info-card ul {
+      padding-left: 18px;
+      color: #475569;
+      font-size: 12px;
+      line-height: 1.8;
+    }
+    .close-btn {
+      flex: 0 0 auto;
+      width: 32px;
+      height: 32px;
+      border: none;
+      border-radius: 50%;
+      background: #f1f5f9;
+      color: #64748b;
+      font-size: 16px;
+      cursor: pointer;
+    }
+    .tag {
+      display: inline-block;
+      margin-right: 6px;
+      padding: 2px 8px;
+      border-radius: 99px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+    .tag-blue { background: #dbeafe; color: #1d4ed8; }
+    .tag-green { background: #dcfce7; color: #15803d; }
+    .tag-red { background: #fef2f2; color: #dc2626; }
+    .tag-amber { background: #fef3c7; color: #92400e; }
+    .tag-purple { background: #f3e8ff; color: #7e22ce; }
+    .tag-gray { background: #f1f5f9; color: #475569; }
+    .tag-cyan { background: #cffafe; color: #155e75; }
+    .tag-orange { background: #ffedd5; color: #9a3412; }
+    .tag-indigo { background: #e0e7ff; color: #4338ca; }
+  </style>
+</head>
+<body>
+  <div class="page-header">
+    <h1><span class="logo-dot"></span>Frontis AI 平台业务流程图</h1>
+    <div class="header-right">
+      <span class="version-badge">V430 完整闭环版</span>
+      <span class="hint-badge">系统初始化完成后，一切从登录入口开始，再按身份、租户与商品/订单状态分流闭环</span>
+    </div>
+  </div>
+
+  <div class="main-content">
+    <div class="legend-box">
+      <div class="legend-section">
+        <div class="legend-title">泳道</div>
+        <div class="legend-item"><span class="legend-dot" style="background:#fff7ed;border:1px solid #f97316"></span>用户侧</div>
+        <div class="legend-item"><span class="legend-dot" style="background:#f3e8ff;border:1px solid #a855f7"></span>管理后台</div>
+        <div class="legend-item"><span class="legend-dot" style="background:#dbeafe;border:1px solid #1d4ed8"></span>运营后台</div>
+        <div class="legend-item"><span class="legend-dot" style="background:#ecfeff;border:1px solid #0891b2"></span>系统自动化</div>
+      </div>
+      <div class="legend-divider"></div>
+      <div class="legend-section">
+        <div class="legend-title">节点</div>
+        <div class="legend-item"><span class="legend-dot" style="background:#e0f2fe;border:1px solid #0ea5e9"></span>普通流程节点</div>
+        <div class="legend-item"><span class="legend-diamond" style="background:#fef3c7;border:1px solid #f59e0b"></span>判断 / 审批节点</div>
+        <div class="legend-item"><span class="legend-capsule" style="background:#fee2e2;border:1px solid #ef4444"></span>关键状态节点</div>
+      </div>
+      <div class="legend-divider"></div>
+      <div class="legend-section">
+        <div class="legend-title">430 关键原则</div>
+        <div class="legend-item">系统初始化后统一进入登录入口</div>
+        <div class="legend-item">注册是登录入口的新用户分支；租户只来自自注册或运营创建</div>
+        <div class="legend-item">商品归商品中心，购买与开通归统一订单中心</div>
+      </div>
+    </div>
+    <div class="scroll-wrap"><svg id="flowSvg" xmlns="http://www.w3.org/2000/svg"></svg></div>
+  </div>
+
+  <div id="popup-overlay" onclick="closePopup()"></div>
+  <div id="popup-panel">
+    <div class="popup-header">
+      <div>
+        <div id="popup-badge" style="margin-bottom:6px;"></div>
+        <h2 id="popup-title"></h2>
+      </div>
+      <button class="close-btn" onclick="closePopup()">x</button>
+    </div>
+    <div class="popup-body" id="popup-body"></div>
+  </div>
+
+<script>
+const LANES = [
+  { id: "user", label: "用户侧", short: "workspace / plaza", color: "#c2410c", fill: "#fff7ed" },
+  { id: "admin", label: "管理后台", short: "tenant admin", color: "#7e22ce", fill: "#f3e8ff" },
+  { id: "ops", label: "运营后台", short: "ops console", color: "#1d4ed8", fill: "#dbeafe" },
+  { id: "system", label: "系统自动化", short: "order / entitlement", color: "#0f766e", fill: "#ecfeff" },
+];
+
+const STAGES = [
+  { id: "s1", title: "① 系统初始化与规则发布", en: "System Init & Rule Publishing", fill: "#dbeeff", text: "#1d4ed8", extraWidth: 130 },
+  { id: "s2", title: "② 统一登录入口与身份分流", en: "Login Entry & Identity Routing", fill: "#e0f2fe", text: "#0369a1", extraWidth: 180 },
+  { id: "s3", title: "③ 租户上下文与首次进入", en: "Tenant Context & First Entry", fill: "#ffedd5", text: "#9a3412", extraWidth: 160 },
+  { id: "s4", title: "④ 用户使用与积分消耗", en: "Usage & Points Consumption", fill: "#fef3c7", text: "#92400e", extraWidth: 160 },
+  { id: "s5", title: "⑤ 管理后台治理与购买入口", en: "Tenant Admin Governance", fill: "#f3e8ff", text: "#7e22ce", extraWidth: 170 },
+  { id: "s6", title: "⑥ 商品购买、支付与统一订单开通", en: "Commerce, Payment & Fulfillment", fill: "#dcfce7", text: "#15803d", extraWidth: 190 },
+  { id: "s7", title: "⑦ AI专家开发、上架与商品化", en: "Expert Dev, Listing & Productization", fill: "#ecfeff", text: "#0f766e", extraWidth: 190 },
+  { id: "s8", title: "⑧ 监控、续费与反馈闭环", en: "Monitoring, Renewal & Feedback Loop", fill: "#e5e7eb", text: "#4b5563", extraWidth: 170 },
+];
+
+const NODES = [
+  {
+    id: "N1",
+    stage: "s1",
+    lane: "system",
+    type: "rect",
+    title: "系统初始化完成",
+    sub: "租户模型、身份模型、商品与订单底座就绪",
+    status: "【运行态就绪】",
+    statusType: "blue",
+    detail: [
+      "430 总流程从系统初始化后的登录入口开始。",
+      "初始化阶段只准备底座能力，不代表用户或运营已经开始业务操作。",
+      "统一租户、身份、商品、订单、积分、资源池和广场规则都进入运行态。",
+    ],
+  },
+  {
+    id: "N2",
+    stage: "s1",
+    lane: "ops",
+    type: "rect",
+    title: "初始化商品中心",
+    sub: "AI专家 / 资源 / 积分包 / 团队套餐 / 席位加购",
+    detail: [
+      "商品中心是所有可售卖对象的唯一创建与维护入口。",
+      "积分包、团队套餐和席位加购也是商品，不再散落在积分运营或其它配置页。",
+      "商品中心用顶部 Tab 切换不同商品类型。",
+    ],
+  },
+  {
+    id: "N3",
+    stage: "s1",
+    lane: "ops",
+    type: "rect",
+    title: "初始化运营策略",
+    sub: "注册送积分、资源池、广场分类与可见范围",
+    detail: [
+      "积分运营只保留注册送积分等积分运营策略。",
+      "资源池维护设备、云端工作站和第三方接口供给。",
+      "AI专家广场管理维护分类、可见范围和上架状态。",
+    ],
+  },
+  {
+    id: "N4",
+    stage: "s1",
+    lane: "system",
+    type: "rect",
+    title: "发布运行规则",
+    sub: "同步到登录后各端入口",
+    status: "【规则已发布】",
+    statusType: "green",
+    detail: [
+      "商品规则同步到用户侧、管理后台和运营后台。",
+      "注册送积分规则同步到注册初始化。",
+      "订单中心准备承接所有购买与开通结果。",
+    ],
+  },
+  {
+    id: "N5",
+    stage: "s2",
+    lane: "user",
+    type: "rect",
+    title: "进入统一登录入口",
+    sub: "手机号验证码登录 / 注册入口",
+    detail: [
+      "系统初始化后，用户、租户管理员和平台运营都从登录入口进入各自业务。",
+      "注册不是独立主流程起点，而是登录页的新用户分支。",
+      "后续根据账号、角色和租户上下文进行路由。",
+    ],
+  },
+  {
+    id: "N6",
+    stage: "s2",
+    lane: "system",
+    type: "diamond",
+    title: "账号是否\n已存在?",
+    detail: [
+      "已存在账号走登录校验。",
+      "不存在账号走新用户注册。",
+      "注册完成后仍回到统一身份和租户上下文加载。",
+    ],
+  },
+  {
+    id: "N7",
+    stage: "s2",
+    lane: "user",
+    type: "rect",
+    title: "新用户注册",
+    sub: "手机号验证码创建账号",
+    detail: [
+      "自注册本质是创建账号并自动创建一个租户。",
+      "新注册用户默认成为该租户管理员。",
+      "登录页固定提供注册入口，不由积分运营开关控制。",
+    ],
+  },
+  {
+    id: "N8",
+    stage: "s2",
+    lane: "system",
+    type: "rect",
+    title: "自动创建个人版租户",
+    sub: "1席、管理员、注册赠送积分",
+    status: "【个人版租户】",
+    statusType: "green",
+    detail: [
+      "自注册成功后自动创建个人版租户。",
+      "默认 1 个管理员席位，不开放组织管理和邀请成员。",
+      "系统按初始化策略发放注册赠送积分。",
+    ],
+  },
+  {
+    id: "N9",
+    stage: "s2",
+    lane: "ops",
+    type: "rect",
+    title: "运营账号登录",
+    sub: "进入运营后台",
+    detail: [
+      "平台运营也从登录入口进入运营后台。",
+      "运营后台可创建租户、维护商品、查看统一订单、管理资源池和 AI专家广场。",
+      "运营登录后处理平台治理，不进入租户工作台。",
+    ],
+  },
+  {
+    id: "N10",
+    stage: "s2",
+    lane: "system",
+    type: "rect",
+    title: "加载身份与租户上下文",
+    sub: "账号、角色、租户、版本、权益",
+    detail: [
+      "登录成功后系统加载用户身份、可进入租户、租户版本、席位、积分、订单权益和专家可见范围。",
+      "这是后续路由分发的统一依据。",
+      "个人版和团队版共用统一租户模型。",
+    ],
+  },
+  {
+    id: "N11",
+    stage: "s2",
+    lane: "system",
+    type: "diamond",
+    title: "进入哪个\n业务端?",
+    detail: [
+      "平台运营进入运营后台。",
+      "租户管理员可进入用户侧和管理后台。",
+      "普通成员进入用户侧工作台。",
+    ],
+  },
+  {
+    id: "N12",
+    stage: "s3",
+    lane: "ops",
+    type: "rect",
+    title: "运营创建租户",
+    sub: "租户、管理员、席位、AI专家开发服务",
+    detail: [
+      "运营创建租户是登录后的运营后台分支。",
+      "创建表单不单独选择个人版或团队版，版本应由席位和套餐状态推导。",
+      "AI专家开发服务只控制该租户员工开发后是否可以提交上架申请，不控制是否能开发。",
+    ],
+  },
+  {
+    id: "N13",
+    stage: "s3",
+    lane: "system",
+    type: "rect",
+    title: "统一租户状态生效",
+    sub: "自注册租户 / 运营创建租户汇入同一模型",
+    status: "【租户可进入】",
+    statusType: "green",
+    detail: [
+      "租户只来自自注册或运营创建。",
+      "自注册租户默认个人版；运营创建租户按席位和开通状态生效。",
+      "后续所有使用、购买、积分、订单和开通都挂在租户上下文下。",
+    ],
+  },
+  {
+    id: "N14",
+    stage: "s3",
+    lane: "user",
+    type: "rect",
+    title: "进入租户工作台",
+    sub: "首次广场，后续 MetaAgent",
+    detail: [
+      "新用户首次进入引导到 AI专家广场。",
+      "后续登录默认进入 MetaAgent。",
+      "工作台内可进入专家工作室、AI专家广场和工作轨迹。",
+    ],
+  },
+  {
+    id: "N15",
+    stage: "s3",
+    lane: "admin",
+    type: "rect",
+    title: "管理员进入管理后台",
+    sub: "租户总览、积分、组织、AI专家治理",
+    detail: [
+      "租户管理员从登录后的身份入口进入管理后台。",
+      "个人版和团队版共用后台，但菜单和能力按版本变化。",
+      "个人版不展示组织管理，团队版解锁组织和成员邀请。",
+    ],
+  },
+  {
+    id: "N16",
+    stage: "s3",
+    lane: "system",
+    type: "rect",
+    title: "装载可见能力",
+    sub: "专家、商品、订单权益、积分余额、席位",
+    detail: [
+      "系统根据租户上下文装载用户可见 AI专家、FrontisAI发布商品和已开通权益。",
+      "同时装载租户积分余额、席位状态和版本能力。",
+      "该结果直接影响用户侧和管理后台可见内容。",
+    ],
+  },
+  {
+    id: "N17",
+    stage: "s4",
+    lane: "user",
+    type: "rect",
+    title: "浏览 AI专家广场",
+    sub: "团队分享 / FrontisAI发布",
+    detail: [
+      "团队分享来自当前租户内部共享，不涉及商品购买。",
+      "FrontisAI发布来自平台商品化 AI专家。",
+      "展示由商品在售、广场上架和可见范围共同决定。",
+    ],
+  },
+  {
+    id: "N18",
+    stage: "s4",
+    lane: "user",
+    type: "rect",
+    title: "获取 AI专家",
+    sub: "免费领取 / 试用 / 购买 / 团队共享添加",
+    detail: [
+      "免费商品直接领取开通。",
+      "试用商品写入试用有效期，到期前可转购买。",
+      "付费商品选择包月、包季或包年订阅方案后进入统一订单。",
+    ],
+  },
+  {
+    id: "N19",
+    stage: "s4",
+    lane: "user",
+    type: "rect",
+    title: "使用 MetaAgent 或专家工作室",
+    sub: "发起任务、沉淀成果、查看工作轨迹",
+    detail: [
+      "MetaAgent 是一级菜单和默认协同入口。",
+      "专家工作室承接其他 AI专家的一对一和多 topic 使用。",
+      "会话结果沉淀到工作轨迹，后续可搜索和定位原始对话。",
+    ],
+  },
+  {
+    id: "N20",
+    stage: "s4",
+    lane: "system",
+    type: "diamond",
+    title: "租户积分\n是否充足?",
+    detail: [
+      "积分属于租户，由租户内所有成员共用。",
+      "积分只用于模型、工具、第三方接口等运行消耗。",
+      "积分不用于购买团队版、席位或 AI专家商品。",
+    ],
+  },
+  {
+    id: "N21",
+    stage: "s4",
+    lane: "system",
+    type: "rect",
+    title: "扣减租户统一积分",
+    sub: "记录使用人、能力来源与消耗",
+    status: "【完成使用】",
+    statusType: "green",
+    detail: [
+      "系统按实际调用扣减租户积分。",
+      "消耗记录按租户、使用人、能力来源和时间沉淀。",
+      "管理后台按使用人聚合展示消耗统计。",
+    ],
+  },
+  {
+    id: "N22",
+    stage: "s5",
+    lane: "admin",
+    type: "rect",
+    title: "租户总览",
+    sub: "版本、积分、席位、近期消耗",
+    detail: [
+      "管理员通过租户总览理解当前租户状态。",
+      "个人版展示开通团队版入口。",
+      "团队版展示团队套餐、有效期和席位使用情况。",
+    ],
+  },
+  {
+    id: "N23",
+    stage: "s5",
+    lane: "admin",
+    type: "diamond",
+    title: "需要购买\n哪类商品?",
+    detail: [
+      "积分不足购买积分包商品。",
+      "需要多人协作购买团队套餐商品。",
+      "团队版席位不足购买席位加购商品。",
+      "需要 FrontisAI发布专家则购买或试用 AI专家商品。",
+    ],
+  },
+  {
+    id: "N24",
+    stage: "s5",
+    lane: "admin",
+    type: "rect",
+    title: "开通团队版",
+    sub: "购买团队套餐商品",
+    detail: [
+      "团队套餐来自商品中心。",
+      "团队套餐按年订阅，包含固定席位数。",
+      "支付成功后解锁组织管理和邀请成员。",
+    ],
+  },
+  {
+    id: "N25",
+    stage: "s5",
+    lane: "admin",
+    type: "rect",
+    title: "组织管理与席位扩容",
+    sub: "邀请成员，席位不足时购买席位加购",
+    detail: [
+      "团队版才展示组织管理。",
+      "邀请成员前校验剩余席位。",
+      "席位不足时购买席位加购商品，支付成功后增加总席位。",
+    ],
+  },
+  {
+    id: "N26",
+    stage: "s5",
+    lane: "admin",
+    type: "rect",
+    title: "积分管理与消耗排行",
+    sub: "购买积分包，查看使用人聚合",
+    detail: [
+      "积分管理展示租户余额和时间范围内消耗。",
+      "个人版只有本人一行，团队版按成员聚合排行。",
+      "积分包购买进入统一订单中心，支付成功后自动到账。",
+    ],
+  },
+  {
+    id: "N27",
+    stage: "s5",
+    lane: "admin",
+    type: "rect",
+    title: "AI专家与模型治理",
+    sub: "可见范围、使用权限、绑定模型",
+    detail: [
+      "管理员治理租户内 AI专家的可见范围和使用权限。",
+      "模型绑定在租户可用模型范围内选择。",
+      "治理结果同步用户侧广场和工作台。",
+    ],
+  },
+  {
+    id: "N28",
+    stage: "s6",
+    lane: "user",
+    type: "rect",
+    title: "选择商品并发起获取",
+    sub: "AI专家 / 积分包 / 团队套餐 / 席位加购 / 资源商品",
+    detail: [
+      "所有购买动作都必须落到商品。",
+      "商品来源包括用户侧广场、管理后台购买弹窗和运营侧商品池。",
+      "免费与试用也是开通行为，需要留下开通记录。",
+    ],
+  },
+  {
+    id: "N29",
+    stage: "s6",
+    lane: "system",
+    type: "rect",
+    title: "生成统一订单快照",
+    sub: "商品、价格、方案、租户、购买人",
+    detail: [
+      "订单记录商品快照，后续调价不影响历史订单。",
+      "订单类型可区分积分包、团队套餐、席位加购、AI专家商品和资源商品。",
+      "订单中心统一展示订单、支付状态和开通状态。",
+    ],
+  },
+  {
+    id: "N30",
+    stage: "s6",
+    lane: "system",
+    type: "diamond",
+    title: "支付 / 免费 /\n试用处理",
+    detail: [
+      "付费商品进入扫码支付。",
+      "免费商品直接开通。",
+      "试用商品写入试用有效期，后续可转购买。",
+    ],
+  },
+  {
+    id: "N31",
+    stage: "s6",
+    lane: "system",
+    type: "rect",
+    title: "按商品类型开通",
+    sub: "积分到账 / 专家权益 / 团队版 / 席位 / 资源",
+    status: "【已开通】",
+    statusType: "green",
+    detail: [
+      "积分包：增加租户积分余额并写入到账流水。",
+      "团队套餐：切换团队版、写入套餐有效期和基础席位。",
+      "席位加购：增加租户总席位。",
+      "AI专家商品：写入租户使用权益、有效期或试用期。",
+      "资源商品：进入资源池分配和交付。",
+    ],
+  },
+  {
+    id: "N32",
+    stage: "s6",
+    lane: "ops",
+    type: "rect",
+    title: "订单中心统一查看",
+    sub: "订单、支付状态、开通状态、开通结果",
+    detail: [
+      "订单中心统一承接所有商品订单。",
+      "积分包订单、团队套餐订单、席位订单、AI专家订单和资源商品订单统一展示。",
+      "订单中心同时展示开通状态和开通结果。",
+    ],
+  },
+  {
+    id: "N33",
+    stage: "s6",
+    lane: "ops",
+    type: "rect",
+    title: "资源池分配并回写",
+    sub: "实体设备、云端工作站、第三方接口",
+    detail: [
+      "涉及资源交付的商品进入资源池分配。",
+      "分配结果回写订单中心。",
+      "软件服务型 AI专家通常通过权益开通完成。",
+    ],
+  },
+  {
+    id: "N34",
+    stage: "s7",
+    lane: "user",
+    type: "rect",
+    title: "开发 AI专家 / Skill",
+    sub: "开发、测试、调优与版本沉淀",
+    detail: [
+      "AI专家开发能力不由 AI专家开发服务开关控制。",
+      "租户成员可以开发自己的 AI专家和 Skill。",
+      "开发完成后可个人使用、团队共享或申请平台上架。",
+    ],
+  },
+  {
+    id: "N35",
+    stage: "s7",
+    lane: "user",
+    type: "rect",
+    title: "发布个人或团队共享",
+    sub: "租户内部可见范围",
+    detail: [
+      "个人发布只对开发者本人可见。",
+      "团队共享对指定部门或成员可见。",
+      "团队分享不等于平台商品，不涉及购买。",
+    ],
+  },
+  {
+    id: "N36",
+    stage: "s7",
+    lane: "system",
+    type: "diamond",
+    title: "满足上架\n准入条件?",
+    detail: [
+      "必须是自己开发的 AI专家。",
+      "当前租户必须已开通 AI专家开发服务。",
+      "AI专家开发服务的作用是允许提交上架，不是允许开发。",
+    ],
+  },
+  {
+    id: "N37",
+    stage: "s7",
+    lane: "user",
+    type: "rect",
+    title: "提交上架申请",
+    sub: "申请进入平台运营与商品化链路",
+    status: "【待审批】",
+    statusType: "amber",
+    detail: [
+      "开发者在满足条件后提交上架申请。",
+      "提交内容包括上架名称、申请理由和目标客户。",
+      "申请提交后进入运营后台 AI专家上架审批。",
+    ],
+  },
+  {
+    id: "N38",
+    stage: "s7",
+    lane: "ops",
+    type: "diamond",
+    title: "运营审批\n是否通过?",
+    detail: [
+      "运营审核 AI专家质量、说明完整度、场景适配和平台复用价值。",
+      "通过后进入可运营专家池。",
+      "驳回后回到开发者继续优化。",
+    ],
+  },
+  {
+    id: "N39",
+    stage: "s7",
+    lane: "ops",
+    type: "rect",
+    title: "进入可运营专家池",
+    sub: "可广场投放，可转商品",
+    status: "【审批通过】",
+    statusType: "green",
+    detail: [
+      "审批通过不等于商品已在售。",
+      "运营可先做广场投放，也可进一步转成商品。",
+      "该专家进入 AI专家广场管理和商品中心供给候选。",
+    ],
+  },
+  {
+    id: "N40",
+    stage: "s7",
+    lane: "user",
+    type: "rect",
+    title: "驳回后继续优化",
+    sub: "修正后重新提交",
+    status: "【已驳回】",
+    statusType: "red",
+    detail: [
+      "开发者根据驳回原因继续调优。",
+      "优化后可再次提交上架申请。",
+      "平台驳回不影响租户内部个人或团队共享使用。",
+    ],
+  },
+  {
+    id: "N41",
+    stage: "s7",
+    lane: "ops",
+    type: "rect",
+    title: "AI专家广场管理",
+    sub: "分类、可见范围、上架状态",
+    detail: [
+      "广场管理保留上架状态配置。",
+      "可见范围支持全平台可见或指定租户可见。",
+      "广场上架控制曝光展示，不替代商品在售状态。",
+    ],
+  },
+  {
+    id: "N42",
+    stage: "s7",
+    lane: "ops",
+    type: "rect",
+    title: "转换为 AI专家商品",
+    sub: "在商品中心配置售卖策略",
+    detail: [
+      "运营可将审批通过的 AI专家转换为商品。",
+      "商品中心配置免费、试用、包月、包季、包年和在售状态。",
+      "商品在售且广场上架后，形成 FrontisAI发布的用户侧购买链路。",
+    ],
+  },
+  {
+    id: "N43",
+    stage: "s7",
+    lane: "system",
+    type: "rect",
+    title: "同步到 FrontisAI发布",
+    sub: "用户侧广场读取商品与投放规则",
+    status: "【可售可见】",
+    statusType: "green",
+    detail: [
+      "用户侧广场展示平台商品化 AI专家。",
+      "展示由商品在售状态、广场上架状态和可见范围共同决定。",
+      "用户获取后仍回到统一订单与开通链路。",
+    ],
+  },
+  {
+    id: "N44",
+    stage: "s8",
+    lane: "user",
+    type: "rect",
+    title: "试用转购买或续费",
+    sub: "权益到期前回到商品购买",
+    detail: [
+      "试用到期前可以转正式购买。",
+      "订阅到期前可以续费。",
+      "续费不是直接改有效期，而是新订单、新开通结果。",
+    ],
+  },
+  {
+    id: "N45",
+    stage: "s8",
+    lane: "admin",
+    type: "rect",
+    title: "订单与消耗治理",
+    sub: "订单记录、积分消耗、成员排行",
+    detail: [
+      "管理员查看积分余额、消耗排行和订单记录。",
+      "个人版只有本人消耗，团队版按成员聚合。",
+      "发现积分不足、席位不足或权益到期后重新进入购买链路。",
+    ],
+  },
+  {
+    id: "N46",
+    stage: "s8",
+    lane: "ops",
+    type: "rect",
+    title: "运营监控商品、订单、资源、广场",
+    sub: "调整商品策略和投放策略",
+    detail: [
+      "运营通过商品中心维护售卖策略。",
+      "通过订单中心追踪订单与开通。",
+      "通过资源池维护供给，通过广场管理调整曝光。",
+    ],
+  },
+  {
+    id: "N47",
+    stage: "s8",
+    lane: "user",
+    type: "rect",
+    title: "使用反馈回流开发",
+    sub: "继续优化 AI专家与商品体验",
+    status: "【闭环回流】",
+    statusType: "blue",
+    detail: [
+      "使用效果、试用转化、订单反馈和消耗数据回流产品与开发。",
+      "开发者继续优化 AI专家版本。",
+      "运营根据商品表现调整定价、试用、可见范围和上架状态。",
+    ],
+  },
+];
+
+const EDGES = [
+  ["N1", "N2", "blue"],
+  ["N2", "N3", "blue"],
+  ["N3", "N4", "cyan"],
+  ["N4", "N5", "cyan", "初始化后进入登录"],
+  ["N5", "N6", "orange"],
+  ["N6", "N7", "orange", "否"],
+  ["N7", "N8", "cyan"],
+  ["N8", "N10", "cyan"],
+  ["N6", "N10", "green", "是"],
+  ["N5", "N9", "blue", "平台运营"],
+  ["N9", "N11", "blue"],
+  ["N10", "N11", "cyan"],
+  ["N11", "N12", "blue", "运营后台"],
+  ["N11", "N14", "orange", "用户侧"],
+  ["N11", "N15", "purple", "管理员"],
+  ["N12", "N13", "cyan"],
+  ["N13", "N16", "cyan"],
+  ["N14", "N16", "orange"],
+  ["N15", "N16", "purple"],
+  ["N16", "N17", "orange"],
+  ["N17", "N18", "orange"],
+  ["N18", "N19", "orange"],
+  ["N19", "N20", "cyan"],
+  ["N20", "N21", "green", "充足"],
+  ["N16", "N22", "purple"],
+  ["N22", "N23", "purple"],
+  ["N23", "N24", "purple", "团队版"],
+  ["N23", "N25", "purple", "席位"],
+  ["N23", "N26", "amber", "积分"],
+  ["N22", "N27", "purple"],
+  ["N28", "N29", "green"],
+  ["N29", "N30", "green"],
+  ["N30", "N31", "green"],
+  ["N31", "N32", "blue"],
+  ["N32", "N33", "cyan"],
+  ["N19", "N34", "orange", "需要自建能力"],
+  ["N34", "N35", "orange"],
+  ["N35", "N36", "cyan"],
+  ["N36", "N37", "green", "满足"],
+  ["N37", "N38", "blue"],
+  ["N38", "N39", "green", "通过"],
+  ["N38", "N40", "red", "驳回"],
+  ["N39", "N41", "cyan"],
+  ["N41", "N42", "blue"],
+  ["N42", "N43", "green"],
+  ["N43", "N44", "green"],
+  ["N44", "N45", "purple"],
+  ["N45", "N46", "gray"],
+  ["N46", "N47", "gray"],
+];
+
+const SPECIAL_EDGES = [
+  { from: "N4", to: "N28", color: "cyan", dashed: true, label: "在售商品进入购买入口" },
+  { from: "N20", to: "N26", color: "red", dashed: true, label: "积分不足提示管理员" },
+  { from: "N18", to: "N28", color: "orange", dashed: true, label: "付费 / 试用 AI专家商品" },
+  { from: "N24", to: "N28", color: "purple", dashed: true, label: "团队套餐商品" },
+  { from: "N25", to: "N28", color: "purple", dashed: true, label: "席位加购商品" },
+  { from: "N26", to: "N28", color: "amber", dashed: true, label: "积分包商品" },
+  { from: "N31", to: "N18", color: "green", dashed: true, label: "权益开通后可获取/使用" },
+  { from: "N31", to: "N21", color: "green", dashed: true, label: "积分到账后继续使用" },
+  { from: "N31", to: "N22", color: "purple", dashed: true, label: "版本/席位能力生效" },
+  { from: "N33", to: "N31", color: "cyan", dashed: true, label: "资源交付结果回写" },
+  { from: "N35", to: "N17", color: "purple", dashed: true, label: "团队分享进入广场" },
+  { from: "N27", to: "N18", color: "purple", dashed: true, label: "治理结果同步用户侧" },
+  { from: "N36", to: "N35", color: "red", dashed: true, label: "不满足仅保留内部共享" },
+  { from: "N40", to: "N34", color: "red", dashed: true, label: "继续优化" },
+  { from: "N43", to: "N17", color: "green", dashed: true, label: "FrontisAI发布展示" },
+  { from: "N44", to: "N28", color: "green", dashed: true, label: "续费/转购买生成新订单" },
+  { from: "N45", to: "N23", color: "purple", dashed: true, label: "治理发现再次购买" },
+  { from: "N46", to: "N2", color: "blue", dashed: true, label: "调整商品策略" },
+  { from: "N46", to: "N41", color: "cyan", dashed: true, label: "调整广场投放" },
+  { from: "N47", to: "N34", color: "orange", dashed: true, label: "反馈驱动版本迭代" },
+];
+
+const COLORS = {
+  gray: "#64748b",
+  blue: "#2563eb",
+  green: "#16a34a",
+  amber: "#d97706",
+  red: "#dc2626",
+  purple: "#9333ea",
+  cyan: "#0891b2",
+  orange: "#ea580c",
+};
+
+const TAG_CLASS_BY_LANE = {
+  user: "tag-orange",
+  admin: "tag-purple",
+  ops: "tag-blue",
+  system: "tag-cyan",
+};
+
+function closePopup() {
+  document.getElementById("popup-overlay").classList.remove("show");
+  document.getElementById("popup-panel").classList.remove("show");
+}
+
+function escapeHtml(value) {
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+function openPopup(id) {
+  const node = NODES.find(item => item.id === id);
+  if (!node) return;
+  const lane = LANES.find(item => item.id === node.lane);
+  const stage = STAGES.find(item => item.id === node.stage);
+  const laneTag = TAG_CLASS_BY_LANE[node.lane] || "tag-gray";
+  const typeTag = node.type === "diamond" ? "tag-amber" : "tag-gray";
+  document.getElementById("popup-badge").innerHTML =
+    `<span class="tag ${laneTag}">${escapeHtml(lane ? lane.label : node.lane)}</span>` +
+    `<span class="tag tag-indigo">${escapeHtml(stage ? stage.title : node.stage)}</span>` +
+    `<span class="tag ${typeTag}">${node.type === "diamond" ? "判断/审批" : "流程节点"}</span>`;
+  document.getElementById("popup-title").textContent = node.title.replace(/\n/g, "");
+  const detailList = (node.detail || []).map(item => `<li>${escapeHtml(item)}</li>`).join("");
+  const status = node.status ? `<p><strong>状态：</strong>${escapeHtml(node.status)}</p>` : "";
+  document.getElementById("popup-body").innerHTML =
+    `${status}<div class="info-card ${node.statusType === "red" ? "red" : node.statusType === "green" ? "green" : node.statusType === "amber" ? "amber" : node.lane === "admin" ? "purple" : node.lane === "system" ? "cyan" : ""}"><ul>${detailList}</ul></div>`;
+  document.getElementById("popup-overlay").classList.add("show");
+  document.getElementById("popup-panel").classList.add("show");
+}
+
+document.addEventListener("keydown", event => {
+  if (event.key === "Escape") closePopup();
+});
+
+function estW(text, size = 12) {
+  return String(text).replace(/[A-Z0-9\u4e00-\u9fff]/g, "aa").length * size * 0.55;
+}
+
+function nodeW(node) {
+  const title = String(node.title).replace(/\n/g, "");
+  return node.type === "diamond"
+    ? Math.max(190, estW(title, 12) + 58)
+    : Math.max(190, estW(title, 12) + 60, node.sub ? estW(node.sub, 10) + 48 : 0, node.status ? estW(node.status, 10) + 40 : 0);
+}
+
+function markerId(colorKey) {
+  return ({ gray: "arr", blue: "arr-b", green: "arr-g", amber: "arr-a", red: "arr-r", purple: "arr-p", cyan: "arr-c", orange: "arr-o" })[colorKey] || "arr";
+}
+
+function laneTheme(laneId) {
+  return ({
+    user: { title: "#9a3412", sub: "#ea580c", badge: "#c2410c" },
+    admin: { title: "#6b21a8", sub: "#7e22ce", badge: "#7e22ce" },
+    ops: { title: "#1e3a8a", sub: "#2563eb", badge: "#2563eb" },
+    system: { title: "#0f766e", sub: "#0891b2", badge: "#0f766e" },
+  })[laneId] || { title: "#334155", sub: "#475569", badge: "#475569" };
+}
+
+function computeStageWidths() {
+  const GAP = 30;
+  const CONN_GAP = 58;
+  const PAD = 44;
+  const MIN = 560;
+  const TITLE_PAD = 120;
+  const edgeSet = new Set(EDGES.map(([from, to]) => `${from}->${to}`));
+  return STAGES.map(stage => {
+    const stageNodes = NODES.filter(node => node.stage === stage.id);
+    const laneSpans = LANES.map(lane => {
+      const laneNodes = stageNodes.filter(node => node.lane === lane.id);
+      if (!laneNodes.length) return 0;
+      let cursor = 0;
+      let maxX = 0;
+      laneNodes.forEach((node, index) => {
+        const previous = laneNodes[index - 1];
+        const gap = index ? (edgeSet.has(`${previous.id}->${node.id}`) || edgeSet.has(`${node.id}->${previous.id}`) ? CONN_GAP : GAP) : 0;
+        cursor += gap;
+        const width = nodeW(node);
+        maxX = Math.max(maxX, cursor + width);
+        cursor += width;
+      });
+      return maxX;
+    });
+    const titleWidth = Math.max(estW(stage.title, 13), estW(stage.en, 10)) + TITLE_PAD;
+    return { ...stage, width: Math.max(MIN, Math.max(...laneSpans, 0) + PAD * 2, titleWidth) + (stage.extraWidth || 0) };
+  });
+}
+
+function render() {
+  const svg = document.getElementById("flowSvg");
+  const LANE_TOP = 60;
+  const LANE_HEIGHT = 150;
+  const LANE_LABEL_WIDTH = 132;
+  const HEADER_HEIGHT = 56;
+  const FOOTER_HEIGHT = 60;
+  const NODE_HEIGHT = 52;
+  const STAGE_GAP = 18;
+  const stageWidths = computeStageWidths();
+  const stagePos = {};
+  let cursorX = LANE_LABEL_WIDTH;
+  stageWidths.forEach(stage => {
+    stagePos[stage.id] = { x: cursorX, w: stage.width };
+    cursorX += stage.width + STAGE_GAP;
+  });
+  const totalWidth = cursorX;
+  const totalHeight = LANE_TOP + LANES.length * LANE_HEIGHT + FOOTER_HEIGHT;
+  svg.setAttribute("width", totalWidth);
+  svg.setAttribute("height", totalHeight);
+
+  let html = `<defs>
+    <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,1 L9,5 L0,9 Z" fill="#64748b"></path></marker>
+    <marker id="arr-b" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,1 L9,5 L0,9 Z" fill="#2563eb"></path></marker>
+    <marker id="arr-g" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,1 L9,5 L0,9 Z" fill="#16a34a"></path></marker>
+    <marker id="arr-a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,1 L9,5 L0,9 Z" fill="#d97706"></path></marker>
+    <marker id="arr-r" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,1 L9,5 L0,9 Z" fill="#dc2626"></path></marker>
+    <marker id="arr-p" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,1 L9,5 L0,9 Z" fill="#9333ea"></path></marker>
+    <marker id="arr-c" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,1 L9,5 L0,9 Z" fill="#0891b2"></path></marker>
+    <marker id="arr-o" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,1 L9,5 L0,9 Z" fill="#ea580c"></path></marker>
+    <filter id="sh" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="rgba(0,0,0,0.1)"></feDropShadow></filter>
+  </defs>`;
+
+  stageWidths.forEach(stage => {
+    const { x, w } = stagePos[stage.id];
+    html += `<rect x="${x}" y="0" width="${w}" height="${totalHeight}" fill="${stage.fill}" opacity="0.32"></rect>`;
+  });
+
+  LANES.forEach((lane, index) => {
+    const y = LANE_TOP + index * LANE_HEIGHT;
+    html += `<rect x="${LANE_LABEL_WIDTH}" y="${y}" width="${totalWidth - LANE_LABEL_WIDTH}" height="${LANE_HEIGHT}" fill="${lane.fill}" opacity="0.16"></rect>`;
+  });
+
+  html += `<rect x="${LANE_LABEL_WIDTH}" y="0" width="${totalWidth - LANE_LABEL_WIDTH}" height="${HEADER_HEIGHT}" fill="rgba(15,23,42,0.04)"></rect>`;
+  stageWidths.forEach(stage => {
+    const { x, w } = stagePos[stage.id];
+    html += `<rect x="${x + 1}" y="4" width="${w - 2}" height="48" rx="6" fill="${stage.fill}" opacity="0.84"></rect>`;
+    html += `<text x="${x + w / 2}" y="23" text-anchor="middle" font-size="13" font-weight="800" fill="${stage.text}">${stage.title}</text>`;
+    html += `<text x="${x + w / 2}" y="40" text-anchor="middle" font-size="10" fill="${stage.text}">${stage.en}</text>`;
+  });
+
+  LANES.forEach((lane, index) => {
+    const y = LANE_TOP + index * LANE_HEIGHT;
+    html += `<rect x="0" y="${y}" width="${LANE_LABEL_WIDTH}" height="${LANE_HEIGHT}" fill="${lane.color}"></rect>`;
+    html += `<text x="50" y="${y + 16}" writing-mode="tb" glyph-orientation-vertical="0" font-size="12" font-weight="700" fill="white">${lane.label}</text>`;
+    html += `<text x="86" y="${y + 16}" writing-mode="tb" glyph-orientation-vertical="0" font-size="9" fill="white" opacity="0.75">${lane.short}</text>`;
+  });
+
+  html += `<rect x="0" y="${LANE_TOP + LANES.length * LANE_HEIGHT}" width="${totalWidth}" height="${FOOTER_HEIGHT}" fill="#0f172a"></rect>`;
+  html += `<text x="${totalWidth / 2}" y="${totalHeight - 18}" text-anchor="middle" font-size="11" fill="#cbd5e1">Frontis AI Platform  ©  2026  —  BizFlow V430 Complete Loop</text>`;
+  html += `<line x1="${LANE_LABEL_WIDTH}" y1="0" x2="${LANE_LABEL_WIDTH}" y2="${totalHeight}" stroke="#1e293b" stroke-width="2.5"></line>`;
+
+  for (let index = 0; index <= LANES.length; index += 1) {
+    const y = LANE_TOP + index * LANE_HEIGHT;
+    html += `<line x1="0" y1="${y}" x2="${totalWidth}" y2="${y}" stroke="#cbd5e1" stroke-width="${index === 0 || index === LANES.length ? 1.5 : 2}"></line>`;
+  }
+
+  stageWidths.forEach((stage, index) => {
+    if (index === 0) return;
+    const x = stagePos[stage.id].x;
+    html += `<line x1="${x}" y1="56" x2="${x}" y2="${LANE_TOP + LANES.length * LANE_HEIGHT}" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="8,5"></line>`;
+  });
+
+  const nodePos = {};
+  stageWidths.forEach(stage => {
+    const stageX = stagePos[stage.id].x;
+    LANES.forEach((lane, laneIndex) => {
+      const laneNodes = NODES.filter(node => node.stage === stage.id && node.lane === lane.id);
+      if (!laneNodes.length) return;
+      let nodeX = stageX + 44;
+      const nodeCenterY = LANE_TOP + laneIndex * LANE_HEIGHT + LANE_HEIGHT / 2;
+      laneNodes.forEach((node, index) => {
+        const width = nodeW(node);
+        const height = NODE_HEIGHT;
+        const x = nodeX;
+        const y = nodeCenterY - height / 2;
+        const shapeHeight = node.type === "diamond" ? 82 : height;
+        nodePos[node.id] = {
+          x,
+          y,
+          w: width,
+          h: height,
+          shapeHeight,
+          cx: x + width / 2,
+          cy: nodeCenterY,
+          lane: lane.id,
+          stage: stage.id,
+        };
+        const nextNode = laneNodes[index + 1];
+        const hasDirectEdge = nextNode ? EDGES.some(([from, to]) => from === node.id && to === nextNode.id) : false;
+        nodeX = x + width + (hasDirectEdge ? 58 : 30);
+      });
+    });
+  });
+
+  function anchors(node) {
+    const shapeTop = node.cy - node.shapeHeight / 2;
+    const shapeBottom = node.cy + node.shapeHeight / 2;
+    return {
+      left: { x: node.x, y: node.cy },
+      right: { x: node.x + node.w, y: node.cy },
+      top: { x: node.cx, y: shapeTop },
+      bottom: { x: node.cx, y: shapeBottom },
+    };
+  }
+
+  function laneIndex(laneId) {
+    return LANES.findIndex(lane => lane.id === laneId);
+  }
+
+  function stageIndex(stageId) {
+    return STAGES.findIndex(stage => stage.id === stageId);
+  }
+
+  function routePath(fromNode, toNode, colorKey, dashed, level) {
+    const fromAnchors = anchors(fromNode);
+    const toAnchors = anchors(toNode);
+    const sameLane = fromNode.lane === toNode.lane;
+    const sameStage = fromNode.stage === toNode.stage;
+    const forward = toNode.cx >= fromNode.cx;
+    const biasMap = { gray: 0, blue: -10, green: 10, amber: -18, red: 22, purple: 28, cyan: -28, orange: 16 };
+    const bias = (biasMap[colorKey] || 0) + level * 8;
+
+    if (sameLane && forward) {
+      const from = fromAnchors.right;
+      const to = toAnchors.left;
+      const midX = (from.x + to.x) / 2 + bias * 0.2;
+      return `M ${from.x} ${from.y} L ${midX} ${from.y} L ${midX} ${to.y} L ${to.x} ${to.y}`;
+    }
+
+    if (sameLane && !forward) {
+      const from = fromAnchors.left;
+      const to = toAnchors.right;
+      const railY = Math.min(fromNode.y, toNode.y) - 54 - level * 12;
+      return `M ${from.x} ${from.y} L ${from.x - 22} ${from.y} L ${from.x - 22} ${railY} L ${to.x + 22} ${railY} L ${to.x + 22} ${to.y} L ${to.x} ${to.y}`;
+    }
+
+    const fromLaneIndex = laneIndex(fromNode.lane);
+    const toLaneIndex = laneIndex(toNode.lane);
+    const fromStageIndex = stageIndex(fromNode.stage);
+    const toStageIndex = stageIndex(toNode.stage);
+    const movingDown = toLaneIndex >= fromLaneIndex;
+    const movingForwardStage = toStageIndex >= fromStageIndex;
+    const from = movingDown ? fromAnchors.bottom : fromAnchors.top;
+    const to = movingDown ? toAnchors.top : toAnchors.bottom;
+
+    if (sameStage) {
+      const viaX = Math.max(from.x, to.x) + 34 + Math.abs(toLaneIndex - fromLaneIndex) * 8 + level * 6;
+      const preY = movingDown ? to.y - 18 : to.y + 18;
+      return `M ${from.x} ${from.y} L ${viaX} ${from.y} L ${viaX} ${preY} L ${to.x} ${preY} L ${to.x} ${to.y}`;
+    }
+
+    if (!movingForwardStage || dashed) {
+      const railY = Math.min(from.y, to.y) - 58 - Math.abs(toStageIndex - fromStageIndex) * 10 - level * 10;
+      return `M ${from.x} ${from.y} L ${from.x} ${railY} L ${to.x} ${railY} L ${to.x} ${to.y}`;
+    }
+
+    const railY = (from.y + to.y) / 2 + bias;
+    const midX = (from.x + to.x) / 2 + bias * 0.2;
+    return `M ${from.x} ${from.y} L ${from.x} ${railY} L ${midX} ${railY} L ${midX} ${to.y} L ${to.x} ${to.y}`;
+  }
+
+  function drawEdge(fromId, toId, colorKey, label, dashed = false, level = 0) {
+    const fromNode = nodePos[fromId];
+    const toNode = nodePos[toId];
+    if (!fromNode || !toNode) return;
+    const color = COLORS[colorKey] || COLORS.gray;
+    const path = routePath(fromNode, toNode, colorKey, dashed, level);
+    html += `<path d="${path}" stroke="${color}" stroke-width="${dashed ? 1.9 : 2.2}" fill="none" ${dashed ? 'stroke-dasharray="5,4"' : ""} marker-end="url(#${markerId(colorKey)})"></path>`;
+    if (label) {
+      let labelX = (fromNode.cx + toNode.cx) / 2;
+      let labelY = Math.min(fromNode.y, toNode.y) - 10 - level * 5;
+      if (fromNode.stage === toNode.stage && fromNode.lane !== toNode.lane) {
+        labelX = (fromNode.cx * 0.45 + toNode.cx * 0.55);
+        labelY = (fromNode.cy + toNode.cy) / 2 - 4;
+      }
+      html += `<text x="${labelX}" y="${labelY}" text-anchor="middle" font-size="10" fill="${color}" font-weight="700">${label}</text>`;
+    }
+  }
+
+  EDGES.forEach(([from, to, colorKey, label], index) => drawEdge(from, to, colorKey, label, false, index % 2));
+  SPECIAL_EDGES.forEach((edge, index) => drawEdge(edge.from, edge.to, edge.color, edge.label, edge.dashed, index + 1));
+
+  NODES.forEach(node => {
+    const pos = nodePos[node.id];
+    if (!pos) return;
+    const lane = LANES.find(item => item.id === node.lane);
+    const theme = laneTheme(node.lane);
+    const stroke = node.type === "diamond" ? "#f59e0b" : (lane ? lane.color : "#334155");
+    const fill = node.type === "diamond" ? "#fef3c7" : (lane ? lane.fill : "#f8fafc");
+    if (node.type === "diamond") {
+      const diamondHeight = pos.shapeHeight;
+      const points = `${pos.cx},${pos.cy - diamondHeight / 2} ${pos.cx + pos.w / 2},${pos.cy} ${pos.cx},${pos.cy + diamondHeight / 2} ${pos.cx - pos.w / 2},${pos.cy}`;
+      html += `<g class="node-clickable" data-node="${node.id}" filter="url(#sh)"><polygon class="shape" points="${points}" fill="${fill}" stroke="${stroke}" stroke-width="2.5"></polygon>`;
+      node.title.split("\n").forEach((line, index) => {
+        html += `<text x="${pos.cx}" y="${pos.cy - 5 + index * 16}" text-anchor="middle" font-size="10" fill="#78350f" font-weight="700">${line}</text>`;
+      });
+      html += `</g>`;
+      html += `<circle cx="${pos.x}" cy="${pos.cy}" r="11" fill="#d97706"></circle><text x="${pos.x}" y="${pos.cy + 4}" text-anchor="middle" font-size="8" fill="white" font-weight="700">${node.id}</text>`;
+    } else {
+      html += `<g class="node-clickable" data-node="${node.id}" filter="url(#sh)"><rect class="shape" x="${pos.x}" y="${pos.y}" width="${pos.w}" height="${pos.h}" rx="8" fill="${fill}" stroke="${stroke}" stroke-width="2"></rect>`;
+      html += `<text x="${pos.cx}" y="${pos.y + 21}" text-anchor="middle" font-size="10" fill="${theme.title}" font-weight="700">${node.title}</text>`;
+      if (node.sub) {
+        html += `<text x="${pos.cx}" y="${pos.y + 37}" text-anchor="middle" font-size="9" fill="${theme.sub}">${node.sub}</text>`;
+      }
+      html += `</g>`;
+      html += `<circle cx="${pos.x}" cy="${pos.cy}" r="11" fill="${theme.badge}"></circle><text x="${pos.x}" y="${pos.cy + 4}" text-anchor="middle" font-size="8" fill="white" font-weight="700">${node.id}</text>`;
+      if (node.status) {
+        const statusThemeMap = {
+          amber: { fill: "#fef3c7", stroke: "#f59e0b", text: "#92400e" },
+          green: { fill: "#d1fae5", stroke: "#10b981", text: "#065f46" },
+          red: { fill: "#fee2e2", stroke: "#ef4444", text: "#991b1b" },
+          blue: { fill: "#bfdbfe", stroke: "#3b82f6", text: "#1e40af" },
+        };
+        const statusTheme = statusThemeMap[node.statusType || "amber"];
+        const statusWidth = Math.max(108, estW(node.status, 10) + 20);
+        html += `<rect x="${pos.cx - statusWidth / 2}" y="${pos.y + pos.h + 8}" width="${statusWidth}" height="20" rx="10" fill="${statusTheme.fill}" stroke="${statusTheme.stroke}" stroke-width="1.5"></rect>`;
+        html += `<text x="${pos.cx}" y="${pos.y + pos.h + 22}" text-anchor="middle" font-size="10" fill="${statusTheme.text}" font-weight="700">${node.status}</text>`;
+      }
+    }
+  });
+
+  svg.innerHTML = html;
+  document.querySelectorAll(".node-clickable").forEach(element => {
+    element.addEventListener("click", () => {
+      const id = element.getAttribute("data-node");
+      if (id) openPopup(id);
+    });
+  });
+}
+
+render();
+</script>
+</body>
+</html>

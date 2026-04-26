@@ -4,6 +4,12 @@ import type { FormEvent } from "react";
 import { Button, Input, Select, message } from "antd";
 import { Navigate, useNavigate, useSearchParams } from "react-router-dom";
 
+import {
+  MANAGEMENT_CONSOLE_LABEL,
+  PRODUCT_LOGO_TEXT,
+  PRODUCT_NAME,
+  PRODUCT_SLOGAN,
+} from "@/constants/brand";
 import { OPERATIONS_ACCOUNT_OPTIONS } from "@/feature/operations/mockData";
 import { useOperationsAuth } from "@/feature/operations/hooks/useOperationsAuth";
 import type { OperationsAccount } from "@/feature/operations/types";
@@ -124,10 +130,10 @@ export const OperationsLoginView = (): JSX.Element => {
     <div className={styles.page}>
       <div className={styles.shell}>
         <div className={styles.brandBlock}>
-          <div className={styles.brandMark}>F</div>
+          <div className={styles.brandMark}>{PRODUCT_LOGO_TEXT}</div>
           <div className={styles.brandCopy}>
-            <p className={styles.brandTitle}>Frontis AI</p>
-            <p className={styles.brandSubtitle}>平台运营后台</p>
+            <p className={styles.brandTitle}>{PRODUCT_NAME}</p>
+            <p className={styles.brandSubtitle}>{PRODUCT_SLOGAN}</p>
           </div>
         </div>
 
@@ -136,9 +142,9 @@ export const OperationsLoginView = (): JSX.Element => {
             <div className={styles.primaryPanel}>
               <div className={styles.formHeader}>
                 <span className={styles.formEyebrow}>独立入口</span>
-                <h1 className={styles.formTitle}>运营后台登录</h1>
+                <h1 className={styles.formTitle}>{`${MANAGEMENT_CONSOLE_LABEL}登录`}</h1>
                 <p className={styles.formDescription}>
-                  通过运营后台独立路由进入平台级控制台，仅处理租户创建与管理员维护。
+                  {`通过${MANAGEMENT_CONSOLE_LABEL}独立路由进入平台级控制台，仅处理租户创建与管理员维护。`}
                 </p>
               </div>
 

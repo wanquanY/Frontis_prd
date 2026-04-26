@@ -2,11 +2,26 @@ import type {
   OperationsAccount,
   OperationsAgentSubmission,
   OperationsFulfillment,
+  OperationsExternalMeteredService,
+  OperationsExternalMeteredServiceForm,
+  OperationsExternalServiceMeteringUnit,
+  OperationsMeteringProvider,
+  OperationsMeteringProviderForm,
+  OperationsMeteringProviderKind,
+  OperationsModelInterfaceFormat,
+  OperationsModelModality,
+  OperationsModelService,
+  OperationsModelServiceForm,
   OperationsPlatformTabKey,
+  OperationsPointsUsageRecord,
+  OperationsReferralRecord,
+  OperationsRegistrationStrategy,
   OperationsAgentPlazaCategory,
+  OperationsAgentPlazaCategoryOption,
   OperationsAgentPlazaVisibility,
   OperationsProduct,
   OperationsProductSaleType,
+  OperationsProductSubscriptionPlan,
   OperationsProductTrialUnit,
   OperationsProductBillingMode,
   OperationsProductBillingSpec,
@@ -53,7 +68,27 @@ export const OPERATIONS_TAB_OPTIONS: Array<{
   {
     key: "agents",
     label: "AI专家上架审批",
-    description: "审核已开通 AI专家开发服务的租户员工提交的 AI专家上架申请。",
+    description: "审核已开通 AI专家上架服务的租户员工提交的 AI专家商品化申请。",
+  },
+  {
+    key: "products",
+    label: "商品中心",
+    description: "统一管理 AI专家、积分包、团队套餐、席位加购和资源商品。",
+  },
+  {
+    key: "fulfillment",
+    label: "订单中心",
+    description: "统一查看积分包、套餐、AI专家和资源商品订单及开通状态。",
+  },
+  {
+    key: "resources",
+    label: "资源池",
+    description: "维护设备、云端工作站和第三方接口资源池。",
+  },
+  {
+    key: "points",
+    label: "积分运营",
+    description: "管理注册送积分规则和积分账户运营策略。",
   },
   {
     key: "agentPlaza",
@@ -70,7 +105,7 @@ export const OPERATIONS_ACCOUNT_OPTIONS: OperationsAccount[] = [
     phone: "13800008881",
     role: "superAdmin",
     roleLabel: "平台超管",
-    description: "负责平台租户创建、AI专家开发服务配置、AI专家上架审批和广场管理。",
+    description: "负责平台租户创建、AI专家上架服务配置、AI专家上架审批和广场管理。",
     verificationCode: "123456",
     entryPath: "/ops/tenants",
   },
@@ -96,7 +131,7 @@ export const OPERATIONS_INITIAL_TENANTS: OperationsTenant[] = [
     industry: "零售服饰",
     adminName: "杨万泉",
     adminPhone: "13800008883",
-    hasFdeAccess: true,
+    hasAgentListingAccess: true,
     seatCount: 80,
     effectiveAt: "2026-04-02",
     expiresAt: "2027-03-31",
@@ -136,7 +171,7 @@ export const OPERATIONS_INITIAL_TENANTS: OperationsTenant[] = [
     industry: "连锁零售",
     adminName: "周倩",
     adminPhone: "13800002222",
-    hasFdeAccess: false,
+    hasAgentListingAccess: false,
     seatCount: 20,
     effectiveAt: "2026-04-14",
     expiresAt: "2026-06-30",
@@ -162,7 +197,7 @@ export const OPERATIONS_INITIAL_TENANTS: OperationsTenant[] = [
     industry: "品牌零售",
     adminName: "杨万泉",
     adminPhone: "13800009999",
-    hasFdeAccess: true,
+    hasAgentListingAccess: true,
     seatCount: 60,
     effectiveAt: "2026-03-12",
     expiresAt: "2026-12-31",
@@ -188,7 +223,7 @@ export const OPERATIONS_INITIAL_TENANTS: OperationsTenant[] = [
     industry: "平台运营",
     adminName: "周明越",
     adminPhone: "13800008881",
-    hasFdeAccess: true,
+    hasAgentListingAccess: true,
     seatCount: 15,
     effectiveAt: "2026-03-12",
     expiresAt: "2026-12-31",
@@ -224,8 +259,8 @@ export const OPERATIONS_INITIAL_AGENT_SUBMISSIONS: OperationsAgentSubmission[] =
     submittedAt: "2026-04-16 13:20",
     status: "pending",
     submissionType: "squarePublish",
-    currentScopeLabel: "已发布到企业 AI专家广场",
-    submitReason: "该 AI专家 已在租户内稳定使用，申请上架到平台 AI专家广场供更多租户直接使用。",
+    currentScopeLabel: "已发布到 AI专家广场",
+    submitReason: "该 AI专家已在租户内稳定使用，申请上架到平台 AI专家广场供更多租户直接使用。",
     targetCustomers: "零售连锁、门店经营分析团队",
     description: "面向零售客户的经营复盘 Agent，支持日报总结、异常门店识别和行动建议输出。",
   },
@@ -237,8 +272,8 @@ export const OPERATIONS_INITIAL_AGENT_SUBMISSIONS: OperationsAgentSubmission[] =
     submittedAt: "2026-04-15 19:05",
     status: "approved",
     submissionType: "squarePublish",
-    currentScopeLabel: "已发布到企业 AI专家广场",
-    submitReason: "企业内部验证完成，希望上架到平台 AI专家广场，供更多财务场景租户复用。",
+    currentScopeLabel: "已发布到 AI专家广场",
+    submitReason: "租户内部验证完成，希望上架到平台 AI专家广场，供更多财务场景租户复用。",
     targetCustomers: "财务共享中心、对账运营团队",
     description: "自动核对客户付款凭证与订单金额，辅助运营完成到账核验。",
     lastReviewedAt: "2026-04-16 10:15",
@@ -257,7 +292,7 @@ export const OPERATIONS_INITIAL_AGENT_SUBMISSIONS: OperationsAgentSubmission[] =
     submittedAt: "2026-04-14 17:40",
     status: "rejected",
     submissionType: "squarePublish",
-    currentScopeLabel: "已发布到企业 AI专家广场",
+    currentScopeLabel: "已发布到 AI专家广场",
     submitReason: "希望上架到平台 AI专家广场，对外提供巡检与告警能力。",
     targetCustomers: "设备运维、巡检团队",
     description: "面向交付运维场景，识别设备在线状态、异常告警和建议修复动作。",
@@ -272,7 +307,7 @@ export const OPERATIONS_INITIAL_AGENT_SUBMISSIONS: OperationsAgentSubmission[] =
     submittedAt: "2026-04-13 16:25",
     status: "approved",
     submissionType: "squarePublish",
-    currentScopeLabel: "已发布到企业 AI专家广场",
+    currentScopeLabel: "已发布到 AI专家广场",
     submitReason: "申请上架平台 AI专家广场，面向电商运营客户统一开放使用。",
     targetCustomers: "电商运营、内容团队",
     description: "生成商品卖点、详情页文案和推广素材建议，适合商品中心快速包装。",
@@ -292,7 +327,7 @@ export const OPERATIONS_INITIAL_AGENT_SUBMISSIONS: OperationsAgentSubmission[] =
     submittedAt: "2026-04-12 11:10",
     status: "approved",
     submissionType: "squarePublish",
-    currentScopeLabel: "已发布到企业 AI专家广场",
+    currentScopeLabel: "已发布到 AI专家广场",
     submitReason: "适合作为平台通用 AI专家 上架给全部租户体验。",
     targetCustomers: "行政、HR、运营支持团队",
     description: "基于制度库和流程说明回答员工常见问题，适合做平台通用免费专家。",
@@ -306,6 +341,246 @@ export const OPERATIONS_INITIAL_AGENT_SUBMISSIONS: OperationsAgentSubmission[] =
   },
 ];
 
+export const OPERATIONS_INITIAL_REGISTRATION_STRATEGY: OperationsRegistrationStrategy = {
+  defaultGiftPoints: 6000,
+  referralDailyRewardLimit: 10,
+  referralEnabled: true,
+  referralInviteeRewardPoints: 0,
+  referralInviterRewardPoints: 200,
+  referralMonthlyRewardLimit: 80,
+  pointsPerCny: 100,
+  minimumDeductPoints: 1,
+  roundingUnit: 1,
+  updatedAt: "2026-04-23 10:30",
+};
+
+export const OPERATIONS_INITIAL_REFERRAL_RECORDS: OperationsReferralRecord[] = [
+  {
+    id: "ops-referral-001",
+    inviterName: "杨万泉",
+    inviterTenantName: "星澜服饰租户",
+    inviteeName: "赵明",
+    inviteePhoneMasked: "138****6621",
+    inviteeTenantName: "赵明的工作室",
+    status: "rewarded",
+    rewardPoints: 200,
+    registeredAt: "2026-04-24 09:36",
+    rewardedAt: "2026-04-24 09:37",
+    sourceLabel: "邀请海报扫码",
+  },
+  {
+    id: "ops-referral-002",
+    inviterName: "李想",
+    inviterTenantName: "李想的工作室",
+    inviteeName: "沈佳",
+    inviteePhoneMasked: "139****2718",
+    inviteeTenantName: "沈佳的工作室",
+    status: "registered",
+    rewardPoints: 200,
+    registeredAt: "2026-04-23 18:20",
+    sourceLabel: "邀请链接",
+  },
+  {
+    id: "ops-referral-003",
+    inviterName: "王晨",
+    inviterTenantName: "凌光零售华东租户",
+    inviteeName: "陈可心",
+    inviteePhoneMasked: "137****5160",
+    inviteeTenantName: "陈可心的工作室",
+    status: "pending",
+    rewardPoints: 200,
+    registeredAt: "2026-04-23 14:12",
+    sourceLabel: "邀请海报扫码",
+  },
+  {
+    id: "ops-referral-004",
+    inviterName: "周明越",
+    inviterTenantName: "北辰科技个人租户",
+    inviteeName: "刘云",
+    inviteePhoneMasked: "136****8935",
+    inviteeTenantName: "刘云的工作室",
+    status: "blocked",
+    rewardPoints: 0,
+    registeredAt: "2026-04-22 20:42",
+    sourceLabel: "邀请链接",
+  },
+];
+
+export const OPERATIONS_INITIAL_METERING_PROVIDERS: OperationsMeteringProvider[] = [
+  {
+    id: "ops-metering-provider-openai",
+    name: "OpenAI",
+    providerKind: "largeModel",
+    baseUrl: "https://api.openai.com/v1",
+    billingCurrency: "CNY",
+    credentialStatusLabel: "sk-****-openai",
+    status: "active",
+    updatedAt: "2026-04-23 11:20",
+  },
+  {
+    id: "ops-metering-provider-bailian",
+    name: "阿里云百炼",
+    providerKind: "largeModel",
+    baseUrl: "https://dashscope.aliyuncs.com/compatible-mode/v1",
+    billingCurrency: "CNY",
+    credentialStatusLabel: "sk-****-bailian",
+    status: "active",
+    updatedAt: "2026-04-22 16:40",
+  },
+  {
+    id: "ops-metering-provider-tianyancha",
+    name: "企业信息接口服务",
+    providerKind: "thirdPartyApi",
+    baseUrl: "https://api.company-data.example.com",
+    billingCurrency: "CNY",
+    credentialStatusLabel: "ak-****-company",
+    status: "active",
+    updatedAt: "2026-04-21 14:15",
+  },
+];
+
+export const OPERATIONS_INITIAL_MODEL_SERVICES: OperationsModelService[] = [
+  {
+    id: "ops-model-service-gpt-4-1",
+    providerId: "ops-metering-provider-openai",
+    providerName: "OpenAI",
+    modelCode: "gpt-4.1",
+    modelName: "GPT-4.1",
+    interfaceFormat: "openai",
+    modality: "multimodal",
+    reasoningEnabled: true,
+    inputCostPerMillion: 5,
+    outputCostPerMillion: 15,
+    pricingMode: "markup",
+    markupRate: 1.4,
+    grossMarginRate: 30,
+    inputSalePricePerMillion: 7,
+    outputSalePricePerMillion: 21,
+    status: "active",
+    updatedAt: "2026-04-23 11:30",
+  },
+  {
+    id: "ops-model-service-qwen-max",
+    providerId: "ops-metering-provider-bailian",
+    providerName: "阿里云百炼",
+    modelCode: "qwen-max",
+    modelName: "通义千问 Max",
+    interfaceFormat: "openai",
+    modality: "text",
+    reasoningEnabled: true,
+    inputCostPerMillion: 4,
+    outputCostPerMillion: 12,
+    pricingMode: "grossMargin",
+    markupRate: 1.35,
+    grossMarginRate: 28,
+    inputSalePricePerMillion: 5.56,
+    outputSalePricePerMillion: 16.67,
+    status: "active",
+    updatedAt: "2026-04-22 17:10",
+  },
+  {
+    id: "ops-model-service-embedding",
+    providerId: "ops-metering-provider-openai",
+    providerName: "OpenAI",
+    modelCode: "text-embedding-3-large",
+    modelName: "Embedding Large",
+    interfaceFormat: "openai",
+    modality: "embedding",
+    reasoningEnabled: false,
+    inputCostPerMillion: 0.9,
+    outputCostPerMillion: 0,
+    pricingMode: "markup",
+    markupRate: 1.6,
+    grossMarginRate: 30,
+    inputSalePricePerMillion: 1.44,
+    outputSalePricePerMillion: 0,
+    status: "active",
+    updatedAt: "2026-04-21 18:30",
+  },
+];
+
+export const OPERATIONS_INITIAL_EXTERNAL_METERED_SERVICES: OperationsExternalMeteredService[] = [
+  {
+    id: "ops-external-service-company-search",
+    providerId: "ops-metering-provider-tianyancha",
+    providerName: "企业信息接口服务",
+    name: "企业工商信息查询",
+    serviceTypeLabel: "第三方 API",
+    meteringUnit: "call",
+    costPerUnit: 0.08,
+    pricingMode: "markup",
+    markupRate: 1.5,
+    grossMarginRate: 30,
+    salePricePerUnit: 0.12,
+    status: "active",
+    updatedAt: "2026-04-21 15:05",
+  },
+  {
+    id: "ops-external-service-ocr",
+    providerId: "ops-metering-provider-bailian",
+    providerName: "阿里云百炼",
+    name: "票据 OCR 识别",
+    serviceTypeLabel: "Skill 外部能力",
+    meteringUnit: "image",
+    costPerUnit: 0.03,
+    pricingMode: "markup",
+    markupRate: 1.4,
+    grossMarginRate: 30,
+    salePricePerUnit: 0.042,
+    status: "active",
+    updatedAt: "2026-04-20 10:50",
+  },
+];
+
+export const OPERATIONS_INITIAL_POINTS_USAGE_RECORDS: OperationsPointsUsageRecord[] = [
+  {
+    id: "ops-points-usage-001",
+    tenantName: "星澜服饰租户",
+    userName: "林子航",
+    sourceType: "largeModel",
+    sourceName: "客户对账体验助手",
+    providerName: "OpenAI",
+    modelName: "GPT-4.1",
+    inputTokens: 118000,
+    outputTokens: 32000,
+    costAmount: 1.07,
+    saleAmount: 1.5,
+    points: 150,
+    marginAmount: 0.43,
+    occurredAt: "2026-04-24 10:32",
+  },
+  {
+    id: "ops-points-usage-002",
+    tenantName: "北辰科技个人租户",
+    userName: "周明越",
+    sourceType: "thirdPartyApi",
+    sourceName: "企业工商信息查询",
+    providerName: "企业信息接口服务",
+    unitCount: 18,
+    unitLabel: "次调用",
+    costAmount: 1.44,
+    saleAmount: 2.16,
+    points: 216,
+    marginAmount: 0.72,
+    occurredAt: "2026-04-24 09:48",
+  },
+  {
+    id: "ops-points-usage-003",
+    tenantName: "星澜服饰集团租户",
+    userName: "许念",
+    sourceType: "skill",
+    sourceName: "票据 OCR 识别",
+    providerName: "阿里云百炼",
+    unitCount: 42,
+    unitLabel: "张图片",
+    costAmount: 1.26,
+    saleAmount: 1.76,
+    points: 176,
+    marginAmount: 0.5,
+    occurredAt: "2026-04-23 18:12",
+  },
+];
+
 export const OPERATIONS_INITIAL_PRODUCTS: OperationsProduct[] = [
   {
     id: "ops-product-001",
@@ -315,11 +590,10 @@ export const OPERATIONS_INITIAL_PRODUCTS: OperationsProduct[] = [
     saleType: "paid",
     billingMode: "subscription",
     meteringUnit: "duration",
-    billingSpec: "year",
     linkedAgentId: "ops-agent-004",
     linkedAgentName: "商品运营素材助手",
     description: "该 AI专家 已通过商品化审核，请先完善售价、试用和售卖规则后再上架。",
-    price: 0,
+    subscriptionPlans: createDefaultAgentSubscriptionPlans(),
     supportsTrial: false,
     trialUnit: "day",
     trialValue: 7,
@@ -328,6 +602,7 @@ export const OPERATIONS_INITIAL_PRODUCTS: OperationsProduct[] = [
     plazaVisibility: "public",
     visibleTenantIds: [],
     visibleTenantNames: [],
+    plazaStatus: "offline",
     plazaSort: 20,
     updatedAt: "2026-04-16 15:12",
   },
@@ -339,11 +614,42 @@ export const OPERATIONS_INITIAL_PRODUCTS: OperationsProduct[] = [
     saleType: "paid",
     billingMode: "subscription",
     meteringUnit: "duration",
-    billingSpec: "year",
     linkedAgentId: "ops-agent-002",
     linkedAgentName: "客户对账核验助手",
     description: "面向付款核验与运营对账的标准化 Agent 商品。",
-    price: 6800,
+    subscriptionPlans: [
+      {
+        key: "month",
+        title: "包月",
+        description: "适合短期需求",
+        durationLabel: "30天",
+        price: 399,
+        status: "active",
+        sortOrder: 10,
+      },
+      {
+        key: "quarter",
+        title: "包季",
+        description: "性价比之选",
+        durationLabel: "90天",
+        price: 999,
+        originalPrice: 1197,
+        tagLabel: "8折优惠",
+        status: "active",
+        sortOrder: 20,
+      },
+      {
+        key: "year",
+        title: "包年",
+        description: "长期使用最划算",
+        durationLabel: "365天",
+        price: 2999,
+        originalPrice: 4788,
+        tagLabel: "6折优惠",
+        status: "active",
+        sortOrder: 30,
+      },
+    ],
     supportsTrial: true,
     trialUnit: "day",
     trialValue: 14,
@@ -352,6 +658,7 @@ export const OPERATIONS_INITIAL_PRODUCTS: OperationsProduct[] = [
     plazaVisibility: "public",
     visibleTenantIds: [],
     visibleTenantNames: [],
+    plazaStatus: "online",
     plazaSort: 10,
     updatedAt: "2026-04-16 10:42",
   },
@@ -469,6 +776,7 @@ export const OPERATIONS_INITIAL_PRODUCTS: OperationsProduct[] = [
     plazaVisibility: "public",
     visibleTenantIds: [],
     visibleTenantNames: [],
+    plazaStatus: "online",
     plazaSort: 8,
     updatedAt: "2026-04-17 14:10",
   },
@@ -695,17 +1003,44 @@ export const OPERATIONS_TENANT_TYPE_LABELS: Record<OperationsTenant["type"], str
   internal: "内部租户",
 };
 
-export const OPERATIONS_TENANT_MODULE_OPTIONS: string[] = ["FrontisAI工作台", "运营后台"];
+export const OPERATIONS_AGENT_PLAZA_DEFAULT_CATEGORY: OperationsAgentPlazaCategory = "通用";
 
-export const OPERATIONS_AGENT_PLAZA_CATEGORY_OPTIONS: Array<{
-  value: OperationsAgentPlazaCategory;
-  label: string;
-}> = [
-  { value: "通用", label: "通用" },
-  { value: "销售", label: "销售" },
-  { value: "生产", label: "生产" },
-  { value: "供应链", label: "供应链" },
-  { value: "办公协同", label: "办公协同" },
+export const OPERATIONS_INITIAL_AGENT_PLAZA_CATEGORIES: OperationsAgentPlazaCategoryOption[] = [
+  {
+    id: "ops-agent-plaza-category-general",
+    name: "通用",
+    sortOrder: 10,
+    status: "active",
+    updatedAt: "2026-04-16 10:42",
+  },
+  {
+    id: "ops-agent-plaza-category-sales",
+    name: "销售",
+    sortOrder: 20,
+    status: "active",
+    updatedAt: "2026-04-16 10:42",
+  },
+  {
+    id: "ops-agent-plaza-category-production",
+    name: "生产",
+    sortOrder: 30,
+    status: "active",
+    updatedAt: "2026-04-16 10:42",
+  },
+  {
+    id: "ops-agent-plaza-category-supply-chain",
+    name: "供应链",
+    sortOrder: 40,
+    status: "active",
+    updatedAt: "2026-04-16 10:42",
+  },
+  {
+    id: "ops-agent-plaza-category-office",
+    name: "办公协同",
+    sortOrder: 50,
+    status: "active",
+    updatedAt: "2026-04-16 10:42",
+  },
 ];
 
 export const OPERATIONS_AGENT_PLAZA_VISIBILITY_LABELS: Record<
@@ -999,23 +1334,151 @@ export const OPERATIONS_RESOURCE_POOL_CAPACITY_UNIT_OPTIONS: Array<{
   },
 ];
 
+export const OPERATIONS_METERING_PROVIDER_KIND_LABELS: Record<
+  OperationsMeteringProviderKind,
+  string
+> = {
+  largeModel: "大模型服务商",
+  thirdPartyApi: "第三方接口服务商",
+  skillService: "Skill 能力服务商",
+};
+
+export const OPERATIONS_METERING_STATUS_LABELS: Record<"active" | "inactive", string> = {
+  active: "启用",
+  inactive: "停用",
+};
+
+export const OPERATIONS_MODEL_MODALITY_LABELS: Record<OperationsModelModality, string> = {
+  text: "文本模型",
+  multimodal: "多模态模型",
+  embedding: "向量模型",
+  image: "图像模型",
+};
+
+export const OPERATIONS_MODEL_INTERFACE_FORMAT_LABELS: Record<
+  OperationsModelInterfaceFormat,
+  string
+> = {
+  openai: "OpenAI 格式",
+  anthropic: "Anthropic 格式",
+  gemini: "Gemini 格式",
+};
+
+export const OPERATIONS_USAGE_PRICING_MODE_LABELS: Record<
+  "markup" | "grossMargin" | "manual",
+  string
+> = {
+  markup: "成本倍率",
+  grossMargin: "目标毛利率",
+  manual: "手动售价",
+};
+
+export const OPERATIONS_EXTERNAL_SERVICE_METERING_UNIT_LABELS: Record<
+  OperationsExternalServiceMeteringUnit,
+  string
+> = {
+  call: "次调用",
+  request: "次请求",
+  minute: "分钟",
+  image: "张图片",
+  thousandCharacters: "千字符",
+};
+
+export const OPERATIONS_METERING_PROVIDER_KIND_OPTIONS: Array<{
+  value: OperationsMeteringProviderKind;
+  label: string;
+}> = [
+  { value: "largeModel", label: OPERATIONS_METERING_PROVIDER_KIND_LABELS.largeModel },
+  { value: "thirdPartyApi", label: OPERATIONS_METERING_PROVIDER_KIND_LABELS.thirdPartyApi },
+  { value: "skillService", label: OPERATIONS_METERING_PROVIDER_KIND_LABELS.skillService },
+];
+
+export const OPERATIONS_MODEL_MODALITY_OPTIONS: Array<{
+  value: OperationsModelModality;
+  label: string;
+}> = [
+  { value: "text", label: OPERATIONS_MODEL_MODALITY_LABELS.text },
+  { value: "multimodal", label: OPERATIONS_MODEL_MODALITY_LABELS.multimodal },
+  { value: "embedding", label: OPERATIONS_MODEL_MODALITY_LABELS.embedding },
+  { value: "image", label: OPERATIONS_MODEL_MODALITY_LABELS.image },
+];
+
+export const OPERATIONS_MODEL_INTERFACE_FORMAT_OPTIONS: Array<{
+  value: OperationsModelInterfaceFormat;
+  label: string;
+}> = [
+  { value: "openai", label: OPERATIONS_MODEL_INTERFACE_FORMAT_LABELS.openai },
+  { value: "anthropic", label: OPERATIONS_MODEL_INTERFACE_FORMAT_LABELS.anthropic },
+  { value: "gemini", label: OPERATIONS_MODEL_INTERFACE_FORMAT_LABELS.gemini },
+];
+
+export const OPERATIONS_EXTERNAL_SERVICE_METERING_UNIT_OPTIONS: Array<{
+  value: OperationsExternalServiceMeteringUnit;
+  label: string;
+}> = [
+  { value: "call", label: OPERATIONS_EXTERNAL_SERVICE_METERING_UNIT_LABELS.call },
+  { value: "request", label: OPERATIONS_EXTERNAL_SERVICE_METERING_UNIT_LABELS.request },
+  { value: "minute", label: OPERATIONS_EXTERNAL_SERVICE_METERING_UNIT_LABELS.minute },
+  { value: "image", label: OPERATIONS_EXTERNAL_SERVICE_METERING_UNIT_LABELS.image },
+  {
+    value: "thousandCharacters",
+    label: OPERATIONS_EXTERNAL_SERVICE_METERING_UNIT_LABELS.thousandCharacters,
+  },
+];
+
 export const createEmptyOperationsTenantForm = (): OperationsTenantForm => ({
   name: "",
   code: "",
   industry: "",
   adminName: "",
   adminPhone: "",
-  hasFdeAccess: false,
+  hasAgentListingAccess: false,
   seatCount: 0,
   effectiveAt: "",
   expiresAt: "",
-  moduleLabels: [],
+  moduleLabels: ["FrontisAI工作台"],
 });
 
 export const createEmptyOperationsTenantMemberForm = (): OperationsTenantMemberForm => ({
   name: "",
   phone: "",
 });
+
+export function createDefaultAgentSubscriptionPlans(): OperationsProductSubscriptionPlan[] {
+  return [
+    {
+      key: "month",
+      title: "包月",
+      description: "适合短期需求",
+      durationLabel: "30天",
+      price: 299,
+      status: "active",
+      sortOrder: 10,
+    },
+    {
+      key: "quarter",
+      title: "包季",
+      description: "性价比之选",
+      durationLabel: "90天",
+      price: 799,
+      originalPrice: 897,
+      tagLabel: "9折优惠",
+      status: "active",
+      sortOrder: 20,
+    },
+    {
+      key: "year",
+      title: "包年",
+      description: "长期使用最划算",
+      durationLabel: "365天",
+      price: 2499,
+      originalPrice: 3588,
+      tagLabel: "7折优惠",
+      status: "active",
+      sortOrder: 30,
+    },
+  ];
+}
 
 export const createEmptyOperationsProductForm = (): OperationsProductForm => ({
   name: "",
@@ -1029,6 +1492,7 @@ export const createEmptyOperationsProductForm = (): OperationsProductForm => ({
   resourcePoolId: undefined,
   description: "",
   price: 0,
+  subscriptionPlans: createDefaultAgentSubscriptionPlans(),
   supportsTrial: false,
   trialUnit: "day",
   trialValue: 7,
@@ -1043,3 +1507,43 @@ export const createEmptyOperationsResourcePoolForm = (): OperationsResourcePoolF
   availableCapacity: 0,
   capacityUnit: "device",
 });
+
+export const createEmptyOperationsMeteringProviderForm = (): OperationsMeteringProviderForm => ({
+  name: "",
+  providerKind: "largeModel",
+  baseUrl: "",
+  billingCurrency: "CNY",
+  credentialStatusLabel: "",
+  status: "active",
+});
+
+export const createEmptyOperationsModelServiceForm = (): OperationsModelServiceForm => ({
+  providerId: "",
+  modelCode: "",
+  modelName: "",
+  interfaceFormat: "openai",
+  modality: "text",
+  reasoningEnabled: true,
+  inputCostPerMillion: 0,
+  outputCostPerMillion: 0,
+  pricingMode: "markup",
+  markupRate: 1.3,
+  grossMarginRate: 30,
+  inputSalePricePerMillion: 0,
+  outputSalePricePerMillion: 0,
+  status: "active",
+});
+
+export const createEmptyOperationsExternalMeteredServiceForm =
+  (): OperationsExternalMeteredServiceForm => ({
+    providerId: "",
+    name: "",
+    serviceTypeLabel: "第三方 API",
+    meteringUnit: "call",
+    costPerUnit: 0,
+    pricingMode: "markup",
+    markupRate: 1.3,
+    grossMarginRate: 30,
+    salePricePerUnit: 0,
+    status: "active",
+  });

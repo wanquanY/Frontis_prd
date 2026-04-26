@@ -10,6 +10,8 @@ export type FrontisWebRole = "employee" | "admin";
  * FrontisAI Web 端一级导航标识。
  */
 export type FrontisWebTabKey =
+  | "overview"
+  | "points"
   | "dashboard"
   | "dialogue"
   | "group"
@@ -193,6 +195,30 @@ export interface DialogueSessionItem {
   preview: string;
   updatedAt: string;
   messages: ChatMessage[];
+}
+
+/**
+ * MetaAgent 单线程中的可回溯记忆片段。
+ */
+export interface MetaAgentWorkTrajectoryDeliverableItem {
+  id: string;
+  fileName: string;
+  metaLabel: string;
+}
+
+/**
+ * MetaAgent 单线程中的可回溯记忆片段。
+ */
+export interface MetaAgentWorkTrajectoryItem {
+  id: string;
+  title: string;
+  promptPreview: string;
+  resultPreview: string;
+  anchorBlockId: string;
+  occurredAt: string;
+  displayTimeLabel: string;
+  participantNames: string[];
+  deliverables: MetaAgentWorkTrajectoryDeliverableItem[];
 }
 
 export type DialogueGeneratedPanelStatus = "running" | "success";

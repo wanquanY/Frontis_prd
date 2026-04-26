@@ -1,7 +1,9 @@
-import { useCallback, useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import {
+  getMockAuthAccounts,
   applyIdentityToSession,
+  registerMockTenantAdminAccount,
   createMockSession,
   findIdentityForPath,
   getDefaultIdentity,
@@ -17,18 +19,22 @@ import {
 } from "@/feature/auth/mockAccounts";
 import type {
   MockAuthActionResult,
+  MockAuthAccount,
   MockAuthIdentity,
   MockLoginParams,
   MockAuthSession,
+  MockTenantRegistrationParams,
 } from "@/feature/auth/types";
 import { isValidMarketingPhone } from "@/feature/marketingPortal/utils";
 import { useAuthStore } from "@/store/auth";
 
 interface UseMockAuthResult {
+  mockAccounts: MockAuthAccount[];
   session: MockAuthSession | null;
   activeIdentity: MockAuthIdentity | null;
-  sendVerificationCode: (phone: string) => MockAuthActionResult;
+  sendVerificationCode: (phone: string, scene?: "login" | "register") => MockAuthActionResult;
   login: (params: MockLoginParams) => MockAuthActionResult;
+  register: (params: MockTenantRegistrationParams) => MockAuthActionResult;
   quickLoginByAccountId: (
     accountId: string,
     preferredIdentityId?: string,
@@ -47,6 +53,7 @@ export const useMockAuth = (): UseMockAuthResult => {
   const rawSession = useAuthStore(state => state.session);
   const setSession = useAuthStore(state => state.setSession);
   const clearSession = useAuthStore(state => state.clearSession);
+  const [mockAccounts, setMockAccounts] = useState<MockAuthAccount[]>(() => getMockAuthAccounts());
   const session = useMemo<MockAuthSession | null>(
     () => normalizeMockSession(rawSession),
     [rawSession],
@@ -62,7 +69,11 @@ export const useMockAuth = (): UseMockAuthResult => {
     }
   }, [rawSession, session, setSession]);
 
-  const sendVerificationCode = useCallback((phone: string): MockAuthActionResult => {
+  const refreshMockAccounts = useCallback((): void => {
+    setMockAccounts(getMockAuthAccounts());
+  }, []);
+
+  const sendVerificationCode = useCallback((phone: string, scene: "login" | "register" = "login"): MockAuthActionResult => {
     if (!isValidMarketingPhone(phone)) {
       return {
         success: false,
@@ -72,17 +83,24 @@ export const useMockAuth = (): UseMockAuthResult => {
 
     const matchedAccount = getMockAccountByPhone(phone);
 
-    if (!matchedAccount) {
+    if (scene === "login" && !matchedAccount) {
       return {
         success: false,
         message: "当前手机号未开通，请联系管理员。",
       };
     }
 
+    if (scene === "register" && matchedAccount) {
+      return {
+        success: false,
+        message: "当前手机号已注册，请直接登录。",
+      };
+    }
+
     return {
       success: true,
       message: "验证码已发送，请注意查收。",
-      account: matchedAccount,
+      account: matchedAccount ?? undefined,
     };
   }, []);
 
@@ -138,7 +156,7 @@ export const useMockAuth = (): UseMockAuthResult => {
 
       return {
         success: true,
-        message: defaultIdentity ? "登录成功。" : "登录成功，请选择进入企业。",
+        message: defaultIdentity ? "登录成功。" : "登录成功，请选择进入租户。",
         account: matchedAccount,
         session: nextSession,
         redirectPath: nextRedirectPath,
@@ -146,6 +164,70 @@ export const useMockAuth = (): UseMockAuthResult => {
       };
     },
     [setSession],
+  );
+
+  const register = useCallback(
+    (params: MockTenantRegistrationParams): MockAuthActionResult => {
+      if (!params.name.trim()) {
+        return {
+          success: false,
+          message: "请输入你的姓名。",
+        };
+      }
+
+      if (!params.tenantName.trim()) {
+        return {
+          success: false,
+          message: "请输入租户名称。",
+        };
+      }
+
+      if (!isValidMarketingPhone(params.phone)) {
+        return {
+          success: false,
+          message: "请输入正确的手机号。",
+        };
+      }
+
+      if (!/^\d{6}$/.test(params.verificationCode.trim())) {
+        return {
+          success: false,
+          message: "请输入 6 位验证码。",
+        };
+      }
+
+      if (params.verificationCode.trim() !== "123456") {
+        return {
+          success: false,
+          message: "验证码错误。",
+        };
+      }
+
+      const payload = registerMockTenantAdminAccount(params);
+
+      if (!payload) {
+        return {
+          success: false,
+          message: "当前手机号已注册，请直接登录。",
+        };
+      }
+
+      const defaultIdentity = getDefaultIdentity(payload.account.identities) ?? undefined;
+      const nextSession = createMockSession(payload.account, defaultIdentity);
+
+      setSession(nextSession);
+      refreshMockAccounts();
+
+      return {
+        success: true,
+        message: "注册成功，已为你创建个人版租户。",
+        account: payload.account,
+        session: nextSession,
+        identity: defaultIdentity,
+        redirectPath: "/web/admin/workspace/agent-store",
+      };
+    },
+    [refreshMockAccounts, setSession],
   );
 
   const quickLoginByAccountId = useCallback(
@@ -184,7 +266,7 @@ export const useMockAuth = (): UseMockAuthResult => {
 
       return {
         success: true,
-        message: selectedIdentity ? "登录成功。" : "登录成功，请选择进入企业。",
+        message: selectedIdentity ? "登录成功。" : "登录成功，请选择进入租户。",
         account: matchedAccount,
         session: nextSession,
         redirectPath: nextRedirectPath,
@@ -208,7 +290,7 @@ export const useMockAuth = (): UseMockAuthResult => {
       if (!tenantIdentities.length) {
         return {
           success: false,
-          message: "未找到对应企业，请重新选择。",
+          message: "未找到对应租户，请重新选择。",
         };
       }
 
@@ -220,7 +302,7 @@ export const useMockAuth = (): UseMockAuthResult => {
       if (!selectedIdentity) {
         return {
           success: false,
-          message: "当前企业暂无可进入系统。",
+          message: "当前租户暂无可进入系统。",
         };
       }
 
@@ -231,7 +313,7 @@ export const useMockAuth = (): UseMockAuthResult => {
 
       return {
         success: true,
-        message: "企业切换成功。",
+        message: "租户切换成功。",
         session: nextSession,
         redirectPath: nextRedirectPath,
         identity: selectedIdentity,
@@ -279,10 +361,12 @@ export const useMockAuth = (): UseMockAuthResult => {
   }, [clearSession]);
 
   return {
+    mockAccounts,
     session,
     activeIdentity,
     sendVerificationCode,
     login,
+    register,
     quickLoginByAccountId,
     activateTenant,
     activateIdentity,

@@ -70,6 +70,570 @@
   color: var(--text);
 }
 
+.metaAgentTrajectoryPanel {
+  position: absolute;
+  top: 62px;
+  right: 16px;
+  z-index: 9;
+  width: min(720px, calc(100% - 32px));
+  max-height: min(72vh, 760px);
+  padding: 16px;
+  border: 1px solid var(--panelBorder);
+  border-radius: 20px;
+  background: color-mix(in srgb, var(--surface) 96%, var(--app-bg));
+  box-shadow: var(--shadow-lg);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  overflow: hidden;
+}
+
+.metaAgentTrajectoryPanelHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.metaAgentTrajectoryPanelTitleGroup {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.metaAgentTrajectoryPanelTitle {
+  color: var(--text);
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 600;
+}
+
+.metaAgentTrajectoryPanelHint {
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.metaAgentTrajectoryDismissButton,
+.metaAgentTrajectoryFocusButton {
+  border: 0;
+  cursor: pointer;
+}
+
+.metaAgentTrajectoryDismissButton {
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--text) 4%, transparent);
+  color: var(--text-secondary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition:
+    background 160ms ease,
+    color 160ms ease;
+}
+
+.metaAgentTrajectoryDismissButton:hover {
+  background: color-mix(in srgb, var(--text) 8%, transparent);
+  color: var(--text);
+}
+
+.metaAgentTrajectoryControlRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  position: relative;
+}
+
+.metaAgentTrajectorySearch {
+  border-radius: 12px;
+}
+
+.metaAgentTrajectoryTimeFilterWrap {
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.metaAgentTrajectoryTimeFilterTrigger {
+  min-height: 40px;
+  padding: 0 14px;
+  border: 1px solid var(--panelBorder);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 13px;
+  line-height: 20px;
+  transition:
+    border-color 160ms ease,
+    background 160ms ease,
+    color 160ms ease;
+}
+
+.metaAgentTrajectoryTimeFilterTrigger:hover {
+  border-color: color-mix(in srgb, var(--primary) 22%, var(--panelBorder));
+  background: color-mix(in srgb, var(--primary) 6%, transparent);
+  color: var(--text);
+}
+
+.metaAgentTrajectoryTimeFilterTriggerActive {
+  border-color: color-mix(in srgb, var(--primary) 28%, var(--panelBorder));
+  color: var(--text);
+}
+
+.metaAgentTrajectoryTimeFilterArrow {
+  transition: transform 160ms ease;
+}
+
+.metaAgentTrajectoryTimeFilterArrowOpen {
+  transform: rotate(180deg);
+}
+
+.metaAgentTrajectoryTimeFilterDropdown {
+  position: absolute;
+  top: calc(100% + 10px);
+  left: 0;
+  z-index: 2;
+  width: 240px;
+  padding: 10px;
+  border: 1px solid var(--panelBorder);
+  border-radius: 16px;
+  background: var(--surface);
+  box-shadow: var(--shadow-md);
+}
+
+.metaAgentTrajectoryTimeFilterOptionList {
+  display: flex;
+  flex-direction: column;
+}
+
+.metaAgentTrajectoryTimeFilterOption {
+  min-height: 52px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  text-align: left;
+  font-size: 14px;
+  line-height: 22px;
+  transition:
+    background 160ms ease,
+    color 160ms ease;
+}
+
+.metaAgentTrajectoryTimeFilterOption:hover {
+  background: color-mix(in srgb, var(--text) 4%, transparent);
+}
+
+.metaAgentTrajectoryTimeFilterOptionActive {
+  background: color-mix(in srgb, var(--primary) 8%, transparent);
+}
+
+.metaAgentTrajectoryTimeFilterOptionCustom {
+  margin-top: 8px;
+  border-top: 1px solid color-mix(in srgb, var(--text) 10%, transparent);
+  border-radius: 0 0 12px 12px;
+  padding-top: 14px;
+  min-height: 58px;
+}
+
+.metaAgentTrajectoryTimeFilterCustomPanel {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 4px;
+}
+
+.metaAgentTrajectoryTimeFilterDatePicker {
+  width: 100%;
+}
+
+.metaAgentTrajectoryTimeFilterCustomActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.metaAgentTrajectoryTimeFilterCustomButton {
+  min-width: 88px;
+  min-height: 40px;
+  padding: 0 14px;
+  border: 1px solid var(--panelBorder);
+  border-radius: 14px;
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 20px;
+  transition:
+    border-color 160ms ease,
+    background 160ms ease,
+    color 160ms ease;
+}
+
+.metaAgentTrajectoryTimeFilterCustomButton:hover {
+  border-color: color-mix(in srgb, var(--primary) 20%, var(--panelBorder));
+  background: color-mix(in srgb, var(--primary) 5%, transparent);
+}
+
+.metaAgentTrajectoryTimeFilterCustomButtonPrimary {
+  background: color-mix(in srgb, var(--text) 10%, var(--surface));
+}
+
+.metaAgentTrajectoryTimeFilterCustomButtonDisabled,
+.metaAgentTrajectoryTimeFilterCustomButtonDisabled:hover {
+  border-color: color-mix(in srgb, var(--text) 8%, transparent);
+  background: color-mix(in srgb, var(--text) 8%, transparent);
+  color: color-mix(in srgb, var(--text-secondary) 72%, white);
+  cursor: not-allowed;
+}
+
+.metaAgentTrajectoryPanelBody {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+
+.metaAgentTrajectoryEmpty {
+  padding: 24px 12px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 18px;
+  text-align: center;
+}
+
+.metaAgentTrajectoryFocusBar {
+  border: 1px solid color-mix(in srgb, var(--primary) 16%, var(--panelBorder));
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--primary) 4%, var(--surface));
+}
+
+.metaAgentTrajectorySearchResultList,
+.metaAgentTrajectoryTimelineCardList {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow-x: hidden;
+}
+
+.metaAgentTrajectoryTimelineLayout {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 200px minmax(0, 1fr);
+  gap: 16px;
+}
+
+.metaAgentTrajectoryTimelineRail {
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.metaAgentTrajectoryTimelineNode {
+  position: relative;
+  padding: 0 0 0 26px;
+  border: 0;
+  background: transparent;
+  color: var(--text-secondary);
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 36px;
+}
+
+.metaAgentTrajectoryTimelineNodeActive {
+  color: var(--text);
+}
+
+.metaAgentTrajectoryTimelineDot {
+  position: absolute;
+  left: 0;
+  top: 8px;
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--primary) 20%, var(--text-secondary));
+}
+
+.metaAgentTrajectoryTimelineNodeActive .metaAgentTrajectoryTimelineDot {
+  background: var(--primary);
+}
+
+.metaAgentTrajectoryTimelineLine {
+  position: absolute;
+  left: 4px;
+  top: 22px;
+  width: 2px;
+  height: calc(100% + 10px);
+  background: color-mix(in srgb, var(--text) 12%, transparent);
+}
+
+.metaAgentTrajectoryTimelineLabel {
+  color: inherit;
+  font-size: 13px;
+  line-height: 20px;
+  font-weight: 600;
+}
+
+.metaAgentTrajectoryTimelineContent {
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.metaAgentTrajectoryTimelineContentHeader,
+.metaAgentTrajectoryRecordCardHeader,
+.metaAgentTrajectoryFocusBar,
+.metaAgentTrajectoryFocusActions,
+.metaAgentTrajectoryRecordCardExperts,
+.metaAgentTrajectoryRecordCardDeliverables {
+  display: flex;
+  align-items: center;
+}
+
+.metaAgentTrajectoryTimelineContentHeader,
+.metaAgentTrajectoryRecordCardHeader,
+.metaAgentTrajectoryFocusBar {
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.metaAgentTrajectoryTimelineContentTitle,
+.metaAgentTrajectoryFocusLabel,
+.metaAgentTrajectoryRecordCardTitle {
+  color: var(--text);
+  font-size: 15px;
+  line-height: 22px;
+  font-weight: 600;
+}
+
+.metaAgentTrajectoryTimelineContentMeta,
+.metaAgentTrajectoryFocusSummary,
+.metaAgentTrajectoryRecordCardTime,
+.metaAgentTrajectoryRecordCardSummary,
+.metaAgentTrajectoryRecordCardExpertsLabel,
+.metaAgentTrajectoryRecordCardDeliverableLabel {
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.metaAgentTrajectoryRecordCard {
+  min-width: 0;
+  width: 100%;
+  padding: 14px 16px;
+  border: 1px solid var(--panelBorder);
+  border-radius: 16px;
+  background: var(--surface);
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  transition:
+    border-color 160ms ease,
+    background 160ms ease,
+    transform 160ms ease;
+}
+
+.metaAgentTrajectoryRecordCard:hover {
+  border-color: color-mix(in srgb, var(--primary) 24%, var(--panelBorder));
+  background: color-mix(in srgb, var(--primary) 4%, var(--surface));
+  transform: translateY(-1px);
+}
+
+.metaAgentTrajectoryRecordCardSearch {
+  box-shadow: var(--shadow-sm);
+}
+
+.metaAgentTrajectoryRecordCardExperts,
+.metaAgentTrajectoryRecordCardDeliverables,
+.metaAgentTrajectoryParticipantAvatars {
+  display: flex;
+  align-items: center;
+}
+
+.metaAgentTrajectoryRecordCardExperts,
+.metaAgentTrajectoryFocusActions {
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.metaAgentTrajectoryRecordCardDeliverables {
+  width: 100%;
+  min-width: 0;
+  align-items: stretch;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.metaAgentTrajectoryRecordCardDeliverableList {
+  width: 100%;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  scrollbar-width: thin;
+
+  &::-webkit-scrollbar {
+    height: 6px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--text) 12%, transparent);
+  }
+}
+
+.metaAgentTrajectoryParticipantAvatars {
+  flex-shrink: 0;
+}
+
+.metaAgentTrajectoryParticipantAvatar {
+  border: 1px solid var(--surface);
+}
+
+.metaAgentTrajectoryParticipantAvatar + .metaAgentTrajectoryParticipantAvatar {
+  margin-left: -6px;
+}
+
+.metaAgentTrajectoryDeliverableItem {
+  min-width: 280px;
+  min-height: 72px;
+  padding: 12px 14px;
+  border: 1px solid color-mix(in srgb, var(--text) 9%, transparent);
+  border-radius: 16px;
+  background: var(--surface);
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  flex: 0 0 auto;
+  gap: 12px;
+  color: var(--text);
+  box-shadow:
+    0 1px 0 color-mix(in srgb, var(--text) 3%, transparent),
+    0 10px 24px color-mix(in srgb, var(--text) 2%, transparent);
+}
+
+.metaAgentTrajectoryDeliverableIcon {
+  width: 46px;
+  height: 46px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--primary) 6%, var(--surface));
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  border: 1px solid color-mix(in srgb, var(--text) 7%, transparent);
+}
+
+.metaAgentTrajectoryDeliverableIconImage {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+}
+
+.metaAgentTrajectoryDeliverableBody {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.metaAgentTrajectoryDeliverableTitle {
+  min-width: 0;
+  width: 100%;
+  font-size: 16px;
+  line-height: 22px;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.metaAgentTrajectoryDeliverableMeta {
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.metaAgentTrajectoryFocusButton {
+  min-height: 32px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--text) 6%, transparent);
+  color: var(--text);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 12px;
+  line-height: 18px;
+  transition:
+    background 160ms ease,
+    color 160ms ease,
+    transform 160ms ease;
+}
+
+.metaAgentTrajectoryFocusButton:hover {
+  background: color-mix(in srgb, var(--primary) 12%, transparent);
+  color: var(--primary);
+  transform: translateY(-1px);
+}
+
+.metaAgentTrajectoryFocusBar {
+  width: 100%;
+  margin-bottom: 10px;
+  padding: 12px 14px;
+  border: 1px solid color-mix(in srgb, var(--primary) 18%, var(--panelBorder));
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--primary) 6%, var(--surface));
+}
+
+.metaAgentTrajectoryFocusCopy {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
 .dialogueHomeLayout {
   flex: 1;
   min-height: 0;

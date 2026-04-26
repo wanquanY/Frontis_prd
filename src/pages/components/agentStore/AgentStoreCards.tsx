@@ -5,7 +5,6 @@ import { Button, Tag } from "antd";
 import type { EmployeeItem, OrganizationDepartmentItem, WorkspaceItem } from "../../types";
 import { getAvatarText } from "../../utils";
 import type { OwnedExpertTeam, RecommendedExpertTeam } from "./types";
-import { EXPERT_VERSION_INFO } from "./AgentStoreTeamDetail";
 
 import styles from "./AgentStoreView.module.less";
 
@@ -59,10 +58,10 @@ export const OwnedTeamCard = ({
 }: OwnedTeamCardProps): JSX.Element => {
   const members = employees.filter(e => team.memberIds.includes(e.id));
   const isOnline = members.some(e => ["online", "running"].includes(e.status));
-  const pendingUpgradeCount = team.memberIds.filter(memberId => {
-    const versionInfo = EXPERT_VERSION_INFO[memberId];
-    return Boolean(versionInfo?.newVersion && versionInfo.newVersion !== versionInfo.version);
-  }).length;
+  const pendingUpgradeCount =
+    team.hasNewVersion && team.newVersion && team.newVersion !== team.version
+      ? team.memberIds.length
+      : 0;
   const accessScopeSummary = buildAccessScopeSummary(
     normalizeAccessScopeSubjects(
       members.flatMap(member =>

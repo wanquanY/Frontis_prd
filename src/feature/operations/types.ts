@@ -6,7 +6,14 @@ export type OperationsRole = "superAdmin" | "operator";
 /**
  * 运营后台一级导航 key。
  */
-export type OperationsPlatformTabKey = "tenants" | "agentPlaza" | "agents";
+export type OperationsPlatformTabKey =
+  | "tenants"
+  | "agents"
+  | "products"
+  | "fulfillment"
+  | "resources"
+  | "points"
+  | "agentPlaza";
 
 /**
  * 运营后台租户状态。
@@ -34,9 +41,14 @@ export type OperationsAgentPlazaStatus = "online" | "offline";
 export type OperationsAgentSubmissionType = "squarePublish" | "commodityApplication";
 
 /**
- * AI专家广场分类。
+ * AI专家广场分类名称，由运营后台维护。
  */
-export type OperationsAgentPlazaCategory = "通用" | "销售" | "生产" | "供应链" | "办公协同";
+export type OperationsAgentPlazaCategory = string;
+
+/**
+ * AI专家广场分类状态。
+ */
+export type OperationsAgentPlazaCategoryStatus = "active" | "inactive";
 
 /**
  * AI专家广场可见范围。
@@ -44,9 +56,30 @@ export type OperationsAgentPlazaCategory = "通用" | "销售" | "生产" | "供
 export type OperationsAgentPlazaVisibility = "public" | "tenant";
 
 /**
+ * AI专家广场分类配置项。
+ */
+export interface OperationsAgentPlazaCategoryOption {
+  id: string;
+  name: OperationsAgentPlazaCategory;
+  sortOrder: number;
+  status: OperationsAgentPlazaCategoryStatus;
+  updatedAt: string;
+}
+
+/**
  * 商品售卖类型。
  */
 export type OperationsProductSaleType = "free" | "paid";
+
+/**
+ * AI 专家订阅方案周期。
+ */
+export type OperationsProductSubscriptionPlanKey = "month" | "quarter" | "year";
+
+/**
+ * AI 专家订阅方案状态。
+ */
+export type OperationsProductSubscriptionPlanStatus = "active" | "inactive";
 
 /**
  * 商品试用规则。
@@ -195,7 +228,7 @@ export interface OperationsTenant {
   industry: string;
   adminName: string;
   adminPhone: string;
-  hasFdeAccess: boolean;
+  hasAgentListingAccess: boolean;
   seatCount: number;
   effectiveAt: string;
   expiresAt: string;
@@ -215,7 +248,7 @@ export interface OperationsTenantForm {
   industry: string;
   adminName: string;
   adminPhone: string;
-  hasFdeAccess: boolean;
+  hasAgentListingAccess: boolean;
   seatCount: number;
   effectiveAt: string;
   expiresAt: string;
@@ -239,6 +272,210 @@ export interface OperationsTenantMember {
 export interface OperationsTenantMemberForm {
   name: string;
   phone: string;
+}
+
+/**
+ * 平台侧注册赠送积分规则。
+ */
+export interface OperationsRegistrationStrategy {
+  defaultGiftPoints: number;
+  referralDailyRewardLimit: number;
+  referralEnabled: boolean;
+  referralInviteeRewardPoints: number;
+  referralInviterRewardPoints: number;
+  referralMonthlyRewardLimit: number;
+  pointsPerCny: number;
+  minimumDeductPoints: number;
+  roundingUnit: number;
+  updatedAt: string;
+}
+
+/**
+ * 邀请裂变奖励状态。
+ */
+export type OperationsReferralStatus = "rewarded" | "registered" | "pending" | "blocked";
+
+/**
+ * 邀请裂变运营记录。
+ */
+export interface OperationsReferralRecord {
+  id: string;
+  inviterName: string;
+  inviterTenantName: string;
+  inviteeName: string;
+  inviteePhoneMasked: string;
+  inviteeTenantName: string;
+  status: OperationsReferralStatus;
+  rewardPoints: number;
+  registeredAt: string;
+  rewardedAt?: string;
+  sourceLabel: string;
+}
+
+/**
+ * 积分消耗计费配置状态。
+ */
+export type OperationsMeteringStatus = "active" | "inactive";
+
+/**
+ * 积分消耗服务商类型。
+ */
+export type OperationsMeteringProviderKind = "largeModel" | "thirdPartyApi" | "skillService";
+
+/**
+ * 模型能力类型。
+ */
+export type OperationsModelModality = "text" | "multimodal" | "embedding" | "image";
+
+/**
+ * 模型接口格式。
+ */
+export type OperationsModelInterfaceFormat = "anthropic" | "gemini" | "openai";
+
+/**
+ * 消耗计费定价模式。
+ */
+export type OperationsUsagePricingMode = "markup" | "grossMargin" | "manual";
+
+/**
+ * 第三方接口计量单位。
+ */
+export type OperationsExternalServiceMeteringUnit =
+  | "call"
+  | "request"
+  | "minute"
+  | "image"
+  | "thousandCharacters";
+
+/**
+ * 消耗来源类型。
+ */
+export type OperationsPointsUsageSourceType = "largeModel" | "skill" | "thirdPartyApi";
+
+/**
+ * 积分消耗服务商。
+ */
+export interface OperationsMeteringProvider {
+  id: string;
+  name: string;
+  providerKind: OperationsMeteringProviderKind;
+  baseUrl: string;
+  billingCurrency: string;
+  credentialStatusLabel: string;
+  status: OperationsMeteringStatus;
+  updatedAt: string;
+}
+
+/**
+ * 积分消耗服务商表单。
+ */
+export interface OperationsMeteringProviderForm {
+  name: string;
+  providerKind: OperationsMeteringProviderKind;
+  baseUrl: string;
+  billingCurrency: string;
+  credentialStatusLabel: string;
+  status: OperationsMeteringStatus;
+}
+
+/**
+ * 大模型计费配置。
+ */
+export interface OperationsModelService {
+  id: string;
+  providerId: string;
+  providerName: string;
+  modelCode: string;
+  modelName: string;
+  interfaceFormat: OperationsModelInterfaceFormat;
+  modality: OperationsModelModality;
+  reasoningEnabled: boolean;
+  inputCostPerMillion: number;
+  outputCostPerMillion: number;
+  pricingMode: OperationsUsagePricingMode;
+  markupRate: number;
+  grossMarginRate: number;
+  inputSalePricePerMillion: number;
+  outputSalePricePerMillion: number;
+  status: OperationsMeteringStatus;
+  updatedAt: string;
+}
+
+/**
+ * 大模型计费配置表单。
+ */
+export interface OperationsModelServiceForm {
+  providerId: string;
+  modelCode: string;
+  modelName: string;
+  interfaceFormat: OperationsModelInterfaceFormat;
+  modality: OperationsModelModality;
+  reasoningEnabled: boolean;
+  inputCostPerMillion: number;
+  outputCostPerMillion: number;
+  pricingMode: OperationsUsagePricingMode;
+  markupRate: number;
+  grossMarginRate: number;
+  inputSalePricePerMillion: number;
+  outputSalePricePerMillion: number;
+  status: OperationsMeteringStatus;
+}
+
+/**
+ * 第三方接口或 Skill 计费配置。
+ */
+export interface OperationsExternalMeteredService {
+  id: string;
+  providerId: string;
+  providerName: string;
+  name: string;
+  serviceTypeLabel: string;
+  meteringUnit: OperationsExternalServiceMeteringUnit;
+  costPerUnit: number;
+  pricingMode: OperationsUsagePricingMode;
+  markupRate: number;
+  grossMarginRate: number;
+  salePricePerUnit: number;
+  status: OperationsMeteringStatus;
+  updatedAt: string;
+}
+
+/**
+ * 第三方接口或 Skill 计费配置表单。
+ */
+export interface OperationsExternalMeteredServiceForm {
+  providerId: string;
+  name: string;
+  serviceTypeLabel: string;
+  meteringUnit: OperationsExternalServiceMeteringUnit;
+  costPerUnit: number;
+  pricingMode: OperationsUsagePricingMode;
+  markupRate: number;
+  grossMarginRate: number;
+  salePricePerUnit: number;
+  status: OperationsMeteringStatus;
+}
+
+/**
+ * 积分消耗对账记录。
+ */
+export interface OperationsPointsUsageRecord {
+  id: string;
+  tenantName: string;
+  userName: string;
+  sourceType: OperationsPointsUsageSourceType;
+  sourceName: string;
+  providerName: string;
+  modelName?: string;
+  inputTokens?: number;
+  outputTokens?: number;
+  unitCount?: number;
+  unitLabel?: string;
+  costAmount: number;
+  saleAmount: number;
+  points: number;
+  marginAmount: number;
+  occurredAt: string;
 }
 
 /**
@@ -278,13 +515,14 @@ export interface OperationsProduct {
   saleType: OperationsProductSaleType;
   billingMode: OperationsProductBillingMode;
   meteringUnit: OperationsProductMeteringUnit;
-  billingSpec: OperationsProductBillingSpec;
+  billingSpec?: OperationsProductBillingSpec;
   linkedAgentId?: string;
   linkedAgentName?: string;
   resourcePoolId?: string;
   resourcePoolName?: string;
   description: string;
-  price: number;
+  price?: number;
+  subscriptionPlans?: OperationsProductSubscriptionPlan[];
   supportsTrial: boolean;
   trialUnit?: OperationsProductTrialUnit;
   trialValue?: number;
@@ -293,6 +531,7 @@ export interface OperationsProduct {
   plazaVisibility?: OperationsAgentPlazaVisibility;
   visibleTenantIds?: string[];
   visibleTenantNames?: string[];
+  plazaStatus?: OperationsAgentPlazaStatus;
   plazaSort?: number;
   updatedAt: string;
 }
@@ -307,14 +546,30 @@ export interface OperationsProductForm {
   saleType: OperationsProductSaleType;
   billingMode: OperationsProductBillingMode;
   meteringUnit: OperationsProductMeteringUnit;
-  billingSpec: OperationsProductBillingSpec;
+  billingSpec?: OperationsProductBillingSpec;
   linkedAgentId?: string;
   resourcePoolId?: string;
   description: string;
-  price: number;
+  price?: number;
+  subscriptionPlans: OperationsProductSubscriptionPlan[];
   supportsTrial: boolean;
   trialUnit: OperationsProductTrialUnit;
   trialValue: number;
+}
+
+/**
+ * AI 专家订阅方案。
+ */
+export interface OperationsProductSubscriptionPlan {
+  key: OperationsProductSubscriptionPlanKey;
+  title: string;
+  description: string;
+  durationLabel: string;
+  price: number;
+  originalPrice?: number;
+  tagLabel?: string;
+  status: OperationsProductSubscriptionPlanStatus;
+  sortOrder: number;
 }
 
 /**

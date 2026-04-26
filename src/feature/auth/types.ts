@@ -1,4 +1,4 @@
-import type { FrontisWebRole } from "@/pages/types";
+import type { FrontisUserRole, FrontisWebRole, FrontisWebUserItem } from "@/pages/types";
 
 export type MockAuthRole = FrontisWebRole;
 export type MockIdentityPlatform = "enterpriseWorkspace" | "enterpriseAdmin";
@@ -69,6 +69,133 @@ export interface MockAuthSession {
   loginAt: string;
   identities: MockAuthIdentity[];
   activeIdentityId?: string;
+}
+
+/**
+ * 租户积分流水方向。
+ */
+export type MockTenantPointsLedgerDirection = "income" | "expense";
+
+/**
+ * 租户积分流水记录。
+ */
+export interface MockTenantPointsLedgerItem {
+  id: string;
+  title: string;
+  description: string;
+  points: number;
+  direction: MockTenantPointsLedgerDirection;
+  createdAt: string;
+  actorName: string;
+}
+
+/**
+ * 租户积分消耗记录。
+ */
+export interface MockTenantPointsUsageRecordItem {
+  id: string;
+  channelLabel: string;
+  targetLabel: string;
+  actorName: string;
+  runtimeLabel: string;
+  points: number;
+  occurredAt: string;
+  description: string;
+}
+
+/**
+ * 积分购买订单状态。
+ */
+export type MockTenantPointsOrderStatus = "paid" | "pending" | "expired" | "closed";
+
+/**
+ * 租户邀请好友裂变记录状态。
+ */
+export type MockTenantReferralInviteStatus = "rewarded" | "registered" | "pending";
+
+/**
+ * 租户邀请好友裂变记录。
+ */
+export interface MockTenantReferralInviteRecord {
+  id: string;
+  inviteeName: string;
+  inviteeTenantName: string;
+  registeredAt: string;
+  rewardPoints: number;
+  rewardedAt?: string;
+  status: MockTenantReferralInviteStatus;
+}
+
+/**
+ * 租户积分购买订单。
+ */
+export interface MockTenantPointsOrderItem {
+  id: string;
+  orderNo: string;
+  packageId: string;
+  packageTitle: string;
+  packagePoints: number;
+  amount: number;
+  status: MockTenantPointsOrderStatus;
+  paymentChannelLabel: string;
+  purchaserName: string;
+  createdAt: string;
+  paidAt?: string;
+}
+
+/**
+ * 租户当前版本。
+ */
+export type MockTenantEdition = "personal" | "team";
+
+/**
+ * 租户管理后台中的基础运营信息。
+ */
+export interface MockTenantManagementSnapshot {
+  tenantId: string;
+  tenantName: string;
+  tenantCode: string;
+  ownerAccountId: string;
+  adminUserId: string;
+  edition: MockTenantEdition;
+  planLabel: string;
+  includedSeats: number;
+  extraSeatCount: number;
+  teamPlanPackageId?: string;
+  planExpiresAt?: string;
+  hasAgentListingAccess: boolean;
+  invitePolicyLabel: string;
+  lowBalanceThreshold: number;
+  monthlyUsedPoints: number;
+  pointsBalance: number;
+  totalSeats: number;
+  usedSeats: number;
+  users: FrontisWebUserItem[];
+  pointsLedger: MockTenantPointsLedgerItem[];
+  pointsUsageRecords: MockTenantPointsUsageRecordItem[];
+  pointsOrders: MockTenantPointsOrderItem[];
+  referralRecords: MockTenantReferralInviteRecord[];
+}
+
+/**
+ * 模拟自注册参数。
+ */
+export interface MockTenantRegistrationParams {
+  name: string;
+  phone: string;
+  tenantName: string;
+  verificationCode: string;
+}
+
+/**
+ * 模拟租户邀请成员参数。
+ */
+export interface MockTenantInviteMemberParams {
+  departmentId: string;
+  inviterName: string;
+  name: string;
+  phone: string;
+  role: FrontisUserRole;
 }
 
 /**

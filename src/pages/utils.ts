@@ -1,5 +1,5 @@
 import dayjs from "dayjs";
-import type { Block, MessageAttachment } from "@/types/block";
+import type { ArtifactData, Block, MessageAttachment, ResultCardsData, TextData } from "@/types/block";
 import type {
   WorkspaceChatMessage,
   WorkspaceComposerAttachmentItem,
@@ -8,11 +8,15 @@ import type { ArtifactItem } from "@/types/artifact";
 
 import type {
   AttachmentItem,
-  ChatMessage,
   AutomationStatus,
+  ChatMessage,
   ConnectionMode,
+  DialogueGeneratedResultItem,
+  DialogueSessionItem,
   EmployeeItem,
   EmployeeStatus,
+  MetaAgentWorkTrajectoryDeliverableItem,
+  MetaAgentWorkTrajectoryItem,
   StatusTone,
   WorkspaceType,
 } from "./types";
@@ -123,6 +127,246 @@ export const groupConversationEmployees = (
   });
 
   return Array.from(groupMap.values());
+};
+
+const MAX_TRAJECTORY_TITLE_LENGTH = 16;
+const MAX_TRAJECTORY_PROMPT_LENGTH = 40;
+const MAX_TRAJECTORY_RESULT_LENGTH = 56;
+const MAX_TRAJECTORY_DELIVERABLE_COUNT = 6;
+const META_AGENT_LABEL = "MetaAegnt";
+const META_AGENT_TRAJECTORY_DAY_OFFSETS = [0, 3, 8, 15, 24, 37, 56, 84, 120];
+
+const normalizeTrajectoryCopy = (value: string): string =>
+  value
+    .replace(/^技能：.+?\n需求：/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+
+const truncateTrajectoryText = (value: string, maxLength: number): string =>
+  value.length > maxLength ? `${value.slice(0, maxLength - 1)}…` : value;
+
+const resolveTrajectoryTitle = (content: string): string => {
+  const normalizedContent = normalizeTrajectoryCopy(content);
+
+  if (normalizedContent.includes("风险")) {
+    return "上线风险复核";
+  }
+
+  if (
+    normalizedContent.includes("拆") ||
+    normalizedContent.includes("模块") ||
+    normalizedContent.includes("边界") ||
+    normalizedContent.includes("依赖")
+  ) {
+    return "需求拆解与边界梳理";
+  }
+
+  if (normalizedContent.includes("PRD")) {
+    return "PRD结构梳理";
+  }
+
+  if (normalizedContent.includes("复盘") || normalizedContent.includes("总结")) {
+    return "结论复盘与总结";
+  }
+
+  return truncateTrajectoryText(normalizedContent || "未命名工作片段", MAX_TRAJECTORY_TITLE_LENGTH);
+};
+
+const resolveTrajectoryPromptPreview = (content: string): string => {
+  const normalizedContent = normalizeTrajectoryCopy(content);
+
+  return truncateTrajectoryText(normalizedContent || "未记录具体诉求。", MAX_TRAJECTORY_PROMPT_LENGTH);
+};
+
+const resolveTrajectoryResultPreview = (messages: ChatMessage[], fallback: string): string => {
+  const assistantMessage =
+    messages.find(message => message.role === "assistant" && message.author !== META_AGENT_LABEL) ??
+    messages.find(message => message.role === "assistant") ??
+    null;
+  const normalizedSummary = normalizeTrajectoryCopy(assistantMessage?.content ?? fallback);
+
+  return truncateTrajectoryText(normalizedSummary || "还没有形成明确结论。", MAX_TRAJECTORY_RESULT_LENGTH);
+};
+
+const flattenTrajectoryBlocks = (blocks: Block[]): Block[] =>
+  blocks.flatMap(block => [block, ...flattenTrajectoryBlocks(block.children ?? [])]);
+
+const buildTrajectoryDeliverableMetaLabel = (
+  fileSize?: string,
+  producedAt?: string,
+  fallbackLabel = "成果文件",
+): string => {
+  const metaParts = [fileSize?.trim(), producedAt?.trim()].filter(Boolean);
+
+  return metaParts.length ? metaParts.join(" · ") : fallbackLabel;
+};
+
+const collectTrajectoryDeliverableTitles = (
+  messages: ChatMessage[],
+  artifacts: ArtifactItem[],
+  results: DialogueGeneratedResultItem[],
+  reverseIndex: number,
+): MetaAgentWorkTrajectoryDeliverableItem[] => {
+  const artifactDirectory = new Map(
+    artifacts.map(item => [item.id || item.artifactId, item] as const),
+  );
+  const resultDirectory = new Map(
+    results.map(item => [item.title.trim(), item] as const).filter(([title]) => Boolean(title)),
+  );
+  const deliverableItems = flattenTrajectoryBlocks(
+    messages.flatMap(message => message.blocks ?? []),
+  ).reduce<MetaAgentWorkTrajectoryDeliverableItem[]>((result, block) => {
+    if (block.kind === "artifact") {
+      const blockData = block.data as Partial<ArtifactData>;
+      const artifactId =
+        typeof blockData.artifact_id === "string" ? blockData.artifact_id.trim() : "";
+      const artifactItem = artifactId ? artifactDirectory.get(artifactId) ?? null : null;
+      const title = artifactItem?.fileName || (typeof blockData.title === "string" ? blockData.title.trim() : "");
+
+      if (title) {
+        result.push({
+          id: artifactItem?.id ?? artifactId ?? `artifact-${title}`,
+          fileName: title,
+          metaLabel: buildTrajectoryDeliverableMetaLabel(
+            artifactItem?.fileSize,
+            artifactItem?.producedAt,
+          ),
+        });
+      }
+    }
+
+    if (block.kind === "result_cards") {
+      const blockData = block.data as Partial<ResultCardsData>;
+      blockData.items?.forEach(item => {
+        if (item?.title?.trim()) {
+          const matchedResult = resultDirectory.get(item.title.trim()) ?? null;
+
+          result.push({
+            id: matchedResult?.id ?? `result-${item.title.trim()}`,
+            fileName: item.title.trim(),
+            metaLabel: matchedResult?.createdAt
+              ? `结果输出 · ${matchedResult.createdAt}`
+              : "结果输出",
+          });
+        }
+      });
+    }
+
+    if (block.kind === "text") {
+      const blockData = block.data as Partial<TextData>;
+      const attachments = blockData.result_attachments ?? blockData.media ?? [];
+
+      attachments.forEach(item => {
+        if (item?.name?.trim()) {
+          result.push({
+            id: item.url?.trim() || `attachment-${item.name.trim()}`,
+            fileName: item.name.trim(),
+            metaLabel: "成果附件",
+          });
+        }
+      });
+    }
+
+    return result;
+  }, []);
+
+  if (deliverableItems.length) {
+    return Array.from(
+      new Map(deliverableItems.map(item => [item.fileName, item] as const)).values(),
+    ).slice(0, MAX_TRAJECTORY_DELIVERABLE_COUNT);
+  }
+
+  const fallbackItems = [
+    ...artifacts
+      .map(item => ({
+        id: item.id,
+        fileName: item.fileName.trim(),
+        metaLabel: buildTrajectoryDeliverableMetaLabel(item.fileSize, item.producedAt),
+      }))
+      .filter(item => Boolean(item.fileName)),
+    ...results
+      .map(item => ({
+        id: item.id,
+        fileName: item.title.trim(),
+        metaLabel: item.createdAt ? `结果输出 · ${item.createdAt}` : "结果输出",
+      }))
+      .filter(item => Boolean(item.fileName)),
+  ];
+
+  if (!fallbackItems.length) {
+    return [];
+  }
+
+  const startIndex = Math.min(reverseIndex, Math.max(fallbackItems.length - 1, 0));
+
+  return fallbackItems.slice(startIndex, startIndex + MAX_TRAJECTORY_DELIVERABLE_COUNT);
+};
+
+const resolveTrajectoryOccurredAt = (reverseIndex: number): dayjs.Dayjs => {
+  const fallbackOffset = reverseIndex * 14;
+  const dayOffset = META_AGENT_TRAJECTORY_DAY_OFFSETS[reverseIndex] ?? fallbackOffset;
+
+  return dayjs().subtract(dayOffset, "day").hour(10 + (reverseIndex % 5)).minute(15);
+};
+
+/**
+ * 根据 MetaAgent 单线程消息，自动生成工作轨迹片段。
+ */
+export const buildMetaAgentWorkTrajectoryItems = (
+  session: DialogueSessionItem | null,
+  artifacts: ArtifactItem[] = [],
+  results: DialogueGeneratedResultItem[] = [],
+): MetaAgentWorkTrajectoryItem[] => {
+  if (!session?.messages.length) {
+    return [];
+  }
+
+  const userMessageIndices = session.messages.reduce<number[]>((result, message, index) => {
+    if (message.role === "user") {
+      result.push(index);
+    }
+    return result;
+  }, []);
+
+  return userMessageIndices
+    .map((messageIndex, segmentIndex) => {
+      const nextUserMessageIndex = userMessageIndices[segmentIndex + 1] ?? session.messages.length;
+      const segmentMessages = session.messages.slice(messageIndex, nextUserMessageIndex);
+      const anchorMessage = segmentMessages[0];
+      const participantNames = Array.from(
+        new Set(
+          segmentMessages
+            .filter(
+              message =>
+                message.role === "assistant" &&
+                message.author !== META_AGENT_LABEL &&
+                message.author !== "系统",
+            )
+            .map(message => message.author),
+        ),
+      );
+      const reverseIndex = userMessageIndices.length - segmentIndex - 1;
+      const title = resolveTrajectoryTitle(anchorMessage?.content ?? "");
+      const occurredAt = resolveTrajectoryOccurredAt(reverseIndex);
+
+      return {
+        id: `trajectory-${session.id}-${anchorMessage?.id ?? messageIndex}`,
+        title,
+        promptPreview: resolveTrajectoryPromptPreview(anchorMessage?.content ?? ""),
+        resultPreview: resolveTrajectoryResultPreview(segmentMessages, anchorMessage?.content ?? ""),
+        anchorBlockId: anchorMessage?.blocks?.[0]?.id ?? anchorMessage?.id ?? "",
+        occurredAt: occurredAt.toISOString(),
+        displayTimeLabel: occurredAt.format("M月D日 HH:mm"),
+        participantNames,
+        deliverables: collectTrajectoryDeliverableTitles(
+          segmentMessages,
+          artifacts,
+          results,
+          reverseIndex,
+        ),
+      };
+    })
+    .reverse();
 };
 
 interface WorkspaceActivationInfo {

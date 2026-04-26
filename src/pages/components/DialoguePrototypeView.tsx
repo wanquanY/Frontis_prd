@@ -1,4 +1,5 @@
 import classNames from "classnames";
+import dayjs, { type Dayjs } from "dayjs";
 import {
   AlertOutlined,
   ApartmentOutlined,
@@ -31,8 +32,9 @@ import {
   type MouseEvent as ReactMouseEvent,
 } from "react";
 import type { InputRef, MenuProps } from "antd";
-import { Avatar, Dropdown, Input, Popover } from "antd";
+import { Avatar, DatePicker, Dropdown, Input, Popover } from "antd";
 import type { Block } from "@/types/block";
+import { resolveFileLogo } from "@/utils/fileLogo";
 
 import type {
   AiCeoHomeCaseItem,
@@ -56,6 +58,7 @@ import type {
   DialogueGeneratedResultItem,
   DialogueSessionItem,
   EmployeeItem,
+  MetaAgentWorkTrajectoryItem,
 } from "../types";
 import {
   buildWorkspaceChatBlocks,
@@ -75,6 +78,7 @@ interface DialoguePrototypeViewProps {
   activeDialogueArtifacts: ArtifactItem[];
   activeDialogueResults: DialogueGeneratedResultItem[];
   activeDialogueSession: DialogueSessionItem | null;
+  activeMetaAgentTrajectory: MetaAgentWorkTrajectoryItem | null;
   allEmployees: EmployeeItem[];
   conversationEmployeeDirectory: EmployeeItem[];
   activeExpertTeamMembers: EmployeeItem[];
@@ -86,6 +90,7 @@ interface DialoguePrototypeViewProps {
   dialogueInputValue: string;
   dialogueMessages: ChatMessage[];
   dialogueSessions: DialogueSessionItem[];
+  focusBlockId?: string;
   caseReplayActionLabel?: string;
   caseReplayOpenPanel?: "artifacts" | "results" | null;
   homeCaseItems?: AiCeoHomeCaseItem[];
@@ -101,6 +106,8 @@ interface DialoguePrototypeViewProps {
   onHomeCaseSelect: (item: AiCeoHomeCaseItem) => void;
   onDialogueSessionSelect: (sessionId: string) => void;
   onHomePromptSend: (question: string) => void;
+  onSelectMetaAgentTrajectory: (trajectoryId: string) => void;
+  onClearMetaAgentTrajectory: () => void;
   onRemoveDialogueSession: (sessionId: string) => void;
   onRenameDialogueSession: (sessionId: string, title: string) => void;
   onEmployeeSelect: (employeeId: string) => void;
@@ -109,9 +116,102 @@ interface DialoguePrototypeViewProps {
   onSendDialogue: () => void;
   selectedSkillIds: string[];
   onStopDialogue: () => void;
+  hideAgentSidebar?: boolean;
+  metaAgentTrajectoryItems: MetaAgentWorkTrajectoryItem[];
   showAccountEntry?: boolean;
   viewerName: string;
 }
+
+type MetaAgentTrajectoryTimeFilterKey =
+  | "today"
+  | "recentWeek"
+  | "recentMonth"
+  | "recentThreeMonths"
+  | "custom";
+
+const META_AGENT_TRAJECTORY_TIME_FILTER_OPTIONS: Array<{
+  key: MetaAgentTrajectoryTimeFilterKey;
+  label: string;
+}> = [
+  { key: "today", label: "今天" },
+  { key: "recentWeek", label: "最近一周" },
+  { key: "recentMonth", label: "最近一个月" },
+  { key: "recentThreeMonths", label: "最近三个月" },
+  { key: "custom", label: "自定义范围" },
+];
+
+const normalizeMemoryQuery = (value: string): string => value.trim().toLowerCase();
+
+const getMetaAgentTrajectoryMatchScore = (
+  item: MetaAgentWorkTrajectoryItem,
+  normalizedQuery: string,
+): number => {
+  if (!normalizedQuery) {
+    return 0;
+  }
+
+  const promptPreview = item.promptPreview.toLowerCase();
+  const resultPreview = item.resultPreview.toLowerCase();
+  const title = item.title.toLowerCase();
+  const participantLabel = item.participantNames.join(" ").toLowerCase();
+  const deliverableLabel = item.deliverables
+    .map(deliverable => `${deliverable.fileName} ${deliverable.metaLabel}`)
+    .join(" ")
+    .toLowerCase();
+  const occurredAt = dayjs(item.occurredAt);
+  const timeLabel = [
+    item.displayTimeLabel,
+    occurredAt.format("YYYY-MM-DD"),
+    occurredAt.format("YYYY年M月D日"),
+    occurredAt.format("M月D日"),
+    occurredAt.format("YYYY/MM/DD"),
+  ]
+    .join(" ")
+    .toLowerCase();
+  let score = 0;
+
+  if (title.includes(normalizedQuery)) {
+    score += 6;
+  }
+
+  if (promptPreview.includes(normalizedQuery)) {
+    score += 5;
+  }
+
+  if (resultPreview.includes(normalizedQuery)) {
+    score += 4;
+  }
+
+  if (participantLabel.includes(normalizedQuery)) {
+    score += 3;
+  }
+
+  if (deliverableLabel.includes(normalizedQuery)) {
+    score += 4;
+  }
+
+  if (timeLabel.includes(normalizedQuery)) {
+    score += 5;
+  }
+
+  const uniqueChars = Array.from(new Set(Array.from(normalizedQuery).filter(char => char.trim())));
+  const fuzzyCharMatches = uniqueChars.reduce((count, char) => {
+    if (
+      title.includes(char) ||
+      promptPreview.includes(char) ||
+      resultPreview.includes(char) ||
+      participantLabel.includes(char) ||
+      deliverableLabel.includes(char) ||
+      timeLabel.includes(char)
+    ) {
+      return count + 1;
+    }
+
+    return count;
+  }, 0);
+
+  return score + fuzzyCharMatches * 0.35;
+};
 
 interface DialogueTeamCompositeAvatarProps {
   members: EmployeeItem[];
@@ -242,6 +342,7 @@ export const DialoguePrototypeView = ({
   activeDialogueArtifacts,
   activeDialogueResults,
   activeDialogueSession,
+  activeMetaAgentTrajectory,
   allEmployees,
   conversationEmployeeDirectory,
   activeExpertTeamMembers,
@@ -253,6 +354,7 @@ export const DialoguePrototypeView = ({
   dialogueInputValue,
   dialogueMessages,
   dialogueSessions,
+  focusBlockId,
   caseReplayActionLabel,
   caseReplayOpenPanel,
   homeCaseItems,
@@ -268,6 +370,8 @@ export const DialoguePrototypeView = ({
   onHomeCaseSelect,
   onDialogueSessionSelect,
   onHomePromptSend,
+  onSelectMetaAgentTrajectory,
+  onClearMetaAgentTrajectory,
   onRemoveDialogueSession,
   onRenameDialogueSession,
   onEmployeeSelect,
@@ -276,12 +380,15 @@ export const DialoguePrototypeView = ({
   onSendDialogue,
   selectedSkillIds,
   onStopDialogue,
+  hideAgentSidebar = false,
+  metaAgentTrajectoryItems,
   showAccountEntry = true,
   viewerName,
 }: DialoguePrototypeViewProps): JSX.Element => {
   const attachmentInputRef = useRef<HTMLInputElement | null>(null);
   const sessionTitleInputRef = useRef<InputRef | null>(null);
   const employeeSwitcherRef = useRef<HTMLDivElement | null>(null);
+  const metaAgentTrajectoryTimeFilterRef = useRef<HTMLDivElement | null>(null);
   const skillTrackRef = useRef<HTMLDivElement | null>(null);
   const dialogueShellRef = useRef<HTMLDivElement | null>(null);
   const latestResultIdRef = useRef<string>("");
@@ -293,6 +400,24 @@ export const DialoguePrototypeView = ({
   const [sidePanelMode, setSidePanelMode] = useState<"artifacts" | "results" | null>(null);
   const [preferredArtifactId, setPreferredArtifactId] = useState<string>();
   const [activeResultId, setActiveResultId] = useState<string | null>(null);
+  const [isMetaAgentTrajectoryOpen, setIsMetaAgentTrajectoryOpen] = useState<boolean>(false);
+  const [metaAgentTrajectorySearchValue, setMetaAgentTrajectorySearchValue] = useState<string>("");
+  const [isMetaAgentTrajectoryTimeFilterOpen, setIsMetaAgentTrajectoryTimeFilterOpen] =
+    useState<boolean>(false);
+  const [metaAgentTrajectoryTimeFilterKey, setMetaAgentTrajectoryTimeFilterKey] =
+    useState<MetaAgentTrajectoryTimeFilterKey>("recentMonth");
+  const [metaAgentTrajectoryTimeFilterView, setMetaAgentTrajectoryTimeFilterView] = useState<
+    "options" | "custom"
+  >("options");
+  const [metaAgentTrajectoryDateRange, setMetaAgentTrajectoryDateRange] = useState<
+    [Dayjs | null, Dayjs | null] | null
+  >(null);
+  const [metaAgentTrajectoryDraftDateRange, setMetaAgentTrajectoryDraftDateRange] = useState<
+    [Dayjs | null, Dayjs | null]
+  >([null, null]);
+  const [selectedMetaAgentTimelineGroupKey, setSelectedMetaAgentTimelineGroupKey] = useState<
+    string | null
+  >(null);
   const [isArtifactPreviewing, setIsArtifactPreviewing] = useState<boolean>(false);
   const [isEmployeeSwitcherOpen, setIsEmployeeSwitcherOpen] = useState<boolean>(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(false);
@@ -312,6 +437,9 @@ export const DialoguePrototypeView = ({
     () => groupConversationEmployees(allEmployees, defaultAgentIds),
     [allEmployees, defaultAgentIds],
   );
+  const shouldShowAgentSidebar = !hideAgentSidebar;
+  const shouldShowMetaAgentTrajectory =
+    hideAgentSidebar && metaAgentTrajectoryItems.length > 0 && !isHomeVisible;
   const isStackedLayout = viewportWidth <= 1100;
   const isArtifactPanelVisible =
     !isHomeVisible && sidePanelMode === "artifacts" && hasArtifactPanel;
@@ -339,6 +467,18 @@ export const DialoguePrototypeView = ({
       return undefined;
     }
 
+    if (!shouldShowAgentSidebar) {
+      if (isSidePanelVisible) {
+        return {
+          gridTemplateColumns: `minmax(0, 1fr) 10px ${resolvedSidePanelWidth}px`,
+        };
+      }
+
+      return {
+        gridTemplateColumns: "minmax(0, 1fr)",
+      };
+    }
+
     const sidebarWidth = isSidebarCollapsed ? DIALOGUE_SIDEBAR_COLLAPSED_WIDTH : 252;
 
     if (isSidePanelVisible) {
@@ -350,7 +490,13 @@ export const DialoguePrototypeView = ({
     return {
       gridTemplateColumns: `${sidebarWidth}px minmax(0, 1fr)`,
     };
-  }, [isSidePanelVisible, isSidebarCollapsed, isStackedLayout, resolvedSidePanelWidth]);
+  }, [
+    isSidePanelVisible,
+    isSidebarCollapsed,
+    isStackedLayout,
+    resolvedSidePanelWidth,
+    shouldShowAgentSidebar,
+  ]);
 
   const chatMessages = useMemo(
     () => buildWorkspaceChatMessages(dialogueMessages),
@@ -431,6 +577,176 @@ export const DialoguePrototypeView = ({
       })),
     [overflowSkillItems],
   );
+  const metaAgentTrajectoryTimeFilterLabel = useMemo(() => {
+    if (metaAgentTrajectoryTimeFilterKey === "custom") {
+      if (metaAgentTrajectoryDateRange?.[0] && metaAgentTrajectoryDateRange?.[1]) {
+        return `${metaAgentTrajectoryDateRange[0].format("M月D日")} - ${metaAgentTrajectoryDateRange[1].format("M月D日")}`;
+      }
+
+      return "自定义范围";
+    }
+
+    return (
+      META_AGENT_TRAJECTORY_TIME_FILTER_OPTIONS.find(
+        item => item.key === metaAgentTrajectoryTimeFilterKey,
+      )?.label ?? "时间"
+    );
+  }, [metaAgentTrajectoryDateRange, metaAgentTrajectoryTimeFilterKey]);
+  const metaAgentTrajectoryTimeScale = useMemo<"week" | "month">(() => {
+    if (metaAgentTrajectoryTimeFilterKey === "today" || metaAgentTrajectoryTimeFilterKey === "recentWeek") {
+      return "week";
+    }
+
+    if (metaAgentTrajectoryTimeFilterKey === "recentMonth") {
+      return "week";
+    }
+
+    if (metaAgentTrajectoryTimeFilterKey === "recentThreeMonths") {
+      return "month";
+    }
+
+    if (metaAgentTrajectoryDateRange?.[0] && metaAgentTrajectoryDateRange?.[1]) {
+      const rangeLengthInDays =
+        Math.abs(metaAgentTrajectoryDateRange[1].diff(metaAgentTrajectoryDateRange[0], "day")) + 1;
+
+      return rangeLengthInDays <= 45 ? "week" : "month";
+    }
+
+    return "week";
+  }, [metaAgentTrajectoryDateRange, metaAgentTrajectoryTimeFilterKey]);
+  const isMetaAgentTrajectoryCustomRangeValid = Boolean(
+    metaAgentTrajectoryDraftDateRange[0] && metaAgentTrajectoryDraftDateRange[1],
+  );
+  const rangedMetaAgentTrajectoryItems = useMemo(() => {
+    const now = dayjs();
+    const presetFilteredItems = metaAgentTrajectoryItems.filter(item => {
+      const occurredAt = dayjs(item.occurredAt);
+
+      if (metaAgentTrajectoryTimeFilterKey === "today") {
+        return occurredAt.isSame(now, "day");
+      }
+
+      if (metaAgentTrajectoryTimeFilterKey === "recentWeek") {
+        const rangeStart = now.subtract(7, "day").startOf("day");
+
+        return occurredAt.isAfter(rangeStart) || occurredAt.isSame(rangeStart);
+      }
+
+      if (metaAgentTrajectoryTimeFilterKey === "recentMonth") {
+        const rangeStart = now.subtract(1, "month").startOf("day");
+
+        return occurredAt.isAfter(rangeStart) || occurredAt.isSame(rangeStart);
+      }
+
+      if (metaAgentTrajectoryTimeFilterKey === "recentThreeMonths") {
+        const rangeStart = now.subtract(3, "month").startOf("day");
+
+        return occurredAt.isAfter(rangeStart) || occurredAt.isSame(rangeStart);
+      }
+
+      if (
+        metaAgentTrajectoryTimeFilterKey === "custom" &&
+        metaAgentTrajectoryDateRange?.[0] &&
+        metaAgentTrajectoryDateRange?.[1]
+      ) {
+        const rangeStart = metaAgentTrajectoryDateRange[0].startOf("day");
+        const rangeEnd = metaAgentTrajectoryDateRange[1].endOf("day");
+
+        return (
+          (occurredAt.isAfter(rangeStart) || occurredAt.isSame(rangeStart)) &&
+          (occurredAt.isBefore(rangeEnd) || occurredAt.isSame(rangeEnd))
+        );
+      }
+
+      return true;
+    });
+
+    return presetFilteredItems;
+  }, [metaAgentTrajectoryDateRange, metaAgentTrajectoryItems, metaAgentTrajectoryTimeFilterKey]);
+  const visibleMetaAgentTrajectoryCandidates = useMemo(() => {
+    const normalizedKeyword = normalizeMemoryQuery(metaAgentTrajectorySearchValue);
+    const rankedItems = rangedMetaAgentTrajectoryItems
+      .map(item => ({
+        item,
+        score: getMetaAgentTrajectoryMatchScore(item, normalizedKeyword),
+      }))
+      .filter(entry => !normalizedKeyword || entry.score > 0)
+      .sort((left, right) => right.score - left.score)
+      .map(entry => entry.item);
+
+    return rankedItems.slice(0, 8);
+  }, [metaAgentTrajectorySearchValue, rangedMetaAgentTrajectoryItems]);
+  const metaAgentTimelineGroups = useMemo(() => {
+    const groupedMap = new Map<
+      string,
+      {
+        key: string;
+        label: string;
+        hint: string;
+        startedAt: string;
+        items: MetaAgentWorkTrajectoryItem[];
+      }
+    >();
+
+    rangedMetaAgentTrajectoryItems.forEach(item => {
+      const occurredAt = dayjs(item.occurredAt);
+      const groupStart =
+        metaAgentTrajectoryTimeScale === "week"
+          ? occurredAt.startOf("week")
+          : occurredAt.startOf("month");
+      const groupEnd =
+        metaAgentTrajectoryTimeScale === "week" ? occurredAt.endOf("week") : occurredAt.endOf("month");
+      const groupKey =
+        metaAgentTrajectoryTimeScale === "week"
+          ? groupStart.format("YYYY-MM-DD")
+          : groupStart.format("YYYY-MM");
+      const nextGroup = groupedMap.get(groupKey);
+      const label =
+        metaAgentTrajectoryTimeScale === "week"
+          ? `${groupStart.format("M月D日")} - ${groupEnd.format("M月D日")}`
+          : groupStart.format("YYYY年M月");
+      const hint =
+        metaAgentTrajectoryTimeScale === "week"
+          ? `共 ${groupStart.isSame(groupEnd, "day") ? "1天" : "1周"}`
+          : "按月查看";
+
+      if (nextGroup) {
+        nextGroup.items.push(item);
+        return;
+      }
+
+      groupedMap.set(groupKey, {
+        key: groupKey,
+        label,
+        hint,
+        startedAt: groupStart.toISOString(),
+        items: [item],
+      });
+    });
+
+    return Array.from(groupedMap.values()).sort((left, right) =>
+      dayjs(right.startedAt).valueOf() - dayjs(left.startedAt).valueOf(),
+    );
+  }, [metaAgentTrajectoryTimeScale, rangedMetaAgentTrajectoryItems]);
+  const selectedMetaAgentTimelineGroup = useMemo(
+    () =>
+      metaAgentTimelineGroups.find(group => group.key === selectedMetaAgentTimelineGroupKey) ??
+      metaAgentTimelineGroups[0] ??
+      null,
+    [metaAgentTimelineGroups, selectedMetaAgentTimelineGroupKey],
+  );
+  const isMetaAgentTrajectorySearchMode = Boolean(
+    normalizeMemoryQuery(metaAgentTrajectorySearchValue),
+  );
+  const trajectoryParticipantDirectory = useMemo(() => {
+    const employeeDirectory = new Map<string, EmployeeItem>();
+
+    [...conversationEmployeeDirectory, ...allEmployees].forEach(employee => {
+      employeeDirectory.set(employee.name, employee);
+    });
+
+    return employeeDirectory;
+  }, [allEmployees, conversationEmployeeDirectory]);
   const dialogueActorAvatars = useMemo(() => {
     const actorAvatarEntries: Record<string, { icon?: string; name: string }> = {
       [activeEmployee.id]: {
@@ -443,17 +759,18 @@ export const DialoguePrototypeView = ({
       },
     };
 
-    activeExpertTeamMembers.forEach(member => {
-      const isMainCoordinatorMember =
-        member.name === activeEmployee.name ||
-        member.id === activeEmployee.expertTeamPrimaryMemberId;
+    activeEmployee.expertTeamMemberIds?.forEach(memberId => {
+      const member = conversationEmployeeDirectory.find(item => item.id === memberId) ?? null;
+      if (!member) {
+        return;
+      }
 
       actorAvatarEntries[member.id] = {
-        icon: isMainCoordinatorMember ? activeEmployee.avatarUrl : member.avatarUrl,
+        icon: member.avatarUrl,
         name: member.name,
       };
 
-      if (!isMainCoordinatorMember) {
+      if (member.name !== activeEmployee.name) {
         actorAvatarEntries[member.name] = {
           icon: member.avatarUrl,
           name: member.name,
@@ -464,16 +781,18 @@ export const DialoguePrototypeView = ({
     return actorAvatarEntries;
   }, [
     activeEmployee.avatarUrl,
-    activeEmployee.expertTeamPrimaryMemberId,
+    activeEmployee.expertTeamMemberIds,
     activeEmployee.id,
     activeEmployee.name,
-    activeExpertTeamMembers,
+    conversationEmployeeDirectory,
   ]);
   const isMetaCoordinatorAgent = useCallback(
     (employee: EmployeeItem): boolean =>
-      employee.isExpertTeam &&
-      defaultAgentIds.includes(employee.id) &&
-      employee.name === EXPERT_TEAM_MAIN_AGENT_NAME,
+      Boolean(
+        employee.isExpertTeam &&
+          defaultAgentIds.includes(employee.id) &&
+          employee.name === EXPERT_TEAM_MAIN_AGENT_NAME,
+      ),
     [defaultAgentIds],
   );
   const supportsDialogueSessions = !isMetaCoordinatorAgent(activeEmployee);
@@ -528,6 +847,74 @@ export const DialoguePrototypeView = ({
     setActiveResultId(null);
     setIsArtifactPreviewing(false);
   }, [isHomeVisible]);
+
+  useEffect(() => {
+    if (shouldShowMetaAgentTrajectory) {
+      return;
+    }
+
+    setIsMetaAgentTrajectoryOpen(false);
+    setIsMetaAgentTrajectoryTimeFilterOpen(false);
+  }, [shouldShowMetaAgentTrajectory]);
+
+  useEffect(() => {
+    setMetaAgentTrajectorySearchValue("");
+    setIsMetaAgentTrajectoryTimeFilterOpen(false);
+    setMetaAgentTrajectoryTimeFilterKey("recentMonth");
+    setMetaAgentTrajectoryTimeFilterView("options");
+    setMetaAgentTrajectoryDateRange(null);
+    setMetaAgentTrajectoryDraftDateRange([null, null]);
+    setSelectedMetaAgentTimelineGroupKey(null);
+  }, [activeEmployee.id]);
+
+  useEffect(() => {
+    if (isMetaAgentTrajectoryOpen) {
+      return;
+    }
+
+    setIsMetaAgentTrajectoryTimeFilterOpen(false);
+    setMetaAgentTrajectoryTimeFilterView("options");
+  }, [isMetaAgentTrajectoryOpen]);
+
+  useEffect(() => {
+    if (!isMetaAgentTrajectoryTimeFilterOpen) {
+      return undefined;
+    }
+
+    const handlePointerDown = (event: MouseEvent): void => {
+      if (!(event.target instanceof Node)) {
+        return;
+      }
+
+      if (metaAgentTrajectoryTimeFilterRef.current?.contains(event.target)) {
+        return;
+      }
+
+      setIsMetaAgentTrajectoryTimeFilterOpen(false);
+      setMetaAgentTrajectoryTimeFilterView("options");
+    };
+
+    document.addEventListener("mousedown", handlePointerDown);
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+    };
+  }, [isMetaAgentTrajectoryTimeFilterOpen]);
+
+  useEffect(() => {
+    if (!metaAgentTimelineGroups.length) {
+      setSelectedMetaAgentTimelineGroupKey(null);
+      return;
+    }
+
+    if (
+      selectedMetaAgentTimelineGroupKey &&
+      metaAgentTimelineGroups.some(group => group.key === selectedMetaAgentTimelineGroupKey)
+    ) {
+      return;
+    }
+
+    setSelectedMetaAgentTimelineGroupKey(metaAgentTimelineGroups[0].key);
+  }, [metaAgentTimelineGroups, selectedMetaAgentTimelineGroupKey]);
 
   useEffect(() => {
     setSidePanelMode(null);
@@ -1082,6 +1469,143 @@ export const DialoguePrototypeView = ({
     setIsSidebarCollapsed(false);
   }, []);
 
+  const handleToggleMetaAgentTrajectoryTimeFilter = (): void => {
+    setIsMetaAgentTrajectoryTimeFilterOpen(current => !current);
+    setMetaAgentTrajectoryTimeFilterView("options");
+    setMetaAgentTrajectoryDraftDateRange(metaAgentTrajectoryDateRange ?? [null, null]);
+  };
+
+  const handleSelectMetaAgentTrajectoryTimeFilter = (
+    filterKey: MetaAgentTrajectoryTimeFilterKey,
+  ): void => {
+    if (filterKey === "custom") {
+      setMetaAgentTrajectoryTimeFilterView("custom");
+      setMetaAgentTrajectoryDraftDateRange(metaAgentTrajectoryDateRange ?? [null, null]);
+      return;
+    }
+
+    setMetaAgentTrajectoryTimeFilterKey(filterKey);
+    setIsMetaAgentTrajectoryTimeFilterOpen(false);
+    setMetaAgentTrajectoryTimeFilterView("options");
+  };
+
+  const handleMetaAgentTrajectoryCustomDateChange = (
+    fieldIndex: 0 | 1,
+    value: Dayjs | null,
+  ): void => {
+    setMetaAgentTrajectoryDraftDateRange(current => {
+      const nextRange: [Dayjs | null, Dayjs | null] = [current[0], current[1]];
+      nextRange[fieldIndex] = value;
+      return nextRange;
+    });
+  };
+
+  const handleCancelMetaAgentTrajectoryCustomRange = (): void => {
+    setMetaAgentTrajectoryDraftDateRange(metaAgentTrajectoryDateRange ?? [null, null]);
+    setMetaAgentTrajectoryTimeFilterView("options");
+  };
+
+  const handleConfirmMetaAgentTrajectoryCustomRange = (): void => {
+    const [rangeStart, rangeEnd] = metaAgentTrajectoryDraftDateRange;
+
+    if (!rangeStart || !rangeEnd) {
+      return;
+    }
+
+    const normalizedRange: [Dayjs, Dayjs] =
+      rangeStart.isAfter(rangeEnd) ? [rangeEnd, rangeStart] : [rangeStart, rangeEnd];
+
+    setMetaAgentTrajectoryDateRange(normalizedRange);
+    setMetaAgentTrajectoryTimeFilterKey("custom");
+    setIsMetaAgentTrajectoryTimeFilterOpen(false);
+    setMetaAgentTrajectoryTimeFilterView("options");
+  };
+
+  const getTrajectoryParticipantItems = (participantNames: string[]): EmployeeItem[] =>
+    participantNames
+      .map(name => trajectoryParticipantDirectory.get(name) ?? null)
+      .filter((employee): employee is EmployeeItem => employee !== null)
+      .slice(0, 3);
+
+  const renderMetaAgentTrajectoryRecordCard = (
+    item: MetaAgentWorkTrajectoryItem,
+    variant: "timeline" | "search",
+  ): JSX.Element => {
+    const participantItems = getTrajectoryParticipantItems(item.participantNames);
+
+    return (
+      <button
+        key={item.id}
+        type="button"
+        className={classNames(styles.metaAgentTrajectoryRecordCard, {
+          [styles.metaAgentTrajectoryRecordCardSearch]: variant === "search",
+        })}
+        onClick={() => {
+          onSelectMetaAgentTrajectory(item.id);
+          setIsMetaAgentTrajectoryOpen(false);
+        }}
+      >
+        <div className={styles.metaAgentTrajectoryRecordCardHeader}>
+          <span className={styles.metaAgentTrajectoryRecordCardTitle}>{item.title}</span>
+          <span className={styles.metaAgentTrajectoryRecordCardTime}>{item.displayTimeLabel}</span>
+        </div>
+        <div className={styles.metaAgentTrajectoryRecordCardSummary}>{item.resultPreview}</div>
+        {participantItems.length ? (
+          <div className={styles.metaAgentTrajectoryRecordCardExperts}>
+            <div className={styles.metaAgentTrajectoryParticipantAvatars}>
+              {participantItems.map(participant => (
+                <Avatar
+                  key={participant.id}
+                  src={participant.avatarUrl}
+                  size={24}
+                  className={styles.metaAgentTrajectoryParticipantAvatar}
+                >
+                  {getAvatarText(participant.name)}
+                </Avatar>
+              ))}
+            </div>
+            <span className={styles.metaAgentTrajectoryRecordCardExpertsLabel}>
+              {item.participantNames.join("、")}
+            </span>
+          </div>
+        ) : null}
+        {item.deliverables.length ? (
+          <div className={styles.metaAgentTrajectoryRecordCardDeliverables}>
+            <span className={styles.metaAgentTrajectoryRecordCardDeliverableLabel}>成果</span>
+            <div className={styles.metaAgentTrajectoryRecordCardDeliverableList}>
+              {item.deliverables.map(deliverable => {
+                const fileLogo = resolveFileLogo(deliverable.fileName);
+
+                return (
+                  <span key={deliverable.id} className={styles.metaAgentTrajectoryDeliverableItem}>
+                    <span className={styles.metaAgentTrajectoryDeliverableIcon} aria-hidden={true}>
+                      <img
+                        className={styles.metaAgentTrajectoryDeliverableIconImage}
+                        src={fileLogo.src}
+                        alt={fileLogo.alt}
+                      />
+                    </span>
+                    <span className={styles.metaAgentTrajectoryDeliverableBody}>
+                      <span
+                        className={styles.metaAgentTrajectoryDeliverableTitle}
+                        title={deliverable.fileName}
+                      >
+                        {deliverable.fileName}
+                      </span>
+                      <span className={styles.metaAgentTrajectoryDeliverableMeta}>
+                        {deliverable.metaLabel}
+                      </span>
+                    </span>
+                  </span>
+                );
+              })}
+            </div>
+          </div>
+        ) : null}
+      </button>
+    );
+  };
+
   const composerNode = isCaseReplayMode ? (
     <div className={styles.dialogueCaseActionWrap}>
       <button
@@ -1094,6 +1618,27 @@ export const DialoguePrototypeView = ({
     </div>
   ) : (
     <div className={styles.composerWrap}>
+      {activeMetaAgentTrajectory ? (
+        <div className={styles.metaAgentTrajectoryFocusBar}>
+          <div className={styles.metaAgentTrajectoryFocusCopy}>
+            <span className={styles.metaAgentTrajectoryFocusLabel}>
+              {`已定位到 ${activeMetaAgentTrajectory.displayTimeLabel} 的工作记录`}
+            </span>
+            <span className={styles.metaAgentTrajectoryFocusSummary}>
+              {activeMetaAgentTrajectory.title}
+            </span>
+          </div>
+          <div className={styles.metaAgentTrajectoryFocusActions}>
+            <button
+              type="button"
+              className={styles.metaAgentTrajectoryDismissButton}
+              onClick={onClearMetaAgentTrajectory}
+            >
+              <CloseOutlined />
+            </button>
+          </div>
+        </div>
+      ) : null}
       <WorkspaceComposer
         rootClassName={styles.synclawComposer}
         value={dialogueInputValue}
@@ -1292,11 +1837,12 @@ export const DialoguePrototypeView = ({
       })}
       style={dialogueShellStyle}
     >
-      <aside
-        className={classNames(styles.dialogueSidebarCard, {
-          [styles.dialogueSidebarCardCollapsed]: isSidebarCollapsed,
-        })}
-      >
+      {shouldShowAgentSidebar ? (
+        <aside
+          className={classNames(styles.dialogueSidebarCard, {
+            [styles.dialogueSidebarCardCollapsed]: isSidebarCollapsed,
+          })}
+        >
         {isSidebarCollapsed ? (
           <button
             type="button"
@@ -1526,13 +2072,25 @@ export const DialoguePrototypeView = ({
             ) : null}
           </>
         )}
-      </aside>
+        </aside>
+      ) : null}
 
       <section className={styles.dialogueMainCard}>
         {!isHomeVisible ? (
           <div className={styles.dialogueViewToolbar}>
             {shouldShowExpertTeamUi ? expertTeamToolbarStrip : null}
             <div className={styles.dialogueViewToolbarGroup}>
+              {shouldShowMetaAgentTrajectory ? (
+                <button
+                  type="button"
+                  className={classNames(styles.dialogueViewButton, {
+                    [styles.dialogueViewButtonActive]: isMetaAgentTrajectoryOpen,
+                  })}
+                  onClick={() => setIsMetaAgentTrajectoryOpen(current => !current)}
+                >
+                  <span>工作轨迹</span>
+                </button>
+              ) : null}
               <button
                 type="button"
                 className={classNames(styles.dialogueViewButton, {
@@ -1544,6 +2102,173 @@ export const DialoguePrototypeView = ({
                 <FolderOutlined />
                 <span>成果</span>
               </button>
+            </div>
+          </div>
+        ) : null}
+
+        {shouldShowMetaAgentTrajectory && isMetaAgentTrajectoryOpen ? (
+          <div className={styles.metaAgentTrajectoryPanel}>
+            <div className={styles.metaAgentTrajectoryPanelHeader}>
+              <div className={styles.metaAgentTrajectoryPanelTitleGroup}>
+                <span className={styles.metaAgentTrajectoryPanelTitle}>工作轨迹</span>
+                <span className={styles.metaAgentTrajectoryPanelHint}>
+                  支持搜索日期、工作内容、AI专家与成果文件，也可按时间轴浏览历史记录。
+                </span>
+              </div>
+              <button
+                type="button"
+                className={styles.metaAgentTrajectoryDismissButton}
+                onClick={() => setIsMetaAgentTrajectoryOpen(false)}
+              >
+                <CloseOutlined />
+              </button>
+            </div>
+            <Input
+              value={metaAgentTrajectorySearchValue}
+              allowClear
+              placeholder="搜索时间、工作内容、AI专家或成果文件"
+              className={styles.metaAgentTrajectorySearch}
+              onChange={event => setMetaAgentTrajectorySearchValue(event.target.value)}
+            />
+            <div className={styles.metaAgentTrajectoryControlRow}>
+              <div
+                ref={metaAgentTrajectoryTimeFilterRef}
+                className={styles.metaAgentTrajectoryTimeFilterWrap}
+              >
+                <button
+                  type="button"
+                  className={classNames(styles.metaAgentTrajectoryTimeFilterTrigger, {
+                    [styles.metaAgentTrajectoryTimeFilterTriggerActive]:
+                      isMetaAgentTrajectoryTimeFilterOpen,
+                  })}
+                  onClick={handleToggleMetaAgentTrajectoryTimeFilter}
+                >
+                  <span>{metaAgentTrajectoryTimeFilterLabel}</span>
+                  <DownOutlined
+                    className={classNames(styles.metaAgentTrajectoryTimeFilterArrow, {
+                      [styles.metaAgentTrajectoryTimeFilterArrowOpen]:
+                        isMetaAgentTrajectoryTimeFilterOpen,
+                    })}
+                  />
+                </button>
+                {isMetaAgentTrajectoryTimeFilterOpen ? (
+                  <div className={styles.metaAgentTrajectoryTimeFilterDropdown}>
+                    {metaAgentTrajectoryTimeFilterView === "options" ? (
+                      <div className={styles.metaAgentTrajectoryTimeFilterOptionList}>
+                        {META_AGENT_TRAJECTORY_TIME_FILTER_OPTIONS.map(item => (
+                          <button
+                            key={item.key}
+                            type="button"
+                            className={classNames(styles.metaAgentTrajectoryTimeFilterOption, {
+                              [styles.metaAgentTrajectoryTimeFilterOptionActive]:
+                                metaAgentTrajectoryTimeFilterKey === item.key,
+                              [styles.metaAgentTrajectoryTimeFilterOptionCustom]:
+                                item.key === "custom",
+                            })}
+                            onClick={() => handleSelectMetaAgentTrajectoryTimeFilter(item.key)}
+                          >
+                            <span>{item.label}</span>
+                          </button>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className={styles.metaAgentTrajectoryTimeFilterCustomPanel}>
+                        <DatePicker
+                          value={metaAgentTrajectoryDraftDateRange[0]}
+                          placeholder="开始时间"
+                          className={styles.metaAgentTrajectoryTimeFilterDatePicker}
+                          onChange={value =>
+                            handleMetaAgentTrajectoryCustomDateChange(0, value)
+                          }
+                        />
+                        <DatePicker
+                          value={metaAgentTrajectoryDraftDateRange[1]}
+                          placeholder="截止时间"
+                          className={styles.metaAgentTrajectoryTimeFilterDatePicker}
+                          onChange={value =>
+                            handleMetaAgentTrajectoryCustomDateChange(1, value)
+                          }
+                        />
+                        <div className={styles.metaAgentTrajectoryTimeFilterCustomActions}>
+                          <button
+                            type="button"
+                            className={styles.metaAgentTrajectoryTimeFilterCustomButton}
+                            onClick={handleCancelMetaAgentTrajectoryCustomRange}
+                          >
+                            取消
+                          </button>
+                          <button
+                            type="button"
+                            className={classNames(
+                              styles.metaAgentTrajectoryTimeFilterCustomButton,
+                              styles.metaAgentTrajectoryTimeFilterCustomButtonPrimary,
+                              !isMetaAgentTrajectoryCustomRangeValid &&
+                                styles.metaAgentTrajectoryTimeFilterCustomButtonDisabled,
+                            )}
+                            disabled={!isMetaAgentTrajectoryCustomRangeValid}
+                            onClick={handleConfirmMetaAgentTrajectoryCustomRange}
+                          >
+                            确定
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ) : null}
+              </div>
+            </div>
+            <div className={styles.metaAgentTrajectoryPanelBody}>
+              {isMetaAgentTrajectorySearchMode ? (
+                !visibleMetaAgentTrajectoryCandidates.length ? (
+                  <div className={styles.metaAgentTrajectoryEmpty}>
+                    没有找到匹配的记录，换个关键词或时间范围再试试。
+                  </div>
+                ) : (
+                  <div className={styles.metaAgentTrajectorySearchResultList}>
+                    {visibleMetaAgentTrajectoryCandidates.map(item =>
+                      renderMetaAgentTrajectoryRecordCard(item, "search"),
+                    )}
+                  </div>
+                )
+              ) : !metaAgentTimelineGroups.length || !selectedMetaAgentTimelineGroup ? (
+                <div className={styles.metaAgentTrajectoryEmpty}>
+                  当前时间范围内没有工作记录。
+                </div>
+              ) : (
+                <div className={styles.metaAgentTrajectoryTimelineLayout}>
+                  <div className={styles.metaAgentTrajectoryTimelineRail}>
+                    {metaAgentTimelineGroups.map((group, index) => (
+                      <button
+                        key={group.key}
+                        type="button"
+                        className={classNames(styles.metaAgentTrajectoryTimelineNode, {
+                          [styles.metaAgentTrajectoryTimelineNodeActive]:
+                            group.key === selectedMetaAgentTimelineGroup.key,
+                        })}
+                        onClick={() => setSelectedMetaAgentTimelineGroupKey(group.key)}
+                      >
+                        <span className={styles.metaAgentTrajectoryTimelineDot} />
+                        {index < metaAgentTimelineGroups.length - 1 ? (
+                          <span className={styles.metaAgentTrajectoryTimelineLine} />
+                        ) : null}
+                        <span className={styles.metaAgentTrajectoryTimelineLabel}>{group.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                  <div className={styles.metaAgentTrajectoryTimelineContent}>
+                    <div className={styles.metaAgentTrajectoryTimelineContentHeader}>
+                      <span className={styles.metaAgentTrajectoryTimelineContentMeta}>
+                        {`${selectedMetaAgentTimelineGroup.items.length} 条记录`}
+                      </span>
+                    </div>
+                    <div className={styles.metaAgentTrajectoryTimelineCardList}>
+                      {selectedMetaAgentTimelineGroup.items.map(item =>
+                        renderMetaAgentTrajectoryRecordCard(item, "timeline"),
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         ) : null}
@@ -1582,6 +2307,7 @@ export const DialoguePrototypeView = ({
               <div className={styles.chatPanelBody}>
                 <WorkspaceChatPanel
                   blocks={chatBlocks}
+                  focusBlockId={focusBlockId}
                   messages={chatMessages}
                   actorAvatars={dialogueActorAvatars}
                   currentSessionId={activeDialogueSession?.id ?? activeEmployee.id}

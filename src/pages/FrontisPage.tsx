@@ -11,7 +11,13 @@ import {
   getTenantEntries,
 } from "@/feature/auth/mockAccounts";
 import { useMockAuth } from "@/feature/auth/hooks/useMockAuth";
+import { getMockTenantUsers } from "@/feature/auth/mockTenantRegistry";
 import type { AiCeoAgentHomeConfig, AiCeoHomeCaseItem } from "@/constants/aiCeoHome";
+import {
+  EXPERT_PLAZA_LABEL,
+  MANAGEMENT_CONSOLE_LABEL,
+  MA_WORKBENCH_LABEL,
+} from "@/constants/brand";
 import type { ArtifactItem } from "@/types/artifact";
 import { hasUserInAccessScope } from "@/utils/organizationAccess";
 import { isChatAttachmentFileAllowed } from "@/utils/chatAttachmentFileTypes";
@@ -40,11 +46,13 @@ import type {
   DialogueSessionItem,
   EmployeeItem,
   FrontisWebRole,
+  MetaAgentWorkTrajectoryItem,
   StatusTone,
   WorkspaceItem,
 } from "./types";
 import {
   buildAttachmentItem,
+  buildMetaAgentWorkTrajectoryItems,
   createComposerAttachment,
   createId,
   getExpertTeamScenarioLabel,
@@ -62,6 +70,7 @@ import styles from "./FrontisPage.module.less";
 interface FrontisPageProps {
   viewRole: FrontisWebRole;
   embedded?: boolean;
+  workspaceMode?: "metaAgent" | "expertStudio";
 }
 
 const DEFAULT_CONVERSATION_EMPLOYEE_ID = "employee-writer";
@@ -707,12 +716,20 @@ const sortConversationEmployees = (employees: EmployeeItem[]): EmployeeItem[] =>
     return 0;
   });
 
+const getInitialActiveEmployeeId = (
+  workspaceMode: "metaAgent" | "expertStudio",
+): string => (workspaceMode === "metaAgent" ? DEFAULT_CONVERSATION_EMPLOYEE_ID : "");
+
 /**
  * FrontisAI Web 原型主页面
  *
  * 当前页面通过路由区分普通用户与企业老板视图。
  */
-const FrontisPage = ({ viewRole, embedded = false }: FrontisPageProps): JSX.Element => {
+const FrontisPage = ({
+  viewRole,
+  embedded = false,
+  workspaceMode = "metaAgent",
+}: FrontisPageProps): JSX.Element => {
   const location = useLocation();
   const navigate = useNavigate();
   const { activateIdentity, activateTenant, activeIdentity, logout, session } = useMockAuth();
@@ -724,8 +741,8 @@ const FrontisPage = ({ viewRole, embedded = false }: FrontisPageProps): JSX.Elem
   >(NORMALIZED_INITIAL_DIALOGUE_ARTIFACTS);
   const [dialogueResultsBySession, setDialogueResultsBySession] =
     useState<Record<string, DialogueGeneratedResultItem[]>>(NORMALIZED_INITIAL_DIALOGUE_RESULTS);
-  const [activeEmployeeId, setActiveEmployeeId] = useState<string>(
-    DEFAULT_CONVERSATION_EMPLOYEE_ID,
+  const [activeEmployeeId, setActiveEmployeeId] = useState<string>(() =>
+    getInitialActiveEmployeeId(workspaceMode),
   );
   const [activeDialogueSessionId, setActiveDialogueSessionId] = useState<string>("");
   const [isDialogueHomeActive, setIsDialogueHomeActive] = useState<boolean>(false);
@@ -734,6 +751,9 @@ const FrontisPage = ({ viewRole, embedded = false }: FrontisPageProps): JSX.Elem
   const [dialogueInputValue, setDialogueInputValue] = useState<string>("");
   const [dialogueAttachments, setDialogueAttachments] = useState<WorkspaceComposerAttachmentItem[]>(
     [],
+  );
+  const [activeMetaAgentTrajectoryId, setActiveMetaAgentTrajectoryId] = useState<string | null>(
+    null,
   );
   const [respondingDialogueSessionId, setRespondingDialogueSessionId] = useState<string | null>(
     null,
@@ -745,18 +765,22 @@ const FrontisPage = ({ viewRole, embedded = false }: FrontisPageProps): JSX.Elem
     [viewRole],
   );
   const workspaces = useMemo(() => INITIAL_WORKSPACES, []);
+  const tenantUsers = useMemo(
+    () => getMockTenantUsers(activeIdentity?.tenantId) ?? INITIAL_FRONTIS_WEB_USERS,
+    [activeIdentity?.tenantId],
+  );
   const currentUser = useMemo(
     () =>
-      INITIAL_FRONTIS_WEB_USERS.find(item => item.id === session?.userId) ??
+      tenantUsers.find(item => item.id === session?.userId) ??
       (viewRole === "admin"
-        ? (INITIAL_FRONTIS_WEB_USERS.find(
+        ? (tenantUsers.find(
             item => MANAGEMENT_USER_ROLES.has(item.role) && item.status === "active",
-          ) ?? INITIAL_FRONTIS_WEB_USERS.find(item => MANAGEMENT_USER_ROLES.has(item.role)))
-        : (INITIAL_FRONTIS_WEB_USERS.find(
+          ) ?? tenantUsers.find(item => MANAGEMENT_USER_ROLES.has(item.role)))
+        : (tenantUsers.find(
             item => item.role !== "enterpriseAdmin" && item.status === "active",
-          ) ?? INITIAL_FRONTIS_WEB_USERS.find(item => item.role !== "enterpriseAdmin"))) ??
+          ) ?? tenantUsers.find(item => item.role !== "enterpriseAdmin"))) ??
       null,
-    [session?.userId, viewRole],
+    [session?.userId, tenantUsers, viewRole],
   );
   const roleVisibleEmployees = useMemo(
     () => employees.filter(item => item.portalRoles.includes(viewRole)),
@@ -781,13 +805,13 @@ const FrontisPage = ({ viewRole, embedded = false }: FrontisPageProps): JSX.Elem
             ? hasUserInAccessScope(
                 currentUser,
                 item.accessScopeSubjects,
-                INITIAL_FRONTIS_WEB_USERS,
+                tenantUsers,
                 INITIAL_ORGANIZATION_DEPARTMENTS,
               )
             : false)
         );
       }),
-    [currentUser, roleVisibleEmployees, viewRole],
+    [currentUser, roleVisibleEmployees, tenantUsers, viewRole],
   );
   const deviceDefaultAgents = useMemo(
     () => {
@@ -828,15 +852,22 @@ const FrontisPage = ({ viewRole, embedded = false }: FrontisPageProps): JSX.Elem
     ],
   );
   const conversationEmployeeDirectory = useMemo(() => {
-    const mergedEmployees = [...deviceDefaultAgents, ...assignedConversationEmployees];
+    const mergedEmployees =
+      workspaceMode === "metaAgent"
+        ? [...deviceDefaultAgents, ...assignedConversationEmployees]
+        : [...assignedConversationEmployees];
 
     return mergedEmployees.filter(
       (item, index) => mergedEmployees.findIndex(candidate => candidate.id === item.id) === index,
     );
-  }, [assignedConversationEmployees, deviceDefaultAgents]);
+  }, [assignedConversationEmployees, deviceDefaultAgents, workspaceMode]);
+  const visibleConversationEmployees = useMemo(
+    () => (workspaceMode === "metaAgent" ? deviceDefaultAgents : conversationEmployeeDirectory),
+    [conversationEmployeeDirectory, deviceDefaultAgents, workspaceMode],
+  );
   const conversationEmployees = useMemo(
-    () => sortConversationEmployees(conversationEmployeeDirectory),
-    [conversationEmployeeDirectory],
+    () => sortConversationEmployees(visibleConversationEmployees),
+    [visibleConversationEmployees],
   );
   const activeEmployee = useMemo(
     () =>
@@ -894,6 +925,20 @@ const FrontisPage = ({ viewRole, embedded = false }: FrontisPageProps): JSX.Elem
           ? (dialogueResultsBySession[activeDialogueSession.id] ?? [])
           : [],
     [activeCaseReplay, activeDialogueSession, dialogueResultsBySession],
+  );
+  const metaAgentTrajectoryItems = useMemo<MetaAgentWorkTrajectoryItem[]>(
+    () =>
+      buildMetaAgentWorkTrajectoryItems(
+        isMetaAgentDialogue ? activeDialogueSession : null,
+        activeDialogueArtifacts,
+        activeDialogueResults,
+      ),
+    [activeDialogueArtifacts, activeDialogueResults, activeDialogueSession, isMetaAgentDialogue],
+  );
+  const activeMetaAgentTrajectory = useMemo(
+    () =>
+      metaAgentTrajectoryItems.find(item => item.id === activeMetaAgentTrajectoryId) ?? null,
+    [activeMetaAgentTrajectoryId, metaAgentTrajectoryItems],
   );
   const isDialogueResponding = activeCaseReplay
     ? false
@@ -964,6 +1009,36 @@ const FrontisPage = ({ viewRole, embedded = false }: FrontisPageProps): JSX.Elem
     }
     setActiveEmployeeId(conversationEmployees[0].id);
   }, [activeEmployeeId, conversationEmployees]);
+
+  useEffect(() => {
+    if (!metaAgentTrajectoryItems.length) {
+      setActiveMetaAgentTrajectoryId(null);
+      return;
+    }
+
+    if (
+      activeMetaAgentTrajectoryId &&
+      metaAgentTrajectoryItems.some(item => item.id === activeMetaAgentTrajectoryId)
+    ) {
+      return;
+    }
+
+    setActiveMetaAgentTrajectoryId(null);
+  }, [activeMetaAgentTrajectoryId, metaAgentTrajectoryItems]);
+
+  useEffect(() => {
+    setActiveEmployeeId(currentId => {
+      if (workspaceMode === "metaAgent") {
+        return DEFAULT_CONVERSATION_EMPLOYEE_ID;
+      }
+
+      if (currentId && currentId !== DEFAULT_CONVERSATION_EMPLOYEE_ID) {
+        return currentId;
+      }
+
+      return conversationEmployees[0]?.id ?? "";
+    });
+  }, [conversationEmployees, workspaceMode]);
 
   useEffect(() => {
     if (isDialogueHomeActive) {
@@ -1053,6 +1128,7 @@ const FrontisPage = ({ viewRole, embedded = false }: FrontisPageProps): JSX.Elem
   const handleSelectEmployee = useCallback(
     (employeeId: string): void => {
       setActiveCaseReplay(null);
+      setActiveMetaAgentTrajectoryId(null);
       setActiveEmployeeId(employeeId);
       const nextEmployee =
         conversationEmployeeDirectory.find(item => item.id === employeeId) ?? null;
@@ -1072,6 +1148,7 @@ const FrontisPage = ({ viewRole, embedded = false }: FrontisPageProps): JSX.Elem
   const handleSelectDialogueSession = useCallback(
     (sessionId: string): void => {
       setActiveCaseReplay(null);
+      setActiveMetaAgentTrajectoryId(null);
       setIsDialogueHomeActive(false);
       setActiveDialogueSessionId(sessionId);
       dialogueAttachments.forEach(revokeComposerAttachmentPreview);
@@ -1085,6 +1162,7 @@ const FrontisPage = ({ viewRole, embedded = false }: FrontisPageProps): JSX.Elem
   const handleCreateDialogueSession = useCallback((): void => {
     if (isMetaAgentDialogue) {
       setActiveCaseReplay(null);
+      setActiveMetaAgentTrajectoryId(null);
       setIsDialogueHomeActive(false);
       setActiveDialogueSessionId(employeeDialogueSessions[0]?.id ?? META_AGENT_PRIMARY_SEED_SESSION_ID);
       dialogueAttachments.forEach(revokeComposerAttachmentPreview);
@@ -1095,6 +1173,7 @@ const FrontisPage = ({ viewRole, embedded = false }: FrontisPageProps): JSX.Elem
     }
 
     setActiveCaseReplay(null);
+    setActiveMetaAgentTrajectoryId(null);
     setIsDialogueHomeActive(true);
     setActiveDialogueSessionId("");
     dialogueAttachments.forEach(revokeComposerAttachmentPreview);
@@ -1278,6 +1357,7 @@ const FrontisPage = ({ viewRole, embedded = false }: FrontisPageProps): JSX.Elem
       });
 
       setActiveCaseReplay(null);
+      setActiveMetaAgentTrajectoryId(null);
       setActiveDialogueSessionId(targetSessionId);
       setIsDialogueHomeActive(false);
       setDialogueInputValue("");
@@ -1503,6 +1583,14 @@ const FrontisPage = ({ viewRole, embedded = false }: FrontisPageProps): JSX.Elem
     commitDialogue(dialogueInputValue);
   }, [commitDialogue, dialogueInputValue]);
 
+  const handleSelectMetaAgentTrajectory = useCallback((trajectoryId: string): void => {
+    setActiveMetaAgentTrajectoryId(trajectoryId);
+  }, []);
+
+  const handleClearMetaAgentTrajectory = useCallback((): void => {
+    setActiveMetaAgentTrajectoryId(null);
+  }, []);
+
   const handleOpenHomeCase = useCallback(
     (item: AiCeoHomeCaseItem): void => {
       if (!activeEmployee) {
@@ -1620,11 +1708,11 @@ const FrontisPage = ({ viewRole, embedded = false }: FrontisPageProps): JSX.Elem
 
   const accountMenuItems: MenuProps["items"] = [
     ...(isAdminIdentity
-      ? [
+        ? [
           {
             key: "open-admin-management",
             icon: <AppstoreOutlined />,
-            label: "进入企业管理后台",
+            label: MANAGEMENT_CONSOLE_LABEL,
             onClick: () => navigate(getAdminManagementPath(), { replace: true }),
           },
           {
@@ -1688,7 +1776,7 @@ const FrontisPage = ({ viewRole, embedded = false }: FrontisPageProps): JSX.Elem
           homeSkillItems={activeAgentHomeConfig.skillItems}
           isHomeVisible={isDialogueHomeActive}
           isDialogueResponding={isDialogueResponding}
-          defaultAgentIds={deviceDefaultAgents.map(item => item.id)}
+          defaultAgentIds={workspaceMode === "metaAgent" ? deviceDefaultAgents.map(item => item.id) : []}
           onCreateDialogueSession={handleCreateDialogueSession}
           onDialogueAttachmentsSelected={handleDialogueAttachmentsSelected}
           onDialogueInputChange={setDialogueInputValue}
@@ -1707,6 +1795,12 @@ const FrontisPage = ({ viewRole, embedded = false }: FrontisPageProps): JSX.Elem
           onSendDialogue={handleSendDialogue}
           selectedSkillIds={selectedSkillIds}
           onStopDialogue={handleStopDialogue}
+          hideAgentSidebar={workspaceMode === "metaAgent"}
+          focusBlockId={activeMetaAgentTrajectory?.anchorBlockId}
+          metaAgentTrajectoryItems={isMetaAgentDialogue ? metaAgentTrajectoryItems : []}
+          activeMetaAgentTrajectory={activeMetaAgentTrajectory}
+          onSelectMetaAgentTrajectory={handleSelectMetaAgentTrajectory}
+          onClearMetaAgentTrajectory={handleClearMetaAgentTrajectory}
           showAccountEntry={!embedded}
           viewerName={currentUser?.name ?? "你"}
         />
@@ -1715,7 +1809,13 @@ const FrontisPage = ({ viewRole, embedded = false }: FrontisPageProps): JSX.Elem
 
     return (
       <div className={styles.emptyPageState}>
-        <Empty description="当前账号暂未分配 Agent，请联系管理员分配后再开始对话。" />
+        <Empty
+          description={
+            workspaceMode === "metaAgent"
+              ? `当前账号暂未启用${MA_WORKBENCH_LABEL}，请联系管理员分配后再开始对话。`
+              : `当前账号暂未分配可直接使用的 AI 专家，请先从${EXPERT_PLAZA_LABEL}添加或联系管理员分配。`
+          }
+        />
       </div>
     );
   };

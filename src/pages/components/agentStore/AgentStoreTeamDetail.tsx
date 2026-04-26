@@ -282,6 +282,7 @@ export const EXPERT_VERSION_INFO: Record<string, ExpertVersionInfo> = {
 type ExpertConfigTabKey = "workspaceAccess" | "modelConfig" | "versionHistory";
 
 interface AgentStoreTeamDetailProps {
+  allowPermissionManagement: boolean;
   deploymentByEmployeeId: Record<string, ExpertDeploymentState>;
   deviceOwners: Record<string, string | null>;
   detailTitle: string;
@@ -359,6 +360,7 @@ const getDeviceConfiguredLabel = (
  * AI 专家详情视图。
  */
 export const AgentStoreTeamDetail = ({
+  allowPermissionManagement,
   deploymentByEmployeeId,
   deviceOwners,
   detailTitle,
@@ -478,6 +480,7 @@ export const AgentStoreTeamDetail = ({
             {selectedEmployee ? (
               <ExpertConfigPanel
                 key={selectedEmployee.id}
+                allowPermissionManagement={allowPermissionManagement}
                 deploymentState={deploymentByEmployeeId[selectedEmployee.id]}
                 deviceOwners={deviceOwners}
                 employee={selectedEmployee}
@@ -499,6 +502,7 @@ export const AgentStoreTeamDetail = ({
 };
 
 interface ExpertConfigPanelProps {
+  allowPermissionManagement: boolean;
   deploymentState?: ExpertDeploymentState;
   deviceOwners: Record<string, string | null>;
   employee: EmployeeItem;
@@ -518,6 +522,7 @@ interface ExpertConfigPanelProps {
 }
 
 const ExpertConfigPanel = ({
+  allowPermissionManagement,
   deploymentState,
   deviceOwners,
   employee,
@@ -532,7 +537,9 @@ const ExpertConfigPanel = ({
 }: ExpertConfigPanelProps): JSX.Element => {
   const [selectedModel, setSelectedModel] = useState<string>(employee.model);
   const [draftWorkspaceId, setDraftWorkspaceId] = useState<string | undefined>();
-  const [activeTabKey, setActiveTabKey] = useState<ExpertConfigTabKey>("workspaceAccess");
+  const [activeTabKey, setActiveTabKey] = useState<ExpertConfigTabKey>(
+    allowPermissionManagement ? "workspaceAccess" : "modelConfig",
+  );
   const assignedWorkspaceIds = useMemo(
     () => getAssignedWorkspaceIdsForExpert(employee, deploymentState),
     [deploymentState, employee],
@@ -613,6 +620,12 @@ const ExpertConfigPanel = ({
       visibility: employee.visibility,
     });
   }, [employee]);
+
+  useEffect(() => {
+    if (!allowPermissionManagement && activeTabKey === "workspaceAccess") {
+      setActiveTabKey("modelConfig");
+    }
+  }, [activeTabKey, allowPermissionManagement]);
 
   const { allModelOptions, hasAnyProvider } = useMemo(() => {
     const configuredProviders = PROVIDER_OPTIONS.filter(provider =>
@@ -931,15 +944,18 @@ const ExpertConfigPanel = ({
     [employee.id, employee.name, isAssigned, onUpdateModel, requiresDeviceBinding],
   );
 
-  const handleTabChange = useCallback((nextTabKey: string): void => {
-    if (
-      nextTabKey === "workspaceAccess" ||
-      nextTabKey === "modelConfig" ||
-      nextTabKey === "versionHistory"
-    ) {
-      setActiveTabKey(nextTabKey);
-    }
-  }, []);
+  const handleTabChange = useCallback(
+    (nextTabKey: string): void => {
+      if (
+        (allowPermissionManagement && nextTabKey === "workspaceAccess") ||
+        nextTabKey === "modelConfig" ||
+        nextTabKey === "versionHistory"
+      ) {
+        setActiveTabKey(nextTabKey);
+      }
+    },
+    [allowPermissionManagement],
+  );
 
   return (
     <div className={styles.expertConfigPanel}>
@@ -981,14 +997,14 @@ const ExpertConfigPanel = ({
         className={styles.expertConfigTabs}
         activeKey={activeTabKey}
         items={[
-          { key: "workspaceAccess", label: "权限管理" },
+          ...(allowPermissionManagement ? [{ key: "workspaceAccess", label: "权限管理" }] : []),
           { key: "modelConfig", label: "模型配置" },
           { key: "versionHistory", label: "版本记录" },
         ]}
         onChange={handleTabChange}
       />
 
-      {activeTabKey === "workspaceAccess" ? (
+      {allowPermissionManagement && activeTabKey === "workspaceAccess" ? (
         <div className={styles.expertConfigTabPanel}>
           {requiresDeviceBinding ? (
             <div className={styles.expertConfigSinglePanel}>
@@ -1275,7 +1291,8 @@ const ExpertConfigPanel = ({
                 {`当前生效版本 ${currentVersion}，共记录 ${versionRecords.length} 个版本。`}
               </p>
               <span className={styles.simpleExpertHint}>
-                企业自研 AI 专家发布后会自动记入版本记录，当前仅用于查看和追溯，不涉及企业管理员审核。
+                企业自研 AI
+                专家发布后会自动记入版本记录，当前仅用于查看和追溯，不涉及企业管理员审核。
               </span>
               <div className={styles.versionRecordList}>
                 {versionRecords.map((record, index) => (
