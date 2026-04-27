@@ -106,6 +106,17 @@ export const OPERATIONS_TAB_OPTIONS: Array<{
 
 export const OPERATIONS_ACCOUNT_OPTIONS: OperationsAccount[] = [
   {
+    accountId: "ops-account-yang-wanquan",
+    userId: "user-admin-001",
+    name: "杨万泉",
+    phone: "13800000001",
+    role: "superAdmin",
+    roleLabel: "平台超管",
+    description: "负责平台租户创建、AI专家上架服务配置、AI专家上架审批和广场管理。",
+    verificationCode: "123456",
+    entryPath: "/ops/tenants",
+  },
+  {
     accountId: "ops-account-super-admin",
     userId: "ops-user-001",
     name: "周明越",

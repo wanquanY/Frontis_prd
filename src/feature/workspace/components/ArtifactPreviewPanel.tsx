@@ -4,7 +4,7 @@ import classNames from "classnames";
 
 import { MarkdownRenderer } from "@/components/MarkdownRenderer";
 import { useArtifactPreview } from "@/feature/workspace/hooks/useArtifactPreview";
-import type { ArtifactItem } from "@/types/artifact";
+import type { ArtifactFileGroup, ArtifactItem } from "@/types/artifact";
 import { resolveFileLogo } from "@/utils/fileLogo";
 import { DownloadOutlineIcon } from "@/utils/icons";
 
@@ -12,6 +12,8 @@ import styles from "./ArtifactPreviewPanel.module.less";
 
 interface ArtifactPreviewPanelProps {
   files: ArtifactItem[];
+  fileGroups?: ArtifactFileGroup[];
+  showHeader?: boolean;
   loading?: boolean;
   error?: string;
   onClose?: () => void;
@@ -63,6 +65,8 @@ const normalizeKeyword = (value: string): string => value.trim().toLowerCase();
  */
 export const ArtifactPreviewPanel = ({
   files,
+  fileGroups,
+  showHeader = true,
   loading = false,
   error,
   onClose,
@@ -74,6 +78,7 @@ export const ArtifactPreviewPanel = ({
   const [keyword, setKeyword] = useState("");
   const [selectedFileId, setSelectedFileId] = useState<string>();
   const [htmlPreviewMode, setHtmlPreviewMode] = useState<HtmlPreviewMode>("preview");
+  const [expandedGroupIds, setExpandedGroupIds] = useState<Set<string>>(() => new Set());
 
   const filteredFiles = useMemo(() => {
     const normalized = normalizeKeyword(keyword);
@@ -84,6 +89,21 @@ export const ArtifactPreviewPanel = ({
         .some(candidate => candidate.includes(normalized));
     });
   }, [files, keyword]);
+  const filteredFileGroups = useMemo<ArtifactFileGroup[]>(() => {
+    if (!fileGroups?.length) {
+      return [];
+    }
+
+    const filteredFileIds = new Set(filteredFiles.map(item => item.id));
+
+    return fileGroups
+      .map(group => ({
+        ...group,
+        files: group.files.filter(item => filteredFileIds.has(item.id)),
+      }))
+      .filter(group => group.files.length > 0);
+  }, [fileGroups, filteredFiles]);
+  const normalizedKeyword = normalizeKeyword(keyword);
 
   const handleKeywordChange = useCallback((event: ChangeEvent<HTMLInputElement>) => {
     setKeyword(event.target.value);
@@ -115,6 +135,15 @@ export const ArtifactPreviewPanel = ({
     setHtmlPreviewMode("preview");
   }, [selectedFileId]);
 
+  useEffect(() => {
+    if (!fileGroups?.length) {
+      setExpandedGroupIds(new Set());
+      return;
+    }
+
+    setExpandedGroupIds(new Set([fileGroups[0].id]));
+  }, [fileGroups]);
+
   const handleClosePanel = useCallback(() => {
     setSelectedFileId(undefined);
     onClose?.();
@@ -126,6 +155,20 @@ export const ArtifactPreviewPanel = ({
 
   const handleOpenFileDetail = useCallback((fileId: string) => {
     setSelectedFileId(fileId);
+  }, []);
+
+  const handleToggleFileGroup = useCallback((groupId: string) => {
+    setExpandedGroupIds(current => {
+      const nextGroupIds = new Set(current);
+
+      if (nextGroupIds.has(groupId)) {
+        nextGroupIds.delete(groupId);
+      } else {
+        nextGroupIds.add(groupId);
+      }
+
+      return nextGroupIds;
+    });
   }, []);
 
   const handleDownloadFile = useCallback(() => {
@@ -154,6 +197,51 @@ export const ArtifactPreviewPanel = ({
   }, [previewState.previewBody, previewState.previewType, selectedFile]);
 
   const shouldShowHtmlTabs = previewState.previewType === "html";
+  const shouldRenderGroupedList = Boolean(fileGroups?.length);
+
+  const renderFileCard = useCallback(
+    (item: ArtifactItem): JSX.Element => {
+      const logo = resolveFileLogo(item.fileName);
+
+      return (
+        <article key={item.id} className={styles.fileCard} role="listitem">
+          <button
+            type="button"
+            className={styles.fileCardButton}
+            aria-label={`查看成果详情：${item.fileName}`}
+            onClick={() => handleOpenFileDetail(item.id)}
+          >
+            <span className={styles.fileCardIcon} aria-hidden={true}>
+              <img className={styles.fileCardIconImage} src={logo.src} alt={logo.alt} />
+            </span>
+            <span className={styles.fileCardBody}>
+              <span className={styles.fileCardTitleRow}>
+                <span className={styles.fileName} title={item.fileName}>
+                  {item.fileName}
+                </span>
+              </span>
+              <span className={styles.fileMeta}>
+                {item.fileSize} · {item.producedAt}
+              </span>
+            </span>
+          </button>
+          <span className={styles.fileCardActions} aria-label="成果操作">
+            <button
+              type="button"
+              className={styles.fileActionButton}
+              aria-label="下载成果"
+              title="下载"
+              disabled={!onDownloadFile || item.isDeleted}
+              onClick={() => onDownloadFile?.(item)}
+            >
+              <DownloadOutlineIcon className={styles.fileActionIcon} />
+            </button>
+          </span>
+        </article>
+      );
+    },
+    [handleOpenFileDetail, onDownloadFile],
+  );
 
   const renderDetailPreview = useCallback((): JSX.Element => {
     if (!selectedFile) {
@@ -313,7 +401,7 @@ export const ArtifactPreviewPanel = ({
 
   return (
     <aside className={styles.panel} aria-label="成果文件面板">
-      {!selectedFile ? (
+      {!selectedFile && showHeader ? (
         <div className={styles.header}>
           <div className={styles.headerText}>
             <div className={styles.title}>成果</div>
@@ -330,7 +418,7 @@ export const ArtifactPreviewPanel = ({
             <CloseIcon className={styles.closeIcon} />
           </button>
         </div>
-      ) : (
+      ) : selectedFile ? (
         <div className={styles.previewHeader}>
           <div className={styles.previewHeaderInfo}>
             <button
@@ -404,7 +492,7 @@ export const ArtifactPreviewPanel = ({
             </button>
           </div>
         </div>
-      )}
+      ) : null}
 
       <div className={styles.content}>
         {!selectedFile ? (
@@ -427,46 +515,49 @@ export const ArtifactPreviewPanel = ({
                 <div className={styles.emptyState}>{error}</div>
               ) : loading ? (
                 <div className={styles.emptyState}>正在同步成果文件...</div>
-              ) : filteredFiles.length > 0 ? (
-                filteredFiles.map(item => {
-                  const logo = resolveFileLogo(item.fileName);
-                  return (
-                    <article key={item.id} className={styles.fileCard} role="listitem">
-                      <button
-                        type="button"
-                        className={styles.fileCardButton}
-                        aria-label={`查看成果详情：${item.fileName}`}
-                        onClick={() => handleOpenFileDetail(item.id)}
-                      >
-                        <span className={styles.fileCardIcon} aria-hidden={true}>
-                          <img className={styles.fileCardIconImage} src={logo.src} alt={logo.alt} />
-                        </span>
-                        <span className={styles.fileCardBody}>
-                          <span className={styles.fileCardTitleRow}>
-                            <span className={styles.fileName} title={item.fileName}>
-                              {item.fileName}
-                            </span>
-                          </span>
-                          <span className={styles.fileMeta}>
-                            {item.fileSize} · {item.producedAt}
-                          </span>
-                        </span>
-                      </button>
-                      <span className={styles.fileCardActions} aria-label="成果操作">
+              ) : shouldRenderGroupedList ? (
+                filteredFileGroups.length > 0 ? (
+                  filteredFileGroups.map(group => {
+                    const isExpanded = Boolean(normalizedKeyword) || expandedGroupIds.has(group.id);
+
+                    return (
+                      <section key={group.id} className={styles.fileGroup} aria-label={group.title}>
                         <button
                           type="button"
-                          className={styles.fileActionButton}
-                          aria-label="下载成果"
-                          title="下载"
-                          disabled={!onDownloadFile || item.isDeleted}
-                          onClick={() => onDownloadFile?.(item)}
+                          className={styles.fileGroupHeader}
+                          aria-expanded={isExpanded}
+                          onClick={() => handleToggleFileGroup(group.id)}
                         >
-                          <DownloadOutlineIcon className={styles.fileActionIcon} />
+                          <span className={styles.fileGroupTitleWrap}>
+                            <span className={styles.fileGroupTitle} title={group.title}>
+                              {group.title}
+                            </span>
+                          </span>
+                          <span className={styles.fileGroupMeta}>
+                            <span className={styles.fileGroupCount}>{group.files.length}</span>
+                            <span
+                              className={classNames(styles.fileGroupChevron, {
+                                [styles.fileGroupChevronOpen]: isExpanded,
+                              })}
+                              aria-hidden={true}
+                            />
+                          </span>
                         </button>
-                      </span>
-                    </article>
-                  );
-                })
+                        {isExpanded ? (
+                          <div className={styles.fileGroupList}>
+                            {group.files.map(item => renderFileCard(item))}
+                          </div>
+                        ) : null}
+                      </section>
+                    );
+                  })
+                ) : (
+                  <div className={styles.emptyState}>
+                    {keyword.trim() ? "暂无匹配结果" : "当前工作轨迹还没有同步成果文件"}
+                  </div>
+                )
+              ) : filteredFiles.length > 0 ? (
+                filteredFiles.map(item => renderFileCard(item))
               ) : (
                 <div className={styles.emptyState}>
                   {keyword.trim() ? "暂无匹配结果" : "当前频道还没有同步成果文件"}

@@ -20,6 +20,9 @@ const findOperationsAccountByPhone = (phone: string): OperationsAccount | null =
   return OPERATIONS_ACCOUNT_OPTIONS.find(item => item.phone === normalizedPhone) ?? null;
 };
 
+const findOperationsAccountByAccountId = (accountId: string): OperationsAccount | null =>
+  OPERATIONS_ACCOUNT_OPTIONS.find(item => item.accountId === accountId) ?? null;
+
 const buildOperationsSession = (account: OperationsAccount): OperationsSession => ({
   accountId: account.accountId,
   userId: account.userId,
@@ -35,6 +38,7 @@ interface UseOperationsAuthResult {
   session: OperationsSession | null;
   sendVerificationCode: (phone: string) => OperationsAuthActionResult;
   login: (params: OperationsLoginParams) => OperationsAuthActionResult;
+  loginByAccountId: (accountId: string, redirectPath?: string) => OperationsAuthActionResult;
   logout: () => void;
   resolveSessionPath: (session: OperationsSession, redirectPath?: string) => string;
 }
@@ -72,7 +76,11 @@ export const useOperationsAuth = (): UseOperationsAuthResult => {
   }, []);
 
   const login = useCallback(
-    ({ phone, verificationCode, redirectPath }: OperationsLoginParams): OperationsAuthActionResult => {
+    ({
+      phone,
+      verificationCode,
+      redirectPath,
+    }: OperationsLoginParams): OperationsAuthActionResult => {
       if (!isValidOperationsPhone(phone)) {
         return {
           success: false,
@@ -119,6 +127,33 @@ export const useOperationsAuth = (): UseOperationsAuthResult => {
     [setSession],
   );
 
+  const loginByAccountId = useCallback(
+    (accountId: string, redirectPath?: string): OperationsAuthActionResult => {
+      const account = findOperationsAccountByAccountId(accountId);
+
+      if (!account) {
+        return {
+          success: false,
+          message: "当前账号未开通运营后台权限。",
+        };
+      }
+
+      const nextSession = buildOperationsSession(account);
+      const nextRedirectPath = resolveOperationsEntryPath(redirectPath ?? account.entryPath);
+
+      setSession(nextSession);
+
+      return {
+        success: true,
+        message: "登录成功。",
+        account,
+        session: nextSession,
+        redirectPath: nextRedirectPath,
+      };
+    },
+    [setSession],
+  );
+
   const logout = useCallback((): void => {
     clearSession();
   }, [clearSession]);
@@ -127,6 +162,7 @@ export const useOperationsAuth = (): UseOperationsAuthResult => {
     session,
     sendVerificationCode,
     login,
+    loginByAccountId,
     logout,
     resolveSessionPath: (_session, redirectPath) => resolveOperationsEntryPath(redirectPath),
   };

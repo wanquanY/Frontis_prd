@@ -31,12 +31,18 @@ import {
   message,
 } from "antd";
 import classNames from "classnames";
-import { useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 
 import { buildMockPaymentQr } from "@/feature/commerce/mockPayment";
+import { findIdentityForPath, getLoginPath, getSystemEntries } from "@/feature/auth/mockAccounts";
+import { useMockAuth } from "@/feature/auth/hooks/useMockAuth";
 import { useOperationsAuth } from "@/feature/operations/hooks/useOperationsAuth";
 import { useOperationsPlatform } from "@/feature/operations/hooks/useOperationsPlatform";
-import type { MockTenantPointsOrderItem, MockTenantPointsOrderStatus } from "@/feature/auth/types";
+import type {
+  MockAuthSystemEntry,
+  MockTenantPointsOrderItem,
+  MockTenantPointsOrderStatus,
+} from "@/feature/auth/types";
 import type { MockPointsPackageOption } from "@/feature/points/types";
 import type {
   MockTenantPlanPackageOption,
@@ -2689,13 +2695,15 @@ const ResourcePoolConsole = ({
  * 运营后台主视图，按企业管理后台的骨架和内容标准重构。
  */
 export const OperationsPlatformView = (): JSX.Element => {
+  const location = useLocation();
   const navigate = useNavigate();
   const { tabPath, tenantId, productId } = useParams<{
     tabPath?: string;
     tenantId?: string;
     productId?: string;
   }>();
-  const { logout, session } = useOperationsAuth();
+  const { activateIdentity, logout: logoutUnified, session: unifiedSession } = useMockAuth();
+  const { loginByAccountId, logout, session } = useOperationsAuth();
   const {
     addTenantMember,
     agentPlazaCategories,
@@ -2871,13 +2879,62 @@ export const OperationsPlatformView = (): JSX.Element => {
   }, [activeTabFromPath, hasDetailRoute, navigate]);
 
   const handleLogout = useCallback((): void => {
+    const redirectPath = `${location.pathname}${location.search}`;
+
+    logoutUnified();
     logout();
-    message.success("已退出运营后台。");
-    navigate("/ops/login", { replace: true });
-  }, [logout, navigate]);
+    message.success("已退出登录。");
+    navigate(getLoginPath(redirectPath), { replace: true });
+  }, [location.pathname, location.search, logout, logoutUnified, navigate]);
   const handleOpenUserManual = useCallback((): void => {
     window.open(USER_MANUAL_ROUTE_PATH, "_blank", "noopener,noreferrer");
   }, []);
+
+  const systemEntries = useMemo(() => {
+    const operationsIdentity = findIdentityForPath(
+      unifiedSession?.identities,
+      OPERATIONS_DEFAULT_PATH,
+      ["admin"],
+    );
+
+    return getSystemEntries(
+      unifiedSession?.identities ?? [],
+      operationsIdentity?.tenantId,
+      operationsIdentity?.id,
+    );
+  }, [unifiedSession?.identities]);
+  const handleOpenSystemEntry = useCallback(
+    (entry: MockAuthSystemEntry): void => {
+      if (entry.platform === "operationsAdmin" && entry.operationsAccountId) {
+        const identityResult = activateIdentity(entry.identityId, entry.entryPath);
+
+        if (!identityResult.success) {
+          message.error(identityResult.message);
+          return;
+        }
+
+        const result = loginByAccountId(entry.operationsAccountId, entry.entryPath);
+
+        if (!result.success) {
+          message.error(result.message);
+          return;
+        }
+
+        navigate(result.redirectPath ?? entry.entryPath, { replace: true });
+        return;
+      }
+
+      const result = activateIdentity(entry.identityId, entry.entryPath);
+
+      if (!result.success) {
+        message.error(result.message);
+        return;
+      }
+
+      navigate(result.redirectPath ?? entry.entryPath, { replace: true });
+    },
+    [activateIdentity, loginByAccountId, navigate],
+  );
 
   const handleTabChange = useCallback(
     (nextTab: OperationsPlatformTabKey): void => {
@@ -3447,6 +3504,19 @@ export const OperationsPlatformView = (): JSX.Element => {
     {
       type: "divider" as const,
     },
+    ...systemEntries.map(entry => ({
+      key: `system-entry-${entry.identityId}`,
+      icon: <AppstoreOutlined />,
+      label: `进入${entry.label}`,
+      onClick: () => handleOpenSystemEntry(entry),
+    })),
+    ...(systemEntries.length
+      ? [
+          {
+            type: "divider" as const,
+          },
+        ]
+      : []),
     {
       key: "logout",
       icon: <LogoutOutlined />,

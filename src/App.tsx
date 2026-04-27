@@ -1,5 +1,5 @@
 import { Suspense, lazy } from "react";
-import { Navigate, Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { AuthRoute } from "@/feature/auth/components/AuthRoute";
@@ -12,7 +12,6 @@ const IdentitySelectionPage = lazy(() => import("@/pages/identity/IdentitySelect
 const LoginPage = lazy(() => import("@/pages/login/LoginPage"));
 const UnifiedWorkbenchPage = lazy(() => import("@/pages/unifiedWorkbench/UnifiedWorkbenchPage"));
 const UserManualPage = lazy(() => import("@/pages/UserManualPage"));
-const OperationsLoginPage = lazy(() => import("@/pages/operations/login/OperationsLoginPage"));
 const OperationsPlatformPage = lazy(() => import("@/pages/operations/OperationsPlatformPage"));
 const MarketingPortalShellPage = lazy(
   () => import("@/pages/marketingPortal/MarketingPortalShellPage"),
@@ -48,6 +47,17 @@ const LegacyFdeRouteRedirect = (): JSX.Element => {
   return <Navigate replace to={getLegacyFdeRedirectPath(session?.role)} />;
 };
 
+const LegacyOperationsLoginRedirect = (): JSX.Element => {
+  const location = useLocation();
+  const searchParams = new URLSearchParams(location.search);
+  const redirectPath = searchParams.get("redirect")?.trim();
+  const loginPath = redirectPath?.startsWith("/")
+    ? `/login?redirect=${encodeURIComponent(redirectPath)}`
+    : "/login";
+
+  return <Navigate replace to={loginPath} />;
+};
+
 /**
  * App
  *
@@ -60,7 +70,7 @@ const App = (): JSX.Element => {
         <Routes>
           <Route path="/" element={<Navigate replace to="/portal" />} />
           <Route path="/login" element={<LoginPage />} />
-          <Route path="/ops/login" element={<OperationsLoginPage />} />
+          <Route path="/ops/login" element={<LegacyOperationsLoginRedirect />} />
           <Route path="/user-manual" element={<UserManualPage />} />
           <Route path="/select-tenant" element={<IdentitySelectionPage />} />
           <Route path="/select-identity" element={<Navigate replace to="/select-tenant" />} />

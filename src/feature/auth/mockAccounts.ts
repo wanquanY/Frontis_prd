@@ -7,6 +7,7 @@ import {
   getMockTenantManagementSnapshot,
   saveMockTenantManagementSnapshot,
 } from "@/feature/auth/mockTenantRegistry";
+import { OPERATIONS_ACCOUNT_OPTIONS } from "@/feature/operations/mockData";
 import { loadOperationsRegistrationStrategy } from "@/feature/operations/platformConfigStorage";
 import type { MockTenantPlanPackageOption } from "@/feature/tenantPlan/types";
 import type {
@@ -26,6 +27,12 @@ const LOGIN_PATH = "/login";
 const TENANT_SELECTION_PATH = "/select-tenant";
 const DEFAULT_MOCK_VERIFICATION_CODE = "123456";
 const ENTERPRISE_WORKSPACE_LABEL = `${PRODUCT_NAME}工作台`;
+const OPERATIONS_CONSOLE_LABEL = "运营管理平台";
+const OPERATIONS_TENANT: MockTenantInfo = {
+  id: "platform-operations",
+  name: OPERATIONS_CONSOLE_LABEL,
+  code: "OPS-PLATFORM",
+};
 const STORED_MOCK_ACCOUNTS_STORAGE_KEY = "frontis.mock.auth.accounts";
 const DEFAULT_ADMIN_ASSIGNED_AGENT_IDS =
   INITIAL_FRONTIS_WEB_USERS.find(item => item.id === "user-admin-001")?.assignedAgentIds ?? [];
@@ -38,6 +45,7 @@ const DEFAULT_MEMBER_ASSIGNED_WORKSPACE_IDS =
 const PLATFORM_ORDER: Record<MockIdentityPlatform, number> = {
   enterpriseWorkspace: 0,
   enterpriseAdmin: 1,
+  operationsAdmin: 2,
 };
 const ROLE_ORDER: Record<MockAuthRole, number> = {
   employee: 0,
@@ -169,6 +177,63 @@ const buildWorkspaceIdentity = (
   });
 };
 
+const buildOperationsIdentity = (
+  identityId: string,
+  operationsAccountId: string,
+  subjectName: string,
+): MockAuthIdentity =>
+  buildIdentity({
+    id: identityId,
+    subjectId: operationsAccountId,
+    subjectName,
+    tenantId: OPERATIONS_TENANT.id,
+    tenantName: OPERATIONS_TENANT.name,
+    tenantCode: OPERATIONS_TENANT.code,
+    platform: "operationsAdmin",
+    platformLabel: OPERATIONS_CONSOLE_LABEL,
+    role: "admin",
+    roleLabel: "运营管理员",
+    description: "进入运营管理平台处理租户、商品、资源、积分和平台组织管理。",
+    entryPath: "/ops/tenants",
+    operationsAccountId,
+  });
+
+const withOperationsIdentity = (
+  account: MockAuthAccount,
+  identityId: string,
+  operationsAccountId: string,
+  subjectName: string,
+): MockAuthAccount => ({
+  ...account,
+  identities: [
+    ...account.identities,
+    buildOperationsIdentity(identityId, operationsAccountId, subjectName),
+  ],
+});
+
+const buildOperationsAccount = (
+  account: (typeof OPERATIONS_ACCOUNT_OPTIONS)[number],
+): MockAuthAccount => {
+  const identity = buildOperationsIdentity(
+    `operations-platform-${account.accountId}`,
+    account.accountId,
+    account.name,
+  );
+
+  return {
+    accountId: `mock-${account.accountId}`,
+    userId: account.userId,
+    name: account.name,
+    phone: account.phone,
+    role: "admin",
+    roleLabel: account.roleLabel,
+    description: account.description,
+    verificationCode: account.verificationCode,
+    identities: [identity],
+    quickLoginIdentityId: identity.id,
+  };
+};
+
 const compareIdentityPriority = (
   leftIdentity: MockAuthIdentity,
   rightIdentity: MockAuthIdentity,
@@ -286,16 +351,21 @@ export const ENTERPRISE_EMPLOYEE_MOCK_ACCOUNT: MockAuthAccount = buildTenantAcco
   },
 );
 
-export const ENTERPRISE_ADMIN_MOCK_ACCOUNT: MockAuthAccount = buildTenantAccount(
-  "user-admin-001",
+export const ENTERPRISE_ADMIN_MOCK_ACCOUNT: MockAuthAccount = withOperationsIdentity(
+  buildTenantAccount(
+    "user-admin-001",
+    "杨万泉",
+    "13800000001",
+    "enterpriseAdmin",
+    DEFAULT_MOCK_VERIFICATION_CODE,
+    {
+      accountId: "mock-account-enterprise-admin",
+      description: `租户管理员账号，登录后进入${PRODUCT_NAME}工作台，并可继续进入${MANAGEMENT_CONSOLE_LABEL}。`,
+    },
+  ),
+  "enterprise-admin-operations-platform",
+  "ops-account-yang-wanquan",
   "杨万泉",
-  "13800000001",
-  "enterpriseAdmin",
-  DEFAULT_MOCK_VERIFICATION_CODE,
-  {
-    accountId: "mock-account-enterprise-admin",
-    description: `租户管理员账号，登录后进入${PRODUCT_NAME}工作台，并可继续进入${MANAGEMENT_CONSOLE_LABEL}。`,
-  },
 );
 
 export const PERSONAL_REGISTERED_MOCK_ACCOUNT: MockAuthAccount = buildTenantAccount(
@@ -350,6 +420,11 @@ export const MULTI_TENANT_MOCK_ACCOUNT: MockAuthAccount = {
         entryPath: "/web/admin/workspace",
       },
     ),
+    buildOperationsIdentity(
+      "multi-tenant-operations-platform",
+      "ops-account-yang-wanquan",
+      "杨万泉",
+    ),
   ],
 };
 
@@ -358,6 +433,7 @@ const PRESET_MOCK_AUTH_ACCOUNTS: MockAuthAccount[] = [
   ENTERPRISE_ADMIN_MOCK_ACCOUNT,
   PERSONAL_REGISTERED_MOCK_ACCOUNT,
   MULTI_TENANT_MOCK_ACCOUNT,
+  ...OPERATIONS_ACCOUNT_OPTIONS.map(buildOperationsAccount),
 ];
 
 /**
@@ -499,6 +575,7 @@ export const registerMockTenantAdminAccount = (
     totalSeats: 1,
     usedSeats: 1,
     users: [buildRuntimeUser(userId, params.name.trim(), normalizedPhone, "enterpriseAdmin")],
+    agentUsageRecords: [],
     pointsLedger: [
       {
         id: `${tenantId}-register-bonus`,
@@ -717,6 +794,9 @@ export const updateMockTenantUsers = (
 const getSafeIdentities = (identities?: MockAuthIdentity[] | null): MockAuthIdentity[] =>
   Array.isArray(identities) ? identities : [];
 
+const isTenantScopedIdentity = (identity: MockAuthIdentity): boolean =>
+  identity.platform !== "operationsAdmin";
+
 /**
  * 兼容旧版持久化会话，补齐缺失的 identities 字段。
  */
@@ -783,6 +863,10 @@ const getTargetPlatformByPath = (redirectPath?: string): MockIdentityPlatform | 
     return "enterpriseWorkspace";
   }
 
+  if (normalizedRedirectPath.startsWith("/ops")) {
+    return "operationsAdmin";
+  }
+
   return null;
 };
 
@@ -817,13 +901,19 @@ export const getTenantIdentities = (
   identities: MockAuthIdentity[] | undefined,
   tenantId: string,
 ): MockAuthIdentity[] =>
-  getSafeIdentities(identities).filter(identity => identity.tenantId === tenantId);
+  getSafeIdentities(identities).filter(
+    identity => isTenantScopedIdentity(identity) && identity.tenantId === tenantId,
+  );
 
 /**
  * 获取账号所属租户数量。
  */
 export const getTenantCount = (identities: MockAuthIdentity[] | undefined): number =>
-  new Set(getSafeIdentities(identities).map(identity => identity.tenantId)).size;
+  new Set(
+    getSafeIdentities(identities)
+      .filter(isTenantScopedIdentity)
+      .map(identity => identity.tenantId),
+  ).size;
 
 const isRedirectAllowedForIdentity = (
   identity: MockAuthIdentity,
@@ -836,6 +926,10 @@ const isRedirectAllowedForIdentity = (
   }
 
   if (identity.role === "admin") {
+    if (identity.platform === "operationsAdmin") {
+      return normalizedRedirectPath.startsWith("/ops");
+    }
+
     return (
       normalizedRedirectPath.startsWith("/web/admin") ||
       normalizedRedirectPath.startsWith("/web/employee") ||
@@ -910,14 +1004,16 @@ export const getSystemEntries = (
   tenantId: string | undefined,
   activeIdentityId?: string,
 ): MockAuthSystemEntry[] => {
-  if (!tenantId) {
-    return [];
-  }
-
   const identityMap = new Map<MockIdentityPlatform, MockAuthIdentity>();
 
   getSafeIdentities(identities)
-    .filter(identity => identity.tenantId === tenantId)
+    .filter(
+      identity =>
+        identity.platform === "operationsAdmin" ||
+        (tenantId === OPERATIONS_TENANT.id
+          ? isTenantScopedIdentity(identity)
+          : Boolean(tenantId) && identity.tenantId === tenantId),
+    )
     .forEach(identity => {
       const currentIdentity = identityMap.get(identity.platform);
 
@@ -928,12 +1024,16 @@ export const getSystemEntries = (
 
   return Array.from(identityMap.values())
     .filter(identity => identity.id !== activeIdentityId)
+    .filter(
+      identity => identity.platform !== "operationsAdmin" || Boolean(identity.operationsAccountId),
+    )
     .sort(compareIdentityPriority)
     .map(identity => ({
       identityId: identity.id,
       label: identity.platformLabel,
       entryPath: identity.entryPath,
       platform: identity.platform,
+      operationsAccountId: identity.operationsAccountId,
     }));
 };
 
@@ -946,17 +1046,19 @@ export const getTenantEntries = (
 ): MockAuthTenantEntry[] => {
   const tenantMap = new Map<string, MockAuthTenantEntry>();
 
-  getSafeIdentities(identities).forEach(identity => {
-    if (identity.tenantId === activeTenantId || tenantMap.has(identity.tenantId)) {
-      return;
-    }
+  getSafeIdentities(identities)
+    .filter(isTenantScopedIdentity)
+    .forEach(identity => {
+      if (identity.tenantId === activeTenantId || tenantMap.has(identity.tenantId)) {
+        return;
+      }
 
-    tenantMap.set(identity.tenantId, {
-      tenantId: identity.tenantId,
-      tenantName: identity.tenantName,
-      tenantCode: identity.tenantCode,
+      tenantMap.set(identity.tenantId, {
+        tenantId: identity.tenantId,
+        tenantName: identity.tenantName,
+        tenantCode: identity.tenantCode,
+      });
     });
-  });
 
   return Array.from(tenantMap.values()).sort((leftTenant, rightTenant) =>
     leftTenant.tenantName.localeCompare(rightTenant.tenantName, "zh-Hans-CN"),

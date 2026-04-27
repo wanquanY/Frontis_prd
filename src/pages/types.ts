@@ -213,10 +213,23 @@ export interface MetaAgentWorkTrajectoryDeliverableItem {
   id: string;
   fileName: string;
   metaLabel: string;
+  anchorBlockId?: string;
 }
 
 /**
- * MetaAgent 单线程中的可回溯记忆片段。
+ * MetaAgent 每日工作轨迹中的任务项。
+ */
+export interface MetaAgentWorkTrajectoryTaskItem {
+  id: string;
+  title: string;
+  agentName: string;
+  status: "running" | "completed";
+  metaLabel: string;
+  anchorBlockId: string;
+}
+
+/**
+ * MetaAgent 单线程中按日自动生成的工作轨迹。
  */
 export interface MetaAgentWorkTrajectoryItem {
   id: string;
@@ -228,6 +241,7 @@ export interface MetaAgentWorkTrajectoryItem {
   displayTimeLabel: string;
   participantNames: string[];
   deliverables: MetaAgentWorkTrajectoryDeliverableItem[];
+  tasks: MetaAgentWorkTrajectoryTaskItem[];
 }
 
 export type DialogueGeneratedPanelStatus = "running" | "success";

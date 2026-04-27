@@ -50,7 +50,7 @@ import {
   type WorkspaceComposerMentionOption,
   type WorkspaceComposerAttachmentItem,
 } from "@/feature/workspace/types";
-import type { ArtifactItem } from "@/types/artifact";
+import type { ArtifactFileGroup, ArtifactItem } from "@/types/artifact";
 import { CHAT_ATTACHMENT_ACCEPT_ATTR } from "@/utils/chatAttachmentFileTypes";
 
 import type {
@@ -106,7 +106,7 @@ interface DialoguePrototypeViewProps {
   onHomeCaseSelect: (item: AiCeoHomeCaseItem) => void;
   onDialogueSessionSelect: (sessionId: string) => void;
   onHomePromptSend: (question: string) => void;
-  onSelectMetaAgentTrajectory: (trajectoryId: string) => void;
+  onSelectMetaAgentTrajectory: (trajectoryId: string, anchorBlockId?: string) => void;
   onClearMetaAgentTrajectory: () => void;
   onRemoveDialogueSession: (sessionId: string) => void;
   onRenameDialogueSession: (sessionId: string, title: string) => void;
@@ -154,6 +154,10 @@ const getMetaAgentTrajectoryMatchScore = (
   const resultPreview = item.resultPreview.toLowerCase();
   const title = item.title.toLowerCase();
   const participantLabel = item.participantNames.join(" ").toLowerCase();
+  const taskLabel = item.tasks
+    .map(task => `${task.title} ${task.agentName} ${task.metaLabel}`)
+    .join(" ")
+    .toLowerCase();
   const deliverableLabel = item.deliverables
     .map(deliverable => `${deliverable.fileName} ${deliverable.metaLabel}`)
     .join(" ")
@@ -184,6 +188,10 @@ const getMetaAgentTrajectoryMatchScore = (
 
   if (participantLabel.includes(normalizedQuery)) {
     score += 3;
+  }
+
+  if (taskLabel.includes(normalizedQuery)) {
+    score += 4;
   }
 
   if (deliverableLabel.includes(normalizedQuery)) {
@@ -398,6 +406,9 @@ export const DialoguePrototypeView = ({
   const sidePanelPendingWidthRef = useRef<number>(DIALOGUE_ARTIFACT_LIST_PANEL_DEFAULT_WIDTH);
   const sidePanelResizeFrameRef = useRef<number | null>(null);
   const [sidePanelMode, setSidePanelMode] = useState<"artifacts" | "results" | null>(null);
+  const [outputPanelActiveTab, setOutputPanelActiveTab] = useState<"tasks" | "artifacts">(
+    "artifacts",
+  );
   const [preferredArtifactId, setPreferredArtifactId] = useState<string>();
   const [activeResultId, setActiveResultId] = useState<string | null>(null);
   const [isMetaAgentTrajectoryOpen, setIsMetaAgentTrajectoryOpen] = useState<boolean>(false);
@@ -418,6 +429,15 @@ export const DialoguePrototypeView = ({
   const [selectedMetaAgentTimelineGroupKey, setSelectedMetaAgentTimelineGroupKey] = useState<
     string | null
   >(null);
+  const [selectedMetaAgentTrajectoryDetailId, setSelectedMetaAgentTrajectoryDetailId] = useState<
+    string | null
+  >(null);
+  const [selectedMetaAgentTrajectoryDetailTab, setSelectedMetaAgentTrajectoryDetailTab] = useState<
+    "tasks" | "deliverables"
+  >("tasks");
+  const [expandedOutputTaskGroupIds, setExpandedOutputTaskGroupIds] = useState<Set<string>>(
+    () => new Set(),
+  );
   const [isArtifactPreviewing, setIsArtifactPreviewing] = useState<boolean>(false);
   const [isEmployeeSwitcherOpen, setIsEmployeeSwitcherOpen] = useState<boolean>(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(false);
@@ -440,9 +460,10 @@ export const DialoguePrototypeView = ({
   const shouldShowAgentSidebar = !hideAgentSidebar;
   const shouldShowMetaAgentTrajectory =
     hideAgentSidebar && metaAgentTrajectoryItems.length > 0 && !isHomeVisible;
+  const hasTaskPanel = shouldShowMetaAgentTrajectory && metaAgentTrajectoryItems.length > 0;
+  const hasOutputPanel = hasArtifactPanel || hasTaskPanel;
   const isStackedLayout = viewportWidth <= 1100;
-  const isArtifactPanelVisible =
-    !isHomeVisible && sidePanelMode === "artifacts" && hasArtifactPanel;
+  const isArtifactPanelVisible = !isHomeVisible && sidePanelMode === "artifacts" && hasOutputPanel;
   const isResultPanelVisible = !isHomeVisible && sidePanelMode === "results" && hasResultPanel;
   const isSidePanelVisible = isArtifactPanelVisible || isResultPanelVisible;
   const clampSidePanelWidth = useCallback(
@@ -462,6 +483,18 @@ export const DialoguePrototypeView = ({
     [viewportWidth],
   );
   const resolvedSidePanelWidth = clampSidePanelWidth(sidePanelWidth);
+  const buildVisibleSidePanelGridTemplateColumns = useCallback(
+    (panelWidth: number): string => {
+      if (!shouldShowAgentSidebar) {
+        return `minmax(0, 1fr) 10px ${panelWidth}px`;
+      }
+
+      const sidebarWidth = isSidebarCollapsed ? DIALOGUE_SIDEBAR_COLLAPSED_WIDTH : 252;
+
+      return `${sidebarWidth}px minmax(0, 1fr) 10px ${panelWidth}px`;
+    },
+    [isSidebarCollapsed, shouldShowAgentSidebar],
+  );
   const dialogueShellStyle = useMemo<CSSProperties | undefined>(() => {
     if (isStackedLayout) {
       return undefined;
@@ -470,7 +503,7 @@ export const DialoguePrototypeView = ({
     if (!shouldShowAgentSidebar) {
       if (isSidePanelVisible) {
         return {
-          gridTemplateColumns: `minmax(0, 1fr) 10px ${resolvedSidePanelWidth}px`,
+          gridTemplateColumns: buildVisibleSidePanelGridTemplateColumns(resolvedSidePanelWidth),
         };
       }
 
@@ -483,7 +516,7 @@ export const DialoguePrototypeView = ({
 
     if (isSidePanelVisible) {
       return {
-        gridTemplateColumns: `${sidebarWidth}px minmax(0, 1fr) 10px ${resolvedSidePanelWidth}px`,
+        gridTemplateColumns: buildVisibleSidePanelGridTemplateColumns(resolvedSidePanelWidth),
       };
     }
 
@@ -491,6 +524,7 @@ export const DialoguePrototypeView = ({
       gridTemplateColumns: `${sidebarWidth}px minmax(0, 1fr)`,
     };
   }, [
+    buildVisibleSidePanelGridTemplateColumns,
     isSidePanelVisible,
     isSidebarCollapsed,
     isStackedLayout,
@@ -593,7 +627,10 @@ export const DialoguePrototypeView = ({
     );
   }, [metaAgentTrajectoryDateRange, metaAgentTrajectoryTimeFilterKey]);
   const metaAgentTrajectoryTimeScale = useMemo<"week" | "month">(() => {
-    if (metaAgentTrajectoryTimeFilterKey === "today" || metaAgentTrajectoryTimeFilterKey === "recentWeek") {
+    if (
+      metaAgentTrajectoryTimeFilterKey === "today" ||
+      metaAgentTrajectoryTimeFilterKey === "recentWeek"
+    ) {
       return "week";
     }
 
@@ -695,7 +732,9 @@ export const DialoguePrototypeView = ({
           ? occurredAt.startOf("week")
           : occurredAt.startOf("month");
       const groupEnd =
-        metaAgentTrajectoryTimeScale === "week" ? occurredAt.endOf("week") : occurredAt.endOf("month");
+        metaAgentTrajectoryTimeScale === "week"
+          ? occurredAt.endOf("week")
+          : occurredAt.endOf("month");
       const groupKey =
         metaAgentTrajectoryTimeScale === "week"
           ? groupStart.format("YYYY-MM-DD")
@@ -724,8 +763,8 @@ export const DialoguePrototypeView = ({
       });
     });
 
-    return Array.from(groupedMap.values()).sort((left, right) =>
-      dayjs(right.startedAt).valueOf() - dayjs(left.startedAt).valueOf(),
+    return Array.from(groupedMap.values()).sort(
+      (left, right) => dayjs(right.startedAt).valueOf() - dayjs(left.startedAt).valueOf(),
     );
   }, [metaAgentTrajectoryTimeScale, rangedMetaAgentTrajectoryItems]);
   const selectedMetaAgentTimelineGroup = useMemo(
@@ -738,6 +777,102 @@ export const DialoguePrototypeView = ({
   const isMetaAgentTrajectorySearchMode = Boolean(
     normalizeMemoryQuery(metaAgentTrajectorySearchValue),
   );
+  const selectedMetaAgentTrajectoryDetail = useMemo(
+    () =>
+      metaAgentTrajectoryItems.find(item => item.id === selectedMetaAgentTrajectoryDetailId) ??
+      null,
+    [metaAgentTrajectoryItems, selectedMetaAgentTrajectoryDetailId],
+  );
+  const metaAgentArtifactGroups = useMemo<ArtifactFileGroup[] | undefined>(() => {
+    if (!shouldShowMetaAgentTrajectory || !metaAgentTrajectoryItems.length) {
+      return undefined;
+    }
+
+    const normalizeArtifactGroupText = (value: string): string => value.trim().toLowerCase();
+    const fileDirectory = new Map<string, ArtifactItem>();
+    activeDialogueArtifacts.forEach(item => {
+      fileDirectory.set(item.id, item);
+      fileDirectory.set(item.artifactId, item);
+      fileDirectory.set(item.fileName, item);
+    });
+
+    const groupedFileIds = new Set<string>();
+    const groupDrafts = metaAgentTrajectoryItems.map(item => {
+      const groupFiles = item.deliverables.reduce<ArtifactItem[]>((result, deliverable) => {
+        const matchedFile =
+          fileDirectory.get(deliverable.id) ?? fileDirectory.get(deliverable.fileName) ?? null;
+
+        if (!matchedFile || groupedFileIds.has(matchedFile.id)) {
+          return result;
+        }
+
+        groupedFileIds.add(matchedFile.id);
+        result.push(matchedFile);
+        return result;
+      }, []);
+
+      return {
+        id: item.id,
+        title: item.title,
+        files: groupFiles,
+      };
+    });
+
+    const resolveTargetGroupIndex = (file: ArtifactItem): number => {
+      const artifactText = normalizeArtifactGroupText(
+        `${file.fileName} ${file.taskName} ${file.producerName}`,
+      );
+      const groupTitles = groupDrafts.map(group => normalizeArtifactGroupText(group.title));
+      const riskGroupIndex = groupTitles.findIndex(title => title.includes("风险"));
+      const deliveryGroupIndex = groupTitles.findIndex(
+        title =>
+          title.includes("prd") ||
+          title.includes("需求") ||
+          title.includes("拆解") ||
+          title.includes("边界"),
+      );
+
+      if (
+        riskGroupIndex >= 0 &&
+        (artifactText.includes("风险") ||
+          artifactText.includes("上线") ||
+          artifactText.includes("验收") ||
+          artifactText.includes("回归"))
+      ) {
+        return riskGroupIndex;
+      }
+
+      if (
+        deliveryGroupIndex >= 0 &&
+        (artifactText.includes("prd") ||
+          artifactText.includes("v430") ||
+          artifactText.includes("需求") ||
+          artifactText.includes("架构") ||
+          artifactText.includes("流程") ||
+          artifactText.includes("模块") ||
+          artifactText.includes("边界") ||
+          artifactText.includes("依赖"))
+      ) {
+        return deliveryGroupIndex;
+      }
+
+      return groupDrafts.reduce((targetIndex, group, index) => {
+        if (group.files.length < groupDrafts[targetIndex].files.length) {
+          return index;
+        }
+
+        return targetIndex;
+      }, 0);
+    };
+
+    const ungroupedFiles = activeDialogueArtifacts.filter(item => !groupedFileIds.has(item.id));
+    ungroupedFiles.forEach(file => {
+      const targetGroupIndex = resolveTargetGroupIndex(file);
+      groupDrafts[targetGroupIndex]?.files.push(file);
+    });
+
+    return groupDrafts.filter(group => group.files.length > 0);
+  }, [activeDialogueArtifacts, metaAgentTrajectoryItems, shouldShowMetaAgentTrajectory]);
   const trajectoryParticipantDirectory = useMemo(() => {
     const employeeDirectory = new Map<string, EmployeeItem>();
 
@@ -790,8 +925,8 @@ export const DialoguePrototypeView = ({
     (employee: EmployeeItem): boolean =>
       Boolean(
         employee.isExpertTeam &&
-          defaultAgentIds.includes(employee.id) &&
-          employee.name === EXPERT_TEAM_MAIN_AGENT_NAME,
+        defaultAgentIds.includes(employee.id) &&
+        employee.name === EXPERT_TEAM_MAIN_AGENT_NAME,
       ),
     [defaultAgentIds],
   );
@@ -917,6 +1052,15 @@ export const DialoguePrototypeView = ({
   }, [metaAgentTimelineGroups, selectedMetaAgentTimelineGroupKey]);
 
   useEffect(() => {
+    if (!metaAgentTrajectoryItems.length) {
+      setExpandedOutputTaskGroupIds(new Set());
+      return;
+    }
+
+    setExpandedOutputTaskGroupIds(new Set([metaAgentTrajectoryItems[0].id]));
+  }, [metaAgentTrajectoryItems]);
+
+  useEffect(() => {
     setSidePanelMode(null);
     setPreferredArtifactId(undefined);
     setActiveResultId(null);
@@ -924,12 +1068,12 @@ export const DialoguePrototypeView = ({
   }, [activeDialogueSession?.id]);
 
   useEffect(() => {
-    if (sidePanelMode === "artifacts" && !hasArtifactPanel) {
+    if (sidePanelMode === "artifacts" && !hasOutputPanel) {
       setSidePanelMode(null);
       setPreferredArtifactId(undefined);
       setIsArtifactPreviewing(false);
     }
-  }, [hasArtifactPanel, sidePanelMode]);
+  }, [hasOutputPanel, sidePanelMode]);
 
   useEffect(() => {
     if (sidePanelMode === "results" && !hasResultPanel) {
@@ -943,7 +1087,22 @@ export const DialoguePrototypeView = ({
       return;
     }
 
-    if (isArtifactPreviewing) {
+    if (outputPanelActiveTab === "artifacts" && !hasArtifactPanel && hasTaskPanel) {
+      setOutputPanelActiveTab("tasks");
+      return;
+    }
+
+    if (outputPanelActiveTab === "tasks" && !hasTaskPanel && hasArtifactPanel) {
+      setOutputPanelActiveTab("artifacts");
+    }
+  }, [hasArtifactPanel, hasTaskPanel, outputPanelActiveTab, sidePanelMode]);
+
+  useEffect(() => {
+    if (sidePanelMode !== "artifacts") {
+      return;
+    }
+
+    if (outputPanelActiveTab === "artifacts" && isArtifactPreviewing) {
       setSidePanelWidth(currentWidth => {
         const nextWidth = clampSidePanelWidth(
           Math.max(currentWidth, DIALOGUE_ARTIFACT_PREVIEW_PANEL_DEFAULT_WIDTH),
@@ -957,7 +1116,7 @@ export const DialoguePrototypeView = ({
     const nextWidth = clampSidePanelWidth(DIALOGUE_ARTIFACT_LIST_PANEL_DEFAULT_WIDTH);
     sidePanelPendingWidthRef.current = nextWidth;
     setSidePanelWidth(nextWidth);
-  }, [clampSidePanelWidth, isArtifactPreviewing, sidePanelMode]);
+  }, [clampSidePanelWidth, isArtifactPreviewing, outputPanelActiveTab, sidePanelMode]);
 
   useEffect(() => {
     if (!activeResultId) {
@@ -1030,6 +1189,7 @@ export const DialoguePrototypeView = ({
     latestAutoOpenedArtifactKeyRef.current = autoOpenKey;
     setPreferredArtifactId(latestArtifactId);
     setIsArtifactPreviewing(false);
+    setOutputPanelActiveTab("artifacts");
     setSidePanelWidth(currentWidth =>
       clampSidePanelWidth(Math.max(currentWidth, DIALOGUE_ARTIFACT_LIST_PANEL_DEFAULT_WIDTH)),
     );
@@ -1068,6 +1228,7 @@ export const DialoguePrototypeView = ({
     }
     setPreferredArtifactId(preferredArtifact.id);
     setIsArtifactPreviewing(true);
+    setOutputPanelActiveTab("artifacts");
     setSidePanelWidth(currentWidth =>
       clampSidePanelWidth(Math.max(currentWidth, DIALOGUE_ARTIFACT_PREVIEW_PANEL_DEFAULT_WIDTH)),
     );
@@ -1231,8 +1392,9 @@ export const DialoguePrototypeView = ({
         return;
       }
 
-      const sidebarWidth = isSidebarCollapsed ? DIALOGUE_SIDEBAR_COLLAPSED_WIDTH : 252;
-      dialogueShellRef.current.style.gridTemplateColumns = `${sidebarWidth}px minmax(0, 1fr) 10px ${sidePanelPendingWidthRef.current}px`;
+      dialogueShellRef.current.style.gridTemplateColumns = buildVisibleSidePanelGridTemplateColumns(
+        sidePanelPendingWidthRef.current,
+      );
     };
 
     const handlePointerMove = (event: MouseEvent): void => {
@@ -1279,7 +1441,7 @@ export const DialoguePrototypeView = ({
       document.body.style.cursor = "";
       document.body.style.userSelect = "";
     };
-  }, [clampSidePanelWidth, isSidebarCollapsed, isStackedLayout]);
+  }, [buildVisibleSidePanelGridTemplateColumns, clampSidePanelWidth, isStackedLayout]);
 
   const handleMenuButtonClick = (event: ReactMouseEvent<HTMLElement>): void => {
     event.preventDefault();
@@ -1407,6 +1569,7 @@ export const DialoguePrototypeView = ({
 
     setPreferredArtifactId(matchedFile.id);
     setIsArtifactPreviewing(true);
+    setOutputPanelActiveTab("artifacts");
     setSidePanelWidth(currentWidth =>
       clampSidePanelWidth(Math.max(currentWidth, DIALOGUE_ARTIFACT_PREVIEW_PANEL_DEFAULT_WIDTH)),
     );
@@ -1425,11 +1588,12 @@ export const DialoguePrototypeView = ({
   };
 
   const handleToggleArtifactsPanel = (): void => {
-    if (!hasArtifactPanel) {
+    if (!hasOutputPanel) {
       return;
     }
     setPreferredArtifactId(undefined);
     setIsArtifactPreviewing(false);
+    setOutputPanelActiveTab(hasArtifactPanel ? "artifacts" : "tasks");
     setSidePanelWidth(clampSidePanelWidth(DIALOGUE_ARTIFACT_LIST_PANEL_DEFAULT_WIDTH));
     setSidePanelMode(current => (current === "artifacts" ? null : "artifacts"));
   };
@@ -1512,13 +1676,35 @@ export const DialoguePrototypeView = ({
       return;
     }
 
-    const normalizedRange: [Dayjs, Dayjs] =
-      rangeStart.isAfter(rangeEnd) ? [rangeEnd, rangeStart] : [rangeStart, rangeEnd];
+    const normalizedRange: [Dayjs, Dayjs] = rangeStart.isAfter(rangeEnd)
+      ? [rangeEnd, rangeStart]
+      : [rangeStart, rangeEnd];
 
     setMetaAgentTrajectoryDateRange(normalizedRange);
     setMetaAgentTrajectoryTimeFilterKey("custom");
     setIsMetaAgentTrajectoryTimeFilterOpen(false);
     setMetaAgentTrajectoryTimeFilterView("options");
+  };
+
+  const handleLocateMetaAgentTrajectory = (trajectoryId: string, anchorBlockId?: string): void => {
+    onSelectMetaAgentTrajectory(trajectoryId, anchorBlockId);
+    setSelectedMetaAgentTrajectoryDetailId(null);
+    setSelectedMetaAgentTrajectoryDetailTab("tasks");
+    setIsMetaAgentTrajectoryOpen(false);
+  };
+
+  const handleToggleOutputTaskGroup = (trajectoryId: string): void => {
+    setExpandedOutputTaskGroupIds(current => {
+      const nextGroupIds = new Set(current);
+
+      if (nextGroupIds.has(trajectoryId)) {
+        nextGroupIds.delete(trajectoryId);
+      } else {
+        nextGroupIds.add(trajectoryId);
+      }
+
+      return nextGroupIds;
+    });
   };
 
   const getTrajectoryParticipantItems = (participantNames: string[]): EmployeeItem[] =>
@@ -1541,8 +1727,8 @@ export const DialoguePrototypeView = ({
           [styles.metaAgentTrajectoryRecordCardSearch]: variant === "search",
         })}
         onClick={() => {
-          onSelectMetaAgentTrajectory(item.id);
-          setIsMetaAgentTrajectoryOpen(false);
+          setSelectedMetaAgentTrajectoryDetailId(item.id);
+          setSelectedMetaAgentTrajectoryDetailTab("tasks");
         }}
       >
         <div className={styles.metaAgentTrajectoryRecordCardHeader}>
@@ -1602,7 +1788,188 @@ export const DialoguePrototypeView = ({
             </div>
           </div>
         ) : null}
+        <div className={styles.metaAgentTrajectoryRecordCardFooter}>
+          <span>{`${item.tasks.length} 个任务 · ${item.deliverables.length} 个成果`}</span>
+          <span>查看详情</span>
+        </div>
       </button>
+    );
+  };
+
+  const renderMetaAgentTrajectoryDetail = (item: MetaAgentWorkTrajectoryItem): JSX.Element => (
+    <div className={styles.metaAgentTrajectoryDetailMask} role="presentation">
+      <section className={styles.metaAgentTrajectoryDetailPanel} aria-label="工作轨迹详情">
+        <header className={styles.metaAgentTrajectoryDetailHeader}>
+          <div className={styles.metaAgentTrajectoryDetailTitleGroup}>
+            <span className={styles.metaAgentTrajectoryDetailEyebrow}>
+              {`${item.displayTimeLabel} 自动总结`}
+            </span>
+            <h3>{item.title}</h3>
+            <p>{item.resultPreview}</p>
+          </div>
+          <button
+            type="button"
+            className={styles.metaAgentTrajectoryDismissButton}
+            onClick={() => {
+              setSelectedMetaAgentTrajectoryDetailId(null);
+              setSelectedMetaAgentTrajectoryDetailTab("tasks");
+            }}
+          >
+            <CloseOutlined />
+          </button>
+        </header>
+
+        <div className={styles.metaAgentTrajectoryDetailTabs} role="tablist" aria-label="详情内容">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={selectedMetaAgentTrajectoryDetailTab === "tasks"}
+            className={classNames(styles.metaAgentTrajectoryDetailTab, {
+              [styles.metaAgentTrajectoryDetailTabActive]:
+                selectedMetaAgentTrajectoryDetailTab === "tasks",
+            })}
+            onClick={() => setSelectedMetaAgentTrajectoryDetailTab("tasks")}
+          >
+            <span>任务</span>
+            <strong>{item.tasks.length}</strong>
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={selectedMetaAgentTrajectoryDetailTab === "deliverables"}
+            className={classNames(styles.metaAgentTrajectoryDetailTab, {
+              [styles.metaAgentTrajectoryDetailTabActive]:
+                selectedMetaAgentTrajectoryDetailTab === "deliverables",
+            })}
+            onClick={() => setSelectedMetaAgentTrajectoryDetailTab("deliverables")}
+          >
+            <span>成果</span>
+            <strong>{item.deliverables.length}</strong>
+          </button>
+        </div>
+
+        <div className={styles.metaAgentTrajectoryDetailBody}>
+          {selectedMetaAgentTrajectoryDetailTab === "tasks" ? (
+            <div className={styles.metaAgentTrajectoryDetailList}>
+              {item.tasks.map(task => (
+                <button
+                  key={task.id}
+                  type="button"
+                  className={styles.metaAgentTrajectoryDetailTask}
+                  onClick={() => handleLocateMetaAgentTrajectory(item.id, task.anchorBlockId)}
+                >
+                  <span className={styles.metaAgentTrajectoryDetailTaskStatus}>
+                    {task.status === "completed" ? "已完成" : "进行中"}
+                  </span>
+                  <span className={styles.metaAgentTrajectoryDetailTaskBody}>
+                    <strong>{task.title}</strong>
+                    <span>{`${task.agentName} · ${task.metaLabel}`}</span>
+                  </span>
+                </button>
+              ))}
+            </div>
+          ) : null}
+
+          {selectedMetaAgentTrajectoryDetailTab === "deliverables" ? (
+            item.deliverables.length ? (
+              <div className={styles.metaAgentTrajectoryDetailList}>
+                {item.deliverables.map(deliverable => {
+                  const fileLogo = resolveFileLogo(deliverable.fileName);
+
+                  return (
+                    <button
+                      key={deliverable.id}
+                      type="button"
+                      className={styles.metaAgentTrajectoryDetailDeliverable}
+                      onClick={() =>
+                        handleLocateMetaAgentTrajectory(
+                          item.id,
+                          deliverable.anchorBlockId ?? item.anchorBlockId,
+                        )
+                      }
+                    >
+                      <span
+                        className={styles.metaAgentTrajectoryDeliverableIcon}
+                        aria-hidden={true}
+                      >
+                        <img
+                          className={styles.metaAgentTrajectoryDeliverableIconImage}
+                          src={fileLogo.src}
+                          alt={fileLogo.alt}
+                        />
+                      </span>
+                      <span className={styles.metaAgentTrajectoryDetailTaskBody}>
+                        <strong>{deliverable.fileName}</strong>
+                        <span>{deliverable.metaLabel}</span>
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className={styles.metaAgentTrajectoryDetailEmpty}>当天暂无成果文件。</div>
+            )
+          ) : null}
+        </div>
+      </section>
+    </div>
+  );
+
+  const renderOutputTaskPanel = (): JSX.Element => {
+    if (!metaAgentTrajectoryItems.length) {
+      return <div className={styles.outputPanelEmpty}>当前还没有任务记录。</div>;
+    }
+
+    return (
+      <div className={styles.outputTaskList}>
+        {metaAgentTrajectoryItems.map(item => {
+          const isExpanded = expandedOutputTaskGroupIds.has(item.id);
+
+          return (
+            <section key={item.id} className={styles.outputTaskGroup}>
+              <button
+                type="button"
+                className={styles.outputTaskGroupHeader}
+                aria-expanded={isExpanded}
+                onClick={() => handleToggleOutputTaskGroup(item.id)}
+              >
+                <span className={styles.outputTaskGroupTitle} title={item.title}>
+                  {item.title}
+                </span>
+                <span className={styles.outputTaskGroupMeta}>
+                  <span className={styles.outputTaskGroupCount}>{item.tasks.length}</span>
+                  <span
+                    className={classNames(styles.outputTaskGroupChevron, {
+                      [styles.outputTaskGroupChevronOpen]: isExpanded,
+                    })}
+                    aria-hidden={true}
+                  />
+                </span>
+              </button>
+              {isExpanded ? (
+                <div className={styles.outputTaskGroupBody}>
+                  {item.tasks.map(task => (
+                    <button
+                      key={task.id}
+                      type="button"
+                      className={styles.outputTaskItem}
+                      onClick={() => handleLocateMetaAgentTrajectory(item.id, task.anchorBlockId)}
+                    >
+                      <span className={styles.outputTaskStatus}>
+                        {task.status === "completed" ? "已完成" : "进行中"}
+                      </span>
+                      <span className={styles.outputTaskBody}>
+                        <strong>{task.title}</strong>
+                        <span>{`${task.agentName} · ${task.metaLabel}`}</span>
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+            </section>
+          );
+        })}
+      </div>
     );
   };
 
@@ -1843,77 +2210,18 @@ export const DialoguePrototypeView = ({
             [styles.dialogueSidebarCardCollapsed]: isSidebarCollapsed,
           })}
         >
-        {isSidebarCollapsed ? (
-          <button
-            type="button"
-            className={classNames(
-              styles.dialogueCollapsedAvatarButton,
-              styles.dialogueCollapsedBrandButton,
-            )}
-            aria-label={`展开左侧栏，当前 AI 专家：${activeEmployee.name}`}
-            onClick={handleExpandSidebar}
-          >
-            <span className={styles.dialogueCollapsedBrandLogo}>
-              <span className={styles.dialogueCollapsedAvatarWrap}>
-                {shouldShowExpertTeamUi ? (
-                  <DialogueTeamAvatar team={activeEmployee} members={activeExpertTeamMembers} />
-                ) : (
-                  <span className={styles.employeeAvatarWrap}>
-                    <Avatar
-                      src={activeEmployee.avatarUrl}
-                      size={40}
-                      className={classNames(
-                        styles.dialogueHeroAvatar,
-                        styles.dialogueCollapsedAvatar,
-                      )}
-                    >
-                      {getAvatarText(activeEmployee.name)}
-                    </Avatar>
-                    <span
-                      className={classNames(
-                        styles.employeeStatusDot,
-                        styles.dialogueCollapsedAvatarDot,
-                        {
-                          [styles.employeeStatusDotBusy]: activeEmployee.status === "running",
-                          [styles.employeeStatusDotOffline]: activeEmployee.status === "offline",
-                          [styles.employeeStatusDotError]: activeEmployee.status === "exception",
-                        },
-                      )}
-                    />
-                  </span>
-                )}
-              </span>
-            </span>
-            <span className={styles.dialogueCollapsedBrandExpand}>
-              <MenuUnfoldOutlined />
-            </span>
-          </button>
-        ) : (
-          <>
-            <div className={styles.dialogueSidebarTopBar}>
-              <div className={styles.dialogueSidebarSectionTitle}>AI 专家</div>
-              {!isStackedLayout ? (
-                <button
-                  type="button"
-                  className={styles.dialogueSidebarIconButton}
-                  aria-label="收起左侧栏"
-                  onClick={handleToggleSidebarCollapsed}
-                >
-                  <MenuFoldOutlined />
-                </button>
-              ) : null}
-            </div>
-
-            <div ref={employeeSwitcherRef} className={styles.dialogueAgentListSection}>
-              <button
-                type="button"
-                className={styles.dialogueAgentSelectButton}
-                aria-expanded={isEmployeeSwitcherOpen}
-                aria-label="切换 AI 专家"
-                title={activeEmployee.name}
-                onClick={() => setIsEmployeeSwitcherOpen(current => !current)}
-              >
-                <span className={styles.dialogueAgentSelectCurrent}>
+          {isSidebarCollapsed ? (
+            <button
+              type="button"
+              className={classNames(
+                styles.dialogueCollapsedAvatarButton,
+                styles.dialogueCollapsedBrandButton,
+              )}
+              aria-label={`展开左侧栏，当前 AI 专家：${activeEmployee.name}`}
+              onClick={handleExpandSidebar}
+            >
+              <span className={styles.dialogueCollapsedBrandLogo}>
+                <span className={styles.dialogueCollapsedAvatarWrap}>
                   {shouldShowExpertTeamUi ? (
                     <DialogueTeamAvatar team={activeEmployee} members={activeExpertTeamMembers} />
                   ) : (
@@ -1921,157 +2229,222 @@ export const DialoguePrototypeView = ({
                       <Avatar
                         src={activeEmployee.avatarUrl}
                         size={40}
-                        className={styles.dialogueHeroAvatar}
+                        className={classNames(
+                          styles.dialogueHeroAvatar,
+                          styles.dialogueCollapsedAvatar,
+                        )}
                       >
                         {getAvatarText(activeEmployee.name)}
                       </Avatar>
                       <span
-                        className={classNames(styles.employeeStatusDot, {
-                          [styles.employeeStatusDotBusy]: activeEmployee.status === "running",
-                          [styles.employeeStatusDotOffline]: activeEmployee.status === "offline",
-                          [styles.employeeStatusDotError]: activeEmployee.status === "exception",
-                        })}
+                        className={classNames(
+                          styles.employeeStatusDot,
+                          styles.dialogueCollapsedAvatarDot,
+                          {
+                            [styles.employeeStatusDotBusy]: activeEmployee.status === "running",
+                            [styles.employeeStatusDotOffline]: activeEmployee.status === "offline",
+                            [styles.employeeStatusDotError]: activeEmployee.status === "exception",
+                          },
+                        )}
                       />
                     </span>
                   )}
-                  <span className={styles.dialogueSwitcherItemBody}>
-                    <span className={styles.dialogueSwitcherItemName}>{activeEmployee.name}</span>
-                  </span>
                 </span>
-                <DownOutlined
-                  className={classNames(styles.dialogueAgentSelectArrow, {
-                    [styles.dialogueAgentSelectArrowOpen]: isEmployeeSwitcherOpen,
-                  })}
-                />
-              </button>
-
-              {isEmployeeSwitcherOpen ? (
-                <div className={styles.dialogueAgentDropdownMenu}>{employeeSwitcherMenu}</div>
-              ) : null}
-            </div>
-
-            {supportsDialogueSessions ? (
-              <>
-                <button
-                  type="button"
-                  className={styles.dialogueNewSessionButton}
-                  onClick={onCreateDialogueSession}
-                >
-                  <PlusOutlined />
-                  <span>新对话</span>
-                </button>
-
-                <div className={styles.dialogueSessionSection}>
-                  <div className={styles.dialogueSessionHeading}>最近对话</div>
-                  <div className={styles.dialogueSessionList}>
-                    {dialogueSessions.length > 0 ? (
-                      dialogueSessions.map(item => {
-                        return (
-                          <div
-                            key={item.id}
-                            className={classNames(styles.dialogueSessionItem, {
-                              [styles.dialogueSessionItemActive]:
-                                item.id === activeDialogueSession?.id,
-                            })}
-                          >
-                            {editingSessionId === item.id ? (
-                              <div className={styles.dialogueSessionEditor}>
-                                <Input
-                                  ref={sessionTitleInputRef}
-                                  size="small"
-                                  value={editingSessionTitle}
-                                  placeholder="输入会话名称"
-                                  onClick={event => event.stopPropagation()}
-                                  onChange={event => setEditingSessionTitle(event.target.value)}
-                                  onPressEnter={() => handleSubmitRenameSession()}
-                                />
-                                <div className={styles.dialogueSessionEditorActions}>
-                                  <button
-                                    type="button"
-                                    className={styles.dialogueSessionEditorButton}
-                                    aria-label="保存会话名称"
-                                    onClick={handleSubmitRenameSession}
-                                  >
-                                    <CheckOutlined />
-                                  </button>
-                                  <button
-                                    type="button"
-                                    className={styles.dialogueSessionEditorButton}
-                                    aria-label="取消重命名"
-                                    onClick={handleCancelRenameSession}
-                                  >
-                                    <CloseOutlined />
-                                  </button>
-                                </div>
-                              </div>
-                            ) : (
-                              <>
-                                <button
-                                  type="button"
-                                  className={styles.dialogueSessionMainButton}
-                                  onClick={() => onDialogueSessionSelect(item.id)}
-                                >
-                                  <span className={styles.dialogueSessionContent}>
-                                    <span className={styles.dialogueSessionTitle}>{item.title}</span>
-                                    <span className={styles.dialogueSessionTime}>
-                                      {item.updatedAt}
-                                    </span>
-                                  </span>
-                                </button>
-                                <Dropdown
-                                  menu={{ items: getDialogueSessionMenuItems(item.id, item.title) }}
-                                  trigger={["click"]}
-                                >
-                                  <button
-                                    type="button"
-                                    className={styles.dialogueSessionMenuButton}
-                                    aria-label="会话操作"
-                                    onClick={handleMenuButtonClick}
-                                    onKeyDown={handleMenuButtonKeyDown}
-                                  >
-                                    <MoreOutlined />
-                                  </button>
-                                </Dropdown>
-                              </>
-                            )}
-                          </div>
-                        );
-                      })
-                    ) : (
-                      <div className={styles.dialogueSessionEmpty}>当前 AI 专家还没有历史会话</div>
-                    )}
-                  </div>
-                </div>
-              </>
-            ) : null}
-
-            {showAccountEntry ? (
-              <div className={classNames(styles.sidebarBottom, styles.dialogueSidebarFooter)}>
-                <Dropdown
-                  menu={{ items: accountMenuItems }}
-                  placement="topLeft"
-                  trigger={["click"]}
-                >
+              </span>
+              <span className={styles.dialogueCollapsedBrandExpand}>
+                <MenuUnfoldOutlined />
+              </span>
+            </button>
+          ) : (
+            <>
+              <div className={styles.dialogueSidebarTopBar}>
+                <div className={styles.dialogueSidebarSectionTitle}>AI 专家</div>
+                {!isStackedLayout ? (
                   <button
                     type="button"
-                    className={classNames(styles.accountTrigger, styles.accountTriggerExpanded)}
-                    aria-label="打开账户菜单"
+                    className={styles.dialogueSidebarIconButton}
+                    aria-label="收起左侧栏"
+                    onClick={handleToggleSidebarCollapsed}
                   >
-                    <Avatar className={styles.accountAvatar} size={36}>
-                      {viewerName.slice(0, 1)}
-                    </Avatar>
-                    <span className={styles.accountBody}>
-                      <span className={styles.accountName}>{viewerName}</span>
-                      {accountMetaLabel ? (
-                        <span className={styles.accountMeta}>{accountMetaLabel}</span>
-                      ) : null}
-                    </span>
+                    <MenuFoldOutlined />
                   </button>
-                </Dropdown>
+                ) : null}
               </div>
-            ) : null}
-          </>
-        )}
+
+              <div ref={employeeSwitcherRef} className={styles.dialogueAgentListSection}>
+                <button
+                  type="button"
+                  className={styles.dialogueAgentSelectButton}
+                  aria-expanded={isEmployeeSwitcherOpen}
+                  aria-label="切换 AI 专家"
+                  title={activeEmployee.name}
+                  onClick={() => setIsEmployeeSwitcherOpen(current => !current)}
+                >
+                  <span className={styles.dialogueAgentSelectCurrent}>
+                    {shouldShowExpertTeamUi ? (
+                      <DialogueTeamAvatar team={activeEmployee} members={activeExpertTeamMembers} />
+                    ) : (
+                      <span className={styles.employeeAvatarWrap}>
+                        <Avatar
+                          src={activeEmployee.avatarUrl}
+                          size={40}
+                          className={styles.dialogueHeroAvatar}
+                        >
+                          {getAvatarText(activeEmployee.name)}
+                        </Avatar>
+                        <span
+                          className={classNames(styles.employeeStatusDot, {
+                            [styles.employeeStatusDotBusy]: activeEmployee.status === "running",
+                            [styles.employeeStatusDotOffline]: activeEmployee.status === "offline",
+                            [styles.employeeStatusDotError]: activeEmployee.status === "exception",
+                          })}
+                        />
+                      </span>
+                    )}
+                    <span className={styles.dialogueSwitcherItemBody}>
+                      <span className={styles.dialogueSwitcherItemName}>{activeEmployee.name}</span>
+                    </span>
+                  </span>
+                  <DownOutlined
+                    className={classNames(styles.dialogueAgentSelectArrow, {
+                      [styles.dialogueAgentSelectArrowOpen]: isEmployeeSwitcherOpen,
+                    })}
+                  />
+                </button>
+
+                {isEmployeeSwitcherOpen ? (
+                  <div className={styles.dialogueAgentDropdownMenu}>{employeeSwitcherMenu}</div>
+                ) : null}
+              </div>
+
+              {supportsDialogueSessions ? (
+                <>
+                  <button
+                    type="button"
+                    className={styles.dialogueNewSessionButton}
+                    onClick={onCreateDialogueSession}
+                  >
+                    <PlusOutlined />
+                    <span>新对话</span>
+                  </button>
+
+                  <div className={styles.dialogueSessionSection}>
+                    <div className={styles.dialogueSessionHeading}>最近对话</div>
+                    <div className={styles.dialogueSessionList}>
+                      {dialogueSessions.length > 0 ? (
+                        dialogueSessions.map(item => {
+                          return (
+                            <div
+                              key={item.id}
+                              className={classNames(styles.dialogueSessionItem, {
+                                [styles.dialogueSessionItemActive]:
+                                  item.id === activeDialogueSession?.id,
+                              })}
+                            >
+                              {editingSessionId === item.id ? (
+                                <div className={styles.dialogueSessionEditor}>
+                                  <Input
+                                    ref={sessionTitleInputRef}
+                                    size="small"
+                                    value={editingSessionTitle}
+                                    placeholder="输入会话名称"
+                                    onClick={event => event.stopPropagation()}
+                                    onChange={event => setEditingSessionTitle(event.target.value)}
+                                    onPressEnter={() => handleSubmitRenameSession()}
+                                  />
+                                  <div className={styles.dialogueSessionEditorActions}>
+                                    <button
+                                      type="button"
+                                      className={styles.dialogueSessionEditorButton}
+                                      aria-label="保存会话名称"
+                                      onClick={handleSubmitRenameSession}
+                                    >
+                                      <CheckOutlined />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      className={styles.dialogueSessionEditorButton}
+                                      aria-label="取消重命名"
+                                      onClick={handleCancelRenameSession}
+                                    >
+                                      <CloseOutlined />
+                                    </button>
+                                  </div>
+                                </div>
+                              ) : (
+                                <>
+                                  <button
+                                    type="button"
+                                    className={styles.dialogueSessionMainButton}
+                                    onClick={() => onDialogueSessionSelect(item.id)}
+                                  >
+                                    <span className={styles.dialogueSessionContent}>
+                                      <span className={styles.dialogueSessionTitle}>
+                                        {item.title}
+                                      </span>
+                                      <span className={styles.dialogueSessionTime}>
+                                        {item.updatedAt}
+                                      </span>
+                                    </span>
+                                  </button>
+                                  <Dropdown
+                                    menu={{
+                                      items: getDialogueSessionMenuItems(item.id, item.title),
+                                    }}
+                                    trigger={["click"]}
+                                  >
+                                    <button
+                                      type="button"
+                                      className={styles.dialogueSessionMenuButton}
+                                      aria-label="会话操作"
+                                      onClick={handleMenuButtonClick}
+                                      onKeyDown={handleMenuButtonKeyDown}
+                                    >
+                                      <MoreOutlined />
+                                    </button>
+                                  </Dropdown>
+                                </>
+                              )}
+                            </div>
+                          );
+                        })
+                      ) : (
+                        <div className={styles.dialogueSessionEmpty}>
+                          当前 AI 专家还没有历史会话
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </>
+              ) : null}
+
+              {showAccountEntry ? (
+                <div className={classNames(styles.sidebarBottom, styles.dialogueSidebarFooter)}>
+                  <Dropdown
+                    menu={{ items: accountMenuItems }}
+                    placement="topLeft"
+                    trigger={["click"]}
+                  >
+                    <button
+                      type="button"
+                      className={classNames(styles.accountTrigger, styles.accountTriggerExpanded)}
+                      aria-label="打开账户菜单"
+                    >
+                      <Avatar className={styles.accountAvatar} size={36}>
+                        {viewerName.slice(0, 1)}
+                      </Avatar>
+                      <span className={styles.accountBody}>
+                        <span className={styles.accountName}>{viewerName}</span>
+                        {accountMetaLabel ? (
+                          <span className={styles.accountMeta}>{accountMetaLabel}</span>
+                        ) : null}
+                      </span>
+                    </button>
+                  </Dropdown>
+                </div>
+              ) : null}
+            </>
+          )}
         </aside>
       ) : null}
 
@@ -2097,10 +2470,10 @@ export const DialoguePrototypeView = ({
                   [styles.dialogueViewButtonActive]: isArtifactPanelVisible,
                 })}
                 onClick={handleToggleArtifactsPanel}
-                disabled={!hasArtifactPanel}
+                disabled={!hasOutputPanel}
               >
                 <FolderOutlined />
-                <span>成果</span>
+                <span>任务与成果</span>
               </button>
             </div>
           </div>
@@ -2118,7 +2491,10 @@ export const DialoguePrototypeView = ({
               <button
                 type="button"
                 className={styles.metaAgentTrajectoryDismissButton}
-                onClick={() => setIsMetaAgentTrajectoryOpen(false)}
+                onClick={() => {
+                  setSelectedMetaAgentTrajectoryDetailId(null);
+                  setIsMetaAgentTrajectoryOpen(false);
+                }}
               >
                 <CloseOutlined />
               </button>
@@ -2177,17 +2553,13 @@ export const DialoguePrototypeView = ({
                           value={metaAgentTrajectoryDraftDateRange[0]}
                           placeholder="开始时间"
                           className={styles.metaAgentTrajectoryTimeFilterDatePicker}
-                          onChange={value =>
-                            handleMetaAgentTrajectoryCustomDateChange(0, value)
-                          }
+                          onChange={value => handleMetaAgentTrajectoryCustomDateChange(0, value)}
                         />
                         <DatePicker
                           value={metaAgentTrajectoryDraftDateRange[1]}
                           placeholder="截止时间"
                           className={styles.metaAgentTrajectoryTimeFilterDatePicker}
-                          onChange={value =>
-                            handleMetaAgentTrajectoryCustomDateChange(1, value)
-                          }
+                          onChange={value => handleMetaAgentTrajectoryCustomDateChange(1, value)}
                         />
                         <div className={styles.metaAgentTrajectoryTimeFilterCustomActions}>
                           <button
@@ -2231,9 +2603,7 @@ export const DialoguePrototypeView = ({
                   </div>
                 )
               ) : !metaAgentTimelineGroups.length || !selectedMetaAgentTimelineGroup ? (
-                <div className={styles.metaAgentTrajectoryEmpty}>
-                  当前时间范围内没有工作记录。
-                </div>
+                <div className={styles.metaAgentTrajectoryEmpty}>当前时间范围内没有工作记录。</div>
               ) : (
                 <div className={styles.metaAgentTrajectoryTimelineLayout}>
                   <div className={styles.metaAgentTrajectoryTimelineRail}>
@@ -2251,7 +2621,9 @@ export const DialoguePrototypeView = ({
                         {index < metaAgentTimelineGroups.length - 1 ? (
                           <span className={styles.metaAgentTrajectoryTimelineLine} />
                         ) : null}
-                        <span className={styles.metaAgentTrajectoryTimelineLabel}>{group.label}</span>
+                        <span className={styles.metaAgentTrajectoryTimelineLabel}>
+                          {group.label}
+                        </span>
                       </button>
                     ))}
                   </div>
@@ -2270,6 +2642,9 @@ export const DialoguePrototypeView = ({
                 </div>
               )}
             </div>
+            {selectedMetaAgentTrajectoryDetail
+              ? renderMetaAgentTrajectoryDetail(selectedMetaAgentTrajectoryDetail)
+              : null}
           </div>
         ) : null}
 
@@ -2342,19 +2717,79 @@ export const DialoguePrototypeView = ({
           className={styles.dialogueArtifactsCard}
           style={!isStackedLayout ? { borderLeft: 0 } : undefined}
         >
-          <ArtifactPreviewPanel
-            files={activeDialogueArtifacts}
-            loading={false}
-            error=""
-            onClose={() => {
-              setSidePanelMode(null);
-              setIsArtifactPreviewing(false);
-            }}
-            onDownloadFile={downloadArtifact}
-            resolveFileUrl={resolveArtifactUrl}
-            onPreviewStateChange={setIsArtifactPreviewing}
-            preferredFileId={preferredArtifactId}
-          />
+          <div className={styles.outputPanel}>
+            <div className={styles.outputPanelHeader}>
+              <div className={styles.outputPanelTitleGroup}>
+                <span className={styles.outputPanelTitle}>任务与成果</span>
+              </div>
+              <button
+                type="button"
+                className={styles.outputPanelCloseButton}
+                aria-label="关闭任务与成果面板"
+                onClick={() => {
+                  setSidePanelMode(null);
+                  setIsArtifactPreviewing(false);
+                }}
+              >
+                <CloseOutlined />
+              </button>
+            </div>
+            <div className={styles.outputPanelTabs} role="tablist" aria-label="任务与成果">
+              <button
+                type="button"
+                role="tab"
+                aria-selected={outputPanelActiveTab === "tasks"}
+                className={classNames(styles.outputPanelTab, {
+                  [styles.outputPanelTabActive]: outputPanelActiveTab === "tasks",
+                })}
+                disabled={!hasTaskPanel}
+                onClick={() => {
+                  setPreferredArtifactId(undefined);
+                  setIsArtifactPreviewing(false);
+                  setOutputPanelActiveTab("tasks");
+                }}
+              >
+                <span>任务</span>
+                <strong>
+                  {metaAgentTrajectoryItems.reduce((total, item) => total + item.tasks.length, 0)}
+                </strong>
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={outputPanelActiveTab === "artifacts"}
+                className={classNames(styles.outputPanelTab, {
+                  [styles.outputPanelTabActive]: outputPanelActiveTab === "artifacts",
+                })}
+                disabled={!hasArtifactPanel}
+                onClick={() => setOutputPanelActiveTab("artifacts")}
+              >
+                <span>成果</span>
+                <strong>{activeDialogueArtifacts.length}</strong>
+              </button>
+            </div>
+            <div className={styles.outputPanelBody}>
+              {outputPanelActiveTab === "tasks" ? (
+                renderOutputTaskPanel()
+              ) : (
+                <ArtifactPreviewPanel
+                  files={activeDialogueArtifacts}
+                  fileGroups={metaAgentArtifactGroups}
+                  showHeader={false}
+                  loading={false}
+                  error=""
+                  onClose={() => {
+                    setSidePanelMode(null);
+                    setIsArtifactPreviewing(false);
+                  }}
+                  onDownloadFile={downloadArtifact}
+                  resolveFileUrl={resolveArtifactUrl}
+                  onPreviewStateChange={setIsArtifactPreviewing}
+                  preferredFileId={preferredArtifactId}
+                />
+              )}
+            </div>
+          </div>
         </aside>
       ) : null}
 

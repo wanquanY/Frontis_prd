@@ -2,6 +2,7 @@ import { INITIAL_FRONTIS_WEB_USERS } from "@/mocks/mockData";
 import type { FrontisWebUserItem } from "@/pages/types";
 
 import type {
+  MockTenantAgentUsageRecordItem,
   MockTenantManagementSnapshot,
   MockTenantPointsOrderItem,
   MockTenantPointsLedgerItem,
@@ -26,6 +27,10 @@ const buildPointsLedgerItem = (item: MockTenantPointsLedgerItem): MockTenantPoin
 const buildPointsUsageRecordItem = (
   item: MockTenantPointsUsageRecordItem,
 ): MockTenantPointsUsageRecordItem => item;
+
+const buildAgentUsageRecordItem = (
+  item: MockTenantAgentUsageRecordItem,
+): MockTenantAgentUsageRecordItem => item;
 
 const buildPointsOrderItem = (item: MockTenantPointsOrderItem): MockTenantPointsOrderItem => item;
 
@@ -91,6 +96,68 @@ const PRESET_TENANT_SNAPSHOTS: MockTenantManagementSnapshot[] = [
     totalSeats: 24,
     usedSeats: 6,
     users: INITIAL_FRONTIS_WEB_USERS,
+    agentUsageRecords: [
+      buildAgentUsageRecordItem({
+        id: "tenant-enterprise-demo-agent-usage-01",
+        actorName: "杨万泉",
+        agentName: "序列总览专家",
+        departmentName: "产品中台",
+        inputTokens: 428000,
+        outputTokens: 126000,
+        callCount: 58,
+        occurredAt: "今天 15:30",
+      }),
+      buildAgentUsageRecordItem({
+        id: "tenant-enterprise-demo-agent-usage-02",
+        actorName: "杨万泉",
+        agentName: "需求拆解专家",
+        departmentName: "产品中台",
+        inputTokens: 312000,
+        outputTokens: 94000,
+        callCount: 42,
+        occurredAt: "今天 11:40",
+      }),
+      buildAgentUsageRecordItem({
+        id: "tenant-enterprise-demo-agent-usage-03",
+        actorName: "王晨",
+        agentName: "销售话术助手",
+        departmentName: "销售一部",
+        inputTokens: 286000,
+        outputTokens: 76000,
+        callCount: 64,
+        occurredAt: "今天 10:25",
+      }),
+      buildAgentUsageRecordItem({
+        id: "tenant-enterprise-demo-agent-usage-04",
+        actorName: "林若岚",
+        agentName: "商机跟进提醒",
+        departmentName: "客户成功",
+        inputTokens: 198000,
+        outputTokens: 52000,
+        callCount: 37,
+        occurredAt: "昨天 18:10",
+      }),
+      buildAgentUsageRecordItem({
+        id: "tenant-enterprise-demo-agent-usage-05",
+        actorName: "赵明",
+        agentName: "商品推荐实验 Agent",
+        departmentName: "商品运营",
+        inputTokens: 164000,
+        outputTokens: 47000,
+        callCount: 29,
+        occurredAt: "2026-04-21 16:20",
+      }),
+      buildAgentUsageRecordItem({
+        id: "tenant-enterprise-demo-agent-usage-06",
+        actorName: "陈可心",
+        agentName: "会议纪要同步专家",
+        departmentName: "市场运营",
+        inputTokens: 96000,
+        outputTokens: 26000,
+        callCount: 21,
+        occurredAt: "2026-04-18 19:10",
+      }),
+    ],
     pointsLedger: [
       buildPointsLedgerItem({
         id: "tenant-enterprise-demo-recharge-01",
@@ -253,6 +320,28 @@ const PRESET_TENANT_SNAPSHOTS: MockTenantManagementSnapshot[] = [
     users: [INITIAL_FRONTIS_WEB_USERS[0], INITIAL_FRONTIS_WEB_USERS[1]].filter(
       (item): item is FrontisWebUserItem => Boolean(item),
     ),
+    agentUsageRecords: [
+      buildAgentUsageRecordItem({
+        id: "tenant-enterprise-hq-agent-usage-01",
+        actorName: "杨万泉",
+        agentName: "集团经营复盘专家",
+        departmentName: "集团管理",
+        inputTokens: 186000,
+        outputTokens: 54000,
+        callCount: 31,
+        occurredAt: "昨天 14:20",
+      }),
+      buildAgentUsageRecordItem({
+        id: "tenant-enterprise-hq-agent-usage-02",
+        actorName: "林若岚",
+        agentName: "商品运营素材助手",
+        departmentName: "商品运营",
+        inputTokens: 128000,
+        outputTokens: 43000,
+        callCount: 27,
+        occurredAt: "昨天 10:12",
+      }),
+    ],
     pointsLedger: [
       buildPointsLedgerItem({
         id: "tenant-enterprise-hq-income-01",
@@ -342,6 +431,18 @@ const PRESET_TENANT_SNAPSHOTS: MockTenantManagementSnapshot[] = [
         resultCount: 6,
       }),
     ],
+    agentUsageRecords: [
+      buildAgentUsageRecordItem({
+        id: "tenant-enterprise-east-ops-agent-usage-01",
+        actorName: "王晨",
+        agentName: "经营日报助手",
+        departmentName: "华东运营",
+        inputTokens: 76000,
+        outputTokens: 24000,
+        callCount: 18,
+        occurredAt: "今天 10:30",
+      }),
+    ],
     pointsLedger: [
       buildPointsLedgerItem({
         id: "tenant-enterprise-east-ops-income-01",
@@ -428,6 +529,7 @@ const PRESET_TENANT_SNAPSHOTS: MockTenantManagementSnapshot[] = [
         resultCount: 4,
       }),
     ],
+    agentUsageRecords: [],
     pointsLedger: [
       buildPointsLedgerItem({
         id: "tenant-personal-studio-demo-income-01",
@@ -544,6 +646,10 @@ const mergeSnapshotWithPreset = (
     ...presetSnapshot,
     ...storedSnapshot,
     users: storedSnapshot.users.length ? storedSnapshot.users : presetSnapshot.users,
+    agentUsageRecords: mergeStoredItemsWithPreset(
+      presetSnapshot.agentUsageRecords,
+      storedSnapshot.agentUsageRecords ?? [],
+    ),
     pointsLedger: mergeStoredItemsWithPreset(
       presetSnapshot.pointsLedger,
       storedSnapshot.pointsLedger,
@@ -621,6 +727,7 @@ const normalizeTenantSnapshot = (
 const cloneSnapshot = (snapshot: MockTenantManagementSnapshot): MockTenantManagementSnapshot => ({
   ...normalizeTenantSnapshot(snapshot),
   users: snapshot.users.map(user => ({ ...user })),
+  agentUsageRecords: (snapshot.agentUsageRecords ?? []).map(item => ({ ...item })),
   pointsLedger: snapshot.pointsLedger.map(item => ({ ...item })),
   pointsUsageRecords: snapshot.pointsUsageRecords.map(item => ({ ...item })),
   pointsOrders: snapshot.pointsOrders.map(item => ({ ...item })),
@@ -648,6 +755,7 @@ const readStoredTenantSnapshots = (): MockTenantManagementSnapshot[] => {
     return parsedValue.filter(isValidTenantSnapshot).map(item =>
       cloneSnapshot({
         ...normalizeTenantSnapshot(item),
+        agentUsageRecords: Array.isArray(item.agentUsageRecords) ? item.agentUsageRecords : [],
         pointsUsageRecords: Array.isArray(item.pointsUsageRecords) ? item.pointsUsageRecords : [],
         pointsOrders: Array.isArray(item.pointsOrders) ? item.pointsOrders : [],
         referralRecords: Array.isArray(item.referralRecords) ? item.referralRecords : [],

@@ -1,7 +1,7 @@
 import type { FrontisUserRole, FrontisWebRole, FrontisWebUserItem } from "@/pages/types";
 
 export type MockAuthRole = FrontisWebRole;
-export type MockIdentityPlatform = "enterpriseWorkspace" | "enterpriseAdmin";
+export type MockIdentityPlatform = "enterpriseWorkspace" | "enterpriseAdmin" | "operationsAdmin";
 
 /**
  * 统一用户的可选身份入口定义。
@@ -19,6 +19,7 @@ export interface MockAuthIdentity {
   roleLabel: string;
   description: string;
   entryPath: string;
+  operationsAccountId?: string;
 }
 
 /**
@@ -29,6 +30,7 @@ export interface MockAuthSystemEntry {
   label: string;
   entryPath: string;
   platform: MockIdentityPlatform;
+  operationsAccountId?: string;
 }
 
 /**
@@ -149,6 +151,20 @@ export interface MockTenantPointsOrderItem {
 export type MockTenantEdition = "personal" | "team";
 
 /**
+ * 团队版 AI 专家用量记录。
+ */
+export interface MockTenantAgentUsageRecordItem {
+  id: string;
+  actorName: string;
+  agentName: string;
+  departmentName: string;
+  inputTokens: number;
+  outputTokens: number;
+  callCount: number;
+  occurredAt: string;
+}
+
+/**
  * 租户管理后台中的基础运营信息。
  */
 export interface MockTenantManagementSnapshot {
@@ -171,6 +187,7 @@ export interface MockTenantManagementSnapshot {
   totalSeats: number;
   usedSeats: number;
   users: FrontisWebUserItem[];
+  agentUsageRecords: MockTenantAgentUsageRecordItem[];
   pointsLedger: MockTenantPointsLedgerItem[];
   pointsUsageRecords: MockTenantPointsUsageRecordItem[];
   pointsOrders: MockTenantPointsOrderItem[];

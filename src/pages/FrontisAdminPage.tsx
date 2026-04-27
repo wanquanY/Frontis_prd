@@ -19,7 +19,6 @@ import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 
 import { getLoginPath, getSystemEntries, getTenantEntries } from "@/feature/auth/mockAccounts";
 import {
-  activateMockTenantTeamPlan,
   addMockTenantSeats,
   inviteMockTenantMemberAccount,
   rechargeMockTenantPoints,
@@ -28,14 +27,15 @@ import {
 import { useMockAuth } from "@/feature/auth/hooks/useMockAuth";
 import { getMockTenantManagementSnapshot } from "@/feature/auth/mockTenantRegistry";
 import type {
+  MockAuthSystemEntry,
   MockTenantInviteMemberParams,
   MockTenantManagementSnapshot,
 } from "@/feature/auth/types";
+import { useOperationsAuth } from "@/feature/operations/hooks/useOperationsAuth";
 import { loadOperationsRegistrationStrategy } from "@/feature/operations/platformConfigStorage";
 import { MANAGEMENT_CONSOLE_LABEL, PRODUCT_LOGO_TEXT, PRODUCT_NAME } from "@/constants/brand";
 import type { MockPointsPackageOption } from "@/feature/points/types";
 import { getMockTenantSeatPricing } from "@/feature/tenantPlan/mockTenantPlanCommerce";
-import type { MockTenantPlanPackageOption } from "@/feature/tenantPlan/types";
 import {
   INITIAL_EMPLOYEES,
   INITIAL_ORGANIZATION_DEPARTMENTS,
@@ -59,7 +59,6 @@ import { TenantReferralInviteModal } from "./components/TenantReferralInviteModa
 import { TenantOverviewView } from "./components/TenantOverviewView";
 import { TenantPointsView } from "./components/TenantPointsView";
 import { TenantSeatPurchaseModal } from "./components/TenantSeatPurchaseModal";
-import { TenantTeamPlanPurchaseModal } from "./components/TenantTeamPlanPurchaseModal";
 import type {
   AccessScopeSubject,
   EmployeeItem,
@@ -154,13 +153,35 @@ const FRONTIS_ADMIN_TABS: FrontisWebTabItem[] = [
 ];
 
 const FRONTIS_ADMIN_TAB_KEYS = new Set<FrontisWebTabKey>(FRONTIS_ADMIN_TABS.map(item => item.key));
+const TEAM_ONLY_ADMIN_TAB_KEYS = new Set<FrontisWebTabKey>([
+  "overview",
+  "organization",
+  "roleManagement",
+]);
 
-const resolveFrontisAdminTabKey = (tabKey: string | null): FrontisWebTabKey =>
-  tabKey === "access"
-    ? "organization"
-    : tabKey && FRONTIS_ADMIN_TAB_KEYS.has(tabKey as FrontisWebTabKey)
-      ? (tabKey as FrontisWebTabKey)
-      : "overview";
+const getDefaultAdminTabKey = (
+  edition?: MockTenantManagementSnapshot["edition"],
+): FrontisWebTabKey => (edition === "team" ? "overview" : "points");
+
+const resolveFrontisAdminTabKey = (
+  tabKey: string | null,
+  edition?: MockTenantManagementSnapshot["edition"],
+): FrontisWebTabKey => {
+  const normalizedTabKey = tabKey === "access" ? "organization" : tabKey;
+  const defaultTabKey = getDefaultAdminTabKey(edition);
+
+  if (!normalizedTabKey || !FRONTIS_ADMIN_TAB_KEYS.has(normalizedTabKey as FrontisWebTabKey)) {
+    return defaultTabKey;
+  }
+
+  const nextTabKey = normalizedTabKey as FrontisWebTabKey;
+
+  if (edition && edition !== "team" && TEAM_ONLY_ADMIN_TAB_KEYS.has(nextTabKey)) {
+    return defaultTabKey;
+  }
+
+  return nextTabKey;
+};
 
 /**
  * 老板后台管理页面。
@@ -170,12 +191,13 @@ const FrontisAdminPage = (): JSX.Element => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { activateIdentity, activateTenant, activeIdentity, logout, session } = useMockAuth();
+  const { loginByAccountId: loginOperationsByAccountId } = useOperationsAuth();
   const initialTenantSnapshot = useMemo<MockTenantManagementSnapshot | null>(
     () => getMockTenantManagementSnapshot(activeIdentity?.tenantId),
     [activeIdentity?.tenantId],
   );
   const [activeTabKey, setActiveTabKey] = useState<FrontisWebTabKey>(() =>
-    resolveFrontisAdminTabKey(searchParams.get("tab")),
+    resolveFrontisAdminTabKey(searchParams.get("tab"), initialTenantSnapshot?.edition),
   );
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(false);
   const [isAccountMenuOpen, setIsAccountMenuOpen] = useState<boolean>(false);
@@ -185,7 +207,6 @@ const FrontisAdminPage = (): JSX.Element => {
     loadOperationsRegistrationStrategy(),
   );
   const [isSeatPurchaseModalOpen, setIsSeatPurchaseModalOpen] = useState<boolean>(false);
-  const [isTeamPlanPurchaseModalOpen, setIsTeamPlanPurchaseModalOpen] = useState<boolean>(false);
   const [employees, setEmployees] = useState<EmployeeItem[]>(INITIAL_EMPLOYEES);
   const [tenantSnapshot, setTenantSnapshot] = useState<MockTenantManagementSnapshot | null>(
     initialTenantSnapshot,
@@ -220,9 +241,7 @@ const FrontisAdminPage = (): JSX.Element => {
   const visibleAdminTabs = useMemo<FrontisWebTabItem[]>(
     () =>
       FRONTIS_ADMIN_TABS.filter(item =>
-        item.key === "organization" || item.key === "roleManagement"
-          ? tenantSnapshot?.edition === "team"
-          : true,
+        TEAM_ONLY_ADMIN_TAB_KEYS.has(item.key) ? tenantSnapshot?.edition === "team" : true,
       ),
     [tenantSnapshot?.edition],
   );
@@ -275,12 +294,12 @@ const FrontisAdminPage = (): JSX.Element => {
     [effectiveUsers, session?.userId],
   );
   useEffect(() => {
-    const nextTabKey = resolveFrontisAdminTabKey(searchParams.get("tab"));
+    const nextTabKey = resolveFrontisAdminTabKey(searchParams.get("tab"), tenantSnapshot?.edition);
 
     if (nextTabKey !== activeTabKey) {
       setActiveTabKey(nextTabKey);
     }
-  }, [activeTabKey, searchParams]);
+  }, [activeTabKey, searchParams, tenantSnapshot?.edition]);
 
   useEffect(() => {
     if (!tenantSnapshot) {
@@ -291,9 +310,10 @@ const FrontisAdminPage = (): JSX.Element => {
       return;
     }
 
-    setActiveTabKey("overview");
+    const nextTabKey = getDefaultAdminTabKey(tenantSnapshot.edition);
+    setActiveTabKey(nextTabKey);
     const nextParams = new URLSearchParams(searchParams);
-    nextParams.set("tab", "overview");
+    nextParams.set("tab", nextTabKey);
     setSearchParams(nextParams);
   }, [activeTabKey, searchParams, setSearchParams, tenantSnapshot, visibleAdminTabs]);
 
@@ -635,12 +655,6 @@ const FrontisAdminPage = (): JSX.Element => {
   const handleCloseReferralInviteModal = useCallback((): void => {
     setIsReferralInviteModalOpen(false);
   }, []);
-  const handleOpenTeamPlanPurchaseModal = useCallback((): void => {
-    setIsTeamPlanPurchaseModalOpen(true);
-  }, []);
-  const handleCloseTeamPlanPurchaseModal = useCallback((): void => {
-    setIsTeamPlanPurchaseModalOpen(false);
-  }, []);
   const handleOpenSeatPurchaseModal = useCallback((): void => {
     setIsSeatPurchaseModalOpen(true);
   }, []);
@@ -681,26 +695,6 @@ const FrontisAdminPage = (): JSX.Element => {
       return true;
     },
     [activeIdentity?.tenantId, currentUser],
-  );
-
-  const handleConfirmTeamPlanPurchase = useCallback(
-    (selectedPackage: MockTenantPlanPackageOption): boolean => {
-      if (!activeIdentity?.tenantId) {
-        return false;
-      }
-
-      const nextSnapshot = activateMockTenantTeamPlan(activeIdentity.tenantId, selectedPackage);
-
-      if (!nextSnapshot) {
-        message.warning("当前租户暂无法开通团队版，请刷新后重试。");
-        return false;
-      }
-
-      setTenantSnapshot(nextSnapshot);
-      message.success(`${selectedPackage.title}已开通，组织管理已解锁。`);
-      return true;
-    },
-    [activeIdentity?.tenantId],
   );
 
   const handleConfirmSeatPurchase = useCallback(
@@ -776,17 +770,36 @@ const FrontisAdminPage = (): JSX.Element => {
     [activeIdentity?.tenantId, session?.identities],
   );
   const handleOpenSystemEntry = useCallback(
-    (identityId: string, entryPath: string): void => {
-      const result = activateIdentity(identityId, entryPath);
+    (entry: MockAuthSystemEntry): void => {
+      if (entry.platform === "operationsAdmin" && entry.operationsAccountId) {
+        const identityResult = activateIdentity(entry.identityId, entry.entryPath);
+
+        if (!identityResult.success) {
+          message.error(identityResult.message);
+          return;
+        }
+
+        const result = loginOperationsByAccountId(entry.operationsAccountId, entry.entryPath);
+
+        if (!result.success) {
+          message.error(result.message);
+          return;
+        }
+
+        navigate(result.redirectPath ?? entry.entryPath, { replace: true });
+        return;
+      }
+
+      const result = activateIdentity(entry.identityId, entry.entryPath);
 
       if (!result.success) {
         message.error(result.message);
         return;
       }
 
-      navigate(result.redirectPath ?? entryPath, { replace: true });
+      navigate(result.redirectPath ?? entry.entryPath, { replace: true });
     },
-    [activateIdentity, navigate],
+    [activateIdentity, loginOperationsByAccountId, navigate],
   );
   const handleSwitchTenant = useCallback(
     (tenantId: string): void => {
@@ -821,7 +834,7 @@ const FrontisAdminPage = (): JSX.Element => {
       key: `system-entry-${entry.identityId}`,
       icon: <AppstoreOutlined />,
       label: `进入${entry.label}`,
-      onClick: () => handleOpenSystemEntry(entry.identityId, entry.entryPath),
+      onClick: () => handleOpenSystemEntry(entry),
     })),
     ...(systemEntries.length
       ? [
@@ -883,18 +896,11 @@ const FrontisAdminPage = (): JSX.Element => {
       );
     }
 
-    if (activeTabKey === "overview") {
-      return (
-        <TenantOverviewView
-          tenantSnapshot={tenantSnapshot}
-          onOpenTeamPlanPurchase={
-            tenantSnapshot.edition === "personal" ? handleOpenTeamPlanPurchaseModal : undefined
-          }
-        />
-      );
+    if (activeTabKey === "overview" && tenantSnapshot.edition === "team") {
+      return <TenantOverviewView employees={employees} tenantSnapshot={tenantSnapshot} />;
     }
 
-    if (activeTabKey === "points") {
+    if (activeTabKey === "points" || activeTabKey === "overview") {
       return (
         <TenantPointsView
           tenantSnapshot={tenantSnapshot}
@@ -1169,13 +1175,6 @@ const FrontisAdminPage = (): JSX.Element => {
           onClose={handleCloseReferralInviteModal}
         />
       ) : null}
-      <TenantTeamPlanPurchaseModal
-        currentPlanLabel={tenantSnapshot?.planLabel ?? "个人版"}
-        open={isTeamPlanPurchaseModalOpen}
-        tenantName={activeIdentity?.tenantName}
-        onCancel={handleCloseTeamPlanPurchaseModal}
-        onConfirmPurchase={handleConfirmTeamPlanPurchase}
-      />
       <TenantSeatPurchaseModal
         currentSeats={tenantSnapshot?.totalSeats ?? 0}
         open={isSeatPurchaseModalOpen}

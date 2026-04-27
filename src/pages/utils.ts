@@ -1,5 +1,11 @@
 import dayjs from "dayjs";
-import type { ArtifactData, Block, MessageAttachment, ResultCardsData, TextData } from "@/types/block";
+import type {
+  ArtifactData,
+  Block,
+  MessageAttachment,
+  ResultCardsData,
+  TextData,
+} from "@/types/block";
 import type {
   WorkspaceChatMessage,
   WorkspaceComposerAttachmentItem,
@@ -17,6 +23,7 @@ import type {
   EmployeeStatus,
   MetaAgentWorkTrajectoryDeliverableItem,
   MetaAgentWorkTrajectoryItem,
+  MetaAgentWorkTrajectoryTaskItem,
   StatusTone,
   WorkspaceType,
 } from "./types";
@@ -175,7 +182,10 @@ const resolveTrajectoryTitle = (content: string): string => {
 const resolveTrajectoryPromptPreview = (content: string): string => {
   const normalizedContent = normalizeTrajectoryCopy(content);
 
-  return truncateTrajectoryText(normalizedContent || "未记录具体诉求。", MAX_TRAJECTORY_PROMPT_LENGTH);
+  return truncateTrajectoryText(
+    normalizedContent || "未记录具体诉求。",
+    MAX_TRAJECTORY_PROMPT_LENGTH,
+  );
 };
 
 const resolveTrajectoryResultPreview = (messages: ChatMessage[], fallback: string): string => {
@@ -185,7 +195,10 @@ const resolveTrajectoryResultPreview = (messages: ChatMessage[], fallback: strin
     null;
   const normalizedSummary = normalizeTrajectoryCopy(assistantMessage?.content ?? fallback);
 
-  return truncateTrajectoryText(normalizedSummary || "还没有形成明确结论。", MAX_TRAJECTORY_RESULT_LENGTH);
+  return truncateTrajectoryText(
+    normalizedSummary || "还没有形成明确结论。",
+    MAX_TRAJECTORY_RESULT_LENGTH,
+  );
 };
 
 const flattenTrajectoryBlocks = (blocks: Block[]): Block[] =>
@@ -220,8 +233,10 @@ const collectTrajectoryDeliverableTitles = (
       const blockData = block.data as Partial<ArtifactData>;
       const artifactId =
         typeof blockData.artifact_id === "string" ? blockData.artifact_id.trim() : "";
-      const artifactItem = artifactId ? artifactDirectory.get(artifactId) ?? null : null;
-      const title = artifactItem?.fileName || (typeof blockData.title === "string" ? blockData.title.trim() : "");
+      const artifactItem = artifactId ? (artifactDirectory.get(artifactId) ?? null) : null;
+      const title =
+        artifactItem?.fileName ||
+        (typeof blockData.title === "string" ? blockData.title.trim() : "");
 
       if (title) {
         result.push({
@@ -231,6 +246,7 @@ const collectTrajectoryDeliverableTitles = (
             artifactItem?.fileSize,
             artifactItem?.producedAt,
           ),
+          anchorBlockId: block.id,
         });
       }
     }
@@ -247,6 +263,7 @@ const collectTrajectoryDeliverableTitles = (
             metaLabel: matchedResult?.createdAt
               ? `结果输出 · ${matchedResult.createdAt}`
               : "结果输出",
+            anchorBlockId: block.id,
           });
         }
       });
@@ -262,6 +279,7 @@ const collectTrajectoryDeliverableTitles = (
             id: item.url?.trim() || `attachment-${item.name.trim()}`,
             fileName: item.name.trim(),
             metaLabel: "成果附件",
+            anchorBlockId: block.id,
           });
         }
       });
@@ -302,15 +320,85 @@ const collectTrajectoryDeliverableTitles = (
   return fallbackItems.slice(startIndex, startIndex + MAX_TRAJECTORY_DELIVERABLE_COUNT);
 };
 
+const buildTrajectoryTaskItems = (
+  messages: ChatMessage[],
+  dayKey: string,
+): MetaAgentWorkTrajectoryTaskItem[] => {
+  const taskItems = messages
+    .filter(message => message.role === "assistant" && message.author !== "系统")
+    .map((message, index) => {
+      const normalizedContent = normalizeTrajectoryCopy(message.content);
+      const title = truncateTrajectoryText(
+        normalizedContent || `${message.author} 执行任务`,
+        MAX_TRAJECTORY_TITLE_LENGTH + 8,
+      );
+      const isMetaAgentTask = message.author === META_AGENT_LABEL;
+
+      return {
+        id: `trajectory-task-${dayKey}-${message.id || index}`,
+        title,
+        agentName: message.author,
+        status: "completed" as const,
+        metaLabel: `${isMetaAgentTask ? "任务编排" : "Agent 执行"} · ${message.timeLabel || "已完成"}`,
+        anchorBlockId: message.blocks?.[0]?.id ?? message.id,
+      };
+    });
+
+  if (taskItems.length) {
+    return taskItems;
+  }
+
+  return [
+    {
+      id: `trajectory-task-${dayKey}-summary`,
+      title: "当天工作内容整理",
+      agentName: META_AGENT_LABEL,
+      status: "completed",
+      metaLabel: "自动生成 · 已完成",
+      anchorBlockId: messages[0]?.blocks?.[0]?.id ?? messages[0]?.id ?? "",
+    },
+  ];
+};
+
+const buildDailyTrajectoryTitle = (
+  day: dayjs.Dayjs,
+  messages: ChatMessage[],
+  tasks: MetaAgentWorkTrajectoryTaskItem[],
+): string => {
+  const firstUserMessage = messages.find(message => message.role === "user");
+  const taskLead = tasks.find(task => task.agentName !== META_AGENT_LABEL) ?? tasks[0];
+  const titleSource = firstUserMessage?.content || taskLead?.title || "工作内容";
+
+  return `${day.format("M月D日")} ${resolveTrajectoryTitle(titleSource)}`;
+};
+
+const buildDailyTrajectorySummary = (
+  messages: ChatMessage[],
+  tasks: MetaAgentWorkTrajectoryTaskItem[],
+  deliverables: MetaAgentWorkTrajectoryDeliverableItem[],
+): string => {
+  const taskCountLabel = `${tasks.length} 个任务`;
+  const deliverableCountLabel = `${deliverables.length} 个成果`;
+  const assistantSummary = resolveTrajectoryResultPreview(messages, messages[0]?.content ?? "");
+
+  return truncateTrajectoryText(
+    `当天完成 ${taskCountLabel}，沉淀 ${deliverableCountLabel}。${assistantSummary}`,
+    MAX_TRAJECTORY_RESULT_LENGTH + 24,
+  );
+};
+
 const resolveTrajectoryOccurredAt = (reverseIndex: number): dayjs.Dayjs => {
   const fallbackOffset = reverseIndex * 14;
   const dayOffset = META_AGENT_TRAJECTORY_DAY_OFFSETS[reverseIndex] ?? fallbackOffset;
 
-  return dayjs().subtract(dayOffset, "day").hour(10 + (reverseIndex % 5)).minute(15);
+  return dayjs()
+    .subtract(dayOffset, "day")
+    .hour(10 + (reverseIndex % 5))
+    .minute(15);
 };
 
 /**
- * 根据 MetaAgent 单线程消息，自动生成工作轨迹片段。
+ * 根据 MetaAgent 单线程消息，按自然日自动生成工作轨迹。
  */
 export const buildMetaAgentWorkTrajectoryItems = (
   session: DialogueSessionItem | null,
@@ -328,14 +416,46 @@ export const buildMetaAgentWorkTrajectoryItems = (
     return result;
   }, []);
 
-  return userMessageIndices
-    .map((messageIndex, segmentIndex) => {
-      const nextUserMessageIndex = userMessageIndices[segmentIndex + 1] ?? session.messages.length;
-      const segmentMessages = session.messages.slice(messageIndex, nextUserMessageIndex);
-      const anchorMessage = segmentMessages[0];
+  const dailySegmentMap = userMessageIndices.reduce<
+    Map<
+      string,
+      {
+        day: dayjs.Dayjs;
+        messages: ChatMessage[];
+        reverseIndex: number;
+      }
+    >
+  >((result, messageIndex, segmentIndex) => {
+    const nextUserMessageIndex = userMessageIndices[segmentIndex + 1] ?? session.messages.length;
+    const segmentMessages = session.messages.slice(messageIndex, nextUserMessageIndex);
+    const reverseIndex = userMessageIndices.length - segmentIndex - 1;
+    const occurredAt = resolveTrajectoryOccurredAt(reverseIndex);
+    const dayKey = occurredAt.format("YYYY-MM-DD");
+    const existingSegment = result.get(dayKey);
+
+    if (existingSegment) {
+      existingSegment.messages.push(...segmentMessages);
+      existingSegment.reverseIndex = Math.min(existingSegment.reverseIndex, reverseIndex);
+
+      return result;
+    }
+
+    result.set(dayKey, {
+      day: occurredAt.startOf("day").hour(18).minute(30),
+      messages: [...segmentMessages],
+      reverseIndex,
+    });
+
+    return result;
+  }, new Map());
+
+  return Array.from(dailySegmentMap.entries())
+    .map(([dayKey, dailySegment]) => {
+      const anchorMessage =
+        dailySegment.messages.find(message => message.role === "user") ?? dailySegment.messages[0];
       const participantNames = Array.from(
         new Set(
-          segmentMessages
+          dailySegment.messages
             .filter(
               message =>
                 message.role === "assistant" &&
@@ -345,28 +465,28 @@ export const buildMetaAgentWorkTrajectoryItems = (
             .map(message => message.author),
         ),
       );
-      const reverseIndex = userMessageIndices.length - segmentIndex - 1;
-      const title = resolveTrajectoryTitle(anchorMessage?.content ?? "");
-      const occurredAt = resolveTrajectoryOccurredAt(reverseIndex);
+      const deliverables = collectTrajectoryDeliverableTitles(
+        dailySegment.messages,
+        artifacts,
+        results,
+        dailySegment.reverseIndex,
+      );
+      const tasks = buildTrajectoryTaskItems(dailySegment.messages, dayKey);
 
       return {
-        id: `trajectory-${session.id}-${anchorMessage?.id ?? messageIndex}`,
-        title,
+        id: `trajectory-${session.id}-${dayKey}`,
+        title: buildDailyTrajectoryTitle(dailySegment.day, dailySegment.messages, tasks),
         promptPreview: resolveTrajectoryPromptPreview(anchorMessage?.content ?? ""),
-        resultPreview: resolveTrajectoryResultPreview(segmentMessages, anchorMessage?.content ?? ""),
+        resultPreview: buildDailyTrajectorySummary(dailySegment.messages, tasks, deliverables),
         anchorBlockId: anchorMessage?.blocks?.[0]?.id ?? anchorMessage?.id ?? "",
-        occurredAt: occurredAt.toISOString(),
-        displayTimeLabel: occurredAt.format("M月D日 HH:mm"),
+        occurredAt: dailySegment.day.toISOString(),
+        displayTimeLabel: dailySegment.day.format("M月D日"),
         participantNames,
-        deliverables: collectTrajectoryDeliverableTitles(
-          segmentMessages,
-          artifacts,
-          results,
-          reverseIndex,
-        ),
+        deliverables,
+        tasks,
       };
     })
-    .reverse();
+    .sort((left, right) => dayjs(right.occurredAt).valueOf() - dayjs(left.occurredAt).valueOf());
 };
 
 interface WorkspaceActivationInfo {

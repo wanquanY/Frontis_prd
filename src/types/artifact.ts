@@ -14,3 +14,13 @@ export interface ArtifactItem {
   mimeType?: string;
   isDeleted?: boolean;
 }
+
+/**
+ * 成果文件列表分组。
+ */
+export interface ArtifactFileGroup {
+  id: string;
+  title: string;
+  description?: string;
+  files: ArtifactItem[];
+}

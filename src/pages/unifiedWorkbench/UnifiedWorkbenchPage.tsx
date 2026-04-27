@@ -23,7 +23,8 @@ import {
 } from "@/feature/auth/mockAccounts";
 import { useMockAuth } from "@/feature/auth/hooks/useMockAuth";
 import { getMockTenantManagementSnapshot } from "@/feature/auth/mockTenantRegistry";
-import type { MockTenantManagementSnapshot } from "@/feature/auth/types";
+import type { MockAuthSystemEntry, MockTenantManagementSnapshot } from "@/feature/auth/types";
+import { useOperationsAuth } from "@/feature/operations/hooks/useOperationsAuth";
 import { loadOperationsRegistrationStrategy } from "@/feature/operations/platformConfigStorage";
 import type { MockPointsPackageOption } from "@/feature/points/types";
 import {
@@ -151,6 +152,7 @@ export const UnifiedWorkbenchPage = ({ viewRole }: UnifiedWorkbenchPageProps): J
   const navigate = useNavigate();
   const { tabPath } = useParams<{ tabPath?: string }>();
   const { activateIdentity, activateTenant, activeIdentity, logout, session } = useMockAuth();
+  const { loginByAccountId: loginOperationsByAccountId } = useOperationsAuth();
   const isAdminIdentity = activeIdentity?.role === "admin" || session?.role === "admin";
   const [isAccountMenuOpen, setIsAccountMenuOpen] = useState<boolean>(false);
   const [isRechargeModalOpen, setIsRechargeModalOpen] = useState<boolean>(false);
@@ -206,17 +208,36 @@ export const UnifiedWorkbenchPage = ({ viewRole }: UnifiedWorkbenchPageProps): J
   );
 
   const handleOpenSystemEntry = useCallback(
-    (identityId: string, entryPath: string): void => {
-      const result = activateIdentity(identityId, entryPath);
+    (entry: MockAuthSystemEntry): void => {
+      if (entry.platform === "operationsAdmin" && entry.operationsAccountId) {
+        const identityResult = activateIdentity(entry.identityId, entry.entryPath);
+
+        if (!identityResult.success) {
+          message.error(identityResult.message);
+          return;
+        }
+
+        const result = loginOperationsByAccountId(entry.operationsAccountId, entry.entryPath);
+
+        if (!result.success) {
+          message.error(result.message);
+          return;
+        }
+
+        navigate(result.redirectPath ?? entry.entryPath, { replace: true });
+        return;
+      }
+
+      const result = activateIdentity(entry.identityId, entry.entryPath);
 
       if (!result.success) {
         message.error(result.message);
         return;
       }
 
-      navigate(result.redirectPath ?? entryPath, { replace: true });
+      navigate(result.redirectPath ?? entry.entryPath, { replace: true });
     },
-    [activateIdentity, navigate],
+    [activateIdentity, loginOperationsByAccountId, navigate],
   );
   const handleSwitchTenant = useCallback(
     (tenantId: string): void => {
@@ -264,7 +285,7 @@ export const UnifiedWorkbenchPage = ({ viewRole }: UnifiedWorkbenchPageProps): J
       key: `system-entry-${entry.identityId}`,
       icon: <AppstoreOutlined />,
       label: `进入${entry.label}`,
-      onClick: () => handleOpenSystemEntry(entry.identityId, entry.entryPath),
+      onClick: () => handleOpenSystemEntry(entry),
     })),
     ...(systemEntries.length
       ? [

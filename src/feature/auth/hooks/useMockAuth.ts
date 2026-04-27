@@ -8,7 +8,6 @@ import {
   findIdentityForPath,
   getDefaultIdentity,
   getActiveSessionIdentity,
-  getTenantCount,
   getTenantIdentities,
   getIdentityById,
   getMockAccountByAccountId,
@@ -58,10 +57,7 @@ export const useMockAuth = (): UseMockAuthResult => {
     () => normalizeMockSession(rawSession),
     [rawSession],
   );
-  const activeIdentity = useMemo(
-    () => getActiveSessionIdentity(session),
-    [session],
-  );
+  const activeIdentity = useMemo(() => getActiveSessionIdentity(session), [session]);
 
   useEffect(() => {
     if (rawSession && session && rawSession !== session) {
@@ -73,36 +69,39 @@ export const useMockAuth = (): UseMockAuthResult => {
     setMockAccounts(getMockAuthAccounts());
   }, []);
 
-  const sendVerificationCode = useCallback((phone: string, scene: "login" | "register" = "login"): MockAuthActionResult => {
-    if (!isValidMarketingPhone(phone)) {
+  const sendVerificationCode = useCallback(
+    (phone: string, scene: "login" | "register" = "login"): MockAuthActionResult => {
+      if (!isValidMarketingPhone(phone)) {
+        return {
+          success: false,
+          message: "请输入正确的手机号。",
+        };
+      }
+
+      const matchedAccount = getMockAccountByPhone(phone);
+
+      if (scene === "login" && !matchedAccount) {
+        return {
+          success: false,
+          message: "当前手机号未开通，请联系管理员。",
+        };
+      }
+
+      if (scene === "register" && matchedAccount) {
+        return {
+          success: false,
+          message: "当前手机号已注册，请直接登录。",
+        };
+      }
+
       return {
-        success: false,
-        message: "请输入正确的手机号。",
+        success: true,
+        message: "验证码已发送，请注意查收。",
+        account: matchedAccount ?? undefined,
       };
-    }
-
-    const matchedAccount = getMockAccountByPhone(phone);
-
-    if (scene === "login" && !matchedAccount) {
-      return {
-        success: false,
-        message: "当前手机号未开通，请联系管理员。",
-      };
-    }
-
-    if (scene === "register" && matchedAccount) {
-      return {
-        success: false,
-        message: "当前手机号已注册，请直接登录。",
-      };
-    }
-
-    return {
-      success: true,
-      message: "验证码已发送，请注意查收。",
-      account: matchedAccount ?? undefined,
-    };
-  }, []);
+    },
+    [],
+  );
 
   const login = useCallback(
     ({ phone, verificationCode, redirectPath }: MockLoginParams): MockAuthActionResult => {
@@ -136,18 +135,10 @@ export const useMockAuth = (): UseMockAuthResult => {
         };
       }
 
-      const hasMultipleTenants = getTenantCount(matchedAccount.identities) > 1;
-      const routeIdentity = hasMultipleTenants
-        ? null
-        : findIdentityForPath(matchedAccount.identities, redirectPath);
+      const routeIdentity = findIdentityForPath(matchedAccount.identities, redirectPath);
       const defaultIdentity =
         routeIdentity ??
-        (hasMultipleTenants
-          ? null
-          : getDefaultIdentity(
-              matchedAccount.identities,
-              matchedAccount.quickLoginIdentityId,
-            )) ??
+        getDefaultIdentity(matchedAccount.identities, matchedAccount.quickLoginIdentityId) ??
         undefined;
       const nextSession = createMockSession(matchedAccount, defaultIdentity);
       const nextRedirectPath = resolveSessionEntryPath(nextSession, redirectPath);
@@ -224,7 +215,7 @@ export const useMockAuth = (): UseMockAuthResult => {
         account: payload.account,
         session: nextSession,
         identity: defaultIdentity,
-        redirectPath: "/web/admin/workspace/agent-store",
+        redirectPath: "/web/admin/workspace/meta-agent",
       };
     },
     [refreshMockAccounts, setSession],
@@ -249,15 +240,8 @@ export const useMockAuth = (): UseMockAuthResult => {
         (preferredIdentityId
           ? getIdentityById(matchedAccount.identities, preferredIdentityId)
           : null) ??
-        (getTenantCount(matchedAccount.identities) > 1
-          ? null
-          : findIdentityForPath(matchedAccount.identities, redirectPath)) ??
-        (getTenantCount(matchedAccount.identities) > 1
-          ? null
-          : getDefaultIdentity(
-              matchedAccount.identities,
-              matchedAccount.quickLoginIdentityId,
-            )) ??
+        findIdentityForPath(matchedAccount.identities, redirectPath) ??
+        getDefaultIdentity(matchedAccount.identities, matchedAccount.quickLoginIdentityId) ??
         undefined;
       const nextSession = createMockSession(matchedAccount, selectedIdentity);
       const nextRedirectPath = resolveSessionEntryPath(nextSession, redirectPath);

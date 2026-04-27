@@ -9,6 +9,7 @@ import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { getLoginPath } from "@/feature/auth/mockAccounts";
 import { useMockAuth } from "@/feature/auth/hooks/useMockAuth";
 import { PORTAL_NAV_ITEMS } from "@/feature/marketingPortal/portalData";
+import { useOperationsAuth } from "@/feature/operations/hooks/useOperationsAuth";
 import { getAvatarText } from "@/pages/utils";
 
 import styles from "./MarketingPortalLayout.module.less";
@@ -19,6 +20,8 @@ interface PortalModuleEntry {
   label: string;
   description: string;
   entryPath: string;
+  platform: string;
+  operationsAccountId?: string;
 }
 
 /**
@@ -28,6 +31,7 @@ export const MarketingPortalLayout = (): JSX.Element => {
   const location = useLocation();
   const navigate = useNavigate();
   const { activateIdentity, activeIdentity, logout, session } = useMockAuth();
+  const { loginByAccountId: loginOperationsByAccountId } = useOperationsAuth();
   const moduleEntries = useMemo<PortalModuleEntry[]>(() => {
     if (!session) {
       return [];
@@ -39,11 +43,32 @@ export const MarketingPortalLayout = (): JSX.Element => {
       label: identity.platformLabel,
       description: `${identity.tenantName} · ${identity.roleLabel}`,
       entryPath: identity.entryPath,
+      platform: identity.platform,
+      operationsAccountId: identity.operationsAccountId,
     }));
   }, [session]);
 
   const handleOpenModule = useCallback(
     (entry: PortalModuleEntry): void => {
+      if (entry.platform === "operationsAdmin" && entry.operationsAccountId) {
+        const identityResult = activateIdentity(entry.identityId, entry.entryPath);
+
+        if (!identityResult.success) {
+          message.error(identityResult.message);
+          return;
+        }
+
+        const result = loginOperationsByAccountId(entry.operationsAccountId, entry.entryPath);
+
+        if (!result.success) {
+          message.error(result.message);
+          return;
+        }
+
+        navigate(result.redirectPath ?? entry.entryPath, { replace: true });
+        return;
+      }
+
       const result = activateIdentity(entry.identityId, entry.entryPath);
 
       if (!result.success) {
@@ -53,7 +78,7 @@ export const MarketingPortalLayout = (): JSX.Element => {
 
       navigate(result.redirectPath ?? entry.entryPath, { replace: true });
     },
-    [activateIdentity, navigate],
+    [activateIdentity, loginOperationsByAccountId, navigate],
   );
 
   const handleLogout = useCallback((): void => {

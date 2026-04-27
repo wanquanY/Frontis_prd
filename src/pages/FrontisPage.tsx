@@ -4,6 +4,7 @@ import type { MenuProps } from "antd";
 import { Empty, message } from "antd";
 import { useLocation, useNavigate } from "react-router-dom";
 import type { WorkspaceComposerAttachmentItem } from "@/feature/workspace/types";
+import type { Block } from "@/types/block";
 import {
   getAdminManagementPath,
   getLoginPath,
@@ -12,6 +13,8 @@ import {
 } from "@/feature/auth/mockAccounts";
 import { useMockAuth } from "@/feature/auth/hooks/useMockAuth";
 import { getMockTenantUsers } from "@/feature/auth/mockTenantRegistry";
+import type { MockAuthSystemEntry } from "@/feature/auth/types";
+import { useOperationsAuth } from "@/feature/operations/hooks/useOperationsAuth";
 import type { AiCeoAgentHomeConfig, AiCeoHomeCaseItem } from "@/constants/aiCeoHome";
 import {
   EXPERT_PLAZA_LABEL,
@@ -90,6 +93,27 @@ const EXPERT_TEAM_MAIN_AGENT_DESCRIPTION =
   "作为默认主Agent，负责理解需求、调度你有权限使用的专家并统一交付。";
 const PRODUCT_TEAM_COLLAB_QUESTION = "帮我把这个需求拆成核心模块、边界和依赖关系。";
 const PRODUCT_TEAM_RISK_QUESTION = "这版方案上线前，架构层面最需要提前规避哪些风险？";
+const META_AGENT_RISK_PRIORITY_DOCUMENT = `# 上线风险优先级清单
+
+## P0
+- 权限边界未收敛前，不允许开放批量成员和外部专家调用。
+- 关键工作流需要保留任务、成果和调用链路的审计记录。
+
+## P1
+- 成果预览和下载需要同源权限校验。
+- MetaAegnt 调度范围需以用户授权专家为准，而不是仅限工作台已添加专家。
+`;
+const META_AGENT_RISK_ACCEPTANCE_DOCUMENT = `# 上线前验收与回归计划
+
+## 验收范围
+- 组织角色、权限配置、预设角色继承关系。
+- MetaAegnt 自动升级专家版本后的任务连续性。
+- 工作轨迹、任务、成果之间的定位关系。
+
+## 回归重点
+- 个人版不展示租户总览。
+- 团队版企业管理员可查看团队 AI 专家看板。
+`;
 
 interface ExpertTeamDialogueRouting {
   mode: "primary" | "member" | "all";
@@ -129,10 +153,47 @@ const replaceMetaAgentCopy = (value: string): string =>
 const isMetaAgentEmployee = (employee: EmployeeItem | null): boolean =>
   Boolean(employee?.isExpertTeam && employee.name === DEFAULT_WORKSPACE_AGENT_NAME);
 
+const createMetaAgentArtifactBlock = (artifact: ArtifactItem, sequence: number): Block => ({
+  id: `block-${artifact.id}`,
+  kind: "artifact",
+  data: {
+    artifact_id: artifact.artifactId,
+    kind: "markdown",
+    title: artifact.fileName,
+    status: "completed",
+    format: "markdown",
+  },
+  sequence,
+});
+
+const createMetaAgentRiskArtifacts = (): ArtifactItem[] => [
+  dialogueScenarioRuntimeHelpers.createMarkdownArtifact(
+    META_AGENT_PRIMARY_SEED_SESSION_ID,
+    "metaagent-risk-priority",
+    "上线风险优先级清单.md",
+    DEFAULT_WORKSPACE_AGENT_NAME,
+    "上线风险复核",
+    META_AGENT_RISK_PRIORITY_DOCUMENT,
+    "11:18",
+    dialogueScenarioRuntimeHelpers.resolveTextArtifactSize(META_AGENT_RISK_PRIORITY_DOCUMENT),
+  ),
+  dialogueScenarioRuntimeHelpers.createMarkdownArtifact(
+    META_AGENT_PRIMARY_SEED_SESSION_ID,
+    "metaagent-risk-acceptance",
+    "上线前验收与回归计划.md",
+    DEFAULT_WORKSPACE_AGENT_NAME,
+    "上线风险复核",
+    META_AGENT_RISK_ACCEPTANCE_DOCUMENT,
+    "11:21",
+    dialogueScenarioRuntimeHelpers.resolveTextArtifactSize(META_AGENT_RISK_ACCEPTANCE_DOCUMENT),
+  ),
+];
+
 const buildMetaAgentSeedSessions = (): DialogueSessionItem[] => {
   const sourceSession = INITIAL_DIALOGUE_SESSIONS.find(
     item => item.id === META_AGENT_PRIMARY_SEED_SOURCE_ID,
   );
+  const riskArtifacts = createMetaAgentRiskArtifacts();
   const flattenedMessages = [
     ...(sourceSession?.messages.map(message => ({
       ...message,
@@ -153,6 +214,7 @@ const buildMetaAgentSeedSessions = (): DialogueSessionItem[] => {
       content:
         "我已拉起架构规划师、交付验收官和数据洞察师协同评审，当前先给你一版统一风险结论和处理优先级。",
       timeLabel: "11:15",
+      blocks: riskArtifacts.map((artifact, index) => createMetaAgentArtifactBlock(artifact, index)),
     },
   ];
 
@@ -190,6 +252,7 @@ const NORMALIZED_INITIAL_DIALOGUE_ARTIFACTS: Record<string, ArtifactItem[]> = {
   ...INITIAL_DIALOGUE_ARTIFACTS,
   [META_AGENT_PRIMARY_SEED_SESSION_ID]: [
     ...(INITIAL_DIALOGUE_ARTIFACTS[META_AGENT_PRIMARY_SEED_SOURCE_ID] ?? []),
+    ...createMetaAgentRiskArtifacts(),
     createMetaAgentV430PrdArtifact(),
   ],
 };
@@ -752,6 +815,7 @@ const FrontisPage = ({
   const location = useLocation();
   const navigate = useNavigate();
   const { activateIdentity, activateTenant, activeIdentity, logout, session } = useMockAuth();
+  const { loginByAccountId: loginOperationsByAccountId } = useOperationsAuth();
   const [dialogueSessions, setDialogueSessions] = useState<DialogueSessionItem[]>(() =>
     NORMALIZED_INITIAL_DIALOGUE_SESSIONS.map(item => mapDialogueSessionForRole(item, viewRole)),
   );
@@ -775,6 +839,8 @@ const FrontisPage = ({
   const [activeMetaAgentTrajectoryId, setActiveMetaAgentTrajectoryId] = useState<string | null>(
     null,
   );
+  const [activeMetaAgentTrajectoryAnchorBlockId, setActiveMetaAgentTrajectoryAnchorBlockId] =
+    useState<string | null>(null);
   const [respondingDialogueSessionId, setRespondingDialogueSessionId] = useState<string | null>(
     null,
   );
@@ -1025,6 +1091,7 @@ const FrontisPage = ({
   useEffect(() => {
     if (!metaAgentTrajectoryItems.length) {
       setActiveMetaAgentTrajectoryId(null);
+      setActiveMetaAgentTrajectoryAnchorBlockId(null);
       return;
     }
 
@@ -1036,6 +1103,7 @@ const FrontisPage = ({
     }
 
     setActiveMetaAgentTrajectoryId(null);
+    setActiveMetaAgentTrajectoryAnchorBlockId(null);
   }, [activeMetaAgentTrajectoryId, metaAgentTrajectoryItems]);
 
   useEffect(() => {
@@ -1594,12 +1662,17 @@ const FrontisPage = ({
     commitDialogue(dialogueInputValue);
   }, [commitDialogue, dialogueInputValue]);
 
-  const handleSelectMetaAgentTrajectory = useCallback((trajectoryId: string): void => {
-    setActiveMetaAgentTrajectoryId(trajectoryId);
-  }, []);
+  const handleSelectMetaAgentTrajectory = useCallback(
+    (trajectoryId: string, anchorBlockId?: string): void => {
+      setActiveMetaAgentTrajectoryId(trajectoryId);
+      setActiveMetaAgentTrajectoryAnchorBlockId(anchorBlockId ?? null);
+    },
+    [],
+  );
 
   const handleClearMetaAgentTrajectory = useCallback((): void => {
     setActiveMetaAgentTrajectoryId(null);
+    setActiveMetaAgentTrajectoryAnchorBlockId(null);
   }, []);
 
   const handleOpenHomeCase = useCallback(
@@ -1690,17 +1763,36 @@ const FrontisPage = ({
   );
   const isAdminIdentity = activeIdentity?.role === "admin" || session?.role === "admin";
   const handleOpenSystemEntry = useCallback(
-    (identityId: string, entryPath: string): void => {
-      const result = activateIdentity(identityId, entryPath);
+    (entry: MockAuthSystemEntry): void => {
+      if (entry.platform === "operationsAdmin" && entry.operationsAccountId) {
+        const identityResult = activateIdentity(entry.identityId, entry.entryPath);
+
+        if (!identityResult.success) {
+          message.error(identityResult.message);
+          return;
+        }
+
+        const result = loginOperationsByAccountId(entry.operationsAccountId, entry.entryPath);
+
+        if (!result.success) {
+          message.error(result.message);
+          return;
+        }
+
+        navigate(result.redirectPath ?? entry.entryPath, { replace: true });
+        return;
+      }
+
+      const result = activateIdentity(entry.identityId, entry.entryPath);
 
       if (!result.success) {
         message.error(result.message);
         return;
       }
 
-      navigate(result.redirectPath ?? entryPath, { replace: true });
+      navigate(result.redirectPath ?? entry.entryPath, { replace: true });
     },
-    [activateIdentity, navigate],
+    [activateIdentity, loginOperationsByAccountId, navigate],
   );
   const handleSwitchTenant = useCallback(
     (tenantId: string): void => {
@@ -1735,7 +1827,7 @@ const FrontisPage = ({
       key: `system-entry-${entry.identityId}`,
       icon: <AppstoreOutlined />,
       label: `进入${entry.label}`,
-      onClick: () => handleOpenSystemEntry(entry.identityId, entry.entryPath),
+      onClick: () => handleOpenSystemEntry(entry),
     })),
     ...(systemEntries.length
       ? [
@@ -1809,7 +1901,9 @@ const FrontisPage = ({
           selectedSkillIds={selectedSkillIds}
           onStopDialogue={handleStopDialogue}
           hideAgentSidebar={workspaceMode === "metaAgent"}
-          focusBlockId={activeMetaAgentTrajectory?.anchorBlockId}
+          focusBlockId={
+            activeMetaAgentTrajectoryAnchorBlockId ?? activeMetaAgentTrajectory?.anchorBlockId
+          }
           metaAgentTrajectoryItems={isMetaAgentDialogue ? metaAgentTrajectoryItems : []}
           activeMetaAgentTrajectory={activeMetaAgentTrajectory}
           onSelectMetaAgentTrajectory={handleSelectMetaAgentTrajectory}

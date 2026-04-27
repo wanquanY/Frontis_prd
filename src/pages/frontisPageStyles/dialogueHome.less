@@ -70,6 +70,275 @@
   color: var(--text);
 }
 
+.outputPanel {
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  background: var(--surface);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.outputPanelHeader {
+  padding: 16px 16px 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.outputPanelTitleGroup {
+  min-width: 0;
+}
+
+.outputPanelTitle {
+  color: var(--text);
+  font-size: 20px;
+  line-height: 28px;
+  font-weight: 700;
+}
+
+.outputPanelCloseButton {
+  width: 30px;
+  height: 30px;
+  border: 0;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--text) 7%, transparent);
+  color: var(--text-muted);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+}
+
+.outputPanelCloseButton:hover {
+  background: color-mix(in srgb, var(--text) 12%, transparent);
+  color: var(--text);
+}
+
+.outputPanelTabs {
+  padding: 0 16px 12px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.outputPanelTab {
+  flex: 1;
+  min-width: 0;
+  height: 38px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--text) 2%, var(--surface));
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 13px;
+  line-height: 20px;
+  font-weight: 700;
+}
+
+.outputPanelTab:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--primary) 22%, var(--border));
+  color: var(--text);
+}
+
+.outputPanelTab:disabled {
+  cursor: not-allowed;
+  opacity: 0.48;
+}
+
+.outputPanelTab strong {
+  min-width: 22px;
+  height: 22px;
+  padding: 0 7px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--text) 6%, transparent);
+  color: inherit;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.outputPanelTabActive {
+  border-color: color-mix(in srgb, var(--primary) 28%, var(--border));
+  background: color-mix(in srgb, var(--primary) 9%, var(--surface));
+  color: var(--primary);
+}
+
+.outputPanelTabActive strong {
+  background: color-mix(in srgb, var(--primary) 12%, transparent);
+}
+
+.outputPanelBody {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.outputTaskList {
+  height: 100%;
+  min-height: 0;
+  padding: 14px 16px 16px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.outputTaskGroup {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.outputTaskGroup + .outputTaskGroup {
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.outputTaskGroupHeader {
+  width: 100%;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  text-align: left;
+}
+
+.outputTaskGroupTitle {
+  min-width: 0;
+  font-size: 14px;
+  line-height: 22px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.outputTaskGroupMeta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex: none;
+}
+
+.outputTaskGroupCount {
+  min-width: 24px;
+  height: 24px;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--primary) 8%, transparent);
+  color: var(--primary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  line-height: 18px;
+  font-weight: 700;
+}
+
+.outputTaskGroupChevron {
+  width: 8px;
+  height: 8px;
+  border-right: 1.5px solid var(--text-muted);
+  border-bottom: 1.5px solid var(--text-muted);
+  transform: rotate(45deg);
+  transition: transform 160ms ease;
+}
+
+.outputTaskGroupChevronOpen {
+  transform: rotate(225deg);
+}
+
+.outputTaskGroupBody {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.outputTaskItem {
+  width: 100%;
+  min-width: 0;
+  padding: 11px 12px;
+  border: 1px solid color-mix(in srgb, var(--text) 9%, transparent);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--text) 2%, var(--surface));
+  color: var(--text);
+  cursor: pointer;
+  text-align: left;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.outputTaskItem:hover {
+  border-color: color-mix(in srgb, var(--primary) 22%, var(--border));
+  background: color-mix(in srgb, var(--primary) 4%, var(--surface));
+}
+
+.outputTaskStatus {
+  flex: none;
+  min-width: 52px;
+  height: 24px;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--primary) 10%, transparent);
+  color: var(--primary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  line-height: 18px;
+  font-weight: 600;
+}
+
+.outputTaskBody {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.outputTaskBody strong {
+  min-width: 0;
+  color: var(--text);
+  font-size: 14px;
+  line-height: 22px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.outputTaskBody span,
+.outputPanelEmpty {
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.outputPanelEmpty {
+  padding: 16px;
+}
+
 .metaAgentTrajectoryPanel {
   position: absolute;
   top: 62px;
@@ -474,6 +743,22 @@
   box-shadow: var(--shadow-sm);
 }
 
+.metaAgentTrajectoryRecordCardFooter {
+  padding-top: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.metaAgentTrajectoryRecordCardFooter span:last-child {
+  color: var(--primary);
+  font-weight: 600;
+}
+
 .metaAgentTrajectoryRecordCardExperts,
 .metaAgentTrajectoryRecordCardDeliverables,
 .metaAgentTrajectoryParticipantAvatars {
@@ -591,6 +876,216 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.metaAgentTrajectoryDetailMask {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  padding: 14px;
+  border-radius: inherit;
+  background: color-mix(in srgb, var(--surface) 72%, transparent);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: stretch;
+  justify-content: flex-end;
+}
+
+.metaAgentTrajectoryDetailPanel {
+  width: min(520px, 100%);
+  min-height: 0;
+  border: 1px solid var(--panelBorder);
+  border-radius: 18px;
+  background: var(--surface);
+  box-shadow: var(--shadow-lg);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.metaAgentTrajectoryDetailHeader {
+  padding: 16px 18px;
+  border-bottom: 1px solid var(--panelBorder);
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.metaAgentTrajectoryDetailTitleGroup {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.metaAgentTrajectoryDetailTitleGroup h3 {
+  margin: 0;
+  color: var(--text);
+  font-size: 18px;
+  line-height: 26px;
+  font-weight: 700;
+}
+
+.metaAgentTrajectoryDetailTitleGroup p {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.metaAgentTrajectoryDetailEyebrow {
+  color: var(--primary);
+  font-size: 12px;
+  line-height: 18px;
+  font-weight: 600;
+}
+
+.metaAgentTrajectoryDetailTabs {
+  padding: 12px 18px 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.metaAgentTrajectoryDetailTab {
+  flex: 1;
+  min-width: 0;
+  height: 38px;
+  padding: 0 12px;
+  border: 1px solid var(--panelBorder);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--text) 2%, var(--surface));
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 13px;
+  line-height: 20px;
+  font-weight: 700;
+  transition:
+    border-color 160ms ease,
+    background 160ms ease,
+    color 160ms ease;
+}
+
+.metaAgentTrajectoryDetailTab:hover {
+  border-color: color-mix(in srgb, var(--primary) 22%, var(--panelBorder));
+  color: var(--text);
+}
+
+.metaAgentTrajectoryDetailTab strong {
+  min-width: 22px;
+  height: 22px;
+  padding: 0 7px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--text) 6%, transparent);
+  color: inherit;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.metaAgentTrajectoryDetailTabActive {
+  border-color: color-mix(in srgb, var(--primary) 28%, var(--panelBorder));
+  background: color-mix(in srgb, var(--primary) 9%, var(--surface));
+  color: var(--primary);
+}
+
+.metaAgentTrajectoryDetailTabActive strong {
+  background: color-mix(in srgb, var(--primary) 12%, transparent);
+}
+
+.metaAgentTrajectoryDetailBody {
+  min-height: 0;
+  padding: 14px 18px 18px;
+  overflow-y: auto;
+}
+
+.metaAgentTrajectoryDetailList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.metaAgentTrajectoryDetailTask,
+.metaAgentTrajectoryDetailDeliverable {
+  width: 100%;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid color-mix(in srgb, var(--text) 9%, transparent);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--text) 2%, var(--surface));
+  color: var(--text);
+  cursor: pointer;
+  text-align: left;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  transition:
+    border-color 160ms ease,
+    background 160ms ease,
+    transform 160ms ease;
+}
+
+.metaAgentTrajectoryDetailTask:hover,
+.metaAgentTrajectoryDetailDeliverable:hover {
+  border-color: color-mix(in srgb, var(--primary) 22%, var(--panelBorder));
+  background: color-mix(in srgb, var(--primary) 4%, var(--surface));
+  transform: translateY(-1px);
+}
+
+.metaAgentTrajectoryDetailTaskStatus {
+  flex: none;
+  min-width: 56px;
+  height: 26px;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--primary) 10%, transparent);
+  color: var(--primary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  line-height: 18px;
+  font-weight: 600;
+}
+
+.metaAgentTrajectoryDetailTaskBody {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.metaAgentTrajectoryDetailTaskBody strong {
+  min-width: 0;
+  color: var(--text);
+  font-size: 14px;
+  line-height: 22px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.metaAgentTrajectoryDetailTaskBody span {
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.metaAgentTrajectoryDetailEmpty {
+  padding: 14px;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--text) 3%, transparent);
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 20px;
 }
 
 .metaAgentTrajectoryFocusButton {

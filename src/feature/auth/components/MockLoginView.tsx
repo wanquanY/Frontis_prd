@@ -217,7 +217,7 @@ export const MockLoginView = (): JSX.Element => {
       return 0;
     }
 
-    return new Set(selectedAccount.identities.map(identity => identity.tenantId)).size;
+    return getTenantCount(selectedAccount.identities);
   }, [selectedAccount]);
 
   const selectedAccountEntryHint = useMemo<string>(() => {
@@ -291,7 +291,7 @@ export const MockLoginView = (): JSX.Element => {
     }
 
     message.success(result.message);
-    setRegisterRedirectPath(result.redirectPath ?? "/web/admin/workspace/agent-store");
+    setRegisterRedirectPath(result.redirectPath ?? "/web/admin/workspace/meta-agent");
     handleCloseRegisterModal();
   }, [
     handleCloseRegisterModal,
@@ -304,7 +304,9 @@ export const MockLoginView = (): JSX.Element => {
   ]);
 
   if (session && !shouldShowTenantSelectionModal) {
-    return <Navigate replace to={registerRedirectPath ?? resolveSessionPath(session, redirectPath)} />;
+    return (
+      <Navigate replace to={registerRedirectPath ?? resolveSessionPath(session, redirectPath)} />
+    );
   }
 
   return (
@@ -349,7 +351,9 @@ export const MockLoginView = (): JSX.Element => {
                     placeholder="请输入手机号"
                     size="large"
                     value={phoneValue}
-                    onChange={event => handlePhoneChange(event.target.value.replace(/\D/g, "").slice(0, 11))}
+                    onChange={event =>
+                      handlePhoneChange(event.target.value.replace(/\D/g, "").slice(0, 11))
+                    }
                   />
                 </div>
 
@@ -366,9 +370,17 @@ export const MockLoginView = (): JSX.Element => {
                       placeholder="请输入 6 位验证码"
                       size="large"
                       value={verificationCodeValue}
-                      onChange={event => handleVerificationCodeChange(event.target.value.replace(/\D/g, "").slice(0, 6))}
+                      onChange={event =>
+                        handleVerificationCodeChange(
+                          event.target.value.replace(/\D/g, "").slice(0, 6),
+                        )
+                      }
                     />
-                    <Button size="large" onClick={handleSendVerificationCode} disabled={countdown > 0}>
+                    <Button
+                      size="large"
+                      onClick={handleSendVerificationCode}
+                      disabled={countdown > 0}
+                    >
                       {countdown > 0 ? `${countdown}s后重试` : "获取验证码"}
                     </Button>
                   </div>
@@ -388,7 +400,8 @@ export const MockLoginView = (): JSX.Element => {
               <div className={styles.noticePanel}>
                 <p className={styles.noticeTitle}>登录说明</p>
                 <p className={styles.noticeText}>
-                  登录即代表你同意平台服务协议与隐私政策。还没有租户时，可直接自注册并创建 1 席个人版租户。
+                  登录即代表你同意平台服务协议与隐私政策。还没有租户时，可直接自注册并创建 1
+                  席个人版租户。
                 </p>
                 <div className={styles.noticeActions}>
                   <Button type="link" onClick={handleOpenRegisterModal}>
@@ -417,7 +430,9 @@ export const MockLoginView = (): JSX.Element => {
 
                 <div className={styles.selectedSummary}>
                   <p className={styles.summaryTitle}>
-                    {selectedAccount ? `${selectedAccount.roleLabel} · ${selectedAccount.name}` : "未选择模拟账号"}
+                    {selectedAccount
+                      ? `${selectedAccount.roleLabel} · ${selectedAccount.name}`
+                      : "未选择模拟账号"}
                   </p>
                   <p className={styles.summaryDescription}>
                     {selectedAccount ? selectedAccount.description : selectedAccountEntryHint}
@@ -538,7 +553,9 @@ export const MockLoginView = (): JSX.Element => {
               placeholder="请输入手机号"
               size="large"
               value={registerPhone}
-              onChange={event => setRegisterPhone(event.target.value.replace(/\D/g, "").slice(0, 11))}
+              onChange={event =>
+                setRegisterPhone(event.target.value.replace(/\D/g, "").slice(0, 11))
+              }
             />
           </div>
 
@@ -555,9 +572,15 @@ export const MockLoginView = (): JSX.Element => {
                 placeholder="请输入 6 位验证码"
                 size="large"
                 value={registerCode}
-                onChange={event => setRegisterCode(event.target.value.replace(/\D/g, "").slice(0, 6))}
+                onChange={event =>
+                  setRegisterCode(event.target.value.replace(/\D/g, "").slice(0, 6))
+                }
               />
-              <Button size="large" onClick={handleSendRegisterCode} disabled={registerCountdown > 0}>
+              <Button
+                size="large"
+                onClick={handleSendRegisterCode}
+                disabled={registerCountdown > 0}
+              >
                 {registerCountdown > 0 ? `${registerCountdown}s后重试` : "获取验证码"}
               </Button>
             </div>
