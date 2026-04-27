@@ -21,6 +21,8 @@ import {
   OPERATIONS_INITIAL_REFERRAL_RECORDS,
   OPERATIONS_INITIAL_TENANTS,
   OPERATIONS_INITIAL_REGISTRATION_STRATEGY,
+  OPERATIONS_PRODUCT_CONTACT_MODE_LABELS,
+  OPERATIONS_PRODUCT_CONTACT_MODE_OPTIONS,
   OPERATIONS_PRODUCT_BILLING_MODE_LABELS,
   OPERATIONS_PRODUCT_BILLING_MODE_OPTIONS,
   OPERATIONS_PRODUCT_BILLING_SPEC_LABELS,
@@ -50,7 +52,9 @@ import {
 } from "@/feature/operations/mockData";
 import {
   loadOperationsRegistrationStrategy,
+  loadOperationsServiceContactConfig,
   saveOperationsRegistrationStrategy,
+  saveOperationsServiceContactConfig,
 } from "@/feature/operations/platformConfigStorage";
 import {
   loadStoredOperationsExternalMeteredServices,
@@ -89,6 +93,7 @@ import type {
   OperationsRegistrationStrategy,
   OperationsResourcePool,
   OperationsResourcePoolForm,
+  OperationsServiceContactConfig,
   OperationsTenant,
   OperationsTenantForm,
   OperationsTenantMemberForm,
@@ -125,6 +130,7 @@ interface UseOperationsPlatformResult {
   fulfillments: OperationsFulfillment[];
   resourcePools: OperationsResourcePool[];
   registrationStrategy: OperationsRegistrationStrategy;
+  serviceContactConfig: OperationsServiceContactConfig;
   referralRecords: OperationsReferralRecord[];
   meteringProviders: OperationsMeteringProvider[];
   modelServices: OperationsModelService[];
@@ -145,6 +151,7 @@ interface UseOperationsPlatformResult {
   productSupplyKindLabels: typeof OPERATIONS_PRODUCT_SUPPLY_KIND_LABELS;
   productSaleTypeLabels: typeof OPERATIONS_PRODUCT_SALE_TYPE_LABELS;
   productTrialUnitLabels: typeof OPERATIONS_PRODUCT_TRIAL_UNIT_LABELS;
+  productContactModeLabels: typeof OPERATIONS_PRODUCT_CONTACT_MODE_LABELS;
   productDeliveryKindLabels: typeof OPERATIONS_PRODUCT_DELIVERY_KIND_LABELS;
   productBillingModeLabels: typeof OPERATIONS_PRODUCT_BILLING_MODE_LABELS;
   productMeteringUnitLabels: typeof OPERATIONS_PRODUCT_METERING_UNIT_LABELS;
@@ -155,6 +162,7 @@ interface UseOperationsPlatformResult {
   productDeliveryKindOptions: typeof OPERATIONS_PRODUCT_DELIVERY_KIND_OPTIONS;
   productSaleTypeOptions: typeof OPERATIONS_PRODUCT_SALE_TYPE_OPTIONS;
   productTrialUnitOptions: typeof OPERATIONS_PRODUCT_TRIAL_UNIT_OPTIONS;
+  productContactModeOptions: typeof OPERATIONS_PRODUCT_CONTACT_MODE_OPTIONS;
   productBillingModeOptions: typeof OPERATIONS_PRODUCT_BILLING_MODE_OPTIONS;
   productMeteringUnitOptions: typeof OPERATIONS_PRODUCT_METERING_UNIT_OPTIONS;
   productBillingSpecOptions: typeof OPERATIONS_PRODUCT_BILLING_SPEC_OPTIONS;
@@ -203,6 +211,14 @@ interface UseOperationsPlatformResult {
         | "referralInviteeRewardPoints"
         | "referralInviterRewardPoints"
         | "referralMonthlyRewardLimit"
+      >
+    >,
+  ) => void;
+  updateServiceContactConfig: (
+    patch: Partial<
+      Pick<
+        OperationsServiceContactConfig,
+        "enabled" | "contactName" | "qrCodeValue" | "remarkTemplate"
       >
     >,
   ) => void;
@@ -465,6 +481,9 @@ const buildPendingProductFromSubmission = (
   supportsTrial: false,
   trialUnit: "day",
   trialValue: 7,
+  contactMode: "platformDefault",
+  contactQrCodeValue: "",
+  contactRemark: "",
   status: "pendingProductization",
   plazaCategory: OPERATIONS_AGENT_PLAZA_DEFAULT_CATEGORY,
   plazaVisibility: "public",
@@ -509,6 +528,15 @@ const buildProductFromForm = (
     supportsTrial: form.saleType === "paid" ? form.supportsTrial : false,
     trialUnit: form.saleType === "paid" && form.supportsTrial ? form.trialUnit : undefined,
     trialValue: form.saleType === "paid" && form.supportsTrial ? form.trialValue : undefined,
+    contactMode: form.supplyKind === "agent" ? form.contactMode : "disabled",
+    contactQrCodeValue:
+      form.supplyKind === "agent" && form.contactMode === "custom"
+        ? form.contactQrCodeValue.trim()
+        : undefined,
+    contactRemark:
+      form.supplyKind === "agent" && form.contactMode === "custom"
+        ? form.contactRemark.trim()
+        : undefined,
     status: "draft",
     plazaCategory: linkedSubmission?.plazaCategory ?? OPERATIONS_AGENT_PLAZA_DEFAULT_CATEGORY,
     plazaVisibility: linkedSubmission?.plazaVisibility ?? "public",
@@ -574,6 +602,9 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
   const [registrationStrategy, setRegistrationStrategy] = useState<OperationsRegistrationStrategy>(
     () => loadOperationsRegistrationStrategy() ?? OPERATIONS_INITIAL_REGISTRATION_STRATEGY,
   );
+  const [serviceContactConfig, setServiceContactConfig] = useState<OperationsServiceContactConfig>(
+    () => loadOperationsServiceContactConfig(),
+  );
   const [meteringProviders, setMeteringProviders] = useState<OperationsMeteringProvider[]>(() =>
     loadStoredOperationsMeteringProviders(),
   );
@@ -626,6 +657,10 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
   useEffect(() => {
     saveOperationsRegistrationStrategy(registrationStrategy);
   }, [registrationStrategy]);
+
+  useEffect(() => {
+    saveOperationsServiceContactConfig(serviceContactConfig);
+  }, [serviceContactConfig]);
 
   useEffect(() => {
     saveStoredOperationsMeteringProviders(meteringProviders);
@@ -831,6 +866,15 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
             trialUnit: form.saleType === "paid" && form.supportsTrial ? form.trialUnit : undefined,
             trialValue:
               form.saleType === "paid" && form.supportsTrial ? form.trialValue : undefined,
+            contactMode: form.supplyKind === "agent" ? form.contactMode : "disabled",
+            contactQrCodeValue:
+              form.supplyKind === "agent" && form.contactMode === "custom"
+                ? form.contactQrCodeValue.trim()
+                : undefined,
+            contactRemark:
+              form.supplyKind === "agent" && form.contactMode === "custom"
+                ? form.contactRemark.trim()
+                : undefined,
             status: item.status === "pendingProductization" ? "draft" : item.status,
             updatedAt: formatTimestamp(),
           };
@@ -1048,6 +1092,27 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
     [],
   );
 
+  const updateServiceContactConfig = useCallback(
+    (
+      patch: Partial<
+        Pick<
+          OperationsServiceContactConfig,
+          "enabled" | "contactName" | "qrCodeValue" | "remarkTemplate"
+        >
+      >,
+    ): void => {
+      setServiceContactConfig(currentState => ({
+        ...currentState,
+        ...patch,
+        contactName: patch.contactName?.trim() ?? currentState.contactName,
+        qrCodeValue: patch.qrCodeValue?.trim() ?? currentState.qrCodeValue,
+        remarkTemplate: patch.remarkTemplate?.trim() ?? currentState.remarkTemplate,
+        updatedAt: formatTimestamp(),
+      }));
+    },
+    [],
+  );
+
   const createMeteringProvider = useCallback((form: OperationsMeteringProviderForm): void => {
     setMeteringProviders(currentProviders => [
       buildMeteringProviderFromForm(form),
@@ -1227,6 +1292,7 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
     fulfillments,
     resourcePools,
     registrationStrategy,
+    serviceContactConfig,
     referralRecords,
     meteringProviders,
     modelServices,
@@ -1247,6 +1313,7 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
     productSupplyKindLabels: OPERATIONS_PRODUCT_SUPPLY_KIND_LABELS,
     productSaleTypeLabels: OPERATIONS_PRODUCT_SALE_TYPE_LABELS,
     productTrialUnitLabels: OPERATIONS_PRODUCT_TRIAL_UNIT_LABELS,
+    productContactModeLabels: OPERATIONS_PRODUCT_CONTACT_MODE_LABELS,
     productDeliveryKindLabels: OPERATIONS_PRODUCT_DELIVERY_KIND_LABELS,
     productBillingModeLabels: OPERATIONS_PRODUCT_BILLING_MODE_LABELS,
     productMeteringUnitLabels: OPERATIONS_PRODUCT_METERING_UNIT_LABELS,
@@ -1257,6 +1324,7 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
     productDeliveryKindOptions: OPERATIONS_PRODUCT_DELIVERY_KIND_OPTIONS,
     productSaleTypeOptions: OPERATIONS_PRODUCT_SALE_TYPE_OPTIONS,
     productTrialUnitOptions: OPERATIONS_PRODUCT_TRIAL_UNIT_OPTIONS,
+    productContactModeOptions: OPERATIONS_PRODUCT_CONTACT_MODE_OPTIONS,
     productBillingModeOptions: OPERATIONS_PRODUCT_BILLING_MODE_OPTIONS,
     productMeteringUnitOptions: OPERATIONS_PRODUCT_METERING_UNIT_OPTIONS,
     productBillingSpecOptions: OPERATIONS_PRODUCT_BILLING_SPEC_OPTIONS,
@@ -1278,6 +1346,7 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
     createResourcePool,
     updateResourcePool,
     updateRegistrationStrategy,
+    updateServiceContactConfig,
     createMeteringProvider,
     updateMeteringProvider,
     createModelService,

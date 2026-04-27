@@ -1,6 +1,7 @@
 import backlogDocumentContent from "../../../Frontis AI · Product Backlog.md?raw";
 import fdeDeliveryPrdDocumentContent from "../../../Frontis AI · FDE配置交付 PRD.md?raw";
 import adminPrdDocumentContent from "../../../Frontis AI · 企业管理后台 PRD.md?raw";
+import completePrdV430DocumentContent from "../../../Frontis AI · 完整 PRD V430.md?raw";
 import prdDocumentContent from "../../../Frontis AI · 正式 PRD.md?raw";
 import workspacePrdDocumentContent from "../../../Frontis AI · 工作台 PRD.md?raw";
 
@@ -30,6 +31,11 @@ export const PRODUCT_MANAGER_ADMIN_PRD_DOCUMENT_NAME = "Frontis AI · 企业管�
 export const PRODUCT_MANAGER_FDE_DELIVERY_PRD_DOCUMENT_NAME = "Frontis AI · FDE配置交付 PRD.md";
 
 /**
+ * 430 当前版本完整 PRD 文件名。
+ */
+export const FRONTIS_COMPLETE_PRD_V430_DOCUMENT_NAME = "Frontis AI · 完整 PRD V430.md";
+
+/**
  * 产品经理专家引用的真实 PRD 文档内容。
  */
 export const PRODUCT_MANAGER_PRD_DOCUMENT_CONTENT = prdDocumentContent;
@@ -53,3 +59,8 @@ export const PRODUCT_MANAGER_ADMIN_PRD_DOCUMENT_CONTENT = adminPrdDocumentConten
  * 产品经理专家引用的 FDE 配置交付 PRD 文档内容。
  */
 export const PRODUCT_MANAGER_FDE_DELIVERY_PRD_DOCUMENT_CONTENT = fdeDeliveryPrdDocumentContent;
+
+/**
+ * 430 当前版本完整 PRD 文档内容。
+ */
+export const FRONTIS_COMPLETE_PRD_V430_DOCUMENT_CONTENT = completePrdV430DocumentContent;

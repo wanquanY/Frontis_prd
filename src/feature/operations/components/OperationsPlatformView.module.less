@@ -68,6 +68,48 @@
   margin-top: 16px;
 }
 
+.contactConfigGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 220px;
+  gap: 18px;
+  align-items: stretch;
+}
+
+.contactConfigForm {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.contactQrPreview {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--surface);
+
+  img {
+    display: block;
+    width: 144px;
+    height: 144px;
+  }
+
+  strong {
+    color: var(--text);
+    font-size: 14px;
+    font-weight: 700;
+  }
+
+  span {
+    color: var(--text-secondary);
+    font-size: 12px;
+  }
+}
+
 .tenantDetailGrid {
   margin-top: 0;
 }
@@ -534,6 +576,14 @@
 
 @media (max-width: 1120px) {
   .detailGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .contactConfigGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .contactConfigForm {
     grid-template-columns: 1fr;
   }
 

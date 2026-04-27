@@ -99,8 +99,21 @@ const normalizeAgentSubscriptionProduct = (
   product: OperationsProduct,
   presetProduct?: OperationsProduct,
 ): OperationsProduct => {
+  const contactMode =
+    product.contactMode ??
+    presetProduct?.contactMode ??
+    (product.supplyKind === "agent" && product.saleType === "paid"
+      ? "platformDefault"
+      : "disabled");
+  const productWithContact: OperationsProduct = {
+    ...product,
+    contactMode,
+    contactQrCodeValue: product.contactQrCodeValue ?? presetProduct?.contactQrCodeValue ?? "",
+    contactRemark: product.contactRemark ?? presetProduct?.contactRemark ?? "",
+  };
+
   if (!shouldUseAgentSubscriptionPlans(product)) {
-    return product;
+    return productWithContact;
   }
 
   const presetPlans = presetProduct?.subscriptionPlans?.length
@@ -114,14 +127,16 @@ const normalizeAgentSubscriptionProduct = (
   ].sort((leftItem, rightItem) => leftItem.sortOrder - rightItem.sortOrder);
 
   return {
-    ...product,
+    ...productWithContact,
     billingSpec: undefined,
     price: undefined,
     subscriptionPlans: mergedPlans.map(plan => ({ ...plan })),
   };
 };
 
-const mergeStoredProductsWithPreset = (storedProducts: OperationsProduct[]): OperationsProduct[] => {
+const mergeStoredProductsWithPreset = (
+  storedProducts: OperationsProduct[],
+): OperationsProduct[] => {
   const storedProductMap = new Map(storedProducts.map(item => [item.id, item]));
   const presetProductIds = new Set(OPERATIONS_INITIAL_PRODUCTS.map(item => item.id));
 
@@ -158,10 +173,7 @@ export const loadStoredOperationsProducts = (): OperationsProduct[] =>
  * 保存运营后台商品中心当前全部商品。
  */
 export const saveStoredOperationsProducts = (products: OperationsProduct[]): void => {
-  saveStoredList(
-    OPERATIONS_PRODUCTS_STORAGE_KEY,
-    products.map(cloneProduct),
-  );
+  saveStoredList(OPERATIONS_PRODUCTS_STORAGE_KEY, products.map(cloneProduct));
 };
 
 /**
@@ -176,13 +188,8 @@ export const loadStoredOperationsFulfillments = (): OperationsFulfillment[] =>
 /**
  * 保存运营后台交付实例列表。
  */
-export const saveStoredOperationsFulfillments = (
-  fulfillments: OperationsFulfillment[],
-): void => {
-  saveStoredList(
-    OPERATIONS_FULFILLMENTS_STORAGE_KEY,
-    fulfillments.map(cloneFulfillment),
-  );
+export const saveStoredOperationsFulfillments = (fulfillments: OperationsFulfillment[]): void => {
+  saveStoredList(OPERATIONS_FULFILLMENTS_STORAGE_KEY, fulfillments.map(cloneFulfillment));
 };
 
 /**
@@ -200,8 +207,5 @@ export const loadStoredOperationsResourcePools = (): OperationsResourcePool[] =>
 export const saveStoredOperationsResourcePools = (
   resourcePools: OperationsResourcePool[],
 ): void => {
-  saveStoredList(
-    OPERATIONS_RESOURCE_POOLS_STORAGE_KEY,
-    resourcePools.map(cloneResourcePool),
-  );
+  saveStoredList(OPERATIONS_RESOURCE_POOLS_STORAGE_KEY, resourcePools.map(cloneResourcePool));
 };

@@ -21,10 +21,12 @@ import {
 import type { ArtifactItem } from "@/types/artifact";
 import { hasUserInAccessScope } from "@/utils/organizationAccess";
 import { isChatAttachmentFileAllowed } from "@/utils/chatAttachmentFileTypes";
+import { AI_CEO_AGENT_HOME_CONFIGS, AI_CEO_DEFAULT_HOME_CONFIG } from "@/constants/aiCeoHome";
 import {
-  AI_CEO_AGENT_HOME_CONFIGS,
-  AI_CEO_DEFAULT_HOME_CONFIG,
-} from "@/constants/aiCeoHome";
+  FRONTIS_COMPLETE_PRD_V430_DOCUMENT_CONTENT,
+  FRONTIS_COMPLETE_PRD_V430_DOCUMENT_NAME,
+} from "@/mocks/documents/productManagerDocuments";
+import { dialogueScenarioRuntimeHelpers } from "@/utils/dialogueScenarioRuntime";
 
 import { DialoguePrototypeView } from "./components/DialoguePrototypeView";
 import {
@@ -171,10 +173,25 @@ const NORMALIZED_INITIAL_DIALOGUE_SESSIONS = [
   ...INITIAL_DIALOGUE_SESSIONS.filter(item => item.employeeId !== DEFAULT_CONVERSATION_EMPLOYEE_ID),
   ...INITIAL_META_AGENT_SEED_SESSIONS,
 ];
+const createMetaAgentV430PrdArtifact = (): ArtifactItem =>
+  dialogueScenarioRuntimeHelpers.createMarkdownArtifact(
+    META_AGENT_PRIMARY_SEED_SESSION_ID,
+    "metaagent-frontis-complete-prd-v430",
+    FRONTIS_COMPLETE_PRD_V430_DOCUMENT_NAME,
+    DEFAULT_WORKSPACE_AGENT_NAME,
+    "430 PRD 交付",
+    FRONTIS_COMPLETE_PRD_V430_DOCUMENT_CONTENT,
+    "刚刚",
+    dialogueScenarioRuntimeHelpers.resolveTextArtifactSize(
+      FRONTIS_COMPLETE_PRD_V430_DOCUMENT_CONTENT,
+    ),
+  );
 const NORMALIZED_INITIAL_DIALOGUE_ARTIFACTS: Record<string, ArtifactItem[]> = {
   ...INITIAL_DIALOGUE_ARTIFACTS,
-  [META_AGENT_PRIMARY_SEED_SESSION_ID]:
-    INITIAL_DIALOGUE_ARTIFACTS[META_AGENT_PRIMARY_SEED_SOURCE_ID] ?? [],
+  [META_AGENT_PRIMARY_SEED_SESSION_ID]: [
+    ...(INITIAL_DIALOGUE_ARTIFACTS[META_AGENT_PRIMARY_SEED_SOURCE_ID] ?? []),
+    createMetaAgentV430PrdArtifact(),
+  ],
 };
 const NORMALIZED_INITIAL_DIALOGUE_RESULTS: Record<string, DialogueGeneratedResultItem[]> = {
   ...INITIAL_DIALOGUE_RESULTS,
@@ -450,7 +467,10 @@ const buildMetaAgentHomeConfig = (
   const metaPromptItems = [
     { id: "metaagent-1", question: PRODUCT_TEAM_COLLAB_QUESTION },
     { id: "metaagent-2", question: PRODUCT_TEAM_RISK_QUESTION },
-    { id: "metaagent-3", question: "结合我的目标，帮我协调有权限的专家给出分工方案和最终交付清单。" },
+    {
+      id: "metaagent-3",
+      question: "结合我的目标，帮我协调有权限的专家给出分工方案和最终交付清单。",
+    },
     { id: "metaagent-4", question: "先判断这个需求该调用哪些专家，再给我一版统一输出。" },
   ];
   const fallbackCaseImage = primaryConfig.caseItems?.[0]?.coverImage;
@@ -716,9 +736,8 @@ const sortConversationEmployees = (employees: EmployeeItem[]): EmployeeItem[] =>
     return 0;
   });
 
-const getInitialActiveEmployeeId = (
-  workspaceMode: "metaAgent" | "expertStudio",
-): string => (workspaceMode === "metaAgent" ? DEFAULT_CONVERSATION_EMPLOYEE_ID : "");
+const getInitialActiveEmployeeId = (workspaceMode: "metaAgent" | "expertStudio"): string =>
+  workspaceMode === "metaAgent" ? DEFAULT_CONVERSATION_EMPLOYEE_ID : "";
 
 /**
  * FrontisAI Web 原型主页面
@@ -739,8 +758,9 @@ const FrontisPage = ({
   const [dialogueArtifactsBySession, setDialogueArtifactsBySession] = useState<
     Record<string, ArtifactItem[]>
   >(NORMALIZED_INITIAL_DIALOGUE_ARTIFACTS);
-  const [dialogueResultsBySession, setDialogueResultsBySession] =
-    useState<Record<string, DialogueGeneratedResultItem[]>>(NORMALIZED_INITIAL_DIALOGUE_RESULTS);
+  const [dialogueResultsBySession, setDialogueResultsBySession] = useState<
+    Record<string, DialogueGeneratedResultItem[]>
+  >(NORMALIZED_INITIAL_DIALOGUE_RESULTS);
   const [activeEmployeeId, setActiveEmployeeId] = useState<string>(() =>
     getInitialActiveEmployeeId(workspaceMode),
   );
@@ -776,9 +796,8 @@ const FrontisPage = ({
         ? (tenantUsers.find(
             item => MANAGEMENT_USER_ROLES.has(item.role) && item.status === "active",
           ) ?? tenantUsers.find(item => MANAGEMENT_USER_ROLES.has(item.role)))
-        : (tenantUsers.find(
-            item => item.role !== "enterpriseAdmin" && item.status === "active",
-          ) ?? tenantUsers.find(item => item.role !== "enterpriseAdmin"))) ??
+        : (tenantUsers.find(item => item.role !== "enterpriseAdmin" && item.status === "active") ??
+          tenantUsers.find(item => item.role !== "enterpriseAdmin"))) ??
       null,
     [session?.userId, tenantUsers, viewRole],
   );
@@ -813,44 +832,41 @@ const FrontisPage = ({
       }),
     [currentUser, roleVisibleEmployees, tenantUsers, viewRole],
   );
-  const deviceDefaultAgents = useMemo(
-    () => {
-      const defaultEmployee =
-        roleVisibleEmployees.find(item => item.id === DEFAULT_CONVERSATION_EMPLOYEE_ID) ??
-        roleVisibleEmployees[0] ??
-        null;
+  const deviceDefaultAgents = useMemo(() => {
+    const defaultEmployee =
+      roleVisibleEmployees.find(item => item.id === DEFAULT_CONVERSATION_EMPLOYEE_ID) ??
+      roleVisibleEmployees[0] ??
+      null;
 
-      if (!defaultEmployee) {
-        return [];
-      }
+    if (!defaultEmployee) {
+      return [];
+    }
 
-      const defaultWorkspace =
-        (currentUser?.assignedWorkspaceIds ?? [])
-          .map(workspaceId => workspaces.find(item => item.id === workspaceId) ?? null)
-          .find((item): item is WorkspaceItem => item !== null) ??
-        workspaces.find(item => item.id === defaultEmployee.workspaceId) ??
-        workspaces[0] ??
-        null;
+    const defaultWorkspace =
+      (currentUser?.assignedWorkspaceIds ?? [])
+        .map(workspaceId => workspaces.find(item => item.id === workspaceId) ?? null)
+        .find((item): item is WorkspaceItem => item !== null) ??
+      workspaces.find(item => item.id === defaultEmployee.workspaceId) ??
+      workspaces[0] ??
+      null;
 
-      const defaultAgent = buildWorkspaceDefaultAgent(
-        defaultEmployee,
-        defaultWorkspace,
-        assignedConversationEmployees,
-        currentUser?.id,
-        currentUser?.name,
-      );
-
-      return defaultAgent ? [defaultAgent] : [];
-    },
-    [
-      currentUser?.assignedWorkspaceIds,
+    const defaultAgent = buildWorkspaceDefaultAgent(
+      defaultEmployee,
+      defaultWorkspace,
+      assignedConversationEmployees,
       currentUser?.id,
       currentUser?.name,
-      assignedConversationEmployees,
-      roleVisibleEmployees,
-      workspaces,
-    ],
-  );
+    );
+
+    return defaultAgent ? [defaultAgent] : [];
+  }, [
+    currentUser?.assignedWorkspaceIds,
+    currentUser?.id,
+    currentUser?.name,
+    assignedConversationEmployees,
+    roleVisibleEmployees,
+    workspaces,
+  ]);
   const conversationEmployeeDirectory = useMemo(() => {
     const mergedEmployees =
       workspaceMode === "metaAgent"
@@ -880,10 +896,7 @@ const FrontisPage = ({
     () => resolveExpertTeamMembers(activeEmployee, conversationEmployeeDirectory),
     [activeEmployee, conversationEmployeeDirectory],
   );
-  const isMetaAgentDialogue = useMemo(
-    () => isMetaAgentEmployee(activeEmployee),
-    [activeEmployee],
-  );
+  const isMetaAgentDialogue = useMemo(() => isMetaAgentEmployee(activeEmployee), [activeEmployee]);
 
   const employeeDialogueSessions = useMemo(
     () =>
@@ -936,8 +949,7 @@ const FrontisPage = ({
     [activeDialogueArtifacts, activeDialogueResults, activeDialogueSession, isMetaAgentDialogue],
   );
   const activeMetaAgentTrajectory = useMemo(
-    () =>
-      metaAgentTrajectoryItems.find(item => item.id === activeMetaAgentTrajectoryId) ?? null,
+    () => metaAgentTrajectoryItems.find(item => item.id === activeMetaAgentTrajectoryId) ?? null,
     [activeMetaAgentTrajectoryId, metaAgentTrajectoryItems],
   );
   const isDialogueResponding = activeCaseReplay
@@ -1164,7 +1176,9 @@ const FrontisPage = ({
       setActiveCaseReplay(null);
       setActiveMetaAgentTrajectoryId(null);
       setIsDialogueHomeActive(false);
-      setActiveDialogueSessionId(employeeDialogueSessions[0]?.id ?? META_AGENT_PRIMARY_SEED_SESSION_ID);
+      setActiveDialogueSessionId(
+        employeeDialogueSessions[0]?.id ?? META_AGENT_PRIMARY_SEED_SESSION_ID,
+      );
       dialogueAttachments.forEach(revokeComposerAttachmentPreview);
       setDialogueAttachments([]);
       setDialogueInputValue("");
@@ -1267,14 +1281,13 @@ const FrontisPage = ({
         .trim();
       const scenarioQuestion = normalizedScenarioQuestion || fallbackContent;
       const isSingleThreadMetaAgentDialogue = isMetaAgentEmployee(activeEmployee);
-      const exactTeamScenario =
-        activeEmployee.isExpertTeam
-          ? findDialogueScenario(
-              resolveDialogueScenarioEmployeeId(activeEmployee),
-              scenarioQuestion,
-              createId("dialogue-scenario"),
-            )
-          : null;
+      const exactTeamScenario = activeEmployee.isExpertTeam
+        ? findDialogueScenario(
+            resolveDialogueScenarioEmployeeId(activeEmployee),
+            scenarioQuestion,
+            createId("dialogue-scenario"),
+          )
+        : null;
       const metaAgentFallbackScenario =
         !exactTeamScenario && isSingleThreadMetaAgentDialogue
           ? findDialogueScenario(
@@ -1291,22 +1304,20 @@ const FrontisPage = ({
           scenarioQuestion,
           createId("dialogue-scenario"),
         );
-      const targetSessionId =
-        isSingleThreadMetaAgentDialogue
-          ? (employeeDialogueSessions[0]?.id ?? META_AGENT_PRIMARY_SEED_SESSION_ID)
-          : !createNewSession && activeDialogueSession?.id
+      const targetSessionId = isSingleThreadMetaAgentDialogue
+        ? (employeeDialogueSessions[0]?.id ?? META_AGENT_PRIMARY_SEED_SESSION_ID)
+        : !createNewSession && activeDialogueSession?.id
           ? activeDialogueSession.id
           : createId("dialogue-session");
-      const nextSessionTitle =
-        isSingleThreadMetaAgentDialogue
-          ? "MetaAegnt 持续对话"
-          : (matchedScenario?.title ??
-            (content.length > 0
-              ? content.slice(0, 18)
-              : (dialogueAttachments[0]?.name ??
-                (effectiveSelectedSkills.length
-                  ? `${effectiveSelectedSkills[0]?.name ?? "技能"}需求`
-                  : "新对话"))));
+      const nextSessionTitle = isSingleThreadMetaAgentDialogue
+        ? "MetaAegnt 持续对话"
+        : (matchedScenario?.title ??
+          (content.length > 0
+            ? content.slice(0, 18)
+            : (dialogueAttachments[0]?.name ??
+              (effectiveSelectedSkills.length
+                ? `${effectiveSelectedSkills[0]?.name ?? "技能"}需求`
+                : "新对话"))));
       const messageAttachments =
         dialogueAttachments.length > 0 ? dialogueAttachments.map(buildAttachmentItem) : undefined;
       const userMessageContent = effectiveSelectedSkills.length
@@ -1708,7 +1719,7 @@ const FrontisPage = ({
 
   const accountMenuItems: MenuProps["items"] = [
     ...(isAdminIdentity
-        ? [
+      ? [
           {
             key: "open-admin-management",
             icon: <AppstoreOutlined />,
@@ -1776,7 +1787,9 @@ const FrontisPage = ({
           homeSkillItems={activeAgentHomeConfig.skillItems}
           isHomeVisible={isDialogueHomeActive}
           isDialogueResponding={isDialogueResponding}
-          defaultAgentIds={workspaceMode === "metaAgent" ? deviceDefaultAgents.map(item => item.id) : []}
+          defaultAgentIds={
+            workspaceMode === "metaAgent" ? deviceDefaultAgents.map(item => item.id) : []
+          }
           onCreateDialogueSession={handleCreateDialogueSession}
           onDialogueAttachmentsSelected={handleDialogueAttachmentsSelected}
           onDialogueInputChange={setDialogueInputValue}

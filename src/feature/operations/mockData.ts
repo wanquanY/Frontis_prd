@@ -20,6 +20,7 @@ import type {
   OperationsAgentPlazaCategoryOption,
   OperationsAgentPlazaVisibility,
   OperationsProduct,
+  OperationsProductContactMode,
   OperationsProductSaleType,
   OperationsProductSubscriptionPlan,
   OperationsProductTrialUnit,
@@ -33,6 +34,7 @@ import type {
   OperationsResourcePoolCapacityUnit,
   OperationsResourcePoolForm,
   OperationsResourcePoolType,
+  OperationsServiceContactConfig,
   OperationsTenant,
   OperationsTenantForm,
   OperationsTenantMemberForm,
@@ -64,6 +66,11 @@ export const OPERATIONS_TAB_OPTIONS: Array<{
     key: "tenants",
     label: "租户管理",
     description: "创建租户并配置管理员账号。",
+  },
+  {
+    key: "organization",
+    label: "组织管理",
+    description: "管理运营账号、运营角色和全平台预设角色。",
   },
   {
     key: "agents",
@@ -354,6 +361,14 @@ export const OPERATIONS_INITIAL_REGISTRATION_STRATEGY: OperationsRegistrationStr
   updatedAt: "2026-04-23 10:30",
 };
 
+export const OPERATIONS_INITIAL_SERVICE_CONTACT_CONFIG: OperationsServiceContactConfig = {
+  enabled: true,
+  contactName: "FrontisAI 客服",
+  qrCodeValue: "frontis-service-contact-default",
+  remarkTemplate: "添加时请备注 AI 专家名称，客服会根据你的使用场景确认后续方案。",
+  updatedAt: "2026-04-24 20:30",
+};
+
 export const OPERATIONS_INITIAL_REFERRAL_RECORDS: OperationsReferralRecord[] = [
   {
     id: "ops-referral-001",
@@ -597,6 +612,9 @@ export const OPERATIONS_INITIAL_PRODUCTS: OperationsProduct[] = [
     supportsTrial: false,
     trialUnit: "day",
     trialValue: 7,
+    contactMode: "platformDefault",
+    contactQrCodeValue: "",
+    contactRemark: "",
     status: "pendingProductization",
     plazaCategory: "通用",
     plazaVisibility: "public",
@@ -653,6 +671,9 @@ export const OPERATIONS_INITIAL_PRODUCTS: OperationsProduct[] = [
     supportsTrial: true,
     trialUnit: "day",
     trialValue: 14,
+    contactMode: "platformDefault",
+    contactQrCodeValue: "",
+    contactRemark: "",
     status: "active",
     plazaCategory: "供应链",
     plazaVisibility: "public",
@@ -678,6 +699,9 @@ export const OPERATIONS_INITIAL_PRODUCTS: OperationsProduct[] = [
     supportsTrial: false,
     trialUnit: "day",
     trialValue: 7,
+    contactMode: "disabled",
+    contactQrCodeValue: "",
+    contactRemark: "",
     status: "active",
     updatedAt: "2026-04-15 18:28",
   },
@@ -735,6 +759,9 @@ export const OPERATIONS_INITIAL_PRODUCTS: OperationsProduct[] = [
     supportsTrial: false,
     trialUnit: "day",
     trialValue: 7,
+    contactMode: "disabled",
+    contactQrCodeValue: "",
+    contactRemark: "",
     status: "active",
     updatedAt: "2026-04-17 10:40",
   },
@@ -771,6 +798,9 @@ export const OPERATIONS_INITIAL_PRODUCTS: OperationsProduct[] = [
     supportsTrial: false,
     trialUnit: "day",
     trialValue: 7,
+    contactMode: "disabled",
+    contactQrCodeValue: "",
+    contactRemark: "",
     status: "active",
     plazaCategory: "办公协同",
     plazaVisibility: "public",
@@ -1073,6 +1103,22 @@ export const OPERATIONS_PRODUCT_TRIAL_UNIT_LABELS: Record<OperationsProductTrial
   day: "天",
   count: "次",
 };
+
+export const OPERATIONS_PRODUCT_CONTACT_MODE_LABELS: Record<OperationsProductContactMode, string> =
+  {
+    disabled: "不展示联系客服",
+    platformDefault: "使用平台默认客服",
+    custom: "商品专属客服",
+  };
+
+export const OPERATIONS_PRODUCT_CONTACT_MODE_OPTIONS: Array<{
+  value: OperationsProductContactMode;
+  label: string;
+}> = [
+  { value: "platformDefault", label: OPERATIONS_PRODUCT_CONTACT_MODE_LABELS.platformDefault },
+  { value: "custom", label: OPERATIONS_PRODUCT_CONTACT_MODE_LABELS.custom },
+  { value: "disabled", label: OPERATIONS_PRODUCT_CONTACT_MODE_LABELS.disabled },
+];
 
 export const OPERATIONS_PRODUCT_SUPPLY_KIND_LABELS: Record<
   OperationsProduct["supplyKind"],
@@ -1496,6 +1542,9 @@ export const createEmptyOperationsProductForm = (): OperationsProductForm => ({
   supportsTrial: false,
   trialUnit: "day",
   trialValue: 7,
+  contactMode: "platformDefault",
+  contactQrCodeValue: "",
+  contactRemark: "",
 });
 
 export const createEmptyOperationsResourcePoolForm = (): OperationsResourcePoolForm => ({

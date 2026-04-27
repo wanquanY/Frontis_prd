@@ -8,6 +8,7 @@ export type OperationsRole = "superAdmin" | "operator";
  */
 export type OperationsPlatformTabKey =
   | "tenants"
+  | "organization"
   | "agents"
   | "products"
   | "fulfillment"
@@ -85,6 +86,11 @@ export type OperationsProductSubscriptionPlanStatus = "active" | "inactive";
  * 商品试用规则。
  */
 export type OperationsProductTrialUnit = "day" | "count";
+
+/**
+ * Agent 商品联系客服入口模式。
+ */
+export type OperationsProductContactMode = "disabled" | "platformDefault" | "custom";
 
 /**
  * 商品供给类型。
@@ -287,6 +293,17 @@ export interface OperationsRegistrationStrategy {
   pointsPerCny: number;
   minimumDeductPoints: number;
   roundingUnit: number;
+  updatedAt: string;
+}
+
+/**
+ * 平台默认客服二维码配置。
+ */
+export interface OperationsServiceContactConfig {
+  enabled: boolean;
+  contactName: string;
+  qrCodeValue: string;
+  remarkTemplate: string;
   updatedAt: string;
 }
 
@@ -526,6 +543,9 @@ export interface OperationsProduct {
   supportsTrial: boolean;
   trialUnit?: OperationsProductTrialUnit;
   trialValue?: number;
+  contactMode?: OperationsProductContactMode;
+  contactQrCodeValue?: string;
+  contactRemark?: string;
   status: OperationsProductStatus;
   plazaCategory?: OperationsAgentPlazaCategory;
   plazaVisibility?: OperationsAgentPlazaVisibility;
@@ -555,6 +575,9 @@ export interface OperationsProductForm {
   supportsTrial: boolean;
   trialUnit: OperationsProductTrialUnit;
   trialValue: number;
+  contactMode: OperationsProductContactMode;
+  contactQrCodeValue: string;
+  contactRemark: string;
 }
 
 /**

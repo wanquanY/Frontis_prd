@@ -28,6 +28,7 @@ import {
   saveStoredOperationsFulfillments,
 } from "@/feature/operations/commerceStorage";
 import { loadStoredAgentPlazaCategories } from "@/feature/operations/agentPlazaCategoryStorage";
+import { loadOperationsServiceContactConfig } from "@/feature/operations/platformConfigStorage";
 import { OPERATIONS_AGENT_PLAZA_DEFAULT_CATEGORY } from "@/feature/operations/mockData";
 import type {
   OperationsAgentPlazaCategoryOption,
@@ -37,6 +38,7 @@ import type {
   OperationsProductDeliveryKind,
   OperationsProductSubscriptionPlan,
   OperationsProductSubscriptionPlanKey,
+  OperationsServiceContactConfig,
 } from "@/feature/operations/types";
 import { getAvatarUrl } from "@/pages/utils";
 
@@ -51,8 +53,8 @@ type AgentShelfFilter = "all" | "mine" | "teamShare" | "frontis";
 type BusinessLineFilter = "all" | BusinessLineKey;
 type BusinessLineKey = OperationsAgentPlazaCategoryOption["name"];
 type AgentSourceType = "mine" | "teamShare" | "frontis";
-type AgentActionKind = "addWorkspace" | "openFree" | "openTrial" | "openPurchase" | "viewOrder";
-type AgentAcquisitionMode = "free" | "trial" | "purchase";
+type AgentActionKind = "addWorkspace" | "openTrial" | "openPurchase" | "openContact" | "viewOrder";
+type AgentAcquisitionMode = "trial" | "purchase";
 type AcquisitionStep = "summary" | "pay" | "success";
 type BadgeTone = "success" | "warning" | "danger" | "processing";
 
@@ -150,6 +152,11 @@ interface AcquisitionState {
   countdownSeconds: number;
   isProcessingPayment: boolean;
   completedOrderId?: string;
+}
+
+interface ContactState {
+  open: boolean;
+  agentId?: string;
 }
 
 interface OrderStatusMeta {
@@ -448,6 +455,10 @@ const createDefaultAcquisitionState = (): AcquisitionState => ({
   isProcessingPayment: false,
 });
 
+const createDefaultContactState = (): ContactState => ({
+  open: false,
+});
+
 const getBusinessLineLabel = (line: BusinessLineKey): string =>
   line.trim() || OPERATIONS_AGENT_PLAZA_DEFAULT_CATEGORY;
 
@@ -521,7 +532,7 @@ const getProductPriceLabel = (
   selectedPlanKey?: OperationsProductSubscriptionPlanKey,
 ): string => {
   if (product.saleType === "free") {
-    return "免费领取";
+    return "免费";
   }
 
   const selectedPlan = getSelectedSubscriptionPlan(product, selectedPlanKey);
@@ -589,12 +600,70 @@ const getVisibilityLabel = (agent: StoreAgentItem): string => {
   return "FrontisAI发布";
 };
 
-const getAcquisitionLabel = (product: OperationsProduct): string => {
+const getAcquisitionLabel = (product: OperationsProduct, isTeamEdition: boolean): string => {
   if (product.saleType === "free") {
-    return "免费领取";
+    return "可直接添加";
+  }
+
+  if (!isTeamEdition) {
+    const contactLabel = getProductContactMode(product) === "disabled" ? "咨询开通" : "联系我们";
+
+    return product.supportsTrial ? `可试用 / ${contactLabel}` : contactLabel;
   }
 
   return product.supportsTrial ? "可试用 / 订阅" : "付费订阅";
+};
+
+const getProductContactMode = (
+  product: OperationsProduct | undefined,
+): NonNullable<OperationsProduct["contactMode"]> => {
+  if (!product) {
+    return "disabled";
+  }
+
+  return (
+    product.contactMode ??
+    (product.supplyKind === "agent" && product.saleType === "paid" ? "platformDefault" : "disabled")
+  );
+};
+
+const isProductContactAvailable = (
+  product: OperationsProduct | undefined,
+  serviceContactConfig: OperationsServiceContactConfig,
+): boolean => {
+  const contactMode = getProductContactMode(product);
+
+  if (contactMode === "disabled") {
+    return false;
+  }
+
+  if (contactMode === "custom") {
+    return Boolean(product?.contactQrCodeValue?.trim());
+  }
+
+  return serviceContactConfig.enabled && Boolean(serviceContactConfig.qrCodeValue.trim());
+};
+
+const getAgentContactQrValue = (
+  agent: StoreAgentItem | null,
+  serviceContactConfig: OperationsServiceContactConfig,
+): string => {
+  if (getProductContactMode(agent?.product) === "custom") {
+    return agent?.product?.contactQrCodeValue?.trim() || serviceContactConfig.qrCodeValue;
+  }
+
+  return serviceContactConfig.qrCodeValue;
+};
+
+const getAgentContactRemark = (
+  agent: StoreAgentItem,
+  serviceContactConfig: OperationsServiceContactConfig,
+): string => {
+  const customRemark =
+    getProductContactMode(agent.product) === "custom" ? agent.product?.contactRemark?.trim() : "";
+  const remarkTemplate = customRemark || serviceContactConfig.remarkTemplate;
+
+  return remarkTemplate.replace(/AI 专家名称/g, agent.name);
 };
 
 const getCommodityApplicationStatusLabel = (
@@ -791,6 +860,7 @@ const buildPlatformAgentVersions = (
 const buildFrontisAgents = (
   products: OperationsProduct[],
   tenantId: string,
+  isTeamEdition: boolean,
   latestOrdersByProductId: Map<string, EnterpriseAgentOrderRecord>,
   latestFulfillmentsByProductId: Map<string, OperationsFulfillment>,
 ): StoreAgentItem[] =>
@@ -842,7 +912,7 @@ const buildFrontisAgents = (
         versions: buildPlatformAgentVersions(product, updatedAt),
         priceLabel: getProductPriceLabel(product),
         trialLabel: getProductTrialLabel(product),
-        acquisitionLabel: getAcquisitionLabel(product),
+        acquisitionLabel: getAcquisitionLabel(product, isTeamEdition),
         deliveryLabel: getDeliveryLabel(product.deliveryKind),
         product,
         order: latestOrdersByProductId.get(product.id) ?? null,
@@ -886,7 +956,7 @@ const resolveLatestFulfillmentsByProductId = (
       return result;
     }, new Map<string, OperationsFulfillment>());
 
-const getCardContextLabel = (agent: StoreAgentItem): string => {
+const getCardContextLabel = (agent: StoreAgentItem, isTeamEdition: boolean): string => {
   if (agent.sourceType === "mine") {
     return agent.commodityApplication?.proposedProductName ?? "我开发的 AI专家";
   }
@@ -900,7 +970,11 @@ const getCardContextLabel = (agent: StoreAgentItem): string => {
   }
 
   if (agent.product?.saleType === "free") {
-    return "可免费获取";
+    return "可直接添加到工作台";
+  }
+
+  if (!isTeamEdition) {
+    return agent.trialLabel ? "可先试用，正式使用请联系客服" : "联系客服获取开通方案";
   }
 
   return agent.trialLabel ? "支持试用后订阅" : "订阅后立即可用";
@@ -924,7 +998,11 @@ const getCardContextMeta = (agent: StoreAgentItem): string => {
   return agent.trialLabel ?? agent.deliveryLabel;
 };
 
-const getAgentActionConfig = (agent: StoreAgentItem): AgentActionConfig => {
+const getAgentActionConfig = (
+  agent: StoreAgentItem,
+  isTeamEdition: boolean,
+  serviceContactConfig: OperationsServiceContactConfig,
+): AgentActionConfig => {
   if (agent.sourceType === "mine" || agent.sourceType === "teamShare") {
     return {
       primaryLabel: "添加到工作台",
@@ -947,9 +1025,19 @@ const getAgentActionConfig = (agent: StoreAgentItem): AgentActionConfig => {
 
   if (agent.product?.saleType === "free") {
     return {
-      primaryLabel: "免费获取",
-      primaryAction: "openFree",
+      primaryLabel: "添加到工作台",
+      primaryAction: "addWorkspace",
       tone: "primary",
+    };
+  }
+
+  if (!isTeamEdition && isProductContactAvailable(agent.product, serviceContactConfig)) {
+    return {
+      primaryLabel: "联系我们",
+      primaryAction: "openContact",
+      tone: "primary",
+      secondaryLabel: agent.product?.supportsTrial ? "免费试用" : undefined,
+      secondaryAction: agent.product?.supportsTrial ? "openTrial" : undefined,
     };
   }
 
@@ -1046,7 +1134,11 @@ export const FdeAgentStoreView = ({
   const [acquisitionState, setAcquisitionState] = useState<AcquisitionState>(
     createDefaultAcquisitionState(),
   );
+  const [contactState, setContactState] = useState<ContactState>(createDefaultContactState());
   const [activeOrderId, setActiveOrderId] = useState<string | null>(null);
+  const [serviceContactConfig, setServiceContactConfig] = useState<OperationsServiceContactConfig>(
+    () => loadOperationsServiceContactConfig(),
+  );
 
   const currentTenantId = activeIdentity?.tenantId ?? DEFAULT_TENANT_ID;
   const currentTenantName = activeIdentity?.tenantName ?? DEFAULT_TENANT_NAME;
@@ -1081,6 +1173,7 @@ export const FdeAgentStoreView = ({
     setOrders(loadEnterpriseAgentOrders());
     setCommodityApplications(loadEnterpriseCommodityApplications());
     setAgentPlazaCategories(loadStoredAgentPlazaCategories());
+    setServiceContactConfig(loadOperationsServiceContactConfig());
   }, []);
 
   useEffect(() => {
@@ -1163,10 +1256,17 @@ export const FdeAgentStoreView = ({
       buildFrontisAgents(
         products,
         currentTenantId,
+        isTeamEdition,
         latestOrdersByProductId,
         latestFulfillmentsByProductId,
       ),
-    [currentTenantId, latestFulfillmentsByProductId, latestOrdersByProductId, products],
+    [
+      currentTenantId,
+      isTeamEdition,
+      latestFulfillmentsByProductId,
+      latestOrdersByProductId,
+      products,
+    ],
   );
 
   const allAgents = useMemo(
@@ -1207,8 +1307,11 @@ export const FdeAgentStoreView = ({
   );
 
   const selectedAgentAction = useMemo(
-    () => (selectedAgent ? getAgentActionConfig(selectedAgent) : null),
-    [selectedAgent],
+    () =>
+      selectedAgent
+        ? getAgentActionConfig(selectedAgent, isTeamEdition, serviceContactConfig)
+        : null,
+    [isTeamEdition, selectedAgent, serviceContactConfig],
   );
 
   const activeOrder = useMemo(
@@ -1278,6 +1381,19 @@ export const FdeAgentStoreView = ({
 
   const isAcquisitionQrExpired =
     acquisitionState.step === "pay" && acquisitionState.countdownSeconds <= 0;
+
+  const contactAgent = useMemo(
+    () =>
+      contactState.agentId
+        ? (frontisAgents.find(agent => agent.id === contactState.agentId) ?? null)
+        : null,
+    [contactState.agentId, frontisAgents],
+  );
+
+  const serviceContactQrImage = useMemo(
+    () => buildMockPaymentQr(getAgentContactQrValue(contactAgent, serviceContactConfig)),
+    [contactAgent, serviceContactConfig],
+  );
 
   const resetAcquisitionState = useCallback((): void => {
     setAcquisitionState(createDefaultAcquisitionState());
@@ -1395,6 +1511,21 @@ export const FdeAgentStoreView = ({
     resetAcquisitionState();
   }, [resetAcquisitionState]);
 
+  const openServiceContact = useCallback((agent: StoreAgentItem): void => {
+    if (agent.sourceType !== "frontis") {
+      return;
+    }
+
+    setContactState({
+      open: true,
+      agentId: agent.id,
+    });
+  }, []);
+
+  const closeServiceContact = useCallback((): void => {
+    setContactState(createDefaultContactState());
+  }, []);
+
   const openOrderDetail = useCallback((orderId: string): void => {
     setActiveOrderId(orderId);
   }, []);
@@ -1403,9 +1534,53 @@ export const FdeAgentStoreView = ({
     setActiveOrderId(null);
   }, []);
 
-  const handleAddToWorkspace = useCallback((agentName: string): void => {
-    message.success(`${agentName} 已添加到当前工作台。`);
-  }, []);
+  const handleAddToWorkspace = useCallback(
+    (agent: StoreAgentItem): void => {
+      if (
+        agent.sourceType === "frontis" &&
+        agent.product?.saleType === "free" &&
+        !agent.fulfillment
+      ) {
+        const nowLabel = dayjs().format("YYYY-MM-DD HH:mm");
+        const orderNo = buildMockPaymentOrderId("free");
+        const nextFulfillment: OperationsFulfillment = {
+          id: `ops-fulfillment-frontis-${Date.now()}`,
+          orderNo,
+          tenantId: currentTenantId,
+          tenantName: currentTenantName,
+          productId: agent.product.id,
+          productName: agent.product.name,
+          deliveryKind: agent.product.deliveryKind,
+          quantity: 1,
+          status: "active",
+          resourcePoolId: agent.product.resourcePoolId,
+          resourcePoolName: agent.product.resourcePoolName,
+          allocationTarget: `已开通至 ${currentTenantName}`,
+          startsAt: nowLabel,
+          updatedAt: nowLabel,
+        };
+        const nextFulfillments = [
+          nextFulfillment,
+          ...fulfillments.filter(
+            item =>
+              !(
+                item.tenantId === currentTenantId &&
+                item.productId === agent.product?.id &&
+                ACTIVE_FULFILLMENT_STATUSES.has(item.status)
+              ),
+          ),
+        ];
+
+        saveStoredOperationsFulfillments(nextFulfillments);
+        refreshStorefrontState();
+        message.success(`${agent.name} 已添加到当前工作台。`);
+        return;
+      }
+
+      message.success(`${agent.name} 已添加到当前工作台。`);
+    },
+    [currentTenantId, currentTenantName, fulfillments, refreshStorefrontState],
+  );
 
   const completeAcquisition = useCallback(
     (agent: StoreAgentItem, mode: AgentAcquisitionMode, orderNo: string): void => {
@@ -1463,39 +1638,34 @@ export const FdeAgentStoreView = ({
 
       saveStoredOperationsFulfillments(nextFulfillments);
 
-      let createdOrderId: string | undefined;
+      const purchasePriceLabel =
+        mode === "trial"
+          ? (agent.trialLabel ?? "免费试用")
+          : getProductPriceLabel(agent.product, selectedPlan?.key);
+      const nextOrder: EnterpriseAgentOrderRecord = {
+        id: `agent-order-${Date.now()}`,
+        tenantId: currentTenantId,
+        tenantName: currentTenantName,
+        productId: agent.product.id,
+        productName: agent.product.name,
+        agentName: agent.name,
+        orderNo,
+        orderType: mode === "trial" ? "trial" : "purchase",
+        status: mode === "trial" ? "trialing" : "active",
+        amount: mode === "trial" ? 0 : (selectedPlan?.price ?? agent.product.price ?? 0),
+        priceLabel: purchasePriceLabel,
+        subscriptionPlanKey: selectedPlan?.key,
+        subscriptionPlanLabel: selectedPlan?.title,
+        subscriptionDurationLabel: selectedPlan?.durationLabel,
+        paymentChannelLabel: mode === "purchase" ? "统一扫码支付" : "试用开通",
+        purchaserName: currentUserName,
+        createdAt: nowLabel,
+        startsAt: nowLabel,
+        paidAt: mode === "purchase" ? nowLabel : undefined,
+        expiresAt,
+      };
 
-      if (mode !== "free") {
-        const purchasePriceLabel =
-          mode === "trial"
-            ? (agent.trialLabel ?? "免费试用")
-            : getProductPriceLabel(agent.product, selectedPlan?.key);
-        const nextOrder: EnterpriseAgentOrderRecord = {
-          id: `agent-order-${Date.now()}`,
-          tenantId: currentTenantId,
-          tenantName: currentTenantName,
-          productId: agent.product.id,
-          productName: agent.product.name,
-          agentName: agent.name,
-          orderNo,
-          orderType: mode === "trial" ? "trial" : "purchase",
-          status: mode === "trial" ? "trialing" : "active",
-          amount: mode === "trial" ? 0 : (selectedPlan?.price ?? agent.product.price ?? 0),
-          priceLabel: purchasePriceLabel,
-          subscriptionPlanKey: selectedPlan?.key,
-          subscriptionPlanLabel: selectedPlan?.title,
-          subscriptionDurationLabel: selectedPlan?.durationLabel,
-          paymentChannelLabel: mode === "purchase" ? "统一扫码支付" : "试用开通",
-          purchaserName: currentUserName,
-          createdAt: nowLabel,
-          startsAt: nowLabel,
-          paidAt: mode === "purchase" ? nowLabel : undefined,
-          expiresAt,
-        };
-
-        createdOrderId = nextOrder.id;
-        saveEnterpriseAgentOrders([nextOrder, ...orders]);
-      }
+      saveEnterpriseAgentOrders([nextOrder, ...orders]);
 
       refreshStorefrontState();
 
@@ -1503,14 +1673,9 @@ export const FdeAgentStoreView = ({
         ...currentState,
         step: "success",
         isProcessingPayment: false,
-        completedOrderId: createdOrderId,
+        completedOrderId: nextOrder.id,
         orderNo,
       }));
-
-      if (mode === "free") {
-        message.success(`${agent.name} 已免费开通到 ${currentTenantPurchaseName}。`);
-        return;
-      }
 
       if (mode === "trial") {
         message.success(`${agent.name} 已开通试用。`);
@@ -1582,12 +1747,7 @@ export const FdeAgentStoreView = ({
   const handlePrimaryAction = useCallback(
     (agent: StoreAgentItem, action: AgentActionKind): void => {
       if (action === "addWorkspace") {
-        handleAddToWorkspace(agent.name);
-        return;
-      }
-
-      if (action === "openFree") {
-        openAcquisition(agent, "free");
+        handleAddToWorkspace(agent);
         return;
       }
 
@@ -1601,6 +1761,11 @@ export const FdeAgentStoreView = ({
         return;
       }
 
+      if (action === "openContact") {
+        openServiceContact(agent);
+        return;
+      }
+
       if (action === "viewOrder" && agent.order) {
         openOrderDetail(agent.order.id);
         return;
@@ -1608,7 +1773,7 @@ export const FdeAgentStoreView = ({
 
       return;
     },
-    [handleAddToWorkspace, openAcquisition, openOrderDetail],
+    [handleAddToWorkspace, openAcquisition, openOrderDetail, openServiceContact],
   );
 
   const detailContent = useMemo((): JSX.Element | null => {
@@ -1656,7 +1821,7 @@ export const FdeAgentStoreView = ({
 
       <div className={styles.agentGrid}>
         {filteredAgents.map(agent => {
-          const actionConfig = getAgentActionConfig(agent);
+          const actionConfig = getAgentActionConfig(agent, isTeamEdition, serviceContactConfig);
           const orderStatusMeta = agent.order ? getOrderStatusMeta(agent.order) : null;
 
           return (
@@ -1708,7 +1873,7 @@ export const FdeAgentStoreView = ({
                   <p className={styles.agentDescription}>{agent.summary}</p>
 
                   <div className={styles.cardDeliveryInfo}>
-                    <strong>{getCardContextLabel(agent)}</strong>
+                    <strong>{getCardContextLabel(agent, isTeamEdition)}</strong>
                     <span>{getCardContextMeta(agent)}</span>
                   </div>
                 </div>
@@ -1880,15 +2045,56 @@ export const FdeAgentStoreView = ({
         className={styles.orderRequestModal}
         destroyOnClose={true}
         footer={null}
+        onCancel={closeServiceContact}
+        open={contactState.open && Boolean(contactAgent)}
+        title={
+          <span className={styles.detailModalTitle}>
+            联系{serviceContactConfig.contactName || "客服"}
+          </span>
+        }
+        width={520}
+      >
+        {contactAgent ? (
+          <div className={styles.contactServiceBody}>
+            <div className={styles.orderRequestSummary}>
+              <div>
+                <strong>{contactAgent.name}</strong>
+                <span>扫码添加客服，咨询试用、开通方案或交付安排。</span>
+              </div>
+            </div>
+
+            <div className={styles.contactQrPanel}>
+              <div className={styles.contactQrCard}>
+                <img
+                  alt="FrontisAI 客服二维码"
+                  className={styles.contactQrImage}
+                  src={serviceContactQrImage}
+                />
+              </div>
+              <div className={styles.contactQrCopy}>
+                <strong>扫码添加客服</strong>
+                <span>{getAgentContactRemark(contactAgent, serviceContactConfig)}</span>
+              </div>
+            </div>
+
+            <div className={styles.orderRequestFooter}>
+              <Button type="primary" onClick={closeServiceContact}>
+                我知道了
+              </Button>
+            </div>
+          </div>
+        ) : null}
+      </Modal>
+
+      <Modal
+        className={styles.orderRequestModal}
+        destroyOnClose={true}
+        footer={null}
         onCancel={closeAcquisition}
         open={acquisitionState.open && Boolean(acquisitionAgent)}
         title={
           <span className={styles.detailModalTitle}>
-            {acquisitionState.mode === "purchase"
-              ? "订阅 AI 专家"
-              : acquisitionState.mode === "trial"
-                ? "开通试用"
-                : "免费获取"}
+            {acquisitionState.mode === "purchase" ? "订阅 AI 专家" : "开通试用"}
           </span>
         }
         width={acquisitionState.mode === "purchase" && acquisitionPlans.length >= 2 ? 920 : 580}
@@ -1905,9 +2111,7 @@ export const FdeAgentStoreView = ({
                   <span className={styles.detailMetaChip}>
                     {acquisitionState.mode === "purchase"
                       ? `为${currentTenantPurchaseName}购买`
-                      : acquisitionState.mode === "trial"
-                        ? (acquisitionAgent.trialLabel ?? "免费试用")
-                        : "免费领取"}
+                      : (acquisitionAgent.trialLabel ?? "免费试用")}
                   </span>
                 </div>
 
@@ -2008,9 +2212,7 @@ export const FdeAgentStoreView = ({
                       </div>
                       <div className={styles.detailKeyValueItem}>
                         <span className={styles.detailKeyValueLabel}>获取方式</span>
-                        <strong className={styles.detailKeyValueValue}>
-                          {acquisitionState.mode === "trial" ? "免费试用" : "免费领取"}
-                        </strong>
+                        <strong className={styles.detailKeyValueValue}>免费试用</strong>
                       </div>
                     </div>
                   </div>
@@ -2030,13 +2232,11 @@ export const FdeAgentStoreView = ({
                         completeAcquisition(
                           acquisitionAgent,
                           acquisitionState.mode,
-                          buildMockPaymentOrderId(
-                            acquisitionState.mode === "trial" ? "trial" : "free",
-                          ),
+                          buildMockPaymentOrderId("trial"),
                         )
                       }
                     >
-                      {acquisitionState.mode === "trial" ? "确认试用" : "确认领取"}
+                      确认试用
                     </Button>
                   ) : null}
                 </div>

@@ -10,6 +10,7 @@ import {
   ReadOutlined,
   RobotOutlined,
   AppstoreOutlined,
+  SafetyCertificateOutlined,
   TeamOutlined,
 } from "@ant-design/icons";
 import type { MenuProps } from "antd";
@@ -52,6 +53,7 @@ import {
 } from "./components/agentStore/utils";
 import { ModelConfigurationView } from "./components/ModelConfigurationView";
 import { OrganizationManagementView } from "./components/OrganizationManagementView";
+import { RoleManagementView } from "./components/RoleManagementView";
 import { TenantPointsRechargeModal } from "./components/TenantPointsRechargeModal";
 import { TenantReferralInviteModal } from "./components/TenantReferralInviteModal";
 import { TenantOverviewView } from "./components/TenantOverviewView";
@@ -143,6 +145,12 @@ const FRONTIS_ADMIN_TABS: FrontisWebTabItem[] = [
     icon: <TeamOutlined />,
     roles: ["admin"],
   },
+  {
+    key: "roleManagement",
+    label: "角色管理",
+    icon: <SafetyCertificateOutlined />,
+    roles: ["admin"],
+  },
 ];
 
 const FRONTIS_ADMIN_TAB_KEYS = new Set<FrontisWebTabKey>(FRONTIS_ADMIN_TABS.map(item => item.key));
@@ -212,7 +220,9 @@ const FrontisAdminPage = (): JSX.Element => {
   const visibleAdminTabs = useMemo<FrontisWebTabItem[]>(
     () =>
       FRONTIS_ADMIN_TABS.filter(item =>
-        item.key === "organization" ? tenantSnapshot?.edition === "team" : true,
+        item.key === "organization" || item.key === "roleManagement"
+          ? tenantSnapshot?.edition === "team"
+          : true,
       ),
     [tenantSnapshot?.edition],
   );
@@ -960,6 +970,10 @@ const FrontisAdminPage = (): JSX.Element => {
       );
     }
 
+    if (activeTabKey === "roleManagement") {
+      return <RoleManagementView tenantSnapshot={tenantSnapshot} users={effectiveUsers} />;
+    }
+
     return (
       <AgentStoreView
         currentUserName={currentUser?.name}
@@ -1035,20 +1049,29 @@ const FrontisAdminPage = (): JSX.Element => {
               [styles.adminSidebarSectionCollapsed]: isSidebarCollapsed,
             })}
           >
-            {visibleAdminTabs.map(item => (
-              <button
-                key={item.key}
-                type="button"
-                className={classNames(styles.adminNavButton, {
-                  [styles.adminNavButtonActive]: item.key === activeTabKey,
-                  [styles.adminNavButtonCollapsed]: isSidebarCollapsed,
-                })}
-                onClick={() => handleSelectTab(item.key)}
-              >
-                <span className={styles.tabIcon}>{item.icon}</span>
-                <span className={styles.tabLabel}>{item.label}</span>
-              </button>
-            ))}
+            {visibleAdminTabs.map(item => {
+              const isRoleManagement = item.key === "roleManagement";
+              const isOrganizationParentActive =
+                item.key === "organization" &&
+                (activeTabKey === "organization" || activeTabKey === "roleManagement");
+
+              return (
+                <button
+                  key={item.key}
+                  type="button"
+                  className={classNames(styles.adminNavButton, {
+                    [styles.adminNavButtonActive]:
+                      item.key === activeTabKey || isOrganizationParentActive,
+                    [styles.adminNavButtonCollapsed]: isSidebarCollapsed,
+                    [styles.adminSubNavButton]: isRoleManagement,
+                  })}
+                  onClick={() => handleSelectTab(item.key)}
+                >
+                  <span className={styles.tabIcon}>{item.icon}</span>
+                  <span className={styles.tabLabel}>{item.label}</span>
+                </button>
+              );
+            })}
           </div>
 
           <div

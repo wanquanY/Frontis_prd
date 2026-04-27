@@ -21,6 +21,7 @@ export type FrontisWebTabKey =
   | "models"
   | "access"
   | "organization"
+  | "roleManagement"
   | "notifications";
 
 /**
@@ -31,7 +32,15 @@ export type WorkspaceType = "cloud" | "local" | "edge";
 /**
  * 通用状态色值枚举。
  */
-export type StatusTone = "online" | "busy" | "idle" | "pending" | "paused" | "draft" | "offline" | "error";
+export type StatusTone =
+  | "online"
+  | "busy"
+  | "idle"
+  | "pending"
+  | "paused"
+  | "draft"
+  | "offline"
+  | "error";
 
 /**
  * 用户侧 AI 专家状态。

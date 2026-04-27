@@ -15,6 +15,7 @@ import {
   RobotOutlined,
   SearchOutlined,
   ShopOutlined,
+  TeamOutlined,
 } from "@ant-design/icons";
 import type { MenuProps } from "antd";
 import {
@@ -32,6 +33,7 @@ import {
 import classNames from "classnames";
 import { useNavigate, useParams } from "react-router-dom";
 
+import { buildMockPaymentQr } from "@/feature/commerce/mockPayment";
 import { useOperationsAuth } from "@/feature/operations/hooks/useOperationsAuth";
 import { useOperationsPlatform } from "@/feature/operations/hooks/useOperationsPlatform";
 import type { MockTenantPointsOrderItem, MockTenantPointsOrderStatus } from "@/feature/auth/types";
@@ -61,6 +63,7 @@ import type {
   OperationsProductForm,
   OperationsResourcePool,
   OperationsResourcePoolForm,
+  OperationsServiceContactConfig,
   OperationsTenant,
   OperationsTenantForm,
   OperationsTenantMemberForm,
@@ -69,6 +72,7 @@ import adminStyles from "@/pages/components/FrontisAdminViews.module.less";
 import shellStyles from "@/pages/FrontisPage.module.less";
 
 import { OperationsPointsConsole } from "./OperationsPointsConsole";
+import { OperationsOrganizationConsole } from "./OperationsOrganizationConsole";
 import styles from "./OperationsPlatformView.module.less";
 import {
   OperationsResourceMeteringConsole,
@@ -133,7 +137,7 @@ interface RejectEditorState {
 }
 
 type AgentFilterValue = "all" | OperationsAgentSubmission["status"];
-type AgentPlazaConsoleTabKey = "delivery" | "category";
+type AgentPlazaConsoleTabKey = "delivery" | "category" | "contact";
 type TenantDetailTabKey = "base" | "members";
 type ProductConsoleTabKey = "standard" | "points" | "team" | "seat";
 type ResourcePoolConsoleTabKey = "pools" | OperationsResourceMeteringMode;
@@ -164,11 +168,20 @@ interface AgentPlazaConsoleProps {
   products: OperationsProduct[];
   tenants: OperationsTenant[];
   categories: OperationsAgentPlazaCategoryOption[];
+  serviceContactConfig: OperationsServiceContactConfig;
   plazaVisibilityLabels: typeof OPERATIONS_AGENT_PLAZA_VISIBILITY_LABELS;
   onEdit: (product: OperationsProduct) => void;
   onCreateCategory: () => void;
   onEditCategory: (category: OperationsAgentPlazaCategoryOption) => void;
   onToggleCategoryStatus: (category: OperationsAgentPlazaCategoryOption) => void;
+  onUpdateServiceContactConfig: (
+    patch: Partial<
+      Pick<
+        OperationsServiceContactConfig,
+        "enabled" | "contactName" | "qrCodeValue" | "remarkTemplate"
+      >
+    >,
+  ) => void;
 }
 
 interface ProductConsoleProps {
@@ -293,6 +306,7 @@ interface ResourcePoolConsoleProps {
 
 const OPERATIONS_TAB_ICON_MAP: Record<OperationsPlatformTabKey, JSX.Element> = {
   tenants: <ApartmentOutlined />,
+  organization: <TeamOutlined />,
   agentPlaza: <AppstoreOutlined />,
   agents: <RobotOutlined />,
   products: <ShopOutlined />,
@@ -333,6 +347,9 @@ const PRODUCT_FIELD_IDS = {
   supportsTrial: "operations-product-supports-trial",
   trialUnit: "operations-product-trial-unit",
   trialValue: "operations-product-trial-value",
+  contactMode: "operations-product-contact-mode",
+  contactQrCodeValue: "operations-product-contact-qr-code-value",
+  contactRemark: "operations-product-contact-remark",
   freeRule: "operations-product-free-rule",
   description: "operations-product-description",
 } as const;
@@ -366,6 +383,7 @@ const OPERATIONS_PRODUCT_LIST_PATH = "/ops/products";
 const getTabKeyFromPath = (tabPath?: string): OperationsPlatformTabKey | null => {
   if (
     tabPath === "tenants" ||
+    tabPath === "organization" ||
     tabPath === "agentPlaza" ||
     tabPath === "agents" ||
     tabPath === "products" ||
@@ -395,6 +413,7 @@ const AGENT_PLAZA_CONSOLE_TAB_OPTIONS: Array<{
 }> = [
   { key: "delivery", label: "投放管理" },
   { key: "category", label: "分类管理" },
+  { key: "contact", label: "客服配置" },
 ];
 
 const RESOURCE_POOL_CONSOLE_TAB_OPTIONS: Array<{
@@ -630,6 +649,22 @@ const getProductTrialLabel = (
   }
 
   return `${product.trialValue}${productTrialUnitLabels[product.trialUnit]}`;
+};
+
+const getProductContactActionLabel = (product: OperationsProduct): string => {
+  if (product.supplyKind !== "agent") {
+    return "-";
+  }
+
+  if (product.contactMode === "custom") {
+    return "商品专属客服";
+  }
+
+  if (product.contactMode === "disabled") {
+    return "不展示联系客服";
+  }
+
+  return "使用平台默认客服";
 };
 
 const getResourcePoolTypeByDeliveryKind = (
@@ -1171,11 +1206,13 @@ const AgentPlazaConsole = ({
   products,
   tenants,
   categories,
+  serviceContactConfig,
   plazaVisibilityLabels,
   onEdit,
   onCreateCategory,
   onEditCategory,
   onToggleCategoryStatus,
+  onUpdateServiceContactConfig,
 }: AgentPlazaConsoleProps): JSX.Element => {
   const [keyword, setKeyword] = useState<string>("");
   const [activeConsoleTab, setActiveConsoleTab] = useState<AgentPlazaConsoleTabKey>("delivery");
@@ -1215,7 +1252,7 @@ const AgentPlazaConsole = ({
         <div className={adminStyles.consoleHeaderMain}>
           <h1 className={adminStyles.consoleTitle}>AI专家广场管理</h1>
           <p className={adminStyles.consoleSubtitle}>
-            仅维护已商品化 AI 专家的广场投放信息，管理分类、展示范围和指定租户可见性。
+            维护已商品化 AI 专家的投放、分类、展示范围、指定租户可见性和客服咨询配置。
           </p>
         </div>
 
@@ -1227,12 +1264,13 @@ const AgentPlazaConsole = ({
               placeholder="搜索商品名称、AI专家、分类、可见租户"
               onChange={event => setKeyword(event.target.value)}
             />
-          ) : (
+          ) : null}
+          {activeConsoleTab === "category" ? (
             <Button type="primary" onClick={onCreateCategory}>
               <PlusOutlined />
               新建分类
             </Button>
-          )}
+          ) : null}
         </div>
       </header>
 
@@ -1273,6 +1311,7 @@ const AgentPlazaConsole = ({
                     <th>商品名称</th>
                     <th>广场分类</th>
                     <th>可见范围</th>
+                    <th>咨询入口</th>
                     <th>广场状态</th>
                     <th>商品状态</th>
                     <th>更新时间</th>
@@ -1303,6 +1342,7 @@ const AgentPlazaConsole = ({
                         </td>
                         <td>{product.plazaCategory ?? OPERATIONS_AGENT_PLAZA_DEFAULT_CATEGORY}</td>
                         <td>{visibilityLabel}</td>
+                        <td>{getProductContactActionLabel(product)}</td>
                         <td>
                           <span className={getAgentPlazaStatusClassName(plazaStatus)}>
                             {getAgentPlazaStatusLabel(plazaStatus)}
@@ -1335,7 +1375,9 @@ const AgentPlazaConsole = ({
             </div>
           )}
         </section>
-      ) : (
+      ) : null}
+
+      {activeConsoleTab === "category" ? (
         <section className={adminStyles.consoleSection}>
           <div className={adminStyles.consoleSectionHeader}>
             <div className={adminStyles.consoleSectionHeaderMain}>
@@ -1395,7 +1437,68 @@ const AgentPlazaConsole = ({
             </div>
           )}
         </section>
-      )}
+      ) : null}
+
+      {activeConsoleTab === "contact" ? (
+        <section className={adminStyles.consoleSection}>
+          <div className={adminStyles.consoleSectionHeader}>
+            <div className={adminStyles.consoleSectionHeaderMain}>
+              <h2 className={adminStyles.consoleSectionTitle}>默认客服配置</h2>
+              <p className={adminStyles.consoleSectionMeta}>
+                商品未配置专属客服时，用户点击“联系我们”会展示这里的二维码。
+              </p>
+            </div>
+            <Switch
+              checked={serviceContactConfig.enabled}
+              checkedChildren="启用"
+              unCheckedChildren="停用"
+              onChange={nextValue => onUpdateServiceContactConfig({ enabled: nextValue })}
+            />
+          </div>
+
+          <div className={styles.contactConfigGrid}>
+            <div className={styles.contactConfigForm}>
+              <div className={styles.modalField}>
+                <span className={styles.modalLabel}>客服名称</span>
+                <Input
+                  value={serviceContactConfig.contactName}
+                  onChange={event =>
+                    onUpdateServiceContactConfig({ contactName: event.target.value })
+                  }
+                />
+              </div>
+              <div className={styles.modalField}>
+                <span className={styles.modalLabel}>二维码内容</span>
+                <Input
+                  value={serviceContactConfig.qrCodeValue}
+                  placeholder="可填写客服微信、企微链接或二维码识别内容"
+                  onChange={event =>
+                    onUpdateServiceContactConfig({ qrCodeValue: event.target.value })
+                  }
+                />
+              </div>
+              <div className={`${styles.modalField} ${styles.modalFieldWide}`}>
+                <span className={styles.modalLabel}>默认备注提示</span>
+                <Input.TextArea
+                  rows={3}
+                  value={serviceContactConfig.remarkTemplate}
+                  onChange={event =>
+                    onUpdateServiceContactConfig({ remarkTemplate: event.target.value })
+                  }
+                />
+              </div>
+            </div>
+            <div className={styles.contactQrPreview}>
+              <img
+                alt="默认客服二维码预览"
+                src={buildMockPaymentQr(serviceContactConfig.qrCodeValue)}
+              />
+              <strong>{serviceContactConfig.contactName}</strong>
+              <span>{serviceContactConfig.enabled ? "用户侧可展示" : "已停用"}</span>
+            </div>
+          </div>
+        </section>
+      ) : null}
     </div>
   );
 };
@@ -2172,8 +2275,19 @@ const ProductDetailConsole = ({
                       : product.supportsTrial
                         ? "选择订阅方案 + 立即购买 + 免费试用"
                         : "选择订阅方案 + 立即购买"}
+                    {product.supplyKind === "agent" && product.contactMode !== "disabled"
+                      ? " + 联系客服"
+                      : ""}
                   </span>
                 </div>
+                {product.supplyKind === "agent" ? (
+                  <div className={adminStyles.consoleInfoRow}>
+                    <span className={adminStyles.consoleInfoLabel}>咨询入口</span>
+                    <span className={adminStyles.consoleInfoValue}>
+                      {getProductContactActionLabel(product)}
+                    </span>
+                  </div>
+                ) : null}
                 {product.saleType === "paid" ? (
                   <>
                     <div className={adminStyles.consoleInfoRow}>
@@ -2617,6 +2731,7 @@ export const OperationsPlatformView = (): JSX.Element => {
     productBillingModeOptions,
     productBillingSpecLabels,
     productBillingSpecOptions,
+    productContactModeOptions,
     productMeteringUnitLabels,
     productMeteringUnitOptions,
     productSaleTypeLabels,
@@ -2635,6 +2750,7 @@ export const OperationsPlatformView = (): JSX.Element => {
     resourcePools,
     registrationStrategy,
     rejectAgent,
+    serviceContactConfig,
     teamPlanPackages,
     teamSeatPricing,
     tenantStatusLabels,
@@ -2646,6 +2762,7 @@ export const OperationsPlatformView = (): JSX.Element => {
     updateModelService,
     updatePointsPackage,
     updateRegistrationStrategy,
+    updateServiceContactConfig,
     updateResourcePool,
     updateProduct,
     updateProductStatus,
@@ -2947,6 +3064,13 @@ export const OperationsPlatformView = (): JSX.Element => {
           supportsTrial: product.supportsTrial,
           trialUnit: product.trialUnit ?? "day",
           trialValue: product.trialValue ?? 7,
+          contactMode:
+            product.contactMode ??
+            (product.supplyKind === "agent" && product.saleType === "paid"
+              ? "platformDefault"
+              : "disabled"),
+          contactQrCodeValue: product.contactQrCodeValue ?? "",
+          contactRemark: product.contactRemark ?? "",
         },
       });
     },
@@ -3002,6 +3126,15 @@ export const OperationsPlatformView = (): JSX.Element => {
         message.warning("请先填写有效的试用规则。");
         return;
       }
+    }
+
+    if (
+      productEditor.form.supplyKind === "agent" &&
+      productEditor.form.contactMode === "custom" &&
+      !productEditor.form.contactQrCodeValue.trim()
+    ) {
+      message.warning("请先填写商品专属客服二维码内容。");
+      return;
     }
 
     if (
@@ -3370,17 +3503,23 @@ export const OperationsPlatformView = (): JSX.Element => {
       );
     }
 
+    if (activeTab === "organization") {
+      return <OperationsOrganizationConsole />;
+    }
+
     if (activeTab === "agentPlaza") {
       return (
         <AgentPlazaConsole
           products={products}
           tenants={tenants.filter(item => item.type === "enterprise")}
           categories={agentPlazaCategories}
+          serviceContactConfig={serviceContactConfig}
           plazaVisibilityLabels={OPERATIONS_AGENT_PLAZA_VISIBILITY_LABELS}
           onEdit={handleOpenEditAgentPlaza}
           onCreateCategory={handleOpenCreateAgentPlazaCategory}
           onEditCategory={handleOpenEditAgentPlazaCategory}
           onToggleCategoryStatus={handleToggleAgentPlazaCategoryStatus}
+          onUpdateServiceContactConfig={updateServiceContactConfig}
         />
       );
     }
@@ -4411,6 +4550,78 @@ export const OperationsPlatformView = (): JSX.Element => {
               />
             </div>
           )}
+
+          {productEditor.form.supplyKind === "agent" ? (
+            <>
+              <div className={styles.modalField}>
+                <label className={styles.modalLabel} htmlFor={PRODUCT_FIELD_IDS.contactMode}>
+                  联系客服入口
+                </label>
+                <Select
+                  id={PRODUCT_FIELD_IDS.contactMode}
+                  value={productEditor.form.contactMode}
+                  options={productContactModeOptions}
+                  onChange={nextValue =>
+                    setProductEditor(currentState => ({
+                      ...currentState,
+                      form: {
+                        ...currentState.form,
+                        contactMode: nextValue,
+                      },
+                    }))
+                  }
+                />
+              </div>
+
+              {productEditor.form.contactMode === "custom" ? (
+                <>
+                  <div className={styles.modalField}>
+                    <label
+                      className={styles.modalLabel}
+                      htmlFor={PRODUCT_FIELD_IDS.contactQrCodeValue}
+                    >
+                      专属二维码内容
+                    </label>
+                    <Input
+                      id={PRODUCT_FIELD_IDS.contactQrCodeValue}
+                      value={productEditor.form.contactQrCodeValue}
+                      placeholder="可填写专属客服微信、企微链接或二维码识别内容"
+                      onChange={event =>
+                        setProductEditor(currentState => ({
+                          ...currentState,
+                          form: {
+                            ...currentState.form,
+                            contactQrCodeValue: event.target.value,
+                          },
+                        }))
+                      }
+                    />
+                  </div>
+
+                  <div className={`${styles.modalField} ${styles.modalFieldWide}`}>
+                    <label className={styles.modalLabel} htmlFor={PRODUCT_FIELD_IDS.contactRemark}>
+                      专属备注提示
+                    </label>
+                    <Input.TextArea
+                      id={PRODUCT_FIELD_IDS.contactRemark}
+                      rows={3}
+                      value={productEditor.form.contactRemark}
+                      placeholder="例如：添加时请备注行业和公司名称"
+                      onChange={event =>
+                        setProductEditor(currentState => ({
+                          ...currentState,
+                          form: {
+                            ...currentState.form,
+                            contactRemark: event.target.value,
+                          },
+                        }))
+                      }
+                    />
+                  </div>
+                </>
+              ) : null}
+            </>
+          ) : null}
 
           <div className={`${styles.modalField} ${styles.modalFieldWide}`}>
             <label className={styles.modalLabel} htmlFor={PRODUCT_FIELD_IDS.description}>
