@@ -5,18 +5,38 @@ import type { OperationsTenant } from "@/feature/operations/types";
  */
 export const OPERATIONS_TENANTS_STORAGE_KEY = "frontis.operations.tenants";
 
-interface StoredOperationsTenant
-  extends Omit<OperationsTenant, "hasAgentListingAccess" | "effectiveAt"> {
+interface StoredOperationsTenant extends Omit<
+  OperationsTenant,
+  "hasAgentListingAccess" | "effectiveAt" | "deploymentMode" | "edition"
+> {
   hasAgentListingAccess?: boolean;
   hasAgentDevAccess?: boolean;
+  deploymentMode?: OperationsTenant["deploymentMode"];
+  edition?: OperationsTenant["edition"];
   effectiveAt?: string;
 }
 
 const normalizeStoredTenant = (tenant: StoredOperationsTenant): OperationsTenant => {
-  const { hasAgentListingAccess, hasAgentDevAccess, effectiveAt, ...restTenant } = tenant;
+  const {
+    deploymentMode,
+    edition,
+    hasAgentListingAccess,
+    hasAgentDevAccess,
+    effectiveAt,
+    ...restTenant
+  } = tenant;
 
   return {
     ...restTenant,
+    deploymentMode:
+      deploymentMode === "privateCloud"
+        ? "privateCloud"
+        : deploymentMode === "publicCloud"
+          ? "publicCloud"
+          : restTenant.id === "tenant-enterprise-demo"
+            ? "privateCloud"
+            : "publicCloud",
+    edition: edition === "personal" || restTenant.seatCount === 1 ? "personal" : "team",
     hasAgentListingAccess:
       typeof hasAgentListingAccess === "boolean"
         ? hasAgentListingAccess

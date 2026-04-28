@@ -108,6 +108,7 @@ interface DialoguePrototypeViewProps {
   onHomePromptSend: (question: string) => void;
   onSelectMetaAgentTrajectory: (trajectoryId: string, anchorBlockId?: string) => void;
   onClearMetaAgentTrajectory: () => void;
+  onFeishuConnect?: () => void;
   onRemoveDialogueSession: (sessionId: string) => void;
   onRenameDialogueSession: (sessionId: string, title: string) => void;
   onEmployeeSelect: (employeeId: string) => void;
@@ -119,6 +120,7 @@ interface DialoguePrototypeViewProps {
   hideAgentSidebar?: boolean;
   metaAgentTrajectoryItems: MetaAgentWorkTrajectoryItem[];
   showAccountEntry?: boolean;
+  showFeishuConnectAction?: boolean;
   viewerName: string;
 }
 
@@ -380,6 +382,7 @@ export const DialoguePrototypeView = ({
   onHomePromptSend,
   onSelectMetaAgentTrajectory,
   onClearMetaAgentTrajectory,
+  onFeishuConnect,
   onRemoveDialogueSession,
   onRenameDialogueSession,
   onEmployeeSelect,
@@ -391,6 +394,7 @@ export const DialoguePrototypeView = ({
   hideAgentSidebar = false,
   metaAgentTrajectoryItems,
   showAccountEntry = true,
+  showFeishuConnectAction = false,
   viewerName,
 }: DialoguePrototypeViewProps): JSX.Element => {
   const attachmentInputRef = useRef<HTMLInputElement | null>(null);
@@ -406,9 +410,6 @@ export const DialoguePrototypeView = ({
   const sidePanelPendingWidthRef = useRef<number>(DIALOGUE_ARTIFACT_LIST_PANEL_DEFAULT_WIDTH);
   const sidePanelResizeFrameRef = useRef<number | null>(null);
   const [sidePanelMode, setSidePanelMode] = useState<"artifacts" | "results" | null>(null);
-  const [outputPanelActiveTab, setOutputPanelActiveTab] = useState<"tasks" | "artifacts">(
-    "artifacts",
-  );
   const [preferredArtifactId, setPreferredArtifactId] = useState<string>();
   const [activeResultId, setActiveResultId] = useState<string | null>(null);
   const [isMetaAgentTrajectoryOpen, setIsMetaAgentTrajectoryOpen] = useState<boolean>(false);
@@ -460,10 +461,9 @@ export const DialoguePrototypeView = ({
   const shouldShowAgentSidebar = !hideAgentSidebar;
   const shouldShowMetaAgentTrajectory =
     hideAgentSidebar && metaAgentTrajectoryItems.length > 0 && !isHomeVisible;
-  const hasTaskPanel = shouldShowMetaAgentTrajectory && metaAgentTrajectoryItems.length > 0;
-  const hasOutputPanel = hasArtifactPanel || hasTaskPanel;
   const isStackedLayout = viewportWidth <= 1100;
-  const isArtifactPanelVisible = !isHomeVisible && sidePanelMode === "artifacts" && hasOutputPanel;
+  const isArtifactPanelVisible =
+    !isHomeVisible && sidePanelMode === "artifacts" && hasArtifactPanel;
   const isResultPanelVisible = !isHomeVisible && sidePanelMode === "results" && hasResultPanel;
   const isSidePanelVisible = isArtifactPanelVisible || isResultPanelVisible;
   const clampSidePanelWidth = useCallback(
@@ -1068,12 +1068,12 @@ export const DialoguePrototypeView = ({
   }, [activeDialogueSession?.id]);
 
   useEffect(() => {
-    if (sidePanelMode === "artifacts" && !hasOutputPanel) {
+    if (sidePanelMode === "artifacts" && !hasArtifactPanel) {
       setSidePanelMode(null);
       setPreferredArtifactId(undefined);
       setIsArtifactPreviewing(false);
     }
-  }, [hasOutputPanel, sidePanelMode]);
+  }, [hasArtifactPanel, sidePanelMode]);
 
   useEffect(() => {
     if (sidePanelMode === "results" && !hasResultPanel) {
@@ -1087,22 +1087,7 @@ export const DialoguePrototypeView = ({
       return;
     }
 
-    if (outputPanelActiveTab === "artifacts" && !hasArtifactPanel && hasTaskPanel) {
-      setOutputPanelActiveTab("tasks");
-      return;
-    }
-
-    if (outputPanelActiveTab === "tasks" && !hasTaskPanel && hasArtifactPanel) {
-      setOutputPanelActiveTab("artifacts");
-    }
-  }, [hasArtifactPanel, hasTaskPanel, outputPanelActiveTab, sidePanelMode]);
-
-  useEffect(() => {
-    if (sidePanelMode !== "artifacts") {
-      return;
-    }
-
-    if (outputPanelActiveTab === "artifacts" && isArtifactPreviewing) {
+    if (isArtifactPreviewing) {
       setSidePanelWidth(currentWidth => {
         const nextWidth = clampSidePanelWidth(
           Math.max(currentWidth, DIALOGUE_ARTIFACT_PREVIEW_PANEL_DEFAULT_WIDTH),
@@ -1116,7 +1101,7 @@ export const DialoguePrototypeView = ({
     const nextWidth = clampSidePanelWidth(DIALOGUE_ARTIFACT_LIST_PANEL_DEFAULT_WIDTH);
     sidePanelPendingWidthRef.current = nextWidth;
     setSidePanelWidth(nextWidth);
-  }, [clampSidePanelWidth, isArtifactPreviewing, outputPanelActiveTab, sidePanelMode]);
+  }, [clampSidePanelWidth, isArtifactPreviewing, sidePanelMode]);
 
   useEffect(() => {
     if (!activeResultId) {
@@ -1189,7 +1174,6 @@ export const DialoguePrototypeView = ({
     latestAutoOpenedArtifactKeyRef.current = autoOpenKey;
     setPreferredArtifactId(latestArtifactId);
     setIsArtifactPreviewing(false);
-    setOutputPanelActiveTab("artifacts");
     setSidePanelWidth(currentWidth =>
       clampSidePanelWidth(Math.max(currentWidth, DIALOGUE_ARTIFACT_LIST_PANEL_DEFAULT_WIDTH)),
     );
@@ -1228,7 +1212,6 @@ export const DialoguePrototypeView = ({
     }
     setPreferredArtifactId(preferredArtifact.id);
     setIsArtifactPreviewing(true);
-    setOutputPanelActiveTab("artifacts");
     setSidePanelWidth(currentWidth =>
       clampSidePanelWidth(Math.max(currentWidth, DIALOGUE_ARTIFACT_PREVIEW_PANEL_DEFAULT_WIDTH)),
     );
@@ -1569,7 +1552,6 @@ export const DialoguePrototypeView = ({
 
     setPreferredArtifactId(matchedFile.id);
     setIsArtifactPreviewing(true);
-    setOutputPanelActiveTab("artifacts");
     setSidePanelWidth(currentWidth =>
       clampSidePanelWidth(Math.max(currentWidth, DIALOGUE_ARTIFACT_PREVIEW_PANEL_DEFAULT_WIDTH)),
     );
@@ -1588,12 +1570,11 @@ export const DialoguePrototypeView = ({
   };
 
   const handleToggleArtifactsPanel = (): void => {
-    if (!hasOutputPanel) {
+    if (!hasArtifactPanel) {
       return;
     }
     setPreferredArtifactId(undefined);
     setIsArtifactPreviewing(false);
-    setOutputPanelActiveTab(hasArtifactPanel ? "artifacts" : "tasks");
     setSidePanelWidth(clampSidePanelWidth(DIALOGUE_ARTIFACT_LIST_PANEL_DEFAULT_WIDTH));
     setSidePanelMode(current => (current === "artifacts" ? null : "artifacts"));
   };
@@ -1985,27 +1966,6 @@ export const DialoguePrototypeView = ({
     </div>
   ) : (
     <div className={styles.composerWrap}>
-      {activeMetaAgentTrajectory ? (
-        <div className={styles.metaAgentTrajectoryFocusBar}>
-          <div className={styles.metaAgentTrajectoryFocusCopy}>
-            <span className={styles.metaAgentTrajectoryFocusLabel}>
-              {`已定位到 ${activeMetaAgentTrajectory.displayTimeLabel} 的工作记录`}
-            </span>
-            <span className={styles.metaAgentTrajectoryFocusSummary}>
-              {activeMetaAgentTrajectory.title}
-            </span>
-          </div>
-          <div className={styles.metaAgentTrajectoryFocusActions}>
-            <button
-              type="button"
-              className={styles.metaAgentTrajectoryDismissButton}
-              onClick={onClearMetaAgentTrajectory}
-            >
-              <CloseOutlined />
-            </button>
-          </div>
-        </div>
-      ) : null}
       <WorkspaceComposer
         rootClassName={styles.synclawComposer}
         value={dialogueInputValue}
@@ -2453,15 +2413,14 @@ export const DialoguePrototypeView = ({
           <div className={styles.dialogueViewToolbar}>
             {shouldShowExpertTeamUi ? expertTeamToolbarStrip : null}
             <div className={styles.dialogueViewToolbarGroup}>
-              {shouldShowMetaAgentTrajectory ? (
+              {showFeishuConnectAction ? (
                 <button
                   type="button"
-                  className={classNames(styles.dialogueViewButton, {
-                    [styles.dialogueViewButtonActive]: isMetaAgentTrajectoryOpen,
-                  })}
-                  onClick={() => setIsMetaAgentTrajectoryOpen(current => !current)}
+                  className={classNames(styles.dialogueViewButton, styles.feishuConnectButton)}
+                  onClick={onFeishuConnect}
                 >
-                  <span>工作轨迹</span>
+                  <MessageOutlined />
+                  <span>接入飞书</span>
                 </button>
               ) : null}
               <button
@@ -2470,181 +2429,12 @@ export const DialoguePrototypeView = ({
                   [styles.dialogueViewButtonActive]: isArtifactPanelVisible,
                 })}
                 onClick={handleToggleArtifactsPanel}
-                disabled={!hasOutputPanel}
+                disabled={!hasArtifactPanel}
               >
                 <FolderOutlined />
-                <span>任务与成果</span>
+                <span>成果</span>
               </button>
             </div>
-          </div>
-        ) : null}
-
-        {shouldShowMetaAgentTrajectory && isMetaAgentTrajectoryOpen ? (
-          <div className={styles.metaAgentTrajectoryPanel}>
-            <div className={styles.metaAgentTrajectoryPanelHeader}>
-              <div className={styles.metaAgentTrajectoryPanelTitleGroup}>
-                <span className={styles.metaAgentTrajectoryPanelTitle}>工作轨迹</span>
-                <span className={styles.metaAgentTrajectoryPanelHint}>
-                  支持搜索日期、工作内容、AI专家与成果文件，也可按时间轴浏览历史记录。
-                </span>
-              </div>
-              <button
-                type="button"
-                className={styles.metaAgentTrajectoryDismissButton}
-                onClick={() => {
-                  setSelectedMetaAgentTrajectoryDetailId(null);
-                  setIsMetaAgentTrajectoryOpen(false);
-                }}
-              >
-                <CloseOutlined />
-              </button>
-            </div>
-            <Input
-              value={metaAgentTrajectorySearchValue}
-              allowClear
-              placeholder="搜索时间、工作内容、AI专家或成果文件"
-              className={styles.metaAgentTrajectorySearch}
-              onChange={event => setMetaAgentTrajectorySearchValue(event.target.value)}
-            />
-            <div className={styles.metaAgentTrajectoryControlRow}>
-              <div
-                ref={metaAgentTrajectoryTimeFilterRef}
-                className={styles.metaAgentTrajectoryTimeFilterWrap}
-              >
-                <button
-                  type="button"
-                  className={classNames(styles.metaAgentTrajectoryTimeFilterTrigger, {
-                    [styles.metaAgentTrajectoryTimeFilterTriggerActive]:
-                      isMetaAgentTrajectoryTimeFilterOpen,
-                  })}
-                  onClick={handleToggleMetaAgentTrajectoryTimeFilter}
-                >
-                  <span>{metaAgentTrajectoryTimeFilterLabel}</span>
-                  <DownOutlined
-                    className={classNames(styles.metaAgentTrajectoryTimeFilterArrow, {
-                      [styles.metaAgentTrajectoryTimeFilterArrowOpen]:
-                        isMetaAgentTrajectoryTimeFilterOpen,
-                    })}
-                  />
-                </button>
-                {isMetaAgentTrajectoryTimeFilterOpen ? (
-                  <div className={styles.metaAgentTrajectoryTimeFilterDropdown}>
-                    {metaAgentTrajectoryTimeFilterView === "options" ? (
-                      <div className={styles.metaAgentTrajectoryTimeFilterOptionList}>
-                        {META_AGENT_TRAJECTORY_TIME_FILTER_OPTIONS.map(item => (
-                          <button
-                            key={item.key}
-                            type="button"
-                            className={classNames(styles.metaAgentTrajectoryTimeFilterOption, {
-                              [styles.metaAgentTrajectoryTimeFilterOptionActive]:
-                                metaAgentTrajectoryTimeFilterKey === item.key,
-                              [styles.metaAgentTrajectoryTimeFilterOptionCustom]:
-                                item.key === "custom",
-                            })}
-                            onClick={() => handleSelectMetaAgentTrajectoryTimeFilter(item.key)}
-                          >
-                            <span>{item.label}</span>
-                          </button>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className={styles.metaAgentTrajectoryTimeFilterCustomPanel}>
-                        <DatePicker
-                          value={metaAgentTrajectoryDraftDateRange[0]}
-                          placeholder="开始时间"
-                          className={styles.metaAgentTrajectoryTimeFilterDatePicker}
-                          onChange={value => handleMetaAgentTrajectoryCustomDateChange(0, value)}
-                        />
-                        <DatePicker
-                          value={metaAgentTrajectoryDraftDateRange[1]}
-                          placeholder="截止时间"
-                          className={styles.metaAgentTrajectoryTimeFilterDatePicker}
-                          onChange={value => handleMetaAgentTrajectoryCustomDateChange(1, value)}
-                        />
-                        <div className={styles.metaAgentTrajectoryTimeFilterCustomActions}>
-                          <button
-                            type="button"
-                            className={styles.metaAgentTrajectoryTimeFilterCustomButton}
-                            onClick={handleCancelMetaAgentTrajectoryCustomRange}
-                          >
-                            取消
-                          </button>
-                          <button
-                            type="button"
-                            className={classNames(
-                              styles.metaAgentTrajectoryTimeFilterCustomButton,
-                              styles.metaAgentTrajectoryTimeFilterCustomButtonPrimary,
-                              !isMetaAgentTrajectoryCustomRangeValid &&
-                                styles.metaAgentTrajectoryTimeFilterCustomButtonDisabled,
-                            )}
-                            disabled={!isMetaAgentTrajectoryCustomRangeValid}
-                            onClick={handleConfirmMetaAgentTrajectoryCustomRange}
-                          >
-                            确定
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                ) : null}
-              </div>
-            </div>
-            <div className={styles.metaAgentTrajectoryPanelBody}>
-              {isMetaAgentTrajectorySearchMode ? (
-                !visibleMetaAgentTrajectoryCandidates.length ? (
-                  <div className={styles.metaAgentTrajectoryEmpty}>
-                    没有找到匹配的记录，换个关键词或时间范围再试试。
-                  </div>
-                ) : (
-                  <div className={styles.metaAgentTrajectorySearchResultList}>
-                    {visibleMetaAgentTrajectoryCandidates.map(item =>
-                      renderMetaAgentTrajectoryRecordCard(item, "search"),
-                    )}
-                  </div>
-                )
-              ) : !metaAgentTimelineGroups.length || !selectedMetaAgentTimelineGroup ? (
-                <div className={styles.metaAgentTrajectoryEmpty}>当前时间范围内没有工作记录。</div>
-              ) : (
-                <div className={styles.metaAgentTrajectoryTimelineLayout}>
-                  <div className={styles.metaAgentTrajectoryTimelineRail}>
-                    {metaAgentTimelineGroups.map((group, index) => (
-                      <button
-                        key={group.key}
-                        type="button"
-                        className={classNames(styles.metaAgentTrajectoryTimelineNode, {
-                          [styles.metaAgentTrajectoryTimelineNodeActive]:
-                            group.key === selectedMetaAgentTimelineGroup.key,
-                        })}
-                        onClick={() => setSelectedMetaAgentTimelineGroupKey(group.key)}
-                      >
-                        <span className={styles.metaAgentTrajectoryTimelineDot} />
-                        {index < metaAgentTimelineGroups.length - 1 ? (
-                          <span className={styles.metaAgentTrajectoryTimelineLine} />
-                        ) : null}
-                        <span className={styles.metaAgentTrajectoryTimelineLabel}>
-                          {group.label}
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                  <div className={styles.metaAgentTrajectoryTimelineContent}>
-                    <div className={styles.metaAgentTrajectoryTimelineContentHeader}>
-                      <span className={styles.metaAgentTrajectoryTimelineContentMeta}>
-                        {`${selectedMetaAgentTimelineGroup.items.length} 条记录`}
-                      </span>
-                    </div>
-                    <div className={styles.metaAgentTrajectoryTimelineCardList}>
-                      {selectedMetaAgentTimelineGroup.items.map(item =>
-                        renderMetaAgentTrajectoryRecordCard(item, "timeline"),
-                      )}
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-            {selectedMetaAgentTrajectoryDetail
-              ? renderMetaAgentTrajectoryDetail(selectedMetaAgentTrajectoryDetail)
-              : null}
           </div>
         ) : null}
 
@@ -2721,12 +2511,12 @@ export const DialoguePrototypeView = ({
             {!isArtifactPreviewing ? (
               <div className={styles.outputPanelHeader}>
                 <div className={styles.outputPanelTitleGroup}>
-                  <span className={styles.outputPanelTitle}>任务与成果</span>
+                  <span className={styles.outputPanelTitle}>成果</span>
                 </div>
                 <button
                   type="button"
                   className={styles.outputPanelCloseButton}
-                  aria-label="关闭任务与成果面板"
+                  aria-label="关闭成果面板"
                   onClick={() => {
                     setSidePanelMode(null);
                     setIsArtifactPreviewing(false);
@@ -2736,62 +2526,21 @@ export const DialoguePrototypeView = ({
                 </button>
               </div>
             ) : null}
-            {!isArtifactPreviewing ? (
-              <div className={styles.outputPanelTabs} role="tablist" aria-label="任务与成果">
-                <button
-                  type="button"
-                  role="tab"
-                  aria-selected={outputPanelActiveTab === "tasks"}
-                  className={classNames(styles.outputPanelTab, {
-                    [styles.outputPanelTabActive]: outputPanelActiveTab === "tasks",
-                  })}
-                  disabled={!hasTaskPanel}
-                  onClick={() => {
-                    setPreferredArtifactId(undefined);
-                    setIsArtifactPreviewing(false);
-                    setOutputPanelActiveTab("tasks");
-                  }}
-                >
-                  <span>任务</span>
-                  <strong>
-                    {metaAgentTrajectoryItems.reduce((total, item) => total + item.tasks.length, 0)}
-                  </strong>
-                </button>
-                <button
-                  type="button"
-                  role="tab"
-                  aria-selected={outputPanelActiveTab === "artifacts"}
-                  className={classNames(styles.outputPanelTab, {
-                    [styles.outputPanelTabActive]: outputPanelActiveTab === "artifacts",
-                  })}
-                  disabled={!hasArtifactPanel}
-                  onClick={() => setOutputPanelActiveTab("artifacts")}
-                >
-                  <span>成果</span>
-                  <strong>{activeDialogueArtifacts.length}</strong>
-                </button>
-              </div>
-            ) : null}
             <div className={styles.outputPanelBody}>
-              {outputPanelActiveTab === "tasks" ? (
-                renderOutputTaskPanel()
-              ) : (
-                <ArtifactPreviewPanel
-                  files={activeDialogueArtifacts}
-                  fileGroups={metaAgentArtifactGroups}
-                  showHeader={false}
-                  loading={false}
-                  error=""
-                  onClose={() => {
-                    setSidePanelMode(null);
-                    setIsArtifactPreviewing(false);
-                  }}
-                  onDownloadFile={downloadArtifact}
-                  resolveFileUrl={resolveArtifactUrl}
-                  onPreviewStateChange={setIsArtifactPreviewing}
-                  preferredFileId={preferredArtifactId}
-                />
-              )}
+              <ArtifactPreviewPanel
+                files={activeDialogueArtifacts}
+                showHeader={false}
+                loading={false}
+                error=""
+                onClose={() => {
+                  setSidePanelMode(null);
+                  setIsArtifactPreviewing(false);
+                }}
+                onDownloadFile={downloadArtifact}
+                resolveFileUrl={resolveArtifactUrl}
+                onPreviewStateChange={setIsArtifactPreviewing}
+                preferredFileId={preferredArtifactId}
+              />
             </div>
           </div>
         </aside>

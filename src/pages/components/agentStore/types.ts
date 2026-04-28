@@ -27,10 +27,19 @@ export interface AgentStoreViewProps {
     visibility: EmployeeVisibility,
     accessScopeSubjects: AccessScopeSubject[],
   ) => void;
+  onUpdateEmployeeLaborCosts: (employeeId: string, costs: AgentLaborCostConfig) => void;
   onUpdateEmployeeModel: (employeeId: string, model: string) => void;
   tenantSnapshot: MockTenantManagementSnapshot;
   users: FrontisWebUserItem[];
   workspaces: WorkspaceItem[];
+}
+
+/**
+ * 私有化 AI 专家成本核算参数。
+ */
+export interface AgentLaborCostConfig {
+  industryStandardCost: number;
+  myLaborCost: number;
 }
 
 /**

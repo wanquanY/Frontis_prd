@@ -30,15 +30,15 @@ export const AccountDropdownPanel = ({
       {tenantName ? <span className={styles.meta}>{tenantName}</span> : null}
     </div>
 
-    {typeof pointsBalance === "number" && onOpenRecharge ? (
+    {typeof pointsBalance === "number" ? (
       <>
-        <button type="button" className={styles.pointsButton} onClick={onOpenRecharge}>
+        <div className={styles.pointsCard}>
           <span className={styles.pointsMain}>
             <span className={styles.pointsLabel}>积分余额</span>
             <span className={styles.pointsValue}>{pointsBalance.toLocaleString("zh-CN")}</span>
           </span>
-          <span className={styles.pointsAction}>购买</span>
-        </button>
+          {onOpenRecharge ? <span className={styles.pointsAction}>购买</span> : null}
+        </div>
         {onOpenInvite ? (
           <button type="button" className={styles.inviteButton} onClick={onOpenInvite}>
             <GiftOutlined />

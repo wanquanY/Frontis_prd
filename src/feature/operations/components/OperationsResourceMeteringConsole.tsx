@@ -497,8 +497,7 @@ export const OperationsResourceMeteringConsole = ({
         <div className={adminStyles.consoleSectionHeaderMain}>
           <h2 className={adminStyles.consoleSectionTitle}>接口与 Skill 资源计量</h2>
           <p className={adminStyles.consoleSectionDescription}>
-            这里维护第三方 API、Skill
-            外部能力的成本和资源计量单价；它们不是商品，商品化仍在商品中心完成。
+            这里维护第三方 API、Skill 外部能力的成本、资源计量单价和可用状态。
           </p>
         </div>
         <div className={adminStyles.consoleActions}>

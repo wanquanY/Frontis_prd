@@ -10,6 +10,7 @@ import {
   getActiveSessionIdentity,
   getTenantIdentities,
   getIdentityById,
+  getIdentitiesForDeployment,
   getMockAccountByAccountId,
   getMockAccountByPhone,
   normalizeMockSession,
@@ -69,6 +70,10 @@ export const useMockAuth = (): UseMockAuthResult => {
     setMockAccounts(getMockAuthAccounts());
   }, []);
 
+  useEffect(() => {
+    refreshMockAccounts();
+  }, [refreshMockAccounts]);
+
   const sendVerificationCode = useCallback(
     (phone: string, scene: "login" | "register" = "login"): MockAuthActionResult => {
       if (!isValidMarketingPhone(phone)) {
@@ -104,7 +109,12 @@ export const useMockAuth = (): UseMockAuthResult => {
   );
 
   const login = useCallback(
-    ({ phone, verificationCode, redirectPath }: MockLoginParams): MockAuthActionResult => {
+    ({
+      phone,
+      verificationCode,
+      redirectPath,
+      deploymentMode,
+    }: MockLoginParams): MockAuthActionResult => {
       if (!isValidMarketingPhone(phone)) {
         return {
           success: false,
@@ -135,12 +145,27 @@ export const useMockAuth = (): UseMockAuthResult => {
         };
       }
 
-      const routeIdentity = findIdentityForPath(matchedAccount.identities, redirectPath);
+      const deploymentIdentities = getIdentitiesForDeployment(
+        matchedAccount.identities,
+        deploymentMode,
+      );
+
+      if (!deploymentIdentities.length) {
+        return {
+          success: false,
+          message:
+            deploymentMode === "privateCloud"
+              ? "当前账号没有私有化部署环境权限。"
+              : "当前账号没有公有云环境权限。",
+        };
+      }
+
+      const routeIdentity = findIdentityForPath(deploymentIdentities, redirectPath);
       const defaultIdentity =
         routeIdentity ??
-        getDefaultIdentity(matchedAccount.identities, matchedAccount.quickLoginIdentityId) ??
+        getDefaultIdentity(deploymentIdentities, matchedAccount.quickLoginIdentityId) ??
         undefined;
-      const nextSession = createMockSession(matchedAccount, defaultIdentity);
+      const nextSession = createMockSession(matchedAccount, defaultIdentity, deploymentMode);
       const nextRedirectPath = resolveSessionEntryPath(nextSession, redirectPath);
 
       setSession(nextSession);
@@ -204,7 +229,7 @@ export const useMockAuth = (): UseMockAuthResult => {
       }
 
       const defaultIdentity = getDefaultIdentity(payload.account.identities) ?? undefined;
-      const nextSession = createMockSession(payload.account, defaultIdentity);
+      const nextSession = createMockSession(payload.account, defaultIdentity, "publicCloud");
 
       setSession(nextSession);
       refreshMockAccounts();

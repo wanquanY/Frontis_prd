@@ -6,10 +6,10 @@ import { useLocation, useNavigate } from "react-router-dom";
 import type { WorkspaceComposerAttachmentItem } from "@/feature/workspace/types";
 import type { Block } from "@/types/block";
 import {
-  getAdminManagementPath,
   getLoginPath,
   getSystemEntries,
   getTenantEntries,
+  getTenantAdminManagementPath,
 } from "@/feature/auth/mockAccounts";
 import { useMockAuth } from "@/feature/auth/hooks/useMockAuth";
 import { getMockTenantUsers } from "@/feature/auth/mockTenantRegistry";
@@ -89,6 +89,8 @@ const EXPERT_TEAM_MAIN_AGENT_NAME = DEFAULT_WORKSPACE_AGENT_NAME;
 const META_AGENT_SCENARIO_TEAM_ID = "team-product";
 const META_AGENT_PRIMARY_SEED_SOURCE_ID = "dialogue-seed-team-product-collab";
 const META_AGENT_PRIMARY_SEED_SESSION_ID = "dialogue-seed-metaagent-collab";
+const META_AGENT_ONBOARDING_SESSION_ID = "dialogue-seed-metaagent-onboarding";
+const NEW_USER_ONBOARDING_TENANT_ID = "tenant-new-user-onboarding-demo";
 const EXPERT_TEAM_MAIN_AGENT_DESCRIPTION =
   "作为默认主Agent，负责理解需求、调度你有权限使用的专家并统一交付。";
 const PRODUCT_TEAM_COLLAB_QUESTION = "帮我把这个需求拆成核心模块、边界和依赖关系。";
@@ -235,6 +237,65 @@ const NORMALIZED_INITIAL_DIALOGUE_SESSIONS = [
   ...INITIAL_DIALOGUE_SESSIONS.filter(item => item.employeeId !== DEFAULT_CONVERSATION_EMPLOYEE_ID),
   ...INITIAL_META_AGENT_SEED_SESSIONS,
 ];
+
+const buildMetaAgentOnboardingSession = (): DialogueSessionItem => ({
+  id: META_AGENT_ONBOARDING_SESSION_ID,
+  employeeId: DEFAULT_CONVERSATION_EMPLOYEE_ID,
+  title: "欢迎使用 MetaAgent",
+  preview: "MetaAgent 可以理解你的目标、调度 AI 专家、沉淀成果，也可以按你的习惯设置名称和风格。",
+  updatedAt: "刚刚",
+  messages: [
+    {
+      id: "metaagent-onboarding-assistant-1",
+      role: "assistant",
+      author: DEFAULT_WORKSPACE_AGENT_NAME,
+      content: `**你好，我是 MetaAgent。**
+
+你可以把我当成你的工作入口：直接告诉我目标、上传文件，或者描述一个业务场景，我会帮你拆解任务、选择合适的 AI 专家，并把过程结论和成果文件整理出来。
+
+你也可以先把我调成更顺手的样子：
+
+- 给我起一个你习惯的名字
+- 设置回答风格，比如严谨、简洁、销售型或管理型
+- 让我优先按你的工作场景来组织输出
+
+右上角的 **飞书按钮** 可以一键接入飞书。接入后，我可以围绕飞书消息、文档和协作场景继续帮你推进工作。`,
+      timeLabel: "刚刚",
+    },
+  ],
+});
+
+const isNewUserOnboardingTenant = (tenantId?: string): boolean =>
+  tenantId === NEW_USER_ONBOARDING_TENANT_ID;
+
+const buildInitialDialogueSessions = (
+  viewRole: FrontisWebRole,
+  tenantId?: string,
+): DialogueSessionItem[] => {
+  const sourceSessions = isNewUserOnboardingTenant(tenantId)
+    ? [
+        ...INITIAL_DIALOGUE_SESSIONS.filter(
+          item => item.employeeId !== DEFAULT_CONVERSATION_EMPLOYEE_ID,
+        ),
+        buildMetaAgentOnboardingSession(),
+      ]
+    : NORMALIZED_INITIAL_DIALOGUE_SESSIONS;
+
+  return sourceSessions.map(item => mapDialogueSessionForRole(item, viewRole));
+};
+
+const buildInitialDialogueArtifacts = (tenantId?: string): Record<string, ArtifactItem[]> =>
+  isNewUserOnboardingTenant(tenantId)
+    ? { ...INITIAL_DIALOGUE_ARTIFACTS, [META_AGENT_ONBOARDING_SESSION_ID]: [] }
+    : NORMALIZED_INITIAL_DIALOGUE_ARTIFACTS;
+
+const buildInitialDialogueResults = (
+  tenantId?: string,
+): Record<string, DialogueGeneratedResultItem[]> =>
+  isNewUserOnboardingTenant(tenantId)
+    ? { ...INITIAL_DIALOGUE_RESULTS, [META_AGENT_ONBOARDING_SESSION_ID]: [] }
+    : NORMALIZED_INITIAL_DIALOGUE_RESULTS;
+
 const createMetaAgentV430PrdArtifact = (): ArtifactItem =>
   dialogueScenarioRuntimeHelpers.createMarkdownArtifact(
     META_AGENT_PRIMARY_SEED_SESSION_ID,
@@ -817,14 +878,14 @@ const FrontisPage = ({
   const { activateIdentity, activateTenant, activeIdentity, logout, session } = useMockAuth();
   const { loginByAccountId: loginOperationsByAccountId } = useOperationsAuth();
   const [dialogueSessions, setDialogueSessions] = useState<DialogueSessionItem[]>(() =>
-    NORMALIZED_INITIAL_DIALOGUE_SESSIONS.map(item => mapDialogueSessionForRole(item, viewRole)),
+    buildInitialDialogueSessions(viewRole, activeIdentity?.tenantId),
   );
   const [dialogueArtifactsBySession, setDialogueArtifactsBySession] = useState<
     Record<string, ArtifactItem[]>
-  >(NORMALIZED_INITIAL_DIALOGUE_ARTIFACTS);
+  >(() => buildInitialDialogueArtifacts(activeIdentity?.tenantId));
   const [dialogueResultsBySession, setDialogueResultsBySession] = useState<
     Record<string, DialogueGeneratedResultItem[]>
-  >(NORMALIZED_INITIAL_DIALOGUE_RESULTS);
+  >(() => buildInitialDialogueResults(activeIdentity?.tenantId));
   const [activeEmployeeId, setActiveEmployeeId] = useState<string>(() =>
     getInitialActiveEmployeeId(workspaceMode),
   );
@@ -846,6 +907,20 @@ const FrontisPage = ({
   );
   const dialogueTimerRefs = useRef<number[]>([]);
   const latestDialogueAttachmentsRef = useRef<WorkspaceComposerAttachmentItem[]>([]);
+
+  useEffect(() => {
+    setDialogueSessions(buildInitialDialogueSessions(viewRole, activeIdentity?.tenantId));
+    setDialogueArtifactsBySession(buildInitialDialogueArtifacts(activeIdentity?.tenantId));
+    setDialogueResultsBySession(buildInitialDialogueResults(activeIdentity?.tenantId));
+    setActiveDialogueSessionId("");
+    setIsDialogueHomeActive(false);
+    setActiveCaseReplay(null);
+    setDialogueInputValue("");
+    setDialogueAttachments([]);
+    setActiveMetaAgentTrajectoryId(null);
+    setActiveMetaAgentTrajectoryAnchorBlockId(null);
+  }, [activeIdentity?.tenantId, viewRole]);
+
   const employees = useMemo(
     () => INITIAL_EMPLOYEES.map(item => mapEmployeeForRole(item, viewRole)),
     [viewRole],
@@ -963,6 +1038,8 @@ const FrontisPage = ({
     [activeEmployee, conversationEmployeeDirectory],
   );
   const isMetaAgentDialogue = useMemo(() => isMetaAgentEmployee(activeEmployee), [activeEmployee]);
+  const shouldShowFeishuConnectAction =
+    isMetaAgentDialogue && isNewUserOnboardingTenant(activeIdentity?.tenantId);
 
   const employeeDialogueSessions = useMemo(
     () =>
@@ -1675,6 +1752,10 @@ const FrontisPage = ({
     setActiveMetaAgentTrajectoryAnchorBlockId(null);
   }, []);
 
+  const handleConnectFeishu = useCallback((): void => {
+    message.success("已进入飞书接入流程，接入后 MetaAgent 可围绕飞书协作场景继续工作。");
+  }, []);
+
   const handleOpenHomeCase = useCallback(
     (item: AiCeoHomeCaseItem): void => {
       if (!activeEmployee) {
@@ -1816,7 +1897,8 @@ const FrontisPage = ({
             key: "open-admin-management",
             icon: <AppstoreOutlined />,
             label: MANAGEMENT_CONSOLE_LABEL,
-            onClick: () => navigate(getAdminManagementPath(), { replace: true }),
+            onClick: () =>
+              navigate(getTenantAdminManagementPath(activeIdentity?.tenantId), { replace: true }),
           },
           {
             type: "divider" as const,
@@ -1908,6 +1990,8 @@ const FrontisPage = ({
           activeMetaAgentTrajectory={activeMetaAgentTrajectory}
           onSelectMetaAgentTrajectory={handleSelectMetaAgentTrajectory}
           onClearMetaAgentTrajectory={handleClearMetaAgentTrajectory}
+          onFeishuConnect={handleConnectFeishu}
+          showFeishuConnectAction={shouldShowFeishuConnectAction}
           showAccountEntry={!embedded}
           viewerName={currentUser?.name ?? "你"}
         />

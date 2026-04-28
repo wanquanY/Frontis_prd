@@ -5,6 +5,7 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { AuthRoute } from "@/feature/auth/components/AuthRoute";
 import { useMockAuth } from "@/feature/auth/hooks/useMockAuth";
 import { OperationsAuthRoute } from "@/feature/operations/components/OperationsAuthRoute";
+import { getMockTenantManagementSnapshot } from "@/feature/auth/mockTenantRegistry";
 import type { FrontisWebRole } from "@/pages/types";
 
 const FrontisAdminPage = lazy(() => import("@/pages/FrontisAdminPage"));
@@ -58,6 +59,17 @@ const LegacyOperationsLoginRedirect = (): JSX.Element => {
   return <Navigate replace to={loginPath} />;
 };
 
+const AdminDeploymentRedirect = (): JSX.Element => {
+  const { activeIdentity } = useMockAuth();
+  const tenantSnapshot = getMockTenantManagementSnapshot(activeIdentity?.tenantId);
+  const adminPath =
+    tenantSnapshot?.deploymentMode === "privateCloud"
+      ? "/web/admin/private-cloud"
+      : "/web/admin/public-cloud";
+
+  return <Navigate replace to={adminPath} />;
+};
+
 /**
  * App
  *
@@ -109,14 +121,6 @@ const App = (): JSX.Element => {
             }
           />
           <Route
-            path="/ops/products/:productId"
-            element={
-              <OperationsAuthRoute>
-                <OperationsPlatformPage />
-              </OperationsAuthRoute>
-            }
-          />
-          <Route
             path="/ops/usage/:recordId"
             element={
               <OperationsAuthRoute>
@@ -152,7 +156,23 @@ const App = (): JSX.Element => {
             path="/web/admin"
             element={
               <AuthRoute allowedRole={["admin"]}>
-                <FrontisAdminPage />
+                <AdminDeploymentRedirect />
+              </AuthRoute>
+            }
+          />
+          <Route
+            path="/web/admin/public-cloud"
+            element={
+              <AuthRoute allowedRole={["admin"]}>
+                <FrontisAdminPage deploymentMode="publicCloud" />
+              </AuthRoute>
+            }
+          />
+          <Route
+            path="/web/admin/private-cloud"
+            element={
+              <AuthRoute allowedRole={["admin"]}>
+                <FrontisAdminPage deploymentMode="privateCloud" />
               </AuthRoute>
             }
           />

@@ -105,12 +105,14 @@ export const AgentStoreView = ({
   onDetachEmployeeFromDevice,
   onNavigateToTab,
   onUpdateEmployeeDeviceAccess,
+  onUpdateEmployeeLaborCosts,
   onUpdateEmployeeModel,
   tenantSnapshot,
   users,
   workspaces,
 }: AgentStoreViewProps): JSX.Element => {
   const isPersonalEdition = tenantSnapshot.edition === "personal";
+  const isPrivateCloud = tenantSnapshot.deploymentMode === "privateCloud";
   const filterOptions = isPersonalEdition ? PERSONAL_FILTER_OPTIONS : TEAM_FILTER_OPTIONS;
   const [activeFilter, setActiveFilter] = useState<AgentFilterKey>("all");
   const [selectedEntryId, setSelectedEntryId] = useState<string | null>(null);
@@ -247,7 +249,9 @@ export const AgentStoreView = ({
   if (selectedCard?.kind === "developed" && selectedCard.employee) {
     return (
       <AgentStoreTeamDetail
+        platformModelOnly={isPersonalEdition}
         allowPermissionManagement={!isPersonalEdition}
+        allowLaborCostConfiguration={isPrivateCloud}
         deploymentByEmployeeId={deploymentByEmployeeId}
         deviceOwners={deviceOwners}
         detailTitle={selectedCard.name}
@@ -258,6 +262,7 @@ export const AgentStoreView = ({
         onDetachEmployeeFromDevice={onDetachEmployeeFromDevice}
         onNavigateToTab={onNavigateToTab}
         onUpdateDeviceAccess={onUpdateEmployeeDeviceAccess}
+        onUpdateLaborCosts={onUpdateEmployeeLaborCosts}
         onUpdateModel={onUpdateEmployeeModel}
         users={users}
         workspaces={workspaces}

@@ -27,6 +27,16 @@ export type OperationsTenantStatus = "pending" | "active" | "suspended";
 export type OperationsTenantType = "enterprise" | "internal";
 
 /**
+ * 运营后台租户部署类型。
+ */
+export type OperationsTenantDeploymentMode = "publicCloud" | "privateCloud";
+
+/**
+ * 运营后台租户版本。
+ */
+export type OperationsTenantEdition = "personal" | "team";
+
+/**
  * Agent 提审状态。
  */
 export type OperationsAgentApprovalStatus = "pending" | "approved" | "rejected";
@@ -231,6 +241,8 @@ export interface OperationsTenant {
   name: string;
   code: string;
   type: OperationsTenantType;
+  deploymentMode: OperationsTenantDeploymentMode;
+  edition: OperationsTenantEdition;
   industry: string;
   adminName: string;
   adminPhone: string;
@@ -251,6 +263,7 @@ export interface OperationsTenant {
 export interface OperationsTenantForm {
   name: string;
   code: string;
+  deploymentMode: OperationsTenantDeploymentMode;
   industry: string;
   adminName: string;
   adminPhone: string;

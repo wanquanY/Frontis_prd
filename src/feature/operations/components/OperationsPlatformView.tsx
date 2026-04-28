@@ -33,7 +33,6 @@ import {
 import classNames from "classnames";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 
-import { buildMockPaymentQr } from "@/feature/commerce/mockPayment";
 import { findIdentityForPath, getLoginPath, getSystemEntries } from "@/feature/auth/mockAccounts";
 import { useMockAuth } from "@/feature/auth/hooks/useMockAuth";
 import { useOperationsAuth } from "@/feature/operations/hooks/useOperationsAuth";
@@ -69,8 +68,9 @@ import type {
   OperationsProductForm,
   OperationsResourcePool,
   OperationsResourcePoolForm,
-  OperationsServiceContactConfig,
   OperationsTenant,
+  OperationsTenantDeploymentMode,
+  OperationsTenantEdition,
   OperationsTenantForm,
   OperationsTenantMemberForm,
 } from "@/feature/operations/types";
@@ -78,7 +78,6 @@ import adminStyles from "@/pages/components/FrontisAdminViews.module.less";
 import shellStyles from "@/pages/FrontisPage.module.less";
 
 import { OperationsPointsConsole } from "./OperationsPointsConsole";
-import { OperationsOrganizationConsole } from "./OperationsOrganizationConsole";
 import styles from "./OperationsPlatformView.module.less";
 import {
   OperationsResourceMeteringConsole,
@@ -143,10 +142,10 @@ interface RejectEditorState {
 }
 
 type AgentFilterValue = "all" | OperationsAgentSubmission["status"];
-type AgentPlazaConsoleTabKey = "delivery" | "category" | "contact";
+type AgentPlazaConsoleTabKey = "delivery" | "category";
 type TenantDetailTabKey = "base" | "members";
 type ProductConsoleTabKey = "standard" | "points" | "team" | "seat";
-type ResourcePoolConsoleTabKey = "pools" | OperationsResourceMeteringMode;
+type ResourcePoolConsoleTabKey = OperationsResourceMeteringMode;
 
 interface TenantConsoleProps {
   tenants: OperationsTenant[];
@@ -174,20 +173,11 @@ interface AgentPlazaConsoleProps {
   products: OperationsProduct[];
   tenants: OperationsTenant[];
   categories: OperationsAgentPlazaCategoryOption[];
-  serviceContactConfig: OperationsServiceContactConfig;
   plazaVisibilityLabels: typeof OPERATIONS_AGENT_PLAZA_VISIBILITY_LABELS;
   onEdit: (product: OperationsProduct) => void;
   onCreateCategory: () => void;
   onEditCategory: (category: OperationsAgentPlazaCategoryOption) => void;
   onToggleCategoryStatus: (category: OperationsAgentPlazaCategoryOption) => void;
-  onUpdateServiceContactConfig: (
-    patch: Partial<
-      Pick<
-        OperationsServiceContactConfig,
-        "enabled" | "contactName" | "qrCodeValue" | "remarkTemplate"
-      >
-    >,
-  ) => void;
 }
 
 interface ProductConsoleProps {
@@ -290,15 +280,9 @@ interface FulfillmentConsoleProps {
 }
 
 interface ResourcePoolConsoleProps {
-  resourcePools: OperationsResourcePool[];
   meteringProviders: OperationsMeteringProvider[];
   modelServices: OperationsModelService[];
   externalMeteredServices: OperationsExternalMeteredService[];
-  resourcePoolTypeLabels: Record<OperationsResourcePool["resourceType"], string>;
-  resourcePoolAllocationModeLabels: Record<OperationsResourcePool["allocationMode"], string>;
-  resourcePoolCapacityUnitLabels: Record<OperationsResourcePool["capacityUnit"], string>;
-  onCreate: () => void;
-  onEdit: (resourcePool: OperationsResourcePool) => void;
   onCreateMeteringProvider: (form: OperationsMeteringProviderForm) => void;
   onUpdateMeteringProvider: (providerId: string, form: OperationsMeteringProviderForm) => void;
   onCreateModelService: (form: OperationsModelServiceForm) => void;
@@ -324,6 +308,7 @@ const OPERATIONS_TAB_ICON_MAP: Record<OperationsPlatformTabKey, JSX.Element> = {
 const TENANT_FIELD_IDS = {
   name: "operations-tenant-name",
   code: "operations-tenant-code",
+  deploymentMode: "operations-tenant-deployment-mode",
   industry: "operations-tenant-industry",
   adminName: "operations-tenant-admin-name",
   adminPhone: "operations-tenant-admin-phone",
@@ -333,6 +318,24 @@ const TENANT_FIELD_IDS = {
   expiresAt: "operations-tenant-expires-at",
   moduleLabels: "operations-tenant-module-labels",
 } as const;
+
+const OPERATIONS_TENANT_DEPLOYMENT_MODE_LABELS: Record<OperationsTenantDeploymentMode, string> = {
+  publicCloud: "公有云",
+  privateCloud: "私有云",
+};
+
+const OPERATIONS_TENANT_EDITION_LABELS: Record<OperationsTenantEdition, string> = {
+  personal: "个人版",
+  team: "团队版",
+};
+
+const OPERATIONS_TENANT_DEPLOYMENT_MODE_OPTIONS: Array<{
+  label: string;
+  value: OperationsTenantDeploymentMode;
+}> = [
+  { label: "公有云", value: "publicCloud" },
+  { label: "私有云", value: "privateCloud" },
+];
 
 const TENANT_MEMBER_FIELD_IDS = {
   name: "operations-tenant-member-name",
@@ -389,11 +392,8 @@ const OPERATIONS_PRODUCT_LIST_PATH = "/ops/products";
 const getTabKeyFromPath = (tabPath?: string): OperationsPlatformTabKey | null => {
   if (
     tabPath === "tenants" ||
-    tabPath === "organization" ||
     tabPath === "agentPlaza" ||
     tabPath === "agents" ||
-    tabPath === "products" ||
-    tabPath === "fulfillment" ||
     tabPath === "resources" ||
     tabPath === "points"
   ) {
@@ -419,14 +419,12 @@ const AGENT_PLAZA_CONSOLE_TAB_OPTIONS: Array<{
 }> = [
   { key: "delivery", label: "投放管理" },
   { key: "category", label: "分类管理" },
-  { key: "contact", label: "客服配置" },
 ];
 
 const RESOURCE_POOL_CONSOLE_TAB_OPTIONS: Array<{
   key: ResourcePoolConsoleTabKey;
   label: string;
 }> = [
-  { key: "pools", label: "资源池列表" },
   { key: "models", label: "大模型资源" },
   { key: "interfaces", label: "接口资源" },
 ];
@@ -657,22 +655,6 @@ const getProductTrialLabel = (
   return `${product.trialValue}${productTrialUnitLabels[product.trialUnit]}`;
 };
 
-const getProductContactActionLabel = (product: OperationsProduct): string => {
-  if (product.supplyKind !== "agent") {
-    return "-";
-  }
-
-  if (product.contactMode === "custom") {
-    return "商品专属客服";
-  }
-
-  if (product.contactMode === "disabled") {
-    return "不展示联系客服";
-  }
-
-  return "使用平台默认客服";
-};
-
 const getResourcePoolTypeByDeliveryKind = (
   deliveryKind: OperationsProduct["deliveryKind"],
 ): OperationsResourcePool["resourceType"] | null => {
@@ -790,7 +772,14 @@ const TenantConsole = ({
   const filteredTenants = useMemo<OperationsTenant[]>(
     () =>
       tenants.filter(item => {
-        const searchSource = [item.name, item.adminName, item.adminPhone, ...item.moduleLabels]
+        const searchSource = [
+          item.name,
+          item.adminName,
+          item.adminPhone,
+          OPERATIONS_TENANT_DEPLOYMENT_MODE_LABELS[item.deploymentMode],
+          OPERATIONS_TENANT_EDITION_LABELS[item.edition],
+          ...item.moduleLabels,
+        ]
           .join(" ")
           .toLowerCase();
 
@@ -832,6 +821,9 @@ const TenantConsole = ({
                 <tr>
                   <th>租户</th>
                   <th>管理员</th>
+                  <th>租户类型</th>
+                  <th>版本</th>
+                  <th>计费口径</th>
                   <th>开通范围</th>
                   <th>状态</th>
                   <th>更新时间</th>
@@ -853,6 +845,9 @@ const TenantConsole = ({
                     <td>
                       {tenant.adminName} · {tenant.adminPhone}
                     </td>
+                    <td>{OPERATIONS_TENANT_DEPLOYMENT_MODE_LABELS[tenant.deploymentMode]}</td>
+                    <td>{OPERATIONS_TENANT_EDITION_LABELS[tenant.edition]}</td>
+                    <td>{tenant.deploymentMode === "privateCloud" ? "金额计费" : "积分计费"}</td>
                     <td className={styles.tenantModulesCell}>{tenant.moduleLabels.join("、")}</td>
                     <td>
                       <span className={getTenantStatusClassName(tenant.status)}>
@@ -971,6 +966,24 @@ const TenantDetailConsole = ({
                   基础信息
                 </h3>
                 <div className={adminStyles.consoleRows}>
+                  <div className={adminStyles.consoleInfoRow}>
+                    <span className={adminStyles.consoleInfoLabel}>租户类型</span>
+                    <span className={adminStyles.consoleInfoValue}>
+                      {OPERATIONS_TENANT_DEPLOYMENT_MODE_LABELS[tenant.deploymentMode]}
+                    </span>
+                  </div>
+                  <div className={adminStyles.consoleInfoRow}>
+                    <span className={adminStyles.consoleInfoLabel}>版本</span>
+                    <span className={adminStyles.consoleInfoValue}>
+                      {OPERATIONS_TENANT_EDITION_LABELS[tenant.edition]}
+                    </span>
+                  </div>
+                  <div className={adminStyles.consoleInfoRow}>
+                    <span className={adminStyles.consoleInfoLabel}>计费口径</span>
+                    <span className={adminStyles.consoleInfoValue}>
+                      {tenant.deploymentMode === "privateCloud" ? "金额计费" : "积分计费"}
+                    </span>
+                  </div>
                   <div className={adminStyles.consoleInfoRow}>
                     <span className={adminStyles.consoleInfoLabel}>管理员</span>
                     <span className={adminStyles.consoleInfoValue}>
@@ -1212,13 +1225,11 @@ const AgentPlazaConsole = ({
   products,
   tenants,
   categories,
-  serviceContactConfig,
   plazaVisibilityLabels,
   onEdit,
   onCreateCategory,
   onEditCategory,
   onToggleCategoryStatus,
-  onUpdateServiceContactConfig,
 }: AgentPlazaConsoleProps): JSX.Element => {
   const [keyword, setKeyword] = useState<string>("");
   const [activeConsoleTab, setActiveConsoleTab] = useState<AgentPlazaConsoleTabKey>("delivery");
@@ -1258,7 +1269,7 @@ const AgentPlazaConsole = ({
         <div className={adminStyles.consoleHeaderMain}>
           <h1 className={adminStyles.consoleTitle}>AI专家广场管理</h1>
           <p className={adminStyles.consoleSubtitle}>
-            维护已商品化 AI 专家的投放、分类、展示范围、指定租户可见性和客服咨询配置。
+            维护已上架 AI 专家的投放、分类、展示范围和指定租户可见性。
           </p>
         </div>
 
@@ -1267,7 +1278,7 @@ const AgentPlazaConsole = ({
             <Input
               className={adminStyles.consoleInlineSearch}
               value={keyword}
-              placeholder="搜索商品名称、AI专家、分类、可见租户"
+              placeholder="搜索 AI专家、上架名称、分类、可见租户"
               onChange={event => setKeyword(event.target.value)}
             />
           ) : null}
@@ -1302,8 +1313,8 @@ const AgentPlazaConsole = ({
             <div className={adminStyles.consoleSectionHeaderMain}>
               <h2 className={adminStyles.consoleSectionTitle}>投放列表</h2>
               <p className={adminStyles.consoleSectionMeta}>
-                当前显示 {filteredProducts.length} 个 AI 专家商品；全部共 {agentProducts.length}{" "}
-                个，支持 {enterpriseTenantCount} 个企业租户定向投放。
+                当前显示 {filteredProducts.length} 个 AI 专家；全部共 {agentProducts.length}{" "}
+                个，所有可见专家均支持用户添加使用。
               </p>
             </div>
           </div>
@@ -1314,12 +1325,11 @@ const AgentPlazaConsole = ({
                 <thead>
                   <tr>
                     <th>AI专家</th>
-                    <th>商品名称</th>
+                    <th>上架名称</th>
                     <th>广场分类</th>
                     <th>可见范围</th>
-                    <th>咨询入口</th>
                     <th>广场状态</th>
-                    <th>商品状态</th>
+                    <th>上架状态</th>
                     <th>更新时间</th>
                     <th>操作</th>
                   </tr>
@@ -1348,7 +1358,6 @@ const AgentPlazaConsole = ({
                         </td>
                         <td>{product.plazaCategory ?? OPERATIONS_AGENT_PLAZA_DEFAULT_CATEGORY}</td>
                         <td>{visibilityLabel}</td>
-                        <td>{getProductContactActionLabel(product)}</td>
                         <td>
                           <span className={getAgentPlazaStatusClassName(plazaStatus)}>
                             {getAgentPlazaStatusLabel(plazaStatus)}
@@ -1377,7 +1386,7 @@ const AgentPlazaConsole = ({
             </div>
           ) : (
             <div className={styles.emptyWrap}>
-              <Empty description="当前筛选下暂无已商品化 AI专家。" />
+              <Empty description="当前筛选下暂无已上架 AI专家。" />
             </div>
           )}
         </section>
@@ -1442,67 +1451,6 @@ const AgentPlazaConsole = ({
               <Empty description="暂无 AI专家广场分类，请先创建分类。" />
             </div>
           )}
-        </section>
-      ) : null}
-
-      {activeConsoleTab === "contact" ? (
-        <section className={adminStyles.consoleSection}>
-          <div className={adminStyles.consoleSectionHeader}>
-            <div className={adminStyles.consoleSectionHeaderMain}>
-              <h2 className={adminStyles.consoleSectionTitle}>默认客服配置</h2>
-              <p className={adminStyles.consoleSectionMeta}>
-                商品未配置专属客服时，用户点击“联系我们”会展示这里的二维码。
-              </p>
-            </div>
-            <Switch
-              checked={serviceContactConfig.enabled}
-              checkedChildren="启用"
-              unCheckedChildren="停用"
-              onChange={nextValue => onUpdateServiceContactConfig({ enabled: nextValue })}
-            />
-          </div>
-
-          <div className={styles.contactConfigGrid}>
-            <div className={styles.contactConfigForm}>
-              <div className={styles.modalField}>
-                <span className={styles.modalLabel}>客服名称</span>
-                <Input
-                  value={serviceContactConfig.contactName}
-                  onChange={event =>
-                    onUpdateServiceContactConfig({ contactName: event.target.value })
-                  }
-                />
-              </div>
-              <div className={styles.modalField}>
-                <span className={styles.modalLabel}>二维码内容</span>
-                <Input
-                  value={serviceContactConfig.qrCodeValue}
-                  placeholder="可填写客服微信、企微链接或二维码识别内容"
-                  onChange={event =>
-                    onUpdateServiceContactConfig({ qrCodeValue: event.target.value })
-                  }
-                />
-              </div>
-              <div className={`${styles.modalField} ${styles.modalFieldWide}`}>
-                <span className={styles.modalLabel}>默认备注提示</span>
-                <Input.TextArea
-                  rows={3}
-                  value={serviceContactConfig.remarkTemplate}
-                  onChange={event =>
-                    onUpdateServiceContactConfig({ remarkTemplate: event.target.value })
-                  }
-                />
-              </div>
-            </div>
-            <div className={styles.contactQrPreview}>
-              <img
-                alt="默认客服二维码预览"
-                src={buildMockPaymentQr(serviceContactConfig.qrCodeValue)}
-              />
-              <strong>{serviceContactConfig.contactName}</strong>
-              <span>{serviceContactConfig.enabled ? "用户侧可展示" : "已停用"}</span>
-            </div>
-          </div>
         </section>
       ) : null}
     </div>
@@ -2281,19 +2229,8 @@ const ProductDetailConsole = ({
                       : product.supportsTrial
                         ? "选择订阅方案 + 立即购买 + 免费试用"
                         : "选择订阅方案 + 立即购买"}
-                    {product.supplyKind === "agent" && product.contactMode !== "disabled"
-                      ? " + 联系客服"
-                      : ""}
                   </span>
                 </div>
-                {product.supplyKind === "agent" ? (
-                  <div className={adminStyles.consoleInfoRow}>
-                    <span className={adminStyles.consoleInfoLabel}>咨询入口</span>
-                    <span className={adminStyles.consoleInfoValue}>
-                      {getProductContactActionLabel(product)}
-                    </span>
-                  </div>
-                ) : null}
                 {product.saleType === "paid" ? (
                   <>
                     <div className={adminStyles.consoleInfoRow}>
@@ -2554,15 +2491,9 @@ const FulfillmentConsole = ({
 };
 
 const ResourcePoolConsole = ({
-  resourcePools,
   meteringProviders,
   modelServices,
   externalMeteredServices,
-  resourcePoolTypeLabels,
-  resourcePoolAllocationModeLabels,
-  resourcePoolCapacityUnitLabels,
-  onCreate,
-  onEdit,
   onCreateMeteringProvider,
   onUpdateMeteringProvider,
   onCreateModelService,
@@ -2570,18 +2501,7 @@ const ResourcePoolConsole = ({
   onCreateExternalMeteredService,
   onUpdateExternalMeteredService,
 }: ResourcePoolConsoleProps): JSX.Element => {
-  const [keyword, setKeyword] = useState<string>("");
-  const [activeResourceTab, setActiveResourceTab] = useState<ResourcePoolConsoleTabKey>("pools");
-
-  const filteredResourcePools = useMemo<OperationsResourcePool[]>(
-    () =>
-      resourcePools.filter(item => {
-        const searchSource = [item.name, item.provider].join(" ").toLowerCase();
-
-        return searchSource.includes(keyword.trim().toLowerCase());
-      }),
-    [keyword, resourcePools],
-  );
+  const [activeResourceTab, setActiveResourceTab] = useState<ResourcePoolConsoleTabKey>("models");
 
   return (
     <div className={adminStyles.consolePage}>
@@ -2589,7 +2509,7 @@ const ResourcePoolConsole = ({
         <div className={adminStyles.consoleHeaderMain}>
           <h1 className={adminStyles.consoleTitle}>资源池管理</h1>
           <p className={adminStyles.consoleSubtitle}>
-            统一维护底层资源供给、成本和资源计量规则；可售商品和订单仍在商品中心与订单中心管理。
+            统一维护大模型与接口资源的成本、计量规则和可用状态。
           </p>
         </div>
       </header>
@@ -2610,83 +2530,18 @@ const ResourcePoolConsole = ({
         ))}
       </div>
 
-      {activeResourceTab === "pools" ? (
-        <section className={adminStyles.consoleSection}>
-          <div className={adminStyles.consoleSectionHeader}>
-            <div className={adminStyles.consoleSectionHeaderMain}>
-              <h2 className={adminStyles.consoleSectionTitle}>资源池列表</h2>
-              <p className={adminStyles.consoleSectionDescription}>
-                管理设备、云端工作站、模型配额、第三方接口账号等可分配资源。
-              </p>
-            </div>
-            <div className={adminStyles.consoleInlineActions}>
-              <Input
-                className={adminStyles.consoleInlineSearch}
-                value={keyword}
-                placeholder="搜索资源池名称、供应商"
-                onChange={event => setKeyword(event.target.value)}
-              />
-              <Button type="primary" onClick={onCreate}>
-                创建资源池
-              </Button>
-            </div>
-          </div>
-
-          {filteredResourcePools.length ? (
-            <div className={adminStyles.consoleHtmlTableWrap}>
-              <table className={adminStyles.consoleHtmlTable}>
-                <thead>
-                  <tr>
-                    <th>资源池</th>
-                    <th>类型</th>
-                    <th>供应商</th>
-                    <th>分配方式</th>
-                    <th>可用容量</th>
-                    <th>更新时间</th>
-                    <th>操作</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredResourcePools.map(resourcePool => (
-                    <tr key={resourcePool.id}>
-                      <td>{resourcePool.name}</td>
-                      <td>{resourcePoolTypeLabels[resourcePool.resourceType]}</td>
-                      <td>{resourcePool.provider}</td>
-                      <td>{resourcePoolAllocationModeLabels[resourcePool.allocationMode]}</td>
-                      <td>
-                        {getResourcePoolCapacityLabel(resourcePool, resourcePoolCapacityUnitLabels)}
-                      </td>
-                      <td>{resourcePool.updatedAt}</td>
-                      <td>
-                        <Button size="small" type="link" onClick={() => onEdit(resourcePool)}>
-                          编辑资源池
-                        </Button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ) : (
-            <div className={styles.emptyWrap}>
-              <Empty description="当前筛选下暂无资源池。" />
-            </div>
-          )}
-        </section>
-      ) : (
-        <OperationsResourceMeteringConsole
-          mode={activeResourceTab}
-          meteringProviders={meteringProviders}
-          modelServices={modelServices}
-          externalMeteredServices={externalMeteredServices}
-          onCreateMeteringProvider={onCreateMeteringProvider}
-          onUpdateMeteringProvider={onUpdateMeteringProvider}
-          onCreateModelService={onCreateModelService}
-          onUpdateModelService={onUpdateModelService}
-          onCreateExternalMeteredService={onCreateExternalMeteredService}
-          onUpdateExternalMeteredService={onUpdateExternalMeteredService}
-        />
-      )}
+      <OperationsResourceMeteringConsole
+        mode={activeResourceTab}
+        meteringProviders={meteringProviders}
+        modelServices={modelServices}
+        externalMeteredServices={externalMeteredServices}
+        onCreateMeteringProvider={onCreateMeteringProvider}
+        onUpdateMeteringProvider={onUpdateMeteringProvider}
+        onCreateModelService={onCreateModelService}
+        onUpdateModelService={onUpdateModelService}
+        onCreateExternalMeteredService={onCreateExternalMeteredService}
+        onUpdateExternalMeteredService={onUpdateExternalMeteredService}
+      />
     </div>
   );
 };
@@ -2758,7 +2613,6 @@ export const OperationsPlatformView = (): JSX.Element => {
     resourcePools,
     registrationStrategy,
     rejectAgent,
-    serviceContactConfig,
     teamPlanPackages,
     teamSeatPricing,
     tenantStatusLabels,
@@ -2770,7 +2624,6 @@ export const OperationsPlatformView = (): JSX.Element => {
     updateModelService,
     updatePointsPackage,
     updateRegistrationStrategy,
-    updateServiceContactConfig,
     updateResourcePool,
     updateProduct,
     updateProductStatus,
@@ -2864,10 +2717,10 @@ export const OperationsPlatformView = (): JSX.Element => {
     () => getTabKeyFromPath(tabPath),
     [tabPath],
   );
-  const hasDetailRoute = Boolean(tenantId || productId);
+  const hasDetailRoute = Boolean(tenantId);
   const activeTab = useMemo<OperationsPlatformTabKey>(
-    () => activeTabFromPath ?? (tenantId ? "tenants" : productId ? "products" : "tenants"),
-    [activeTabFromPath, productId, tenantId],
+    () => activeTabFromPath ?? "tenants",
+    [activeTabFromPath],
   );
 
   useEffect(() => {
@@ -2983,6 +2836,7 @@ export const OperationsPlatformView = (): JSX.Element => {
       form: {
         name: tenant.name,
         code: tenant.code,
+        deploymentMode: tenant.deploymentMode,
         industry: tenant.industry,
         adminName: tenant.adminName,
         adminPhone: tenant.adminPhone,
@@ -3461,7 +3315,7 @@ export const OperationsPlatformView = (): JSX.Element => {
   const handleApproveAgent = useCallback(
     (submissionId: string): void => {
       approveAgent(submissionId);
-      message.success("AI专家审核已通过，可继续在商品中心转成商品。");
+      message.success("AI专家审核已通过，可继续配置广场上架信息。");
       setAgentReview({
         open: false,
       });
@@ -3573,75 +3427,17 @@ export const OperationsPlatformView = (): JSX.Element => {
       );
     }
 
-    if (activeTab === "organization") {
-      return <OperationsOrganizationConsole />;
-    }
-
     if (activeTab === "agentPlaza") {
       return (
         <AgentPlazaConsole
           products={products}
           tenants={tenants.filter(item => item.type === "enterprise")}
           categories={agentPlazaCategories}
-          serviceContactConfig={serviceContactConfig}
           plazaVisibilityLabels={OPERATIONS_AGENT_PLAZA_VISIBILITY_LABELS}
           onEdit={handleOpenEditAgentPlaza}
           onCreateCategory={handleOpenCreateAgentPlazaCategory}
           onEditCategory={handleOpenEditAgentPlazaCategory}
           onToggleCategoryStatus={handleToggleAgentPlazaCategoryStatus}
-          onUpdateServiceContactConfig={updateServiceContactConfig}
-        />
-      );
-    }
-
-    if (activeTab === "products") {
-      if (productId) {
-        return (
-          <ProductDetailConsole
-            product={activeProduct}
-            statusLabels={productStatusLabels}
-            productSaleTypeLabels={productSaleTypeLabels}
-            productTrialUnitLabels={productTrialUnitLabels}
-            productDeliveryKindLabels={productDeliveryKindLabels}
-            productBillingModeLabels={productBillingModeLabels}
-            productMeteringUnitLabels={productMeteringUnitLabels}
-            productBillingSpecLabels={productBillingSpecLabels}
-            onBack={handleBackToProductList}
-            onEdit={handleOpenEditProduct}
-            onToggleStatus={handleToggleProductStatus}
-          />
-        );
-      }
-
-      return (
-        <ProductConsole
-          products={products}
-          pointsPackages={pointsPackages}
-          teamPackages={teamPlanPackages}
-          seatPricing={teamSeatPricing}
-          statusLabels={productStatusLabels}
-          productSaleTypeLabels={productSaleTypeLabels}
-          productTrialUnitLabels={productTrialUnitLabels}
-          productDeliveryKindLabels={productDeliveryKindLabels}
-          productBillingSpecLabels={productBillingSpecLabels}
-          onCreate={handleOpenCreateProduct}
-          onViewDetail={handleOpenProductDetail}
-          onCreatePointsPackage={createPointsPackage}
-          onUpdatePointsPackage={updatePointsPackage}
-          onCreateTeamPackage={createTeamPlanPackage}
-          onUpdateTeamPackage={updateTeamPlanPackage}
-          onUpdateSeatPricing={updateTeamSeatPricing}
-        />
-      );
-    }
-
-    if (activeTab === "fulfillment") {
-      return (
-        <FulfillmentConsole
-          fulfillments={fulfillments}
-          pointOrders={pointsOrders}
-          fulfillmentStatusLabels={fulfillmentStatusLabels}
-          productDeliveryKindLabels={productDeliveryKindLabels}
         />
       );
     }
@@ -3649,15 +3445,9 @@ export const OperationsPlatformView = (): JSX.Element => {
     if (activeTab === "resources") {
       return (
         <ResourcePoolConsole
-          resourcePools={resourcePools}
           meteringProviders={meteringProviders}
           modelServices={modelServices}
           externalMeteredServices={externalMeteredServices}
-          resourcePoolTypeLabels={resourcePoolTypeLabels}
-          resourcePoolAllocationModeLabels={resourcePoolAllocationModeLabels}
-          resourcePoolCapacityUnitLabels={resourcePoolCapacityUnitLabels}
-          onCreate={handleOpenCreateResourcePool}
-          onEdit={handleOpenEditResourcePool}
           onCreateMeteringProvider={createMeteringProvider}
           onUpdateMeteringProvider={updateMeteringProvider}
           onCreateModelService={createModelService}
@@ -3910,6 +3700,26 @@ export const OperationsPlatformView = (): JSX.Element => {
                   form: {
                     ...currentState.form,
                     code: event.target.value,
+                  },
+                }))
+              }
+            />
+          </div>
+
+          <div className={styles.modalField}>
+            <label className={styles.modalLabel} htmlFor={TENANT_FIELD_IDS.deploymentMode}>
+              租户类型
+            </label>
+            <Select<OperationsTenantDeploymentMode>
+              id={TENANT_FIELD_IDS.deploymentMode}
+              value={tenantEditor.form.deploymentMode}
+              options={OPERATIONS_TENANT_DEPLOYMENT_MODE_OPTIONS}
+              onChange={nextValue =>
+                setTenantEditor(currentState => ({
+                  ...currentState,
+                  form: {
+                    ...currentState.form,
+                    deploymentMode: nextValue,
                   },
                 }))
               }
@@ -5072,7 +4882,7 @@ export const OperationsPlatformView = (): JSX.Element => {
                     icon={<CheckCircleOutlined />}
                     onClick={() => handleApproveAgent(activeReviewSubmission.id)}
                   >
-                    审核通过并进入商品中心
+                    审核通过
                   </Button>
                 </>
               ) : null}

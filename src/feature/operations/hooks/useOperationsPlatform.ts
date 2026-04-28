@@ -285,6 +285,9 @@ const buildMeteringProviderId = (): string => `ops-metering-provider-${Date.now(
 const buildModelServiceId = (): string => `ops-model-service-${Date.now()}`;
 const buildExternalMeteredServiceId = (): string => `ops-external-service-${Date.now()}`;
 
+const resolveTenantEditionBySeatCount = (seatCount: number): OperationsTenant["edition"] =>
+  seatCount <= 1 ? "personal" : "team";
+
 const resolveMeteringProviderName = (
   providers: OperationsMeteringProvider[],
   providerId: string,
@@ -413,6 +416,8 @@ const buildTenantFromForm = (form: OperationsTenantForm): OperationsTenant => {
     name: form.name.trim(),
     code: form.code.trim().toUpperCase(),
     type: "enterprise",
+    deploymentMode: form.deploymentMode,
+    edition: resolveTenantEditionBySeatCount(form.seatCount),
     industry: form.industry.trim(),
     adminName: form.adminName.trim(),
     adminPhone: form.adminPhone.trim(),
@@ -460,6 +465,23 @@ const normalizeSubscriptionPlans = (
       };
     })
     .sort((leftItem, rightItem) => leftItem.sortOrder - rightItem.sortOrder);
+
+const mergeStoredTenantsWithPreset = (
+  presetTenants: OperationsTenant[],
+  storedTenants: OperationsTenant[] | null,
+): OperationsTenant[] => {
+  if (!storedTenants) {
+    return presetTenants;
+  }
+
+  const storedTenantMap = new Map(storedTenants.map(tenant => [tenant.id, tenant]));
+  const presetTenantIds = new Set(presetTenants.map(tenant => tenant.id));
+
+  return [
+    ...presetTenants.map(tenant => storedTenantMap.get(tenant.id) ?? tenant),
+    ...storedTenants.filter(tenant => !presetTenantIds.has(tenant.id)),
+  ];
+};
 
 const shouldUseSubscriptionPlans = (form: OperationsProductForm): boolean =>
   form.saleType === "paid" && form.billingMode === "subscription" && form.supplyKind === "agent";
@@ -581,8 +603,8 @@ const buildInitialAgentSubmissions = (): OperationsAgentSubmission[] => {
  * 提供运营后台所需的本地 mock 状态与交互动作。
  */
 export const useOperationsPlatform = (): UseOperationsPlatformResult => {
-  const [tenants, setTenants] = useState<OperationsTenant[]>(
-    () => loadStoredOperationsTenants() ?? OPERATIONS_INITIAL_TENANTS,
+  const [tenants, setTenants] = useState<OperationsTenant[]>(() =>
+    mergeStoredTenantsWithPreset(OPERATIONS_INITIAL_TENANTS, loadStoredOperationsTenants()),
   );
   const [agentSubmissions, setAgentSubmissions] = useState<OperationsAgentSubmission[]>(
     buildInitialAgentSubmissions,
@@ -724,6 +746,8 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
               ...item,
               name: form.name.trim(),
               code: form.code.trim().toUpperCase(),
+              deploymentMode: form.deploymentMode,
+              edition: resolveTenantEditionBySeatCount(form.seatCount),
               industry: form.industry.trim(),
               adminName: form.adminName.trim(),
               adminPhone: form.adminPhone.trim(),

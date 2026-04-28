@@ -21,7 +21,6 @@ export type FrontisWebTabKey =
   | "models"
   | "access"
   | "organization"
-  | "roleManagement"
   | "notifications";
 
 /**
@@ -155,6 +154,10 @@ export interface EmployeeItem {
   visibility: EmployeeVisibility;
   /** AI 专家开发者姓名，原型中用于后台资产归属展示。 */
   developerName?: string;
+  /** 私有化企业管理员配置的内部人力成本基准。 */
+  myLaborCost?: number;
+  /** 私有化企业管理员配置的行业标准成本基准。 */
+  industryStandardCost?: number;
   subAgentModel?: string;
   agentId: string;
   runtimeAgentId: string;

@@ -1,7 +1,13 @@
 import { useCallback, useDeferredValue, useMemo, useState } from "react";
 
 import { PlusOutlined, SearchOutlined } from "@ant-design/icons";
-import { Button, Input, Modal, Popconfirm, Select, Switch, message } from "antd";
+import { Button, Input, InputNumber, Modal, Popconfirm, Select, Switch, message } from "antd";
+
+import type { MockTenantDeploymentMode } from "@/feature/auth/types";
+import {
+  formatOperationsCurrency,
+  normalizeOperationsMoney,
+} from "@/feature/operations/serviceMeteringUtils";
 
 import type { EmployeeItem } from "../types";
 
@@ -17,6 +23,7 @@ import {
 import type { ModelProviderConfigState } from "./FrontisWebViews";
 
 interface ModelConfigurationViewProps {
+  deploymentMode: MockTenantDeploymentMode;
   employees: EmployeeItem[];
   onApplyGlobalModel: (model: string) => void;
   onUpdateEmployeeModel: (employeeId: string, model: string) => void;
@@ -26,7 +33,9 @@ interface ProviderModelItem {
   id: string;
   inputModalities: ModelInputModality[];
   interfaceFormat: ModelInterfaceFormat;
+  inputCostPerMillion: number;
   name: string;
+  outputCostPerMillion: number;
   reasoningEnabled: boolean;
 }
 
@@ -64,17 +73,36 @@ const SYSTEM_PROVIDER_MODELS: ProviderModelItem[] = [
     id: "frontisai-chat",
     inputModalities: ["text", "image"],
     interfaceFormat: "openai",
+    inputCostPerMillion: 0,
     name: "FrontisAI 通用模型",
+    outputCostPerMillion: 0,
     reasoningEnabled: true,
   },
   {
     id: "frontisai-reasoner",
     inputModalities: ["text", "image"],
     interfaceFormat: "openai",
+    inputCostPerMillion: 0,
     name: "FrontisAI 深度推理模型",
+    outputCostPerMillion: 0,
     reasoningEnabled: true,
   },
 ];
+
+const buildInitialProviderOptions = (
+  deploymentMode: MockTenantDeploymentMode,
+): ProviderOptionItem[] =>
+  deploymentMode === "privateCloud" ? [] : [SYSTEM_PROVIDER_OPTION, ...PROVIDER_OPTIONS];
+
+const buildInitialProviderConfigs = (
+  deploymentMode: MockTenantDeploymentMode,
+): Record<string, ModelProviderConfigState> =>
+  deploymentMode === "privateCloud"
+    ? {}
+    : {
+        [SYSTEM_PROVIDER_KEY]: SYSTEM_PROVIDER_CONFIG,
+        ...INITIAL_PROVIDER_CONFIGS,
+      };
 
 const MODEL_INTERFACE_FORMAT_OPTIONS: Array<{ label: string; value: ModelInterfaceFormat }> = [
   { label: "OpenAI 格式", value: "openai" },
@@ -110,7 +138,30 @@ const getModelInputModalityLabel = (value: ModelInputModality): string =>
   value === "audio" ? "Audio" : value === "image" ? "Image" : value === "video" ? "Video" : "Text";
 
 const getDefaultModelInterfaceFormat = (providerKey: string): ModelInterfaceFormat =>
-  providerKey.includes("anthropic") ? "anthropic" : providerKey.includes("gemini") ? "gemini" : "openai";
+  providerKey.includes("anthropic")
+    ? "anthropic"
+    : providerKey.includes("gemini")
+      ? "gemini"
+      : "openai";
+
+const getDefaultModelCostPerMillion = (
+  providerKey: string,
+  direction: "input" | "output",
+): number => {
+  if (providerKey.includes("openai")) {
+    return direction === "input" ? 14.5 : 58;
+  }
+
+  if (providerKey.includes("anthropic")) {
+    return direction === "input" ? 21.8 : 109;
+  }
+
+  if (providerKey.includes("deepseek")) {
+    return direction === "input" ? 0.8 : 1.6;
+  }
+
+  return 0;
+};
 
 const createEmptyProviderConfig = (baseUrl = ""): ModelProviderConfigState => ({
   apiKey: "",
@@ -120,11 +171,19 @@ const createEmptyProviderConfig = (baseUrl = ""): ModelProviderConfigState => ({
   lastCheckedAt: "",
 });
 
-const buildInitialProviderModels = (): Record<string, ProviderModelItem[]> => {
+const buildInitialProviderModels = (
+  deploymentMode: MockTenantDeploymentMode,
+): Record<string, ProviderModelItem[]> => {
+  if (deploymentMode === "privateCloud") {
+    return {};
+  }
+
   const initialModels: Record<string, ProviderModelItem[]> = {
     [SYSTEM_PROVIDER_KEY]: SYSTEM_PROVIDER_MODELS.map(model => ({
       ...model,
       inputModalities: [...model.inputModalities],
+      inputCostPerMillion: 0,
+      outputCostPerMillion: 0,
     })),
   };
 
@@ -134,7 +193,9 @@ const buildInitialProviderModels = (): Record<string, ProviderModelItem[]> => {
       id: modelId,
       inputModalities: [...DEFAULT_MODEL_INPUT_MODALITIES],
       interfaceFormat: getDefaultModelInterfaceFormat(provider.key),
+      inputCostPerMillion: getDefaultModelCostPerMillion(provider.key, "input"),
       name: modelId,
+      outputCostPerMillion: getDefaultModelCostPerMillion(provider.key, "output"),
       reasoningEnabled: true,
     }));
   });
@@ -165,24 +226,26 @@ const buildProviderKey = (providerName: string, existingKeys: string[]): string 
 /**
  * 模型管理视图。
  */
-export const ModelConfigurationView = (props: ModelConfigurationViewProps): JSX.Element => {
-  void props;
+export const ModelConfigurationView = ({
+  deploymentMode,
+}: ModelConfigurationViewProps): JSX.Element => {
+  const isPrivateCloud = deploymentMode === "privateCloud";
 
   const [keyword, setKeyword] = useState<string>("");
-  const [providerOptions, setProviderOptions] = useState<ProviderOptionItem[]>([
-    SYSTEM_PROVIDER_OPTION,
-    ...PROVIDER_OPTIONS,
-  ]);
-  const [providerConfigs, setProviderConfigs] =
-    useState<Record<string, ModelProviderConfigState>>({
-      [SYSTEM_PROVIDER_KEY]: SYSTEM_PROVIDER_CONFIG,
-      ...INITIAL_PROVIDER_CONFIGS,
-    });
-  const [providerModels, setProviderModels] =
-    useState<Record<string, ProviderModelItem[]>>(buildInitialProviderModels);
+  const [providerOptions, setProviderOptions] = useState<ProviderOptionItem[]>(() =>
+    buildInitialProviderOptions(deploymentMode),
+  );
+  const [providerConfigs, setProviderConfigs] = useState<Record<string, ModelProviderConfigState>>(
+    () => buildInitialProviderConfigs(deploymentMode),
+  );
+  const [providerModels, setProviderModels] = useState<Record<string, ProviderModelItem[]>>(() =>
+    buildInitialProviderModels(deploymentMode),
+  );
   const [providerModalMode, setProviderModalMode] = useState<ProviderModalMode>("add");
   const [editingProviderKey, setEditingProviderKey] = useState<string>("");
   const [providerDraftName, setProviderDraftName] = useState<string>("");
+  const [providerDraftInputCost, setProviderDraftInputCost] = useState<string>("");
+  const [providerDraftOutputCost, setProviderDraftOutputCost] = useState<string>("");
   const [providerDraft, setProviderDraft] = useState<ModelProviderConfigState | null>(null);
   const [isTestingProvider, setIsTestingProvider] = useState<boolean>(false);
   const [managedProviderKey, setManagedProviderKey] = useState<string>("");
@@ -194,8 +257,11 @@ export const ModelConfigurationView = (props: ModelConfigurationViewProps): JSX.
   const [modelDraftId, setModelDraftId] = useState<string>("");
   const [modelDraftInterfaceFormat, setModelDraftInterfaceFormat] =
     useState<ModelInterfaceFormat>("openai");
-  const [modelDraftInputModalities, setModelDraftInputModalities] =
-    useState<ModelInputModality[]>([...DEFAULT_MODEL_INPUT_MODALITIES]);
+  const [modelDraftInputModalities, setModelDraftInputModalities] = useState<ModelInputModality[]>([
+    ...DEFAULT_MODEL_INPUT_MODALITIES,
+  ]);
+  const [modelDraftInputCostPerMillion, setModelDraftInputCostPerMillion] = useState<number>(0);
+  const [modelDraftOutputCostPerMillion, setModelDraftOutputCostPerMillion] = useState<number>(0);
   const [modelDraftReasoningEnabled, setModelDraftReasoningEnabled] = useState<boolean>(true);
   const deferredKeyword = useDeferredValue(keyword);
 
@@ -249,6 +315,8 @@ export const ModelConfigurationView = (props: ModelConfigurationViewProps): JSX.
   const resetProviderModal = useCallback((): void => {
     setEditingProviderKey("");
     setProviderDraftName("");
+    setProviderDraftInputCost("");
+    setProviderDraftOutputCost("");
     setProviderDraft(null);
   }, []);
 
@@ -261,6 +329,8 @@ export const ModelConfigurationView = (props: ModelConfigurationViewProps): JSX.
     setModelDraftId("");
     setModelDraftInterfaceFormat("openai");
     setModelDraftInputModalities([...DEFAULT_MODEL_INPUT_MODALITIES]);
+    setModelDraftInputCostPerMillion(0);
+    setModelDraftOutputCostPerMillion(0);
     setModelDraftReasoningEnabled(true);
   }, []);
 
@@ -268,6 +338,8 @@ export const ModelConfigurationView = (props: ModelConfigurationViewProps): JSX.
     setProviderModalMode("add");
     setEditingProviderKey("");
     setProviderDraftName("");
+    setProviderDraftInputCost("");
+    setProviderDraftOutputCost("");
     setProviderDraft(createEmptyProviderConfig(""));
   }, []);
 
@@ -290,6 +362,8 @@ export const ModelConfigurationView = (props: ModelConfigurationViewProps): JSX.
       setProviderModalMode("edit");
       setEditingProviderKey(providerKey);
       setProviderDraftName(currentProvider.label);
+      setProviderDraftInputCost(currentProvider.inputCost);
+      setProviderDraftOutputCost(currentProvider.outputCost);
       setProviderDraft({
         ...currentConfig,
         fetchedModels: [...currentConfig.fetchedModels],
@@ -395,12 +469,12 @@ export const ModelConfigurationView = (props: ModelConfigurationViewProps): JSX.
           capabilities: ["LLM"],
           defaultBaseUrl: trimmedBaseUrl,
           description: DEFAULT_CUSTOM_PROVIDER_DESCRIPTION,
-          inputCost: "—",
+          inputCost: providerDraftInputCost.trim() || "—",
           key: nextProviderKey,
           label: trimmedProviderName,
           logoText: trimmedProviderName.slice(0, 1).toUpperCase() || "M",
           monthlyEstimate: "—",
-          outputCost: "—",
+          outputCost: providerDraftOutputCost.trim() || "—",
           price: "—",
         },
       ]);
@@ -427,8 +501,10 @@ export const ModelConfigurationView = (props: ModelConfigurationViewProps): JSX.
           ? {
               ...provider,
               defaultBaseUrl: trimmedBaseUrl,
+              inputCost: providerDraftInputCost.trim() || provider.inputCost,
               label: trimmedProviderName,
               logoText: trimmedProviderName.slice(0, 1).toUpperCase() || provider.logoText,
+              outputCost: providerDraftOutputCost.trim() || provider.outputCost,
             }
           : provider,
       ),
@@ -442,7 +518,9 @@ export const ModelConfigurationView = (props: ModelConfigurationViewProps): JSX.
   }, [
     editingProviderKey,
     providerDraft,
+    providerDraftInputCost,
     providerDraftName,
+    providerDraftOutputCost,
     providerModalMode,
     providerOptions,
     resetProviderModal,
@@ -479,7 +557,13 @@ export const ModelConfigurationView = (props: ModelConfigurationViewProps): JSX.
 
       message.success("供应商已删除");
     },
-    [editingProviderKey, managedProviderKey, modelDraftProviderKey, resetModelForm, resetProviderModal],
+    [
+      editingProviderKey,
+      managedProviderKey,
+      modelDraftProviderKey,
+      resetModelForm,
+      resetProviderModal,
+    ],
   );
 
   const handleOpenModelManager = useCallback((providerKey: string): void => {
@@ -490,6 +574,8 @@ export const ModelConfigurationView = (props: ModelConfigurationViewProps): JSX.
     setModelDraftId("");
     setModelDraftInterfaceFormat(getDefaultModelInterfaceFormat(providerKey));
     setModelDraftInputModalities([...DEFAULT_MODEL_INPUT_MODALITIES]);
+    setModelDraftInputCostPerMillion(0);
+    setModelDraftOutputCostPerMillion(0);
     setModelDraftReasoningEnabled(true);
   }, []);
 
@@ -511,25 +597,32 @@ export const ModelConfigurationView = (props: ModelConfigurationViewProps): JSX.
     setModelDraftId("");
     setModelDraftInterfaceFormat(getDefaultModelInterfaceFormat(providerKey));
     setModelDraftInputModalities([...DEFAULT_MODEL_INPUT_MODALITIES]);
+    setModelDraftInputCostPerMillion(getDefaultModelCostPerMillion(providerKey, "input"));
+    setModelDraftOutputCostPerMillion(getDefaultModelCostPerMillion(providerKey, "output"));
     setModelDraftReasoningEnabled(true);
   }, []);
 
-  const handleOpenEditModelModal = useCallback((providerKey: string, model: ProviderModelItem): void => {
-    if (isSystemProvider(providerKey)) {
-      message.info("FrontisAI 为系统内置模型服务，不支持编辑模型。");
-      return;
-    }
+  const handleOpenEditModelModal = useCallback(
+    (providerKey: string, model: ProviderModelItem): void => {
+      if (isSystemProvider(providerKey)) {
+        message.info("FrontisAI 为系统内置模型服务，不支持编辑模型。");
+        return;
+      }
 
-    setIsModelFormVisible(true);
-    setModelModalMode("edit");
-    setModelDraftProviderKey(providerKey);
-    setEditingModelOriginalId(model.id);
-    setModelDraftName(model.name);
-    setModelDraftId(model.id);
-    setModelDraftInterfaceFormat(model.interfaceFormat);
-    setModelDraftInputModalities([...model.inputModalities]);
-    setModelDraftReasoningEnabled(model.reasoningEnabled);
-  }, []);
+      setIsModelFormVisible(true);
+      setModelModalMode("edit");
+      setModelDraftProviderKey(providerKey);
+      setEditingModelOriginalId(model.id);
+      setModelDraftName(model.name);
+      setModelDraftId(model.id);
+      setModelDraftInterfaceFormat(model.interfaceFormat);
+      setModelDraftInputModalities([...model.inputModalities]);
+      setModelDraftInputCostPerMillion(model.inputCostPerMillion);
+      setModelDraftOutputCostPerMillion(model.outputCostPerMillion);
+      setModelDraftReasoningEnabled(model.reasoningEnabled);
+    },
+    [],
+  );
 
   const handleSaveModel = useCallback((): void => {
     if (!modelDraftProvider) {
@@ -571,7 +664,9 @@ export const ModelConfigurationView = (props: ModelConfigurationViewProps): JSX.
                 id: trimmedModelId,
                 inputModalities: [...modelDraftInputModalities],
                 interfaceFormat: modelDraftInterfaceFormat,
+                inputCostPerMillion: normalizeOperationsMoney(modelDraftInputCostPerMillion),
                 name: trimmedModelName,
+                outputCostPerMillion: normalizeOperationsMoney(modelDraftOutputCostPerMillion),
                 reasoningEnabled: modelDraftReasoningEnabled,
               }
             : model,
@@ -582,7 +677,9 @@ export const ModelConfigurationView = (props: ModelConfigurationViewProps): JSX.
             id: trimmedModelId,
             inputModalities: [...modelDraftInputModalities],
             interfaceFormat: modelDraftInterfaceFormat,
+            inputCostPerMillion: normalizeOperationsMoney(modelDraftInputCostPerMillion),
             name: trimmedModelName,
+            outputCostPerMillion: normalizeOperationsMoney(modelDraftOutputCostPerMillion),
             reasoningEnabled: modelDraftReasoningEnabled,
           },
         ];
@@ -593,7 +690,8 @@ export const ModelConfigurationView = (props: ModelConfigurationViewProps): JSX.
     }));
     setProviderConfigs(current => {
       const currentConfig =
-        current[modelDraftProvider.key] ?? createEmptyProviderConfig(modelDraftProvider.defaultBaseUrl);
+        current[modelDraftProvider.key] ??
+        createEmptyProviderConfig(modelDraftProvider.defaultBaseUrl);
 
       return {
         ...current,
@@ -609,9 +707,11 @@ export const ModelConfigurationView = (props: ModelConfigurationViewProps): JSX.
   }, [
     editingModelOriginalId,
     modelDraftInputModalities,
+    modelDraftInputCostPerMillion,
     modelDraftInterfaceFormat,
     modelDraftId,
     modelDraftName,
+    modelDraftOutputCostPerMillion,
     modelDraftProvider,
     modelDraftReasoningEnabled,
     providerModels,
@@ -718,6 +818,8 @@ export const ModelConfigurationView = (props: ModelConfigurationViewProps): JSX.
                 <th>供应商名称</th>
                 <th>API Key</th>
                 <th>Base URL</th>
+                {isPrivateCloud ? <th>输入成本</th> : null}
+                {isPrivateCloud ? <th>输出成本</th> : null}
                 <th>状态</th>
                 <th>模型数</th>
                 <th>最近检测</th>
@@ -728,7 +830,8 @@ export const ModelConfigurationView = (props: ModelConfigurationViewProps): JSX.
               {filteredProviders.length ? (
                 filteredProviders.map(provider => {
                   const providerConfig =
-                    providerConfigs[provider.key] ?? createEmptyProviderConfig(provider.defaultBaseUrl);
+                    providerConfigs[provider.key] ??
+                    createEmptyProviderConfig(provider.defaultBaseUrl);
                   const models = providerModels[provider.key] ?? [];
                   const providerIsSystem = isSystemProvider(provider.key);
 
@@ -737,8 +840,14 @@ export const ModelConfigurationView = (props: ModelConfigurationViewProps): JSX.
                       <td className={adminStyles.consoleHtmlTableStrong}>{provider.label}</td>
                       <td>{providerIsSystem ? "系统内置" : maskApiKey(providerConfig.apiKey)}</td>
                       <td>{providerConfig.baseUrl || provider.defaultBaseUrl || "未填写"}</td>
+                      {isPrivateCloud ? <td>{provider.inputCost}</td> : null}
+                      {isPrivateCloud ? <td>{provider.outputCost}</td> : null}
                       <td>
-                        <span className={getProviderStatusClassName(getProviderListStatusTone(providerConfig))}>
+                        <span
+                          className={getProviderStatusClassName(
+                            getProviderListStatusTone(providerConfig),
+                          )}
+                        >
                           {getProviderListStatusLabel(providerConfig)}
                         </span>
                       </td>
@@ -751,10 +860,16 @@ export const ModelConfigurationView = (props: ModelConfigurationViewProps): JSX.
                           </Button>
                           {providerIsSystem ? null : (
                             <>
-                              <Button size="small" onClick={() => handleOpenAddModelModal(provider.key)}>
+                              <Button
+                                size="small"
+                                onClick={() => handleOpenAddModelModal(provider.key)}
+                              >
                                 添加模型
                               </Button>
-                              <Button size="small" onClick={() => handleOpenEditProvider(provider.key)}>
+                              <Button
+                                size="small"
+                                onClick={() => handleOpenEditProvider(provider.key)}
+                              >
                                 编辑
                               </Button>
                               <Popconfirm
@@ -777,7 +892,7 @@ export const ModelConfigurationView = (props: ModelConfigurationViewProps): JSX.
                 })
               ) : (
                 <tr>
-                  <td colSpan={7}>
+                  <td colSpan={isPrivateCloud ? 9 : 7}>
                     <div className={adminStyles.consoleEmpty}>当前没有匹配的模型供应商。</div>
                   </td>
                 </tr>
@@ -799,7 +914,9 @@ export const ModelConfigurationView = (props: ModelConfigurationViewProps): JSX.
         {providerDraft ? (
           <div className={adminStyles.providerModalContent}>
             {providerModalMode === "edit" && editingProvider ? (
-              <div className={adminStyles.providerModalDescription}>{editingProvider.description}</div>
+              <div className={adminStyles.providerModalDescription}>
+                {editingProvider.description}
+              </div>
             ) : null}
 
             <div className={adminStyles.providerModalForm}>
@@ -831,14 +948,37 @@ export const ModelConfigurationView = (props: ModelConfigurationViewProps): JSX.
                   onChange={event => handleProviderDraftFieldChange("baseUrl", event.target.value)}
                 />
               </div>
+
+              {isPrivateCloud ? (
+                <>
+                  <div className={adminStyles.providerField}>
+                    <span className={adminStyles.providerFieldLabel}>输入成本</span>
+                    <Input
+                      placeholder="如：¥5 / 1M tokens"
+                      value={providerDraftInputCost}
+                      onChange={event => setProviderDraftInputCost(event.target.value)}
+                    />
+                  </div>
+                  <div className={adminStyles.providerField}>
+                    <span className={adminStyles.providerFieldLabel}>输出成本</span>
+                    <Input
+                      placeholder="如：¥15 / 1M tokens"
+                      value={providerDraftOutputCost}
+                      onChange={event => setProviderDraftOutputCost(event.target.value)}
+                    />
+                  </div>
+                </>
+              ) : null}
             </div>
 
             <div className={adminStyles.providerModalActions}>
-              <Button loading={isTestingProvider} onClick={() => void handleTestProviderConnection()}>
+              <Button
+                loading={isTestingProvider}
+                onClick={() => void handleTestProviderConnection()}
+              >
                 测试连通性
               </Button>
             </div>
-
           </div>
         ) : null}
       </Modal>
@@ -846,6 +986,7 @@ export const ModelConfigurationView = (props: ModelConfigurationViewProps): JSX.
       <Modal
         footer={null}
         open={Boolean(managedProvider)}
+        width={isPrivateCloud ? 1040 : 760}
         title={managedProvider ? `模型管理 · ${managedProvider.label}` : "模型管理"}
         onCancel={handleCloseModelManager}
       >
@@ -859,6 +1000,7 @@ export const ModelConfigurationView = (props: ModelConfigurationViewProps): JSX.
                     <th>模型 ID</th>
                     <th>接口格式</th>
                     <th>输入模态</th>
+                    {isPrivateCloud ? <th>成本 / 百万 Tokens</th> : null}
                     <th>推理</th>
                     <th>操作</th>
                   </tr>
@@ -879,6 +1021,13 @@ export const ModelConfigurationView = (props: ModelConfigurationViewProps): JSX.
                             ))}
                           </div>
                         </td>
+                        {isPrivateCloud ? (
+                          <td>
+                            输入 {formatOperationsCurrency(model.inputCostPerMillion)}
+                            <br />
+                            输出 {formatOperationsCurrency(model.outputCostPerMillion)}
+                          </td>
+                        ) : null}
                         <td>
                           <Switch
                             checked={model.reasoningEnabled}
@@ -916,7 +1065,7 @@ export const ModelConfigurationView = (props: ModelConfigurationViewProps): JSX.
                     ))
                   ) : (
                     <tr>
-                      <td colSpan={6}>
+                      <td colSpan={isPrivateCloud ? 7 : 6}>
                         <div className={adminStyles.consoleEmpty}>当前供应商下暂无模型。</div>
                       </td>
                     </tr>
@@ -929,6 +1078,7 @@ export const ModelConfigurationView = (props: ModelConfigurationViewProps): JSX.
       </Modal>
 
       <Modal
+        width={isPrivateCloud ? 720 : 560}
         open={isModelFormVisible}
         title={
           modelDraftProvider
@@ -979,6 +1129,30 @@ export const ModelConfigurationView = (props: ModelConfigurationViewProps): JSX.
                 onChange={(value: ModelInputModality[]) => setModelDraftInputModalities(value)}
               />
             </div>
+            {isPrivateCloud ? (
+              <>
+                <div className={adminStyles.providerField}>
+                  <span className={adminStyles.providerFieldLabel}>输入成本 / 百万 Tokens</span>
+                  <InputNumber
+                    className={adminStyles.consoleControl}
+                    min={0}
+                    precision={4}
+                    value={modelDraftInputCostPerMillion}
+                    onChange={value => setModelDraftInputCostPerMillion(Number(value ?? 0))}
+                  />
+                </div>
+                <div className={adminStyles.providerField}>
+                  <span className={adminStyles.providerFieldLabel}>输出成本 / 百万 Tokens</span>
+                  <InputNumber
+                    className={adminStyles.consoleControl}
+                    min={0}
+                    precision={4}
+                    value={modelDraftOutputCostPerMillion}
+                    onChange={value => setModelDraftOutputCostPerMillion(Number(value ?? 0))}
+                  />
+                </div>
+              </>
+            ) : null}
             <div className={adminStyles.providerField}>
               <span className={adminStyles.providerFieldLabel}>推理开关</span>
               <Switch

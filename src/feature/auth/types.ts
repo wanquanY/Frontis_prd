@@ -71,6 +71,7 @@ export interface MockAuthSession {
   loginAt: string;
   identities: MockAuthIdentity[];
   activeIdentityId?: string;
+  deploymentMode?: MockTenantDeploymentMode;
 }
 
 /**
@@ -151,6 +152,11 @@ export interface MockTenantPointsOrderItem {
 export type MockTenantEdition = "personal" | "team";
 
 /**
+ * 租户部署形态。
+ */
+export type MockTenantDeploymentMode = "publicCloud" | "privateCloud";
+
+/**
  * 团队版 AI 专家用量记录。
  */
 export interface MockTenantAgentUsageRecordItem {
@@ -162,6 +168,10 @@ export interface MockTenantAgentUsageRecordItem {
   outputTokens: number;
   callCount: number;
   occurredAt: string;
+  costAmount?: number;
+  humanCostAmount?: number;
+  industryBenchmarkCostAmount?: number;
+  points?: number;
 }
 
 /**
@@ -173,6 +183,7 @@ export interface MockTenantManagementSnapshot {
   tenantCode: string;
   ownerAccountId: string;
   adminUserId: string;
+  deploymentMode: MockTenantDeploymentMode;
   edition: MockTenantEdition;
   planLabel: string;
   includedSeats: number;
@@ -222,6 +233,7 @@ export interface MockLoginParams {
   phone: string;
   verificationCode: string;
   redirectPath?: string;
+  deploymentMode?: MockTenantDeploymentMode;
 }
 
 /**

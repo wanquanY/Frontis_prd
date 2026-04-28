@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { ArrowLeftOutlined, CheckCircleOutlined } from "@ant-design/icons";
-import { Avatar, Button, Radio, Select, Tabs, TreeSelect, message } from "antd";
+import { Avatar, Button, InputNumber, Radio, Select, Tabs, TreeSelect, message } from "antd";
 
 import {
   buildAccessScopeSubjectLookup,
@@ -20,7 +20,7 @@ import type {
   OrganizationTreeNode,
   WorkspaceItem,
 } from "../../types";
-import type { ExpertDeploymentState, ExpertDeviceAccessState } from "./types";
+import type { AgentLaborCostConfig, ExpertDeploymentState, ExpertDeviceAccessState } from "./types";
 import {
   INITIAL_PROVIDER_CONFIGS,
   PROVIDER_MODEL_CATALOG,
@@ -279,10 +279,16 @@ export const EXPERT_VERSION_INFO: Record<string, ExpertVersionInfo> = {
   ]),
 };
 
-type ExpertConfigTabKey = "workspaceAccess" | "modelConfig" | "versionHistory";
+type ExpertConfigTabKey =
+  | "workspaceAccess"
+  | "modelConfig"
+  | "costAccounting"
+  | "versionHistory";
 
 interface AgentStoreTeamDetailProps {
+  platformModelOnly: boolean;
   allowPermissionManagement: boolean;
+  allowLaborCostConfiguration: boolean;
   deploymentByEmployeeId: Record<string, ExpertDeploymentState>;
   deviceOwners: Record<string, string | null>;
   detailTitle: string;
@@ -298,6 +304,7 @@ interface AgentStoreTeamDetailProps {
     visibility: EmployeeVisibility,
     accessScopeSubjects: AccessScopeSubject[],
   ) => void;
+  onUpdateLaborCosts: (employeeId: string, costs: AgentLaborCostConfig) => void;
   onUpdateModel: (employeeId: string, model: string) => void;
   users: FrontisWebUserItem[];
   workspaces: WorkspaceItem[];
@@ -360,7 +367,9 @@ const getDeviceConfiguredLabel = (
  * AI 专家详情视图。
  */
 export const AgentStoreTeamDetail = ({
+  platformModelOnly,
   allowPermissionManagement,
+  allowLaborCostConfiguration,
   deploymentByEmployeeId,
   deviceOwners,
   detailTitle,
@@ -371,6 +380,7 @@ export const AgentStoreTeamDetail = ({
   onDetachEmployeeFromDevice,
   onNavigateToTab,
   onUpdateDeviceAccess,
+  onUpdateLaborCosts,
   onUpdateModel,
   users,
   workspaces,
@@ -480,7 +490,9 @@ export const AgentStoreTeamDetail = ({
             {selectedEmployee ? (
               <ExpertConfigPanel
                 key={selectedEmployee.id}
+                platformModelOnly={platformModelOnly}
                 allowPermissionManagement={allowPermissionManagement}
+                allowLaborCostConfiguration={allowLaborCostConfiguration}
                 deploymentState={deploymentByEmployeeId[selectedEmployee.id]}
                 deviceOwners={deviceOwners}
                 employee={selectedEmployee}
@@ -489,6 +501,7 @@ export const AgentStoreTeamDetail = ({
                 onDetachEmployeeFromDevice={onDetachEmployeeFromDevice}
                 onNavigateToTab={onNavigateToTab}
                 onUpdateDeviceAccess={onUpdateDeviceAccess}
+                onUpdateLaborCosts={onUpdateLaborCosts}
                 onUpdateModel={onUpdateModel}
                 users={users}
                 workspaces={workspaces}
@@ -502,7 +515,9 @@ export const AgentStoreTeamDetail = ({
 };
 
 interface ExpertConfigPanelProps {
+  platformModelOnly: boolean;
   allowPermissionManagement: boolean;
+  allowLaborCostConfiguration: boolean;
   deploymentState?: ExpertDeploymentState;
   deviceOwners: Record<string, string | null>;
   employee: EmployeeItem;
@@ -516,13 +531,16 @@ interface ExpertConfigPanelProps {
     visibility: EmployeeVisibility,
     accessScopeSubjects: AccessScopeSubject[],
   ) => void;
+  onUpdateLaborCosts: (employeeId: string, costs: AgentLaborCostConfig) => void;
   onUpdateModel: (employeeId: string, model: string) => void;
   users: FrontisWebUserItem[];
   workspaces: WorkspaceItem[];
 }
 
 const ExpertConfigPanel = ({
+  platformModelOnly,
   allowPermissionManagement,
+  allowLaborCostConfiguration,
   deploymentState,
   deviceOwners,
   employee,
@@ -531,11 +549,16 @@ const ExpertConfigPanel = ({
   onDetachEmployeeFromDevice,
   onNavigateToTab,
   onUpdateDeviceAccess,
+  onUpdateLaborCosts,
   onUpdateModel,
   users,
   workspaces,
 }: ExpertConfigPanelProps): JSX.Element => {
   const [selectedModel, setSelectedModel] = useState<string>(employee.model);
+  const [laborCostDraft, setLaborCostDraft] = useState<AgentLaborCostConfig>(() => ({
+    industryStandardCost: employee.industryStandardCost ?? 0,
+    myLaborCost: employee.myLaborCost ?? 0,
+  }));
   const [draftWorkspaceId, setDraftWorkspaceId] = useState<string | undefined>();
   const [activeTabKey, setActiveTabKey] = useState<ExpertConfigTabKey>(
     allowPermissionManagement ? "workspaceAccess" : "modelConfig",
@@ -622,12 +645,31 @@ const ExpertConfigPanel = ({
   }, [employee]);
 
   useEffect(() => {
+    setLaborCostDraft({
+      industryStandardCost: employee.industryStandardCost ?? 0,
+      myLaborCost: employee.myLaborCost ?? 0,
+    });
+  }, [employee.id, employee.industryStandardCost, employee.myLaborCost]);
+
+  useEffect(() => {
     if (!allowPermissionManagement && activeTabKey === "workspaceAccess") {
       setActiveTabKey("modelConfig");
     }
   }, [activeTabKey, allowPermissionManagement]);
 
   const { allModelOptions, hasAnyProvider } = useMemo(() => {
+    if (platformModelOnly) {
+      const nextOptions = (PROVIDER_MODEL_CATALOG.local ?? []).map(model => ({
+        label: `${model}（平台提供）`,
+        value: model,
+      }));
+
+      return {
+        allModelOptions: nextOptions,
+        hasAnyProvider: nextOptions.length > 0,
+      };
+    }
+
     const configuredProviders = PROVIDER_OPTIONS.filter(provider =>
       isProviderConfigured(INITIAL_PROVIDER_CONFIGS[provider.key]),
     );
@@ -642,7 +684,7 @@ const ExpertConfigPanel = ({
       allModelOptions: nextOptions,
       hasAnyProvider: nextOptions.length > 0,
     };
-  }, []);
+  }, [platformModelOnly]);
   const permissionAccessSummary = getExpertAccessScopeSummary(
     permissionAccessDraft.visibility,
     permissionAccessDraft.accessScopeSubjects,
@@ -650,10 +692,14 @@ const ExpertConfigPanel = ({
   );
   const modelStatusLabel = hasAnyProvider ? selectedModel : "待配置";
   const modelStatusHint = hasAnyProvider
-    ? canConfigureModel
-      ? "当前生效模型"
-      : "绑定设备后生效"
-    : "需先完成管理员模型配置";
+    ? platformModelOnly
+      ? "平台提供模型"
+      : canConfigureModel
+        ? "当前生效模型"
+        : "绑定设备后生效"
+    : platformModelOnly
+      ? "暂无平台可用模型"
+      : "需先完成管理员模型配置";
   const versionStatusLabel = `${versionRecords.length} 个版本`;
 
   const workspaceOptions = useMemo(
@@ -944,17 +990,33 @@ const ExpertConfigPanel = ({
     [employee.id, employee.name, isAssigned, onUpdateModel, requiresDeviceBinding],
   );
 
+  const handleLaborCostChange = useCallback(
+    (field: keyof AgentLaborCostConfig, value: number | null): void => {
+      setLaborCostDraft(prev => ({
+        ...prev,
+        [field]: Math.max(0, Math.round(value ?? 0)),
+      }));
+    },
+    [],
+  );
+
+  const handleSaveLaborCosts = useCallback((): void => {
+    onUpdateLaborCosts(employee.id, laborCostDraft);
+    message.success(`${employee.name} 成本参数已保存`);
+  }, [employee.id, employee.name, laborCostDraft, onUpdateLaborCosts]);
+
   const handleTabChange = useCallback(
     (nextTabKey: string): void => {
       if (
         (allowPermissionManagement && nextTabKey === "workspaceAccess") ||
         nextTabKey === "modelConfig" ||
+        (allowLaborCostConfiguration && nextTabKey === "costAccounting") ||
         nextTabKey === "versionHistory"
       ) {
         setActiveTabKey(nextTabKey);
       }
     },
-    [allowPermissionManagement],
+    [allowLaborCostConfiguration, allowPermissionManagement],
   );
 
   return (
@@ -999,6 +1061,7 @@ const ExpertConfigPanel = ({
         items={[
           ...(allowPermissionManagement ? [{ key: "workspaceAccess", label: "权限管理" }] : []),
           { key: "modelConfig", label: "模型配置" },
+          ...(allowLaborCostConfiguration ? [{ key: "costAccounting", label: "成本核算" }] : []),
           { key: "versionHistory", label: "版本记录" },
         ]}
         onChange={handleTabChange}
@@ -1268,15 +1331,58 @@ const ExpertConfigPanel = ({
               ) : (
                 <>
                   <span className={styles.simpleExpertHint}>
-                    暂无可用大模型，请先完成管理员模型配置。
+                    {platformModelOnly
+                      ? "暂无平台可用大模型。"
+                      : "暂无可用大模型，请先完成管理员模型配置。"}
                   </span>
-                  <div className={adminStyles.consoleActions}>
-                    <Button size="small" onClick={() => onNavigateToTab("models")}>
-                      前往模型配置
-                    </Button>
-                  </div>
+                  {platformModelOnly ? null : (
+                    <div className={adminStyles.consoleActions}>
+                      <Button size="small" onClick={() => onNavigateToTab("models")}>
+                        前往模型配置
+                      </Button>
+                    </div>
+                  )}
                 </>
               )}
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {allowLaborCostConfiguration && activeTabKey === "costAccounting" ? (
+        <div className={styles.expertConfigTabPanel}>
+          <div className={styles.expertConfigSinglePanel}>
+            <div className={styles.simpleExpertBlock}>
+              <span className={styles.simpleExpertBlockLabel}>成本核算</span>
+              <div className={styles.laborCostGrid}>
+                <label className={styles.laborCostField}>
+                  <span className={styles.laborCostLabel}>我的人力成本</span>
+                  <InputNumber
+                    className={styles.laborCostInput}
+                    min={0}
+                    precision={0}
+                    prefix="¥"
+                    size="small"
+                    value={laborCostDraft.myLaborCost}
+                    onChange={value => handleLaborCostChange("myLaborCost", value)}
+                  />
+                </label>
+                <label className={styles.laborCostField}>
+                  <span className={styles.laborCostLabel}>行业标准成本</span>
+                  <InputNumber
+                    className={styles.laborCostInput}
+                    min={0}
+                    precision={0}
+                    prefix="¥"
+                    size="small"
+                    value={laborCostDraft.industryStandardCost}
+                    onChange={value => handleLaborCostChange("industryStandardCost", value)}
+                  />
+                </label>
+                <Button size="small" type="primary" onClick={handleSaveLaborCosts}>
+                  保存
+                </Button>
+              </div>
             </div>
           </div>
         </div>

@@ -19,6 +19,7 @@ import type {
   MockAuthTenantEntry,
   MockIdentityPlatform,
   MockTenantInviteMemberParams,
+  MockTenantDeploymentMode,
   MockTenantManagementSnapshot,
   MockTenantRegistrationParams,
 } from "@/feature/auth/types";
@@ -94,6 +95,12 @@ const PERSONAL_REGISTERED_TENANT: MockTenantInfo = {
   code: "SELF-2026-430",
 };
 
+const NEW_USER_ONBOARDING_TENANT: MockTenantInfo = {
+  id: "tenant-new-user-onboarding-demo",
+  name: "沈一新的工作室",
+  code: "SELF-2026-NEW",
+};
+
 const normalizePhone = (phone: string): string => phone.replace(/\s+/g, "").trim();
 
 const normalizeRedirectPath = (redirectPath?: string): string | undefined => {
@@ -149,6 +156,9 @@ const getRoleLabel = (role: FrontisUserRole): string => {
 
 const getWorkspaceRole = (role: FrontisUserRole): FrontisWebRole =>
   role === "enterpriseAdmin" ? "admin" : "employee";
+
+const getTenantAdminDeploymentMode = (tenantId: string): MockTenantDeploymentMode =>
+  getMockTenantManagementSnapshot(tenantId)?.deploymentMode ?? "publicCloud";
 
 const buildWorkspaceIdentity = (
   tenant: MockTenantInfo,
@@ -339,15 +349,20 @@ const saveStoredMockAccount = (account: MockAuthAccount): MockAuthAccount => {
 
 const getStoredMockAccounts = (): MockAuthAccount[] => readStoredMockAccounts();
 
-export const ENTERPRISE_EMPLOYEE_MOCK_ACCOUNT: MockAuthAccount = buildTenantAccount(
+const isRuntimeGeneratedMockAccount = (account: MockAuthAccount): boolean =>
+  account.accountId.startsWith("mock-account-self-") ||
+  account.accountId.startsWith("mock-account-tenant-");
+
+export const PUBLIC_ENTERPRISE_EMPLOYEE_MOCK_ACCOUNT: MockAuthAccount = buildTenantAccount(
   "user-member-001",
   "王晨",
   "13800000011",
   "employee",
   DEFAULT_MOCK_VERIFICATION_CODE,
   {
-    accountId: "mock-account-employee",
-    description: "租户成员账号，仅可进入工作台处理个人协作与成果沉淀。",
+    accountId: "mock-account-public-employee",
+    description: "公有云租户成员账号，可进入工作台处理个人协作与成果沉淀。",
+    tenant: MULTI_TENANT_ENTERPRISE_ADMIN_TENANT,
   },
 );
 
@@ -360,12 +375,37 @@ export const ENTERPRISE_ADMIN_MOCK_ACCOUNT: MockAuthAccount = withOperationsIden
     DEFAULT_MOCK_VERIFICATION_CODE,
     {
       accountId: "mock-account-enterprise-admin",
-      description: `租户管理员账号，登录后进入${PRODUCT_NAME}工作台，并可继续进入${MANAGEMENT_CONSOLE_LABEL}。`,
+      description: `公有云租户管理员账号，登录后进入${PRODUCT_NAME}工作台，并可继续进入${MANAGEMENT_CONSOLE_LABEL}。`,
+      tenant: MULTI_TENANT_ENTERPRISE_ADMIN_TENANT,
     },
   ),
   "enterprise-admin-operations-platform",
   "ops-account-yang-wanquan",
   "杨万泉",
+);
+
+export const PRIVATE_ENTERPRISE_EMPLOYEE_MOCK_ACCOUNT: MockAuthAccount = buildTenantAccount(
+  "user-member-001",
+  "王晨",
+  "13800006602",
+  "employee",
+  DEFAULT_MOCK_VERIFICATION_CODE,
+  {
+    accountId: "mock-account-private-employee",
+    description: "私有化部署租户成员账号，仅可进入企业工作台处理个人协作与成果沉淀。",
+  },
+);
+
+export const PRIVATE_ENTERPRISE_ADMIN_MOCK_ACCOUNT: MockAuthAccount = buildTenantAccount(
+  "user-admin-001",
+  "杨万泉",
+  "13800006601",
+  "enterpriseAdmin",
+  DEFAULT_MOCK_VERIFICATION_CODE,
+  {
+    accountId: "mock-account-private-admin",
+    description: `私有化部署租户管理员账号，仅进入企业工作台和${MANAGEMENT_CONSOLE_LABEL}，不包含运营管理平台。`,
+  },
 );
 
 export const PERSONAL_REGISTERED_MOCK_ACCOUNT: MockAuthAccount = buildTenantAccount(
@@ -378,6 +418,19 @@ export const PERSONAL_REGISTERED_MOCK_ACCOUNT: MockAuthAccount = buildTenantAcco
     accountId: "mock-account-personal-admin",
     description: "自注册租户管理员账号，默认是 1 席个人版，可在管理后台开通团队版。",
     tenant: PERSONAL_REGISTERED_TENANT,
+  },
+);
+
+export const NEW_USER_ONBOARDING_MOCK_ACCOUNT: MockAuthAccount = buildTenantAccount(
+  "user-new-admin-001",
+  "沈一新",
+  "13800007777",
+  "enterpriseAdmin",
+  DEFAULT_MOCK_VERIFICATION_CODE,
+  {
+    accountId: "mock-account-new-user-onboarding",
+    description: "新用户首次进入示例账号，登录后直接进入 MetaAgent 并展示初始化引导。",
+    tenant: NEW_USER_ONBOARDING_TENANT,
   },
 );
 
@@ -429,11 +482,16 @@ export const MULTI_TENANT_MOCK_ACCOUNT: MockAuthAccount = {
 };
 
 const PRESET_MOCK_AUTH_ACCOUNTS: MockAuthAccount[] = [
-  ENTERPRISE_EMPLOYEE_MOCK_ACCOUNT,
+  PUBLIC_ENTERPRISE_EMPLOYEE_MOCK_ACCOUNT,
   ENTERPRISE_ADMIN_MOCK_ACCOUNT,
+  NEW_USER_ONBOARDING_MOCK_ACCOUNT,
   PERSONAL_REGISTERED_MOCK_ACCOUNT,
   MULTI_TENANT_MOCK_ACCOUNT,
-  ...OPERATIONS_ACCOUNT_OPTIONS.map(buildOperationsAccount),
+  PRIVATE_ENTERPRISE_ADMIN_MOCK_ACCOUNT,
+  PRIVATE_ENTERPRISE_EMPLOYEE_MOCK_ACCOUNT,
+  ...OPERATIONS_ACCOUNT_OPTIONS.filter(
+    account => account.accountId !== "ops-account-yang-wanquan",
+  ).map(buildOperationsAccount),
 ];
 
 /**
@@ -441,12 +499,25 @@ const PRESET_MOCK_AUTH_ACCOUNTS: MockAuthAccount[] = [
  */
 export const getMockAuthAccounts = (): MockAuthAccount[] => {
   const accountMap = new Map<string, MockAuthAccount>();
+  const presetAccountIds = new Set(PRESET_MOCK_AUTH_ACCOUNTS.map(account => account.accountId));
+  const presetPhones = new Set(PRESET_MOCK_AUTH_ACCOUNTS.map(account => account.phone));
+  const presetDisplayKeys = new Set(
+    PRESET_MOCK_AUTH_ACCOUNTS.map(account => `${account.roleLabel}:${account.name}`),
+  );
+
+  getStoredMockAccounts()
+    .filter(
+      account =>
+        isRuntimeGeneratedMockAccount(account) &&
+        !presetAccountIds.has(account.accountId) &&
+        !presetPhones.has(account.phone) &&
+        !presetDisplayKeys.has(`${account.roleLabel}:${account.name}`),
+    )
+    .forEach(account => {
+      accountMap.set(account.accountId, account);
+    });
 
   PRESET_MOCK_AUTH_ACCOUNTS.forEach(account => {
-    accountMap.set(account.accountId, account);
-  });
-
-  getStoredMockAccounts().forEach(account => {
     accountMap.set(account.accountId, account);
   });
 
@@ -490,7 +561,16 @@ export const getLoginPath = (redirectPath?: string): string => {
 /**
  * 获取管理后台路径。
  */
-export const getAdminManagementPath = (): string => "/web/admin";
+export const getAdminManagementPath = (
+  deploymentMode: MockTenantDeploymentMode = "publicCloud",
+): string =>
+  deploymentMode === "privateCloud" ? "/web/admin/private-cloud" : "/web/admin/public-cloud";
+
+/**
+ * 获取指定租户的管理后台路径。
+ */
+export const getTenantAdminManagementPath = (tenantId: string | undefined): string =>
+  getAdminManagementPath(tenantId ? getTenantAdminDeploymentMode(tenantId) : "publicCloud");
 
 /**
  * 获取租户选择页路径。
@@ -561,6 +641,7 @@ export const registerMockTenantAdminAccount = (
     tenantCode,
     ownerAccountId: accountId,
     adminUserId: userId,
+    deploymentMode: "publicCloud",
     edition: "personal",
     planLabel: "个人版",
     includedSeats: 1,
@@ -798,6 +879,52 @@ const isTenantScopedIdentity = (identity: MockAuthIdentity): boolean =>
   identity.platform !== "operationsAdmin";
 
 /**
+ * 获取身份所属部署形态。运营平台仅属于公有云体系。
+ */
+export const getIdentityDeploymentMode = (identity: MockAuthIdentity): MockTenantDeploymentMode => {
+  if (identity.platform === "operationsAdmin") {
+    return "publicCloud";
+  }
+
+  return getTenantAdminDeploymentMode(identity.tenantId);
+};
+
+/**
+ * 按部署形态过滤可用身份。
+ */
+export const getIdentitiesForDeployment = (
+  identities: MockAuthIdentity[] | undefined,
+  deploymentMode?: MockTenantDeploymentMode,
+): MockAuthIdentity[] => {
+  const safeIdentities = getSafeIdentities(identities);
+
+  if (!deploymentMode) {
+    return safeIdentities;
+  }
+
+  return safeIdentities.filter(identity => getIdentityDeploymentMode(identity) === deploymentMode);
+};
+
+/**
+ * 判断账号在指定部署形态下是否有可进入系统。
+ */
+export const hasAccountDeploymentMode = (
+  account: MockAuthAccount,
+  deploymentMode: MockTenantDeploymentMode,
+): boolean => getIdentitiesForDeployment(account.identities, deploymentMode).length > 0;
+
+const areIdentityListsSame = (
+  leftIdentities: MockAuthIdentity[] | undefined,
+  rightIdentities: MockAuthIdentity[],
+): boolean => {
+  if (!Array.isArray(leftIdentities) || leftIdentities.length !== rightIdentities.length) {
+    return false;
+  }
+
+  return leftIdentities.every((identity, index) => identity.id === rightIdentities[index]?.id);
+};
+
+/**
  * 兼容旧版持久化会话，补齐缺失的 identities 字段。
  */
 export const normalizeMockSession = (session: MockAuthSession | null): MockAuthSession | null => {
@@ -811,7 +938,10 @@ export const normalizeMockSession = (session: MockAuthSession | null): MockAuthS
     return null;
   }
 
-  const nextIdentities = matchedAccount.identities;
+  const nextIdentities = getIdentitiesForDeployment(
+    matchedAccount.identities,
+    session.deploymentMode,
+  );
   const nextActiveIdentity =
     nextIdentities.find(identity => identity.id === session.activeIdentityId) ??
     nextIdentities.find(
@@ -820,8 +950,7 @@ export const normalizeMockSession = (session: MockAuthSession | null): MockAuthS
     nextIdentities.find(identity => identity.subjectId === session.userId) ??
     [...nextIdentities].sort(compareIdentityPriority)[0];
   const isSessionAlreadyNormalized =
-    Array.isArray(session.identities) &&
-    session.identities === nextIdentities &&
+    areIdentityListsSame(session.identities, nextIdentities) &&
     session.userId === (nextActiveIdentity?.subjectId ?? session.userId) &&
     session.role === (nextActiveIdentity?.role ?? session.role) &&
     session.roleLabel === (nextActiveIdentity?.roleLabel ?? session.roleLabel) &&
@@ -1085,6 +1214,7 @@ export const resolveIdentityEntryPath = (
 export const createMockSession = (
   account: MockAuthAccount,
   activeIdentity?: MockAuthIdentity,
+  deploymentMode?: MockTenantDeploymentMode,
 ): MockAuthSession => ({
   accountId: account.accountId,
   userId: activeIdentity?.subjectId ?? account.userId,
@@ -1093,8 +1223,9 @@ export const createMockSession = (
   role: activeIdentity?.role ?? null,
   roleLabel: activeIdentity?.roleLabel,
   loginAt: new Date().toISOString(),
-  identities: account.identities,
+  identities: getIdentitiesForDeployment(account.identities, deploymentMode),
   activeIdentityId: activeIdentity?.id,
+  deploymentMode,
 });
 
 /**

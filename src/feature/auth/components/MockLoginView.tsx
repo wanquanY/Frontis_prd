@@ -6,7 +6,11 @@ import { Avatar, Button, Input, Modal, Select, message } from "antd";
 import { Navigate, useNavigate, useSearchParams } from "react-router-dom";
 
 import { PRODUCT_LOGO_TEXT, PRODUCT_NAME, PRODUCT_SLOGAN } from "@/constants/brand";
-import { getTenantCount, getTenantEntries } from "@/feature/auth/mockAccounts";
+import {
+  getIdentityDeploymentMode,
+  getTenantCount,
+  getTenantEntries,
+} from "@/feature/auth/mockAccounts";
 import { useMockAuth } from "@/feature/auth/hooks/useMockAuth";
 import type { MockAuthAccount, MockAuthTenantEntry } from "@/feature/auth/types";
 
@@ -16,6 +20,26 @@ const getTenantLogoText = (tenantName: string): string => {
   const normalizedTenantName = tenantName.replace(/租户|服务组织/g, "").trim();
 
   return Array.from(normalizedTenantName)[0] ?? "租";
+};
+
+const DEPLOYMENT_MODE_LABELS = {
+  publicCloud: "公有云",
+  privateCloud: "私有云",
+} as const;
+
+const getPresetAccountLabel = (account: MockAuthAccount): string => {
+  const deploymentLabels = Array.from(
+    new Set(
+      account.identities.map(
+        identity => DEPLOYMENT_MODE_LABELS[getIdentityDeploymentMode(identity)],
+      ),
+    ),
+  );
+  const tenantEntries = getTenantEntries(account.identities);
+  const tenantLabel = tenantEntries.length === 1 ? ` · ${tenantEntries[0].tenantName}` : "";
+  const deploymentLabel = deploymentLabels.length ? ` · ${deploymentLabels.join("/")}` : "";
+
+  return `${account.roleLabel} · ${account.name}${tenantLabel}${deploymentLabel}`;
 };
 
 /**
@@ -220,6 +244,14 @@ export const MockLoginView = (): JSX.Element => {
     return getTenantCount(selectedAccount.identities);
   }, [selectedAccount]);
 
+  const selectedAccountIdentityCount = useMemo<number>(() => {
+    if (!selectedAccount) {
+      return 0;
+    }
+
+    return selectedAccount.identities.length;
+  }, [selectedAccount]);
+
   const selectedAccountEntryHint = useMemo<string>(() => {
     if (!selectedAccount) {
       return "选择预置账号后，将自动回填手机号和验证码。";
@@ -229,17 +261,32 @@ export const MockLoginView = (): JSX.Element => {
       return "当前预置账号登录后会弹出租户选择框，请先选择本次要进入的租户。";
     }
 
-    return "当前预置账号会在点击左侧登录后直接进入默认系统，其他有权限的系统入口会在产品内展示。";
+    return "当前账号会按已开通的租户与系统权限进入，多个租户时登录后选择本次进入的租户。";
   }, [selectedAccount, selectedAccountTenantCount]);
 
   const presetOptions = useMemo(
     () =>
       mockAccounts.map(account => ({
-        label: `${account.roleLabel} · ${account.name}`,
+        label: getPresetAccountLabel(account),
         value: account.accountId,
       })),
     [mockAccounts],
   );
+
+  useEffect(() => {
+    if (!selectedAccountId) {
+      return;
+    }
+
+    if (mockAccounts.some(account => account.accountId === selectedAccountId)) {
+      return;
+    }
+
+    setSelectedAccountId(undefined);
+    setPhoneValue("");
+    setVerificationCodeValue("");
+    setSentPhone("");
+  }, [mockAccounts, selectedAccountId]);
 
   const handleOpenRegisterModal = useCallback((): void => {
     setIsRegisterModalOpen(true);
@@ -334,7 +381,7 @@ export const MockLoginView = (): JSX.Element => {
                 <span className={styles.formEyebrow}>验证码登录</span>
                 <h1 className={styles.formTitle}>欢迎登录</h1>
                 <p className={styles.formDescription}>
-                  {`输入手机号并完成验证码校验后进入${PRODUCT_NAME}；多租户账号会在登录后弹出租户选择框。`}
+                  输入手机号完成验证码校验；系统会按账号已开通的租户和系统权限进入对应功能。
                 </p>
               </div>
 
@@ -415,7 +462,7 @@ export const MockLoginView = (): JSX.Element => {
               <div className={styles.quickLoginSection}>
                 <p className={styles.quickLoginTitle}>模拟账号填充</p>
                 <p className={styles.quickLoginDescription}>
-                  选择预置账号后，系统会自动填充手机号和验证码；多租户账号登录后会弹出租户选择框。
+                  预置账号会按已配置的租户和系统权限进入；私有云租户账号不会展示运营管理平台入口。
                 </p>
                 <div className={styles.selectorBlock}>
                   <span className={styles.selectorLabel}>选择预置账号</span>
@@ -449,7 +496,7 @@ export const MockLoginView = (): JSX.Element => {
                         {selectedAccountTenantCount} 个租户
                       </span>
                       <span className={styles.quickLoginChip}>
-                        {selectedAccount.identities.length} 个身份
+                        {selectedAccountIdentityCount} 个身份
                       </span>
                     </div>
                   ) : null}

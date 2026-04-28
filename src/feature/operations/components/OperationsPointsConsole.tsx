@@ -372,8 +372,7 @@ export const OperationsPointsConsole = ({
             <div className={adminStyles.consoleInfoRow}>
               <span className={adminStyles.consoleInfoLabel}>边界说明</span>
               <span className={adminStyles.consoleInfoValue}>
-                积分包购买是订单，进入订单中心；运行时
-                Tokens、Skill、第三方接口扣减是消耗流水，不作为商品订单。
+                运行时 Tokens、Skill、第三方接口扣减是消耗流水；本期不提供订单中心管理入口。
               </span>
             </div>
           </div>

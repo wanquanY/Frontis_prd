@@ -15,18 +15,16 @@ import { Avatar, Dropdown, message } from "antd";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 
 import {
-  getAdminManagementPath,
   getLoginPath,
-  rechargeMockTenantPoints,
   getSystemEntries,
   getTenantEntries,
+  getTenantAdminManagementPath,
 } from "@/feature/auth/mockAccounts";
 import { useMockAuth } from "@/feature/auth/hooks/useMockAuth";
 import { getMockTenantManagementSnapshot } from "@/feature/auth/mockTenantRegistry";
 import type { MockAuthSystemEntry, MockTenantManagementSnapshot } from "@/feature/auth/types";
 import { useOperationsAuth } from "@/feature/operations/hooks/useOperationsAuth";
 import { loadOperationsRegistrationStrategy } from "@/feature/operations/platformConfigStorage";
-import type { MockPointsPackageOption } from "@/feature/points/types";
 import {
   EVOLUTION_LAB_LABEL,
   EXPERT_PLAZA_LABEL,
@@ -38,7 +36,6 @@ import {
   SKILL_CENTER_LABEL,
 } from "@/constants/brand";
 import { AccountDropdownPanel } from "@/pages/components/AccountDropdownPanel";
-import { TenantPointsRechargeModal } from "@/pages/components/TenantPointsRechargeModal";
 import { TenantReferralInviteModal } from "@/pages/components/TenantReferralInviteModal";
 import type { FrontisWebRole } from "@/pages/types";
 import { getMetaagentAvatarUrl } from "@/pages/utils";
@@ -155,7 +152,6 @@ export const UnifiedWorkbenchPage = ({ viewRole }: UnifiedWorkbenchPageProps): J
   const { loginByAccountId: loginOperationsByAccountId } = useOperationsAuth();
   const isAdminIdentity = activeIdentity?.role === "admin" || session?.role === "admin";
   const [isAccountMenuOpen, setIsAccountMenuOpen] = useState<boolean>(false);
-  const [isRechargeModalOpen, setIsRechargeModalOpen] = useState<boolean>(false);
   const [isReferralInviteModalOpen, setIsReferralInviteModalOpen] = useState<boolean>(false);
   const [referralStrategy, setReferralStrategy] = useState(() =>
     loadOperationsRegistrationStrategy(),
@@ -163,6 +159,7 @@ export const UnifiedWorkbenchPage = ({ viewRole }: UnifiedWorkbenchPageProps): J
   const [tenantSnapshot, setTenantSnapshot] = useState<MockTenantManagementSnapshot | null>(() =>
     getMockTenantManagementSnapshot(activeIdentity?.tenantId),
   );
+  const isPublicCloudTenant = tenantSnapshot?.deploymentMode === "publicCloud";
 
   const routeTab = useMemo<UnifiedWorkbenchTabKey | null>(
     () => getTabKeyFromPath(tabPath),
@@ -274,7 +271,8 @@ export const UnifiedWorkbenchPage = ({ viewRole }: UnifiedWorkbenchPageProps): J
             key: "open-admin-management",
             icon: <AppstoreOutlined />,
             label: MANAGEMENT_CONSOLE_LABEL,
-            onClick: () => navigate(getAdminManagementPath(), { replace: true }),
+            onClick: () =>
+              navigate(getTenantAdminManagementPath(activeIdentity?.tenantId), { replace: true }),
           },
           {
             type: "divider" as const,
@@ -327,13 +325,6 @@ export const UnifiedWorkbenchPage = ({ viewRole }: UnifiedWorkbenchPageProps): J
   );
 
   const featureAccountName = activeIdentity?.subjectName ?? session?.name ?? "当前账号";
-  const handleOpenRechargeModal = useCallback((): void => {
-    setIsAccountMenuOpen(false);
-    setIsRechargeModalOpen(true);
-  }, []);
-  const handleCloseRechargeModal = useCallback((): void => {
-    setIsRechargeModalOpen(false);
-  }, []);
   const handleOpenReferralInviteModal = useCallback((): void => {
     setReferralStrategy(loadOperationsRegistrationStrategy());
     setIsAccountMenuOpen(false);
@@ -342,41 +333,6 @@ export const UnifiedWorkbenchPage = ({ viewRole }: UnifiedWorkbenchPageProps): J
   const handleCloseReferralInviteModal = useCallback((): void => {
     setIsReferralInviteModalOpen(false);
   }, []);
-  const handleConfirmRecharge = useCallback(
-    (selectedPackage: MockPointsPackageOption): boolean => {
-      if (!activeIdentity?.tenantId) {
-        return false;
-      }
-
-      const nextSnapshot = rechargeMockTenantPoints(
-        activeIdentity.tenantId,
-        selectedPackage.points,
-        featureAccountName,
-        {
-          title: `${selectedPackage.title}到账`,
-          description: `统一扫码支付 ¥${selectedPackage.price}，购买 ${selectedPackage.points.toLocaleString("zh-CN")} 积分。`,
-          packageId: selectedPackage.id,
-          packageTitle: selectedPackage.title,
-          price: selectedPackage.price,
-          paymentChannelLabel: "统一扫码支付",
-        },
-      );
-
-      if (!nextSnapshot) {
-        message.warning("当前租户暂不可充值，请刷新后重试。");
-        return false;
-      }
-
-      setTenantSnapshot(nextSnapshot);
-      message.success(
-        `${selectedPackage.title}已到账，当前积分 +${selectedPackage.points.toLocaleString(
-          "zh-CN",
-        )}。`,
-      );
-      return true;
-    },
-    [activeIdentity?.tenantId, featureAccountName],
-  );
   const activeContent = useMemo((): JSX.Element => {
     if (activeTab === "metaAgent") {
       return <FrontisPage viewRole={viewRole} embedded={true} workspaceMode="metaAgent" />;
@@ -450,14 +406,11 @@ export const UnifiedWorkbenchPage = ({ viewRole }: UnifiedWorkbenchPageProps): J
               <AccountDropdownPanel
                 accountName={featureAccountName}
                 tenantName={activeIdentity?.tenantName}
-                pointsBalance={isAdminIdentity ? tenantSnapshot?.pointsBalance : undefined}
+                pointsBalance={isPublicCloudTenant ? tenantSnapshot?.pointsBalance : undefined}
                 onOpenInvite={
-                  isAdminIdentity && tenantSnapshot && referralStrategy.referralEnabled
+                  isPublicCloudTenant && referralStrategy.referralEnabled
                     ? handleOpenReferralInviteModal
                     : undefined
-                }
-                onOpenRecharge={
-                  isAdminIdentity && tenantSnapshot ? handleOpenRechargeModal : undefined
                 }
                 menu={menu}
               />
@@ -501,14 +454,7 @@ export const UnifiedWorkbenchPage = ({ viewRole }: UnifiedWorkbenchPageProps): J
         </div>
       </main>
 
-      <TenantPointsRechargeModal
-        open={isRechargeModalOpen}
-        pointsBalance={tenantSnapshot?.pointsBalance ?? 0}
-        tenantName={activeIdentity?.tenantName}
-        onCancel={handleCloseRechargeModal}
-        onConfirmPurchase={handleConfirmRecharge}
-      />
-      {tenantSnapshot ? (
+      {tenantSnapshot && isPublicCloudTenant ? (
         <TenantReferralInviteModal
           accountName={featureAccountName}
           inviteeRewardPoints={referralStrategy.referralInviteeRewardPoints}

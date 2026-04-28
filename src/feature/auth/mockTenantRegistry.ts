@@ -6,7 +6,6 @@ import type {
   MockTenantManagementSnapshot,
   MockTenantPointsOrderItem,
   MockTenantPointsLedgerItem,
-  MockTenantReferralInviteRecord,
   MockTenantPointsUsageRecordItem,
 } from "@/feature/auth/types";
 
@@ -31,12 +30,6 @@ const buildPointsUsageRecordItem = (
 const buildAgentUsageRecordItem = (
   item: MockTenantAgentUsageRecordItem,
 ): MockTenantAgentUsageRecordItem => item;
-
-const buildPointsOrderItem = (item: MockTenantPointsOrderItem): MockTenantPointsOrderItem => item;
-
-const buildReferralInviteRecord = (
-  item: MockTenantReferralInviteRecord,
-): MockTenantReferralInviteRecord => item;
 
 const buildTenantUser = (user: FrontisWebUserItem): FrontisWebUserItem => user;
 
@@ -80,8 +73,9 @@ const PRESET_TENANT_SNAPSHOTS: MockTenantManagementSnapshot[] = [
     tenantId: "tenant-enterprise-demo",
     tenantName: "星澜服饰租户",
     tenantCode: "ENT-2026-001",
-    ownerAccountId: "mock-account-enterprise-admin",
+    ownerAccountId: "mock-account-private-admin",
     adminUserId: "user-admin-001",
+    deploymentMode: "privateCloud",
     edition: "team",
     planLabel: "团队 20 席版",
     includedSeats: 20,
@@ -105,6 +99,9 @@ const PRESET_TENANT_SNAPSHOTS: MockTenantManagementSnapshot[] = [
         inputTokens: 428000,
         outputTokens: 126000,
         callCount: 58,
+        costAmount: 724,
+        humanCostAmount: 6200,
+        industryBenchmarkCostAmount: 4100,
         occurredAt: "今天 15:30",
       }),
       buildAgentUsageRecordItem({
@@ -115,6 +112,9 @@ const PRESET_TENANT_SNAPSHOTS: MockTenantManagementSnapshot[] = [
         inputTokens: 312000,
         outputTokens: 94000,
         callCount: 42,
+        costAmount: 516,
+        humanCostAmount: 4600,
+        industryBenchmarkCostAmount: 3200,
         occurredAt: "今天 11:40",
       }),
       buildAgentUsageRecordItem({
@@ -125,6 +125,9 @@ const PRESET_TENANT_SNAPSHOTS: MockTenantManagementSnapshot[] = [
         inputTokens: 286000,
         outputTokens: 76000,
         callCount: 64,
+        costAmount: 388,
+        humanCostAmount: 5200,
+        industryBenchmarkCostAmount: 2800,
         occurredAt: "今天 10:25",
       }),
       buildAgentUsageRecordItem({
@@ -135,6 +138,9 @@ const PRESET_TENANT_SNAPSHOTS: MockTenantManagementSnapshot[] = [
         inputTokens: 198000,
         outputTokens: 52000,
         callCount: 37,
+        costAmount: 284,
+        humanCostAmount: 3400,
+        industryBenchmarkCostAmount: 1900,
         occurredAt: "昨天 18:10",
       }),
       buildAgentUsageRecordItem({
@@ -145,6 +151,9 @@ const PRESET_TENANT_SNAPSHOTS: MockTenantManagementSnapshot[] = [
         inputTokens: 164000,
         outputTokens: 47000,
         callCount: 29,
+        costAmount: 226,
+        humanCostAmount: 2800,
+        industryBenchmarkCostAmount: 1500,
         occurredAt: "2026-04-21 16:20",
       }),
       buildAgentUsageRecordItem({
@@ -155,6 +164,9 @@ const PRESET_TENANT_SNAPSHOTS: MockTenantManagementSnapshot[] = [
         inputTokens: 96000,
         outputTokens: 26000,
         callCount: 21,
+        costAmount: 132,
+        humanCostAmount: 1800,
+        industryBenchmarkCostAmount: 960,
         occurredAt: "2026-04-18 19:10",
       }),
     ],
@@ -249,61 +261,16 @@ const PRESET_TENANT_SNAPSHOTS: MockTenantManagementSnapshot[] = [
         description: "调用外部提醒接口并写回跟进建议。",
       }),
     ],
-    pointsOrders: [
-      buildPointsOrderItem({
-        id: "tenant-enterprise-demo-order-01",
-        orderNo: "PT-20260422-001",
-        packageId: "standard",
-        packageTitle: "标准积分包",
-        packagePoints: 20000,
-        amount: 99,
-        status: "paid",
-        paymentChannelLabel: "统一扫码支付",
-        purchaserName: "杨万泉",
-        createdAt: "2026-04-22 09:18",
-        paidAt: "2026-04-22 09:19",
-      }),
-      buildPointsOrderItem({
-        id: "tenant-enterprise-demo-order-02",
-        orderNo: "PT-20260418-003",
-        packageId: "growth",
-        packageTitle: "增长积分包",
-        packagePoints: 60000,
-        amount: 249,
-        status: "paid",
-        paymentChannelLabel: "统一扫码支付",
-        purchaserName: "杨万泉",
-        createdAt: "2026-04-18 14:02",
-        paidAt: "2026-04-18 14:03",
-      }),
-    ],
-    referralRecords: [
-      buildReferralInviteRecord({
-        id: "tenant-enterprise-demo-referral-01",
-        inviteeName: "赵明",
-        inviteeTenantName: "赵明的工作室",
-        registeredAt: "2026-04-24 09:36",
-        rewardPoints: 200,
-        rewardedAt: "2026-04-24 09:37",
-        status: "rewarded",
-      }),
-      buildReferralInviteRecord({
-        id: "tenant-enterprise-demo-referral-02",
-        inviteeName: "韩静",
-        inviteeTenantName: "韩静的工作室",
-        registeredAt: "2026-04-22 15:10",
-        rewardPoints: 200,
-        rewardedAt: "2026-04-22 15:11",
-        status: "rewarded",
-      }),
-    ],
+    pointsOrders: [],
+    referralRecords: [],
   },
   {
     tenantId: "tenant-enterprise-hq",
     tenantName: "星澜服饰集团租户",
     tenantCode: "ENT-HQ-2026-001",
-    ownerAccountId: "mock-account-multi-tenant",
+    ownerAccountId: "mock-account-enterprise-admin",
     adminUserId: "user-admin-001",
+    deploymentMode: "publicCloud",
     edition: "team",
     planLabel: "团队 20 席版",
     includedSeats: 20,
@@ -329,6 +296,7 @@ const PRESET_TENANT_SNAPSHOTS: MockTenantManagementSnapshot[] = [
         inputTokens: 186000,
         outputTokens: 54000,
         callCount: 31,
+        points: 14200,
         occurredAt: "昨天 14:20",
       }),
       buildAgentUsageRecordItem({
@@ -339,6 +307,7 @@ const PRESET_TENANT_SNAPSHOTS: MockTenantManagementSnapshot[] = [
         inputTokens: 128000,
         outputTokens: 43000,
         callCount: 27,
+        points: 7800,
         occurredAt: "昨天 10:12",
       }),
     ],
@@ -384,22 +353,18 @@ const PRESET_TENANT_SNAPSHOTS: MockTenantManagementSnapshot[] = [
         description: "活动海报文案与详情素材生成。",
       }),
     ],
-    pointsOrders: [
-      buildPointsOrderItem({
-        id: "tenant-enterprise-hq-order-01",
-        orderNo: "PT-20260401-002",
-        packageId: "growth",
-        packageTitle: "增长积分包",
-        packagePoints: 60000,
-        amount: 249,
-        status: "paid",
-        paymentChannelLabel: "统一扫码支付",
-        purchaserName: "杨万泉",
-        createdAt: "2026-04-01 10:08",
-        paidAt: "2026-04-01 10:09",
-      }),
+    pointsOrders: [],
+    referralRecords: [
+      {
+        id: "tenant-enterprise-hq-referral-01",
+        inviteeName: "陈可心",
+        inviteeTenantName: "陈可心的工作室",
+        registeredAt: "2026-04-22 15:10",
+        rewardPoints: 200,
+        rewardedAt: "2026-04-22 15:11",
+        status: "rewarded",
+      },
     ],
-    referralRecords: [],
   },
   {
     tenantId: "tenant-enterprise-east-ops",
@@ -407,6 +372,7 @@ const PRESET_TENANT_SNAPSHOTS: MockTenantManagementSnapshot[] = [
     tenantCode: "ENT-EAST-2026-017",
     ownerAccountId: "mock-account-multi-tenant",
     adminUserId: "user-member-001",
+    deploymentMode: "publicCloud",
     edition: "team",
     planLabel: "团队 5 席版",
     includedSeats: 5,
@@ -440,6 +406,7 @@ const PRESET_TENANT_SNAPSHOTS: MockTenantManagementSnapshot[] = [
         inputTokens: 76000,
         outputTokens: 24000,
         callCount: 18,
+        points: 3200,
         occurredAt: "今天 10:30",
       }),
     ],
@@ -475,30 +442,16 @@ const PRESET_TENANT_SNAPSHOTS: MockTenantManagementSnapshot[] = [
         description: "生成门店日报与异常经营提示。",
       }),
     ],
-    pointsOrders: [
-      buildPointsOrderItem({
-        id: "tenant-enterprise-east-ops-order-01",
-        orderNo: "PT-20260420-008",
-        packageId: "starter",
-        packageTitle: "基础积分包",
-        packagePoints: 5000,
-        amount: 29,
-        status: "paid",
-        paymentChannelLabel: "统一扫码支付",
-        purchaserName: "王晨",
-        createdAt: "2026-04-20 15:22",
-        paidAt: "2026-04-20 15:23",
-      }),
-    ],
+    pointsOrders: [],
     referralRecords: [
-      buildReferralInviteRecord({
+      {
         id: "tenant-enterprise-east-ops-referral-01",
-        inviteeName: "陈可心",
-        inviteeTenantName: "陈可心的工作室",
+        inviteeName: "林若岚",
+        inviteeTenantName: "林若岚的工作室",
         registeredAt: "2026-04-23 14:12",
         rewardPoints: 200,
-        status: "pending",
-      }),
+        status: "registered",
+      },
     ],
   },
   {
@@ -507,6 +460,7 @@ const PRESET_TENANT_SNAPSHOTS: MockTenantManagementSnapshot[] = [
     tenantCode: "SELF-2026-430",
     ownerAccountId: "mock-account-personal-admin",
     adminUserId: "user-self-admin-001",
+    deploymentMode: "publicCloud",
     edition: "personal",
     planLabel: "个人版",
     includedSeats: 1,
@@ -601,31 +555,17 @@ const PRESET_TENANT_SNAPSHOTS: MockTenantManagementSnapshot[] = [
         description: "批量标记表格中的异常字段和待复核记录。",
       }),
     ],
-    pointsOrders: [
-      buildPointsOrderItem({
-        id: "tenant-personal-studio-demo-order-01",
-        orderNo: "PT-20260421-006",
-        packageId: "starter",
-        packageTitle: "基础积分包",
-        packagePoints: 5000,
-        amount: 29,
-        status: "paid",
-        paymentChannelLabel: "统一扫码支付",
-        purchaserName: "李想",
-        createdAt: "2026-04-21 21:08",
-        paidAt: "2026-04-21 21:09",
-      }),
-    ],
+    pointsOrders: [],
     referralRecords: [
-      buildReferralInviteRecord({
+      {
         id: "tenant-personal-studio-demo-referral-01",
         inviteeName: "沈佳",
         inviteeTenantName: "沈佳的工作室",
         registeredAt: "2026-04-23 18:20",
         rewardPoints: 200,
         status: "registered",
-      }),
-      buildReferralInviteRecord({
+      },
+      {
         id: "tenant-personal-studio-demo-referral-02",
         inviteeName: "顾南",
         inviteeTenantName: "顾南的工作室",
@@ -633,8 +573,50 @@ const PRESET_TENANT_SNAPSHOTS: MockTenantManagementSnapshot[] = [
         rewardPoints: 200,
         rewardedAt: "2026-04-22 11:09",
         status: "rewarded",
+      },
+    ],
+  },
+  {
+    tenantId: "tenant-new-user-onboarding-demo",
+    tenantName: "沈一新的工作室",
+    tenantCode: "SELF-2026-NEW",
+    ownerAccountId: "mock-account-new-user-onboarding",
+    adminUserId: "user-new-admin-001",
+    deploymentMode: "publicCloud",
+    edition: "personal",
+    planLabel: "个人版",
+    includedSeats: 1,
+    extraSeatCount: 0,
+    hasAgentListingAccess: false,
+    invitePolicyLabel: "个人版仅支持单人使用。",
+    lowBalanceThreshold: 500,
+    monthlyUsedPoints: 0,
+    pointsBalance: 6000,
+    totalSeats: 1,
+    usedSeats: 1,
+    users: [
+      createTenantUser({
+        id: "user-new-admin-001",
+        name: "沈一新",
+        phone: "13800007777",
+        role: "enterpriseAdmin",
       }),
     ],
+    agentUsageRecords: [],
+    pointsLedger: [
+      buildPointsLedgerItem({
+        id: "tenant-new-user-onboarding-demo-income-01",
+        title: "注册赠送",
+        description: "新租户开通奖励积分。",
+        points: 6000,
+        direction: "income",
+        createdAt: "刚刚",
+        actorName: "平台系统",
+      }),
+    ],
+    pointsUsageRecords: [],
+    pointsOrders: [],
+    referralRecords: [],
   },
 ];
 
@@ -645,6 +627,11 @@ const mergeSnapshotWithPreset = (
   cloneSnapshot({
     ...presetSnapshot,
     ...storedSnapshot,
+    tenantName: presetSnapshot.tenantName,
+    tenantCode: presetSnapshot.tenantCode,
+    ownerAccountId: presetSnapshot.ownerAccountId,
+    adminUserId: presetSnapshot.adminUserId,
+    deploymentMode: presetSnapshot.deploymentMode,
     users: storedSnapshot.users.length ? storedSnapshot.users : presetSnapshot.users,
     agentUsageRecords: mergeStoredItemsWithPreset(
       presetSnapshot.agentUsageRecords,
@@ -707,6 +694,7 @@ const normalizeTenantSnapshot = (
 
   return {
     ...snapshot,
+    deploymentMode: snapshot.deploymentMode ?? "publicCloud",
     edition: nextEdition,
     includedSeats: nextIncludedSeats,
     extraSeatCount: nextExtraSeatCount,
@@ -730,8 +718,8 @@ const cloneSnapshot = (snapshot: MockTenantManagementSnapshot): MockTenantManage
   agentUsageRecords: (snapshot.agentUsageRecords ?? []).map(item => ({ ...item })),
   pointsLedger: snapshot.pointsLedger.map(item => ({ ...item })),
   pointsUsageRecords: snapshot.pointsUsageRecords.map(item => ({ ...item })),
-  pointsOrders: snapshot.pointsOrders.map(item => ({ ...item })),
-  referralRecords: (snapshot.referralRecords ?? []).map(item => ({ ...item })),
+  pointsOrders: [],
+  referralRecords: [],
 });
 
 const readStoredTenantSnapshots = (): MockTenantManagementSnapshot[] => {
