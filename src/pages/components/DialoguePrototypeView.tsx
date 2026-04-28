@@ -2718,56 +2718,60 @@ export const DialoguePrototypeView = ({
           style={!isStackedLayout ? { borderLeft: 0 } : undefined}
         >
           <div className={styles.outputPanel}>
-            <div className={styles.outputPanelHeader}>
-              <div className={styles.outputPanelTitleGroup}>
-                <span className={styles.outputPanelTitle}>任务与成果</span>
+            {!isArtifactPreviewing ? (
+              <div className={styles.outputPanelHeader}>
+                <div className={styles.outputPanelTitleGroup}>
+                  <span className={styles.outputPanelTitle}>任务与成果</span>
+                </div>
+                <button
+                  type="button"
+                  className={styles.outputPanelCloseButton}
+                  aria-label="关闭任务与成果面板"
+                  onClick={() => {
+                    setSidePanelMode(null);
+                    setIsArtifactPreviewing(false);
+                  }}
+                >
+                  <CloseOutlined />
+                </button>
               </div>
-              <button
-                type="button"
-                className={styles.outputPanelCloseButton}
-                aria-label="关闭任务与成果面板"
-                onClick={() => {
-                  setSidePanelMode(null);
-                  setIsArtifactPreviewing(false);
-                }}
-              >
-                <CloseOutlined />
-              </button>
-            </div>
-            <div className={styles.outputPanelTabs} role="tablist" aria-label="任务与成果">
-              <button
-                type="button"
-                role="tab"
-                aria-selected={outputPanelActiveTab === "tasks"}
-                className={classNames(styles.outputPanelTab, {
-                  [styles.outputPanelTabActive]: outputPanelActiveTab === "tasks",
-                })}
-                disabled={!hasTaskPanel}
-                onClick={() => {
-                  setPreferredArtifactId(undefined);
-                  setIsArtifactPreviewing(false);
-                  setOutputPanelActiveTab("tasks");
-                }}
-              >
-                <span>任务</span>
-                <strong>
-                  {metaAgentTrajectoryItems.reduce((total, item) => total + item.tasks.length, 0)}
-                </strong>
-              </button>
-              <button
-                type="button"
-                role="tab"
-                aria-selected={outputPanelActiveTab === "artifacts"}
-                className={classNames(styles.outputPanelTab, {
-                  [styles.outputPanelTabActive]: outputPanelActiveTab === "artifacts",
-                })}
-                disabled={!hasArtifactPanel}
-                onClick={() => setOutputPanelActiveTab("artifacts")}
-              >
-                <span>成果</span>
-                <strong>{activeDialogueArtifacts.length}</strong>
-              </button>
-            </div>
+            ) : null}
+            {!isArtifactPreviewing ? (
+              <div className={styles.outputPanelTabs} role="tablist" aria-label="任务与成果">
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={outputPanelActiveTab === "tasks"}
+                  className={classNames(styles.outputPanelTab, {
+                    [styles.outputPanelTabActive]: outputPanelActiveTab === "tasks",
+                  })}
+                  disabled={!hasTaskPanel}
+                  onClick={() => {
+                    setPreferredArtifactId(undefined);
+                    setIsArtifactPreviewing(false);
+                    setOutputPanelActiveTab("tasks");
+                  }}
+                >
+                  <span>任务</span>
+                  <strong>
+                    {metaAgentTrajectoryItems.reduce((total, item) => total + item.tasks.length, 0)}
+                  </strong>
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={outputPanelActiveTab === "artifacts"}
+                  className={classNames(styles.outputPanelTab, {
+                    [styles.outputPanelTabActive]: outputPanelActiveTab === "artifacts",
+                  })}
+                  disabled={!hasArtifactPanel}
+                  onClick={() => setOutputPanelActiveTab("artifacts")}
+                >
+                  <span>成果</span>
+                  <strong>{activeDialogueArtifacts.length}</strong>
+                </button>
+              </div>
+            ) : null}
             <div className={styles.outputPanelBody}>
               {outputPanelActiveTab === "tasks" ? (
                 renderOutputTaskPanel()
