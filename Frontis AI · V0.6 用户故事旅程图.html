@@ -1,0 +1,1113 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Frontis AI · V0.6 用户故事旅程图</title>
+    <style>
+      :root {
+        --bg: #f5f7fb;
+        --surface: rgba(255, 255, 255, 0.96);
+        --border: rgba(15, 23, 42, 0.1);
+        --text: #081638;
+        --text-secondary: #4a5875;
+        --text-muted: #7a849b;
+        --primary: #00bdd6;
+        --primary-dark: #009db4;
+        --blue: #3578f6;
+        --green: #16a879;
+        --purple: #7b61ff;
+        --amber: #d88418;
+        --rose: #d9486e;
+        --shadow-sm: 0 8px 20px rgba(8, 22, 56, 0.08);
+        --shadow-md: 0 16px 42px rgba(8, 22, 56, 0.13);
+        --shadow-lg: 0 24px 70px rgba(8, 22, 56, 0.16);
+        --radius-lg: 18px;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        overflow: hidden;
+        background:
+          radial-gradient(circle at 14% 18%, rgba(0, 189, 214, 0.13), transparent 26%),
+          radial-gradient(circle at 82% 12%, rgba(123, 97, 255, 0.11), transparent 30%),
+          linear-gradient(135deg, #f8fbff 0%, var(--bg) 48%, #eef5f7 100%);
+        color: var(--text);
+        font-family:
+          "PingFang SC",
+          "SF Pro Display",
+          "Helvetica Neue",
+          "Microsoft YaHei",
+          Arial,
+          sans-serif;
+      }
+
+      button {
+        font: inherit;
+      }
+
+      #viewport {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        cursor: grab;
+      }
+
+      #viewport.isDragging {
+        cursor: grabbing;
+      }
+
+      #canvas {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 4700px;
+        height: 1360px;
+        transform-origin: 0 0;
+      }
+
+      #connections {
+        position: absolute;
+        inset: 0;
+        width: 4700px;
+        height: 1360px;
+        overflow: visible;
+        pointer-events: none;
+      }
+
+      .topPanel {
+        position: fixed;
+        top: 18px;
+        left: 18px;
+        z-index: 40;
+        width: 390px;
+        padding: 16px 18px;
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        background: rgba(255, 255, 255, 0.92);
+        box-shadow: var(--shadow-sm);
+        backdrop-filter: blur(16px);
+      }
+
+      .topPanel h1 {
+        margin: 0;
+        font-size: 18px;
+        line-height: 1.35;
+        letter-spacing: 0;
+      }
+
+      .topPanel p {
+        margin: 8px 0 0;
+        color: var(--text-secondary);
+        font-size: 12px;
+        line-height: 1.7;
+      }
+
+      .roleSwitch {
+        position: fixed;
+        top: 18px;
+        left: 430px;
+        right: 250px;
+        z-index: 42;
+        display: flex;
+        gap: 8px;
+        overflow-x: auto;
+        padding: 8px;
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.93);
+        box-shadow: var(--shadow-sm);
+        backdrop-filter: blur(14px);
+      }
+
+      .roleButton {
+        display: inline-flex;
+        flex: 0 0 auto;
+        align-items: center;
+        gap: 8px;
+        height: 38px;
+        padding: 0 14px 0 8px;
+        border: 1px solid transparent;
+        border-radius: 999px;
+        background: transparent;
+        color: var(--text-secondary);
+        cursor: pointer;
+      }
+
+      .roleButton:hover,
+      .roleButton.isActive {
+        border-color: rgba(0, 189, 214, 0.24);
+        background: rgba(0, 189, 214, 0.09);
+        color: var(--text);
+      }
+
+      .roleButtonAvatar {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 26px;
+        height: 26px;
+        border-radius: 9px;
+        color: #ffffff;
+        font-size: 12px;
+        font-weight: 900;
+      }
+
+      .toolbar {
+        position: fixed;
+        top: 18px;
+        right: 18px;
+        z-index: 42;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 9px 12px;
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.94);
+        box-shadow: var(--shadow-sm);
+        backdrop-filter: blur(14px);
+      }
+
+      .toolbar button {
+        min-width: 34px;
+        height: 30px;
+        border: 1px solid rgba(15, 23, 42, 0.1);
+        border-radius: 999px;
+        background: #ffffff;
+        color: var(--text-secondary);
+        cursor: pointer;
+      }
+
+      .toolbar button:hover {
+        border-color: rgba(0, 189, 214, 0.42);
+        color: var(--text);
+      }
+
+      #zoomLabel {
+        min-width: 48px;
+        color: var(--text-muted);
+        font-size: 12px;
+        text-align: center;
+      }
+
+      .roleHero {
+        position: absolute;
+        top: 120px;
+        left: 80px;
+        width: 310px;
+        min-height: 250px;
+        padding: 24px;
+        border: 1px solid rgba(15, 23, 42, 0.08);
+        border-radius: 26px;
+        background: rgba(255, 255, 255, 0.93);
+        box-shadow: var(--shadow-lg);
+      }
+
+      .heroAvatar {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 72px;
+        height: 72px;
+        border-radius: 24px;
+        color: #ffffff;
+        font-size: 26px;
+        font-weight: 900;
+        box-shadow: 0 14px 30px rgba(8, 22, 56, 0.14);
+      }
+
+      .roleHero h2 {
+        margin: 18px 0 0;
+        font-size: 26px;
+        line-height: 1.25;
+        letter-spacing: 0;
+      }
+
+      .roleHero p {
+        margin: 10px 0 0;
+        color: var(--text-secondary);
+        font-size: 13px;
+        line-height: 1.75;
+      }
+
+      .heroMeta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 7px;
+        margin-top: 16px;
+      }
+
+      .heroMeta span {
+        padding: 6px 9px;
+        border-radius: 999px;
+        background: rgba(8, 22, 56, 0.05);
+        color: var(--text-muted);
+        font-size: 12px;
+        font-weight: 700;
+      }
+
+      .timeline {
+        position: absolute;
+        top: 310px;
+        left: 430px;
+        width: 4020px;
+        height: 2px;
+        background: linear-gradient(90deg, rgba(0, 189, 214, 0.1), rgba(0, 189, 214, 0.78), rgba(0, 189, 214, 0.08));
+      }
+
+      .stageHeader {
+        position: absolute;
+        top: 154px;
+        width: 270px;
+        min-height: 78px;
+        padding: 13px 14px;
+        border: 1px solid rgba(15, 23, 42, 0.08);
+        border-radius: 16px;
+        background: rgba(255, 255, 255, 0.88);
+        box-shadow: var(--shadow-sm);
+      }
+
+      .stageIndex {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 32px;
+        height: 22px;
+        margin-bottom: 8px;
+        border-radius: 999px;
+        background: color-mix(in srgb, var(--active-color) 12%, #ffffff);
+        color: var(--active-color);
+        font-size: 12px;
+        font-weight: 800;
+      }
+
+      .stageTitle {
+        font-size: 15px;
+        font-weight: 850;
+      }
+
+      .stageDesc {
+        margin-top: 4px;
+        color: var(--text-muted);
+        font-size: 11px;
+        line-height: 1.5;
+      }
+
+      .momentDot {
+        position: absolute;
+        top: 299px;
+        width: 24px;
+        height: 24px;
+        border: 6px solid rgba(255, 255, 255, 0.96);
+        border-radius: 50%;
+        background: var(--active-color);
+        box-shadow: 0 8px 22px rgba(8, 22, 56, 0.12);
+      }
+
+      .journeyCard {
+        position: absolute;
+        width: 294px;
+        min-height: 228px;
+        padding: 15px 15px 13px;
+        border: 1px solid rgba(15, 23, 42, 0.1);
+        border-radius: var(--radius-lg);
+        background: rgba(255, 255, 255, 0.94);
+        box-shadow: var(--shadow-md);
+      }
+
+      .journeyCard::before {
+        content: "";
+        position: absolute;
+        left: 34px;
+        width: 15px;
+        height: 15px;
+        border-left: 1px solid rgba(15, 23, 42, 0.08);
+        border-top: 1px solid rgba(15, 23, 42, 0.08);
+        background: rgba(255, 255, 255, 0.94);
+        transform: rotate(45deg);
+      }
+
+      .journeyCard.isTop::before {
+        bottom: -8px;
+      }
+
+      .journeyCard.isBottom::before {
+        top: -8px;
+      }
+
+      .cardTop {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 10px;
+      }
+
+      .cardTitle {
+        margin: 0;
+        font-size: 16px;
+        line-height: 1.45;
+        font-weight: 850;
+      }
+
+      .tag {
+        flex: 0 0 auto;
+        padding: 4px 8px;
+        border-radius: 999px;
+        background: color-mix(in srgb, var(--active-color) 12%, #ffffff);
+        color: var(--active-color);
+        font-size: 11px;
+        font-weight: 800;
+      }
+
+      .scene {
+        margin: 10px 0 0;
+        color: var(--text-secondary);
+        font-size: 12px;
+        line-height: 1.68;
+      }
+
+      .voice {
+        position: relative;
+        margin-top: 10px;
+        padding: 10px 11px;
+        border-radius: 14px 14px 14px 5px;
+        background: color-mix(in srgb, var(--active-color) 10%, #f8fbff);
+        color: #24304c;
+        font-size: 12px;
+        line-height: 1.58;
+      }
+
+      .voice strong {
+        color: var(--active-color);
+      }
+
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-top: 10px;
+      }
+
+      .actions span {
+        padding: 4px 7px;
+        border-radius: 999px;
+        background: rgba(8, 22, 56, 0.05);
+        color: var(--text-muted);
+        font-size: 11px;
+        font-weight: 650;
+      }
+
+      .outcome {
+        margin-top: 10px;
+        padding-top: 9px;
+        border-top: 1px dashed rgba(15, 23, 42, 0.12);
+        color: var(--text);
+        font-size: 12px;
+        line-height: 1.55;
+      }
+
+      .outcome b {
+        color: var(--active-color);
+      }
+
+      .connectorPath {
+        fill: none;
+        stroke: rgba(0, 189, 214, 0.58);
+        stroke-width: 3;
+      }
+
+      .connectorLabel {
+        fill: var(--text-muted);
+        font-size: 11px;
+        font-weight: 700;
+      }
+
+      @media (max-width: 1100px) {
+        .topPanel {
+          width: calc(100% - 36px);
+        }
+
+        .roleSwitch {
+          top: 148px;
+          left: 18px;
+          right: 18px;
+        }
+
+        .toolbar {
+          top: auto;
+          right: 18px;
+          bottom: 18px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <section class="topPanel" aria-label="说明">
+      <h1>Frontis AI · V0.6 用户故事旅程图</h1>
+      <p>一次只看一个真实人物的完整旅程：从具体岗位、触达场景和业务任务出发，串联试用、注册、后台管理、飞书绑定、协作、开发和治理。</p>
+      <p>操作：切换人物查看不同旅程；拖拽画布平移，滚轮缩放，双击重置。</p>
+    </section>
+
+    <nav id="roleSwitch" class="roleSwitch" aria-label="人物切换"></nav>
+
+    <div class="toolbar" aria-label="画布控制">
+      <button type="button" id="zoomOut">-</button>
+      <span id="zoomLabel">100%</span>
+      <button type="button" id="zoomIn">+</button>
+      <button type="button" id="resetView">重置</button>
+    </div>
+
+    <main id="viewport" aria-label="可拖拽缩放画布">
+      <div id="canvas">
+        <svg id="connections" aria-hidden="true">
+          <defs>
+            <marker id="arrowPrimary" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="rgba(0, 189, 214, 0.68)"></path>
+            </marker>
+          </defs>
+        </svg>
+      </div>
+    </main>
+
+    <script>
+      const roles = [
+        {
+          key: "liPersonal",
+          name: "小李 · 跨境电商运营",
+          avatar: "李",
+          color: "var(--blue)",
+          summary: "小李是跨境电商公司的独立运营，先在飞书群聊里试用 MetaAgent，再被引导到平台注册个人版，随后用个人管理后台管理积分和自己的 AI 专家。",
+          traits: ["公有云个人版", "飞书触达", "个人管理后台"],
+        },
+        {
+          key: "zhangTeam",
+          name: "小张 · 销售团队成员",
+          avatar: "张",
+          color: "var(--primary)",
+          summary: "小张是团队销售，进入企业工作台后围绕客户跟进使用 MetaAgent 和专家工作室，并把自己的销售方法沉淀成团队可复用 Agent。",
+          traits: ["公有云团队版", "企业成员", "专家复用"],
+        },
+        {
+          key: "wangAdmin",
+          name: "王经理 · 企业管理员",
+          avatar: "王",
+          color: "var(--amber)",
+          summary: "王经理负责团队 AI 落地，既要配置组织角色和专家权限，也要通过团队看板发现使用问题，再反推治理动作。",
+          traits: ["组织管理", "角色权限", "团队看板"],
+        },
+        {
+          key: "chenPrivate",
+          name: "陈总 · 私有化客户负责人",
+          avatar: "陈",
+          color: "var(--green)",
+          summary: "陈总负责一家制造企业的私有化部署，要把默认模型供应商、专家成本核算和内部 Agent 建设串成企业闭环。",
+          traits: ["私有化租户", "默认模型供应商", "ROI 核算"],
+        },
+        {
+          key: "zhouOps",
+          name: "周运营 · 平台运营",
+          avatar: "周",
+          color: "var(--purple)",
+          summary: "周运营负责平台侧租户开通、付费口径类型、资源计量、专家上架和广场投放，确保积分计费和成本计费客户都能被正确治理。",
+          traits: ["租户管理", "付费口径", "广场运营"],
+        },
+      ];
+
+      const journeys = {
+        liPersonal: [
+          {
+            stage: "飞书群聊触达",
+            description: "跨境电商群里看到同事转发",
+            title: "小李在运营群里第一次看到 MetaAgent",
+            tag: "触达",
+            scene: "小李每天要看亚马逊店铺评论、竞品活动和广告投放群消息。她在飞书跨境电商运营群里看到同事转发的 Frontis AI 示例，说可以让 MetaAgent 帮忙总结评论和生成 Listing 优化建议。",
+            voice: "我不是想研究新工具，我只是想快点把今天的评论和竞品变化整理出来。",
+            actions: ["飞书群宣传", "同事转发案例", "群里艾特试用"],
+            outcome: "发现发生在小李已有工作现场，而不是先让她跳到平台官网。",
+          },
+          {
+            stage: "群内轻量试用",
+            description: "先解决一个具体运营问题",
+            title: "先让 MetaAgent 总结差评原因",
+            tag: "试用",
+            scene: "小李把几条买家差评和客服回复贴到飞书群里，让 MetaAgent 提炼问题类型、影响商品卖点和建议的客服补救话术。",
+            voice: "如果它能直接帮我把杂乱评论变成可执行建议，我就愿意继续用。",
+            actions: ["粘贴差评", "提炼原因", "生成客服话术"],
+            outcome: "小李在不注册的情况下先获得一次低成本成功体验。",
+          },
+          {
+            stage: "MetaAgent 单聊",
+            description: "涉及店铺数据时转入私密对话",
+            title: "小李进入 MetaAgent 单聊",
+            tag: "单聊",
+            scene: "小李准备上传广告花费表和竞品价格截图，MetaAgent 提醒这些内容更适合单聊处理，并可以保留上下文继续分析。",
+            voice: "群里可以试，但我的店铺数据不能一直发在群里。",
+            actions: ["单聊入口", "上传表格", "保存上下文"],
+            outcome: "MetaAgent 从群聊触点自然过渡到小李的个人工作助手。",
+          },
+          {
+            stage: "引导注册",
+            description: "连续使用后转化为平台账号",
+            title: "小李被引导开户注册个人版",
+            tag: "注册",
+            scene: "小李连续让 MetaAgent 处理三次运营分析后，MetaAgent 提示注册后可以获得个人工作台、注册送积分、保存个人专家和绑定自己的飞书。",
+            voice: "它已经证明有用，注册不是成本，是把这个助手变成我的工具。",
+            actions: ["注册引导", "手机号验证码", "注册送积分"],
+            outcome: "注册建立在飞书内试用后的自然转化，而不是冷启动。",
+          },
+          {
+            stage: "个人管理后台",
+            description: "个人版也有管理入口，但能力收敛",
+            title: "小李进入个人版管理后台",
+            tag: "后台",
+            scene: "注册后小李从用户菜单进入个人版管理后台。这里只保留积分管理和 AI 专家管理，不展示团队驾驶舱、组织管理和模型配置。",
+            voice: "我是个人使用，不需要部门和席位管理，但我要知道积分怎么消耗，也要管理我自己的专家。",
+            actions: ["积分管理", "AI 专家管理", "隐藏团队能力"],
+            outcome: "个人版后台和公有云团队后台形成明确差异：轻管理、重个人使用与个人资产。",
+          },
+          {
+            stage: "绑定个人飞书",
+            description: "让个人 MetaAgent 回到飞书",
+            title: "小李把 MetaAgent 绑定到自己的飞书",
+            tag: "飞书",
+            scene: "小李在平台右上角点击飞书接入，把自己的 MetaAgent 绑定到个人飞书，后续可以在手机飞书随时发店铺问题，也可以分享给同事试用。",
+            voice: "我不会每天都打开网页，最好在手机飞书里随时叫它。",
+            actions: ["飞书接入", "手机使用", "分享同事"],
+            outcome: "平台账号和飞书工作场景打通，使用频率不依赖网页登录。",
+          },
+          {
+            stage: "专家工作室",
+            description: "明确任务时直接找专家",
+            title: "小李直接找 Listing 优化专家",
+            tag: "专家",
+            scene: "当小李明确要改商品标题、五点描述和 A+ 页面时，她进入专家工作室，直接和 Listing 优化专家单独对话。",
+            voice: "这次我知道要找哪个专家，直接进去聊比让 MetaAgent 调度更快。",
+            actions: ["专家工作室", "Listing 专家", "单独对话"],
+            outcome: "MetaAgent 总入口和专家工作室直达入口形成互补。",
+          },
+          {
+            stage: "开发 Agent / Skill",
+            description: "个人沉淀自己的运营方法",
+            title: "小李创建竞品监控 Agent",
+            tag: "开发",
+            scene: "小李发现自己每周都要整理竞品价格、促销和差评原因，于是创建个人 Agent，配置采集字段、分析框架和输出模板。",
+            voice: "如果这件事每周都做，就应该变成我的专属助手。",
+            actions: ["创建 Agent", "配置 Skill", "测试样例"],
+            outcome: "个人用户不只是使用者，也可以生产自己的 Agent / Skill。",
+          },
+          {
+            stage: "分享和增长",
+            description: "分享个人 MetaAgent 并获得积分",
+            title: "小李把工作流分享给同事",
+            tag: "增长",
+            scene: "小李把自己的 MetaAgent 和竞品监控 Agent 分享给另一个运营同事。同事通过飞书试用并注册后，小李获得邀请积分继续使用。",
+            voice: "如果这套方法真的省时间，我愿意让同事也直接用起来。",
+            actions: ["分享 MetaAgent", "分享成果", "邀请积分"],
+            outcome: "个人版形成飞书触达、平台注册、个人后台管理、持续使用、能力沉淀和邀请传播闭环。",
+          },
+        ],
+        zhangTeam: [
+          {
+            stage: "收到邀请",
+            description: "销售主管邀请加入团队租户",
+            title: "小张加入大客户销售团队",
+            tag: "入组",
+            scene: "小张是 B2B 销售，主管把他加入团队租户。小张登录后直接进入工作台，只看到自己有权限的工作台和专家能力。",
+            voice: "我是销售，不想先理解后台，只需要把客户跟进做快。",
+            actions: ["企业邀请", "登录", "工作台"],
+            outcome: "成员身份清晰，系统入口不制造干扰。",
+          },
+          {
+            stage: "发起任务",
+            description: "围绕真实业务场景工作",
+            title: "提交业务目标和上下文",
+            tag: "任务",
+            scene: "小张刚开完客户沟通会，把会议纪要、客户异议和下一步报价目标交给 MetaAgent，希望生成跟进计划和话术。",
+            voice: "我不只是要一段话，我要把客户上下文带进去。",
+            actions: ["文本目标", "附件", "飞书资料"],
+            outcome: "系统获得足够上下文，减少来回追问。",
+          },
+          {
+            stage: "权限内协作",
+            description: "MetaAgent 调度授权专家",
+            title: "系统自动选择团队授权专家",
+            tag: "调度",
+            scene: "MetaAgent 在小张的权限范围内调度销售话术专家、会议纪要专家和报价风险专家，即使小张没有把这些专家都添加到工作台。",
+            voice: "我不想记住团队有哪些专家，我只关心客户问题能不能被解决。",
+            actions: ["权限范围", "专家协作", "过程可见"],
+            outcome: "团队知识和专家能力以自然方式进入成员工作流。",
+          },
+          {
+            stage: "专家工作室",
+            description: "需要明确专家时直接单聊",
+            title: "小张找销售话术专家复盘异议",
+            tag: "专家",
+            scene: "面对价格异议时，小张直接进入专家工作室，找销售话术专家围绕客户行业、预算和竞品报价进行单独对话。",
+            voice: "这个场景我知道该找谁，不需要每次都让系统调度。",
+            actions: ["专家工作室", "选择专家", "单独对话"],
+            outcome: "成员既可以通过 MetaAgent 调度，也可以主动进入专家能力。",
+          },
+          {
+            stage: "开发和共享",
+            description: "成员也能创建 Agent / Skill",
+            title: "把个人方法沉淀给团队",
+            tag: "开发",
+            scene: "小张把自己高转化的客户跟进话术和报价邮件结构做成 Agent，测试稳定后分享给销售团队。",
+            voice: "我验证过有效的方法，不应该只存在我的文档里。",
+            actions: ["创建 Agent", "配置 Skill", "团队分享"],
+            outcome: "团队成员从使用者变成组织能力的贡献者。",
+          },
+          {
+            stage: "版本升级",
+            description: "专家新版本自动生效",
+            title: "已添加专家自动升级",
+            tag: "版本",
+            scene: "小张更新销售跟进 Agent 的话术模板并发布新版本，已添加该专家的团队成员自动升级，历史对话仍保留当时版本。",
+            voice: "我不应该手动升级，但历史结果要能解释。",
+            actions: ["版本记录", "自动升级", "历史追溯"],
+            outcome: "能力持续迭代，用户侧不增加维护负担。",
+          },
+        ],
+        wangAdmin: [
+          {
+            stage: "进入后台",
+            description: "用户菜单切换企业管理后台",
+            title: "王经理从用户菜单进入企业后台",
+            tag: "入口",
+            scene: "王经理是销售运营负责人，登录后从用户菜单进入企业管理后台。系统只展示他有权限的企业后台入口，不展示运营平台入口。",
+            voice: "切换系统不能切成另一个人，也不能出现我没权限的按钮。",
+            actions: ["用户菜单", "权限入口", "返回工作台"],
+            outcome: "入口逻辑统一，权限边界清晰。",
+          },
+          {
+            stage: "组织治理",
+            description: "组织管理下管理角色",
+            title: "预设角色不可编辑，自定义角色可授权",
+            tag: "角色",
+            scene: "王经理查看组织管理员、部门负责人、普通成员等预设角色，并创建“销售赋能负责人”自定义角色。",
+            voice: "默认角色要稳定，自定义角色要能满足我们组织分工。",
+            actions: ["角色管理", "创建角色", "分配成员"],
+            outcome: "企业内部权限不再依赖单一管理员。",
+          },
+          {
+            stage: "专家权限",
+            description: "控制 AI 专家可见与可用范围",
+            title: "把专家授权给合适的人",
+            tag: "授权",
+            scene: "王经理把报价风险专家只授权给大客户销售组，把销售话术专家开放给全体销售成员，权限同时影响专家工作室和 MetaAgent 调度范围。",
+            voice: "专家不是所有人都能用，尤其是涉及敏感业务场景。",
+            actions: ["权限管理", "成员范围", "部门范围"],
+            outcome: "专家能力进入企业授权体系。",
+          },
+          {
+            stage: "专家模型配置",
+            description: "为团队专家选择可用模型",
+            title: "给关键 AI 专家配置模型",
+            tag: "模型",
+            scene: "王经理在 AI 专家详情中为报价风险专家、销售话术专家选择企业可用模型，并确认这些模型配置只影响专家运行效果，不承载成本核算或开发发布。",
+            voice: "后台要管清楚谁能用、用哪个模型，开发专家这件事不应该混在这里。",
+            actions: ["模型配置", "专家详情", "运行模型"],
+            outcome: "公有云企业管理后台的 AI 专家配置收敛为权限范围和模型选择。",
+          },
+          {
+            stage: "团队看板",
+            description: "团队版展示 AI 用量驾驶舱",
+            title: "查看团队 Tokens、调用和排行",
+            tag: "看板",
+            scene: "王经理在驾驶舱查看本月团队 Tokens、调用次数、成员用量 Top 5、AI 专家用量 Top 5 和开发分布。",
+            voice: "我需要知道谁在用、用了多少、哪些专家创造价值。",
+            actions: ["时间筛选", "Top 5", "查看更多"],
+            outcome: "管理者能从用量进入成员和专家明细。",
+          },
+          {
+            stage: "成员明细",
+            description: "二级页面承接完整排行",
+            title: "从排行进入全量明细",
+            tag: "明细",
+            scene: "王经理点击查看更多，进入成员或 AI 专家调用明细，查看全量统计，而不是在首页堆长列表。",
+            voice: "首页给我判断，详情页再给我追查。",
+            actions: ["成员排行", "专家排行", "调用明细"],
+            outcome: "首页聚焦总览，二级页面承接深度分析。",
+          },
+          {
+            stage: "运营反馈",
+            description: "基于数据调整组织和专家策略",
+            title: "用看板反推治理动作",
+            tag: "优化",
+            scene: "王经理发现报价风险专家调用高但覆盖成员少，于是调整角色权限，并安排销售例会推广使用方法。",
+            voice: "看板不是摆数据，是为了让我知道下一步该调整哪里。",
+            actions: ["权限调整", "专家推广", "成员培训"],
+            outcome: "企业管理后台从配置工具变成持续治理工具。",
+          },
+        ],
+        chenPrivate: [
+          {
+            stage: "租户开通",
+            description: "运营按成本计费口径开通租户",
+            title: "陈总接入私有化企业租户",
+            tag: "开通",
+            scene: "陈总是制造企业数字化负责人。周运营以成本计费口径开通企业租户后，陈总登录企业后台，直接看到私有化企业租户能力。",
+            voice: "我们的使用核算要走成本口径，不能按公有云积分逻辑走。",
+            actions: ["成本计费", "席位", "企业后台"],
+            outcome: "私有化租户从入口开始就采用成本计费和企业治理口径。",
+          },
+          {
+            stage: "模型供应商",
+            description: "私有化后台提供默认供应商",
+            title: "基于默认模型供应商维护模型",
+            tag: "模型",
+            scene: "陈总安排 IT 管理员在私有化后台查看默认模型供应商，并维护 API 地址、模型清单、输入模态和推理开关。",
+            voice: "后台应该先给我一个可用的默认供应商，我只需要按企业部署情况维护模型。",
+            actions: ["默认供应商", "接口地址", "模型清单"],
+            outcome: "私有化模型配置具备开箱默认项，同时保留企业侧维护能力。",
+          },
+          {
+            stage: "模型启用",
+            description: "新增或编辑模型不填写成本",
+            title: "维护模型清单和启停状态",
+            tag: "模型",
+            scene: "陈总在新增或编辑模型时只维护模型名称、模型 ID、接口格式、输入模态和推理开关，不需要填写模型成本。",
+            voice: "模型配置是运行配置，不应该让我在这里填成本。",
+            actions: ["模型名称", "模型 ID", "推理开关"],
+            outcome: "私有化企业后台的模型配置从成本表单中解耦，只保留运行所需配置。",
+          },
+          {
+            stage: "专家成本核算",
+            description: "AI 专家详情独立 Tab",
+            title: "配置我的人力成本和行业标准成本",
+            tag: "价值",
+            scene: "陈总在设备巡检专家详情的成本核算 Tab 中录入本企业巡检人力成本和行业标准成本，不放在模型配置里。",
+            voice: "模型运行配置和人力价值核算是两件事，不能混在模型配置里。",
+            actions: ["成本核算 Tab", "我的人力成本", "行业标准成本"],
+            outcome: "企业能评估 AI 专家替代人力后的价值。",
+          },
+          {
+            stage: "内部专家建设",
+            description: "私有化用户也能开发专家和 Skill",
+            title: "沉淀企业内部专属 Agent",
+            tag: "开发",
+            scene: "陈总推动工艺、质检、设备部门把内部流程做成 Agent / Skill，统一使用企业自有模型，并按部门授权。",
+            voice: "我们的流程和知识不能外流，但必须被沉淀成内部可复用能力。",
+            actions: ["内部 Agent", "企业模型", "权限分享"],
+            outcome: "私有化部署形成模型使用、数据、专家能力都在企业内闭环的建设路径。",
+          },
+          {
+            stage: "调用明细",
+            description: "展示平均成本和人力价值",
+            title: "用钱衡量 AI 是否有效",
+            tag: "明细",
+            scene: "陈总在 AI 专家调用明细中查看单次平均成本、企业人力成本和行业标准成本，用来判断设备巡检专家是否值得推广。",
+            voice: "我要知道这个专家是不是省钱、省人、值得继续推广。",
+            actions: ["平均成本", "人力成本", "行业标准"],
+            outcome: "私有化客户能用财务语言评估 AI 系统效果。",
+          },
+        ],
+        zhouOps: [
+          {
+            stage: "创建租户",
+            description: "付费口径类型在运营后台决定",
+            title: "周运营为客户创建租户",
+            tag: "租户",
+            scene: "周运营在运营后台创建客户租户时选择付费口径类型：积分计费或成本计费。积分计费租户按席位推导个人版或团队版，成本计费租户按企业租户处理。",
+            voice: "运营侧先定清楚是积分计费还是成本计费，后面的后台能力和统计口径才不会乱。",
+            actions: ["付费口径类型", "席位", "租户列表"],
+            outcome: "付费口径、版本口径和统计口径在运营侧一次定义清楚。",
+          },
+          {
+            stage: "资源计量",
+            description: "维护模型和调用计量规则",
+            title: "区分积分计费与成本计费",
+            tag: "计量",
+            scene: "积分计费租户按积分消耗；成本计费租户按成本核算。周运营在资源计量中维护模型和外部接口的计量规则。",
+            voice: "不同商业形态可以共用平台，但计量口径必须清楚。",
+            actions: ["积分规则", "成本口径", "资源计量"],
+            outcome: "后续统计和账务口径一致。",
+          },
+          {
+            stage: "专家广场",
+            description: "维护分类和投放范围",
+            title: "把合适专家放到合适位置",
+            tag: "广场",
+            scene: "运营维护 AI 专家广场分类、FrontisAI 发布范围和可见性，让用户能发现可用专家。",
+            voice: "广场不是堆列表，要让用户按场景找到专家。",
+            actions: ["分类管理", "可见范围", "上架内容"],
+            outcome: "平台专家资产可被发现、可被治理。",
+          },
+          {
+            stage: "上架审核",
+            description: "控制平台发布质量",
+            title: "审核专家是否可平台发布",
+            tag: "审核",
+            scene: "小李、小张或王经理提交专家上架后，周运营审核专家定位、描述、适用范围和发布质量。",
+            voice: "FrontisAI 发布代表平台背书，不能随便放。",
+            actions: ["上架审批", "质量检查", "发布"],
+            outcome: "平台发布专家保持基本质量门槛。",
+          },
+          {
+            stage: "运营观察",
+            description: "通过租户和用量反馈调整策略",
+            title: "看使用数据反推投放和计量",
+            tag: "分析",
+            scene: "运营观察付费口径类型、使用量、专家热度和资源消耗，调整广场投放、计量规则和运营策略。",
+            voice: "运营后台不是配置后台，它要支撑持续增长和治理。",
+            actions: ["租户列表", "用量趋势", "专家热度"],
+            outcome: "平台形成从配置到观察再到调整的运营闭环。",
+          },
+        ],
+      };
+
+      const canvas = document.getElementById("canvas");
+      const svg = document.getElementById("connections");
+      const viewport = document.getElementById("viewport");
+      const zoomLabel = document.getElementById("zoomLabel");
+      const roleSwitch = document.getElementById("roleSwitch");
+
+      const layout = {
+        heroX: 80,
+        stageStartX: 470,
+        stageGap: 430,
+        stageTop: 154,
+        cardTopY: 386,
+        cardBottomY: 686,
+        dotY: 299,
+        cardWidth: 294,
+      };
+
+      const state = {
+        activeRole: "liPersonal",
+        scale: 0.82,
+        x: 62,
+        y: 72,
+        dragging: false,
+        startX: 0,
+        startY: 0,
+        originX: 0,
+        originY: 0,
+      };
+
+      function createEl(tag, className, text) {
+        const el = document.createElement(tag);
+        if (className) el.className = className;
+        if (text) el.textContent = text;
+        return el;
+      }
+
+      function getRole(key) {
+        return roles.find(role => role.key === key) || roles[0];
+      }
+
+      function stageX(index) {
+        return layout.stageStartX + index * layout.stageGap;
+      }
+
+      function clearCanvas() {
+        [...canvas.children].forEach(child => {
+          if (child !== svg) child.remove();
+        });
+        [...svg.children].forEach(child => {
+          if (child.tagName.toLowerCase() !== "defs") child.remove();
+        });
+      }
+
+      function renderRoleSwitch() {
+        roleSwitch.innerHTML = "";
+        roles.forEach(role => {
+          const button = createEl("button", `roleButton ${role.key === state.activeRole ? "isActive" : ""}`);
+          button.type = "button";
+          button.dataset.role = role.key;
+          const avatar = createEl("span", "roleButtonAvatar", role.avatar);
+          avatar.style.background = role.color;
+          button.appendChild(avatar);
+          button.appendChild(document.createTextNode(role.name));
+          button.addEventListener("click", () => {
+            state.activeRole = role.key;
+            renderRoleSwitch();
+            renderJourney();
+            resetView();
+          });
+          roleSwitch.appendChild(button);
+        });
+      }
+
+      function renderHero(role) {
+        const hero = createEl("aside", "roleHero");
+        hero.style.setProperty("--active-color", role.color);
+        const avatar = createEl("div", "heroAvatar", role.avatar);
+        avatar.style.background = role.color;
+        hero.appendChild(avatar);
+        hero.appendChild(createEl("h2", "", role.name));
+        hero.appendChild(createEl("p", "", role.summary));
+        const meta = createEl("div", "heroMeta");
+        role.traits.forEach(item => meta.appendChild(createEl("span", "", item)));
+        hero.appendChild(meta);
+        canvas.appendChild(hero);
+      }
+
+      function renderStages(journey, role) {
+        const timeline = createEl("div", "timeline");
+        timeline.style.setProperty("--active-color", role.color);
+        canvas.appendChild(timeline);
+
+        journey.forEach((item, index) => {
+          const x = stageX(index);
+          const header = createEl("section", "stageHeader");
+          header.style.left = `${x}px`;
+          header.style.setProperty("--active-color", role.color);
+          header.appendChild(createEl("span", "stageIndex", String(index + 1).padStart(2, "0")));
+          header.appendChild(createEl("div", "stageTitle", item.stage));
+          header.appendChild(createEl("div", "stageDesc", item.description));
+          canvas.appendChild(header);
+
+          const dot = createEl("div", "momentDot");
+          dot.id = `dot-${index}`;
+          dot.style.left = `${x + 34}px`;
+          dot.style.setProperty("--active-color", role.color);
+          canvas.appendChild(dot);
+        });
+      }
+
+      function renderCards(journey, role) {
+        journey.forEach((item, index) => {
+          const isTop = index % 2 === 0;
+          const card = createEl("article", `journeyCard ${isTop ? "isTop" : "isBottom"}`);
+          card.id = `card-${index}`;
+          card.style.left = `${stageX(index)}px`;
+          card.style.top = `${isTop ? layout.cardTopY : layout.cardBottomY}px`;
+          card.style.setProperty("--active-color", role.color);
+
+          const top = createEl("div", "cardTop");
+          top.appendChild(createEl("h3", "cardTitle", item.title));
+          top.appendChild(createEl("span", "tag", item.tag));
+          card.appendChild(top);
+
+          card.appendChild(createEl("p", "scene", item.scene));
+
+          const voice = createEl("div", "voice");
+          voice.innerHTML = `<strong>心声：</strong>${item.voice}`;
+          card.appendChild(voice);
+
+          const actions = createEl("div", "actions");
+          item.actions.forEach(action => actions.appendChild(createEl("span", "", action)));
+          card.appendChild(actions);
+
+          const outcome = createEl("div", "outcome");
+          outcome.innerHTML = `<b>结果：</b>${item.outcome}`;
+          card.appendChild(outcome);
+
+          canvas.appendChild(card);
+        });
+      }
+
+      function renderLinks(journey) {
+        journey.forEach((_, index) => {
+          if (index >= journey.length - 1) return;
+          const from = document.getElementById(`dot-${index}`);
+          const to = document.getElementById(`dot-${index + 1}`);
+          if (!from || !to) return;
+          const fromX = from.offsetLeft + from.offsetWidth;
+          const fromY = from.offsetTop + from.offsetHeight / 2;
+          const toX = to.offsetLeft;
+          const toY = to.offsetTop + to.offsetHeight / 2;
+          const d = `M ${fromX} ${fromY} C ${fromX + 150} ${fromY}, ${toX - 150} ${toY}, ${toX - 5} ${toY}`;
+          const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+          path.setAttribute("d", d);
+          path.setAttribute("class", "connectorPath");
+          path.setAttribute("marker-end", "url(#arrowPrimary)");
+          svg.appendChild(path);
+
+          const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+          text.setAttribute("x", `${(fromX + toX) / 2 - 22}`);
+          text.setAttribute("y", `${fromY - 12}`);
+          text.setAttribute("class", "connectorLabel");
+          text.textContent = "下一步";
+          svg.appendChild(text);
+        });
+      }
+
+      function renderJourney() {
+        clearCanvas();
+        const role = getRole(state.activeRole);
+        const journey = journeys[role.key];
+        document.documentElement.style.setProperty("--active-color", role.color);
+        renderHero(role);
+        renderStages(journey, role);
+        renderCards(journey, role);
+        renderLinks(journey);
+      }
+
+      function applyTransform() {
+        canvas.style.transform = `translate(${state.x}px, ${state.y}px) scale(${state.scale})`;
+        zoomLabel.textContent = `${Math.round(state.scale * 100)}%`;
+      }
+
+      function zoomAt(delta, clientX = window.innerWidth / 2, clientY = window.innerHeight / 2) {
+        const previous = state.scale;
+        const next = Math.min(1.45, Math.max(0.42, previous + delta));
+        if (next === previous) return;
+        const canvasX = (clientX - state.x) / previous;
+        const canvasY = (clientY - state.y) / previous;
+        state.scale = next;
+        state.x = clientX - canvasX * next;
+        state.y = clientY - canvasY * next;
+        applyTransform();
+      }
+
+      function resetView() {
+        state.scale = 0.82;
+        state.x = 62;
+        state.y = 72;
+        applyTransform();
+      }
+
+      viewport.addEventListener("pointerdown", event => {
+        state.dragging = true;
+        state.startX = event.clientX;
+        state.startY = event.clientY;
+        state.originX = state.x;
+        state.originY = state.y;
+        viewport.classList.add("isDragging");
+        viewport.setPointerCapture(event.pointerId);
+      });
+
+      viewport.addEventListener("pointermove", event => {
+        if (!state.dragging) return;
+        state.x = state.originX + event.clientX - state.startX;
+        state.y = state.originY + event.clientY - state.startY;
+        applyTransform();
+      });
+
+      viewport.addEventListener("pointerup", event => {
+        state.dragging = false;
+        viewport.classList.remove("isDragging");
+        viewport.releasePointerCapture(event.pointerId);
+      });
+
+      viewport.addEventListener(
+        "wheel",
+        event => {
+          event.preventDefault();
+          zoomAt(event.deltaY > 0 ? -0.06 : 0.06, event.clientX, event.clientY);
+        },
+        { passive: false },
+      );
+
+      viewport.addEventListener("dblclick", resetView);
+      document.getElementById("zoomOut").addEventListener("click", () => zoomAt(-0.08));
+      document.getElementById("zoomIn").addEventListener("click", () => zoomAt(0.08));
+      document.getElementById("resetView").addEventListener("click", resetView);
+
+      renderRoleSwitch();
+      renderJourney();
+      applyTransform();
+    </script>
+  </body>
+</html>

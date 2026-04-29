@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { CheckCircleOutlined, PlusOutlined } from "@ant-design/icons";
-import { Button, Input, Modal, Select, message } from "antd";
+import { Button, Input, Modal, message } from "antd";
+import classNames from "classnames";
 import dayjs from "dayjs";
 
 import { useMockAuth } from "@/feature/auth/hooks/useMockAuth";
@@ -1795,20 +1796,40 @@ export const FdeAgentStoreView = ({
     <div className={styles.root}>
       <div className={styles.toolbarCard}>
         <div className={styles.filterGroup}>
-          <Select
-            className={styles.filterSelect}
-            options={shelfFilterOptions}
-            popupMatchSelectWidth={false}
-            value={shelfFilter}
-            onChange={value => setShelfFilter(value)}
-          />
-          <Select
-            className={styles.filterSelect}
-            options={businessLineOptions}
-            popupMatchSelectWidth={false}
-            value={businessLineFilter}
-            onChange={value => setBusinessLineFilter(value)}
-          />
+          <div className={styles.filterTabRow} role="tablist" aria-label="AI专家来源分类">
+            {shelfFilterOptions.map(option => (
+              <button
+                key={option.value}
+                type="button"
+                role="tab"
+                aria-selected={shelfFilter === option.value}
+                className={classNames(
+                  styles.filterTabButton,
+                  shelfFilter === option.value && styles.filterTabButtonActive,
+                )}
+                onClick={() => setShelfFilter(option.value)}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+          <div className={styles.filterTabRow} role="tablist" aria-label="AI专家业务场景">
+            {businessLineOptions.map(option => (
+              <button
+                key={option.value}
+                type="button"
+                role="tab"
+                aria-selected={businessLineFilter === option.value}
+                className={classNames(
+                  styles.filterTabButton,
+                  businessLineFilter === option.value && styles.filterTabButtonActive,
+                )}
+                onClick={() => setBusinessLineFilter(option.value)}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
         </div>
 
         {isAdminView && onNavigateToAgentDev ? (

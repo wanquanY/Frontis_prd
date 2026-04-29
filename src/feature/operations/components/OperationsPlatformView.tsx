@@ -33,12 +33,22 @@ import {
 import classNames from "classnames";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 
-import { findIdentityForPath, getLoginPath, getSystemEntries } from "@/feature/auth/mockAccounts";
+import {
+  findIdentityForPath,
+  getLoginPath,
+  getSystemEntries,
+  rechargeMockTenantPoints,
+} from "@/feature/auth/mockAccounts";
 import { useMockAuth } from "@/feature/auth/hooks/useMockAuth";
+import {
+  getMockTenantManagementSnapshot,
+  saveMockTenantManagementSnapshot,
+} from "@/feature/auth/mockTenantRegistry";
 import { useOperationsAuth } from "@/feature/operations/hooks/useOperationsAuth";
 import { useOperationsPlatform } from "@/feature/operations/hooks/useOperationsPlatform";
 import type {
   MockAuthSystemEntry,
+  MockTenantManagementSnapshot,
   MockTenantPointsOrderItem,
   MockTenantPointsOrderStatus,
 } from "@/feature/auth/types";
@@ -72,7 +82,6 @@ import type {
   OperationsTenantDeploymentMode,
   OperationsTenantEdition,
   OperationsTenantForm,
-  OperationsTenantMemberForm,
 } from "@/feature/operations/types";
 import adminStyles from "@/pages/components/FrontisAdminViews.module.less";
 import shellStyles from "@/pages/FrontisPage.module.less";
@@ -91,12 +100,6 @@ interface TenantEditorState {
   mode: "create" | "edit";
   tenantId?: string;
   form: OperationsTenantForm;
-}
-
-interface TenantMemberEditorState {
-  open: boolean;
-  tenantId?: string;
-  form: OperationsTenantMemberForm;
 }
 
 interface ProductEditorState {
@@ -143,7 +146,6 @@ interface RejectEditorState {
 
 type AgentFilterValue = "all" | OperationsAgentSubmission["status"];
 type AgentPlazaConsoleTabKey = "delivery" | "category";
-type TenantDetailTabKey = "base" | "members";
 type ProductConsoleTabKey = "standard" | "points" | "team" | "seat";
 type ResourcePoolConsoleTabKey = OperationsResourceMeteringMode;
 
@@ -156,10 +158,10 @@ interface TenantConsoleProps {
 
 interface TenantDetailConsoleProps {
   tenant: OperationsTenant | null;
+  pointsActorName: string;
   statusLabels: Record<OperationsTenant["status"], string>;
   onBack: () => void;
   onEdit: (tenant: OperationsTenant) => void;
-  onAddMember: (tenant: OperationsTenant) => void;
   onToggleStatus: (tenant: OperationsTenant) => void;
 }
 
@@ -308,7 +310,7 @@ const OPERATIONS_TAB_ICON_MAP: Record<OperationsPlatformTabKey, JSX.Element> = {
 const TENANT_FIELD_IDS = {
   name: "operations-tenant-name",
   code: "operations-tenant-code",
-  deploymentMode: "operations-tenant-deployment-mode",
+  deploymentMode: "operations-tenant-billing-mode",
   industry: "operations-tenant-industry",
   adminName: "operations-tenant-admin-name",
   adminPhone: "operations-tenant-admin-phone",
@@ -320,8 +322,8 @@ const TENANT_FIELD_IDS = {
 } as const;
 
 const OPERATIONS_TENANT_DEPLOYMENT_MODE_LABELS: Record<OperationsTenantDeploymentMode, string> = {
-  publicCloud: "公有云",
-  privateCloud: "私有云",
+  publicCloud: "积分计费",
+  privateCloud: "成本计费",
 };
 
 const OPERATIONS_TENANT_EDITION_LABELS: Record<OperationsTenantEdition, string> = {
@@ -333,14 +335,9 @@ const OPERATIONS_TENANT_DEPLOYMENT_MODE_OPTIONS: Array<{
   label: string;
   value: OperationsTenantDeploymentMode;
 }> = [
-  { label: "公有云", value: "publicCloud" },
-  { label: "私有云", value: "privateCloud" },
+  { label: "积分计费", value: "publicCloud" },
+  { label: "成本计费", value: "privateCloud" },
 ];
-
-const TENANT_MEMBER_FIELD_IDS = {
-  name: "operations-tenant-member-name",
-  phone: "operations-tenant-member-phone",
-} as const;
 
 const PRODUCT_FIELD_IDS = {
   name: "operations-product-name",
@@ -444,6 +441,52 @@ const buildProductDetailPath = (productId: string): string =>
   `${OPERATIONS_PRODUCT_LIST_PATH}/${productId}`;
 
 const formatCurrency = (value: number): string => `¥${value.toLocaleString("zh-CN")}`;
+
+const formatPoints = (value: number): string => value.toLocaleString("zh-CN");
+
+const buildOperationsTenantPointsSnapshot = (
+  tenant: OperationsTenant,
+  points: number,
+  actorName: string,
+  description: string,
+): MockTenantManagementSnapshot => ({
+  tenantId: tenant.id,
+  tenantName: tenant.name,
+  tenantCode: tenant.code,
+  ownerAccountId: `${tenant.id}-owner`,
+  adminUserId: `${tenant.id}-admin`,
+  deploymentMode: tenant.deploymentMode,
+  edition: tenant.edition,
+  planLabel: tenant.edition === "personal" ? "个人版" : `团队 ${tenant.seatCount} 席版`,
+  includedSeats: tenant.seatCount,
+  extraSeatCount: 0,
+  teamPlanPackageId: tenant.edition === "team" ? "team-custom" : undefined,
+  planExpiresAt: tenant.expiresAt,
+  hasAgentListingAccess: tenant.hasAgentListingAccess,
+  invitePolicyLabel:
+    tenant.edition === "team" ? "团队版租户支持组织管理与成员邀请。" : "个人版租户仅保留本人席位。",
+  lowBalanceThreshold: 2000,
+  monthlyUsedPoints: 0,
+  pointsBalance: points,
+  totalSeats: tenant.seatCount,
+  usedSeats: Math.max(tenant.members.length, 1),
+  users: [],
+  agentUsageRecords: [],
+  pointsLedger: [
+    {
+      id: `${tenant.id}-operations-points-${Date.now()}`,
+      title: "运营配置积分",
+      description,
+      points,
+      direction: "income",
+      createdAt: "刚刚",
+      actorName,
+    },
+  ],
+  pointsUsageRecords: [],
+  pointsOrders: [],
+  referralRecords: [],
+});
 
 const buildStatusClassName = (tone?: "primary" | "success" | "warning" | "danger"): string =>
   classNames(
@@ -598,8 +641,6 @@ interface OperationsOrderCenterRow {
   updatedAt: string;
   searchText: string;
 }
-
-const getTenantMemberInitial = (name: string): string => Array.from(name.trim())[0] ?? "员";
 
 const getProductBillingSpecLabel = (
   productBillingSpecLabels: Record<NonNullable<OperationsProduct["billingSpec"]>, string>,
@@ -821,9 +862,8 @@ const TenantConsole = ({
                 <tr>
                   <th>租户</th>
                   <th>管理员</th>
-                  <th>租户类型</th>
+                  <th>计费模式</th>
                   <th>版本</th>
-                  <th>计费口径</th>
                   <th>开通范围</th>
                   <th>状态</th>
                   <th>更新时间</th>
@@ -847,7 +887,6 @@ const TenantConsole = ({
                     </td>
                     <td>{OPERATIONS_TENANT_DEPLOYMENT_MODE_LABELS[tenant.deploymentMode]}</td>
                     <td>{OPERATIONS_TENANT_EDITION_LABELS[tenant.edition]}</td>
-                    <td>{tenant.deploymentMode === "privateCloud" ? "金额计费" : "积分计费"}</td>
                     <td className={styles.tenantModulesCell}>{tenant.moduleLabels.join("、")}</td>
                     <td>
                       <span className={getTenantStatusClassName(tenant.status)}>
@@ -877,35 +916,90 @@ const TenantConsole = ({
 
 const TenantDetailConsole = ({
   tenant,
+  pointsActorName,
   statusLabels,
   onBack,
   onEdit,
-  onAddMember,
   onToggleStatus,
 }: TenantDetailConsoleProps): JSX.Element => {
-  const [activeTab, setActiveTab] = useState<TenantDetailTabKey>("base");
-  const [memberKeyword, setMemberKeyword] = useState<string>("");
+  const [pointsSnapshotVersion, setPointsSnapshotVersion] = useState<number>(0);
+  const [pointsEditor, setPointsEditor] = useState<{
+    open: boolean;
+    amount: number;
+    description: string;
+  }>({
+    open: false,
+    amount: 10000,
+    description: "运营后台为租户补充积分额度。",
+  });
 
   useEffect(() => {
-    setActiveTab("base");
-    setMemberKeyword("");
+    setPointsSnapshotVersion(0);
+    setPointsEditor({
+      open: false,
+      amount: 10000,
+      description: "运营后台为租户补充积分额度。",
+    });
   }, [tenant?.id]);
 
-  const filteredMembers = useMemo(() => {
-    if (!tenant) {
-      return [];
+  const tenantPointsSnapshot = useMemo(
+    () =>
+      tenant?.deploymentMode === "publicCloud" ? getMockTenantManagementSnapshot(tenant.id) : null,
+    [pointsSnapshotVersion, tenant?.deploymentMode, tenant?.id],
+  );
+
+  const handleOpenPointsEditor = useCallback((): void => {
+    setPointsEditor({
+      open: true,
+      amount: 10000,
+      description: "运营后台为租户补充积分额度。",
+    });
+  }, []);
+
+  const handleClosePointsEditor = useCallback((): void => {
+    setPointsEditor(current => ({
+      ...current,
+      open: false,
+    }));
+  }, []);
+
+  const handleSubmitPointsEditor = useCallback((): void => {
+    if (!tenant || tenant.deploymentMode !== "publicCloud") {
+      return;
     }
 
-    const keyword = memberKeyword.trim().toLowerCase();
+    const nextAmount = Math.trunc(pointsEditor.amount);
+    const nextDescription = pointsEditor.description.trim() || "运营后台为租户补充积分额度。";
 
-    if (!keyword) {
-      return tenant.members;
+    if (nextAmount <= 0) {
+      message.warning("请填写大于 0 的积分数量。");
+      return;
     }
 
-    return tenant.members.filter(member =>
-      [member.name, member.phone, member.roleLabel].join(" ").toLowerCase().includes(keyword),
-    );
-  }, [memberKeyword, tenant]);
+    const updatedSnapshot =
+      rechargeMockTenantPoints(tenant.id, nextAmount, pointsActorName, {
+        title: "运营配置积分",
+        description: nextDescription,
+      }) ??
+      saveMockTenantManagementSnapshot(
+        buildOperationsTenantPointsSnapshot(tenant, nextAmount, pointsActorName, nextDescription),
+      );
+
+    if (!updatedSnapshot) {
+      message.error("积分配置失败，请稍后重试。");
+      return;
+    }
+
+    setPointsSnapshotVersion(version => version + 1);
+    handleClosePointsEditor();
+    message.success(`已为 ${tenant.name} 增加 ${formatPoints(nextAmount)} 积分`);
+  }, [
+    handleClosePointsEditor,
+    pointsActorName,
+    pointsEditor.amount,
+    pointsEditor.description,
+    tenant,
+  ]);
 
   return (
     <div className={adminStyles.consolePage}>
@@ -924,6 +1018,9 @@ const TenantDetailConsole = ({
             <span className={getTenantStatusClassName(tenant.status)}>
               {statusLabels[tenant.status]}
             </span>
+            {tenant.deploymentMode === "publicCloud" ? (
+              <Button onClick={handleOpenPointsEditor}>配置积分</Button>
+            ) : null}
             <Button onClick={() => onEdit(tenant)}>编辑资料</Button>
             <Button onClick={() => onToggleStatus(tenant)}>
               {tenant.status === "suspended" ? "启用租户" : "停用租户"}
@@ -934,164 +1031,86 @@ const TenantDetailConsole = ({
 
       {tenant ? (
         <section className={adminStyles.consoleSection}>
-          <div className={styles.detailTabBar}>
-            <button
-              type="button"
-              className={classNames(
-                styles.detailTabButton,
-                activeTab === "base" && styles.detailTabButtonActive,
-              )}
-              onClick={() => setActiveTab("base")}
-            >
-              基本信息
-            </button>
-            <button
-              type="button"
-              className={classNames(
-                styles.detailTabButton,
-                activeTab === "members" && styles.detailTabButtonActive,
-              )}
-              onClick={() => setActiveTab("members")}
-            >
-              成员管理
-            </button>
+          <div className={classNames(styles.detailGrid, styles.tenantDetailGrid)}>
+            <section className={adminStyles.detailBlock}>
+              <h3 className={classNames(adminStyles.detailBlockTitle, styles.detailBlockTitleReset)}>
+                基础信息
+              </h3>
+              <div className={adminStyles.consoleRows}>
+                <div className={adminStyles.consoleInfoRow}>
+                  <span className={adminStyles.consoleInfoLabel}>计费模式</span>
+                  <span className={adminStyles.consoleInfoValue}>
+                    {OPERATIONS_TENANT_DEPLOYMENT_MODE_LABELS[tenant.deploymentMode]}
+                  </span>
+                </div>
+                <div className={adminStyles.consoleInfoRow}>
+                  <span className={adminStyles.consoleInfoLabel}>版本</span>
+                  <span className={adminStyles.consoleInfoValue}>
+                    {OPERATIONS_TENANT_EDITION_LABELS[tenant.edition]}
+                  </span>
+                </div>
+                <div className={adminStyles.consoleInfoRow}>
+                  <span className={adminStyles.consoleInfoLabel}>管理员</span>
+                  <span className={adminStyles.consoleInfoValue}>
+                    {tenant.adminName || "待录入"} · {tenant.adminPhone || "待补充"}
+                  </span>
+                </div>
+                <div className={adminStyles.consoleInfoRow}>
+                  <span className={adminStyles.consoleInfoLabel}>席位数量</span>
+                  <span className={adminStyles.consoleInfoValue}>{tenant.seatCount}</span>
+                </div>
+                <div className={adminStyles.consoleInfoRow}>
+                  <span className={adminStyles.consoleInfoLabel}>已用席位</span>
+                  <span className={adminStyles.consoleInfoValue}>{tenant.members.length}</span>
+                </div>
+                <div className={adminStyles.consoleInfoRow}>
+                  <span className={adminStyles.consoleInfoLabel}>AI专家上架服务</span>
+                  <span className={adminStyles.consoleInfoValue}>
+                    {tenant.hasAgentListingAccess ? "已开通" : "未开通"}
+                  </span>
+                </div>
+                {tenant.deploymentMode === "publicCloud" ? (
+                  <div className={adminStyles.consoleInfoRow}>
+                    <span className={adminStyles.consoleInfoLabel}>积分余额</span>
+                    <span className={adminStyles.consoleInfoValue}>
+                      {tenantPointsSnapshot
+                        ? `${formatPoints(tenantPointsSnapshot.pointsBalance)} 积分`
+                        : "未初始化"}
+                    </span>
+                  </div>
+                ) : null}
+                <div className={adminStyles.consoleInfoRow}>
+                  <span className={adminStyles.consoleInfoLabel}>生效时间</span>
+                  <span className={adminStyles.consoleInfoValue}>{tenant.effectiveAt}</span>
+                </div>
+                <div className={adminStyles.consoleInfoRow}>
+                  <span className={adminStyles.consoleInfoLabel}>到期时间</span>
+                  <span className={adminStyles.consoleInfoValue}>{tenant.expiresAt}</span>
+                </div>
+                <div className={adminStyles.consoleInfoRow}>
+                  <span className={adminStyles.consoleInfoLabel}>创建时间</span>
+                  <span className={adminStyles.consoleInfoValue}>{tenant.createdAt}</span>
+                </div>
+                <div className={adminStyles.consoleInfoRow}>
+                  <span className={adminStyles.consoleInfoLabel}>更新时间</span>
+                  <span className={adminStyles.consoleInfoValue}>{tenant.updatedAt}</span>
+                </div>
+              </div>
+            </section>
+
+            <section className={adminStyles.detailBlock}>
+              <h3 className={classNames(adminStyles.detailBlockTitle, styles.detailBlockTitleReset)}>
+                开通范围
+              </h3>
+              <div className={styles.pillRow}>
+                {tenant.moduleLabels.map(label => (
+                  <span key={label} className={adminStyles.consolePill}>
+                    {label}
+                  </span>
+                ))}
+              </div>
+            </section>
           </div>
-
-          {activeTab === "base" ? (
-            <div className={classNames(styles.detailGrid, styles.tenantDetailGrid)}>
-              <section className={adminStyles.detailBlock}>
-                <h3
-                  className={classNames(adminStyles.detailBlockTitle, styles.detailBlockTitleReset)}
-                >
-                  基础信息
-                </h3>
-                <div className={adminStyles.consoleRows}>
-                  <div className={adminStyles.consoleInfoRow}>
-                    <span className={adminStyles.consoleInfoLabel}>租户类型</span>
-                    <span className={adminStyles.consoleInfoValue}>
-                      {OPERATIONS_TENANT_DEPLOYMENT_MODE_LABELS[tenant.deploymentMode]}
-                    </span>
-                  </div>
-                  <div className={adminStyles.consoleInfoRow}>
-                    <span className={adminStyles.consoleInfoLabel}>版本</span>
-                    <span className={adminStyles.consoleInfoValue}>
-                      {OPERATIONS_TENANT_EDITION_LABELS[tenant.edition]}
-                    </span>
-                  </div>
-                  <div className={adminStyles.consoleInfoRow}>
-                    <span className={adminStyles.consoleInfoLabel}>计费口径</span>
-                    <span className={adminStyles.consoleInfoValue}>
-                      {tenant.deploymentMode === "privateCloud" ? "金额计费" : "积分计费"}
-                    </span>
-                  </div>
-                  <div className={adminStyles.consoleInfoRow}>
-                    <span className={adminStyles.consoleInfoLabel}>管理员</span>
-                    <span className={adminStyles.consoleInfoValue}>
-                      {tenant.adminName || "待录入"} · {tenant.adminPhone || "待补充"}
-                    </span>
-                  </div>
-                  <div className={adminStyles.consoleInfoRow}>
-                    <span className={adminStyles.consoleInfoLabel}>席位数量</span>
-                    <span className={adminStyles.consoleInfoValue}>{tenant.seatCount}</span>
-                  </div>
-                  <div className={adminStyles.consoleInfoRow}>
-                    <span className={adminStyles.consoleInfoLabel}>已用席位</span>
-                    <span className={adminStyles.consoleInfoValue}>{tenant.members.length}</span>
-                  </div>
-                  <div className={adminStyles.consoleInfoRow}>
-                    <span className={adminStyles.consoleInfoLabel}>AI专家上架服务</span>
-                    <span className={adminStyles.consoleInfoValue}>
-                      {tenant.hasAgentListingAccess ? "已开通" : "未开通"}
-                    </span>
-                  </div>
-                  <div className={adminStyles.consoleInfoRow}>
-                    <span className={adminStyles.consoleInfoLabel}>生效时间</span>
-                    <span className={adminStyles.consoleInfoValue}>{tenant.effectiveAt}</span>
-                  </div>
-                  <div className={adminStyles.consoleInfoRow}>
-                    <span className={adminStyles.consoleInfoLabel}>到期时间</span>
-                    <span className={adminStyles.consoleInfoValue}>{tenant.expiresAt}</span>
-                  </div>
-                  <div className={adminStyles.consoleInfoRow}>
-                    <span className={adminStyles.consoleInfoLabel}>创建时间</span>
-                    <span className={adminStyles.consoleInfoValue}>{tenant.createdAt}</span>
-                  </div>
-                  <div className={adminStyles.consoleInfoRow}>
-                    <span className={adminStyles.consoleInfoLabel}>更新时间</span>
-                    <span className={adminStyles.consoleInfoValue}>{tenant.updatedAt}</span>
-                  </div>
-                </div>
-              </section>
-
-              <section className={adminStyles.detailBlock}>
-                <h3
-                  className={classNames(adminStyles.detailBlockTitle, styles.detailBlockTitleReset)}
-                >
-                  开通范围
-                </h3>
-                <div className={styles.pillRow}>
-                  {tenant.moduleLabels.map(label => (
-                    <span key={label} className={adminStyles.consolePill}>
-                      {label}
-                    </span>
-                  ))}
-                </div>
-              </section>
-            </div>
-          ) : (
-            <div className={styles.memberTabPanel}>
-              <div className={styles.memberSearchRow}>
-                <Input
-                  className={styles.memberSearch}
-                  value={memberKeyword}
-                  placeholder="搜索成员姓名或手机号"
-                  prefix={<SearchOutlined />}
-                  onChange={event => setMemberKeyword(event.target.value)}
-                />
-              </div>
-
-              <div className={styles.memberSection}>
-                <div className={styles.memberSectionHeader}>
-                  <div>
-                    <h3 className={styles.memberSectionTitle}>成员</h3>
-                    <p className={styles.memberSectionMeta}>
-                      {tenant.members.length}/{tenant.seatCount} 席
-                    </p>
-                  </div>
-                  <Button
-                    type="primary"
-                    onClick={() => onAddMember(tenant)}
-                    disabled={tenant.members.length >= tenant.seatCount}
-                  >
-                    添加成员
-                  </Button>
-                </div>
-
-                {filteredMembers.length ? (
-                  <div className={styles.memberList}>
-                    {filteredMembers.map(member => (
-                      <div key={member.id} className={styles.memberRow}>
-                        <Avatar className={styles.memberAvatar} size={48}>
-                          {getTenantMemberInitial(member.name)}
-                        </Avatar>
-                        <div className={styles.memberBody}>
-                          <span className={styles.memberName}>{member.name}</span>
-                          <span className={styles.memberMeta}>
-                            {member.roleLabel} · {member.phone}
-                          </span>
-                        </div>
-                        <span className={styles.memberAddedAt}>{member.addedAt}</span>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className={styles.emptyWrap}>
-                    <Empty description="当前筛选下暂无成员。" />
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
         </section>
       ) : (
         <section className={adminStyles.consoleSection}>
@@ -1102,6 +1121,57 @@ const TenantDetailConsole = ({
           </div>
         </section>
       )}
+
+      {tenant?.deploymentMode === "publicCloud" ? (
+        <Modal
+          width={OPERATIONS_MODAL_WIDTHS.compact}
+          open={pointsEditor.open}
+          title="配置租户积分"
+          okText="确认增加"
+          cancelText="取消"
+          onCancel={handleClosePointsEditor}
+          onOk={handleSubmitPointsEditor}
+        >
+          <div className={styles.modalForm}>
+            <div className={styles.modalField}>
+              <span className={styles.modalLabel}>当前余额</span>
+              <span className={adminStyles.consoleInfoValue}>
+                {tenantPointsSnapshot
+                  ? `${formatPoints(tenantPointsSnapshot.pointsBalance)} 积分`
+                  : "未初始化"}
+              </span>
+            </div>
+            <div className={styles.modalField}>
+              <span className={styles.modalLabel}>本次增加积分</span>
+              <InputNumber
+                className={styles.modalControl}
+                min={1}
+                precision={0}
+                value={pointsEditor.amount}
+                onChange={value =>
+                  setPointsEditor(current => ({
+                    ...current,
+                    amount: Number(value ?? 0),
+                  }))
+                }
+              />
+            </div>
+            <div className={styles.modalField}>
+              <span className={styles.modalLabel}>备注</span>
+              <Input.TextArea
+                rows={3}
+                value={pointsEditor.description}
+                onChange={event =>
+                  setPointsEditor(current => ({
+                    ...current,
+                    description: event.target.value,
+                  }))
+                }
+              />
+            </div>
+          </div>
+        </Modal>
+      ) : null}
     </div>
   );
 };
@@ -2560,7 +2630,6 @@ export const OperationsPlatformView = (): JSX.Element => {
   const { activateIdentity, logout: logoutUnified, session: unifiedSession } = useMockAuth();
   const { loginByAccountId, logout, session } = useOperationsAuth();
   const {
-    addTenantMember,
     agentPlazaCategories,
     agentStatusLabels,
     agentSubmissions,
@@ -2578,7 +2647,6 @@ export const OperationsPlatformView = (): JSX.Element => {
     emptyResourcePoolForm,
     emptyProductForm,
     emptyTenantForm,
-    emptyTenantMemberForm,
     externalMeteredServices,
     fulfillmentStatusLabels,
     fulfillments,
@@ -2637,10 +2705,6 @@ export const OperationsPlatformView = (): JSX.Element => {
     open: false,
     mode: "create",
     form: emptyTenantForm,
-  });
-  const [tenantMemberEditor, setTenantMemberEditor] = useState<TenantMemberEditorState>({
-    open: false,
-    form: emptyTenantMemberForm,
   });
   const [productEditor, setProductEditor] = useState<ProductEditorState>({
     open: false,
@@ -2885,52 +2949,6 @@ export const OperationsPlatformView = (): JSX.Element => {
       form: emptyTenantForm,
     });
   }, [createTenant, emptyTenantForm, tenantEditor, tenants, updateTenant]);
-
-  const handleOpenAddTenantMember = useCallback(
-    (tenant: OperationsTenant): void => {
-      if (tenant.members.length >= tenant.seatCount) {
-        message.warning("当前租户席位已满，无法继续添加成员。");
-        return;
-      }
-
-      setTenantMemberEditor({
-        open: true,
-        tenantId: tenant.id,
-        form: emptyTenantMemberForm,
-      });
-    },
-    [emptyTenantMemberForm],
-  );
-
-  const handleSubmitTenantMember = useCallback((): void => {
-    if (
-      !tenantMemberEditor.tenantId ||
-      !tenantMemberEditor.form.name.trim() ||
-      tenantMemberEditor.form.phone.trim().length !== 11
-    ) {
-      message.warning("请先补齐成员姓名和手机号。");
-      return;
-    }
-
-    const targetTenant = tenants.find(item => item.id === tenantMemberEditor.tenantId) ?? null;
-
-    if (!targetTenant) {
-      message.warning("未找到当前租户。");
-      return;
-    }
-
-    if (targetTenant.members.length >= targetTenant.seatCount) {
-      message.warning("当前租户席位已满，无法继续添加成员。");
-      return;
-    }
-
-    addTenantMember(tenantMemberEditor.tenantId, tenantMemberEditor.form);
-    message.success("成员已添加。");
-    setTenantMemberEditor({
-      open: false,
-      form: emptyTenantMemberForm,
-    });
-  }, [addTenantMember, emptyTenantMemberForm, tenantMemberEditor, tenants]);
 
   const handleToggleTenantStatus = useCallback(
     (tenant: OperationsTenant): void => {
@@ -3398,10 +3416,10 @@ export const OperationsPlatformView = (): JSX.Element => {
         return (
           <TenantDetailConsole
             tenant={activeTenant}
+            pointsActorName={session?.name ?? "平台运营"}
             statusLabels={tenantStatusLabels}
             onBack={handleBackToTenantList}
             onEdit={handleOpenEditTenant}
-            onAddMember={handleOpenAddTenantMember}
             onToggleStatus={handleToggleTenantStatus}
           />
         );
@@ -3493,7 +3511,6 @@ export const OperationsPlatformView = (): JSX.Element => {
     fulfillmentStatusLabels,
     handleBackToProductList,
     handleBackToTenantList,
-    handleOpenAddTenantMember,
     handleOpenAgentReview,
     handleOpenCreateAgentPlazaCategory,
     handleOpenCreateProduct,
@@ -3529,6 +3546,7 @@ export const OperationsPlatformView = (): JSX.Element => {
     resourcePoolCapacityUnitLabels,
     resourcePoolTypeLabels,
     resourcePools,
+    session?.name,
     teamPlanPackages,
     teamSeatPricing,
     tenantId,
@@ -3708,7 +3726,7 @@ export const OperationsPlatformView = (): JSX.Element => {
 
           <div className={styles.modalField}>
             <label className={styles.modalLabel} htmlFor={TENANT_FIELD_IDS.deploymentMode}>
-              租户类型
+              计费模式
             </label>
             <Select<OperationsTenantDeploymentMode>
               id={TENANT_FIELD_IDS.deploymentMode}
@@ -3862,61 +3880,6 @@ export const OperationsPlatformView = (): JSX.Element => {
                   form: {
                     ...currentState.form,
                     expiresAt: event.target.value,
-                  },
-                }))
-              }
-            />
-          </div>
-        </div>
-      </Modal>
-
-      <Modal
-        open={tenantMemberEditor.open}
-        title="添加成员"
-        className={classNames(styles.fixedModal, styles.compactModal)}
-        width={OPERATIONS_MODAL_WIDTHS.compact}
-        onCancel={() =>
-          setTenantMemberEditor({
-            open: false,
-            form: emptyTenantMemberForm,
-          })
-        }
-        onOk={handleSubmitTenantMember}
-        destroyOnHidden
-      >
-        <div className={styles.formGrid}>
-          <div className={styles.modalField}>
-            <label className={styles.modalLabel} htmlFor={TENANT_MEMBER_FIELD_IDS.name}>
-              成员姓名
-            </label>
-            <Input
-              id={TENANT_MEMBER_FIELD_IDS.name}
-              value={tenantMemberEditor.form.name}
-              onChange={event =>
-                setTenantMemberEditor(currentState => ({
-                  ...currentState,
-                  form: {
-                    ...currentState.form,
-                    name: event.target.value,
-                  },
-                }))
-              }
-            />
-          </div>
-
-          <div className={styles.modalField}>
-            <label className={styles.modalLabel} htmlFor={TENANT_MEMBER_FIELD_IDS.phone}>
-              成员手机号
-            </label>
-            <Input
-              id={TENANT_MEMBER_FIELD_IDS.phone}
-              value={tenantMemberEditor.form.phone}
-              onChange={event =>
-                setTenantMemberEditor(currentState => ({
-                  ...currentState,
-                  form: {
-                    ...currentState.form,
-                    phone: event.target.value.replace(/\D/g, "").slice(0, 11),
                   },
                 }))
               }
