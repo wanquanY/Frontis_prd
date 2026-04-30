@@ -23,16 +23,14 @@ export const TENANT_ROLE_PERMISSION_GROUPS: TenantRolePermissionGroup[] = [
     items: [
       { id: "workspace.metaAgent.use", label: "使用 MetaAgent" },
       { id: "workspace.expert.use", label: "使用专家工作室" },
-      { id: "workspace.deliverable.viewOwn", label: "查看本人成果" },
     ],
   },
   {
     title: "AI 专家开发",
     items: [
-      { id: "agent.develop.create", label: "创建 AI 专家" },
-      { id: "agent.develop.editOwn", label: "编辑本人 AI 专家" },
-      { id: "skill.manageOwn", label: "管理本人 Skill" },
-      { id: "agent.plaza.submit", label: "提交广场上架" },
+      { id: "agent.develop.manageOwn", label: "开发本人 AI 专家" },
+      { id: "skill.manageOwn", label: "开发本人 Skill" },
+      { id: "agent.publish.tenant", label: "发布给团队使用" },
     ],
   },
   {
@@ -57,35 +55,28 @@ export const TENANT_ROLE_PERMISSION_GROUPS: TenantRolePermissionGroup[] = [
   {
     title: "AI 专家管理",
     items: [
-      { id: "agent.manage.view", label: "查看 AI 专家" },
+      { id: "agent.manage.tenant", label: "管理团队 AI 专家" },
       { id: "agent.access.manage", label: "管理可用范围" },
       { id: "agent.model.configure", label: "配置专家模型" },
       { id: "agent.cost.configure", label: "配置成本核算" },
-      { id: "agent.version.view", label: "查看版本记录" },
     ],
   },
   {
     title: "模型配置",
     items: [
-      { id: "model.provider.view", label: "查看模型供应商" },
-      { id: "model.provider.manage", label: "管理模型供应商" },
-      { id: "model.list.manage", label: "管理模型清单" },
+      { id: "model.configure", label: "管理模型配置" },
     ],
   },
   {
     title: "积分管理",
     items: [
-      { id: "points.usage.view", label: "查看积分消耗" },
-      { id: "points.detail.view", label: "查看积分明细" },
+      { id: "points.manage", label: "查看积分消耗" },
     ],
   },
   {
     title: "数据看板",
     items: [
-      { id: "dashboard.team.view", label: "查看团队看板" },
-      { id: "dashboard.memberUsage.view", label: "查看成员用量" },
-      { id: "dashboard.agentUsage.view", label: "查看专家用量" },
-      { id: "dashboard.agentDevelopment.view", label: "查看开发分布" },
+      { id: "dashboard.view", label: "查看团队看板" },
     ],
   },
 ];
@@ -97,30 +88,23 @@ export const TENANT_ROLE_PERMISSION_IDS: string[] = TENANT_ROLE_PERMISSION_GROUP
 export const DEPARTMENT_LEAD_PERMISSION_IDS: string[] = [
   "workspace.metaAgent.use",
   "workspace.expert.use",
-  "workspace.deliverable.viewOwn",
-  "agent.develop.create",
-  "agent.develop.editOwn",
+  "agent.develop.manageOwn",
   "skill.manageOwn",
-  "agent.plaza.submit",
+  "agent.publish.tenant",
   "org.department.view",
   "org.member.invite",
   "org.member.edit",
   "org.member.status",
-  "agent.manage.view",
+  "agent.manage.tenant",
   "agent.access.manage",
-  "agent.version.view",
-  "points.usage.view",
-  "dashboard.memberUsage.view",
-  "dashboard.agentUsage.view",
+  "points.manage",
+  "dashboard.view",
 ];
 
 export const TENANT_MEMBER_PERMISSION_IDS: string[] = [
   "workspace.metaAgent.use",
   "workspace.expert.use",
-  "workspace.deliverable.viewOwn",
-  "agent.develop.create",
-  "agent.develop.editOwn",
+  "agent.develop.manageOwn",
   "skill.manageOwn",
-  "agent.plaza.submit",
-  "agent.manage.view",
+  "agent.publish.tenant",
 ];

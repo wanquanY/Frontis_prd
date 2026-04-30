@@ -30,7 +30,6 @@ interface OperationsRoleItem {
   memberIds: string[];
   name: string;
   permissionIds: string[];
-  scopeLabel: string;
 }
 
 interface OperationsAccountItem {
@@ -45,13 +44,11 @@ interface TenantPresetRoleItem {
   id: string;
   name: string;
   permissionIds: string[];
-  scopeLabel: string;
 }
 
 interface DraftRoleForm {
   name: string;
   permissionIds: string[];
-  scopeLabel: string;
 }
 
 interface DraftAccountForm {
@@ -71,6 +68,7 @@ const OPERATION_PERMISSION_GROUPS: PermissionGroup[] = [
       { id: "tenant.edit", label: "编辑租户" },
       { id: "tenant.status", label: "启停租户" },
       { id: "tenant.points.recharge", label: "配置租户积分" },
+      { id: "tenant.agentListing.configure", label: "配置上架服务" },
     ],
   },
   {
@@ -109,7 +107,6 @@ const OPERATION_PERMISSION_GROUPS: PermissionGroup[] = [
 const DEFAULT_ROLE_FORM: DraftRoleForm = {
   name: "",
   permissionIds: [],
-  scopeLabel: "全平台",
 };
 
 const DEFAULT_ACCOUNT_FORM: DraftAccountForm = {
@@ -126,7 +123,6 @@ const createInitialOperationRoles = (): OperationsRoleItem[] => [
     id: "ops-role-super-admin",
     builtin: true,
     name: "平台超管",
-    scopeLabel: "全平台",
     memberIds: ["ops-account-001"],
     permissionIds: getPermissionIds(OPERATION_PERMISSION_GROUPS),
   },
@@ -134,7 +130,6 @@ const createInitialOperationRoles = (): OperationsRoleItem[] => [
     id: "ops-role-operator-admin",
     builtin: true,
     name: "运营管理员",
-    scopeLabel: "全平台",
     memberIds: ["ops-account-002"],
     permissionIds: [
       "tenant.view",
@@ -142,6 +137,7 @@ const createInitialOperationRoles = (): OperationsRoleItem[] => [
       "tenant.edit",
       "tenant.status",
       "tenant.points.recharge",
+      "tenant.agentListing.configure",
       "points.manage",
       "points.register.manage",
       "points.referral.manage",
@@ -156,7 +152,6 @@ const createInitialOperationRoles = (): OperationsRoleItem[] => [
     id: "ops-role-service",
     builtin: true,
     name: "广场运营",
-    scopeLabel: "专家广场",
     memberIds: [],
     permissionIds: ["agent.review", "agent.plaza.manage", "agent.category.manage"],
   },
@@ -183,19 +178,16 @@ const createInitialTenantPresets = (): TenantPresetRoleItem[] => [
   {
     id: "tenant-preset-org-admin",
     name: "组织管理员",
-    scopeLabel: "全租户",
     permissionIds: TENANT_ROLE_PERMISSION_IDS,
   },
   {
     id: "tenant-preset-department-lead",
     name: "部门负责人",
-    scopeLabel: "所属部门",
     permissionIds: DEPARTMENT_LEAD_PERMISSION_IDS,
   },
   {
     id: "tenant-preset-member",
     name: "普通成员",
-    scopeLabel: "本人",
     permissionIds: TENANT_MEMBER_PERMISSION_IDS,
   },
 ];
@@ -209,37 +201,39 @@ const TAB_OPTIONS: Array<{ key: OrganizationConsoleTabKey; label: string }> = [
 const getRoleLabel = (roles: OperationsRoleItem[], roleId: string): string =>
   roles.find(role => role.id === roleId)?.name ?? "未分配";
 
-const renderPermissionMatrix = (
-  groups: PermissionGroup[],
-  permissionIds: string[],
-): JSX.Element => (
-  <div className={adminStyles.rolePermissionMatrix}>
-    {groups.map(group => (
-      <div key={group.title} className={adminStyles.rolePermissionMatrixGroup}>
-        <div className={adminStyles.rolePermissionMatrixTitle}>{group.title}</div>
-        <div className={adminStyles.rolePermissionMatrixList}>
-          {group.items.map(permission => {
-            const isEnabled = permissionIds.includes(permission.id);
+const renderPermissionTree = (groups: PermissionGroup[], permissionIds: string[]): JSX.Element => {
+  const visibleGroups = groups
+    .map(group => ({
+      ...group,
+      items: group.items.filter(permission => permissionIds.includes(permission.id)),
+    }))
+    .filter(group => group.items.length > 0);
 
-            return (
-              <div key={permission.id} className={adminStyles.rolePermissionMatrixRow}>
+  if (!visibleGroups.length) {
+    return <div className={adminStyles.consoleEmpty}>暂无权限</div>;
+  }
+
+  return (
+    <div className={adminStyles.rolePermissionTree}>
+      {visibleGroups.map(group => (
+        <div key={group.title} className={adminStyles.rolePermissionTreeGroup}>
+          <div className={adminStyles.rolePermissionTreeHeader}>
+            <span className={adminStyles.rolePermissionTreeTitle}>{group.title}</span>
+            <span className={adminStyles.consolePill}>{group.items.length} 项</span>
+          </div>
+          <div className={adminStyles.rolePermissionTreeItems}>
+            {group.items.map(permission => (
+              <div key={permission.id} className={adminStyles.rolePermissionTreeItem}>
+                <span className={adminStyles.rolePermissionTreeDot} />
                 <span>{permission.label}</span>
-                <span
-                  className={classNames(
-                    adminStyles.rolePermissionMatrixStatus,
-                    !isEnabled && adminStyles.rolePermissionMatrixStatusMuted,
-                  )}
-                >
-                  {isEnabled ? "开启" : "关闭"}
-                </span>
               </div>
-            );
-          })}
+            ))}
+          </div>
         </div>
-      </div>
-    ))}
-  </div>
-);
+      ))}
+    </div>
+  );
+};
 
 /**
  * 运营后台组织、运营角色与全平台预设角色管理视图。
@@ -324,7 +318,6 @@ export const OperationsOrganizationConsole = (): JSX.Element => {
     setDraftRole({
       name: role.name,
       permissionIds: role.permissionIds,
-      scopeLabel: role.scopeLabel,
     });
     setIsOperationRoleModalOpen(true);
   }, []);
@@ -345,7 +338,6 @@ export const OperationsOrganizationConsole = (): JSX.Element => {
                 ...role,
                 name,
                 permissionIds: draftRole.permissionIds,
-                scopeLabel: draftRole.scopeLabel,
               }
             : role,
         ),
@@ -358,7 +350,6 @@ export const OperationsOrganizationConsole = (): JSX.Element => {
         memberIds: [],
         name,
         permissionIds: draftRole.permissionIds,
-        scopeLabel: draftRole.scopeLabel,
       };
 
       setOperationRoles(current => [...current, nextRole]);
@@ -375,7 +366,6 @@ export const OperationsOrganizationConsole = (): JSX.Element => {
     setDraftPreset({
       name: role.name,
       permissionIds: role.permissionIds,
-      scopeLabel: role.scopeLabel,
     });
     setIsPresetModalOpen(true);
   }, []);
@@ -385,7 +375,6 @@ export const OperationsOrganizationConsole = (): JSX.Element => {
     setDraftPreset({
       name: "",
       permissionIds: [],
-      scopeLabel: "全租户",
     });
     setIsPresetModalOpen(true);
   }, []);
@@ -417,7 +406,6 @@ export const OperationsOrganizationConsole = (): JSX.Element => {
                 ...role,
                 name,
                 permissionIds: draftPreset.permissionIds,
-                scopeLabel: draftPreset.scopeLabel,
               }
             : role,
         ),
@@ -428,7 +416,6 @@ export const OperationsOrganizationConsole = (): JSX.Element => {
         id: `tenant-preset-custom-${Date.now()}`,
         name,
         permissionIds: draftPreset.permissionIds,
-        scopeLabel: draftPreset.scopeLabel,
       };
 
       setTenantPresets(current => [...current, nextPreset]);
@@ -524,7 +511,6 @@ export const OperationsOrganizationConsole = (): JSX.Element => {
                 >
                   <span className={adminStyles.consoleSidebarItemTitle}>{role.name}</span>
                   <span className={adminStyles.consoleSidebarItemMeta}>
-                    {role.scopeLabel}
                     <span className={adminStyles.consolePill}>{role.memberIds.length}</span>
                   </span>
                 </button>
@@ -538,9 +524,6 @@ export const OperationsOrganizationConsole = (): JSX.Element => {
                   <div className={adminStyles.consolePaneHeaderMain}>
                     <h2 className={adminStyles.consolePaneTitle}>{selectedOperationRole.name}</h2>
                     <div className={adminStyles.roleHeaderMeta}>
-                      <span className={adminStyles.consolePill}>
-                        {selectedOperationRole.scopeLabel}
-                      </span>
                       <span className={adminStyles.consolePill}>
                         {selectedOperationRole.permissionIds.length} 项权限
                       </span>
@@ -560,7 +543,7 @@ export const OperationsOrganizationConsole = (): JSX.Element => {
                 </div>
                 <div className={adminStyles.consoleSection}>
                   <h3 className={adminStyles.consoleSectionTitle}>权限</h3>
-                  {renderPermissionMatrix(
+                  {renderPermissionTree(
                     OPERATION_PERMISSION_GROUPS,
                     selectedOperationRole.permissionIds,
                   )}
@@ -586,7 +569,9 @@ export const OperationsOrganizationConsole = (): JSX.Element => {
                   onClick={() => setSelectedPresetId(role.id)}
                 >
                   <span className={adminStyles.consoleSidebarItemTitle}>{role.name}</span>
-                  <span className={adminStyles.consoleSidebarItemMeta}>{role.scopeLabel}</span>
+                  <span className={adminStyles.consoleSidebarItemMeta}>
+                    {role.permissionIds.length} 项权限
+                  </span>
                 </button>
               ))}
             </div>
@@ -598,7 +583,6 @@ export const OperationsOrganizationConsole = (): JSX.Element => {
                   <div className={adminStyles.consolePaneHeaderMain}>
                     <h2 className={adminStyles.consolePaneTitle}>{selectedPreset.name}</h2>
                     <div className={adminStyles.roleHeaderMeta}>
-                      <span className={adminStyles.consolePill}>{selectedPreset.scopeLabel}</span>
                       <span className={adminStyles.consolePill}>
                         {selectedPreset.permissionIds.length} 项权限
                       </span>
@@ -618,7 +602,10 @@ export const OperationsOrganizationConsole = (): JSX.Element => {
                 </div>
                 <div className={adminStyles.consoleSection}>
                   <h3 className={adminStyles.consoleSectionTitle}>权限</h3>
-                  {renderPermissionMatrix(TENANT_ROLE_PERMISSION_GROUPS, selectedPreset.permissionIds)}
+                  {renderPermissionTree(
+                    TENANT_ROLE_PERMISSION_GROUPS,
+                    selectedPreset.permissionIds,
+                  )}
                 </div>
               </>
             ) : null}
@@ -676,16 +663,7 @@ export const OperationsOrganizationConsole = (): JSX.Element => {
         onOk={handleSubmitOperationRole}
         destroyOnHidden
       >
-        <RoleForm
-          groups={OPERATION_PERMISSION_GROUPS}
-          scopeOptions={[
-            { label: "全平台", value: "全平台" },
-            { label: "运营业务", value: "运营业务" },
-            { label: "服务工单", value: "服务工单" },
-          ]}
-          value={draftRole}
-          onChange={setDraftRole}
-        />
+        <RoleForm groups={OPERATION_PERMISSION_GROUPS} value={draftRole} onChange={setDraftRole} />
       </Modal>
 
       <Modal
@@ -701,11 +679,6 @@ export const OperationsOrganizationConsole = (): JSX.Element => {
       >
         <RoleForm
           groups={TENANT_ROLE_PERMISSION_GROUPS}
-          scopeOptions={[
-            { label: "全租户", value: "全租户" },
-            { label: "所属部门", value: "所属部门" },
-            { label: "本人", value: "本人" },
-          ]}
           value={draftPreset}
           onChange={setDraftPreset}
         />
@@ -718,7 +691,6 @@ interface RoleFormProps {
   groups: PermissionGroup[];
   onChange: (value: DraftRoleForm) => void;
   readonlyName?: boolean;
-  scopeOptions: Array<{ label: string; value: string }>;
   value: DraftRoleForm;
 }
 
@@ -726,7 +698,6 @@ const RoleForm = ({
   groups,
   onChange,
   readonlyName = false,
-  scopeOptions,
   value,
 }: RoleFormProps): JSX.Element => (
   <div className={adminStyles.consoleRows}>
@@ -736,14 +707,6 @@ const RoleForm = ({
         disabled={readonlyName}
         value={value.name}
         onChange={event => onChange({ ...value, name: event.target.value })}
-      />
-    </div>
-    <div className={adminStyles.consoleInfoRow}>
-      <span className={adminStyles.consoleInfoLabel}>生效范围</span>
-      <Select
-        value={value.scopeLabel}
-        options={scopeOptions}
-        onChange={scopeLabel => onChange({ ...value, scopeLabel })}
       />
     </div>
     <div className={adminStyles.consoleInfoRow}>

@@ -1519,6 +1519,11 @@
 
 .roleHeaderMeta,
 .rolePermissionMatrix,
+.rolePermissionTree,
+.rolePermissionTreeGroup,
+.rolePermissionTreeHeader,
+.rolePermissionTreeItems,
+.rolePermissionTreeItem,
 .rolePermissionPicker,
 .rolePermissionPickerGroup,
 .rolePermissionCheckboxList {
@@ -1580,6 +1585,71 @@
   font-weight: 500;
 }
 
+.rolePermissionTree {
+  flex-direction: column;
+  gap: 12px;
+}
+
+.rolePermissionTreeGroup {
+  padding: 14px;
+  border: 1px solid var(--consoleBorder);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--text) 2%, var(--surface));
+  flex-direction: column;
+  gap: 12px;
+}
+
+.rolePermissionTreeHeader {
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px dashed var(--consoleBorder);
+}
+
+.rolePermissionTreeTitle {
+  min-width: 0;
+  color: var(--consoleText);
+  font-size: 13px;
+  line-height: 20px;
+  font-weight: 700;
+}
+
+.rolePermissionTreeItems {
+  position: relative;
+  padding-left: 26px;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.rolePermissionTreeItems::before {
+  content: "";
+  position: absolute;
+  top: 3px;
+  bottom: 3px;
+  left: 10px;
+  width: 1px;
+  background: var(--consoleBorder);
+}
+
+.rolePermissionTreeItem {
+  position: relative;
+  min-width: 0;
+  align-items: center;
+  gap: 8px;
+  color: var(--consoleTextSecondary);
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.rolePermissionTreeDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--primary);
+  flex: 0 0 auto;
+}
+
 .rolePermissionPicker {
   width: 100%;
   padding: 14px;
@@ -1590,14 +1660,59 @@
   gap: 16px;
 }
 
-.rolePermissionPickerGroup {
+.roleEditorModal {
+  top: 32px;
+}
+
+.roleEditorBody {
+  min-height: 0;
+  display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 16px;
+}
+
+.rolePermissionPickerToolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--consoleBorder);
+}
+
+.rolePermissionPickerGroup {
+  padding: 12px;
+  border: 1px solid var(--consoleBorder);
+  border-radius: 8px;
+  background: var(--surface);
+  flex-direction: column;
+  gap: 10px;
+}
+
+.rolePermissionGroupHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px dashed var(--consoleBorder);
 }
 
 .rolePermissionCheckboxList {
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
+  padding-left: 30px;
+  position: relative;
+}
+
+.rolePermissionCheckboxList::before {
+  content: "";
+  position: absolute;
+  top: 2px;
+  bottom: 2px;
+  left: 14px;
+  width: 1px;
+  background: var(--consoleBorder);
 }
 
 @media (max-width: 1280px) {
