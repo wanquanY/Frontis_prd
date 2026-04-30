@@ -53,6 +53,13 @@ export const TENANT_ROLE_PERMISSION_GROUPS: TenantRolePermissionGroup[] = [
     ],
   },
   {
+    title: "MetaAgent 管理",
+    items: [
+      { id: "metaAgent.session.manage", label: "管理会话配置" },
+      { id: "metaAgent.channel.manage", label: "管理渠道连接" },
+    ],
+  },
+  {
     title: "AI 专家管理",
     items: [
       { id: "agent.manage.tenant", label: "管理团队 AI 专家" },
@@ -63,21 +70,15 @@ export const TENANT_ROLE_PERMISSION_GROUPS: TenantRolePermissionGroup[] = [
   },
   {
     title: "模型配置",
-    items: [
-      { id: "model.configure", label: "管理模型配置" },
-    ],
+    items: [{ id: "model.configure", label: "管理模型配置" }],
   },
   {
     title: "积分管理",
-    items: [
-      { id: "points.manage", label: "查看积分消耗" },
-    ],
+    items: [{ id: "points.manage", label: "查看积分消耗" }],
   },
   {
     title: "数据看板",
-    items: [
-      { id: "dashboard.view", label: "查看团队看板" },
-    ],
+    items: [{ id: "dashboard.view", label: "查看团队看板" }],
   },
 ];
 

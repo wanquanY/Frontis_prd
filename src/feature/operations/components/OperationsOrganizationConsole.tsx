@@ -74,32 +74,32 @@ const OPERATION_PERMISSION_GROUPS: PermissionGroup[] = [
   {
     title: "积分",
     items: [
-      { id: "points.manage", label: "积分运营" },
-      { id: "points.register.manage", label: "注册赠送规则" },
-      { id: "points.referral.manage", label: "邀请奖励规则" },
+      { id: "points.rule.manage", label: "管理积分规则" },
+      { id: "points.referral.manage", label: "管理邀请奖励" },
+      { id: "points.reconciliation.view", label: "查看积分对账" },
     ],
   },
   {
     title: "AI 专家",
     items: [
-      { id: "agent.review", label: "上架审批" },
-      { id: "agent.plaza.manage", label: "广场管理" },
-      { id: "agent.category.manage", label: "分类管理" },
+      { id: "agent.review", label: "审核上架申请" },
+      { id: "agent.plaza.manage", label: "管理广场上架" },
+      { id: "agent.category.manage", label: "管理广场分类" },
     ],
   },
   {
     title: "资源计量",
     items: [
-      { id: "resource.model.manage", label: "管理模型资源" },
-      { id: "resource.external.manage", label: "管理接口资源" },
+      { id: "resource.model.manage", label: "管理模型计量" },
+      { id: "resource.external.manage", label: "管理接口计量" },
     ],
   },
   {
-    title: "平台",
+    title: "平台组织",
     items: [
-      { id: "ops.account.manage", label: "运营账号" },
-      { id: "ops.role.manage", label: "运营角色" },
-      { id: "tenant.preset.manage", label: "预设角色" },
+      { id: "ops.account.manage", label: "管理运营账号" },
+      { id: "ops.role.manage", label: "管理运营角色" },
+      { id: "tenant.preset.manage", label: "管理平台预设角色" },
     ],
   },
 ];
@@ -117,6 +117,27 @@ const DEFAULT_ACCOUNT_FORM: DraftAccountForm = {
 
 const getPermissionIds = (groups: PermissionGroup[]): string[] =>
   groups.flatMap(group => group.items.map(item => item.id));
+
+const resolveNextRolePermissionIds = (
+  groups: PermissionGroup[],
+  currentPermissionIds: string[],
+  permissionIds: string[],
+  checked: boolean,
+): string[] => {
+  const allPermissionIds = getPermissionIds(groups);
+  const permissionSet = new Set(currentPermissionIds);
+
+  permissionIds.forEach(permissionId => {
+    if (checked) {
+      permissionSet.add(permissionId);
+      return;
+    }
+
+    permissionSet.delete(permissionId);
+  });
+
+  return allPermissionIds.filter(permissionId => permissionSet.has(permissionId));
+};
 
 const createInitialOperationRoles = (): OperationsRoleItem[] => [
   {
@@ -138,9 +159,9 @@ const createInitialOperationRoles = (): OperationsRoleItem[] => [
       "tenant.status",
       "tenant.points.recharge",
       "tenant.agentListing.configure",
-      "points.manage",
-      "points.register.manage",
+      "points.rule.manage",
       "points.referral.manage",
+      "points.reconciliation.view",
       "agent.review",
       "agent.plaza.manage",
       "agent.category.manage",
@@ -699,39 +720,98 @@ const RoleForm = ({
   onChange,
   readonlyName = false,
   value,
-}: RoleFormProps): JSX.Element => (
-  <div className={adminStyles.consoleRows}>
-    <div className={adminStyles.consoleInfoRow}>
-      <span className={adminStyles.consoleInfoLabel}>角色名称</span>
-      <Input
-        disabled={readonlyName}
-        value={value.name}
-        onChange={event => onChange({ ...value, name: event.target.value })}
-      />
-    </div>
-    <div className={adminStyles.consoleInfoRow}>
-      <span className={adminStyles.consoleInfoLabel}>权限</span>
-      <div className={adminStyles.rolePermissionPicker}>
-        {groups.map(group => (
-          <div key={group.title} className={adminStyles.rolePermissionPickerGroup}>
-            <div className={adminStyles.rolePermissionMatrixTitle}>{group.title}</div>
-            <Checkbox.Group
-              value={value.permissionIds}
-              onChange={checkedValues =>
-                onChange({ ...value, permissionIds: checkedValues.map(String) })
+}: RoleFormProps): JSX.Element => {
+  const allPermissionIds = getPermissionIds(groups);
+  const isAllChecked = value.permissionIds.length === allPermissionIds.length;
+  const isAllIndeterminate =
+    value.permissionIds.length > 0 && value.permissionIds.length < allPermissionIds.length;
+
+  return (
+    <div className={adminStyles.consoleRows}>
+      <div className={adminStyles.consoleInfoRow}>
+        <span className={adminStyles.consoleInfoLabel}>角色名称</span>
+        <Input
+          disabled={readonlyName}
+          value={value.name}
+          onChange={event => onChange({ ...value, name: event.target.value })}
+        />
+      </div>
+      <div className={adminStyles.consoleInfoRow}>
+        <span className={adminStyles.consoleInfoLabel}>权限</span>
+        <div className={adminStyles.rolePermissionPicker}>
+          <div className={adminStyles.rolePermissionPickerToolbar}>
+            <Checkbox
+              checked={isAllChecked}
+              indeterminate={isAllIndeterminate}
+              onChange={event =>
+                onChange({
+                  ...value,
+                  permissionIds: event.target.checked ? allPermissionIds : [],
+                })
               }
             >
-              <div className={adminStyles.rolePermissionCheckboxList}>
-                {group.items.map(permission => (
-                  <Checkbox key={permission.id} value={permission.id}>
-                    {permission.label}
-                  </Checkbox>
-                ))}
-              </div>
-            </Checkbox.Group>
+              全部权限
+            </Checkbox>
+            <span className={adminStyles.consolePill}>
+              已选 {value.permissionIds.length} / {allPermissionIds.length}
+            </span>
           </div>
-        ))}
+          {groups.map(group => {
+            const groupPermissionIds = group.items.map(permission => permission.id);
+            const checkedCount = groupPermissionIds.filter(permissionId =>
+              value.permissionIds.includes(permissionId),
+            ).length;
+
+            return (
+              <div key={group.title} className={adminStyles.rolePermissionPickerGroup}>
+                <div className={adminStyles.rolePermissionGroupHeader}>
+                  <Checkbox
+                    checked={checkedCount === groupPermissionIds.length}
+                    indeterminate={checkedCount > 0 && checkedCount < groupPermissionIds.length}
+                    onChange={event =>
+                      onChange({
+                        ...value,
+                        permissionIds: resolveNextRolePermissionIds(
+                          groups,
+                          value.permissionIds,
+                          groupPermissionIds,
+                          event.target.checked,
+                        ),
+                      })
+                    }
+                  >
+                    <span className={adminStyles.rolePermissionMatrixTitle}>{group.title}</span>
+                  </Checkbox>
+                  <span className={adminStyles.consolePill}>
+                    {checkedCount}/{groupPermissionIds.length}
+                  </span>
+                </div>
+                <div className={adminStyles.rolePermissionCheckboxList}>
+                  {group.items.map(permission => (
+                    <Checkbox
+                      key={permission.id}
+                      checked={value.permissionIds.includes(permission.id)}
+                      onChange={event =>
+                        onChange({
+                          ...value,
+                          permissionIds: resolveNextRolePermissionIds(
+                            groups,
+                            value.permissionIds,
+                            [permission.id],
+                            event.target.checked,
+                          ),
+                        })
+                      }
+                    >
+                      {permission.label}
+                    </Checkbox>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </div>
     </div>
-  </div>
-);
+  );
+};

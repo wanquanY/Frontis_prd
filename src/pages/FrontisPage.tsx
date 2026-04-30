@@ -78,6 +78,9 @@ interface FrontisPageProps {
   workspaceMode?: "metaAgent" | "expertStudio";
 }
 
+const FEISHU_QR_CONFIGURED_STORAGE_KEY = "frontis_meta_agent_feishu_qr_configured";
+const FEISHU_QR_CODE_STORAGE_KEY = "frontis_meta_agent_feishu_qr_code";
+const FEISHU_QR_UPDATED_EVENT = "frontis:feishu-qrcode-updated";
 const DEFAULT_CONVERSATION_EMPLOYEE_ID = "employee-writer";
 const MANAGEMENT_USER_ROLES = new Set(["enterpriseAdmin"]);
 const ACTIVE_WORKSPACE_STATUSES = new Set<StatusTone>(["online", "busy", "idle"]);
@@ -905,6 +908,20 @@ const FrontisPage = ({
   const [respondingDialogueSessionId, setRespondingDialogueSessionId] = useState<string | null>(
     null,
   );
+  const [isFeishuQrConfigured, setIsFeishuQrConfigured] = useState<boolean>(
+    () => localStorage.getItem(FEISHU_QR_CONFIGURED_STORAGE_KEY) === "true",
+  );
+  const [feishuQrCode, setFeishuQrCode] = useState<string>(() => {
+    const storedQrCode = localStorage.getItem(FEISHU_QR_CODE_STORAGE_KEY);
+    if (storedQrCode) {
+      return storedQrCode;
+    }
+
+    return localStorage.getItem(FEISHU_QR_CONFIGURED_STORAGE_KEY) === "true"
+      ? "https://applink.feishu.cn/client/bot/open?app=frontis-meta-agent"
+      : "";
+  });
+  const [isFeishuWorkspaceConnected, setIsFeishuWorkspaceConnected] = useState<boolean>(false);
   const dialogueTimerRefs = useRef<number[]>([]);
   const latestDialogueAttachmentsRef = useRef<WorkspaceComposerAttachmentItem[]>([]);
 
@@ -919,7 +936,33 @@ const FrontisPage = ({
     setDialogueAttachments([]);
     setActiveMetaAgentTrajectoryId(null);
     setActiveMetaAgentTrajectoryAnchorBlockId(null);
+    setIsFeishuWorkspaceConnected(false);
   }, [activeIdentity?.tenantId, viewRole]);
+
+  useEffect(() => {
+    const handleFeishuQrUpdated = (event: Event): void => {
+      const configured =
+        event instanceof CustomEvent
+          ? Boolean(event.detail?.configured)
+          : localStorage.getItem(FEISHU_QR_CONFIGURED_STORAGE_KEY) === "true";
+      const nextQrCode =
+        event instanceof CustomEvent && typeof event.detail?.qrCode === "string"
+          ? event.detail.qrCode
+          : (localStorage.getItem(FEISHU_QR_CODE_STORAGE_KEY) ?? "");
+
+      setIsFeishuQrConfigured(configured);
+      setFeishuQrCode(nextQrCode);
+      if (!configured) {
+        setIsFeishuWorkspaceConnected(false);
+      }
+    };
+
+    window.addEventListener(FEISHU_QR_UPDATED_EVENT, handleFeishuQrUpdated);
+
+    return () => {
+      window.removeEventListener(FEISHU_QR_UPDATED_EVENT, handleFeishuQrUpdated);
+    };
+  }, []);
 
   const employees = useMemo(
     () => INITIAL_EMPLOYEES.map(item => mapEmployeeForRole(item, viewRole)),
@@ -1038,8 +1081,7 @@ const FrontisPage = ({
     [activeEmployee, conversationEmployeeDirectory],
   );
   const isMetaAgentDialogue = useMemo(() => isMetaAgentEmployee(activeEmployee), [activeEmployee]);
-  const shouldShowFeishuConnectAction =
-    isMetaAgentDialogue && isNewUserOnboardingTenant(activeIdentity?.tenantId);
+  const shouldShowFeishuConnectAction = workspaceMode === "metaAgent" && isFeishuQrConfigured;
 
   const employeeDialogueSessions = useMemo(
     () =>
@@ -1753,8 +1795,13 @@ const FrontisPage = ({
   }, []);
 
   const handleConnectFeishu = useCallback((): void => {
-    message.success("已进入飞书接入流程，接入后 MetaAgent 可围绕飞书协作场景继续工作。");
-  }, []);
+    if (!isFeishuQrConfigured) {
+      return;
+    }
+
+    setIsFeishuWorkspaceConnected(true);
+    message.success("飞书已连接。");
+  }, [isFeishuQrConfigured]);
 
   const handleOpenHomeCase = useCallback(
     (item: AiCeoHomeCaseItem): void => {
@@ -1991,6 +2038,8 @@ const FrontisPage = ({
           onSelectMetaAgentTrajectory={handleSelectMetaAgentTrajectory}
           onClearMetaAgentTrajectory={handleClearMetaAgentTrajectory}
           onFeishuConnect={handleConnectFeishu}
+          isFeishuConnected={isFeishuWorkspaceConnected}
+          feishuQrCode={feishuQrCode}
           showFeishuConnectAction={shouldShowFeishuConnectAction}
           showAccountEntry={!embedded}
           viewerName={currentUser?.name ?? "你"}

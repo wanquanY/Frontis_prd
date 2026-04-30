@@ -10,6 +10,7 @@ import {
   ReadOutlined,
   RobotOutlined,
   AppstoreOutlined,
+  LinkOutlined,
   SafetyCertificateOutlined,
   TeamOutlined,
 } from "@ant-design/icons";
@@ -38,6 +39,7 @@ import {
 import { DeviceManagementView } from "./components/DeviceManagementView";
 import { AccountDropdownPanel } from "./components/AccountDropdownPanel";
 import { AgentStoreView } from "./components/agentStore/AgentStoreView";
+import { ChannelManagementView } from "./components/ChannelManagementView";
 import type { ExpertDeploymentState } from "./components/agentStore/types";
 import {
   buildInitialExpertDeploymentByEmployeeId,
@@ -112,6 +114,12 @@ const FRONTIS_ADMIN_TABS: FrontisWebTabItem[] = [
     key: "overview",
     label: "驾驶舱",
     icon: <AppstoreOutlined />,
+    roles: ["admin"],
+  },
+  {
+    key: "channels",
+    label: "MetaAgent管理",
+    icon: <LinkOutlined />,
     roles: ["admin"],
   },
   {
@@ -896,6 +904,10 @@ const FrontisAdminPage = ({ deploymentMode }: FrontisAdminPageProps): JSX.Elemen
           workspaces={workspaces}
         />
       );
+    }
+
+    if (activeTabKey === "channels") {
+      return <ChannelManagementView tenantSnapshot={tenantSnapshot} />;
     }
 
     if (activeTabKey === "devices") {

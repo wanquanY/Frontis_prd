@@ -32,7 +32,7 @@ import {
   type MouseEvent as ReactMouseEvent,
 } from "react";
 import type { InputRef, MenuProps } from "antd";
-import { Avatar, DatePicker, Dropdown, Input, Popover } from "antd";
+import { Avatar, DatePicker, Dropdown, Input, Modal, Popover, QRCode } from "antd";
 import type { Block } from "@/types/block";
 import { resolveFileLogo } from "@/utils/fileLogo";
 
@@ -121,6 +121,8 @@ interface DialoguePrototypeViewProps {
   metaAgentTrajectoryItems: MetaAgentWorkTrajectoryItem[];
   showAccountEntry?: boolean;
   showFeishuConnectAction?: boolean;
+  isFeishuConnected?: boolean;
+  feishuQrCode?: string;
   viewerName: string;
 }
 
@@ -395,6 +397,8 @@ export const DialoguePrototypeView = ({
   metaAgentTrajectoryItems,
   showAccountEntry = true,
   showFeishuConnectAction = false,
+  isFeishuConnected = false,
+  feishuQrCode = "",
   viewerName,
 }: DialoguePrototypeViewProps): JSX.Element => {
   const attachmentInputRef = useRef<HTMLInputElement | null>(null);
@@ -413,6 +417,7 @@ export const DialoguePrototypeView = ({
   const [preferredArtifactId, setPreferredArtifactId] = useState<string>();
   const [activeResultId, setActiveResultId] = useState<string | null>(null);
   const [isMetaAgentTrajectoryOpen, setIsMetaAgentTrajectoryOpen] = useState<boolean>(false);
+  const [isFeishuQrModalOpen, setIsFeishuQrModalOpen] = useState<boolean>(false);
   const [metaAgentTrajectorySearchValue, setMetaAgentTrajectorySearchValue] = useState<string>("");
   const [isMetaAgentTrajectoryTimeFilterOpen, setIsMetaAgentTrajectoryTimeFilterOpen] =
     useState<boolean>(false);
@@ -452,6 +457,17 @@ export const DialoguePrototypeView = ({
   const [viewportWidth, setViewportWidth] = useState<number>(
     typeof window === "undefined" ? 1440 : window.innerWidth,
   );
+  const handleOpenFeishuQrModal = useCallback((): void => {
+    if (isFeishuConnected) {
+      return;
+    }
+
+    setIsFeishuQrModalOpen(true);
+  }, [isFeishuConnected]);
+  const handleConfirmFeishuConnection = useCallback((): void => {
+    onFeishuConnect?.();
+    setIsFeishuQrModalOpen(false);
+  }, [onFeishuConnect]);
   const hasArtifactPanel = activeDialogueArtifacts.length > 0;
   const hasResultPanel = activeDialogueResults.length > 0;
   const employeeGroups = useMemo(
@@ -2409,34 +2425,61 @@ export const DialoguePrototypeView = ({
       ) : null}
 
       <section className={styles.dialogueMainCard}>
-        {!isHomeVisible ? (
+        {showFeishuConnectAction || !isHomeVisible ? (
           <div className={styles.dialogueViewToolbar}>
             {shouldShowExpertTeamUi ? expertTeamToolbarStrip : null}
             <div className={styles.dialogueViewToolbarGroup}>
               {showFeishuConnectAction ? (
                 <button
                   type="button"
-                  className={classNames(styles.dialogueViewButton, styles.feishuConnectButton)}
-                  onClick={onFeishuConnect}
+                  className={classNames(styles.dialogueViewButton, styles.feishuConnectButton, {
+                    [styles.feishuConnectButtonConnected]: isFeishuConnected,
+                  })}
+                  disabled={isFeishuConnected}
+                  onClick={handleOpenFeishuQrModal}
                 >
-                  <MessageOutlined />
-                  <span>接入飞书</span>
+                  {isFeishuConnected ? <CheckCircleOutlined /> : <MessageOutlined />}
+                  <span>{isFeishuConnected ? "已连接" : "扫码连接飞书"}</span>
                 </button>
               ) : null}
-              <button
-                type="button"
-                className={classNames(styles.dialogueViewButton, {
-                  [styles.dialogueViewButtonActive]: isArtifactPanelVisible,
-                })}
-                onClick={handleToggleArtifactsPanel}
-                disabled={!hasArtifactPanel}
-              >
-                <FolderOutlined />
-                <span>成果</span>
-              </button>
+              {!isHomeVisible ? (
+                <button
+                  type="button"
+                  className={classNames(styles.dialogueViewButton, {
+                    [styles.dialogueViewButtonActive]: isArtifactPanelVisible,
+                  })}
+                  onClick={handleToggleArtifactsPanel}
+                  disabled={!hasArtifactPanel}
+                >
+                  <FolderOutlined />
+                  <span>成果</span>
+                </button>
+              ) : null}
             </div>
           </div>
         ) : null}
+
+        <Modal
+          className={styles.feishuQrModal}
+          width={420}
+          centered
+          title="扫码连接飞书"
+          open={isFeishuQrModalOpen}
+          footer={null}
+          onCancel={() => setIsFeishuQrModalOpen(false)}
+        >
+          <button
+            type="button"
+            className={styles.feishuQrCard}
+            onClick={handleConfirmFeishuConnection}
+          >
+            <QRCode
+              value={feishuQrCode || "https://applink.feishu.cn/client/bot/open"}
+              size={220}
+            />
+            <span>点击二维码模拟扫码连接</span>
+          </button>
+        </Modal>
 
         {isHomeVisible ? (
           <div className={styles.dialogueHomeLayout}>

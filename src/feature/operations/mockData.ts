@@ -79,7 +79,7 @@ export const OPERATIONS_TAB_OPTIONS: Array<{
   },
   {
     key: "resources",
-    label: "资源池",
+    label: "资源计量",
     description: "维护大模型与接口资源的成本和计量配置。",
   },
   {
