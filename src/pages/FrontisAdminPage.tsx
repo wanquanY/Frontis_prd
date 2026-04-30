@@ -10,6 +10,7 @@ import {
   ReadOutlined,
   RobotOutlined,
   AppstoreOutlined,
+  SafetyCertificateOutlined,
   TeamOutlined,
 } from "@ant-design/icons";
 import type { MenuProps } from "antd";
@@ -45,6 +46,7 @@ import {
 } from "./components/agentStore/utils";
 import { ModelConfigurationView } from "./components/ModelConfigurationView";
 import { OrganizationManagementView } from "./components/OrganizationManagementView";
+import { RoleManagementView } from "./components/RoleManagementView";
 import { TenantOverviewView } from "./components/TenantOverviewView";
 import { TenantPointsView } from "./components/TenantPointsView";
 import type {
@@ -136,6 +138,12 @@ const FRONTIS_ADMIN_TABS: FrontisWebTabItem[] = [
     icon: <TeamOutlined />,
     roles: ["admin"],
   },
+  {
+    key: "roleManagement",
+    label: "角色管理",
+    icon: <SafetyCertificateOutlined />,
+    roles: ["admin"],
+  },
 ];
 
 const FRONTIS_ADMIN_TAB_KEYS = new Set<FrontisWebTabKey>(FRONTIS_ADMIN_TABS.map(item => item.key));
@@ -143,6 +151,7 @@ const PERSONAL_HIDDEN_ADMIN_TAB_KEYS = new Set<FrontisWebTabKey>([
   "overview",
   "models",
   "organization",
+  "roleManagement",
 ]);
 
 const getDefaultAdminTabKey = (
@@ -935,6 +944,10 @@ const FrontisAdminPage = ({ deploymentMode }: FrontisAdminPageProps): JSX.Elemen
       );
     }
 
+    if (activeTabKey === "roleManagement") {
+      return <RoleManagementView tenantSnapshot={tenantSnapshot} users={effectiveUsers} />;
+    }
+
     return (
       <AgentStoreView
         currentUserName={currentUser?.name}
@@ -1012,13 +1025,20 @@ const FrontisAdminPage = ({ deploymentMode }: FrontisAdminPageProps): JSX.Elemen
             })}
           >
             {visibleAdminTabs.map(item => {
+              const isRoleManagement = item.key === "roleManagement";
+              const isOrganizationParentActive =
+                item.key === "organization" &&
+                (activeTabKey === "organization" || activeTabKey === "roleManagement");
+
               return (
                 <button
                   key={item.key}
                   type="button"
                   className={classNames(styles.adminNavButton, {
-                    [styles.adminNavButtonActive]: item.key === activeTabKey,
+                    [styles.adminNavButtonActive]:
+                      item.key === activeTabKey || isOrganizationParentActive,
                     [styles.adminNavButtonCollapsed]: isSidebarCollapsed,
+                    [styles.adminSubNavButton]: isRoleManagement,
                   })}
                   onClick={() => handleSelectTab(item.key)}
                 >

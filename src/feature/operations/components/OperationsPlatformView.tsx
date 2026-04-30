@@ -92,6 +92,7 @@ import {
   OperationsResourceMeteringConsole,
   type OperationsResourceMeteringMode,
 } from "./OperationsResourceMeteringConsole";
+import { OperationsOrganizationConsole } from "./OperationsOrganizationConsole";
 
 const USER_MANUAL_ROUTE_PATH = "/user-manual";
 
@@ -389,6 +390,7 @@ const OPERATIONS_PRODUCT_LIST_PATH = "/ops/products";
 const getTabKeyFromPath = (tabPath?: string): OperationsPlatformTabKey | null => {
   if (
     tabPath === "tenants" ||
+    tabPath === "organization" ||
     tabPath === "agentPlaza" ||
     tabPath === "agents" ||
     tabPath === "resources" ||
@@ -3433,6 +3435,10 @@ export const OperationsPlatformView = (): JSX.Element => {
           onViewDetail={handleOpenTenantDetail}
         />
       );
+    }
+
+    if (activeTab === "organization") {
+      return <OperationsOrganizationConsole />;
     }
 
     if (activeTab === "agents") {

@@ -68,6 +68,11 @@ export const OPERATIONS_TAB_OPTIONS: Array<{
     description: "创建租户并配置管理员账号。",
   },
   {
+    key: "organization",
+    label: "组织管理",
+    description: "管理运营账号、运营角色和全平台预设角色。",
+  },
+  {
     key: "agents",
     label: "AI专家上架审批",
     description: "审核已开通 AI专家上架服务的租户员工提交的 AI专家商品化申请。",

@@ -4,6 +4,12 @@ import { EditOutlined, PlusOutlined } from "@ant-design/icons";
 import { Button, Checkbox, Input, Modal, Select, message } from "antd";
 import classNames from "classnames";
 
+import {
+  DEPARTMENT_LEAD_PERMISSION_IDS,
+  TENANT_MEMBER_PERMISSION_IDS,
+  TENANT_ROLE_PERMISSION_GROUPS,
+  TENANT_ROLE_PERMISSION_IDS,
+} from "@/constants/tenantRolePermissions";
 import adminStyles from "@/pages/components/FrontisAdminViews.module.less";
 
 import styles from "./OperationsPlatformView.module.less";
@@ -60,19 +66,19 @@ const OPERATION_PERMISSION_GROUPS: PermissionGroup[] = [
   {
     title: "租户",
     items: [
+      { id: "tenant.view", label: "查看租户" },
       { id: "tenant.create", label: "创建租户" },
       { id: "tenant.edit", label: "编辑租户" },
       { id: "tenant.status", label: "启停租户" },
-      { id: "tenant.member.manage", label: "管理租户成员" },
+      { id: "tenant.points.recharge", label: "配置租户积分" },
     ],
   },
   {
-    title: "商品",
+    title: "积分",
     items: [
-      { id: "product.manage", label: "管理商品" },
-      { id: "order.view", label: "查看订单" },
-      { id: "fulfillment.manage", label: "处理交付" },
       { id: "points.manage", label: "积分运营" },
+      { id: "points.register.manage", label: "注册赠送规则" },
+      { id: "points.referral.manage", label: "邀请奖励规则" },
     ],
   },
   {
@@ -81,7 +87,13 @@ const OPERATION_PERMISSION_GROUPS: PermissionGroup[] = [
       { id: "agent.review", label: "上架审批" },
       { id: "agent.plaza.manage", label: "广场管理" },
       { id: "agent.category.manage", label: "分类管理" },
-      { id: "agent.contact.manage", label: "客服配置" },
+    ],
+  },
+  {
+    title: "资源计量",
+    items: [
+      { id: "resource.model.manage", label: "管理模型资源" },
+      { id: "resource.external.manage", label: "管理接口资源" },
     ],
   },
   {
@@ -90,68 +102,6 @@ const OPERATION_PERMISSION_GROUPS: PermissionGroup[] = [
       { id: "ops.account.manage", label: "运营账号" },
       { id: "ops.role.manage", label: "运营角色" },
       { id: "tenant.preset.manage", label: "预设角色" },
-      { id: "resource.manage", label: "资源池" },
-    ],
-  },
-];
-
-const TENANT_PERMISSION_GROUPS: PermissionGroup[] = [
-  {
-    title: "工作台",
-    items: [
-      { id: "workspace.metaAgent.use", label: "使用 MetaAgent" },
-      { id: "workspace.expert.use", label: "使用专家工作室" },
-      { id: "workspace.trajectory.viewOwn", label: "查看本人轨迹" },
-      { id: "workspace.deliverable.viewOwn", label: "查看本人成果" },
-    ],
-  },
-  {
-    title: "组织成员",
-    items: [
-      { id: "org.department.view", label: "查看组织架构" },
-      { id: "org.department.manage", label: "管理部门" },
-      { id: "org.member.invite", label: "邀请成员" },
-      { id: "org.member.edit", label: "编辑成员" },
-      { id: "org.member.status", label: "成员启停" },
-      { id: "org.member.remove", label: "移除成员" },
-      { id: "org.seat.manage", label: "席位管理" },
-    ],
-  },
-  {
-    title: "角色权限",
-    items: [
-      { id: "role.view", label: "查看角色" },
-      { id: "role.custom.manage", label: "管理自定义角色" },
-      { id: "role.assign", label: "分配成员角色" },
-    ],
-  },
-  {
-    title: "AI 专家",
-    items: [
-      { id: "agent.view", label: "查看 AI 专家" },
-      { id: "agent.open", label: "开通 AI 专家" },
-      { id: "agent.access.manage", label: "专家授权" },
-      { id: "agent.share.manage", label: "团队分享管理" },
-    ],
-  },
-  {
-    title: "模型与设备",
-    items: [
-      { id: "model.view", label: "查看模型配置" },
-      { id: "model.configure", label: "编辑模型配置" },
-      { id: "device.view", label: "查看设备" },
-      { id: "device.manage", label: "管理设备" },
-    ],
-  },
-  {
-    title: "积分与统计",
-    items: [
-      { id: "points.view", label: "查看积分" },
-      { id: "points.recharge", label: "购买积分" },
-      { id: "points.order.view", label: "查看订单" },
-      { id: "analytics.self.view", label: "本人统计" },
-      { id: "analytics.department.view", label: "部门统计" },
-      { id: "analytics.tenant.view", label: "全租户统计" },
     ],
   },
 ];
@@ -187,27 +137,28 @@ const createInitialOperationRoles = (): OperationsRoleItem[] => [
     scopeLabel: "全平台",
     memberIds: ["ops-account-002"],
     permissionIds: [
+      "tenant.view",
       "tenant.create",
       "tenant.edit",
       "tenant.status",
-      "tenant.member.manage",
-      "product.manage",
-      "order.view",
-      "fulfillment.manage",
+      "tenant.points.recharge",
       "points.manage",
+      "points.register.manage",
+      "points.referral.manage",
       "agent.review",
       "agent.plaza.manage",
       "agent.category.manage",
-      "agent.contact.manage",
+      "resource.model.manage",
+      "resource.external.manage",
     ],
   },
   {
     id: "ops-role-service",
     builtin: true,
-    name: "客服运营",
-    scopeLabel: "服务工单",
+    name: "广场运营",
+    scopeLabel: "专家广场",
     memberIds: [],
-    permissionIds: ["tenant.edit", "order.view", "fulfillment.manage", "agent.contact.manage"],
+    permissionIds: ["agent.review", "agent.plaza.manage", "agent.category.manage"],
   },
 ];
 
@@ -233,44 +184,19 @@ const createInitialTenantPresets = (): TenantPresetRoleItem[] => [
     id: "tenant-preset-org-admin",
     name: "组织管理员",
     scopeLabel: "全租户",
-    permissionIds: getPermissionIds(TENANT_PERMISSION_GROUPS),
+    permissionIds: TENANT_ROLE_PERMISSION_IDS,
   },
   {
     id: "tenant-preset-department-lead",
     name: "部门负责人",
     scopeLabel: "所属部门",
-    permissionIds: [
-      "workspace.metaAgent.use",
-      "workspace.expert.use",
-      "workspace.trajectory.viewOwn",
-      "workspace.deliverable.viewOwn",
-      "org.department.view",
-      "org.member.invite",
-      "org.member.edit",
-      "org.member.status",
-      "agent.view",
-      "agent.access.manage",
-      "agent.share.manage",
-      "model.view",
-      "device.view",
-      "points.view",
-      "analytics.self.view",
-      "analytics.department.view",
-    ],
+    permissionIds: DEPARTMENT_LEAD_PERMISSION_IDS,
   },
   {
     id: "tenant-preset-member",
     name: "普通成员",
     scopeLabel: "本人",
-    permissionIds: [
-      "workspace.metaAgent.use",
-      "workspace.expert.use",
-      "workspace.trajectory.viewOwn",
-      "workspace.deliverable.viewOwn",
-      "agent.view",
-      "points.view",
-      "analytics.self.view",
-    ],
+    permissionIds: TENANT_MEMBER_PERMISSION_IDS,
   },
 ];
 
@@ -692,7 +618,7 @@ export const OperationsOrganizationConsole = (): JSX.Element => {
                 </div>
                 <div className={adminStyles.consoleSection}>
                   <h3 className={adminStyles.consoleSectionTitle}>权限</h3>
-                  {renderPermissionMatrix(TENANT_PERMISSION_GROUPS, selectedPreset.permissionIds)}
+                  {renderPermissionMatrix(TENANT_ROLE_PERMISSION_GROUPS, selectedPreset.permissionIds)}
                 </div>
               </>
             ) : null}
@@ -774,7 +700,7 @@ export const OperationsOrganizationConsole = (): JSX.Element => {
         destroyOnHidden
       >
         <RoleForm
-          groups={TENANT_PERMISSION_GROUPS}
+          groups={TENANT_ROLE_PERMISSION_GROUPS}
           scopeOptions={[
             { label: "全租户", value: "全租户" },
             { label: "所属部门", value: "所属部门" },

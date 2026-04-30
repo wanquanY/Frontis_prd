@@ -21,6 +21,7 @@ export type FrontisWebTabKey =
   | "models"
   | "access"
   | "organization"
+  | "roleManagement"
   | "notifications";
 
 /**
