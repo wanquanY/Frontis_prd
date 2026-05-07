@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-import { CheckCircleOutlined, PlusOutlined } from "@ant-design/icons";
+import { PlusOutlined } from "@ant-design/icons";
 import { Button, Input, Modal, message } from "antd";
 import classNames from "classnames";
 import dayjs from "dayjs";
@@ -13,23 +13,11 @@ import {
 } from "@/feature/fde/enterpriseCommodityApplications";
 import { FDE_AGENT_STORE_ITEMS } from "@/feature/fde/mockData";
 import {
-  loadEnterpriseAgentOrders,
-  saveEnterpriseAgentOrders,
-  type EnterpriseAgentOrderRecord,
-} from "@/feature/fde/enterpriseAgentOrders";
-import {
-  buildMockPaymentOrderId,
-  buildMockPaymentQr,
-  formatMockPaymentCountdown,
-  MOCK_PAYMENT_QR_COUNTDOWN_SECONDS,
-} from "@/feature/commerce/mockPayment";
-import {
   loadStoredOperationsFulfillments,
   loadStoredOperationsProducts,
   saveStoredOperationsFulfillments,
 } from "@/feature/operations/commerceStorage";
 import { loadStoredAgentPlazaCategories } from "@/feature/operations/agentPlazaCategoryStorage";
-import { loadOperationsServiceContactConfig } from "@/feature/operations/platformConfigStorage";
 import { OPERATIONS_AGENT_PLAZA_DEFAULT_CATEGORY } from "@/feature/operations/mockData";
 import type {
   OperationsAgentPlazaCategoryOption,
@@ -37,9 +25,6 @@ import type {
   OperationsFulfillment,
   OperationsProduct,
   OperationsProductDeliveryKind,
-  OperationsProductSubscriptionPlan,
-  OperationsProductSubscriptionPlanKey,
-  OperationsServiceContactConfig,
 } from "@/feature/operations/types";
 import { getAvatarUrl } from "@/pages/utils";
 
@@ -54,10 +39,7 @@ type AgentShelfFilter = "all" | "mine" | "teamShare" | "frontis";
 type BusinessLineFilter = "all" | BusinessLineKey;
 type BusinessLineKey = OperationsAgentPlazaCategoryOption["name"];
 type AgentSourceType = "mine" | "teamShare" | "frontis";
-type AgentActionKind = "addWorkspace" | "openTrial" | "openPurchase" | "openContact" | "viewOrder";
-type AgentAcquisitionMode = "trial" | "purchase";
-type AcquisitionStep = "summary" | "pay" | "success";
-type BadgeTone = "success" | "warning" | "danger" | "processing";
+type AgentActionKind = "addWorkspace" | "openTrial";
 
 interface AgentCapability {
   name: string;
@@ -124,7 +106,6 @@ interface StoreAgentItem {
   acquisitionLabel: string;
   deliveryLabel: string;
   product?: OperationsProduct;
-  order?: EnterpriseAgentOrderRecord | null;
   fulfillment?: OperationsFulfillment | null;
   commodityApplication?: OperationsAgentSubmission | null;
 }
@@ -133,43 +114,12 @@ interface AgentActionConfig {
   primaryLabel: string;
   primaryAction: AgentActionKind;
   tone: "default" | "accent" | "primary";
-  secondaryLabel?: string;
-  secondaryAction?: AgentActionKind;
 }
 
 interface CommodityApplicationDraft {
   agentId: string;
   proposedProductName: string;
   reason: string;
-}
-
-interface AcquisitionState {
-  open: boolean;
-  agentId?: string;
-  mode: AgentAcquisitionMode;
-  selectedPlanKey?: OperationsProductSubscriptionPlanKey;
-  step: AcquisitionStep;
-  orderNo: string;
-  countdownSeconds: number;
-  isProcessingPayment: boolean;
-  completedOrderId?: string;
-}
-
-interface ContactState {
-  open: boolean;
-  agentId?: string;
-}
-
-interface OrderStatusMeta {
-  label: string;
-  tone: BadgeTone;
-}
-
-interface OrderStepItem {
-  key: string;
-  label: string;
-  done: boolean;
-  current: boolean;
 }
 
 const DEFAULT_TENANT_ID = "tenant-enterprise-demo";
@@ -446,20 +396,6 @@ const FRONTIS_AGENT_BLUEPRINTS: Record<string, PlatformAgentBlueprint> = {
   },
 };
 
-const createDefaultAcquisitionState = (): AcquisitionState => ({
-  open: false,
-  mode: "purchase",
-  selectedPlanKey: undefined,
-  step: "summary",
-  orderNo: "",
-  countdownSeconds: MOCK_PAYMENT_QR_COUNTDOWN_SECONDS,
-  isProcessingPayment: false,
-});
-
-const createDefaultContactState = (): ContactState => ({
-  open: false,
-});
-
 const getBusinessLineLabel = (line: BusinessLineKey): string =>
   line.trim() || OPERATIONS_AGENT_PLAZA_DEFAULT_CATEGORY;
 
@@ -485,83 +421,8 @@ const getBusinessLineOptions = (
     })),
 ];
 
-const getActiveSubscriptionPlans = (
-  product: OperationsProduct,
-): OperationsProductSubscriptionPlan[] =>
-  (product.subscriptionPlans ?? [])
-    .filter(item => item.status === "active")
-    .sort((leftItem, rightItem) => leftItem.sortOrder - rightItem.sortOrder);
-
-const getSelectedSubscriptionPlan = (
-  product: OperationsProduct,
-  selectedPlanKey?: OperationsProductSubscriptionPlanKey,
-): OperationsProductSubscriptionPlan | null => {
-  const activePlans = getActiveSubscriptionPlans(product);
-
-  if (!activePlans.length) {
-    return null;
-  }
-
-  if (!selectedPlanKey) {
-    return activePlans[0] ?? null;
-  }
-
-  return activePlans.find(item => item.key === selectedPlanKey) ?? activePlans[0] ?? null;
-};
-
-const getSubscriptionPlanValidityLabel = (plan: OperationsProductSubscriptionPlan): string =>
-  `${plan.durationLabel}内无限次使用`;
-
-const getSubscriptionPlanAveragePriceLabel = (
-  plan: OperationsProductSubscriptionPlan,
-): string | null => {
-  if (plan.key === "month") {
-    return null;
-  }
-
-  const monthCount = plan.key === "quarter" ? 3 : 12;
-  const averagePrice = plan.price / monthCount;
-
-  return `月均${averagePrice.toFixed(2)}元`;
-};
-
-const getTenantPurchaseName = (tenantName: string): string =>
-  tenantName.replace(/租户$/, "").trim() || tenantName;
-
-const getProductPriceLabel = (
-  product: OperationsProduct,
-  selectedPlanKey?: OperationsProductSubscriptionPlanKey,
-): string => {
-  if (product.saleType === "free") {
-    return "免费";
-  }
-
-  const selectedPlan = getSelectedSubscriptionPlan(product, selectedPlanKey);
-
-  if (selectedPlan) {
-    const activePlanCount = getActiveSubscriptionPlans(product).length;
-    const suffix =
-      activePlanCount > 1 && !selectedPlanKey
-        ? ` / ${selectedPlan.title}起`
-        : ` / ${selectedPlan.title}`;
-
-    return `¥${selectedPlan.price.toLocaleString("zh-CN")}${suffix}`;
-  }
-
-  if (product.billingSpec === "year") {
-    return `¥${(product.price ?? 0).toLocaleString("zh-CN")} / 年`;
-  }
-
-  if (product.billingSpec === "month") {
-    return `¥${(product.price ?? 0).toLocaleString("zh-CN")} / 月`;
-  }
-
-  if ((product.price ?? 0) <= 0) {
-    return "待配置价格";
-  }
-
-  return `¥${(product.price ?? 0).toLocaleString("zh-CN")}`;
-};
+const getProductPriceLabel = (product: OperationsProduct): string =>
+  product.supportsTrial ? (getProductTrialLabel(product) ?? "免费试用") : "免费添加";
 
 const getProductTrialLabel = (product: OperationsProduct): string | undefined => {
   if (!product.supportsTrial || !product.trialUnit || !product.trialValue) {
@@ -575,7 +436,7 @@ const getProductTrialLabel = (product: OperationsProduct): string | undefined =>
 
 const getDeliveryLabel = (deliveryKind: OperationsProductDeliveryKind): string => {
   if (deliveryKind === "softwareService") {
-    return "支付后立即可用";
+    return "添加后立即可用";
   }
 
   if (deliveryKind === "thirdPartyApi") {
@@ -601,70 +462,12 @@ const getVisibilityLabel = (agent: StoreAgentItem): string => {
   return "FrontisAI发布";
 };
 
-const getAcquisitionLabel = (product: OperationsProduct, isTeamEdition: boolean): string => {
-  if (product.saleType === "free") {
-    return "可直接添加";
+const getAcquisitionLabel = (product: OperationsProduct): string => {
+  if (product.supportsTrial) {
+    return "可试用";
   }
 
-  if (!isTeamEdition) {
-    const contactLabel = getProductContactMode(product) === "disabled" ? "咨询开通" : "联系我们";
-
-    return product.supportsTrial ? `可试用 / ${contactLabel}` : contactLabel;
-  }
-
-  return product.supportsTrial ? "可试用 / 订阅" : "付费订阅";
-};
-
-const getProductContactMode = (
-  product: OperationsProduct | undefined,
-): NonNullable<OperationsProduct["contactMode"]> => {
-  if (!product) {
-    return "disabled";
-  }
-
-  return (
-    product.contactMode ??
-    (product.supplyKind === "agent" && product.saleType === "paid" ? "platformDefault" : "disabled")
-  );
-};
-
-const isProductContactAvailable = (
-  product: OperationsProduct | undefined,
-  serviceContactConfig: OperationsServiceContactConfig,
-): boolean => {
-  const contactMode = getProductContactMode(product);
-
-  if (contactMode === "disabled") {
-    return false;
-  }
-
-  if (contactMode === "custom") {
-    return Boolean(product?.contactQrCodeValue?.trim());
-  }
-
-  return serviceContactConfig.enabled && Boolean(serviceContactConfig.qrCodeValue.trim());
-};
-
-const getAgentContactQrValue = (
-  agent: StoreAgentItem | null,
-  serviceContactConfig: OperationsServiceContactConfig,
-): string => {
-  if (getProductContactMode(agent?.product) === "custom") {
-    return agent?.product?.contactQrCodeValue?.trim() || serviceContactConfig.qrCodeValue;
-  }
-
-  return serviceContactConfig.qrCodeValue;
-};
-
-const getAgentContactRemark = (
-  agent: StoreAgentItem,
-  serviceContactConfig: OperationsServiceContactConfig,
-): string => {
-  const customRemark =
-    getProductContactMode(agent.product) === "custom" ? agent.product?.contactRemark?.trim() : "";
-  const remarkTemplate = customRemark || serviceContactConfig.remarkTemplate;
-
-  return remarkTemplate.replace(/AI 专家名称/g, agent.name);
+  return "可直接添加";
 };
 
 const getCommodityApplicationStatusLabel = (
@@ -683,61 +486,6 @@ const getCommodityApplicationStatusLabel = (
   }
 
   return "已驳回";
-};
-
-const getOrderStatusMeta = (order: EnterpriseAgentOrderRecord): OrderStatusMeta => {
-  if (order.orderType === "purchase" && order.status === "active") {
-    return {
-      label: "已订阅",
-      tone: "success",
-    };
-  }
-
-  if (order.orderType === "trial" && order.status === "trialing") {
-    return {
-      label: "试用中",
-      tone: "processing",
-    };
-  }
-
-  return {
-    label: "试用已过期",
-    tone: "danger",
-  };
-};
-
-const getOrderStatusClassName = (tone: BadgeTone): string => {
-  if (tone === "success") {
-    return styles.orderStatusBadgeSuccess;
-  }
-
-  if (tone === "warning") {
-    return styles.orderStatusBadgeWarning;
-  }
-
-  if (tone === "danger") {
-    return styles.orderStatusBadgeDanger;
-  }
-
-  return styles.orderStatusBadgeProcessing;
-};
-
-const getOrderTypeLabel = (orderType: EnterpriseAgentOrderRecord["orderType"]): string =>
-  orderType === "trial" ? "免费试用" : "正式订阅";
-
-const getSubscriptionPlanExpiresAt = (
-  planKey: OperationsProductSubscriptionPlanKey,
-  startTime: dayjs.Dayjs,
-): string => {
-  if (planKey === "month") {
-    return startTime.add(30, "day").format("YYYY-MM-DD HH:mm");
-  }
-
-  if (planKey === "quarter") {
-    return startTime.add(90, "day").format("YYYY-MM-DD HH:mm");
-  }
-
-  return startTime.add(365, "day").format("YYYY-MM-DD HH:mm");
 };
 
 const buildTeamSharedAgents = (
@@ -861,8 +609,6 @@ const buildPlatformAgentVersions = (
 const buildFrontisAgents = (
   products: OperationsProduct[],
   tenantId: string,
-  isTeamEdition: boolean,
-  latestOrdersByProductId: Map<string, EnterpriseAgentOrderRecord>,
   latestFulfillmentsByProductId: Map<string, OperationsFulfillment>,
 ): StoreAgentItem[] =>
   products
@@ -878,8 +624,9 @@ const buildFrontisAgents = (
       return rightItem.updatedAt.localeCompare(leftItem.updatedAt);
     })
     .map(product => {
-      const displayName = product.linkedAgentName?.trim() || product.name.trim();
-      const blueprint = FRONTIS_AGENT_BLUEPRINTS[displayName];
+      const displayName = product.name.trim();
+      const blueprintName = product.linkedAgentName?.trim() || displayName;
+      const blueprint = FRONTIS_AGENT_BLUEPRINTS[blueprintName];
       const businessLine =
         product.plazaCategory?.trim() ||
         blueprint?.businessLine ||
@@ -907,37 +654,18 @@ const buildFrontisAgents = (
           {
             name: "标准开通",
             typeLabel: "交付能力",
-            description: "支付后自动开通，立即可用。",
+            description: "添加或试用后自动开通，立即可用。",
           },
         ],
         versions: buildPlatformAgentVersions(product, updatedAt),
         priceLabel: getProductPriceLabel(product),
         trialLabel: getProductTrialLabel(product),
-        acquisitionLabel: getAcquisitionLabel(product, isTeamEdition),
+        acquisitionLabel: getAcquisitionLabel(product),
         deliveryLabel: getDeliveryLabel(product.deliveryKind),
         product,
-        order: latestOrdersByProductId.get(product.id) ?? null,
         fulfillment: latestFulfillmentsByProductId.get(product.id) ?? null,
       };
     });
-
-const resolveLatestOrdersByProductId = (
-  tenantId: string,
-  orders: EnterpriseAgentOrderRecord[],
-): Map<string, EnterpriseAgentOrderRecord> =>
-  orders
-    .filter(item => item.tenantId === tenantId)
-    .sort(
-      (leftItem, rightItem) =>
-        dayjs(rightItem.createdAt).valueOf() - dayjs(leftItem.createdAt).valueOf(),
-    )
-    .reduce<Map<string, EnterpriseAgentOrderRecord>>((result, item) => {
-      if (!result.has(item.productId)) {
-        result.set(item.productId, item);
-      }
-
-      return result;
-    }, new Map<string, EnterpriseAgentOrderRecord>());
 
 const resolveLatestFulfillmentsByProductId = (
   tenantId: string,
@@ -957,7 +685,7 @@ const resolveLatestFulfillmentsByProductId = (
       return result;
     }, new Map<string, OperationsFulfillment>());
 
-const getCardContextLabel = (agent: StoreAgentItem, isTeamEdition: boolean): string => {
+const getCardContextLabel = (agent: StoreAgentItem, _isTeamEdition: boolean): string => {
   if (agent.sourceType === "mine") {
     return agent.commodityApplication?.proposedProductName ?? "我开发的 AI专家";
   }
@@ -966,19 +694,11 @@ const getCardContextLabel = (agent: StoreAgentItem, isTeamEdition: boolean): str
     return agent.scopeLabel;
   }
 
-  if (agent.order?.orderNo) {
-    return agent.order.orderNo;
+  if (agent.product?.supportsTrial) {
+    return "试用后即可添加到工作台";
   }
 
-  if (agent.product?.saleType === "free") {
-    return "可直接添加到工作台";
-  }
-
-  if (!isTeamEdition) {
-    return agent.trialLabel ? "可先试用，正式使用请联系客服" : "联系客服获取开通方案";
-  }
-
-  return agent.trialLabel ? "支持试用后订阅" : "订阅后立即可用";
+  return "可直接添加到工作台";
 };
 
 const getCardContextMeta = (agent: StoreAgentItem): string => {
@@ -992,18 +712,10 @@ const getCardContextMeta = (agent: StoreAgentItem): string => {
     return "添加后即可使用";
   }
 
-  if (agent.order) {
-    return getOrderStatusMeta(agent.order).label;
-  }
-
   return agent.trialLabel ?? agent.deliveryLabel;
 };
 
-const getAgentActionConfig = (
-  agent: StoreAgentItem,
-  isTeamEdition: boolean,
-  serviceContactConfig: OperationsServiceContactConfig,
-): AgentActionConfig => {
+const getAgentActionConfig = (agent: StoreAgentItem): AgentActionConfig => {
   if (agent.sourceType === "mine" || agent.sourceType === "teamShare") {
     return {
       primaryLabel: "添加到工作台",
@@ -1019,90 +731,22 @@ const getAgentActionConfig = (
       primaryLabel: "添加到工作台",
       primaryAction: "addWorkspace",
       tone: "primary",
-      secondaryLabel: agent.order ? "查看订单" : undefined,
-      secondaryAction: agent.order ? "viewOrder" : undefined,
-    };
-  }
-
-  if (agent.product?.saleType === "free") {
-    return {
-      primaryLabel: "添加到工作台",
-      primaryAction: "addWorkspace",
-      tone: "primary",
-    };
-  }
-
-  if (!isTeamEdition && isProductContactAvailable(agent.product, serviceContactConfig)) {
-    return {
-      primaryLabel: "联系我们",
-      primaryAction: "openContact",
-      tone: "primary",
-      secondaryLabel: agent.product?.supportsTrial ? "免费试用" : undefined,
-      secondaryAction: agent.product?.supportsTrial ? "openTrial" : undefined,
     };
   }
 
   if (agent.product?.supportsTrial) {
     return {
-      primaryLabel: "立即订阅",
-      primaryAction: "openPurchase",
+      primaryLabel: "立即试用",
+      primaryAction: "openTrial",
       tone: "primary",
-      secondaryLabel: "免费试用",
-      secondaryAction: "openTrial",
     };
   }
 
   return {
-    primaryLabel: "立即订阅",
-    primaryAction: "openPurchase",
+    primaryLabel: "添加到工作台",
+    primaryAction: "addWorkspace",
     tone: "primary",
   };
-};
-
-const getOrderStepItems = (order: EnterpriseAgentOrderRecord): OrderStepItem[] => {
-  if (order.orderType === "purchase") {
-    return [
-      {
-        key: "create",
-        label: "生成订单",
-        done: true,
-        current: false,
-      },
-      {
-        key: "pay",
-        label: "扫码支付",
-        done: Boolean(order.paidAt),
-        current: false,
-      },
-      {
-        key: "active",
-        label: "开通完成",
-        done: order.status === "active",
-        current: order.status === "active",
-      },
-    ];
-  }
-
-  return [
-    {
-      key: "trial",
-      label: "开通试用",
-      done: true,
-      current: false,
-    },
-    {
-      key: "running",
-      label: order.status === "expired" ? "试用已结束" : "试用中",
-      done: true,
-      current: order.status !== "expired",
-    },
-    {
-      key: "convert",
-      label: "可转正式订阅",
-      done: order.status === "expired",
-      current: order.status === "expired",
-    },
-  ];
 };
 
 /**
@@ -1122,9 +766,6 @@ export const FdeAgentStoreView = ({
   const [fulfillments, setFulfillments] = useState<OperationsFulfillment[]>(() =>
     loadStoredOperationsFulfillments(),
   );
-  const [orders, setOrders] = useState<EnterpriseAgentOrderRecord[]>(() =>
-    loadEnterpriseAgentOrders(),
-  );
   const [commodityApplications, setCommodityApplications] = useState<OperationsAgentSubmission[]>(
     () => loadEnterpriseCommodityApplications(),
   );
@@ -1132,18 +773,9 @@ export const FdeAgentStoreView = ({
     OperationsAgentPlazaCategoryOption[]
   >(() => loadStoredAgentPlazaCategories());
   const [commodityDraft, setCommodityDraft] = useState<CommodityApplicationDraft | null>(null);
-  const [acquisitionState, setAcquisitionState] = useState<AcquisitionState>(
-    createDefaultAcquisitionState(),
-  );
-  const [contactState, setContactState] = useState<ContactState>(createDefaultContactState());
-  const [activeOrderId, setActiveOrderId] = useState<string | null>(null);
-  const [serviceContactConfig, setServiceContactConfig] = useState<OperationsServiceContactConfig>(
-    () => loadOperationsServiceContactConfig(),
-  );
 
   const currentTenantId = activeIdentity?.tenantId ?? DEFAULT_TENANT_ID;
   const currentTenantName = activeIdentity?.tenantName ?? DEFAULT_TENANT_NAME;
-  const currentTenantPurchaseName = getTenantPurchaseName(currentTenantName);
   const currentUserName = activeIdentity?.subjectName ?? session?.name ?? "当前用户";
   const tenantSnapshot = useMemo(
     () => getMockTenantManagementSnapshot(currentTenantId),
@@ -1171,10 +803,8 @@ export const FdeAgentStoreView = ({
   const refreshStorefrontState = useCallback((): void => {
     setProducts(loadStoredOperationsProducts());
     setFulfillments(loadStoredOperationsFulfillments());
-    setOrders(loadEnterpriseAgentOrders());
     setCommodityApplications(loadEnterpriseCommodityApplications());
     setAgentPlazaCategories(loadStoredAgentPlazaCategories());
-    setServiceContactConfig(loadOperationsServiceContactConfig());
   }, []);
 
   useEffect(() => {
@@ -1199,31 +829,6 @@ export const FdeAgentStoreView = ({
     }
   }, [businessLineFilter, businessLineOptions]);
 
-  useEffect(() => {
-    if (!acquisitionState.open || acquisitionState.step !== "pay") {
-      return;
-    }
-
-    const timer = window.setInterval(() => {
-      setAcquisitionState(currentState => {
-        if (currentState.countdownSeconds <= 1) {
-          window.clearInterval(timer);
-          return {
-            ...currentState,
-            countdownSeconds: 0,
-          };
-        }
-
-        return {
-          ...currentState,
-          countdownSeconds: currentState.countdownSeconds - 1,
-        };
-      });
-    }, 1000);
-
-    return () => window.clearInterval(timer);
-  }, [acquisitionState.open, acquisitionState.step]);
-
   const commodityApplicationsByAgentId = useMemo(
     () =>
       commodityApplications.reduce<Map<string, OperationsAgentSubmission>>((result, item) => {
@@ -1231,11 +836,6 @@ export const FdeAgentStoreView = ({
         return result;
       }, new Map<string, OperationsAgentSubmission>()),
     [commodityApplications],
-  );
-
-  const latestOrdersByProductId = useMemo(
-    () => resolveLatestOrdersByProductId(currentTenantId, orders),
-    [currentTenantId, orders],
   );
 
   const latestFulfillmentsByProductId = useMemo(
@@ -1253,21 +853,8 @@ export const FdeAgentStoreView = ({
   );
 
   const frontisAgents = useMemo(
-    () =>
-      buildFrontisAgents(
-        products,
-        currentTenantId,
-        isTeamEdition,
-        latestOrdersByProductId,
-        latestFulfillmentsByProductId,
-      ),
-    [
-      currentTenantId,
-      isTeamEdition,
-      latestFulfillmentsByProductId,
-      latestOrdersByProductId,
-      products,
-    ],
+    () => buildFrontisAgents(products, currentTenantId, latestFulfillmentsByProductId),
+    [currentTenantId, latestFulfillmentsByProductId, products],
   );
 
   const allAgents = useMemo(
@@ -1308,97 +895,9 @@ export const FdeAgentStoreView = ({
   );
 
   const selectedAgentAction = useMemo(
-    () =>
-      selectedAgent
-        ? getAgentActionConfig(selectedAgent, isTeamEdition, serviceContactConfig)
-        : null,
-    [isTeamEdition, selectedAgent, serviceContactConfig],
+    () => (selectedAgent ? getAgentActionConfig(selectedAgent) : null),
+    [selectedAgent],
   );
-
-  const activeOrder = useMemo(
-    () => orders.find(item => item.id === activeOrderId) ?? null,
-    [activeOrderId, orders],
-  );
-
-  const activeOrderAgent = useMemo(
-    () =>
-      activeOrder
-        ? (frontisAgents.find(agent => agent.product?.id === activeOrder.productId) ?? null)
-        : null,
-    [activeOrder, frontisAgents],
-  );
-
-  const activeOrderFulfillment = useMemo(
-    () =>
-      activeOrder
-        ? (fulfillments.find(item => item.orderNo === activeOrder.orderNo) ??
-          fulfillments.find(
-            item =>
-              item.tenantId === activeOrder.tenantId && item.productId === activeOrder.productId,
-          ) ??
-          null)
-        : null,
-    [activeOrder, fulfillments],
-  );
-
-  const activeOrderStatusMeta = useMemo(
-    () => (activeOrder ? getOrderStatusMeta(activeOrder) : null),
-    [activeOrder],
-  );
-
-  const acquisitionAgent = useMemo(
-    () =>
-      acquisitionState.agentId
-        ? (frontisAgents.find(agent => agent.id === acquisitionState.agentId) ?? null)
-        : null,
-    [acquisitionState.agentId, frontisAgents],
-  );
-
-  const selectedAcquisitionPlan = useMemo(
-    () =>
-      acquisitionAgent?.product
-        ? getSelectedSubscriptionPlan(acquisitionAgent.product, acquisitionState.selectedPlanKey)
-        : null,
-    [acquisitionAgent?.product, acquisitionState.selectedPlanKey],
-  );
-
-  const acquisitionPlans = useMemo(
-    () => (acquisitionAgent?.product ? getActiveSubscriptionPlans(acquisitionAgent.product) : []),
-    [acquisitionAgent?.product],
-  );
-
-  const acquisitionQrImage = useMemo(
-    () =>
-      buildMockPaymentQr(
-        `${acquisitionAgent?.product?.id ?? "none"}-${acquisitionState.orderNo}-${acquisitionState.mode}-${acquisitionState.selectedPlanKey ?? "default"}`,
-      ),
-    [
-      acquisitionAgent?.product?.id,
-      acquisitionState.mode,
-      acquisitionState.orderNo,
-      acquisitionState.selectedPlanKey,
-    ],
-  );
-
-  const isAcquisitionQrExpired =
-    acquisitionState.step === "pay" && acquisitionState.countdownSeconds <= 0;
-
-  const contactAgent = useMemo(
-    () =>
-      contactState.agentId
-        ? (frontisAgents.find(agent => agent.id === contactState.agentId) ?? null)
-        : null,
-    [contactState.agentId, frontisAgents],
-  );
-
-  const serviceContactQrImage = useMemo(
-    () => buildMockPaymentQr(getAgentContactQrValue(contactAgent, serviceContactConfig)),
-    [contactAgent, serviceContactConfig],
-  );
-
-  const resetAcquisitionState = useCallback((): void => {
-    setAcquisitionState(createDefaultAcquisitionState());
-  }, []);
 
   const openAgentDetail = useCallback((agent: StoreAgentItem): void => {
     setSelectedAgentId(agent.id);
@@ -1489,64 +988,20 @@ export const FdeAgentStoreView = ({
     refreshStorefrontState,
   ]);
 
-  const openAcquisition = useCallback((agent: StoreAgentItem, mode: AgentAcquisitionMode): void => {
-    if (!agent.product) {
-      return;
-    }
-
-    const defaultPlan = getSelectedSubscriptionPlan(agent.product);
-
-    setAcquisitionState({
-      open: true,
-      agentId: agent.id,
-      mode,
-      selectedPlanKey: mode === "purchase" ? defaultPlan?.key : undefined,
-      step: "summary",
-      orderNo: "",
-      countdownSeconds: MOCK_PAYMENT_QR_COUNTDOWN_SECONDS,
-      isProcessingPayment: false,
-    });
-  }, []);
-
-  const closeAcquisition = useCallback((): void => {
-    resetAcquisitionState();
-  }, [resetAcquisitionState]);
-
-  const openServiceContact = useCallback((agent: StoreAgentItem): void => {
-    if (agent.sourceType !== "frontis") {
-      return;
-    }
-
-    setContactState({
-      open: true,
-      agentId: agent.id,
-    });
-  }, []);
-
-  const closeServiceContact = useCallback((): void => {
-    setContactState(createDefaultContactState());
-  }, []);
-
-  const openOrderDetail = useCallback((orderId: string): void => {
-    setActiveOrderId(orderId);
-  }, []);
-
-  const closeOrderDetail = useCallback((): void => {
-    setActiveOrderId(null);
-  }, []);
-
   const handleAddToWorkspace = useCallback(
     (agent: StoreAgentItem): void => {
-      if (
-        agent.sourceType === "frontis" &&
-        agent.product?.saleType === "free" &&
-        !agent.fulfillment
-      ) {
-        const nowLabel = dayjs().format("YYYY-MM-DD HH:mm");
-        const orderNo = buildMockPaymentOrderId("free");
+      if (agent.sourceType === "frontis" && agent.product && !agent.fulfillment) {
+        const now = dayjs();
+        const nowLabel = now.format("YYYY-MM-DD HH:mm");
+        const expiresAt =
+          agent.product.supportsTrial && agent.product.trialUnit && agent.product.trialValue
+            ? agent.product.trialUnit === "day"
+              ? now.add(agent.product.trialValue, "day").format("YYYY-MM-DD HH:mm")
+              : now.add(1, "month").format("YYYY-MM-DD HH:mm")
+            : undefined;
         const nextFulfillment: OperationsFulfillment = {
           id: `ops-fulfillment-frontis-${Date.now()}`,
-          orderNo,
+          orderNo: `frontis-${Date.now()}`,
           tenantId: currentTenantId,
           tenantName: currentTenantName,
           productId: agent.product.id,
@@ -1558,6 +1013,7 @@ export const FdeAgentStoreView = ({
           resourcePoolName: agent.product.resourcePoolName,
           allocationTarget: `已开通至 ${currentTenantName}`,
           startsAt: nowLabel,
+          expiresAt,
           updatedAt: nowLabel,
         };
         const nextFulfillments = [
@@ -1574,7 +1030,11 @@ export const FdeAgentStoreView = ({
 
         saveStoredOperationsFulfillments(nextFulfillments);
         refreshStorefrontState();
-        message.success(`${agent.name} 已添加到当前工作台。`);
+        message.success(
+          agent.product.supportsTrial
+            ? `${agent.name} 已添加到工作台，可开始试用。`
+            : `${agent.name} 已添加到当前工作台。`,
+        );
         return;
       }
 
@@ -1583,198 +1043,16 @@ export const FdeAgentStoreView = ({
     [currentTenantId, currentTenantName, fulfillments, refreshStorefrontState],
   );
 
-  const completeAcquisition = useCallback(
-    (agent: StoreAgentItem, mode: AgentAcquisitionMode, orderNo: string): void => {
-      if (!agent.product) {
-        return;
-      }
-
-      const now = dayjs();
-      const nowLabel = now.format("YYYY-MM-DD HH:mm");
-      const selectedPlan =
-        mode === "purchase"
-          ? getSelectedSubscriptionPlan(agent.product, acquisitionState.selectedPlanKey)
-          : null;
-      const expiresAt =
-        mode === "trial" && agent.product.trialUnit && agent.product.trialValue
-          ? agent.product.trialUnit === "day"
-            ? now.add(agent.product.trialValue, "day").format("YYYY-MM-DD HH:mm")
-            : now.add(1, "month").format("YYYY-MM-DD HH:mm")
-          : selectedPlan
-            ? getSubscriptionPlanExpiresAt(selectedPlan.key, now)
-            : agent.product.billingSpec === "year"
-              ? now.add(1, "year").format("YYYY-MM-DD HH:mm")
-              : agent.product.billingSpec === "month"
-                ? now.add(1, "month").format("YYYY-MM-DD HH:mm")
-                : undefined;
-
-      const nextFulfillment: OperationsFulfillment = {
-        id: `ops-fulfillment-frontis-${Date.now()}`,
-        orderNo,
-        tenantId: currentTenantId,
-        tenantName: currentTenantName,
-        productId: agent.product.id,
-        productName: agent.product.name,
-        deliveryKind: agent.product.deliveryKind,
-        quantity: 1,
-        status: "active",
-        resourcePoolId: agent.product.resourcePoolId,
-        resourcePoolName: agent.product.resourcePoolName,
-        allocationTarget: `已开通至 ${currentTenantName}`,
-        startsAt: nowLabel,
-        expiresAt,
-        updatedAt: nowLabel,
-      };
-      const nextFulfillments = [
-        nextFulfillment,
-        ...fulfillments.filter(
-          item =>
-            !(
-              item.tenantId === currentTenantId &&
-              item.productId === agent.product?.id &&
-              ACTIVE_FULFILLMENT_STATUSES.has(item.status)
-            ),
-        ),
-      ];
-
-      saveStoredOperationsFulfillments(nextFulfillments);
-
-      const purchasePriceLabel =
-        mode === "trial"
-          ? (agent.trialLabel ?? "免费试用")
-          : getProductPriceLabel(agent.product, selectedPlan?.key);
-      const nextOrder: EnterpriseAgentOrderRecord = {
-        id: `agent-order-${Date.now()}`,
-        tenantId: currentTenantId,
-        tenantName: currentTenantName,
-        productId: agent.product.id,
-        productName: agent.product.name,
-        agentName: agent.name,
-        orderNo,
-        orderType: mode === "trial" ? "trial" : "purchase",
-        status: mode === "trial" ? "trialing" : "active",
-        amount: mode === "trial" ? 0 : (selectedPlan?.price ?? agent.product.price ?? 0),
-        priceLabel: purchasePriceLabel,
-        subscriptionPlanKey: selectedPlan?.key,
-        subscriptionPlanLabel: selectedPlan?.title,
-        subscriptionDurationLabel: selectedPlan?.durationLabel,
-        paymentChannelLabel: mode === "purchase" ? "统一扫码支付" : "试用开通",
-        purchaserName: currentUserName,
-        createdAt: nowLabel,
-        startsAt: nowLabel,
-        paidAt: mode === "purchase" ? nowLabel : undefined,
-        expiresAt,
-      };
-
-      saveEnterpriseAgentOrders([nextOrder, ...orders]);
-
-      refreshStorefrontState();
-
-      setAcquisitionState(currentState => ({
-        ...currentState,
-        step: "success",
-        isProcessingPayment: false,
-        completedOrderId: nextOrder.id,
-        orderNo,
-      }));
-
-      if (mode === "trial") {
-        message.success(`${agent.name} 已开通试用。`);
-        return;
-      }
-
-      message.success(`${agent.name} 已订阅成功并开通到 ${currentTenantPurchaseName}。`);
-    },
-    [
-      acquisitionState.selectedPlanKey,
-      currentTenantId,
-      currentTenantName,
-      currentTenantPurchaseName,
-      currentUserName,
-      fulfillments,
-      orders,
-      refreshStorefrontState,
-    ],
-  );
-
-  const handleStartPurchaseQr = useCallback(
-    (planKey?: OperationsProductSubscriptionPlanKey): void => {
-      if (!acquisitionAgent?.product) {
-        return;
-      }
-
-      setAcquisitionState(currentState => ({
-        ...currentState,
-        selectedPlanKey: planKey ?? currentState.selectedPlanKey,
-        step: "pay",
-        orderNo: buildMockPaymentOrderId("agt"),
-        countdownSeconds: MOCK_PAYMENT_QR_COUNTDOWN_SECONDS,
-        isProcessingPayment: false,
-      }));
-    },
-    [acquisitionAgent?.product],
-  );
-
-  const handleRestartPurchaseQr = useCallback((): void => {
-    setAcquisitionState(currentState => ({
-      ...currentState,
-      orderNo: buildMockPaymentOrderId("agt"),
-      countdownSeconds: MOCK_PAYMENT_QR_COUNTDOWN_SECONDS,
-      isProcessingPayment: false,
-    }));
-  }, []);
-
-  const handlePayByQr = useCallback((): void => {
-    if (!acquisitionAgent || isAcquisitionQrExpired || acquisitionState.isProcessingPayment) {
-      return;
-    }
-
-    setAcquisitionState(currentState => ({
-      ...currentState,
-      isProcessingPayment: true,
-    }));
-
-    window.setTimeout(() => {
-      completeAcquisition(acquisitionAgent, "purchase", acquisitionState.orderNo);
-    }, 700);
-  }, [
-    acquisitionAgent,
-    acquisitionState.isProcessingPayment,
-    acquisitionState.orderNo,
-    completeAcquisition,
-    isAcquisitionQrExpired,
-  ]);
-
   const handlePrimaryAction = useCallback(
     (agent: StoreAgentItem, action: AgentActionKind): void => {
-      if (action === "addWorkspace") {
+      if (action === "addWorkspace" || action === "openTrial") {
         handleAddToWorkspace(agent);
         return;
       }
 
-      if (action === "openTrial") {
-        openAcquisition(agent, "trial");
-        return;
-      }
-
-      if (action === "openPurchase") {
-        openAcquisition(agent, "purchase");
-        return;
-      }
-
-      if (action === "openContact") {
-        openServiceContact(agent);
-        return;
-      }
-
-      if (action === "viewOrder" && agent.order) {
-        openOrderDetail(agent.order.id);
-        return;
-      }
-
       return;
     },
-    [handleAddToWorkspace, openAcquisition, openOrderDetail, openServiceContact],
+    [handleAddToWorkspace],
   );
 
   const detailContent = useMemo((): JSX.Element | null => {
@@ -1842,8 +1120,7 @@ export const FdeAgentStoreView = ({
 
       <div className={styles.agentGrid}>
         {filteredAgents.map(agent => {
-          const actionConfig = getAgentActionConfig(agent, isTeamEdition, serviceContactConfig);
-          const orderStatusMeta = agent.order ? getOrderStatusMeta(agent.order) : null;
+          const actionConfig = getAgentActionConfig(agent);
 
           return (
             <article key={agent.id} className={styles.agentCard}>
@@ -1870,15 +1147,6 @@ export const FdeAgentStoreView = ({
                     <h3 className={styles.cardTitle}>{agent.name}</h3>
                     <div className={styles.cardVersionMeta}>
                       <span className={styles.versionBadge}>{agent.versionLabel}</span>
-                      {orderStatusMeta ? (
-                        <span
-                          className={`${styles.orderStatusBadge} ${getOrderStatusClassName(
-                            orderStatusMeta.tone,
-                          )}`}
-                        >
-                          {orderStatusMeta.label}
-                        </span>
-                      ) : null}
                     </div>
                   </div>
 
@@ -1950,16 +1218,6 @@ export const FdeAgentStoreView = ({
                     {selectedAgent.commodityApplication ? "查看商品化申请" : "申请商品化"}
                   </Button>
                 ) : null}
-                {selectedAgentAction?.secondaryLabel ? (
-                  <Button
-                    className={styles.detailSecondaryButton}
-                    onClick={() =>
-                      handlePrimaryAction(selectedAgent, selectedAgentAction.secondaryAction!)
-                    }
-                  >
-                    {selectedAgentAction.secondaryLabel}
-                  </Button>
-                ) : null}
                 {selectedAgentAction ? (
                   <Button
                     className={
@@ -1985,533 +1243,6 @@ export const FdeAgentStoreView = ({
                   关闭
                 </Button>
               </div>
-            </div>
-          </div>
-        ) : null}
-      </Modal>
-
-      <Modal
-        className={styles.orderRequestModal}
-        destroyOnClose={true}
-        footer={null}
-        onCancel={() => setCommodityDraft(null)}
-        open={Boolean(commodityDraft)}
-        title={<span className={styles.detailModalTitle}>申请进入 FrontisAI 发布</span>}
-        width={560}
-      >
-        {commodityDraft ? (
-          <div className={styles.orderRequestBody}>
-            <div className={styles.orderRequestSummary}>
-              <div>
-                <strong>
-                  {myAgents.find(agent => agent.id === commodityDraft.agentId)?.name ?? "AI专家"}
-                </strong>
-                <span>当前为我开发的 AI专家，可申请进入商品中心</span>
-              </div>
-              <span className={styles.detailMetaChip}>
-                {getCommodityApplicationStatusLabel(
-                  commodityApplicationsByAgentId.get(commodityDraft.agentId),
-                )}
-              </span>
-            </div>
-
-            <div className={styles.orderFormGrid}>
-              <div className={styles.orderFormItem}>
-                <span className={styles.orderFormLabel}>拟上架商品名</span>
-                <Input
-                  value={commodityDraft.proposedProductName}
-                  onChange={event =>
-                    setCommodityDraft(currentDraft =>
-                      currentDraft
-                        ? {
-                            ...currentDraft,
-                            proposedProductName: event.target.value,
-                          }
-                        : null,
-                    )
-                  }
-                />
-              </div>
-              <div className={`${styles.orderFormItem} ${styles.orderFormItemFull}`}>
-                <span className={styles.orderFormLabel}>申请说明</span>
-                <Input.TextArea
-                  rows={4}
-                  value={commodityDraft.reason}
-                  placeholder="说明为什么适合进入 FrontisAI 发布商品体系"
-                  onChange={event =>
-                    setCommodityDraft(currentDraft =>
-                      currentDraft
-                        ? {
-                            ...currentDraft,
-                            reason: event.target.value,
-                          }
-                        : null,
-                    )
-                  }
-                />
-              </div>
-            </div>
-
-            <div className={styles.orderRequestFooter}>
-              <Button onClick={() => setCommodityDraft(null)}>取消</Button>
-              <Button type="primary" onClick={handleSubmitCommodityApplication}>
-                提交申请
-              </Button>
-            </div>
-          </div>
-        ) : null}
-      </Modal>
-
-      <Modal
-        className={styles.orderRequestModal}
-        destroyOnClose={true}
-        footer={null}
-        onCancel={closeServiceContact}
-        open={contactState.open && Boolean(contactAgent)}
-        title={
-          <span className={styles.detailModalTitle}>
-            联系{serviceContactConfig.contactName || "客服"}
-          </span>
-        }
-        width={520}
-      >
-        {contactAgent ? (
-          <div className={styles.contactServiceBody}>
-            <div className={styles.orderRequestSummary}>
-              <div>
-                <strong>{contactAgent.name}</strong>
-                <span>扫码添加客服，咨询试用、开通方案或交付安排。</span>
-              </div>
-            </div>
-
-            <div className={styles.contactQrPanel}>
-              <div className={styles.contactQrCard}>
-                <img
-                  alt="FrontisAI 客服二维码"
-                  className={styles.contactQrImage}
-                  src={serviceContactQrImage}
-                />
-              </div>
-              <div className={styles.contactQrCopy}>
-                <strong>扫码添加客服</strong>
-                <span>{getAgentContactRemark(contactAgent, serviceContactConfig)}</span>
-              </div>
-            </div>
-
-            <div className={styles.orderRequestFooter}>
-              <Button type="primary" onClick={closeServiceContact}>
-                我知道了
-              </Button>
-            </div>
-          </div>
-        ) : null}
-      </Modal>
-
-      <Modal
-        className={styles.orderRequestModal}
-        destroyOnClose={true}
-        footer={null}
-        onCancel={closeAcquisition}
-        open={acquisitionState.open && Boolean(acquisitionAgent)}
-        title={
-          <span className={styles.detailModalTitle}>
-            {acquisitionState.mode === "purchase" ? "订阅 AI 专家" : "开通试用"}
-          </span>
-        }
-        width={acquisitionState.mode === "purchase" && acquisitionPlans.length >= 2 ? 920 : 580}
-      >
-        {acquisitionAgent ? (
-          <div className={styles.orderRequestBody}>
-            {acquisitionState.step === "summary" ? (
-              <>
-                <div className={styles.orderRequestSummary}>
-                  <div>
-                    <strong>{acquisitionAgent.name}</strong>
-                    <span>{acquisitionAgent.product?.name ?? acquisitionAgent.name}</span>
-                  </div>
-                  <span className={styles.detailMetaChip}>
-                    {acquisitionState.mode === "purchase"
-                      ? `为${currentTenantPurchaseName}购买`
-                      : (acquisitionAgent.trialLabel ?? "免费试用")}
-                  </span>
-                </div>
-
-                {acquisitionState.mode === "purchase" && acquisitionPlans.length ? (
-                  <div className={styles.subscriptionPlanGrid}>
-                    {acquisitionPlans.map(plan => {
-                      const isSelected = selectedAcquisitionPlan?.key === plan.key;
-                      const averagePriceLabel = getSubscriptionPlanAveragePriceLabel(plan);
-
-                      return (
-                        <div
-                          key={plan.key}
-                          className={`${styles.subscriptionPlanCard} ${
-                            isSelected ? styles.subscriptionPlanCardSelected : ""
-                          }`}
-                        >
-                          <div className={styles.subscriptionPlanCardHeader}>
-                            <div>
-                              <div className={styles.subscriptionPlanTitleRow}>
-                                <strong className={styles.subscriptionPlanTitle}>
-                                  {plan.title}
-                                </strong>
-                                {plan.tagLabel ? (
-                                  <span className={styles.subscriptionPlanTag}>
-                                    {plan.tagLabel}
-                                  </span>
-                                ) : null}
-                              </div>
-                              <p className={styles.subscriptionPlanDescription}>
-                                {plan.description}
-                              </p>
-                            </div>
-                          </div>
-
-                          <div className={styles.subscriptionPlanPriceBlock}>
-                            <div className={styles.subscriptionPlanPriceRow}>
-                              <strong className={styles.subscriptionPlanPrice}>
-                                ¥{plan.price.toLocaleString("zh-CN")}
-                              </strong>
-                              {plan.originalPrice ? (
-                                <span className={styles.subscriptionPlanOriginalPrice}>
-                                  ¥{plan.originalPrice.toLocaleString("zh-CN")}
-                                </span>
-                              ) : null}
-                            </div>
-                            <div className={styles.subscriptionPlanMetaRow}>
-                              <span>{plan.durationLabel}</span>
-                              {averagePriceLabel ? <span>{averagePriceLabel}</span> : null}
-                            </div>
-                          </div>
-
-                          <ul className={styles.subscriptionPlanFeatureList}>
-                            <li>{getSubscriptionPlanValidityLabel(plan)}</li>
-                            <li>支付后立即为{currentTenantPurchaseName}开通</li>
-                            <li>{plan.description}</li>
-                          </ul>
-
-                          <Button
-                            block
-                            type={isSelected ? "primary" : "default"}
-                            onClick={() => handleStartPurchaseQr(plan.key)}
-                          >
-                            订阅
-                          </Button>
-                        </div>
-                      );
-                    })}
-                  </div>
-                ) : null}
-
-                {acquisitionState.mode === "purchase" && !acquisitionPlans.length ? (
-                  <div className={styles.detailProcurementCard}>
-                    <div className={styles.detailKeyValueGrid}>
-                      <div className={styles.detailKeyValueItem}>
-                        <span className={styles.detailKeyValueLabel}>购买对象</span>
-                        <strong className={styles.detailKeyValueValue}>
-                          为{currentTenantPurchaseName}购买
-                        </strong>
-                      </div>
-                      <div className={styles.detailKeyValueItem}>
-                        <span className={styles.detailKeyValueLabel}>支付金额</span>
-                        <strong className={styles.detailKeyValueValue}>
-                          {getProductPriceLabel(acquisitionAgent.product!)}
-                        </strong>
-                      </div>
-                    </div>
-                  </div>
-                ) : null}
-
-                {acquisitionState.mode !== "purchase" ? (
-                  <div className={styles.detailProcurementCard}>
-                    <div className={styles.detailKeyValueGrid}>
-                      <div className={styles.detailKeyValueItem}>
-                        <span className={styles.detailKeyValueLabel}>开通对象</span>
-                        <strong className={styles.detailKeyValueValue}>
-                          为{currentTenantPurchaseName}开通
-                        </strong>
-                      </div>
-                      <div className={styles.detailKeyValueItem}>
-                        <span className={styles.detailKeyValueLabel}>获取方式</span>
-                        <strong className={styles.detailKeyValueValue}>免费试用</strong>
-                      </div>
-                    </div>
-                  </div>
-                ) : null}
-
-                <div className={styles.orderRequestFooter}>
-                  <Button onClick={closeAcquisition}>取消</Button>
-                  {acquisitionState.mode === "purchase" && !acquisitionPlans.length ? (
-                    <Button type="primary" onClick={() => handleStartPurchaseQr()}>
-                      订阅
-                    </Button>
-                  ) : null}
-                  {acquisitionState.mode !== "purchase" ? (
-                    <Button
-                      type="primary"
-                      onClick={() =>
-                        completeAcquisition(
-                          acquisitionAgent,
-                          acquisitionState.mode,
-                          buildMockPaymentOrderId("trial"),
-                        )
-                      }
-                    >
-                      确认试用
-                    </Button>
-                  ) : null}
-                </div>
-              </>
-            ) : null}
-
-            {acquisitionState.step === "pay" ? (
-              <>
-                <div className={styles.commercePayHeader}>
-                  <div>
-                    <div className={styles.commercePayTitle}>扫码支付</div>
-                    <div className={styles.commercePayAmount}>
-                      {getProductPriceLabel(
-                        acquisitionAgent.product!,
-                        selectedAcquisitionPlan?.key,
-                      )}
-                    </div>
-                  </div>
-                  <div className={styles.commercePayCountdown}>
-                    {isAcquisitionQrExpired
-                      ? "二维码已过期"
-                      : formatMockPaymentCountdown(acquisitionState.countdownSeconds)}
-                  </div>
-                </div>
-
-                {selectedAcquisitionPlan ? (
-                  <div className={styles.commercePayPlanMeta}>
-                    <strong>{acquisitionAgent.name}</strong>
-                    <span>
-                      {selectedAcquisitionPlan.title} · {selectedAcquisitionPlan.durationLabel}
-                    </span>
-                    <span>为{currentTenantPurchaseName}购买</span>
-                  </div>
-                ) : null}
-
-                <div className={styles.commerceQrWrap}>
-                  <div className={styles.commerceQrCard}>
-                    <button
-                      type="button"
-                      className={styles.commerceQrButton}
-                      disabled={isAcquisitionQrExpired || acquisitionState.isProcessingPayment}
-                      onClick={handlePayByQr}
-                    >
-                      <img
-                        alt="AI专家购买支付二维码"
-                        className={styles.commerceQrImage}
-                        src={acquisitionQrImage}
-                      />
-                    </button>
-                  </div>
-                </div>
-
-                <div className={styles.commercePayFooter}>
-                  <div className={styles.commercePayHint}>
-                    {acquisitionState.isProcessingPayment
-                      ? `支付处理中，支付成功后将自动为${currentTenantPurchaseName}开通。`
-                      : "点击二维码即可模拟扫码支付，支付完成后自动到账开通。"}
-                  </div>
-                </div>
-
-                <div className={styles.orderRequestFooter}>
-                  <Button
-                    onClick={() =>
-                      setAcquisitionState(currentState => ({ ...currentState, step: "summary" }))
-                    }
-                  >
-                    返回
-                  </Button>
-                  {isAcquisitionQrExpired ? (
-                    <Button type="primary" onClick={handleRestartPurchaseQr}>
-                      重新生成二维码
-                    </Button>
-                  ) : null}
-                </div>
-              </>
-            ) : null}
-
-            {acquisitionState.step === "success" ? (
-              <div className={styles.commerceSuccessPanel}>
-                <CheckCircleOutlined className={styles.commerceSuccessIcon} />
-                <h3 className={styles.commerceSuccessTitle}>
-                  {acquisitionState.mode === "purchase"
-                    ? "订阅成功"
-                    : acquisitionState.mode === "trial"
-                      ? "试用已开通"
-                      : "领取成功"}
-                </h3>
-                <p className={styles.commerceSuccessText}>
-                  {acquisitionAgent.name} 已为{currentTenantPurchaseName}开通。
-                </p>
-                <div className={styles.detailProcurementCard}>
-                  <div className={styles.detailKeyValueGrid}>
-                    <div className={styles.detailKeyValueItem}>
-                      <span className={styles.detailKeyValueLabel}>开通对象</span>
-                      <strong className={styles.detailKeyValueValue}>
-                        {currentTenantPurchaseName}
-                      </strong>
-                    </div>
-                    {selectedAcquisitionPlan ? (
-                      <div className={styles.detailKeyValueItem}>
-                        <span className={styles.detailKeyValueLabel}>订阅方案</span>
-                        <strong className={styles.detailKeyValueValue}>
-                          {selectedAcquisitionPlan.title} · {selectedAcquisitionPlan.durationLabel}
-                        </strong>
-                      </div>
-                    ) : null}
-                    <div className={styles.detailKeyValueItem}>
-                      <span className={styles.detailKeyValueLabel}>订单号</span>
-                      <strong className={styles.detailKeyValueValue}>
-                        {acquisitionState.completedOrderId ? acquisitionState.orderNo : "无需订单"}
-                      </strong>
-                    </div>
-                  </div>
-                </div>
-                <div className={styles.orderRequestFooter}>
-                  {acquisitionState.completedOrderId ? (
-                    <Button
-                      onClick={() => {
-                        const completedOrderId = acquisitionState.completedOrderId;
-                        closeAcquisition();
-                        if (completedOrderId) {
-                          openOrderDetail(completedOrderId);
-                        }
-                      }}
-                    >
-                      查看订单
-                    </Button>
-                  ) : null}
-                  <Button type="primary" onClick={closeAcquisition}>
-                    关闭
-                  </Button>
-                </div>
-              </div>
-            ) : null}
-          </div>
-        ) : null}
-      </Modal>
-
-      <Modal
-        className={styles.orderDetailModal}
-        destroyOnClose={true}
-        footer={null}
-        onCancel={closeOrderDetail}
-        open={Boolean(activeOrder && activeOrderAgent && activeOrderStatusMeta)}
-        title={
-          <span className={styles.detailModalTitle}>{activeOrder?.orderNo ?? "订单详情"}</span>
-        }
-        width={620}
-      >
-        {activeOrder && activeOrderAgent && activeOrderStatusMeta ? (
-          <div className={styles.orderDetailBody}>
-            <div className={styles.orderDetailHeader}>
-              <div>
-                <strong>{activeOrderAgent.name}</strong>
-                <span>{getOrderTypeLabel(activeOrder.orderType)}</span>
-              </div>
-              <span
-                className={`${styles.orderStatusBadge} ${getOrderStatusClassName(
-                  activeOrderStatusMeta.tone,
-                )}`}
-              >
-                {activeOrderStatusMeta.label}
-              </span>
-            </div>
-
-            <div className={styles.orderStepList}>
-              {getOrderStepItems(activeOrder).map(item => (
-                <div
-                  key={item.key}
-                  className={`${styles.orderStepItem} ${
-                    item.done
-                      ? styles.orderStepItemDone
-                      : item.current
-                        ? styles.orderStepItemCurrent
-                        : ""
-                  }`}
-                >
-                  <span className={styles.orderStepDot} />
-                  <strong>{item.label}</strong>
-                </div>
-              ))}
-            </div>
-
-            <div className={styles.orderDetailGrid}>
-              <div className={styles.orderDetailItem}>
-                <span className={styles.orderDetailLabel}>租户</span>
-                <strong>{activeOrder.tenantName}</strong>
-              </div>
-              <div className={styles.orderDetailItem}>
-                <span className={styles.orderDetailLabel}>购买人</span>
-                <strong>{activeOrder.purchaserName}</strong>
-              </div>
-              <div className={styles.orderDetailItem}>
-                <span className={styles.orderDetailLabel}>商品</span>
-                <strong>{activeOrder.productName}</strong>
-              </div>
-              <div className={styles.orderDetailItem}>
-                <span className={styles.orderDetailLabel}>金额</span>
-                <strong>{activeOrder.priceLabel}</strong>
-              </div>
-              {activeOrder.subscriptionPlanLabel ? (
-                <div className={styles.orderDetailItem}>
-                  <span className={styles.orderDetailLabel}>订阅方案</span>
-                  <strong>
-                    {activeOrder.subscriptionPlanLabel}
-                    {activeOrder.subscriptionDurationLabel
-                      ? ` · ${activeOrder.subscriptionDurationLabel}`
-                      : ""}
-                  </strong>
-                </div>
-              ) : null}
-              <div className={styles.orderDetailItem}>
-                <span className={styles.orderDetailLabel}>创建时间</span>
-                <strong>{activeOrder.createdAt}</strong>
-              </div>
-              <div className={styles.orderDetailItem}>
-                <span className={styles.orderDetailLabel}>支付时间</span>
-                <strong>{activeOrder.paidAt ?? "未支付"}</strong>
-              </div>
-              <div className={styles.orderDetailItem}>
-                <span className={styles.orderDetailLabel}>开通时间</span>
-                <strong>{activeOrder.startsAt}</strong>
-              </div>
-              <div className={styles.orderDetailItem}>
-                <span className={styles.orderDetailLabel}>有效期</span>
-                <strong>{activeOrder.expiresAt ?? "长期有效"}</strong>
-              </div>
-              <div className={`${styles.orderDetailItem} ${styles.orderDetailItemFull}`}>
-                <span className={styles.orderDetailLabel}>开通结果</span>
-                <strong>
-                  {activeOrderFulfillment
-                    ? `${activeOrderFulfillment.allocationTarget}${
-                        activeOrderFulfillment.resourcePoolName
-                          ? ` · ${activeOrderFulfillment.resourcePoolName}`
-                          : ""
-                      }`
-                    : "当前订单已支付，等待开通同步。"}
-                </strong>
-              </div>
-            </div>
-
-            <div className={styles.orderRequestFooter}>
-              {activeOrder.orderType === "trial" ? (
-                <Button
-                  type="primary"
-                  onClick={() => {
-                    closeOrderDetail();
-                    openAcquisition(activeOrderAgent, "purchase");
-                  }}
-                >
-                  立即订阅
-                </Button>
-              ) : null}
-              <Button onClick={closeOrderDetail}>关闭</Button>
             </div>
           </div>
         ) : null}

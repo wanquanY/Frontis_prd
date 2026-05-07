@@ -13,8 +13,7 @@ export type OperationsPlatformTabKey =
   | "products"
   | "fulfillment"
   | "resources"
-  | "points"
-  | "agentPlaza";
+  | "points";
 
 /**
  * 运营后台租户状态。
@@ -42,7 +41,7 @@ export type OperationsTenantEdition = "personal" | "team";
 export type OperationsAgentApprovalStatus = "pending" | "approved" | "rejected";
 
 /**
- * AI专家广场上架状态。
+ * AI专家商品上架状态。
  */
 export type OperationsAgentPlazaStatus = "online" | "offline";
 
@@ -52,22 +51,27 @@ export type OperationsAgentPlazaStatus = "online" | "offline";
 export type OperationsAgentSubmissionType = "squarePublish" | "commodityApplication";
 
 /**
- * AI专家广场分类名称，由运营后台维护。
+ * 商品分类名称，由运营后台维护。
  */
 export type OperationsAgentPlazaCategory = string;
 
 /**
- * AI专家广场分类状态。
+ * 商品分类状态。
  */
 export type OperationsAgentPlazaCategoryStatus = "active" | "inactive";
 
 /**
- * AI专家广场可见范围。
+ * 商品可见范围。
  */
 export type OperationsAgentPlazaVisibility = "public" | "tenant";
 
 /**
- * AI专家广场分类配置项。
+ * 商品适用的租户计费模型。
+ */
+export type OperationsProductBillingScope = "points" | "cost";
+
+/**
+ * 商品分类配置项。
  */
 export interface OperationsAgentPlazaCategoryOption {
   id: string;
@@ -98,7 +102,7 @@ export type OperationsProductSubscriptionPlanStatus = "active" | "inactive";
 export type OperationsProductTrialUnit = "day" | "count";
 
 /**
- * Agent 商品联系客服入口模式。
+ * Agent 商品客服入口模式。
  */
 export type OperationsProductContactMode = "disabled" | "platformDefault" | "custom";
 
@@ -566,6 +570,7 @@ export interface OperationsProduct {
   visibleTenantNames?: string[];
   plazaStatus?: OperationsAgentPlazaStatus;
   plazaSort?: number;
+  billingScopes?: OperationsProductBillingScope[];
   updatedAt: string;
 }
 
@@ -591,6 +596,9 @@ export interface OperationsProductForm {
   contactMode: OperationsProductContactMode;
   contactQrCodeValue: string;
   contactRemark: string;
+  plazaCategory: OperationsAgentPlazaCategory;
+  plazaStatus: OperationsAgentPlazaStatus;
+  billingScopes: OperationsProductBillingScope[];
 }
 
 /**

@@ -18,18 +18,7 @@ import {
   TeamOutlined,
 } from "@ant-design/icons";
 import type { MenuProps } from "antd";
-import {
-  Avatar,
-  Button,
-  Dropdown,
-  Empty,
-  Input,
-  InputNumber,
-  Modal,
-  Select,
-  Switch,
-  message,
-} from "antd";
+import { Avatar, Button, Dropdown, Empty, Input, InputNumber, Modal, Select, message } from "antd";
 import classNames from "classnames";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 
@@ -52,15 +41,11 @@ import type {
   MockTenantPointsOrderItem,
   MockTenantPointsOrderStatus,
 } from "@/feature/auth/types";
-import type { MockPointsPackageOption } from "@/feature/points/types";
-import type {
-  MockTenantPlanPackageOption,
-  MockTenantSeatPricing,
-} from "@/feature/tenantPlan/types";
 import {
   OPERATIONS_AGENT_PLAZA_DEFAULT_CATEGORY,
-  OPERATIONS_AGENT_PLAZA_VISIBILITY_LABELS,
   OPERATIONS_DEFAULT_PATH,
+  OPERATIONS_PRODUCT_BILLING_SCOPE_LABELS,
+  OPERATIONS_PRODUCT_BILLING_SCOPE_OPTIONS,
   OPERATIONS_TAB_OPTIONS,
 } from "@/feature/operations/mockData";
 import type {
@@ -75,6 +60,7 @@ import type {
   OperationsModelServiceForm,
   OperationsPlatformTabKey,
   OperationsProduct,
+  OperationsProductBillingScope,
   OperationsProductForm,
   OperationsResourcePool,
   OperationsResourcePoolForm,
@@ -110,15 +96,6 @@ interface ProductEditorState {
   form: OperationsProductForm;
 }
 
-interface AgentPlazaEditorState {
-  open: boolean;
-  productId?: string;
-  category: NonNullable<OperationsProduct["plazaCategory"]>;
-  visibility: NonNullable<OperationsProduct["plazaVisibility"]>;
-  visibleTenantIds: string[];
-  status: NonNullable<OperationsProduct["plazaStatus"]>;
-}
-
 interface AgentPlazaCategoryEditorState {
   open: boolean;
   mode: "create" | "edit";
@@ -146,8 +123,7 @@ interface RejectEditorState {
 }
 
 type AgentFilterValue = "all" | OperationsAgentSubmission["status"];
-type AgentPlazaConsoleTabKey = "delivery" | "category";
-type ProductConsoleTabKey = "standard" | "points" | "team" | "seat";
+type ProductConsoleTabKey = "delivery" | "category";
 type ResourcePoolConsoleTabKey = OperationsResourceMeteringMode;
 
 interface TenantConsoleProps {
@@ -172,101 +148,25 @@ interface AgentConsoleProps {
   onOpenReview: (submissionId: string) => void;
 }
 
-interface AgentPlazaConsoleProps {
+interface ProductConsoleProps {
   products: OperationsProduct[];
-  tenants: OperationsTenant[];
   categories: OperationsAgentPlazaCategoryOption[];
-  plazaVisibilityLabels: typeof OPERATIONS_AGENT_PLAZA_VISIBILITY_LABELS;
-  onEdit: (product: OperationsProduct) => void;
+  statusLabels: Record<OperationsProduct["status"], string>;
+  productTrialUnitLabels: Record<NonNullable<OperationsProduct["trialUnit"]>, string>;
+  onCreate: () => void;
+  onViewDetail: (productId: string) => void;
   onCreateCategory: () => void;
   onEditCategory: (category: OperationsAgentPlazaCategoryOption) => void;
   onToggleCategoryStatus: (category: OperationsAgentPlazaCategoryOption) => void;
 }
 
-interface ProductConsoleProps {
-  products: OperationsProduct[];
-  pointsPackages: MockPointsPackageOption[];
-  teamPackages: MockTenantPlanPackageOption[];
-  seatPricing: MockTenantSeatPricing;
-  statusLabels: Record<OperationsProduct["status"], string>;
-  productSaleTypeLabels: Record<OperationsProduct["saleType"], string>;
-  productTrialUnitLabels: Record<NonNullable<OperationsProduct["trialUnit"]>, string>;
-  productDeliveryKindLabels: Record<OperationsProduct["deliveryKind"], string>;
-  productBillingSpecLabels: Record<NonNullable<OperationsProduct["billingSpec"]>, string>;
-  onCreate: () => void;
-  onViewDetail: (productId: string) => void;
-  onCreatePointsPackage: (
-    payload: Pick<
-      MockPointsPackageOption,
-      "title" | "description" | "points" | "price" | "tagLabel"
-    >,
-  ) => void;
-  onUpdatePointsPackage: (
-    packageId: string,
-    updates: Partial<
-      Pick<
-        MockPointsPackageOption,
-        "title" | "description" | "points" | "price" | "status" | "sortOrder" | "tagLabel"
-      >
-    >,
-  ) => void;
-  onCreateTeamPackage: (
-    payload: Pick<
-      MockTenantPlanPackageOption,
-      "title" | "description" | "includedSeats" | "price" | "tagLabel"
-    >,
-  ) => void;
-  onUpdateTeamPackage: (
-    packageId: string,
-    updates: Partial<
-      Pick<
-        MockTenantPlanPackageOption,
-        "title" | "description" | "includedSeats" | "price" | "status" | "sortOrder" | "tagLabel"
-      >
-    >,
-  ) => void;
-  onUpdateSeatPricing: (
-    updates: Partial<Pick<MockTenantSeatPricing, "pricePerSeat" | "billingCycleLabel">>,
-  ) => void;
-}
-
 interface ProductDetailConsoleProps {
   product: OperationsProduct | null;
   statusLabels: Record<OperationsProduct["status"], string>;
-  productSaleTypeLabels: Record<OperationsProduct["saleType"], string>;
   productTrialUnitLabels: Record<NonNullable<OperationsProduct["trialUnit"]>, string>;
-  productDeliveryKindLabels: Record<OperationsProduct["deliveryKind"], string>;
-  productBillingModeLabels: Record<OperationsProduct["billingMode"], string>;
-  productMeteringUnitLabels: Record<OperationsProduct["meteringUnit"], string>;
-  productBillingSpecLabels: Record<NonNullable<OperationsProduct["billingSpec"]>, string>;
   onBack: () => void;
   onEdit: (product: OperationsProduct) => void;
   onToggleStatus: (product: OperationsProduct) => void;
-}
-
-interface PointsPackageEditorState {
-  open: boolean;
-  packageId?: string;
-  title: string;
-  description: string;
-  points: number;
-  price: number;
-  tagLabel: string;
-}
-
-interface TeamPackageEditorState {
-  open: boolean;
-  packageId?: string;
-  title: string;
-  description: string;
-  includedSeats: number;
-  price: number;
-  tagLabel: string;
-}
-
-interface SeatPricingEditorState {
-  open: boolean;
-  pricePerSeat: number;
 }
 
 interface FulfillmentConsoleProps {
@@ -300,7 +200,6 @@ interface ResourcePoolConsoleProps {
 const OPERATIONS_TAB_ICON_MAP: Record<OperationsPlatformTabKey, JSX.Element> = {
   tenants: <ApartmentOutlined />,
   organization: <TeamOutlined />,
-  agentPlaza: <AppstoreOutlined />,
   agents: <RobotOutlined />,
   products: <ShopOutlined />,
   fulfillment: <DeploymentUnitOutlined />,
@@ -340,32 +239,26 @@ const OPERATIONS_TENANT_DEPLOYMENT_MODE_OPTIONS: Array<{
   { label: "成本计费", value: "privateCloud" },
 ];
 
+type ProductAcquisitionMode = "freeAdd" | "trial";
+
+const PRODUCT_ACQUISITION_MODE_OPTIONS: Array<{
+  value: ProductAcquisitionMode;
+  label: string;
+}> = [
+  { value: "freeAdd", label: "免费添加" },
+  { value: "trial", label: "免费试用" },
+];
+
 const PRODUCT_FIELD_IDS = {
   name: "operations-product-name",
-  supplyKind: "operations-product-supply-kind",
-  deliveryKind: "operations-product-delivery-kind",
-  saleType: "operations-product-sale-type",
-  billingMode: "operations-product-billing-mode",
-  meteringUnit: "operations-product-metering-unit",
-  billingSpec: "operations-product-billing-spec",
+  category: "operations-product-category",
+  billingScopes: "operations-product-billing-scopes",
+  status: "operations-product-status",
+  acquisitionMode: "operations-product-acquisition-mode",
   linkedAgentId: "operations-product-linked-agent",
-  resourcePoolId: "operations-product-resource-pool",
-  price: "operations-product-price",
-  supportsTrial: "operations-product-supports-trial",
   trialUnit: "operations-product-trial-unit",
   trialValue: "operations-product-trial-value",
-  contactMode: "operations-product-contact-mode",
-  contactQrCodeValue: "operations-product-contact-qr-code-value",
-  contactRemark: "operations-product-contact-remark",
-  freeRule: "operations-product-free-rule",
   description: "operations-product-description",
-} as const;
-
-const AGENT_PLAZA_FIELD_IDS = {
-  category: "operations-agent-plaza-category",
-  visibility: "operations-agent-plaza-visibility",
-  visibleTenantIds: "operations-agent-plaza-visible-tenants",
-  status: "operations-agent-plaza-status",
 } as const;
 
 const AGENT_PLAZA_CATEGORY_FIELD_IDS = {
@@ -391,8 +284,8 @@ const getTabKeyFromPath = (tabPath?: string): OperationsPlatformTabKey | null =>
   if (
     tabPath === "tenants" ||
     tabPath === "organization" ||
-    tabPath === "agentPlaza" ||
     tabPath === "agents" ||
+    tabPath === "products" ||
     tabPath === "resources" ||
     tabPath === "points"
   ) {
@@ -406,17 +299,7 @@ const PRODUCT_CONSOLE_TAB_OPTIONS: Array<{
   key: ProductConsoleTabKey;
   label: string;
 }> = [
-  { key: "standard", label: "AI专家与资源商品" },
-  { key: "points", label: "积分包商品" },
-  { key: "team", label: "团队套餐商品" },
-  { key: "seat", label: "席位加购商品" },
-];
-
-const AGENT_PLAZA_CONSOLE_TAB_OPTIONS: Array<{
-  key: AgentPlazaConsoleTabKey;
-  label: string;
-}> = [
-  { key: "delivery", label: "投放管理" },
+  { key: "delivery", label: "商品列表" },
   { key: "category", label: "分类管理" },
 ];
 
@@ -477,7 +360,7 @@ const buildOperationsTenantPointsSnapshot = (
   pointsLedger: [
     {
       id: `${tenant.id}-operations-points-${Date.now()}`,
-      title: "运营配置积分",
+      title: "购买标准积分包",
       description,
       points,
       direction: "income",
@@ -534,19 +417,6 @@ const getProductStatusClassName = (status: OperationsProduct["status"]): string 
 
   return buildStatusClassName();
 };
-
-const getAgentPlazaStatus = (
-  product: OperationsProduct,
-): NonNullable<OperationsProduct["plazaStatus"]> =>
-  product.plazaStatus ?? (product.status === "active" ? "online" : "offline");
-
-const getAgentPlazaStatusClassName = (
-  status: NonNullable<OperationsProduct["plazaStatus"]>,
-): string =>
-  status === "online" ? buildStatusClassName("success") : buildStatusClassName("danger");
-
-const getAgentPlazaStatusLabel = (status: NonNullable<OperationsProduct["plazaStatus"]>): string =>
-  status === "online" ? "已上架" : "已下架";
 
 const getAgentPlazaCategoryStatusClassName = (
   status: OperationsAgentPlazaCategoryOption["status"],
@@ -644,49 +514,6 @@ interface OperationsOrderCenterRow {
   searchText: string;
 }
 
-const getProductBillingSpecLabel = (
-  productBillingSpecLabels: Record<NonNullable<OperationsProduct["billingSpec"]>, string>,
-  billingSpec: OperationsProduct["billingSpec"],
-): string => (billingSpec ? productBillingSpecLabels[billingSpec] : "-");
-
-const getActiveSubscriptionPlans = (product: OperationsProduct) =>
-  (product.subscriptionPlans ?? [])
-    .filter(item => item.status === "active")
-    .sort((leftItem, rightItem) => leftItem.sortOrder - rightItem.sortOrder);
-
-const getPrimarySubscriptionPlan = (product: OperationsProduct) =>
-  getActiveSubscriptionPlans(product)[0];
-
-const getSubscriptionPlansSummary = (product: OperationsProduct): string => {
-  const activePlans = getActiveSubscriptionPlans(product);
-
-  if (!activePlans.length) {
-    return "未配置订阅方案";
-  }
-
-  return activePlans.map(item => item.title).join(" / ");
-};
-
-const getProductPriceLabel = (
-  product: OperationsProduct,
-  productBillingSpecLabels: Record<NonNullable<OperationsProduct["billingSpec"]>, string>,
-): string => {
-  if (product.saleType === "free") {
-    return "免费";
-  }
-
-  const primaryPlan = getPrimarySubscriptionPlan(product);
-
-  if (primaryPlan) {
-    return `${formatCurrency(primaryPlan.price)} / ${primaryPlan.title}`;
-  }
-
-  return `${formatCurrency(product.price ?? 0)} / ${getProductBillingSpecLabel(
-    productBillingSpecLabels,
-    product.billingSpec,
-  )}`;
-};
-
 const getProductTrialLabel = (
   product: OperationsProduct,
   productTrialUnitLabels: Record<NonNullable<OperationsProduct["trialUnit"]>, string>,
@@ -698,43 +525,45 @@ const getProductTrialLabel = (
   return `${product.trialValue}${productTrialUnitLabels[product.trialUnit]}`;
 };
 
-const getResourcePoolTypeByDeliveryKind = (
-  deliveryKind: OperationsProduct["deliveryKind"],
-): OperationsResourcePool["resourceType"] | null => {
-  if (deliveryKind === "physicalDevice") {
-    return "physicalDevice";
-  }
+const getProductBillingScopeLabel = (product: OperationsProduct): string => {
+  const billingScopes: OperationsProductBillingScope[] = product.billingScopes?.length
+    ? product.billingScopes
+    : ["points"];
 
-  if (deliveryKind === "virtualDevice") {
-    return "virtualDevice";
-  }
-
-  if (deliveryKind === "thirdPartyApi") {
-    return "thirdPartyApi";
-  }
-
-  return null;
+  return billingScopes.map(item => OPERATIONS_PRODUCT_BILLING_SCOPE_LABELS[item]).join(" / ");
 };
 
-const getAvailableResourcePoolOptions = (
-  resourcePools: OperationsResourcePool[],
-  deliveryKind: OperationsProduct["deliveryKind"],
-): Array<{
-  value: string;
-  label: string;
-}> => {
-  const resourceType = getResourcePoolTypeByDeliveryKind(deliveryKind);
-
-  if (!resourceType) {
-    return [];
+const getProductAcquisitionLabel = (product: OperationsProduct): string => {
+  if (product.supportsTrial) {
+    return "免费试用";
   }
 
-  return resourcePools
-    .filter(item => item.resourceType === resourceType)
-    .map(item => ({
-      value: item.id,
-      label: item.name,
-    }));
+  return "免费添加";
+};
+
+const getProductAcquisitionMode = (
+  form: Pick<OperationsProductForm, "supportsTrial">,
+): ProductAcquisitionMode => {
+  if (form.supportsTrial) {
+    return "trial";
+  }
+
+  return "freeAdd";
+};
+
+const applyProductAcquisitionMode = (
+  form: OperationsProductForm,
+  mode: ProductAcquisitionMode,
+): OperationsProductForm => {
+  const shouldSupportTrial = mode === "trial";
+
+  return {
+    ...form,
+    supportsTrial: shouldSupportTrial,
+    contactMode: "disabled",
+    contactQrCodeValue: "",
+    contactRemark: "",
+  };
 };
 
 const getAvailableCapacityUnitOptions = (
@@ -760,49 +589,6 @@ const getResourcePoolCapacityLabel = (
   resourcePoolCapacityUnitLabels: Record<OperationsResourcePool["capacityUnit"], string>,
 ): string =>
   `${resourcePool.availableCapacity}/${resourcePool.totalCapacity} ${resourcePoolCapacityUnitLabels[resourcePool.capacityUnit]}`;
-
-const getAvailableMeteringUnitOptions = (
-  meteringUnitOptions: Array<{
-    value: OperationsProduct["meteringUnit"];
-    label: string;
-  }>,
-  billingSpecOptions: Array<{
-    value: OperationsProduct["billingSpec"];
-    label: string;
-    modes: OperationsProduct["billingMode"][];
-    units: OperationsProduct["meteringUnit"][];
-  }>,
-  billingMode: OperationsProduct["billingMode"],
-): Array<{
-  value: OperationsProduct["meteringUnit"];
-  label: string;
-}> => {
-  const allowedUnits = new Set<OperationsProduct["meteringUnit"]>(
-    billingSpecOptions.filter(item => item.modes.includes(billingMode)).flatMap(item => item.units),
-  );
-
-  return meteringUnitOptions.filter(item => allowedUnits.has(item.value));
-};
-
-const getAvailableBillingSpecOptions = (
-  billingSpecOptions: Array<{
-    value: OperationsProduct["billingSpec"];
-    label: string;
-    modes: OperationsProduct["billingMode"][];
-    units: OperationsProduct["meteringUnit"][];
-  }>,
-  billingMode: OperationsProduct["billingMode"],
-  meteringUnit: OperationsProduct["meteringUnit"],
-): Array<{
-  value: OperationsProduct["billingSpec"];
-  label: string;
-}> =>
-  billingSpecOptions
-    .filter(item => item.modes.includes(billingMode) && item.units.includes(meteringUnit))
-    .map(item => ({
-      value: item.value,
-      label: item.label,
-    }));
 
 const TenantConsole = ({
   tenants,
@@ -980,7 +766,7 @@ const TenantDetailConsole = ({
 
     const updatedSnapshot =
       rechargeMockTenantPoints(tenant.id, nextAmount, pointsActorName, {
-        title: "运营配置积分",
+        title: "购买标准积分包",
         description: nextDescription,
       }) ??
       saveMockTenantManagementSnapshot(
@@ -1035,7 +821,9 @@ const TenantDetailConsole = ({
         <section className={adminStyles.consoleSection}>
           <div className={classNames(styles.detailGrid, styles.tenantDetailGrid)}>
             <section className={adminStyles.detailBlock}>
-              <h3 className={classNames(adminStyles.detailBlockTitle, styles.detailBlockTitleReset)}>
+              <h3
+                className={classNames(adminStyles.detailBlockTitle, styles.detailBlockTitleReset)}
+              >
                 基础信息
               </h3>
               <div className={adminStyles.consoleRows}>
@@ -1101,7 +889,9 @@ const TenantDetailConsole = ({
             </section>
 
             <section className={adminStyles.detailBlock}>
-              <h3 className={classNames(adminStyles.detailBlockTitle, styles.detailBlockTitleReset)}>
+              <h3
+                className={classNames(adminStyles.detailBlockTitle, styles.detailBlockTitleReset)}
+              >
                 开通范围
               </h3>
               <div className={styles.pillRow}>
@@ -1293,78 +1083,79 @@ const AgentConsole = ({
   );
 };
 
-const AgentPlazaConsole = ({
+const ProductConsole = ({
   products,
-  tenants,
   categories,
-  plazaVisibilityLabels,
-  onEdit,
+  statusLabels,
+  productTrialUnitLabels,
+  onCreate,
+  onViewDetail,
   onCreateCategory,
   onEditCategory,
   onToggleCategoryStatus,
-}: AgentPlazaConsoleProps): JSX.Element => {
+}: ProductConsoleProps): JSX.Element => {
   const [keyword, setKeyword] = useState<string>("");
-  const [activeConsoleTab, setActiveConsoleTab] = useState<AgentPlazaConsoleTabKey>("delivery");
-
+  const [activeConsoleTab, setActiveConsoleTab] = useState<ProductConsoleTabKey>("delivery");
   const sortedCategories = useMemo<OperationsAgentPlazaCategoryOption[]>(
     () => getSortedAgentPlazaCategories(categories),
     [categories],
   );
-  const agentProducts = useMemo<OperationsProduct[]>(
-    () => products.filter(item => item.supplyKind === "agent"),
-    [products],
-  );
+  const activeCategoryCount = sortedCategories.filter(item => item.status === "active").length;
 
-  const filteredProducts = useMemo<OperationsProduct[]>(
+  const filteredAgentProducts = useMemo<OperationsProduct[]>(
     () =>
-      agentProducts.filter(item => {
+      products.filter(item => {
+        if (item.supplyKind !== "agent") {
+          return false;
+        }
+
         const searchSource = [
           item.name,
           item.linkedAgentName ?? "",
+          item.description,
           item.plazaCategory ?? "",
-          ...(item.visibleTenantNames ?? []),
+          getProductAcquisitionLabel(item),
+          getProductBillingScopeLabel(item),
         ]
           .join(" ")
           .toLowerCase();
 
         return searchSource.includes(keyword.trim().toLowerCase());
       }),
-    [agentProducts, keyword],
+    [keyword, products],
   );
-
-  const enterpriseTenantCount = tenants.filter(item => item.type === "enterprise").length;
-  const activeCategoryCount = sortedCategories.filter(item => item.status === "active").length;
 
   return (
     <div className={adminStyles.consolePage}>
       <header className={adminStyles.consoleHeader}>
         <div className={adminStyles.consoleHeaderMain}>
-          <h1 className={adminStyles.consoleTitle}>AI专家广场管理</h1>
-          <p className={adminStyles.consoleSubtitle}>
-            维护已上架 AI 专家的投放、分类、展示范围和指定租户可见性。
-          </p>
+          <h1 className={adminStyles.consoleTitle}>商品中心</h1>
         </div>
 
         <div className={adminStyles.consoleHeaderSide}>
           {activeConsoleTab === "delivery" ? (
-            <Input
-              className={adminStyles.consoleInlineSearch}
-              value={keyword}
-              placeholder="搜索 AI专家、上架名称、分类、可见租户"
-              onChange={event => setKeyword(event.target.value)}
-            />
-          ) : null}
-          {activeConsoleTab === "category" ? (
+            <>
+              <Input
+                className={adminStyles.consoleInlineSearch}
+                value={keyword}
+                placeholder="搜索 AI专家商品、分类、计费模型"
+                onChange={event => setKeyword(event.target.value)}
+              />
+              <Button type="primary" onClick={onCreate}>
+                新建AI专家商品
+              </Button>
+            </>
+          ) : (
             <Button type="primary" onClick={onCreateCategory}>
               <PlusOutlined />
               新建分类
             </Button>
-          ) : null}
+          )}
         </div>
       </header>
 
       <div className={styles.detailTabBar}>
-        {AGENT_PLAZA_CONSOLE_TAB_OPTIONS.map(item => (
+        {PRODUCT_CONSOLE_TAB_OPTIONS.map(item => (
           <button
             key={item.key}
             type="button"
@@ -1383,95 +1174,70 @@ const AgentPlazaConsole = ({
         <section className={adminStyles.consoleSection}>
           <div className={adminStyles.consoleSectionHeader}>
             <div className={adminStyles.consoleSectionHeaderMain}>
-              <h2 className={adminStyles.consoleSectionTitle}>投放列表</h2>
-              <p className={adminStyles.consoleSectionMeta}>
-                当前显示 {filteredProducts.length} 个 AI 专家；全部共 {agentProducts.length}{" "}
-                个，所有可见专家均支持用户添加使用。
-              </p>
+              <h2 className={adminStyles.consoleSectionTitle}>AI专家商品</h2>
             </div>
           </div>
 
-          {filteredProducts.length ? (
+          {filteredAgentProducts.length ? (
             <div className={adminStyles.consoleHtmlTableWrap}>
               <table className={adminStyles.consoleHtmlTable}>
                 <thead>
                   <tr>
-                    <th>AI专家</th>
-                    <th>上架名称</th>
-                    <th>广场分类</th>
-                    <th>可见范围</th>
-                    <th>广场状态</th>
+                    <th>AI专家商品</th>
+                    <th>分类</th>
+                    <th>计费模型</th>
+                    <th>获取方式</th>
+                    <th>试用规则</th>
                     <th>上架状态</th>
                     <th>更新时间</th>
                     <th>操作</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredProducts.map(product => {
-                    const visibilityLabel =
-                      product.plazaVisibility === "tenant"
-                        ? `${plazaVisibilityLabels.tenant} · ${
-                            product.visibleTenantNames?.join("、") || "未选择租户"
-                          }`
-                        : plazaVisibilityLabels.public;
-                    const plazaStatus = getAgentPlazaStatus(product);
-
-                    return (
-                      <tr key={product.id}>
-                        <td>{product.linkedAgentName ?? "未绑定 AI专家"}</td>
-                        <td>
-                          <button
-                            type="button"
-                            className={styles.recordEntryButton}
-                            onClick={() => onEdit(product)}
-                          >
-                            <span className={styles.recordEntryTitle}>{product.name}</span>
-                          </button>
-                        </td>
-                        <td>{product.plazaCategory ?? OPERATIONS_AGENT_PLAZA_DEFAULT_CATEGORY}</td>
-                        <td>{visibilityLabel}</td>
-                        <td>
-                          <span className={getAgentPlazaStatusClassName(plazaStatus)}>
-                            {getAgentPlazaStatusLabel(plazaStatus)}
-                          </span>
-                        </td>
-                        <td>
-                          <span className={getProductStatusClassName(product.status)}>
-                            {product.status === "active"
-                              ? "已上架"
-                              : product.status === "draft"
-                                ? "待配置"
-                                : "已下线"}
-                          </span>
-                        </td>
-                        <td>{product.updatedAt}</td>
-                        <td>
-                          <Button size="small" type="link" onClick={() => onEdit(product)}>
-                            编辑投放
-                          </Button>
-                        </td>
-                      </tr>
-                    );
-                  })}
+                  {filteredAgentProducts.map(product => (
+                    <tr key={product.id}>
+                      <td>
+                        <button
+                          type="button"
+                          className={styles.recordEntryButton}
+                          onClick={() => onViewDetail(product.id)}
+                        >
+                          <span className={styles.recordEntryTitle}>{product.name}</span>
+                        </button>
+                      </td>
+                      <td>{product.plazaCategory ?? OPERATIONS_AGENT_PLAZA_DEFAULT_CATEGORY}</td>
+                      <td>{getProductBillingScopeLabel(product)}</td>
+                      <td>{getProductAcquisitionLabel(product)}</td>
+                      <td>{getProductTrialLabel(product, productTrialUnitLabels)}</td>
+                      <td>
+                        <span className={getProductStatusClassName(product.status)}>
+                          {statusLabels[product.status]}
+                        </span>
+                      </td>
+                      <td>{product.updatedAt}</td>
+                      <td>
+                        <Button size="small" type="link" onClick={() => onViewDetail(product.id)}>
+                          {product.status === "pendingProductization" ? "完善配置" : "查看详情"}
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>
           ) : (
             <div className={styles.emptyWrap}>
-              <Empty description="当前筛选下暂无已上架 AI专家。" />
+              <Empty description="当前筛选下暂无 AI专家商品。" />
             </div>
           )}
         </section>
-      ) : null}
-
-      {activeConsoleTab === "category" ? (
+      ) : (
         <section className={adminStyles.consoleSection}>
           <div className={adminStyles.consoleSectionHeader}>
             <div className={adminStyles.consoleSectionHeaderMain}>
-              <h2 className={adminStyles.consoleSectionTitle}>分类列表</h2>
+              <h2 className={adminStyles.consoleSectionTitle}>分类管理</h2>
               <p className={adminStyles.consoleSectionMeta}>
-                共 {sortedCategories.length} 个分类，{activeCategoryCount}{" "}
-                个启用；启用分类会同步出现在用户侧 AI 专家广场筛选中。
+                共 {sortedCategories.length} 个分类，{activeCategoryCount} 个启用。
               </p>
             </div>
           </div>
@@ -1520,697 +1286,11 @@ const AgentPlazaConsole = ({
             </div>
           ) : (
             <div className={styles.emptyWrap}>
-              <Empty description="暂无 AI专家广场分类，请先创建分类。" />
+              <Empty description="暂无商品分类，请先创建分类。" />
             </div>
           )}
         </section>
-      ) : null}
-    </div>
-  );
-};
-
-const ProductConsole = ({
-  products,
-  pointsPackages,
-  teamPackages,
-  seatPricing,
-  statusLabels,
-  productSaleTypeLabels,
-  productTrialUnitLabels,
-  productDeliveryKindLabels,
-  productBillingSpecLabels,
-  onCreate,
-  onViewDetail,
-  onCreatePointsPackage,
-  onUpdatePointsPackage,
-  onCreateTeamPackage,
-  onUpdateTeamPackage,
-  onUpdateSeatPricing,
-}: ProductConsoleProps): JSX.Element => {
-  const [keyword, setKeyword] = useState<string>("");
-  const [activeProductTab, setActiveProductTab] = useState<ProductConsoleTabKey>("standard");
-  const [pointsPackageEditor, setPointsPackageEditor] = useState<PointsPackageEditorState>({
-    open: false,
-    title: "",
-    description: "",
-    points: 0,
-    price: 0,
-    tagLabel: "",
-  });
-  const [teamPackageEditor, setTeamPackageEditor] = useState<TeamPackageEditorState>({
-    open: false,
-    title: "",
-    description: "",
-    includedSeats: 0,
-    price: 0,
-    tagLabel: "",
-  });
-  const [seatPricingEditor, setSeatPricingEditor] = useState<SeatPricingEditorState>({
-    open: false,
-    pricePerSeat: seatPricing.pricePerSeat,
-  });
-
-  const filteredProducts = useMemo<OperationsProduct[]>(
-    () =>
-      products.filter(item => {
-        const searchSource = [
-          item.name,
-          item.linkedAgentName ?? "",
-          item.resourcePoolName ?? "",
-          item.description,
-        ]
-          .join(" ")
-          .toLowerCase();
-
-        return searchSource.includes(keyword.trim().toLowerCase());
-      }),
-    [keyword, products],
-  );
-
-  const handleOpenCreatePointsPackage = (): void => {
-    setPointsPackageEditor({
-      open: true,
-      title: "",
-      description: "",
-      points: 0,
-      price: 0,
-      tagLabel: "",
-    });
-  };
-
-  const handleOpenEditPointsPackage = (targetPackage: MockPointsPackageOption): void => {
-    setPointsPackageEditor({
-      open: true,
-      packageId: targetPackage.id,
-      title: targetPackage.title,
-      description: targetPackage.description,
-      points: targetPackage.points,
-      price: targetPackage.price,
-      tagLabel: targetPackage.tagLabel ?? "",
-    });
-  };
-
-  const handleSubmitPointsPackageEditor = (): void => {
-    if (
-      !pointsPackageEditor.title.trim() ||
-      pointsPackageEditor.points <= 0 ||
-      pointsPackageEditor.price <= 0
-    ) {
-      message.warning("请先补齐积分包名称、积分数量和价格。");
-      return;
-    }
-
-    const payload = {
-      title: pointsPackageEditor.title.trim(),
-      description: pointsPackageEditor.description.trim(),
-      points: pointsPackageEditor.points,
-      price: pointsPackageEditor.price,
-      tagLabel: pointsPackageEditor.tagLabel.trim() || undefined,
-    };
-
-    if (pointsPackageEditor.packageId) {
-      onUpdatePointsPackage(pointsPackageEditor.packageId, payload);
-      message.success("积分包商品已更新。");
-    } else {
-      onCreatePointsPackage(payload);
-      message.success("积分包商品已创建。");
-    }
-
-    setPointsPackageEditor({
-      open: false,
-      title: "",
-      description: "",
-      points: 0,
-      price: 0,
-      tagLabel: "",
-    });
-  };
-
-  const handleOpenCreateTeamPackage = (): void => {
-    setTeamPackageEditor({
-      open: true,
-      title: "",
-      description: "",
-      includedSeats: 0,
-      price: 0,
-      tagLabel: "",
-    });
-  };
-
-  const handleOpenEditTeamPackage = (targetPackage: MockTenantPlanPackageOption): void => {
-    setTeamPackageEditor({
-      open: true,
-      packageId: targetPackage.id,
-      title: targetPackage.title,
-      description: targetPackage.description,
-      includedSeats: targetPackage.includedSeats,
-      price: targetPackage.price,
-      tagLabel: targetPackage.tagLabel ?? "",
-    });
-  };
-
-  const handleSubmitTeamPackageEditor = (): void => {
-    if (
-      !teamPackageEditor.title.trim() ||
-      teamPackageEditor.includedSeats <= 0 ||
-      teamPackageEditor.price <= 0
-    ) {
-      message.warning("请先补齐团队套餐名称、席位数和价格。");
-      return;
-    }
-
-    const payload = {
-      title: teamPackageEditor.title.trim(),
-      description: teamPackageEditor.description.trim(),
-      includedSeats: teamPackageEditor.includedSeats,
-      price: teamPackageEditor.price,
-      tagLabel: teamPackageEditor.tagLabel.trim() || undefined,
-    };
-
-    if (teamPackageEditor.packageId) {
-      onUpdateTeamPackage(teamPackageEditor.packageId, payload);
-      message.success("团队套餐商品已更新。");
-    } else {
-      onCreateTeamPackage(payload);
-      message.success("团队套餐商品已创建。");
-    }
-
-    setTeamPackageEditor({
-      open: false,
-      title: "",
-      description: "",
-      includedSeats: 0,
-      price: 0,
-      tagLabel: "",
-    });
-  };
-
-  const handleSubmitSeatPricingEditor = (): void => {
-    if (seatPricingEditor.pricePerSeat <= 0) {
-      message.warning("请输入有效的单席位价格。");
-      return;
-    }
-
-    onUpdateSeatPricing({
-      pricePerSeat: seatPricingEditor.pricePerSeat,
-    });
-    setSeatPricingEditor(current => ({
-      ...current,
-      open: false,
-    }));
-    message.success("席位加购商品价格已更新。");
-  };
-
-  return (
-    <div className={adminStyles.consolePage}>
-      <header className={adminStyles.consoleHeader}>
-        <div className={adminStyles.consoleHeaderMain}>
-          <h1 className={adminStyles.consoleTitle}>商品中心</h1>
-        </div>
-
-        <div className={adminStyles.consoleHeaderSide}>
-          {activeProductTab === "standard" ? (
-            <>
-              <Input
-                className={adminStyles.consoleInlineSearch}
-                value={keyword}
-                placeholder="搜索商品名称、关联供给"
-                onChange={event => setKeyword(event.target.value)}
-              />
-              <Button type="primary" onClick={onCreate}>
-                新建标准商品
-              </Button>
-            </>
-          ) : null}
-          {activeProductTab === "points" ? (
-            <Button type="primary" onClick={handleOpenCreatePointsPackage}>
-              新建积分包
-            </Button>
-          ) : null}
-          {activeProductTab === "team" ? (
-            <Button type="primary" onClick={handleOpenCreateTeamPackage}>
-              新建团队套餐
-            </Button>
-          ) : null}
-          {activeProductTab === "seat" ? (
-            <Button
-              type="primary"
-              onClick={() =>
-                setSeatPricingEditor({
-                  open: true,
-                  pricePerSeat: seatPricing.pricePerSeat,
-                })
-              }
-            >
-              编辑价格
-            </Button>
-          ) : null}
-        </div>
-      </header>
-
-      <div className={styles.detailTabBar}>
-        {PRODUCT_CONSOLE_TAB_OPTIONS.map(item => (
-          <button
-            key={item.key}
-            type="button"
-            className={classNames(
-              styles.detailTabButton,
-              activeProductTab === item.key && styles.detailTabButtonActive,
-            )}
-            onClick={() => setActiveProductTab(item.key)}
-          >
-            {item.label}
-          </button>
-        ))}
-      </div>
-
-      {activeProductTab === "standard" ? (
-        <section className={adminStyles.consoleSection}>
-          <div className={adminStyles.consoleSectionHeader}>
-            <div className={adminStyles.consoleSectionHeaderMain}>
-              <h2 className={adminStyles.consoleSectionTitle}>AI专家与资源商品</h2>
-            </div>
-          </div>
-
-          {filteredProducts.length ? (
-            <div className={adminStyles.consoleHtmlTableWrap}>
-              <table className={adminStyles.consoleHtmlTable}>
-                <thead>
-                  <tr>
-                    <th>商品</th>
-                    <th>售卖类型</th>
-                    <th>试用</th>
-                    <th>交付类型</th>
-                    <th>关联供给</th>
-                    <th>价格策略</th>
-                    <th>状态</th>
-                    <th>更新时间</th>
-                    <th>操作</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredProducts.map(product => (
-                    <tr key={product.id}>
-                      <td>
-                        <button
-                          type="button"
-                          className={styles.recordEntryButton}
-                          onClick={() => onViewDetail(product.id)}
-                        >
-                          <span className={styles.recordEntryTitle}>{product.name}</span>
-                        </button>
-                      </td>
-                      <td>{productSaleTypeLabels[product.saleType]}</td>
-                      <td>{getProductTrialLabel(product, productTrialUnitLabels)}</td>
-                      <td>{productDeliveryKindLabels[product.deliveryKind]}</td>
-                      <td>
-                        {product.supplyKind === "agent"
-                          ? (product.linkedAgentName ?? "未绑定 AI专家")
-                          : (product.resourcePoolName ?? "无需资源池")}
-                      </td>
-                      <td>{getProductPriceLabel(product, productBillingSpecLabels)}</td>
-                      <td>
-                        <span className={getProductStatusClassName(product.status)}>
-                          {statusLabels[product.status]}
-                        </span>
-                      </td>
-                      <td>{product.updatedAt}</td>
-                      <td>
-                        <Button size="small" type="link" onClick={() => onViewDetail(product.id)}>
-                          {product.status === "pendingProductization" ? "完善商品" : "查看详情"}
-                        </Button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ) : (
-            <div className={styles.emptyWrap}>
-              <Empty description="当前筛选下暂无商品。" />
-            </div>
-          )}
-        </section>
-      ) : null}
-
-      {activeProductTab === "points" ? (
-        <section className={adminStyles.consoleSection}>
-          <div className={adminStyles.consoleSectionHeader}>
-            <div className={adminStyles.consoleSectionHeaderMain}>
-              <h2 className={adminStyles.consoleSectionTitle}>积分包商品</h2>
-              <p className={adminStyles.consoleSectionMeta}>
-                用户侧购买后生成统一订单，支付成功自动增加租户积分余额。
-              </p>
-            </div>
-          </div>
-
-          <div className={adminStyles.consoleHtmlTableWrap}>
-            <table className={adminStyles.consoleHtmlTable}>
-              <thead>
-                <tr>
-                  <th>商品</th>
-                  <th>积分数量</th>
-                  <th>售价</th>
-                  <th>推荐标记</th>
-                  <th>状态</th>
-                  <th>更新时间</th>
-                  <th>操作</th>
-                </tr>
-              </thead>
-              <tbody>
-                {pointsPackages.map(item => (
-                  <tr key={item.id}>
-                    <td>
-                      <div className={adminStyles.consoleHtmlTableStrong}>{item.title}</div>
-                      <div className={adminStyles.consoleSidebarItemMeta}>{item.description}</div>
-                    </td>
-                    <td>{item.points.toLocaleString("zh-CN")} 积分</td>
-                    <td>{formatCurrency(item.price)}</td>
-                    <td>{item.tagLabel ?? "无"}</td>
-                    <td>
-                      <span
-                        className={
-                          item.status === "active"
-                            ? buildStatusClassName("success")
-                            : buildStatusClassName("danger")
-                        }
-                      >
-                        {item.status === "active" ? "在售" : "停售"}
-                      </span>
-                    </td>
-                    <td>{item.updatedAt}</td>
-                    <td>
-                      <div className={adminStyles.consoleActions}>
-                        <Button size="small" onClick={() => handleOpenEditPointsPackage(item)}>
-                          编辑
-                        </Button>
-                        <Button
-                          size="small"
-                          onClick={() => {
-                            onUpdatePointsPackage(item.id, {
-                              status: item.status === "active" ? "inactive" : "active",
-                            });
-                            message.success(
-                              item.status === "active"
-                                ? "积分包商品已停售。"
-                                : "积分包商品已恢复在售。",
-                            );
-                          }}
-                        >
-                          {item.status === "active" ? "停售" : "上架"}
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
-      ) : null}
-
-      {activeProductTab === "team" ? (
-        <section className={adminStyles.consoleSection}>
-          <div className={adminStyles.consoleSectionHeader}>
-            <div className={adminStyles.consoleSectionHeaderMain}>
-              <h2 className={adminStyles.consoleSectionTitle}>团队套餐商品</h2>
-              <p className={adminStyles.consoleSectionMeta}>
-                用户侧购买后生成统一订单，支付成功开通团队版并增加基础席位。
-              </p>
-            </div>
-          </div>
-
-          <div className={adminStyles.consoleHtmlTableWrap}>
-            <table className={adminStyles.consoleHtmlTable}>
-              <thead>
-                <tr>
-                  <th>商品</th>
-                  <th>包含席位</th>
-                  <th>年付价格</th>
-                  <th>推荐标记</th>
-                  <th>状态</th>
-                  <th>更新时间</th>
-                  <th>操作</th>
-                </tr>
-              </thead>
-              <tbody>
-                {teamPackages.map(item => (
-                  <tr key={item.id}>
-                    <td>
-                      <div className={adminStyles.consoleHtmlTableStrong}>{item.title}</div>
-                      <div className={adminStyles.consoleSidebarItemMeta}>{item.description}</div>
-                    </td>
-                    <td>{item.includedSeats} 席</td>
-                    <td>{formatCurrency(item.price)}</td>
-                    <td>{item.tagLabel ?? "无"}</td>
-                    <td>
-                      <span
-                        className={
-                          item.status === "active"
-                            ? buildStatusClassName("success")
-                            : buildStatusClassName("danger")
-                        }
-                      >
-                        {item.status === "active" ? "在售" : "停售"}
-                      </span>
-                    </td>
-                    <td>{item.updatedAt}</td>
-                    <td>
-                      <div className={adminStyles.consoleActions}>
-                        <Button size="small" onClick={() => handleOpenEditTeamPackage(item)}>
-                          编辑
-                        </Button>
-                        <Button
-                          size="small"
-                          onClick={() => {
-                            onUpdateTeamPackage(item.id, {
-                              status: item.status === "active" ? "inactive" : "active",
-                            });
-                            message.success(
-                              item.status === "active"
-                                ? "团队套餐商品已停售。"
-                                : "团队套餐商品已恢复在售。",
-                            );
-                          }}
-                        >
-                          {item.status === "active" ? "停售" : "上架"}
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
-      ) : null}
-
-      {activeProductTab === "seat" ? (
-        <section className={adminStyles.consoleSection}>
-          <div className={adminStyles.consoleSectionHeader}>
-            <div className={adminStyles.consoleSectionHeaderMain}>
-              <h2 className={adminStyles.consoleSectionTitle}>席位加购商品</h2>
-              <p className={adminStyles.consoleSectionMeta}>
-                团队版租户购买后生成统一订单，支付成功增加可用席位。
-              </p>
-            </div>
-          </div>
-
-          <div className={adminStyles.consoleRows}>
-            <div className={adminStyles.consoleInfoRow}>
-              <span className={adminStyles.consoleInfoLabel}>当前价格</span>
-              <span className={adminStyles.consoleInfoValue}>
-                {formatCurrency(seatPricing.pricePerSeat)}
-              </span>
-            </div>
-            <div className={adminStyles.consoleInfoRow}>
-              <span className={adminStyles.consoleInfoLabel}>计费周期</span>
-              <span className={adminStyles.consoleInfoValue}>{seatPricing.billingCycleLabel}</span>
-            </div>
-          </div>
-        </section>
-      ) : null}
-
-      <Modal
-        open={pointsPackageEditor.open}
-        title={pointsPackageEditor.packageId ? "编辑积分包商品" : "新建积分包商品"}
-        className={classNames(styles.fixedModal, styles.standardModal)}
-        width={OPERATIONS_MODAL_WIDTHS.standard}
-        okText="保存"
-        cancelText="取消"
-        onCancel={() =>
-          setPointsPackageEditor({
-            open: false,
-            title: "",
-            description: "",
-            points: 0,
-            price: 0,
-            tagLabel: "",
-          })
-        }
-        onOk={handleSubmitPointsPackageEditor}
-      >
-        <div className={adminStyles.consoleRows}>
-          <div className={adminStyles.consoleInfoRow}>
-            <span className={adminStyles.consoleInfoLabel}>商品名称</span>
-            <Input
-              value={pointsPackageEditor.title}
-              onChange={event =>
-                setPointsPackageEditor(current => ({ ...current, title: event.target.value }))
-              }
-            />
-          </div>
-          <div className={adminStyles.consoleInfoRow}>
-            <span className={adminStyles.consoleInfoLabel}>说明</span>
-            <Input
-              value={pointsPackageEditor.description}
-              onChange={event =>
-                setPointsPackageEditor(current => ({
-                  ...current,
-                  description: event.target.value,
-                }))
-              }
-            />
-          </div>
-          <div className={adminStyles.consoleInfoRow}>
-            <span className={adminStyles.consoleInfoLabel}>积分数量</span>
-            <InputNumber
-              min={1000}
-              value={pointsPackageEditor.points}
-              onChange={value =>
-                setPointsPackageEditor(current => ({ ...current, points: Number(value ?? 0) }))
-              }
-            />
-          </div>
-          <div className={adminStyles.consoleInfoRow}>
-            <span className={adminStyles.consoleInfoLabel}>售价</span>
-            <InputNumber
-              min={1}
-              value={pointsPackageEditor.price}
-              onChange={value =>
-                setPointsPackageEditor(current => ({ ...current, price: Number(value ?? 0) }))
-              }
-            />
-          </div>
-          <div className={adminStyles.consoleInfoRow}>
-            <span className={adminStyles.consoleInfoLabel}>推荐标记</span>
-            <Input
-              value={pointsPackageEditor.tagLabel}
-              onChange={event =>
-                setPointsPackageEditor(current => ({ ...current, tagLabel: event.target.value }))
-              }
-            />
-          </div>
-        </div>
-      </Modal>
-
-      <Modal
-        open={teamPackageEditor.open}
-        title={teamPackageEditor.packageId ? "编辑团队套餐商品" : "新建团队套餐商品"}
-        className={classNames(styles.fixedModal, styles.standardModal)}
-        width={OPERATIONS_MODAL_WIDTHS.standard}
-        okText="保存"
-        cancelText="取消"
-        onCancel={() =>
-          setTeamPackageEditor({
-            open: false,
-            title: "",
-            description: "",
-            includedSeats: 0,
-            price: 0,
-            tagLabel: "",
-          })
-        }
-        onOk={handleSubmitTeamPackageEditor}
-      >
-        <div className={adminStyles.consoleRows}>
-          <div className={adminStyles.consoleInfoRow}>
-            <span className={adminStyles.consoleInfoLabel}>商品名称</span>
-            <Input
-              value={teamPackageEditor.title}
-              onChange={event =>
-                setTeamPackageEditor(current => ({ ...current, title: event.target.value }))
-              }
-            />
-          </div>
-          <div className={adminStyles.consoleInfoRow}>
-            <span className={adminStyles.consoleInfoLabel}>说明</span>
-            <Input
-              value={teamPackageEditor.description}
-              onChange={event =>
-                setTeamPackageEditor(current => ({
-                  ...current,
-                  description: event.target.value,
-                }))
-              }
-            />
-          </div>
-          <div className={adminStyles.consoleInfoRow}>
-            <span className={adminStyles.consoleInfoLabel}>包含席位</span>
-            <InputNumber
-              min={1}
-              value={teamPackageEditor.includedSeats}
-              onChange={value =>
-                setTeamPackageEditor(current => ({
-                  ...current,
-                  includedSeats: Number(value ?? 0),
-                }))
-              }
-            />
-          </div>
-          <div className={adminStyles.consoleInfoRow}>
-            <span className={adminStyles.consoleInfoLabel}>年付价格</span>
-            <InputNumber
-              min={1}
-              value={teamPackageEditor.price}
-              onChange={value =>
-                setTeamPackageEditor(current => ({ ...current, price: Number(value ?? 0) }))
-              }
-            />
-          </div>
-          <div className={adminStyles.consoleInfoRow}>
-            <span className={adminStyles.consoleInfoLabel}>推荐标记</span>
-            <Input
-              value={teamPackageEditor.tagLabel}
-              onChange={event =>
-                setTeamPackageEditor(current => ({ ...current, tagLabel: event.target.value }))
-              }
-            />
-          </div>
-        </div>
-      </Modal>
-
-      <Modal
-        open={seatPricingEditor.open}
-        title="编辑席位加购商品"
-        className={classNames(styles.fixedModal, styles.compactModal)}
-        width={OPERATIONS_MODAL_WIDTHS.compact}
-        okText="保存"
-        cancelText="取消"
-        onCancel={() =>
-          setSeatPricingEditor({
-            open: false,
-            pricePerSeat: seatPricing.pricePerSeat,
-          })
-        }
-        onOk={handleSubmitSeatPricingEditor}
-      >
-        <div className={adminStyles.consoleRows}>
-          <div className={adminStyles.consoleInfoRow}>
-            <span className={adminStyles.consoleInfoLabel}>单席位价格</span>
-            <InputNumber
-              min={1}
-              value={seatPricingEditor.pricePerSeat}
-              onChange={value =>
-                setSeatPricingEditor(current => ({
-                  ...current,
-                  pricePerSeat: Number(value ?? 0),
-                }))
-              }
-            />
-          </div>
-        </div>
-      </Modal>
+      )}
     </div>
   );
 };
@@ -2218,12 +1298,7 @@ const ProductConsole = ({
 const ProductDetailConsole = ({
   product,
   statusLabels,
-  productSaleTypeLabels,
   productTrialUnitLabels,
-  productDeliveryKindLabels,
-  productBillingModeLabels,
-  productMeteringUnitLabels,
-  productBillingSpecLabels,
   onBack,
   onEdit,
   onToggleStatus,
@@ -2240,11 +1315,7 @@ const ProductDetailConsole = ({
           <h1 className={adminStyles.consoleTitle}>{product?.name ?? "商品详情"}</h1>
           <p className={adminStyles.consoleSubtitle}>
             {product
-              ? `${
-                  product.supplyKind === "agent"
-                    ? (product.linkedAgentName ?? "未绑定 AI专家")
-                    : (product.resourcePoolName ?? "无需资源池")
-                }`
+              ? getProductAcquisitionLabel(product)
               : "当前商品不存在或已被移除，请返回列表重新选择。"}
           </p>
         </div>
@@ -2255,7 +1326,7 @@ const ProductDetailConsole = ({
               {statusLabels[product.status]}
             </span>
             <Button onClick={() => onEdit(product)}>
-              {product.status === "pendingProductization" ? "完善商品" : "编辑商品"}
+              {product.status === "pendingProductization" ? "完善配置" : "编辑配置"}
             </Button>
             <Button onClick={() => onToggleStatus(product)}>
               {product.status === "active" ? "下架商品" : "上架商品"}
@@ -2268,23 +1339,29 @@ const ProductDetailConsole = ({
         <section className={adminStyles.consoleSection}>
           {product.status === "pendingProductization" ? (
             <div className={styles.alertBlock}>
-              该 AI专家 已通过审核，请先完善商品名称、售卖方式、价格与试用策略后再上架。
+              该 AI专家 已通过审核，请先完善获取方式和试用规则后再上架。
             </div>
           ) : null}
           <div className={styles.detailGrid}>
             <section className={adminStyles.detailBlock}>
-              <h3 className={adminStyles.detailBlockTitle}>售卖信息</h3>
+              <h3 className={adminStyles.detailBlockTitle}>获取配置</h3>
               <div className={adminStyles.consoleRows}>
                 <div className={adminStyles.consoleInfoRow}>
-                  <span className={adminStyles.consoleInfoLabel}>售卖类型</span>
+                  <span className={adminStyles.consoleInfoLabel}>商品分类</span>
                   <span className={adminStyles.consoleInfoValue}>
-                    {productSaleTypeLabels[product.saleType]}
+                    {product.plazaCategory ?? OPERATIONS_AGENT_PLAZA_DEFAULT_CATEGORY}
                   </span>
                 </div>
                 <div className={adminStyles.consoleInfoRow}>
-                  <span className={adminStyles.consoleInfoLabel}>价格策略</span>
+                  <span className={adminStyles.consoleInfoLabel}>计费模型</span>
                   <span className={adminStyles.consoleInfoValue}>
-                    {getProductPriceLabel(product, productBillingSpecLabels)}
+                    {getProductBillingScopeLabel(product)}
+                  </span>
+                </div>
+                <div className={adminStyles.consoleInfoRow}>
+                  <span className={adminStyles.consoleInfoLabel}>获取方式</span>
+                  <span className={adminStyles.consoleInfoValue}>
+                    {getProductAcquisitionLabel(product)}
                   </span>
                 </div>
                 <div className={adminStyles.consoleInfoRow}>
@@ -2294,72 +1371,14 @@ const ProductDetailConsole = ({
                   </span>
                 </div>
                 <div className={adminStyles.consoleInfoRow}>
-                  <span className={adminStyles.consoleInfoLabel}>客户端动作</span>
+                  <span className={adminStyles.consoleInfoLabel}>关联 AI专家</span>
                   <span className={adminStyles.consoleInfoValue}>
-                    {product.saleType === "free"
-                      ? "立即获取"
-                      : product.supportsTrial
-                        ? "选择订阅方案 + 立即购买 + 免费试用"
-                        : "选择订阅方案 + 立即购买"}
-                  </span>
-                </div>
-                {product.saleType === "paid" ? (
-                  <>
-                    <div className={adminStyles.consoleInfoRow}>
-                      <span className={adminStyles.consoleInfoLabel}>计费模式</span>
-                      <span className={adminStyles.consoleInfoValue}>
-                        {productBillingModeLabels[product.billingMode]}
-                      </span>
-                    </div>
-                    <div className={adminStyles.consoleInfoRow}>
-                      <span className={adminStyles.consoleInfoLabel}>计量对象</span>
-                      <span className={adminStyles.consoleInfoValue}>
-                        {productMeteringUnitLabels[product.meteringUnit]}
-                      </span>
-                    </div>
-                    <div className={adminStyles.consoleInfoRow}>
-                      <span className={adminStyles.consoleInfoLabel}>结算规格</span>
-                      <span className={adminStyles.consoleInfoValue}>
-                        {product.subscriptionPlans?.length
-                          ? getSubscriptionPlansSummary(product)
-                          : getProductBillingSpecLabel(
-                              productBillingSpecLabels,
-                              product.billingSpec,
-                            )}
-                      </span>
-                    </div>
-                  </>
-                ) : null}
-                <div className={adminStyles.consoleInfoRow}>
-                  <span className={adminStyles.consoleInfoLabel}>交付类型</span>
-                  <span className={adminStyles.consoleInfoValue}>
-                    {productDeliveryKindLabels[product.deliveryKind]}
+                    {product.linkedAgentName ?? "未绑定 AI专家"}
                   </span>
                 </div>
                 <div className={adminStyles.consoleInfoRow}>
                   <span className={adminStyles.consoleInfoLabel}>更新时间</span>
                   <span className={adminStyles.consoleInfoValue}>{product.updatedAt}</span>
-                </div>
-                {product.subscriptionPlans?.length ? (
-                  <div className={adminStyles.consoleInfoRow}>
-                    <span className={adminStyles.consoleInfoLabel}>订阅方案</span>
-                    <span className={adminStyles.consoleInfoValue}>
-                      {getActiveSubscriptionPlans(product)
-                        .map(
-                          item =>
-                            `${item.title} ${formatCurrency(item.price)} / ${item.durationLabel}`,
-                        )
-                        .join(" / ")}
-                    </span>
-                  </div>
-                ) : null}
-                <div className={adminStyles.consoleInfoRow}>
-                  <span className={adminStyles.consoleInfoLabel}>关联供给</span>
-                  <span className={adminStyles.consoleInfoValue}>
-                    {product.supplyKind === "agent"
-                      ? (product.linkedAgentName ?? "未绑定 AI专家")
-                      : (product.resourcePoolName ?? "无需资源池")}
-                  </span>
                 </div>
               </div>
             </section>
@@ -2658,19 +1677,8 @@ export const OperationsPlatformView = (): JSX.Element => {
     pointsPackages,
     pointsUsageRecords,
     referralRecords,
-    productBillingModeLabels,
     productDeliveryKindLabels,
-    productDeliveryKindOptions,
-    productBillingModeOptions,
-    productBillingSpecLabels,
-    productBillingSpecOptions,
-    productContactModeOptions,
-    productMeteringUnitLabels,
-    productMeteringUnitOptions,
-    productSaleTypeLabels,
-    productSaleTypeOptions,
     productStatusLabels,
-    productSupplyKindLabels,
     productTrialUnitLabels,
     productTrialUnitOptions,
     products,
@@ -2687,7 +1695,6 @@ export const OperationsPlatformView = (): JSX.Element => {
     teamSeatPricing,
     tenantStatusLabels,
     tenants,
-    updateAgentPlazaSettings,
     updateAgentPlazaCategory,
     updateExternalMeteredService,
     updateMeteringProvider,
@@ -2713,13 +1720,6 @@ export const OperationsPlatformView = (): JSX.Element => {
     mode: "create",
     form: emptyProductForm,
   });
-  const [agentPlazaEditor, setAgentPlazaEditor] = useState<AgentPlazaEditorState>({
-    open: false,
-    category: OPERATIONS_AGENT_PLAZA_DEFAULT_CATEGORY,
-    visibility: "public",
-    visibleTenantIds: [],
-    status: "offline",
-  });
   const [agentPlazaCategoryEditor, setAgentPlazaCategoryEditor] =
     useState<AgentPlazaCategoryEditorState>({
       open: false,
@@ -2740,31 +1740,6 @@ export const OperationsPlatformView = (): JSX.Element => {
     reason: "",
   });
 
-  const availableMeteringUnitOptions = useMemo(
-    () =>
-      getAvailableMeteringUnitOptions(
-        productMeteringUnitOptions,
-        productBillingSpecOptions,
-        productEditor.form.billingMode,
-      ),
-    [productBillingSpecOptions, productEditor.form.billingMode, productMeteringUnitOptions],
-  );
-
-  const availableBillingSpecOptions = useMemo(
-    () =>
-      getAvailableBillingSpecOptions(
-        productBillingSpecOptions,
-        productEditor.form.billingMode,
-        productEditor.form.meteringUnit,
-      ),
-    [productBillingSpecOptions, productEditor.form.billingMode, productEditor.form.meteringUnit],
-  );
-
-  const availableResourcePoolOptions = useMemo(
-    () => getAvailableResourcePoolOptions(resourcePools, productEditor.form.deliveryKind),
-    [productEditor.form.deliveryKind, resourcePools],
-  );
-
   const availableCapacityUnitOptions = useMemo(
     () =>
       getAvailableCapacityUnitOptions(
@@ -2775,18 +1750,19 @@ export const OperationsPlatformView = (): JSX.Element => {
   );
 
   const agentPlazaCategoryOptions = useMemo(
-    () => getAgentPlazaCategorySelectOptions(agentPlazaCategories, agentPlazaEditor.category),
-    [agentPlazaCategories, agentPlazaEditor.category],
+    () =>
+      getAgentPlazaCategorySelectOptions(agentPlazaCategories, productEditor.form.plazaCategory),
+    [agentPlazaCategories, productEditor.form.plazaCategory],
   );
 
   const activeTabFromPath = useMemo<OperationsPlatformTabKey | null>(
     () => getTabKeyFromPath(tabPath),
     [tabPath],
   );
-  const hasDetailRoute = Boolean(tenantId);
+  const hasDetailRoute = Boolean(tenantId || productId);
   const activeTab = useMemo<OperationsPlatformTabKey>(
-    () => activeTabFromPath ?? "tenants",
-    [activeTabFromPath],
+    () => activeTabFromPath ?? (productId ? "products" : "tenants"),
+    [activeTabFromPath, productId],
   );
 
   useEffect(() => {
@@ -2966,7 +1942,18 @@ export const OperationsPlatformView = (): JSX.Element => {
     setProductEditor({
       open: true,
       mode: "create",
-      form: emptyProductForm,
+      form: {
+        ...emptyProductForm,
+        supplyKind: "agent",
+        deliveryKind: "softwareService",
+        billingMode: "subscription",
+        meteringUnit: "duration",
+        billingSpec: "year",
+        contactMode: "disabled",
+        plazaCategory: OPERATIONS_AGENT_PLAZA_DEFAULT_CATEGORY,
+        plazaStatus: "offline",
+        billingScopes: ["points"],
+      },
     });
   }, [emptyProductForm]);
 
@@ -2978,16 +1965,16 @@ export const OperationsPlatformView = (): JSX.Element => {
         productId: product.id,
         form: {
           name: product.name,
-          supplyKind: product.supplyKind,
-          deliveryKind: product.deliveryKind,
-          saleType: product.saleType,
-          billingMode: product.billingMode,
-          meteringUnit: product.meteringUnit,
-          billingSpec: product.billingSpec,
+          supplyKind: "agent",
+          deliveryKind: "softwareService",
+          saleType: "free",
+          billingMode: "subscription",
+          meteringUnit: "duration",
+          billingSpec: "year",
           linkedAgentId: product.linkedAgentId,
-          resourcePoolId: product.resourcePoolId,
+          resourcePoolId: undefined,
           description: product.description,
-          price: product.price ?? 0,
+          price: 0,
           subscriptionPlans:
             product.subscriptionPlans?.map(item => ({
               ...item,
@@ -2995,13 +1982,12 @@ export const OperationsPlatformView = (): JSX.Element => {
           supportsTrial: product.supportsTrial,
           trialUnit: product.trialUnit ?? "day",
           trialValue: product.trialValue ?? 7,
-          contactMode:
-            product.contactMode ??
-            (product.supplyKind === "agent" && product.saleType === "paid"
-              ? "platformDefault"
-              : "disabled"),
-          contactQrCodeValue: product.contactQrCodeValue ?? "",
-          contactRemark: product.contactRemark ?? "",
+          contactMode: "disabled",
+          contactQrCodeValue: "",
+          contactRemark: "",
+          plazaCategory: product.plazaCategory ?? OPERATIONS_AGENT_PLAZA_DEFAULT_CATEGORY,
+          plazaStatus: product.status === "active" ? "online" : (product.plazaStatus ?? "offline"),
+          billingScopes: product.billingScopes?.length ? product.billingScopes : ["points"],
         },
       });
     },
@@ -3014,73 +2000,41 @@ export const OperationsPlatformView = (): JSX.Element => {
       return;
     }
 
-    if (productEditor.form.supplyKind === "agent" && !productEditor.form.linkedAgentId) {
-      message.warning("Agent 商品必须从已审核通过的 AI专家中选择一个绑定。");
+    if (!productEditor.form.linkedAgentId) {
+      message.warning("请选择绑定 AI专家。");
       return;
     }
 
-    if (productEditor.form.saleType === "paid") {
-      const usesSubscriptionPlans =
-        productEditor.form.billingMode === "subscription" &&
-        productEditor.form.supplyKind === "agent";
-
-      if (
-        !productEditor.form.billingMode ||
-        !productEditor.form.meteringUnit ||
-        (!usesSubscriptionPlans && !productEditor.form.billingSpec)
-      ) {
-        message.warning("付费商品请先补齐计费模式、计量对象和结算规格。");
-        return;
-      }
-
-      if (usesSubscriptionPlans) {
-        const invalidPlan = productEditor.form.subscriptionPlans.find(item => item.price <= 0);
-        const hasActivePlan = productEditor.form.subscriptionPlans.some(
-          item => item.status === "active",
-        );
-
-        if (invalidPlan) {
-          message.warning(`${invalidPlan.title}价格必须大于 0。`);
-          return;
-        }
-
-        if (!hasActivePlan) {
-          message.warning("至少需要启用一个订阅方案。");
-          return;
-        }
-      } else if ((productEditor.form.price ?? 0) <= 0) {
-        message.warning("付费商品售价必须大于 0。");
-        return;
-      }
-
-      if (productEditor.form.supportsTrial && productEditor.form.trialValue <= 0) {
-        message.warning("请先填写有效的试用规则。");
-        return;
-      }
-    }
-
-    if (
-      productEditor.form.supplyKind === "agent" &&
-      productEditor.form.contactMode === "custom" &&
-      !productEditor.form.contactQrCodeValue.trim()
-    ) {
-      message.warning("请先填写商品专属客服二维码内容。");
+    if (!productEditor.form.billingScopes.length) {
+      message.warning("请选择计费模型。");
       return;
     }
 
-    if (
-      productEditor.form.deliveryKind !== "softwareService" &&
-      !productEditor.form.resourcePoolId
-    ) {
-      message.warning("当前交付类型需要选择一个资源池。");
+    if (productEditor.form.supportsTrial && productEditor.form.trialValue <= 0) {
+      message.warning("请填写有效的试用规则。");
       return;
     }
+
+    const normalizedForm: OperationsProductForm = {
+      ...productEditor.form,
+      supplyKind: "agent",
+      deliveryKind: "softwareService",
+      saleType: "free",
+      billingMode: "subscription",
+      meteringUnit: "duration",
+      billingSpec: "year",
+      resourcePoolId: undefined,
+      price: 0,
+      contactMode: "disabled",
+      contactQrCodeValue: "",
+      contactRemark: "",
+    };
 
     if (productEditor.mode === "create") {
-      createProduct(productEditor.form);
+      createProduct(normalizedForm);
       message.success("商品已创建。");
     } else if (productEditor.productId) {
-      updateProduct(productEditor.productId, productEditor.form);
+      updateProduct(productEditor.productId, normalizedForm);
       message.success("商品信息已更新。");
     }
 
@@ -3209,13 +2163,13 @@ export const OperationsPlatformView = (): JSX.Element => {
         name: nextName,
         sortOrder: agentPlazaCategoryEditor.sortOrder,
       });
-      message.success("AI专家广场分类已创建。");
+      message.success("商品分类已创建。");
     } else if (agentPlazaCategoryEditor.categoryId) {
       updateAgentPlazaCategory(agentPlazaCategoryEditor.categoryId, {
         name: nextName,
         sortOrder: agentPlazaCategoryEditor.sortOrder,
       });
-      message.success("AI专家广场分类已更新。");
+      message.success("商品分类已更新。");
     }
 
     handleCloseAgentPlazaCategoryEditor();
@@ -3247,65 +2201,6 @@ export const OperationsPlatformView = (): JSX.Element => {
     [agentPlazaCategories, updateAgentPlazaCategory],
   );
 
-  const handleOpenEditAgentPlaza = useCallback((product: OperationsProduct): void => {
-    setAgentPlazaEditor({
-      open: true,
-      productId: product.id,
-      category: product.plazaCategory ?? OPERATIONS_AGENT_PLAZA_DEFAULT_CATEGORY,
-      visibility: product.plazaVisibility ?? "public",
-      visibleTenantIds: product.visibleTenantIds ?? [],
-      status: getAgentPlazaStatus(product),
-    });
-  }, []);
-
-  const handleSubmitAgentPlazaSettings = useCallback((): void => {
-    if (!agentPlazaEditor.productId) {
-      message.warning("未找到当前 AI专家商品。");
-      return;
-    }
-
-    if (agentPlazaEditor.visibility === "tenant" && !agentPlazaEditor.visibleTenantIds.length) {
-      message.warning("指定租户可见时，至少选择一个企业租户。");
-      return;
-    }
-
-    const selectedCategory =
-      agentPlazaCategories.find(item => item.name === agentPlazaEditor.category) ?? null;
-
-    if (!selectedCategory || selectedCategory.status !== "active") {
-      message.warning("请选择一个启用中的广场分类。");
-      return;
-    }
-
-    const targetProduct = products.find(item => item.id === agentPlazaEditor.productId) ?? null;
-
-    if (agentPlazaEditor.status === "online" && targetProduct?.status !== "active") {
-      message.warning("商品未上架时不能上架到 AI专家广场。");
-      return;
-    }
-
-    const visibleTenantNames = tenants
-      .filter(item => agentPlazaEditor.visibleTenantIds.includes(item.id))
-      .map(item => item.name);
-
-    updateAgentPlazaSettings(agentPlazaEditor.productId, {
-      plazaCategory: agentPlazaEditor.category,
-      plazaVisibility: agentPlazaEditor.visibility,
-      visibleTenantIds:
-        agentPlazaEditor.visibility === "tenant" ? agentPlazaEditor.visibleTenantIds : [],
-      visibleTenantNames: agentPlazaEditor.visibility === "tenant" ? visibleTenantNames : [],
-      plazaStatus: agentPlazaEditor.status,
-    });
-    message.success("AI专家广场投放设置已更新。");
-    setAgentPlazaEditor({
-      open: false,
-      category: OPERATIONS_AGENT_PLAZA_DEFAULT_CATEGORY,
-      visibility: "public",
-      visibleTenantIds: [],
-      status: "offline",
-    });
-  }, [agentPlazaCategories, agentPlazaEditor, products, tenants, updateAgentPlazaSettings]);
-
   const handleToggleProductStatus = useCallback(
     (product: OperationsProduct): void => {
       if (product.status === "pendingProductization") {
@@ -3335,7 +2230,7 @@ export const OperationsPlatformView = (): JSX.Element => {
   const handleApproveAgent = useCallback(
     (submissionId: string): void => {
       approveAgent(submissionId);
-      message.success("AI专家审核已通过，可继续配置广场上架信息。");
+      message.success("AI专家审核已通过，可在商品中心继续完善商品信息。");
       setAgentReview({
         open: false,
       });
@@ -3418,7 +2313,7 @@ export const OperationsPlatformView = (): JSX.Element => {
         return (
           <TenantDetailConsole
             tenant={activeTenant}
-            pointsActorName={session?.name ?? "平台运营"}
+            pointsActorName="FrontisAI"
             statusLabels={tenantStatusLabels}
             onBack={handleBackToTenantList}
             onEdit={handleOpenEditTenant}
@@ -3451,14 +2346,28 @@ export const OperationsPlatformView = (): JSX.Element => {
       );
     }
 
-    if (activeTab === "agentPlaza") {
+    if (activeTab === "products") {
+      if (productId) {
+        return (
+          <ProductDetailConsole
+            product={activeProduct}
+            statusLabels={productStatusLabels}
+            productTrialUnitLabels={productTrialUnitLabels}
+            onBack={handleBackToProductList}
+            onEdit={handleOpenEditProduct}
+            onToggleStatus={handleToggleProductStatus}
+          />
+        );
+      }
+
       return (
-        <AgentPlazaConsole
+        <ProductConsole
           products={products}
-          tenants={tenants.filter(item => item.type === "enterprise")}
           categories={agentPlazaCategories}
-          plazaVisibilityLabels={OPERATIONS_AGENT_PLAZA_VISIBILITY_LABELS}
-          onEdit={handleOpenEditAgentPlaza}
+          statusLabels={productStatusLabels}
+          productTrialUnitLabels={productTrialUnitLabels}
+          onCreate={handleOpenCreateProduct}
+          onViewDetail={handleOpenProductDetail}
           onCreateCategory={handleOpenCreateAgentPlazaCategory}
           onEditCategory={handleOpenEditAgentPlazaCategory}
           onToggleCategoryStatus={handleToggleAgentPlazaCategoryStatus}
@@ -3522,7 +2431,6 @@ export const OperationsPlatformView = (): JSX.Element => {
     handleOpenCreateProduct,
     handleOpenCreateResourcePool,
     handleOpenCreateTenant,
-    handleOpenEditAgentPlaza,
     handleOpenEditAgentPlazaCategory,
     handleOpenEditResourcePool,
     handleOpenEditProduct,
@@ -3534,15 +2442,11 @@ export const OperationsPlatformView = (): JSX.Element => {
     handleToggleTenantStatus,
     meteringProviders,
     modelServices,
-    productBillingModeLabels,
-    productBillingSpecLabels,
     productDeliveryKindLabels,
-    productMeteringUnitLabels,
     pointsOrders,
     pointsPackages,
     pointsUsageRecords,
     referralRecords,
-    productSaleTypeLabels,
     productStatusLabels,
     productTrialUnitLabels,
     productId,
@@ -3896,7 +2800,7 @@ export const OperationsPlatformView = (): JSX.Element => {
 
       <Modal
         open={productEditor.open}
-        title={productEditor.mode === "create" ? "创建商品" : "编辑商品"}
+        title={productEditor.mode === "create" ? "创建AI专家商品" : "编辑AI专家商品"}
         className={classNames(styles.fixedModal, styles.productEditorModal)}
         width={OPERATIONS_MODAL_WIDTHS.productEditor}
         onCancel={() =>
@@ -3930,24 +2834,23 @@ export const OperationsPlatformView = (): JSX.Element => {
           </div>
 
           <div className={styles.modalField}>
-            <label className={styles.modalLabel} htmlFor={PRODUCT_FIELD_IDS.supplyKind}>
-              商品供给
+            <label className={styles.modalLabel} htmlFor={PRODUCT_FIELD_IDS.linkedAgentId}>
+              绑定 AI专家
             </label>
             <Select
-              id={PRODUCT_FIELD_IDS.supplyKind}
-              value={productEditor.form.supplyKind}
-              options={Object.entries(productSupplyKindLabels).map(([value, label]) => ({
-                value,
-                label,
+              id={PRODUCT_FIELD_IDS.linkedAgentId}
+              value={productEditor.form.linkedAgentId}
+              placeholder="请选择已审核通过的 AI专家"
+              options={approvedAgents.map(item => ({
+                value: item.id,
+                label: `${item.name} · ${item.version}`,
               }))}
               onChange={nextValue =>
                 setProductEditor(currentState => ({
                   ...currentState,
                   form: {
                     ...currentState.form,
-                    supplyKind: nextValue,
-                    linkedAgentId:
-                      nextValue === "agent" ? currentState.form.linkedAgentId : undefined,
+                    linkedAgentId: nextValue,
                   },
                 }))
               }
@@ -3955,520 +2858,130 @@ export const OperationsPlatformView = (): JSX.Element => {
           </div>
 
           <div className={styles.modalField}>
-            <label className={styles.modalLabel} htmlFor={PRODUCT_FIELD_IDS.deliveryKind}>
-              交付类型
+            <label className={styles.modalLabel} htmlFor={PRODUCT_FIELD_IDS.acquisitionMode}>
+              获取方式
             </label>
             <Select
-              id={PRODUCT_FIELD_IDS.deliveryKind}
-              value={productEditor.form.deliveryKind}
-              options={productDeliveryKindOptions}
+              id={PRODUCT_FIELD_IDS.acquisitionMode}
+              value={getProductAcquisitionMode(productEditor.form)}
+              options={PRODUCT_ACQUISITION_MODE_OPTIONS}
               onChange={nextValue =>
-                setProductEditor(currentState => {
-                  const nextResourcePoolOptions = getAvailableResourcePoolOptions(
-                    resourcePools,
-                    nextValue,
-                  );
-                  const nextResourcePoolId =
-                    nextValue === "softwareService"
-                      ? undefined
-                      : nextResourcePoolOptions.some(
-                            item => item.value === currentState.form.resourcePoolId,
-                          )
-                        ? currentState.form.resourcePoolId
-                        : nextResourcePoolOptions[0]?.value;
-
-                  return {
-                    ...currentState,
-                    form: {
-                      ...currentState.form,
-                      deliveryKind: nextValue,
-                      resourcePoolId: nextResourcePoolId,
-                    },
-                  };
-                })
+                setProductEditor(currentState => ({
+                  ...currentState,
+                  form: applyProductAcquisitionMode(currentState.form, nextValue),
+                }))
               }
             />
           </div>
 
           <div className={styles.modalField}>
-            <label className={styles.modalLabel} htmlFor={PRODUCT_FIELD_IDS.saleType}>
-              售卖类型
+            <label className={styles.modalLabel} htmlFor={PRODUCT_FIELD_IDS.category}>
+              商品分类
             </label>
             <Select
-              id={PRODUCT_FIELD_IDS.saleType}
-              value={productEditor.form.saleType}
-              options={productSaleTypeOptions}
+              id={PRODUCT_FIELD_IDS.category}
+              value={productEditor.form.plazaCategory}
+              options={agentPlazaCategoryOptions}
               onChange={nextValue =>
                 setProductEditor(currentState => ({
                   ...currentState,
                   form: {
                     ...currentState.form,
-                    saleType: nextValue,
-                    price: nextValue === "free" ? 0 : currentState.form.price,
-                    supportsTrial: nextValue === "paid" ? currentState.form.supportsTrial : false,
+                    plazaCategory: nextValue,
                   },
                 }))
               }
             />
           </div>
 
-          {productEditor.form.supplyKind === "agent" ? (
-            <div className={styles.modalField}>
-              <label className={styles.modalLabel} htmlFor={PRODUCT_FIELD_IDS.linkedAgentId}>
-                绑定 AI专家
-              </label>
-              <Select
-                id={PRODUCT_FIELD_IDS.linkedAgentId}
-                value={productEditor.form.linkedAgentId}
-                placeholder="请选择已审核通过的 AI专家"
-                options={approvedAgents.map(item => ({
-                  value: item.id,
-                  label: `${item.name} · ${item.version}`,
-                }))}
-                onChange={nextValue =>
-                  setProductEditor(currentState => ({
-                    ...currentState,
-                    form: {
-                      ...currentState.form,
-                      linkedAgentId: nextValue,
-                    },
-                  }))
-                }
-              />
-            </div>
-          ) : null}
+          <div className={styles.modalField}>
+            <label className={styles.modalLabel} htmlFor={PRODUCT_FIELD_IDS.billingScopes}>
+              计费模型
+            </label>
+            <Select
+              id={PRODUCT_FIELD_IDS.billingScopes}
+              mode="multiple"
+              value={productEditor.form.billingScopes}
+              options={OPERATIONS_PRODUCT_BILLING_SCOPE_OPTIONS}
+              onChange={nextValue =>
+                setProductEditor(currentState => ({
+                  ...currentState,
+                  form: {
+                    ...currentState.form,
+                    billingScopes: nextValue,
+                  },
+                }))
+              }
+            />
+          </div>
 
-          {productEditor.form.deliveryKind !== "softwareService" ? (
-            <div className={styles.modalField}>
-              <label className={styles.modalLabel} htmlFor={PRODUCT_FIELD_IDS.resourcePoolId}>
-                资源池
-              </label>
-              <Select
-                id={PRODUCT_FIELD_IDS.resourcePoolId}
-                value={productEditor.form.resourcePoolId}
-                placeholder="请选择交付资源池"
-                options={availableResourcePoolOptions}
-                onChange={nextValue =>
-                  setProductEditor(currentState => ({
-                    ...currentState,
-                    form: {
-                      ...currentState.form,
-                      resourcePoolId: nextValue,
-                    },
-                  }))
-                }
-              />
-            </div>
-          ) : null}
+          <div className={styles.modalField}>
+            <label className={styles.modalLabel} htmlFor={PRODUCT_FIELD_IDS.status}>
+              上架状态
+            </label>
+            <Select
+              id={PRODUCT_FIELD_IDS.status}
+              value={productEditor.form.plazaStatus}
+              options={[
+                { value: "offline", label: "下架" },
+                { value: "online", label: "上架" },
+              ]}
+              onChange={nextValue =>
+                setProductEditor(currentState => ({
+                  ...currentState,
+                  form: {
+                    ...currentState.form,
+                    plazaStatus: nextValue,
+                  },
+                }))
+              }
+            />
+          </div>
 
-          {productEditor.form.saleType === "paid" ? (
+          {productEditor.form.supportsTrial ? (
             <>
               <div className={styles.modalField}>
-                <label className={styles.modalLabel} htmlFor={PRODUCT_FIELD_IDS.billingMode}>
-                  计费模式
+                <label className={styles.modalLabel} htmlFor={PRODUCT_FIELD_IDS.trialUnit}>
+                  试用方式
                 </label>
                 <Select
-                  id={PRODUCT_FIELD_IDS.billingMode}
-                  value={productEditor.form.billingMode}
-                  options={productBillingModeOptions}
-                  onChange={nextValue =>
-                    setProductEditor(currentState => {
-                      const nextMeteringUnitOptions = getAvailableMeteringUnitOptions(
-                        productMeteringUnitOptions,
-                        productBillingSpecOptions,
-                        nextValue,
-                      );
-                      const nextMeteringUnit = nextMeteringUnitOptions.some(
-                        item => item.value === currentState.form.meteringUnit,
-                      )
-                        ? currentState.form.meteringUnit
-                        : (nextMeteringUnitOptions[0]?.value ?? currentState.form.meteringUnit);
-                      const nextBillingSpecOptions = getAvailableBillingSpecOptions(
-                        productBillingSpecOptions,
-                        nextValue,
-                        nextMeteringUnit,
-                      );
-                      const nextBillingSpec = nextBillingSpecOptions.some(
-                        item => item.value === currentState.form.billingSpec,
-                      )
-                        ? currentState.form.billingSpec
-                        : (nextBillingSpecOptions[0]?.value ?? currentState.form.billingSpec);
-
-                      return {
-                        ...currentState,
-                        form: {
-                          ...currentState.form,
-                          billingMode: nextValue,
-                          meteringUnit: nextMeteringUnit,
-                          billingSpec: nextBillingSpec,
-                        },
-                      };
-                    })
-                  }
-                />
-              </div>
-
-              <div className={styles.modalField}>
-                <label className={styles.modalLabel} htmlFor={PRODUCT_FIELD_IDS.meteringUnit}>
-                  计量对象
-                </label>
-                <Select
-                  id={PRODUCT_FIELD_IDS.meteringUnit}
-                  value={productEditor.form.meteringUnit}
-                  options={availableMeteringUnitOptions}
-                  onChange={nextValue =>
-                    setProductEditor(currentState => {
-                      const nextBillingSpecOptions = getAvailableBillingSpecOptions(
-                        productBillingSpecOptions,
-                        currentState.form.billingMode,
-                        nextValue,
-                      );
-                      const nextBillingSpec = nextBillingSpecOptions.some(
-                        item => item.value === currentState.form.billingSpec,
-                      )
-                        ? currentState.form.billingSpec
-                        : (nextBillingSpecOptions[0]?.value ?? currentState.form.billingSpec);
-
-                      return {
-                        ...currentState,
-                        form: {
-                          ...currentState.form,
-                          meteringUnit: nextValue,
-                          billingSpec: nextBillingSpec,
-                        },
-                      };
-                    })
-                  }
-                />
-              </div>
-
-              {productEditor.form.saleType === "paid" &&
-              productEditor.form.billingMode === "subscription" &&
-              productEditor.form.supplyKind === "agent" ? (
-                <div className={`${styles.modalField} ${styles.fullSpanField}`}>
-                  <span className={styles.modalLabel}>订阅方案（月费 / 季费 / 年费）</span>
-                  <div className={styles.subscriptionPlanEditorList}>
-                    {productEditor.form.subscriptionPlans
-                      .slice()
-                      .sort((leftItem, rightItem) => leftItem.sortOrder - rightItem.sortOrder)
-                      .map((plan, index) => (
-                        <div key={plan.key} className={styles.subscriptionPlanEditorCard}>
-                          <div className={styles.subscriptionPlanEditorHead}>
-                            <div>
-                              <strong>{plan.title}</strong>
-                              <span>{plan.description}</span>
-                            </div>
-                            <Select
-                              value={plan.status}
-                              options={[
-                                { value: "active", label: "启用" },
-                                { value: "inactive", label: "停用" },
-                              ]}
-                              onChange={nextValue =>
-                                setProductEditor(currentState => ({
-                                  ...currentState,
-                                  form: {
-                                    ...currentState.form,
-                                    subscriptionPlans: currentState.form.subscriptionPlans.map(
-                                      item =>
-                                        item.key === plan.key
-                                          ? {
-                                              ...item,
-                                              status: nextValue,
-                                            }
-                                          : item,
-                                    ),
-                                  },
-                                }))
-                              }
-                            />
-                          </div>
-                          <div className={styles.subscriptionPlanEditorGrid}>
-                            <div className={styles.modalField}>
-                              <span className={styles.modalLabel}>{plan.title}费用</span>
-                              <InputNumber
-                                className={styles.fullWidthInput}
-                                min={0}
-                                precision={0}
-                                value={plan.price}
-                                onChange={nextValue =>
-                                  setProductEditor(currentState => ({
-                                    ...currentState,
-                                    form: {
-                                      ...currentState.form,
-                                      subscriptionPlans: currentState.form.subscriptionPlans.map(
-                                        item =>
-                                          item.key === plan.key
-                                            ? {
-                                                ...item,
-                                                price: nextValue ?? 0,
-                                              }
-                                            : item,
-                                      ),
-                                    },
-                                  }))
-                                }
-                              />
-                            </div>
-                            <div className={styles.modalField}>
-                              <span className={styles.modalLabel}>划线价</span>
-                              <InputNumber
-                                className={styles.fullWidthInput}
-                                min={0}
-                                precision={0}
-                                value={plan.originalPrice}
-                                onChange={nextValue =>
-                                  setProductEditor(currentState => ({
-                                    ...currentState,
-                                    form: {
-                                      ...currentState.form,
-                                      subscriptionPlans: currentState.form.subscriptionPlans.map(
-                                        item =>
-                                          item.key === plan.key
-                                            ? {
-                                                ...item,
-                                                originalPrice:
-                                                  nextValue && nextValue > 0
-                                                    ? nextValue
-                                                    : undefined,
-                                              }
-                                            : item,
-                                      ),
-                                    },
-                                  }))
-                                }
-                              />
-                            </div>
-                            <div className={styles.modalField}>
-                              <span className={styles.modalLabel}>优惠标签</span>
-                              <Input
-                                value={plan.tagLabel}
-                                onChange={event =>
-                                  setProductEditor(currentState => ({
-                                    ...currentState,
-                                    form: {
-                                      ...currentState.form,
-                                      subscriptionPlans: currentState.form.subscriptionPlans.map(
-                                        item =>
-                                          item.key === plan.key
-                                            ? {
-                                                ...item,
-                                                tagLabel: event.target.value.trim() || undefined,
-                                              }
-                                            : item,
-                                      ),
-                                    },
-                                  }))
-                                }
-                              />
-                            </div>
-                          </div>
-                          <div className={styles.subscriptionPlanEditorFoot}>
-                            <span>{plan.durationLabel}</span>
-                            <span>{index === 0 ? "用户侧默认展示在左侧" : "按配置顺序展示"}</span>
-                          </div>
-                        </div>
-                      ))}
-                  </div>
-                </div>
-              ) : (
-                <>
-                  <div className={styles.modalField}>
-                    <label className={styles.modalLabel} htmlFor={PRODUCT_FIELD_IDS.billingSpec}>
-                      结算规格
-                    </label>
-                    <Select
-                      id={PRODUCT_FIELD_IDS.billingSpec}
-                      value={productEditor.form.billingSpec}
-                      options={availableBillingSpecOptions}
-                      onChange={nextValue =>
-                        setProductEditor(currentState => ({
-                          ...currentState,
-                          form: {
-                            ...currentState.form,
-                            billingSpec: nextValue,
-                          },
-                        }))
-                      }
-                    />
-                  </div>
-
-                  <div className={styles.modalField}>
-                    <label className={styles.modalLabel} htmlFor={PRODUCT_FIELD_IDS.price}>
-                      售价
-                    </label>
-                    <InputNumber
-                      id={PRODUCT_FIELD_IDS.price}
-                      className={styles.fullWidthInput}
-                      min={0}
-                      precision={0}
-                      value={productEditor.form.price}
-                      onChange={nextValue =>
-                        setProductEditor(currentState => ({
-                          ...currentState,
-                          form: {
-                            ...currentState.form,
-                            price: nextValue ?? 0,
-                          },
-                        }))
-                      }
-                    />
-                  </div>
-                </>
-              )}
-
-              <div className={styles.modalField}>
-                <label className={styles.modalLabel} htmlFor={PRODUCT_FIELD_IDS.supportsTrial}>
-                  试用策略
-                </label>
-                <Select
-                  id={PRODUCT_FIELD_IDS.supportsTrial}
-                  value={productEditor.form.supportsTrial ? "enabled" : "disabled"}
-                  options={[
-                    { value: "disabled", label: "不支持试用" },
-                    { value: "enabled", label: "支持试用" },
-                  ]}
+                  id={PRODUCT_FIELD_IDS.trialUnit}
+                  value={productEditor.form.trialUnit}
+                  options={productTrialUnitOptions}
                   onChange={nextValue =>
                     setProductEditor(currentState => ({
                       ...currentState,
                       form: {
                         ...currentState.form,
-                        supportsTrial: nextValue === "enabled",
+                        trialUnit: nextValue,
                       },
                     }))
                   }
                 />
               </div>
 
-              {productEditor.form.supportsTrial ? (
-                <>
-                  <div className={styles.modalField}>
-                    <label className={styles.modalLabel} htmlFor={PRODUCT_FIELD_IDS.trialUnit}>
-                      试用方式
-                    </label>
-                    <Select
-                      id={PRODUCT_FIELD_IDS.trialUnit}
-                      value={productEditor.form.trialUnit}
-                      options={productTrialUnitOptions}
-                      onChange={nextValue =>
-                        setProductEditor(currentState => ({
-                          ...currentState,
-                          form: {
-                            ...currentState.form,
-                            trialUnit: nextValue,
-                          },
-                        }))
-                      }
-                    />
-                  </div>
-
-                  <div className={styles.modalField}>
-                    <label className={styles.modalLabel} htmlFor={PRODUCT_FIELD_IDS.trialValue}>
-                      试用规则
-                    </label>
-                    <InputNumber
-                      id={PRODUCT_FIELD_IDS.trialValue}
-                      className={styles.fullWidthInput}
-                      min={1}
-                      precision={0}
-                      value={productEditor.form.trialValue}
-                      addonAfter={productTrialUnitLabels[productEditor.form.trialUnit]}
-                      onChange={nextValue =>
-                        setProductEditor(currentState => ({
-                          ...currentState,
-                          form: {
-                            ...currentState.form,
-                            trialValue: nextValue ?? 1,
-                          },
-                        }))
-                      }
-                    />
-                  </div>
-                </>
-              ) : null}
-            </>
-          ) : (
-            <div className={`${styles.modalField} ${styles.modalFieldWide}`}>
-              <label className={styles.modalLabel} htmlFor={PRODUCT_FIELD_IDS.freeRule}>
-                免费商品规则
-              </label>
-              <Input
-                id={PRODUCT_FIELD_IDS.freeRule}
-                value="客户端展示为“立即获取”，不展示试用入口。"
-                disabled
-              />
-            </div>
-          )}
-
-          {productEditor.form.supplyKind === "agent" ? (
-            <>
               <div className={styles.modalField}>
-                <label className={styles.modalLabel} htmlFor={PRODUCT_FIELD_IDS.contactMode}>
-                  联系客服入口
+                <label className={styles.modalLabel} htmlFor={PRODUCT_FIELD_IDS.trialValue}>
+                  试用规则
                 </label>
-                <Select
-                  id={PRODUCT_FIELD_IDS.contactMode}
-                  value={productEditor.form.contactMode}
-                  options={productContactModeOptions}
+                <InputNumber
+                  id={PRODUCT_FIELD_IDS.trialValue}
+                  className={styles.fullWidthInput}
+                  min={1}
+                  precision={0}
+                  value={productEditor.form.trialValue}
+                  addonAfter={productTrialUnitLabels[productEditor.form.trialUnit]}
                   onChange={nextValue =>
                     setProductEditor(currentState => ({
                       ...currentState,
                       form: {
                         ...currentState.form,
-                        contactMode: nextValue,
+                        trialValue: nextValue ?? 1,
                       },
                     }))
                   }
                 />
               </div>
-
-              {productEditor.form.contactMode === "custom" ? (
-                <>
-                  <div className={styles.modalField}>
-                    <label
-                      className={styles.modalLabel}
-                      htmlFor={PRODUCT_FIELD_IDS.contactQrCodeValue}
-                    >
-                      专属二维码内容
-                    </label>
-                    <Input
-                      id={PRODUCT_FIELD_IDS.contactQrCodeValue}
-                      value={productEditor.form.contactQrCodeValue}
-                      placeholder="可填写专属客服微信、企微链接或二维码识别内容"
-                      onChange={event =>
-                        setProductEditor(currentState => ({
-                          ...currentState,
-                          form: {
-                            ...currentState.form,
-                            contactQrCodeValue: event.target.value,
-                          },
-                        }))
-                      }
-                    />
-                  </div>
-
-                  <div className={`${styles.modalField} ${styles.modalFieldWide}`}>
-                    <label className={styles.modalLabel} htmlFor={PRODUCT_FIELD_IDS.contactRemark}>
-                      专属备注提示
-                    </label>
-                    <Input.TextArea
-                      id={PRODUCT_FIELD_IDS.contactRemark}
-                      rows={3}
-                      value={productEditor.form.contactRemark}
-                      placeholder="例如：添加时请备注行业和公司名称"
-                      onChange={event =>
-                        setProductEditor(currentState => ({
-                          ...currentState,
-                          form: {
-                            ...currentState.form,
-                            contactRemark: event.target.value,
-                          },
-                        }))
-                      }
-                    />
-                  </div>
-                </>
-              ) : null}
             </>
           ) : null}
 
@@ -4496,7 +3009,7 @@ export const OperationsPlatformView = (): JSX.Element => {
 
       <Modal
         open={agentPlazaCategoryEditor.open}
-        title={agentPlazaCategoryEditor.mode === "create" ? "新建广场分类" : "编辑广场分类"}
+        title={agentPlazaCategoryEditor.mode === "create" ? "新建商品分类" : "编辑商品分类"}
         className={classNames(styles.fixedModal, styles.compactModal)}
         width={OPERATIONS_MODAL_WIDTHS.compact}
         onCancel={handleCloseAgentPlazaCategoryEditor}
@@ -4538,115 +3051,6 @@ export const OperationsPlatformView = (): JSX.Element => {
               }
             />
           </div>
-        </div>
-      </Modal>
-
-      <Modal
-        open={agentPlazaEditor.open}
-        title="编辑 AI专家广场投放"
-        className={classNames(styles.fixedModal, styles.standardModal)}
-        width={OPERATIONS_MODAL_WIDTHS.standard}
-        onCancel={() =>
-          setAgentPlazaEditor({
-            open: false,
-            category: OPERATIONS_AGENT_PLAZA_DEFAULT_CATEGORY,
-            visibility: "public",
-            visibleTenantIds: [],
-            status: "offline",
-          })
-        }
-        onOk={handleSubmitAgentPlazaSettings}
-        destroyOnHidden
-      >
-        <div className={styles.formGrid}>
-          <div className={styles.modalField}>
-            <label className={styles.modalLabel} htmlFor={AGENT_PLAZA_FIELD_IDS.category}>
-              广场分类
-            </label>
-            <Select
-              id={AGENT_PLAZA_FIELD_IDS.category}
-              value={agentPlazaEditor.category}
-              options={agentPlazaCategoryOptions}
-              onChange={nextValue =>
-                setAgentPlazaEditor(currentState => ({
-                  ...currentState,
-                  category: nextValue,
-                }))
-              }
-            />
-          </div>
-
-          <div className={styles.modalField}>
-            <label className={styles.modalLabel} htmlFor={AGENT_PLAZA_FIELD_IDS.visibility}>
-              可见范围
-            </label>
-            <Select
-              id={AGENT_PLAZA_FIELD_IDS.visibility}
-              value={agentPlazaEditor.visibility}
-              options={Object.entries(OPERATIONS_AGENT_PLAZA_VISIBILITY_LABELS).map(
-                ([value, label]) => ({
-                  value,
-                  label,
-                }),
-              )}
-              onChange={nextValue =>
-                setAgentPlazaEditor(currentState => ({
-                  ...currentState,
-                  visibility: nextValue,
-                  visibleTenantIds: nextValue === "tenant" ? currentState.visibleTenantIds : [],
-                }))
-              }
-            />
-          </div>
-
-          <div className={styles.modalField}>
-            <label className={styles.modalLabel} htmlFor={AGENT_PLAZA_FIELD_IDS.status}>
-              上架状态
-            </label>
-            <div className={adminStyles.consoleActions}>
-              <Switch
-                id={AGENT_PLAZA_FIELD_IDS.status}
-                checked={agentPlazaEditor.status === "online"}
-                checkedChildren="上架"
-                unCheckedChildren="下架"
-                onChange={checked =>
-                  setAgentPlazaEditor(currentState => ({
-                    ...currentState,
-                    status: checked ? "online" : "offline",
-                  }))
-                }
-              />
-              <span className={adminStyles.consoleInfoValue}>
-                当前为{agentPlazaEditor.status === "online" ? "上架" : "下架"}
-              </span>
-            </div>
-          </div>
-
-          {agentPlazaEditor.visibility === "tenant" ? (
-            <div className={`${styles.modalField} ${styles.modalFieldWide}`}>
-              <label className={styles.modalLabel} htmlFor={AGENT_PLAZA_FIELD_IDS.visibleTenantIds}>
-                指定可见租户
-              </label>
-              <Select
-                id={AGENT_PLAZA_FIELD_IDS.visibleTenantIds}
-                mode="multiple"
-                value={agentPlazaEditor.visibleTenantIds}
-                placeholder="请选择可见租户"
-                options={tenants
-                  .filter(item => item.type === "enterprise")
-                  .map(item => ({
-                    value: item.id,
-                    label: item.name,
-                  }))}
-                onChange={nextValue =>
-                  setAgentPlazaEditor(currentState => ({
-                    ...currentState,
-                    visibleTenantIds: nextValue,
-                  }))
-                }
-              />
-            </div>
-          ) : null}
         </div>
       </Modal>
 

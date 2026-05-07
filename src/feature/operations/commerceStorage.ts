@@ -21,6 +21,7 @@ const cloneProduct = (item: OperationsProduct): OperationsProduct => ({
     : undefined,
   visibleTenantIds: item.visibleTenantIds ? [...item.visibleTenantIds] : [],
   visibleTenantNames: item.visibleTenantNames ? [...item.visibleTenantNames] : [],
+  billingScopes: item.billingScopes ? [...item.billingScopes] : ["points"],
 });
 
 const cloneFulfillment = (item: OperationsFulfillment): OperationsFulfillment => ({
@@ -99,17 +100,15 @@ const normalizeAgentSubscriptionProduct = (
   product: OperationsProduct,
   presetProduct?: OperationsProduct,
 ): OperationsProduct => {
-  const contactMode =
-    product.contactMode ??
-    presetProduct?.contactMode ??
-    (product.supplyKind === "agent" && product.saleType === "paid"
-      ? "platformDefault"
-      : "disabled");
   const productWithContact: OperationsProduct = {
     ...product,
-    contactMode,
-    contactQrCodeValue: product.contactQrCodeValue ?? presetProduct?.contactQrCodeValue ?? "",
-    contactRemark: product.contactRemark ?? presetProduct?.contactRemark ?? "",
+    plazaVisibility: "public",
+    visibleTenantIds: [],
+    visibleTenantNames: [],
+    billingScopes: product.billingScopes?.length ? [...product.billingScopes] : ["points"],
+    contactMode: "disabled",
+    contactQrCodeValue: "",
+    contactRemark: "",
   };
 
   if (!shouldUseAgentSubscriptionPlans(product)) {

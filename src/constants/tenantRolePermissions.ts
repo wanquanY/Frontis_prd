@@ -74,7 +74,7 @@ export const TENANT_ROLE_PERMISSION_GROUPS: TenantRolePermissionGroup[] = [
   },
   {
     title: "积分管理",
-    items: [{ id: "points.manage", label: "查看积分消耗" }],
+    items: [{ id: "points.manage", label: "查看积分管理" }],
   },
   {
     title: "数据看板",

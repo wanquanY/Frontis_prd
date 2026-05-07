@@ -660,12 +660,12 @@ export const registerMockTenantAdminAccount = (
     pointsLedger: [
       {
         id: `${tenantId}-register-bonus`,
-        title: "注册赠送",
+        title: "注册送积分",
         description: "新租户创建完成后自动发放的初始积分。",
         points: registrationStrategy.defaultGiftPoints,
         direction: "income",
         createdAt: "刚刚",
-        actorName: "平台系统",
+        actorName: "FrontisAI",
       },
     ],
     pointsUsageRecords: [],
@@ -826,7 +826,7 @@ export const rechargeMockTenantPoints = (
         points,
         direction: "income",
         createdAt: "刚刚",
-        actorName,
+        actorName: options?.title === "购买标准积分包" ? "FrontisAI" : actorName,
       },
       ...matchedSnapshot.pointsLedger,
     ],

@@ -53,7 +53,7 @@ const TEAM_FILTER_OPTIONS: Array<{ key: AgentFilterKey; label: string }> = [
 const PERSONAL_FILTER_OPTIONS: Array<{ key: AgentFilterKey; label: string }> = [
   { key: "all", label: "全部AI专家" },
   { key: "owned", label: "自己开发" },
-  { key: "purchased", label: "已订阅" },
+  { key: "purchased", label: "已添加" },
 ];
 
 const getSingleStatus = (employee: EmployeeItem): ManagementStatus | null => {
@@ -194,7 +194,7 @@ export const AgentStoreView = ({
         const product = operationsProductMap.get(order.productId);
 
         return {
-          acquireLabel: order.orderType === "trial" ? "试用中" : "已订阅",
+          acquireLabel: order.orderType === "trial" ? "试用中" : "已添加",
           avatarUrl: getAvatarUrl(`purchased-${order.productId}`),
           description: product?.description ?? `${order.productName} 已开通，可直接使用。`,
           filterKey: "purchased",
@@ -281,7 +281,7 @@ export const AgentStoreView = ({
           <h1 className={adminStyles.consoleTitle}>AI专家管理</h1>
           <p className={adminStyles.consoleSubtitle}>
             {isPersonalEdition
-              ? "个人版仅展示你自己开发和已订阅的 AI 专家。"
+              ? "个人版仅展示你自己开发和已添加的 AI 专家。"
               : "当前仅管理租户内开发并发布的 AI 专家。"}
           </p>
         </div>
@@ -360,7 +360,7 @@ export const AgentStoreView = ({
         {!filteredCards.length ? (
           <div className={styles.assetEmptyState}>
             {isPersonalEdition
-              ? "当前还没有自己开发或已订阅的 AI 专家。"
+              ? "当前还没有自己开发或已添加的 AI 专家。"
               : "当前筛选条件下暂无 AI 专家。"}
           </div>
         ) : null}
@@ -419,9 +419,9 @@ const PurchasedExpertDetail = ({ card, onBack }: PurchasedExpertDetailProps): JS
             </span>
           </div>
           <div className={adminStyles.consoleSummaryItem}>
-            <span className={adminStyles.consoleSummaryLabel}>订阅方案</span>
+            <span className={adminStyles.consoleSummaryLabel}>获取方式</span>
             <span className={adminStyles.consoleSummaryValue}>
-              {order.subscriptionPlanLabel ?? "已开通"}
+              {order.orderType === "trial" ? "免费试用" : "免费添加"}
             </span>
           </div>
           <div className={adminStyles.consoleSummaryItem}>
@@ -431,8 +431,8 @@ const PurchasedExpertDetail = ({ card, onBack }: PurchasedExpertDetailProps): JS
             </span>
           </div>
           <div className={adminStyles.consoleSummaryItem}>
-            <span className={adminStyles.consoleSummaryLabel}>支付金额</span>
-            <span className={adminStyles.consoleSummaryValue}>{`¥${order.amount}`}</span>
+            <span className={adminStyles.consoleSummaryLabel}>开通方式</span>
+            <span className={adminStyles.consoleSummaryValue}>平台商品</span>
           </div>
         </div>
       </section>
@@ -451,12 +451,12 @@ const PurchasedExpertDetail = ({ card, onBack }: PurchasedExpertDetailProps): JS
           <span className={adminStyles.consoleInfoValue}>{order.orderNo}</span>
         </div>
         <div className={adminStyles.consoleInfoRow}>
-          <span className={adminStyles.consoleInfoLabel}>购买人</span>
+          <span className={adminStyles.consoleInfoLabel}>开通人</span>
           <span className={adminStyles.consoleInfoValue}>{order.purchaserName}</span>
         </div>
         <div className={adminStyles.consoleInfoRow}>
-          <span className={adminStyles.consoleInfoLabel}>支付时间</span>
-          <span className={adminStyles.consoleInfoValue}>{order.paidAt ?? "未支付"}</span>
+          <span className={adminStyles.consoleInfoLabel}>开通时间</span>
+          <span className={adminStyles.consoleInfoValue}>{order.startsAt}</span>
         </div>
         <div className={adminStyles.consoleInfoRow}>
           <span className={adminStyles.consoleInfoLabel}>开通时间</span>

@@ -83,8 +83,8 @@ const OPERATION_PERMISSION_GROUPS: PermissionGroup[] = [
     title: "AI 专家",
     items: [
       { id: "agent.review", label: "审核上架申请" },
-      { id: "agent.plaza.manage", label: "管理广场上架" },
-      { id: "agent.category.manage", label: "管理广场分类" },
+      { id: "agent.plaza.manage", label: "管理 AI 专家商品" },
+      { id: "agent.category.manage", label: "管理商品分类" },
     ],
   },
   {

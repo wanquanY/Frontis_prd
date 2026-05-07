@@ -121,6 +121,14 @@ const App = (): JSX.Element => {
             }
           />
           <Route
+            path="/ops/products/:productId"
+            element={
+              <OperationsAuthRoute>
+                <OperationsPlatformPage />
+              </OperationsAuthRoute>
+            }
+          />
+          <Route
             path="/ops/usage/:recordId"
             element={
               <OperationsAuthRoute>

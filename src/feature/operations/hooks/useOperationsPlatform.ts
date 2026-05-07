@@ -21,8 +21,6 @@ import {
   OPERATIONS_INITIAL_REFERRAL_RECORDS,
   OPERATIONS_INITIAL_TENANTS,
   OPERATIONS_INITIAL_REGISTRATION_STRATEGY,
-  OPERATIONS_PRODUCT_CONTACT_MODE_LABELS,
-  OPERATIONS_PRODUCT_CONTACT_MODE_OPTIONS,
   OPERATIONS_PRODUCT_BILLING_MODE_LABELS,
   OPERATIONS_PRODUCT_BILLING_MODE_OPTIONS,
   OPERATIONS_PRODUCT_BILLING_SPEC_LABELS,
@@ -151,7 +149,6 @@ interface UseOperationsPlatformResult {
   productSupplyKindLabels: typeof OPERATIONS_PRODUCT_SUPPLY_KIND_LABELS;
   productSaleTypeLabels: typeof OPERATIONS_PRODUCT_SALE_TYPE_LABELS;
   productTrialUnitLabels: typeof OPERATIONS_PRODUCT_TRIAL_UNIT_LABELS;
-  productContactModeLabels: typeof OPERATIONS_PRODUCT_CONTACT_MODE_LABELS;
   productDeliveryKindLabels: typeof OPERATIONS_PRODUCT_DELIVERY_KIND_LABELS;
   productBillingModeLabels: typeof OPERATIONS_PRODUCT_BILLING_MODE_LABELS;
   productMeteringUnitLabels: typeof OPERATIONS_PRODUCT_METERING_UNIT_LABELS;
@@ -162,7 +159,6 @@ interface UseOperationsPlatformResult {
   productDeliveryKindOptions: typeof OPERATIONS_PRODUCT_DELIVERY_KIND_OPTIONS;
   productSaleTypeOptions: typeof OPERATIONS_PRODUCT_SALE_TYPE_OPTIONS;
   productTrialUnitOptions: typeof OPERATIONS_PRODUCT_TRIAL_UNIT_OPTIONS;
-  productContactModeOptions: typeof OPERATIONS_PRODUCT_CONTACT_MODE_OPTIONS;
   productBillingModeOptions: typeof OPERATIONS_PRODUCT_BILLING_MODE_OPTIONS;
   productMeteringUnitOptions: typeof OPERATIONS_PRODUCT_METERING_UNIT_OPTIONS;
   productBillingSpecOptions: typeof OPERATIONS_PRODUCT_BILLING_SPEC_OPTIONS;
@@ -493,17 +489,17 @@ const buildPendingProductFromSubmission = (
   name: submission.proposedProductName?.trim() || `${submission.name} 标准版`,
   supplyKind: "agent",
   deliveryKind: "softwareService",
-  saleType: "paid",
+  saleType: "free",
   billingMode: "subscription",
   meteringUnit: "duration",
   linkedAgentId: submission.id,
   linkedAgentName: submission.name,
-  description: "该 AI专家 已通过商品化审核，请先完善售价、试用和售卖规则后再上架。",
+  description: "该 AI专家 已通过商品化审核，请完善获取方式和试用规则后再上架。",
   subscriptionPlans: createDefaultAgentSubscriptionPlans(),
   supportsTrial: false,
   trialUnit: "day",
   trialValue: 7,
-  contactMode: "platformDefault",
+  contactMode: "disabled",
   contactQrCodeValue: "",
   contactRemark: "",
   status: "pendingProductization",
@@ -513,6 +509,7 @@ const buildPendingProductFromSubmission = (
   visibleTenantNames: [],
   plazaStatus: submission.plazaStatus ?? "offline",
   plazaSort: 0,
+  billingScopes: ["points"],
   updatedAt: formatTimestamp(),
 });
 
@@ -547,25 +544,20 @@ const buildProductFromForm = (
     subscriptionPlans: useSubscriptionPlans
       ? normalizeSubscriptionPlans(form.subscriptionPlans)
       : undefined,
-    supportsTrial: form.saleType === "paid" ? form.supportsTrial : false,
-    trialUnit: form.saleType === "paid" && form.supportsTrial ? form.trialUnit : undefined,
-    trialValue: form.saleType === "paid" && form.supportsTrial ? form.trialValue : undefined,
-    contactMode: form.supplyKind === "agent" ? form.contactMode : "disabled",
-    contactQrCodeValue:
-      form.supplyKind === "agent" && form.contactMode === "custom"
-        ? form.contactQrCodeValue.trim()
-        : undefined,
-    contactRemark:
-      form.supplyKind === "agent" && form.contactMode === "custom"
-        ? form.contactRemark.trim()
-        : undefined,
-    status: "draft",
-    plazaCategory: linkedSubmission?.plazaCategory ?? OPERATIONS_AGENT_PLAZA_DEFAULT_CATEGORY,
-    plazaVisibility: linkedSubmission?.plazaVisibility ?? "public",
-    visibleTenantIds: linkedSubmission?.visibleTenantIds ?? [],
-    visibleTenantNames: linkedSubmission?.visibleTenantNames ?? [],
-    plazaStatus: linkedSubmission?.plazaStatus ?? "offline",
+    supportsTrial: form.supportsTrial,
+    trialUnit: form.supportsTrial ? form.trialUnit : undefined,
+    trialValue: form.supportsTrial ? form.trialValue : undefined,
+    contactMode: "disabled",
+    contactQrCodeValue: undefined,
+    contactRemark: undefined,
+    status: form.plazaStatus === "online" ? "active" : "draft",
+    plazaCategory: form.plazaCategory,
+    plazaVisibility: "public",
+    visibleTenantIds: [],
+    visibleTenantNames: [],
+    plazaStatus: form.plazaStatus,
     plazaSort: 0,
+    billingScopes: form.billingScopes,
     updatedAt: formatTimestamp(),
   };
 };
@@ -886,20 +878,19 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
             subscriptionPlans: useSubscriptionPlans
               ? normalizeSubscriptionPlans(form.subscriptionPlans)
               : undefined,
-            supportsTrial: form.saleType === "paid" ? form.supportsTrial : false,
-            trialUnit: form.saleType === "paid" && form.supportsTrial ? form.trialUnit : undefined,
-            trialValue:
-              form.saleType === "paid" && form.supportsTrial ? form.trialValue : undefined,
-            contactMode: form.supplyKind === "agent" ? form.contactMode : "disabled",
-            contactQrCodeValue:
-              form.supplyKind === "agent" && form.contactMode === "custom"
-                ? form.contactQrCodeValue.trim()
-                : undefined,
-            contactRemark:
-              form.supplyKind === "agent" && form.contactMode === "custom"
-                ? form.contactRemark.trim()
-                : undefined,
-            status: item.status === "pendingProductization" ? "draft" : item.status,
+            supportsTrial: form.supportsTrial,
+            trialUnit: form.supportsTrial ? form.trialUnit : undefined,
+            trialValue: form.supportsTrial ? form.trialValue : undefined,
+            contactMode: "disabled",
+            contactQrCodeValue: undefined,
+            contactRemark: undefined,
+            status: form.plazaStatus === "online" ? "active" : "inactive",
+            plazaCategory: form.plazaCategory,
+            plazaVisibility: "public",
+            visibleTenantIds: [],
+            visibleTenantNames: [],
+            plazaStatus: form.plazaStatus,
+            billingScopes: form.billingScopes,
             updatedAt: formatTimestamp(),
           };
         }),
@@ -916,6 +907,7 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
             ? {
                 ...item,
                 status,
+                plazaStatus: status === "active" ? "online" : "offline",
                 updatedAt: formatTimestamp(),
               }
             : item,
@@ -1337,7 +1329,6 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
     productSupplyKindLabels: OPERATIONS_PRODUCT_SUPPLY_KIND_LABELS,
     productSaleTypeLabels: OPERATIONS_PRODUCT_SALE_TYPE_LABELS,
     productTrialUnitLabels: OPERATIONS_PRODUCT_TRIAL_UNIT_LABELS,
-    productContactModeLabels: OPERATIONS_PRODUCT_CONTACT_MODE_LABELS,
     productDeliveryKindLabels: OPERATIONS_PRODUCT_DELIVERY_KIND_LABELS,
     productBillingModeLabels: OPERATIONS_PRODUCT_BILLING_MODE_LABELS,
     productMeteringUnitLabels: OPERATIONS_PRODUCT_METERING_UNIT_LABELS,
@@ -1348,7 +1339,6 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
     productDeliveryKindOptions: OPERATIONS_PRODUCT_DELIVERY_KIND_OPTIONS,
     productSaleTypeOptions: OPERATIONS_PRODUCT_SALE_TYPE_OPTIONS,
     productTrialUnitOptions: OPERATIONS_PRODUCT_TRIAL_UNIT_OPTIONS,
-    productContactModeOptions: OPERATIONS_PRODUCT_CONTACT_MODE_OPTIONS,
     productBillingModeOptions: OPERATIONS_PRODUCT_BILLING_MODE_OPTIONS,
     productMeteringUnitOptions: OPERATIONS_PRODUCT_METERING_UNIT_OPTIONS,
     productBillingSpecOptions: OPERATIONS_PRODUCT_BILLING_SPEC_OPTIONS,
