@@ -212,7 +212,7 @@ export interface DialogueSessionItem {
 }
 
 /**
- * MetaAgent 单线程中的可回溯记忆片段。
+ * ME 单线程中的可回溯记忆片段。
  */
 export interface MetaAgentWorkTrajectoryDeliverableItem {
   id: string;
@@ -222,7 +222,7 @@ export interface MetaAgentWorkTrajectoryDeliverableItem {
 }
 
 /**
- * MetaAgent 每日工作轨迹中的任务项。
+ * ME 每日工作轨迹中的任务项。
  */
 export interface MetaAgentWorkTrajectoryTaskItem {
   id: string;
@@ -234,7 +234,7 @@ export interface MetaAgentWorkTrajectoryTaskItem {
 }
 
 /**
- * MetaAgent 单线程中按日自动生成的工作轨迹。
+ * ME 单线程中按日自动生成的工作轨迹。
  */
 export interface MetaAgentWorkTrajectoryItem {
   id: string;

@@ -6,7 +6,7 @@ const PRESET_POINTS_PACKAGES: MockPointsPackageOption[] = [
   {
     id: "starter",
     title: "基础积分包",
-    description: "适合新租户体验 MetaAgent、AI 专家与轻量 Skill 调用。",
+    description: "适合新租户体验 ME、AI 专家与轻量 Skill 调用。",
     points: 5000,
     price: 29,
     status: "active",

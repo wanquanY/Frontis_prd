@@ -558,7 +558,7 @@ const buildMyAgents = (
       model: item.skills[0]?.skillName ?? "自定义模型",
       runtime:
         item.agentType === "metaagent"
-          ? "MetaAgent Runtime"
+          ? "ME Runtime"
           : item.agentType === "openclaw"
             ? "OpenClaw Runtime"
             : "Syngent Runtime",

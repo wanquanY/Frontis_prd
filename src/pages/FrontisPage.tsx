@@ -87,7 +87,7 @@ const ACTIVE_WORKSPACE_STATUSES = new Set<StatusTone>(["online", "busy", "idle"]
 const DEFAULT_WORKSPACE_AGENT_ORDER: string[] = [DEFAULT_CONVERSATION_EMPLOYEE_ID];
 const TEAM_MENTION_ALL_LABEL = "所有agent";
 const MAX_HOME_PROMPT_ITEM_COUNT = 6;
-const DEFAULT_WORKSPACE_AGENT_NAME = "MetaAegnt";
+const DEFAULT_WORKSPACE_AGENT_NAME = "ME";
 const EXPERT_TEAM_MAIN_AGENT_NAME = DEFAULT_WORKSPACE_AGENT_NAME;
 const META_AGENT_SCENARIO_TEAM_ID = "team-product";
 const META_AGENT_PRIMARY_SEED_SOURCE_ID = "dialogue-seed-team-product-collab";
@@ -106,13 +106,13 @@ const META_AGENT_RISK_PRIORITY_DOCUMENT = `# 上线风险优先级清单
 
 ## P1
 - 成果预览和下载需要同源权限校验。
-- MetaAegnt 调度范围需以用户授权专家为准，而不是仅限工作台已添加专家。
+- ME 调度范围需以用户授权专家为准，而不是仅限工作台已添加专家。
 `;
 const META_AGENT_RISK_ACCEPTANCE_DOCUMENT = `# 上线前验收与回归计划
 
 ## 验收范围
 - 组织角色、权限配置、预设角色继承关系。
-- MetaAegnt 自动升级专家版本后的任务连续性。
+- ME 自动升级专家版本后的任务连续性。
 - 工作轨迹、任务、成果之间的定位关系。
 
 ## 回归重点
@@ -227,8 +227,8 @@ const buildMetaAgentSeedSessions = (): DialogueSessionItem[] => {
     {
       id: META_AGENT_PRIMARY_SEED_SESSION_ID,
       employeeId: DEFAULT_CONVERSATION_EMPLOYEE_ID,
-      title: "MetaAegnt 持续对话",
-      preview: "MetaAegnt 已汇总近期协同任务，并持续在同一条工作线程内追加记录。",
+      title: "ME 持续对话",
+      preview: "ME 已汇总近期协同任务，并持续在同一条工作线程内追加记录。",
       updatedAt: "11:15",
       messages: flattenedMessages,
     },
@@ -244,15 +244,15 @@ const NORMALIZED_INITIAL_DIALOGUE_SESSIONS = [
 const buildMetaAgentOnboardingSession = (): DialogueSessionItem => ({
   id: META_AGENT_ONBOARDING_SESSION_ID,
   employeeId: DEFAULT_CONVERSATION_EMPLOYEE_ID,
-  title: "欢迎使用 MetaAgent",
-  preview: "MetaAgent 可以理解你的目标、调度 AI 专家、沉淀成果，也可以按你的习惯设置名称和风格。",
+  title: "欢迎使用 ME",
+  preview: "ME 可以理解你的目标、调度 AI 专家、沉淀成果，也可以按你的习惯设置名称和风格。",
   updatedAt: "刚刚",
   messages: [
     {
       id: "metaagent-onboarding-assistant-1",
       role: "assistant",
       author: DEFAULT_WORKSPACE_AGENT_NAME,
-      content: `**你好，我是 MetaAgent。**
+      content: `**你好，我是 ME。**
 
 你可以把我当成你的工作入口：直接告诉我目标、上传文件，或者描述一个业务场景，我会帮你拆解任务、选择合适的 AI 专家，并把过程结论和成果文件整理出来。
 
@@ -603,8 +603,8 @@ const buildMetaAgentHomeConfig = (
     {
       id: "metaagent-case-collab",
       scene: "多专家协同",
-      title: "MetaAegnt 协同拆解需求",
-      summary: "MetaAegnt 先识别问题，再调度产品、架构、增长等专家分工协作并统一交付。",
+      title: "ME 协同拆解需求",
+      summary: "ME 先识别问题，再调度产品、架构、增长等专家分工协作并统一交付。",
       coverImage: fallbackCaseImage,
       replayScenarioQuestion: PRODUCT_TEAM_COLLAB_QUESTION,
       messages: [
@@ -625,8 +625,8 @@ const buildMetaAgentHomeConfig = (
     {
       id: "metaagent-case-risk",
       scene: "风险评审",
-      title: "MetaAegnt 协同评估上线风险",
-      summary: "MetaAegnt 汇总架构、质量与数据视角，统一输出上线风险和治理建议。",
+      title: "ME 协同评估上线风险",
+      summary: "ME 汇总架构、质量与数据视角，统一输出上线风险和治理建议。",
       coverImage: primaryConfig.caseItems?.[1]?.coverImage ?? fallbackCaseImage,
       replayScenarioQuestion: PRODUCT_TEAM_RISK_QUESTION,
       messages: [
@@ -1370,7 +1370,7 @@ const FrontisPage = ({
       }
 
       if (conversationEmployees.length <= 1) {
-        message.warning("专家工作室至少保留一个 AI 专家。");
+        message.warning("ME 专家列表至少保留一个 AI 专家。");
         return;
       }
 
@@ -1395,7 +1395,7 @@ const FrontisPage = ({
         setIsDialogueHomeActive(false);
       }
 
-      message.success(`${targetEmployee.name} 已从专家工作室移除。`);
+      message.success(`${targetEmployee.name} 已从 ME 专家列表移除。`);
     },
     [activeEmployeeId, conversationEmployees, dialogueSessions, workspaceMode],
   );
@@ -1553,7 +1553,7 @@ const FrontisPage = ({
           ? activeDialogueSession.id
           : createId("dialogue-session");
       const nextSessionTitle = isSingleThreadMetaAgentDialogue
-        ? "MetaAegnt 持续对话"
+        ? "ME 持续对话"
         : (matchedScenario?.title ??
           (content.length > 0
             ? content.slice(0, 18)

@@ -182,7 +182,7 @@ const PRESET_TENANT_SNAPSHOTS: MockTenantManagementSnapshot[] = [
       }),
       buildPointsLedgerItem({
         id: "tenant-enterprise-demo-consume-01",
-        title: "MetaAgent 调用",
+        title: "ME 调用",
         description: "产品评审、PRD 拆解与成果页生成。",
         points: 36500,
         direction: "expense",
@@ -202,7 +202,7 @@ const PRESET_TENANT_SNAPSHOTS: MockTenantManagementSnapshot[] = [
     pointsUsageRecords: [
       buildPointsUsageRecordItem({
         id: "tenant-enterprise-demo-usage-01",
-        channelLabel: "MetaAgent",
+        channelLabel: "ME",
         targetLabel: "需求拆解与评审协同",
         actorName: "杨万泉",
         runtimeLabel: "GPT-4.1 + 飞书文档接口",
@@ -332,8 +332,8 @@ const PRESET_TENANT_SNAPSHOTS: MockTenantManagementSnapshot[] = [
       }),
       buildPointsLedgerItem({
         id: "tenant-enterprise-hq-expense-01",
-        title: "MetaAgent 调用",
-        description: "通过 MetaAgent 生成集团经营复盘内容。",
+        title: "ME 调用",
+        description: "通过 ME 生成集团经营复盘内容。",
         points: 14200,
         direction: "expense",
         createdAt: "昨天 14:20",
@@ -352,7 +352,7 @@ const PRESET_TENANT_SNAPSHOTS: MockTenantManagementSnapshot[] = [
     pointsUsageRecords: [
       buildPointsUsageRecordItem({
         id: "tenant-enterprise-hq-usage-01",
-        channelLabel: "MetaAgent",
+        channelLabel: "ME",
         targetLabel: "集团经营复盘",
         actorName: "杨万泉",
         runtimeLabel: "GPT-4.1",
@@ -523,7 +523,7 @@ const PRESET_TENANT_SNAPSHOTS: MockTenantManagementSnapshot[] = [
       }),
       buildPointsLedgerItem({
         id: "tenant-personal-studio-demo-expense-01",
-        title: "MetaAgent 协作消耗",
+        title: "ME 调用",
         description: "需求拆解与工作轨迹检索演示消耗。",
         points: 2400,
         direction: "expense",
@@ -543,7 +543,7 @@ const PRESET_TENANT_SNAPSHOTS: MockTenantManagementSnapshot[] = [
     pointsUsageRecords: [
       buildPointsUsageRecordItem({
         id: "tenant-personal-studio-demo-usage-01",
-        channelLabel: "MetaAgent",
+        channelLabel: "ME",
         targetLabel: "工作轨迹与原型梳理",
         actorName: "李想",
         runtimeLabel: "GPT-4.1 + 文档检索",

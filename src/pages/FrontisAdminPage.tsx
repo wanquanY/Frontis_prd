@@ -118,7 +118,7 @@ const FRONTIS_ADMIN_TABS: FrontisWebTabItem[] = [
   },
   {
     key: "channels",
-    label: "MetaAgent管理",
+    label: "ME 管理",
     icon: <LinkOutlined />,
     roles: ["admin"],
   },

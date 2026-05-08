@@ -140,7 +140,7 @@ const MAX_TRAJECTORY_TITLE_LENGTH = 16;
 const MAX_TRAJECTORY_PROMPT_LENGTH = 40;
 const MAX_TRAJECTORY_RESULT_LENGTH = 56;
 const MAX_TRAJECTORY_DELIVERABLE_COUNT = 6;
-const META_AGENT_LABEL = "MetaAegnt";
+const META_AGENT_LABEL = "ME";
 const META_AGENT_TRAJECTORY_DAY_OFFSETS = [0, 3, 8, 15, 24, 37, 56, 84, 120];
 
 const normalizeTrajectoryCopy = (value: string): string =>
@@ -398,7 +398,7 @@ const resolveTrajectoryOccurredAt = (reverseIndex: number): dayjs.Dayjs => {
 };
 
 /**
- * 根据 MetaAgent 单线程消息，按自然日自动生成工作轨迹。
+ * 根据 ME 单线程消息，按自然日自动生成工作轨迹。
  */
 export const buildMetaAgentWorkTrajectoryItems = (
   session: DialogueSessionItem | null,

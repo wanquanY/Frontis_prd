@@ -21,8 +21,8 @@ export const TENANT_ROLE_PERMISSION_GROUPS: TenantRolePermissionGroup[] = [
   {
     title: "工作台",
     items: [
-      { id: "workspace.metaAgent.use", label: "使用 MetaAgent" },
-      { id: "workspace.expert.use", label: "使用专家工作室" },
+      { id: "workspace.metaAgent.use", label: "使用 ME" },
+      { id: "workspace.expert.use", label: "使用 ME 专家列表" },
     ],
   },
   {
@@ -53,7 +53,7 @@ export const TENANT_ROLE_PERMISSION_GROUPS: TenantRolePermissionGroup[] = [
     ],
   },
   {
-    title: "MetaAgent 管理",
+    title: "ME 管理",
     items: [
       { id: "metaAgent.session.manage", label: "管理会话配置" },
       { id: "metaAgent.channel.manage", label: "管理渠道连接" },

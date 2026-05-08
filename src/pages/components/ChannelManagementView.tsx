@@ -162,7 +162,7 @@ const getInitialQrCode = (): string =>
     : "");
 
 /**
- * MetaAgent 管理原型，承载会话管理和飞书渠道连接配置。
+ * ME 管理原型，承载会话管理和飞书渠道连接配置。
  */
 export const ChannelManagementView = ({
   tenantSnapshot,
@@ -610,7 +610,7 @@ export const ChannelManagementView = ({
     <div className={adminStyles.consolePage}>
       <header className={adminStyles.consoleHeader}>
         <div className={adminStyles.consoleHeaderMain}>
-          <h1 className={adminStyles.consoleTitle}>MetaAgent 管理</h1>
+          <h1 className={adminStyles.consoleTitle}>ME 管理</h1>
         </div>
       </header>
 

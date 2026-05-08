@@ -198,7 +198,7 @@ const RESEARCH_MOCK_REPLY = `好的，基于知识库分析和您的需求，我
 3. **情绪识别 Skill** — 实时监测对话情绪，触发人工转接
 
 **三、技术架构**
-- 底层框架：MetaAgent
+- 底层框架：ME
 - 向量检索：Milvus
 - 推理模型：Claude Sonnet 4.6
 
@@ -452,6 +452,12 @@ const FRAMEWORK_COLORS: Record<FdeAgentFramework, string> = {
   OpenClaw: "#f5576c",
 };
 
+const FRAMEWORK_LABELS: Record<FdeAgentFramework, string> = {
+  MetaAgent: "ME",
+  Syngent: "Syngent",
+  OpenClaw: "OpenClaw",
+};
+
 const FLOW_TAB_LABELS: Record<FlowTab, string> = {
   research: "调研",
   dev: "开发",
@@ -684,7 +690,7 @@ export const FdeAgentDevView = ({ onNavigate }: FdeAgentDevViewProps = {}): JSX.
   // 开发
   const [devPhase, setDevPhase] = useState<DevPhase>("idle");
   const [devMessages, setDevMessages] = useState<ChatMessage[]>([]);
-  const [selectedFramework, setSelectedFramework] = useState<string | null>(null);
+  const [selectedFramework, setSelectedFramework] = useState<FdeAgentFramework | null>(null);
   const [visibleFileCount, setVisibleFileCount] = useState(0);
   const [streamScriptIdx, setStreamScriptIdx] = useState(-1);
   const [streamBlockIdx, setStreamBlockIdx] = useState(0);
@@ -1168,7 +1174,7 @@ export const FdeAgentDevView = ({ onNavigate }: FdeAgentDevViewProps = {}): JSX.
     const newWorkspace: FdeAgentWorkspace = {
       id: newId,
       name: newWorkspaceName.trim(),
-      description: newWorkspaceDescription.trim() || (newWorkspaceFramework ? `基于 ${newWorkspaceFramework} 框架创建的智能 Agent` : "新创建的智能 Agent 工作空间"),
+      description: newWorkspaceDescription.trim() || (newWorkspaceFramework ? `基于 ${FRAMEWORK_LABELS[newWorkspaceFramework]} 框架创建的智能 Agent` : "新创建的智能 Agent 工作空间"),
       iconColor: (newWorkspaceFramework && iconColors[newWorkspaceFramework]) || "#667eea",
       iconText: (newWorkspaceFramework && iconTexts[newWorkspaceFramework]) || "A",
       framework: (newWorkspaceFramework as FdeAgentFramework) || "MetaAgent",
@@ -1212,12 +1218,14 @@ export const FdeAgentDevView = ({ onNavigate }: FdeAgentDevViewProps = {}): JSX.
   }, [inputValue]);
 
   /* ── 开发框架选择 ── */
-  const handleSelectFramework = useCallback((fw: string) => {
+  const handleSelectFramework = useCallback((fw: FdeAgentFramework) => {
+    const frameworkLabel = FRAMEWORK_LABELS[fw];
+
     setSelectedFramework(fw);
-    const userChoice: ChatMessage = { role: "user", blocks: [{ type: "text", content: `使用 ${fw} 框架` }], flowTab: "dev" };
+    const userChoice: ChatMessage = { role: "user", blocks: [{ type: "text", content: `使用 ${frameworkLabel} 框架` }], flowTab: "dev" };
     const startMsg: ChatMessage = {
       role: "assistant",
-      blocks: [{ type: "text", content: `好的，已选择 **${fw}** 框架。现在开始为你创建 Agent，请稍候...` }],
+      blocks: [{ type: "text", content: `好的，已选择 **${frameworkLabel}** 框架。现在开始为你创建 Agent，请稍候...` }],
       flowTab: "dev"
     };
     setDevMessages(prev => [...prev, userChoice, startMsg]);
@@ -1494,7 +1502,7 @@ export const FdeAgentDevView = ({ onNavigate }: FdeAgentDevViewProps = {}): JSX.
       case "frameworkSelect":
         return (
           <div key={idx} className={styles.frameworkSelectRow}>
-            {["MetaAgent", "Syngent", "OpenClaw"].map(fw => (
+            {(["MetaAgent", "Syngent", "OpenClaw"] as FdeAgentFramework[]).map(fw => (
               <button
                 key={fw}
                 type="button"
@@ -1502,7 +1510,7 @@ export const FdeAgentDevView = ({ onNavigate }: FdeAgentDevViewProps = {}): JSX.
                 disabled={!!selectedFramework}
                 onClick={() => handleSelectFramework(fw)}
               >
-                {fw}
+                {FRAMEWORK_LABELS[fw]}
               </button>
             ))}
           </div>
@@ -1564,7 +1572,7 @@ export const FdeAgentDevView = ({ onNavigate }: FdeAgentDevViewProps = {}): JSX.
               </div>
               <div className={styles.wsCardBottom}>
                 <span className={styles.wsCardSkillBadge}><ThunderboltOutlined /> {ws.skillCount} 个 Skill</span>
-                <span className={styles.wsCardFrameworkBadge} style={{ background: `color-mix(in srgb, ${FRAMEWORK_COLORS[ws.framework]} 10%, transparent)`, color: FRAMEWORK_COLORS[ws.framework] }}>{ws.framework}</span>
+                <span className={styles.wsCardFrameworkBadge} style={{ background: `color-mix(in srgb, ${FRAMEWORK_COLORS[ws.framework]} 10%, transparent)`, color: FRAMEWORK_COLORS[ws.framework] }}>{FRAMEWORK_LABELS[ws.framework]}</span>
               </div>
             </button>
           ))}
@@ -1624,7 +1632,7 @@ export const FdeAgentDevView = ({ onNavigate }: FdeAgentDevViewProps = {}): JSX.
                 size="large"
                 style={{ width: "100%" }}
                 options={[
-                  { value: "MetaAgent", label: "MetaAgent", description: "面向电商和 SaaS 企业的全渠道智能客服 Agent" },
+                  { value: "MetaAgent", label: "ME", description: "面向电商和 SaaS 企业的全渠道智能客服 Agent" },
                   { value: "Syngent", label: "Syngent", description: "供应链全链路协同 Agent" },
                   { value: "OpenClaw", label: "OpenClaw", description: "企业级数据分析 Agent" },
                 ]}
@@ -1983,7 +1991,7 @@ export const FdeAgentDevView = ({ onNavigate }: FdeAgentDevViewProps = {}): JSX.
           {testReady && (
             <div className={styles.runtimeDoneMsg}>
               <CheckCircleFilled style={{ color: "#3cbf7b" }} />
-              <span>Agent 已在 <strong>{selectedFramework ?? ws.framework}</strong> runtime 成功启动，正在发送测试用例...</span>
+              <span>Agent 已在 <strong>{FRAMEWORK_LABELS[selectedFramework ?? ws.framework]}</strong> runtime 成功启动，正在发送测试用例...</span>
             </div>
           )}
           {testMessages.map((msg, mi) => (
@@ -2084,7 +2092,7 @@ export const FdeAgentDevView = ({ onNavigate }: FdeAgentDevViewProps = {}): JSX.
             ) : (
               <div className={styles.publishFormRow}>
                 <label className={styles.publishFormLabel}>框架类型</label>
-                <Input value={selectedFramework ?? ws.framework} disabled />
+                <Input value={FRAMEWORK_LABELS[selectedFramework ?? ws.framework]} disabled />
               </div>
             )}
               <div className={styles.publishFormRow}>
@@ -3198,7 +3206,7 @@ export const FdeAgentDevView = ({ onNavigate }: FdeAgentDevViewProps = {}): JSX.
               ) : (
                 <div className={styles.publishFormRow}>
                   <label className={styles.publishFormLabel}>框架类型</label>
-                  <Input value={selectedFramework ?? ws.framework} disabled />
+                  <Input value={FRAMEWORK_LABELS[selectedFramework ?? ws.framework]} disabled />
                 </div>
               )}
               <div className={styles.publishFormRow}>

@@ -4,7 +4,7 @@ import frontisCompletePrdV2DocumentContent from "../../../Frontis AI · 完整 P
 /**
  * 产研协作专家团默认主 agent 名称。
  */
-export const PRODUCT_TEAM_MAIN_AGENT_NAME = "MetaAegnt";
+export const PRODUCT_TEAM_MAIN_AGENT_NAME = "ME";
 
 /**
  * 产研协作专家团首轮触发问题。

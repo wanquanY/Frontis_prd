@@ -8,7 +8,7 @@ import type { DialogueSessionItem, EmployeeItem, FrontisWebRole } from "./types"
 
 const CEO_WRITER_AGENT_ID = "employee-writer";
 const BOSS_SIDE_CEO_WRITER_NAME = "CEO分身";
-const EMPLOYEE_SIDE_CEO_WRITER_NAME = "MetaAegnt";
+const EMPLOYEE_SIDE_CEO_WRITER_NAME = "ME";
 const CEO_WRITER_DISPLAY_NAMES = [BOSS_SIDE_CEO_WRITER_NAME, EMPLOYEE_SIDE_CEO_WRITER_NAME];
 
 const replaceCeoWriterDisplayName = (value: string, viewRole: FrontisWebRole): string => {

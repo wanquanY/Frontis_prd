@@ -34,11 +34,11 @@ const POINTS_LEDGER_DIRECTION_OPTIONS: Array<{
 ];
 
 const POINTS_LEDGER_SOURCE_LABEL_MAP: Record<string, string> = {
-  "MetaAgent 协作消耗": "MetaAgent 调用",
-  "MetaAgent 调度消耗": "MetaAgent 调用",
-  MetaAgent协作消耗: "MetaAgent 调用",
-  MetaAgent调度消耗: "MetaAgent 调用",
-  管理后台配置消耗: "MetaAgent 调用",
+  "MetaAgent 协作消耗": "ME 调用",
+  "MetaAgent 调度消耗": "ME 调用",
+  MetaAgent协作消耗: "ME 调用",
+  MetaAgent调度消耗: "ME 调用",
+  管理后台配置消耗: "ME 调用",
   管理员充值: "购买标准积分包",
   运营配置积分: "购买标准积分包",
   集团积分包到账: "购买标准积分包",

@@ -14,14 +14,14 @@ export const PRODUCT_SLOGAN = "超越聊天，智能跃迁";
 export const PRODUCT_LOGO_TEXT = "大";
 
 /**
- * 一级导航中 MA 工作台文案。
+ * 一级导航中 ME 工作台文案。
  */
-export const MA_WORKBENCH_LABEL = "MA工作台";
+export const MA_WORKBENCH_LABEL = "ME";
 
 /**
- * 一级导航中专家工作室文案。
+ * 一级导航中 ME 专家列表文案。
  */
-export const EXPERT_STUDIO_LABEL = "专家工作室";
+export const EXPERT_STUDIO_LABEL = "ME 专家列表";
 
 /**
  * 一级导航中专家广场文案。

@@ -435,7 +435,7 @@ export const NEW_USER_ONBOARDING_MOCK_ACCOUNT: MockAuthAccount = buildTenantAcco
   DEFAULT_MOCK_VERIFICATION_CODE,
   {
     accountId: "mock-account-new-user-onboarding",
-    description: "新用户首次进入示例账号，登录后直接进入 MetaAgent 并展示初始化引导。",
+    description: "新用户首次进入示例账号，登录后直接进入 ME 并展示初始化引导。",
     tenant: NEW_USER_ONBOARDING_TENANT,
   },
 );
