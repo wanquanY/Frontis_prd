@@ -191,19 +191,23 @@ const buildOperationsIdentity = (
   identityId: string,
   operationsAccountId: string,
   subjectName: string,
+  tenant: MockTenantInfo = OPERATIONS_TENANT,
 ): MockAuthIdentity =>
   buildIdentity({
     id: identityId,
     subjectId: operationsAccountId,
     subjectName,
-    tenantId: OPERATIONS_TENANT.id,
-    tenantName: OPERATIONS_TENANT.name,
-    tenantCode: OPERATIONS_TENANT.code,
+    tenantId: tenant.id,
+    tenantName: tenant.name,
+    tenantCode: tenant.code,
     platform: "operationsAdmin",
     platformLabel: OPERATIONS_CONSOLE_LABEL,
     role: "admin",
-    roleLabel: "运营管理员",
-    description: "进入运营管理平台处理租户、商品、资源、积分和平台组织管理。",
+    roleLabel: tenant.id === OPERATIONS_TENANT.id ? "运营管理员" : "租户运营管理员",
+    description:
+      tenant.id === OPERATIONS_TENANT.id
+        ? "进入运营管理平台处理租户、商品、资源、积分和平台组织管理。"
+        : `进入 ${tenant.name} 的租户运营管理后台。`,
     entryPath: "/ops/tenants",
     operationsAccountId,
   });
@@ -213,11 +217,12 @@ const withOperationsIdentity = (
   identityId: string,
   operationsAccountId: string,
   subjectName: string,
+  tenant?: MockTenantInfo,
 ): MockAuthAccount => ({
   ...account,
   identities: [
     ...account.identities,
-    buildOperationsIdentity(identityId, operationsAccountId, subjectName),
+    buildOperationsIdentity(identityId, operationsAccountId, subjectName, tenant),
   ],
 });
 
@@ -382,6 +387,7 @@ export const ENTERPRISE_ADMIN_MOCK_ACCOUNT: MockAuthAccount = withOperationsIden
   "enterprise-admin-operations-platform",
   "ops-account-yang-wanquan",
   "杨万泉",
+  MULTI_TENANT_ENTERPRISE_ADMIN_TENANT,
 );
 
 export const PRIVATE_ENTERPRISE_EMPLOYEE_MOCK_ACCOUNT: MockAuthAccount = buildTenantAccount(
@@ -477,6 +483,7 @@ export const MULTI_TENANT_MOCK_ACCOUNT: MockAuthAccount = {
       "multi-tenant-operations-platform",
       "ops-account-yang-wanquan",
       "杨万泉",
+      MULTI_TENANT_ENTERPRISE_ADMIN_TENANT,
     ),
   ],
 };

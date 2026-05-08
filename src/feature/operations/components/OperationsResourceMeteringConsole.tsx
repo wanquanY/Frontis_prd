@@ -418,9 +418,6 @@ export const OperationsResourceMeteringConsole = ({
       <div className={adminStyles.consoleSectionHeader}>
         <div className={adminStyles.consoleSectionHeaderMain}>
           <h2 className={adminStyles.consoleSectionTitle}>大模型资源配置</h2>
-          <p className={adminStyles.consoleSectionDescription}>
-            结构与企业管理端模型配置保持一致：先维护模型供应商，再在供应商下管理模型清单；运营侧额外维护成本价和资源计量单价。
-          </p>
         </div>
         <div className={adminStyles.consoleInlineActions}>
           <Input
@@ -496,9 +493,6 @@ export const OperationsResourceMeteringConsole = ({
       <div className={adminStyles.consoleSectionHeader}>
         <div className={adminStyles.consoleSectionHeaderMain}>
           <h2 className={adminStyles.consoleSectionTitle}>接口与 Skill 资源计量</h2>
-          <p className={adminStyles.consoleSectionDescription}>
-            这里维护第三方 API、Skill 外部能力的成本、资源计量单价和可用状态。
-          </p>
         </div>
         <div className={adminStyles.consoleActions}>
           <Button type="primary" onClick={handleOpenCreateExternalService}>

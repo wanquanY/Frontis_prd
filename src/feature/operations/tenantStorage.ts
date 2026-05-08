@@ -7,9 +7,14 @@ export const OPERATIONS_TENANTS_STORAGE_KEY = "frontis.operations.tenants";
 
 interface StoredOperationsTenant extends Omit<
   OperationsTenant,
-  "hasAgentListingAccess" | "effectiveAt" | "deploymentMode" | "edition"
+  | "hasAgentListingAccess"
+  | "hasOperationsConsoleAccess"
+  | "effectiveAt"
+  | "deploymentMode"
+  | "edition"
 > {
   hasAgentListingAccess?: boolean;
+  hasOperationsConsoleAccess?: boolean;
   hasAgentDevAccess?: boolean;
   deploymentMode?: OperationsTenant["deploymentMode"];
   edition?: OperationsTenant["edition"];
@@ -21,10 +26,25 @@ const normalizeStoredTenant = (tenant: StoredOperationsTenant): OperationsTenant
     deploymentMode,
     edition,
     hasAgentListingAccess,
+    hasOperationsConsoleAccess,
     hasAgentDevAccess,
     effectiveAt,
     ...restTenant
   } = tenant;
+  const normalizedOperationsAccess =
+    typeof hasOperationsConsoleAccess === "boolean"
+      ? hasOperationsConsoleAccess
+      : restTenant.id === "tenant-enterprise-demo" ||
+        restTenant.id === "tenant-enterprise-hq" ||
+        restTenant.id === "ops-tenant-004" ||
+        (restTenant.moduleLabels?.some(label => label.includes("运营")) ?? false);
+  const normalizedModuleLabels = Array.from(
+    new Set([
+      "FrontisAI工作台",
+      "企业管理后台",
+      ...(normalizedOperationsAccess ? ["租户运营后台"] : []),
+    ]),
+  );
 
   return {
     ...restTenant,
@@ -43,7 +63,9 @@ const normalizeStoredTenant = (tenant: StoredOperationsTenant): OperationsTenant
         : typeof hasAgentDevAccess === "boolean"
           ? hasAgentDevAccess
           : false,
+    hasOperationsConsoleAccess: normalizedOperationsAccess,
     effectiveAt: effectiveAt ?? "",
+    moduleLabels: normalizedModuleLabels,
   };
 };
 

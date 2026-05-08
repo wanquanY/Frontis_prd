@@ -69,6 +69,7 @@ const OPERATION_PERMISSION_GROUPS: PermissionGroup[] = [
       { id: "tenant.status", label: "启停租户" },
       { id: "tenant.points.recharge", label: "配置租户积分" },
       { id: "tenant.agentListing.configure", label: "配置上架服务" },
+      { id: "tenant.operations.configure", label: "配置运营系统" },
     ],
   },
   {

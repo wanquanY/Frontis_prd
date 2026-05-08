@@ -109,6 +109,7 @@ interface DialoguePrototypeViewProps {
   onSelectMetaAgentTrajectory: (trajectoryId: string, anchorBlockId?: string) => void;
   onClearMetaAgentTrajectory: () => void;
   onFeishuConnect?: () => void;
+  onRemoveEmployee?: (employeeId: string) => void;
   onRemoveDialogueSession: (sessionId: string) => void;
   onRenameDialogueSession: (sessionId: string, title: string) => void;
   onEmployeeSelect: (employeeId: string) => void;
@@ -385,6 +386,7 @@ export const DialoguePrototypeView = ({
   onSelectMetaAgentTrajectory,
   onClearMetaAgentTrajectory,
   onFeishuConnect,
+  onRemoveEmployee,
   onRemoveDialogueSession,
   onRenameDialogueSession,
   onEmployeeSelect,
@@ -474,6 +476,7 @@ export const DialoguePrototypeView = ({
     () => groupConversationEmployees(allEmployees, defaultAgentIds),
     [allEmployees, defaultAgentIds],
   );
+  const canRemoveEmployee = Boolean(onRemoveEmployee) && allEmployees.length > 1;
   const shouldShowAgentSidebar = !hideAgentSidebar;
   const shouldShowMetaAgentTrajectory =
     hideAgentSidebar && metaAgentTrajectoryItems.length > 0 && !isHomeVisible;
@@ -1487,6 +1490,15 @@ export const DialoguePrototypeView = ({
     },
   ];
 
+  const getEmployeeMenuItems = (employee: EmployeeItem): MenuProps["items"] => [
+    {
+      key: "remove",
+      label: "移除",
+      danger: true,
+      onClick: () => onRemoveEmployee?.(employee.id),
+    },
+  ];
+
   const resolveExpertTeamMembersForItem = useCallback(
     (employee: EmployeeItem): EmployeeItem[] => {
       if (!employee.isExpertTeam || !employee.expertTeamMemberIds?.length) {
@@ -1542,6 +1554,24 @@ export const DialoguePrototypeView = ({
                     </span>
                   </span>
                 </button>
+                {canRemoveEmployee ? (
+                  <Dropdown
+                    menu={{
+                      items: getEmployeeMenuItems(item),
+                    }}
+                    trigger={["click"]}
+                  >
+                    <button
+                      type="button"
+                      className={styles.dialogueSwitcherAgentAction}
+                      aria-label="AI 专家操作"
+                      onClick={handleMenuButtonClick}
+                      onKeyDown={handleMenuButtonKeyDown}
+                    >
+                      <MoreOutlined />
+                    </button>
+                  </Dropdown>
+                ) : null}
               </div>
             );
           })}

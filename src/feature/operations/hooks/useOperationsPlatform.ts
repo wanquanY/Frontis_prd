@@ -404,6 +404,12 @@ const syncAdminTenantMember = (
   );
 };
 
+const resolveTenantModuleLabels = (hasOperationsConsoleAccess: boolean): string[] => [
+  "FrontisAI工作台",
+  "企业管理后台",
+  ...(hasOperationsConsoleAccess ? ["租户运营后台"] : []),
+];
+
 const buildTenantFromForm = (form: OperationsTenantForm): OperationsTenant => {
   const createdAt = formatTimestamp();
 
@@ -418,10 +424,11 @@ const buildTenantFromForm = (form: OperationsTenantForm): OperationsTenant => {
     adminName: form.adminName.trim(),
     adminPhone: form.adminPhone.trim(),
     hasAgentListingAccess: form.hasAgentListingAccess,
+    hasOperationsConsoleAccess: form.hasOperationsConsoleAccess,
     seatCount: form.seatCount,
     effectiveAt: form.effectiveAt.trim(),
     expiresAt: form.expiresAt.trim(),
-    moduleLabels: form.moduleLabels,
+    moduleLabels: resolveTenantModuleLabels(form.hasOperationsConsoleAccess),
     members: [buildAdminTenantMember(form.adminName, form.adminPhone, createdAt)],
     status: "pending",
     createdAt,
@@ -552,9 +559,9 @@ const buildProductFromForm = (
     contactRemark: undefined,
     status: form.plazaStatus === "online" ? "active" : "draft",
     plazaCategory: form.plazaCategory,
-    plazaVisibility: "public",
-    visibleTenantIds: [],
-    visibleTenantNames: [],
+    plazaVisibility: form.plazaVisibility,
+    visibleTenantIds: form.plazaVisibility === "tenant" ? form.visibleTenantIds : [],
+    visibleTenantNames: form.plazaVisibility === "tenant" ? form.visibleTenantNames : [],
     plazaStatus: form.plazaStatus,
     plazaSort: 0,
     billingScopes: form.billingScopes,
@@ -574,16 +581,29 @@ const buildResourcePoolFromForm = (form: OperationsResourcePoolForm): Operations
   updatedAt: formatTimestamp(),
 });
 
+const normalizeSubmissionSubmitter = (submitter: string): string =>
+  submitter.split(" - ")[0].trim();
+
+const normalizeAgentSubmission = (
+  submission: OperationsAgentSubmission,
+): OperationsAgentSubmission => ({
+  ...submission,
+  submitter: normalizeSubmissionSubmitter(submission.submitter),
+});
+
 const buildInitialAgentSubmissions = (): OperationsAgentSubmission[] => {
   const submissionMap = new Map<string, OperationsAgentSubmission>();
 
   OPERATIONS_INITIAL_AGENT_SUBMISSIONS.forEach(item => {
-    submissionMap.set(item.id, item);
+    submissionMap.set(item.id, normalizeAgentSubmission(item));
   });
 
   loadEnterpriseCommodityApplications().forEach(item => {
     const currentItem = submissionMap.get(item.id);
-    submissionMap.set(item.id, currentItem ? { ...currentItem, ...item } : item);
+    submissionMap.set(
+      item.id,
+      normalizeAgentSubmission(currentItem ? { ...currentItem, ...item } : item),
+    );
   });
 
   return Array.from(submissionMap.values()).sort((leftItem, rightItem) =>
@@ -744,10 +764,11 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
               adminName: form.adminName.trim(),
               adminPhone: form.adminPhone.trim(),
               hasAgentListingAccess: form.hasAgentListingAccess,
+              hasOperationsConsoleAccess: form.hasOperationsConsoleAccess,
               seatCount: form.seatCount,
               effectiveAt: form.effectiveAt.trim(),
               expiresAt: form.expiresAt.trim(),
-              moduleLabels: form.moduleLabels,
+              moduleLabels: resolveTenantModuleLabels(form.hasOperationsConsoleAccess),
               members: syncAdminTenantMember(
                 item.members,
                 form.adminName,
@@ -886,9 +907,9 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
             contactRemark: undefined,
             status: form.plazaStatus === "online" ? "active" : "inactive",
             plazaCategory: form.plazaCategory,
-            plazaVisibility: "public",
-            visibleTenantIds: [],
-            visibleTenantNames: [],
+            plazaVisibility: form.plazaVisibility,
+            visibleTenantIds: form.plazaVisibility === "tenant" ? form.visibleTenantIds : [],
+            visibleTenantNames: form.plazaVisibility === "tenant" ? form.visibleTenantNames : [],
             plazaStatus: form.plazaStatus,
             billingScopes: form.billingScopes,
             updatedAt: formatTimestamp(),

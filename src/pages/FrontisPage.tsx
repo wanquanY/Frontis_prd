@@ -906,6 +906,7 @@ const FrontisPage = ({
   const [respondingDialogueSessionId, setRespondingDialogueSessionId] = useState<string | null>(
     null,
   );
+  const [removedExpertStudioAgentIds, setRemovedExpertStudioAgentIds] = useState<string[]>([]);
   const [isFeishuQrConfigured, setIsFeishuQrConfigured] = useState<boolean>(
     () => localStorage.getItem(FEISHU_QR_CONFIGURED_STORAGE_KEY) === "true",
   );
@@ -934,8 +935,9 @@ const FrontisPage = ({
     setDialogueAttachments([]);
     setActiveMetaAgentTrajectoryId(null);
     setActiveMetaAgentTrajectoryAnchorBlockId(null);
+    setRemovedExpertStudioAgentIds([]);
     setIsFeishuWorkspaceConnected(false);
-  }, [activeIdentity?.tenantId, viewRole]);
+  }, [activeIdentity?.tenantId, viewRole, workspaceMode]);
 
   useEffect(() => {
     const handleFeishuQrUpdated = (event: Event): void => {
@@ -1014,6 +1016,15 @@ const FrontisPage = ({
       }),
     [currentUser, roleVisibleEmployees, tenantUsers, viewRole],
   );
+  const expertStudioAssignedEmployees = useMemo(
+    () =>
+      workspaceMode === "expertStudio"
+        ? assignedConversationEmployees.filter(
+            item => !removedExpertStudioAgentIds.includes(item.id),
+          )
+        : assignedConversationEmployees,
+    [assignedConversationEmployees, removedExpertStudioAgentIds, workspaceMode],
+  );
   const deviceDefaultAgents = useMemo(() => {
     const defaultEmployee =
       roleVisibleEmployees.find(item => item.id === DEFAULT_CONVERSATION_EMPLOYEE_ID) ??
@@ -1053,12 +1064,17 @@ const FrontisPage = ({
     const mergedEmployees =
       workspaceMode === "metaAgent"
         ? [...deviceDefaultAgents, ...assignedConversationEmployees]
-        : [...assignedConversationEmployees];
+        : [...expertStudioAssignedEmployees];
 
     return mergedEmployees.filter(
       (item, index) => mergedEmployees.findIndex(candidate => candidate.id === item.id) === index,
     );
-  }, [assignedConversationEmployees, deviceDefaultAgents, workspaceMode]);
+  }, [
+    assignedConversationEmployees,
+    deviceDefaultAgents,
+    expertStudioAssignedEmployees,
+    workspaceMode,
+  ]);
   const visibleConversationEmployees = useMemo(
     () => (workspaceMode === "metaAgent" ? deviceDefaultAgents : conversationEmployeeDirectory),
     [conversationEmployeeDirectory, deviceDefaultAgents, workspaceMode],
@@ -1340,6 +1356,48 @@ const FrontisPage = ({
       setSelectedSkillIds([]);
     },
     [conversationEmployeeDirectory, dialogueAttachments, dialogueSessions, isDialogueHomeActive],
+  );
+
+  const handleRemoveExpertStudioAgent = useCallback(
+    (employeeId: string): void => {
+      if (workspaceMode !== "expertStudio") {
+        return;
+      }
+
+      const targetEmployee = conversationEmployees.find(item => item.id === employeeId);
+      if (!targetEmployee) {
+        return;
+      }
+
+      if (conversationEmployees.length <= 1) {
+        message.warning("专家工作室至少保留一个 AI 专家。");
+        return;
+      }
+
+      const nextEmployee = conversationEmployees.find(item => item.id !== employeeId) ?? null;
+
+      setRemovedExpertStudioAgentIds(currentIds =>
+        currentIds.includes(employeeId) ? currentIds : [...currentIds, employeeId],
+      );
+      setDialogueAttachments([]);
+      setDialogueInputValue("");
+      setSelectedSkillIds([]);
+      setActiveCaseReplay(null);
+      setActiveMetaAgentTrajectoryId(null);
+
+      if (activeEmployeeId === employeeId) {
+        setActiveEmployeeId(nextEmployee?.id ?? "");
+        setActiveDialogueSessionId(
+          nextEmployee
+            ? (dialogueSessions.find(item => item.employeeId === nextEmployee.id)?.id ?? "")
+            : "",
+        );
+        setIsDialogueHomeActive(false);
+      }
+
+      message.success(`${targetEmployee.name} 已从专家工作室移除。`);
+    },
+    [activeEmployeeId, conversationEmployees, dialogueSessions, workspaceMode],
   );
 
   const handleSelectDialogueSession = useCallback(
@@ -2019,6 +2077,9 @@ const FrontisPage = ({
           onCaseReplayAction={handleStartCasePractice}
           onHomePromptSend={handleSendDialogueHomePrompt}
           onHomeCaseSelect={handleOpenHomeCase}
+          onRemoveEmployee={
+            workspaceMode === "expertStudio" ? handleRemoveExpertStudioAgent : undefined
+          }
           onRemoveDialogueSession={handleRemoveDialogueSession}
           onRenameDialogueSession={handleRenameDialogueSession}
           onEmployeeSelect={handleSelectEmployee}

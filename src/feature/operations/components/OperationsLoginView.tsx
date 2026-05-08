@@ -144,7 +144,7 @@ export const OperationsLoginView = (): JSX.Element => {
                 <span className={styles.formEyebrow}>独立入口</span>
                 <h1 className={styles.formTitle}>{`${MANAGEMENT_CONSOLE_LABEL}登录`}</h1>
                 <p className={styles.formDescription}>
-                  {`通过${MANAGEMENT_CONSOLE_LABEL}独立路由进入平台级控制台，仅处理租户创建与管理员维护。`}
+                  {`通过${MANAGEMENT_CONSOLE_LABEL}独立路由进入平台级控制台，仅处理租户创建与初始管理员维护。`}
                 </p>
               </div>
 
@@ -181,12 +181,14 @@ export const OperationsLoginView = (): JSX.Element => {
                       size="large"
                       value={verificationCodeValue}
                       onChange={event =>
-                        setVerificationCodeValue(
-                          event.target.value.replace(/\D/g, "").slice(0, 6),
-                        )
+                        setVerificationCodeValue(event.target.value.replace(/\D/g, "").slice(0, 6))
                       }
                     />
-                    <Button size="large" onClick={handleSendVerificationCode} disabled={countdown > 0}>
+                    <Button
+                      size="large"
+                      onClick={handleSendVerificationCode}
+                      disabled={countdown > 0}
+                    >
                       {countdown > 0 ? `${countdown}s后重试` : "获取验证码"}
                     </Button>
                   </div>
@@ -206,7 +208,7 @@ export const OperationsLoginView = (): JSX.Element => {
               <div className={styles.noticePanel}>
                 <p className={styles.noticeTitle}>当前阶段范围</p>
                 <p className={styles.noticeText}>
-                  当前原型仅保留租户管理能力，用于创建租户和录入管理员。
+                  当前原型仅保留租户管理能力，用于创建租户和录入初始管理员。
                 </p>
               </div>
             </div>

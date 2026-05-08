@@ -58,6 +58,7 @@ import type {
   OperationsMeteringProviderForm,
   OperationsModelService,
   OperationsModelServiceForm,
+  OperationsAgentPlazaVisibility,
   OperationsPlatformTabKey,
   OperationsProduct,
   OperationsProductBillingScope,
@@ -215,6 +216,7 @@ const TENANT_FIELD_IDS = {
   adminName: "operations-tenant-admin-name",
   adminPhone: "operations-tenant-admin-phone",
   agentListingService: "operations-tenant-agent-listing-service",
+  operationsConsoleAccess: "operations-tenant-operations-console-access",
   seatCount: "operations-tenant-seat-count",
   effectiveAt: "operations-tenant-effective-at",
   expiresAt: "operations-tenant-expires-at",
@@ -252,6 +254,8 @@ const PRODUCT_ACQUISITION_MODE_OPTIONS: Array<{
 const PRODUCT_FIELD_IDS = {
   name: "operations-product-name",
   category: "operations-product-category",
+  visibility: "operations-product-visibility",
+  visibleTenants: "operations-product-visible-tenants",
   billingScopes: "operations-product-billing-scopes",
   status: "operations-product-status",
   acquisitionMode: "operations-product-acquisition-mode",
@@ -533,6 +537,14 @@ const getProductBillingScopeLabel = (product: OperationsProduct): string => {
   return billingScopes.map(item => OPERATIONS_PRODUCT_BILLING_SCOPE_LABELS[item]).join(" / ");
 };
 
+const getProductVisibilityLabel = (product: OperationsProduct): string => {
+  if (product.plazaVisibility !== "tenant") {
+    return "全平台";
+  }
+
+  return product.visibleTenantNames?.length ? product.visibleTenantNames.join("、") : "指定租户";
+};
+
 const getProductAcquisitionLabel = (product: OperationsProduct): string => {
   if (product.supportsTrial) {
     return "免费试用";
@@ -604,10 +616,8 @@ const TenantConsole = ({
         const searchSource = [
           item.name,
           item.adminName,
-          item.adminPhone,
           OPERATIONS_TENANT_DEPLOYMENT_MODE_LABELS[item.deploymentMode],
           OPERATIONS_TENANT_EDITION_LABELS[item.edition],
-          ...item.moduleLabels,
         ]
           .join(" ")
           .toLowerCase();
@@ -627,7 +637,7 @@ const TenantConsole = ({
           <Input
             className={adminStyles.consoleInlineSearch}
             value={keyword}
-            placeholder="搜索租户名称、管理员"
+            placeholder="搜索租户名称、初始管理员"
             onChange={event => setKeyword(event.target.value)}
           />
           <Button type="primary" onClick={onCreate}>
@@ -649,10 +659,10 @@ const TenantConsole = ({
               <thead>
                 <tr>
                   <th>租户</th>
-                  <th>管理员</th>
+                  <th>初始管理员</th>
                   <th>计费模式</th>
                   <th>版本</th>
-                  <th>开通范围</th>
+                  <th>运营系统</th>
                   <th>状态</th>
                   <th>更新时间</th>
                   <th>操作</th>
@@ -670,12 +680,10 @@ const TenantConsole = ({
                         <span className={styles.tenantEntryTitle}>{tenant.name}</span>
                       </button>
                     </td>
-                    <td>
-                      {tenant.adminName} · {tenant.adminPhone}
-                    </td>
+                    <td>{tenant.adminName}</td>
                     <td>{OPERATIONS_TENANT_DEPLOYMENT_MODE_LABELS[tenant.deploymentMode]}</td>
                     <td>{OPERATIONS_TENANT_EDITION_LABELS[tenant.edition]}</td>
-                    <td className={styles.tenantModulesCell}>{tenant.moduleLabels.join("、")}</td>
+                    <td>{tenant.hasOperationsConsoleAccess ? "已开通" : "未开通"}</td>
                     <td>
                       <span className={getTenantStatusClassName(tenant.status)}>
                         {statusLabels[tenant.status]}
@@ -840,7 +848,7 @@ const TenantDetailConsole = ({
                   </span>
                 </div>
                 <div className={adminStyles.consoleInfoRow}>
-                  <span className={adminStyles.consoleInfoLabel}>管理员</span>
+                  <span className={adminStyles.consoleInfoLabel}>初始管理员</span>
                   <span className={adminStyles.consoleInfoValue}>
                     {tenant.adminName || "待录入"} · {tenant.adminPhone || "待补充"}
                   </span>
@@ -857,6 +865,12 @@ const TenantDetailConsole = ({
                   <span className={adminStyles.consoleInfoLabel}>AI专家上架服务</span>
                   <span className={adminStyles.consoleInfoValue}>
                     {tenant.hasAgentListingAccess ? "已开通" : "未开通"}
+                  </span>
+                </div>
+                <div className={adminStyles.consoleInfoRow}>
+                  <span className={adminStyles.consoleInfoLabel}>运营系统</span>
+                  <span className={adminStyles.consoleInfoValue}>
+                    {tenant.hasOperationsConsoleAccess ? "已开通" : "未开通"}
                   </span>
                 </div>
                 {tenant.deploymentMode === "publicCloud" ? (
@@ -1116,6 +1130,7 @@ const ProductConsole = ({
           item.plazaCategory ?? "",
           getProductAcquisitionLabel(item),
           getProductBillingScopeLabel(item),
+          getProductVisibilityLabel(item),
         ]
           .join(" ")
           .toLowerCase();
@@ -1138,7 +1153,7 @@ const ProductConsole = ({
               <Input
                 className={adminStyles.consoleInlineSearch}
                 value={keyword}
-                placeholder="搜索 AI专家商品、分类、计费模型"
+                placeholder="搜索 AI专家商品、分类、计费方式"
                 onChange={event => setKeyword(event.target.value)}
               />
               <Button type="primary" onClick={onCreate}>
@@ -1185,7 +1200,8 @@ const ProductConsole = ({
                   <tr>
                     <th>AI专家商品</th>
                     <th>分类</th>
-                    <th>计费模型</th>
+                    <th>计费方式</th>
+                    <th>可见范围</th>
                     <th>获取方式</th>
                     <th>试用规则</th>
                     <th>上架状态</th>
@@ -1207,6 +1223,7 @@ const ProductConsole = ({
                       </td>
                       <td>{product.plazaCategory ?? OPERATIONS_AGENT_PLAZA_DEFAULT_CATEGORY}</td>
                       <td>{getProductBillingScopeLabel(product)}</td>
+                      <td>{getProductVisibilityLabel(product)}</td>
                       <td>{getProductAcquisitionLabel(product)}</td>
                       <td>{getProductTrialLabel(product, productTrialUnitLabels)}</td>
                       <td>
@@ -1353,9 +1370,15 @@ const ProductDetailConsole = ({
                   </span>
                 </div>
                 <div className={adminStyles.consoleInfoRow}>
-                  <span className={adminStyles.consoleInfoLabel}>计费模型</span>
+                  <span className={adminStyles.consoleInfoLabel}>计费方式</span>
                   <span className={adminStyles.consoleInfoValue}>
                     {getProductBillingScopeLabel(product)}
+                  </span>
+                </div>
+                <div className={adminStyles.consoleInfoRow}>
+                  <span className={adminStyles.consoleInfoLabel}>可见范围</span>
+                  <span className={adminStyles.consoleInfoValue}>
+                    {getProductVisibilityLabel(product)}
                   </span>
                 </div>
                 <div className={adminStyles.consoleInfoRow}>
@@ -1599,9 +1622,6 @@ const ResourcePoolConsole = ({
       <header className={adminStyles.consoleHeader}>
         <div className={adminStyles.consoleHeaderMain}>
           <h1 className={adminStyles.consoleTitle}>资源池管理</h1>
-          <p className={adminStyles.consoleSubtitle}>
-            统一维护大模型与接口资源的成本、计量规则和可用状态。
-          </p>
         </div>
       </header>
 
@@ -1883,6 +1903,7 @@ export const OperationsPlatformView = (): JSX.Element => {
         adminName: tenant.adminName,
         adminPhone: tenant.adminPhone,
         hasAgentListingAccess: tenant.hasAgentListingAccess,
+        hasOperationsConsoleAccess: tenant.hasOperationsConsoleAccess,
         seatCount: tenant.seatCount,
         effectiveAt: tenant.effectiveAt,
         expiresAt: tenant.expiresAt,
@@ -1904,7 +1925,7 @@ export const OperationsPlatformView = (): JSX.Element => {
       !tenantEditor.form.effectiveAt.trim() ||
       !tenantEditor.form.expiresAt.trim()
     ) {
-      message.warning("请先补齐租户名称、管理员信息、席位数量、生效时间和失效时间。");
+      message.warning("请先补齐租户名称、初始管理员信息、席位数量、生效时间和失效时间。");
       return;
     }
 
@@ -1951,6 +1972,9 @@ export const OperationsPlatformView = (): JSX.Element => {
         billingSpec: "year",
         contactMode: "disabled",
         plazaCategory: OPERATIONS_AGENT_PLAZA_DEFAULT_CATEGORY,
+        plazaVisibility: "public",
+        visibleTenantIds: [],
+        visibleTenantNames: [],
         plazaStatus: "offline",
         billingScopes: ["points"],
       },
@@ -1986,6 +2010,9 @@ export const OperationsPlatformView = (): JSX.Element => {
           contactQrCodeValue: "",
           contactRemark: "",
           plazaCategory: product.plazaCategory ?? OPERATIONS_AGENT_PLAZA_DEFAULT_CATEGORY,
+          plazaVisibility: product.plazaVisibility ?? "public",
+          visibleTenantIds: product.visibleTenantIds ?? [],
+          visibleTenantNames: product.visibleTenantNames ?? [],
           plazaStatus: product.status === "active" ? "online" : (product.plazaStatus ?? "offline"),
           billingScopes: product.billingScopes?.length ? product.billingScopes : ["points"],
         },
@@ -2006,7 +2033,7 @@ export const OperationsPlatformView = (): JSX.Element => {
     }
 
     if (!productEditor.form.billingScopes.length) {
-      message.warning("请选择计费模型。");
+      message.warning("请选择计费方式。");
       return;
     }
 
@@ -2015,6 +2042,20 @@ export const OperationsPlatformView = (): JSX.Element => {
       return;
     }
 
+    if (
+      productEditor.form.plazaVisibility === "tenant" &&
+      !productEditor.form.visibleTenantIds.length
+    ) {
+      message.warning("请选择指定可见租户。");
+      return;
+    }
+
+    const visibleTenantNames =
+      productEditor.form.plazaVisibility === "tenant"
+        ? tenants
+            .filter(tenant => productEditor.form.visibleTenantIds.includes(tenant.id))
+            .map(tenant => tenant.name)
+        : [];
     const normalizedForm: OperationsProductForm = {
       ...productEditor.form,
       supplyKind: "agent",
@@ -2028,6 +2069,9 @@ export const OperationsPlatformView = (): JSX.Element => {
       contactMode: "disabled",
       contactQrCodeValue: "",
       contactRemark: "",
+      visibleTenantIds:
+        productEditor.form.plazaVisibility === "tenant" ? productEditor.form.visibleTenantIds : [],
+      visibleTenantNames,
     };
 
     if (productEditor.mode === "create") {
@@ -2043,7 +2087,7 @@ export const OperationsPlatformView = (): JSX.Element => {
       mode: "create",
       form: emptyProductForm,
     });
-  }, [createProduct, emptyProductForm, productEditor, updateProduct]);
+  }, [createProduct, emptyProductForm, productEditor, tenants, updateProduct]);
 
   const handleOpenCreateResourcePool = useCallback((): void => {
     setResourcePoolEditor({
@@ -2675,7 +2719,7 @@ export const OperationsPlatformView = (): JSX.Element => {
 
           <div className={styles.modalField}>
             <label className={styles.modalLabel} htmlFor={TENANT_FIELD_IDS.adminName}>
-              管理员姓名
+              初始管理员姓名
             </label>
             <Input
               id={TENANT_FIELD_IDS.adminName}
@@ -2694,7 +2738,7 @@ export const OperationsPlatformView = (): JSX.Element => {
 
           <div className={styles.modalField}>
             <label className={styles.modalLabel} htmlFor={TENANT_FIELD_IDS.adminPhone}>
-              管理员手机号
+              初始管理员手机号
             </label>
             <Input
               id={TENANT_FIELD_IDS.adminPhone}
@@ -2728,6 +2772,29 @@ export const OperationsPlatformView = (): JSX.Element => {
                   form: {
                     ...currentState.form,
                     hasAgentListingAccess: nextValue === "enabled",
+                  },
+                }))
+              }
+            />
+          </div>
+
+          <div className={styles.modalField}>
+            <label className={styles.modalLabel} htmlFor={TENANT_FIELD_IDS.operationsConsoleAccess}>
+              运营系统
+            </label>
+            <Select<"disabled" | "enabled">
+              id={TENANT_FIELD_IDS.operationsConsoleAccess}
+              value={tenantEditor.form.hasOperationsConsoleAccess ? "enabled" : "disabled"}
+              options={[
+                { value: "disabled", label: "未开通" },
+                { value: "enabled", label: "已开通" },
+              ]}
+              onChange={nextValue =>
+                setTenantEditor(currentState => ({
+                  ...currentState,
+                  form: {
+                    ...currentState.form,
+                    hasOperationsConsoleAccess: nextValue === "enabled",
                   },
                 }))
               }
@@ -2895,8 +2962,65 @@ export const OperationsPlatformView = (): JSX.Element => {
           </div>
 
           <div className={styles.modalField}>
+            <label className={styles.modalLabel} htmlFor={PRODUCT_FIELD_IDS.visibility}>
+              可见范围
+            </label>
+            <Select<OperationsAgentPlazaVisibility>
+              id={PRODUCT_FIELD_IDS.visibility}
+              value={productEditor.form.plazaVisibility}
+              options={[
+                { value: "public", label: "全平台" },
+                { value: "tenant", label: "指定租户" },
+              ]}
+              onChange={nextValue =>
+                setProductEditor(currentState => ({
+                  ...currentState,
+                  form: {
+                    ...currentState.form,
+                    plazaVisibility: nextValue,
+                    visibleTenantIds:
+                      nextValue === "tenant" ? currentState.form.visibleTenantIds : [],
+                    visibleTenantNames:
+                      nextValue === "tenant" ? currentState.form.visibleTenantNames : [],
+                  },
+                }))
+              }
+            />
+          </div>
+
+          {productEditor.form.plazaVisibility === "tenant" ? (
+            <div className={styles.modalField}>
+              <label className={styles.modalLabel} htmlFor={PRODUCT_FIELD_IDS.visibleTenants}>
+                指定租户
+              </label>
+              <Select<string[]>
+                id={PRODUCT_FIELD_IDS.visibleTenants}
+                mode="multiple"
+                value={productEditor.form.visibleTenantIds}
+                placeholder="请选择可见租户"
+                options={tenants.map(tenant => ({
+                  value: tenant.id,
+                  label: tenant.name,
+                }))}
+                onChange={nextValue =>
+                  setProductEditor(currentState => ({
+                    ...currentState,
+                    form: {
+                      ...currentState.form,
+                      visibleTenantIds: nextValue,
+                      visibleTenantNames: tenants
+                        .filter(tenant => nextValue.includes(tenant.id))
+                        .map(tenant => tenant.name),
+                    },
+                  }))
+                }
+              />
+            </div>
+          ) : null}
+
+          <div className={styles.modalField}>
             <label className={styles.modalLabel} htmlFor={PRODUCT_FIELD_IDS.billingScopes}>
-              计费模型
+              计费方式
             </label>
             <Select
               id={PRODUCT_FIELD_IDS.billingScopes}

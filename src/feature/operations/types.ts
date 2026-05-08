@@ -66,7 +66,7 @@ export type OperationsAgentPlazaCategoryStatus = "active" | "inactive";
 export type OperationsAgentPlazaVisibility = "public" | "tenant";
 
 /**
- * 商品适用的租户计费模型。
+ * 商品适用的租户计费方式。
  */
 export type OperationsProductBillingScope = "points" | "cost";
 
@@ -251,6 +251,7 @@ export interface OperationsTenant {
   adminName: string;
   adminPhone: string;
   hasAgentListingAccess: boolean;
+  hasOperationsConsoleAccess: boolean;
   seatCount: number;
   effectiveAt: string;
   expiresAt: string;
@@ -272,6 +273,7 @@ export interface OperationsTenantForm {
   adminName: string;
   adminPhone: string;
   hasAgentListingAccess: boolean;
+  hasOperationsConsoleAccess: boolean;
   seatCount: number;
   effectiveAt: string;
   expiresAt: string;
@@ -597,6 +599,9 @@ export interface OperationsProductForm {
   contactQrCodeValue: string;
   contactRemark: string;
   plazaCategory: OperationsAgentPlazaCategory;
+  plazaVisibility: OperationsAgentPlazaVisibility;
+  visibleTenantIds: string[];
+  visibleTenantNames: string[];
   plazaStatus: OperationsAgentPlazaStatus;
   billingScopes: OperationsProductBillingScope[];
 }

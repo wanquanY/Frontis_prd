@@ -64,7 +64,7 @@ export const OPERATIONS_TAB_OPTIONS: Array<{
   {
     key: "tenants",
     label: "租户管理",
-    description: "创建租户并配置管理员账号。",
+    description: "创建租户并配置初始管理员账号。",
   },
   {
     key: "organization",
@@ -79,7 +79,7 @@ export const OPERATIONS_TAB_OPTIONS: Array<{
   {
     key: "products",
     label: "商品中心",
-    description: "管理 AI专家商品、分类、计费模型、可见范围和上下架。",
+    description: "管理 AI专家商品、分类、计费方式、可见范围和上下架。",
   },
   {
     key: "resources",
@@ -141,10 +141,11 @@ export const OPERATIONS_INITIAL_TENANTS: OperationsTenant[] = [
     adminName: "杨万泉",
     adminPhone: "13800008883",
     hasAgentListingAccess: true,
+    hasOperationsConsoleAccess: true,
     seatCount: 80,
     effectiveAt: "2026-04-02",
     expiresAt: "2027-03-31",
-    moduleLabels: ["FrontisAI工作台"],
+    moduleLabels: ["FrontisAI工作台", "企业管理后台", "租户运营后台"],
     members: [
       {
         id: "ops-tenant-001-member-001",
@@ -183,10 +184,11 @@ export const OPERATIONS_INITIAL_TENANTS: OperationsTenant[] = [
     adminName: "周倩",
     adminPhone: "13800002222",
     hasAgentListingAccess: false,
+    hasOperationsConsoleAccess: false,
     seatCount: 20,
     effectiveAt: "2026-04-14",
     expiresAt: "2026-06-30",
-    moduleLabels: ["FrontisAI工作台"],
+    moduleLabels: ["FrontisAI工作台", "企业管理后台"],
     members: [
       {
         id: "ops-tenant-002-member-001",
@@ -211,10 +213,11 @@ export const OPERATIONS_INITIAL_TENANTS: OperationsTenant[] = [
     adminName: "李想",
     adminPhone: "13800005555",
     hasAgentListingAccess: false,
+    hasOperationsConsoleAccess: false,
     seatCount: 1,
     effectiveAt: "2026-04-20",
     expiresAt: "2027-04-19",
-    moduleLabels: ["FrontisAI工作台"],
+    moduleLabels: ["FrontisAI工作台", "企业管理后台"],
     members: [
       {
         id: "ops-tenant-personal-member-001",
@@ -239,10 +242,11 @@ export const OPERATIONS_INITIAL_TENANTS: OperationsTenant[] = [
     adminName: "杨万泉",
     adminPhone: "13800009999",
     hasAgentListingAccess: true,
+    hasOperationsConsoleAccess: true,
     seatCount: 60,
     effectiveAt: "2026-03-12",
     expiresAt: "2026-12-31",
-    moduleLabels: ["FrontisAI工作台"],
+    moduleLabels: ["FrontisAI工作台", "企业管理后台", "租户运营后台"],
     members: [
       {
         id: "ops-tenant-003-member-001",
@@ -267,10 +271,11 @@ export const OPERATIONS_INITIAL_TENANTS: OperationsTenant[] = [
     adminName: "周明越",
     adminPhone: "13800008881",
     hasAgentListingAccess: true,
+    hasOperationsConsoleAccess: true,
     seatCount: 15,
     effectiveAt: "2026-03-12",
     expiresAt: "2026-12-31",
-    moduleLabels: ["运营后台"],
+    moduleLabels: ["FrontisAI工作台", "企业管理后台", "租户运营后台"],
     members: [
       {
         id: "ops-tenant-003-member-001",
@@ -298,7 +303,7 @@ export const OPERATIONS_INITIAL_AGENT_SUBMISSIONS: OperationsAgentSubmission[] =
     id: "ops-agent-001",
     name: "零售经营复盘官",
     version: "v1.3.0",
-    submitter: "张三 - 星澜服饰租户",
+    submitter: "张三",
     submittedAt: "2026-04-16 13:20",
     status: "pending",
     submissionType: "squarePublish",
@@ -311,7 +316,7 @@ export const OPERATIONS_INITIAL_AGENT_SUBMISSIONS: OperationsAgentSubmission[] =
     id: "ops-agent-002",
     name: "客户对账核验助手",
     version: "v2.0.1",
-    submitter: "王晨 - 凌光零售华东租户",
+    submitter: "王晨",
     submittedAt: "2026-04-15 19:05",
     status: "approved",
     submissionType: "squarePublish",
@@ -331,7 +336,7 @@ export const OPERATIONS_INITIAL_AGENT_SUBMISSIONS: OperationsAgentSubmission[] =
     id: "ops-agent-003",
     name: "设备巡检助手",
     version: "v0.9.4",
-    submitter: "李雪 - 星澜服饰租户",
+    submitter: "李雪",
     submittedAt: "2026-04-14 17:40",
     status: "rejected",
     submissionType: "squarePublish",
@@ -346,7 +351,7 @@ export const OPERATIONS_INITIAL_AGENT_SUBMISSIONS: OperationsAgentSubmission[] =
     id: "ops-agent-004",
     name: "商品运营素材助手",
     version: "v1.1.2",
-    submitter: "林若岚 - 星澜服饰集团租户",
+    submitter: "林若岚",
     submittedAt: "2026-04-13 16:25",
     status: "approved",
     submissionType: "squarePublish",
@@ -366,7 +371,7 @@ export const OPERATIONS_INITIAL_AGENT_SUBMISSIONS: OperationsAgentSubmission[] =
     id: "ops-agent-005",
     name: "制度问答助手",
     version: "v1.0.3",
-    submitter: "陈可心 - Frontis 内部运营组",
+    submitter: "陈可心",
     submittedAt: "2026-04-12 11:10",
     status: "approved",
     submissionType: "squarePublish",
@@ -1472,10 +1477,11 @@ export const createEmptyOperationsTenantForm = (): OperationsTenantForm => ({
   adminName: "",
   adminPhone: "",
   hasAgentListingAccess: false,
+  hasOperationsConsoleAccess: false,
   seatCount: 0,
   effectiveAt: "",
   expiresAt: "",
-  moduleLabels: ["FrontisAI工作台"],
+  moduleLabels: ["FrontisAI工作台", "企业管理后台"],
 });
 
 export const createEmptyOperationsTenantMemberForm = (): OperationsTenantMemberForm => ({
@@ -1539,6 +1545,9 @@ export const createEmptyOperationsProductForm = (): OperationsProductForm => ({
   contactQrCodeValue: "",
   contactRemark: "",
   plazaCategory: OPERATIONS_AGENT_PLAZA_DEFAULT_CATEGORY,
+  plazaVisibility: "public",
+  visibleTenantIds: [],
+  visibleTenantNames: [],
   plazaStatus: "offline",
   billingScopes: ["points"],
 });
