@@ -68,17 +68,17 @@ export const FDE_WORKBENCH_TABS: FdeWorkbenchTabItem[] = [
   },
   {
     key: "agentDev",
-    label: "Frontis 开发",
+    label: "进化实验室",
     description: "",
   },
   {
     key: "skillMarket",
-    label: "Skill广场",
+    label: "技能中心",
     description: "",
   },
   {
     key: "agentStore",
-    label: "Agent广场",
+    label: "专家广场",
     description: "",
   },
   {
@@ -130,21 +130,21 @@ export const FDE_WORKBENCH_NAV_GROUPS: FdeWorkbenchNavGroup[] = [
   },
   {
     groupKey: "development",
-    groupLabel: "FDE开发管理",
+    groupLabel: "进化实验室",
     items: [
       {
         key: "agentDev",
-        label: "Frontis 开发",
+        label: "进化实验室",
         description: "",
       },
       {
         key: "skillMarket",
-        label: "Skill广场",
+        label: "技能中心",
         description: "",
       },
       {
         key: "agentStore",
-        label: "Agent广场",
+        label: "专家广场",
         description: "",
       },
     ],
@@ -198,17 +198,17 @@ export const FDE_TEAM_PERMISSIONS: FdeTeamPermissionItem[] = [
   },
   {
     key: "agentDev",
-    label: "Frontis 开发",
-    description: "可进入 Frontis 开发模块处理 Agent 开发工作。",
+    label: "进化实验室",
+    description: "可进入进化实验室处理 AI 专家与 Skill 开发工作。",
   },
   {
     key: "skillMarket",
-    label: "Skill广场",
+    label: "技能中心",
     description: "可浏览和管理团队 skill 资产。",
   },
   {
     key: "agentStore",
-    label: "Agent广场",
+    label: "专家广场",
     description: "可浏览和管理团队 Agent 资产。",
   },
 ];
@@ -3402,7 +3402,7 @@ export const FDE_VERSION_MANAGEMENT_TASKS: FdeVersionManagementTaskItem[] = [
   },
 ];
 
-/* ─── Skill 市场 Mock 数据 ─── */
+/* ─── 技能中心 Mock 数据 ─── */
 
 export const FDE_SKILL_PRESET_COVERS: FdeSkillPresetCover[] = [
   {
@@ -4712,7 +4712,7 @@ export const FDE_AGENT_STORE_ITEMS: FdeAgentItem[] = [
 ];
 
 /**
- * Agent 工作空间（Frontis 开发）。
+ * AI 专家工作空间（进化实验室）。
  */
 export const FDE_AGENT_WORKSPACES: FdeAgentWorkspace[] = [
   {

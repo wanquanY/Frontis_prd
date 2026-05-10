@@ -13,16 +13,22 @@ import {
   getIdentitiesForDeployment,
   getMockAccountByAccountId,
   getMockAccountByPhone,
+  getMockAccountPassword,
+  isMockAccountPasswordSetupRequired,
   normalizeMockSession,
   resolveIdentityEntryPath,
   resolveSessionEntryPath,
+  saveMockAccountPassword,
 } from "@/feature/auth/mockAccounts";
+import { loadOperationsRegistrationStrategy } from "@/feature/operations/platformConfigStorage";
 import type {
   MockAuthActionResult,
   MockAuthAccount,
   MockAuthIdentity,
   MockLoginParams,
   MockAuthSession,
+  MockPasswordLoginParams,
+  MockPasswordSetupParams,
   MockTenantRegistrationParams,
 } from "@/feature/auth/types";
 import { isValidMarketingPhone } from "@/feature/marketingPortal/utils";
@@ -34,7 +40,9 @@ interface UseMockAuthResult {
   activeIdentity: MockAuthIdentity | null;
   sendVerificationCode: (phone: string, scene?: "login" | "register") => MockAuthActionResult;
   login: (params: MockLoginParams) => MockAuthActionResult;
+  loginByPassword: (params: MockPasswordLoginParams) => MockAuthActionResult;
   register: (params: MockTenantRegistrationParams) => MockAuthActionResult;
+  setupPasswordAndLogin: (params: MockPasswordSetupParams) => MockAuthActionResult;
   quickLoginByAccountId: (
     accountId: string,
     preferredIdentityId?: string,
@@ -76,6 +84,13 @@ export const useMockAuth = (): UseMockAuthResult => {
 
   const sendVerificationCode = useCallback(
     (phone: string, scene: "login" | "register" = "login"): MockAuthActionResult => {
+      if (scene === "register" && !loadOperationsRegistrationStrategy().enabled) {
+        return {
+          success: false,
+          message: "暂无权限。",
+        };
+      }
+
       if (!isValidMarketingPhone(phone)) {
         return {
           success: false,
@@ -88,7 +103,7 @@ export const useMockAuth = (): UseMockAuthResult => {
       if (scene === "login" && !matchedAccount) {
         return {
           success: false,
-          message: "当前手机号未开通，请联系管理员。",
+          message: "暂无权限。",
         };
       }
 
@@ -106,6 +121,49 @@ export const useMockAuth = (): UseMockAuthResult => {
       };
     },
     [],
+  );
+
+  const completeLogin = useCallback(
+    (
+      matchedAccount: MockAuthAccount,
+      redirectPath?: string,
+      deploymentMode?: MockPasswordLoginParams["deploymentMode"],
+    ): MockAuthActionResult => {
+      const deploymentIdentities = getIdentitiesForDeployment(
+        matchedAccount.identities,
+        deploymentMode,
+      );
+
+      if (!deploymentIdentities.length) {
+        return {
+          success: false,
+          message:
+            deploymentMode === "privateCloud"
+              ? "当前账号没有私有化部署环境权限。"
+              : "当前账号没有公有云环境权限。",
+        };
+      }
+
+      const routeIdentity = findIdentityForPath(deploymentIdentities, redirectPath);
+      const defaultIdentity =
+        routeIdentity ??
+        getDefaultIdentity(deploymentIdentities, matchedAccount.quickLoginIdentityId) ??
+        undefined;
+      const nextSession = createMockSession(matchedAccount, defaultIdentity, deploymentMode);
+      const nextRedirectPath = resolveSessionEntryPath(nextSession, redirectPath);
+
+      setSession(nextSession);
+
+      return {
+        success: true,
+        message: defaultIdentity ? "登录成功。" : "登录成功，请选择进入租户。",
+        account: matchedAccount,
+        session: nextSession,
+        redirectPath: nextRedirectPath,
+        identity: defaultIdentity,
+      };
+    },
+    [setSession],
   );
 
   const login = useCallback(
@@ -145,45 +203,73 @@ export const useMockAuth = (): UseMockAuthResult => {
         };
       }
 
-      const deploymentIdentities = getIdentitiesForDeployment(
-        matchedAccount.identities,
-        deploymentMode,
-      );
-
-      if (!deploymentIdentities.length) {
+      if (isMockAccountPasswordSetupRequired(matchedAccount)) {
         return {
-          success: false,
-          message:
-            deploymentMode === "privateCloud"
-              ? "当前账号没有私有化部署环境权限。"
-              : "当前账号没有公有云环境权限。",
+          success: true,
+          message: "请先设置登录密码。",
+          account: matchedAccount,
+          requiresPasswordSetup: true,
         };
       }
 
-      const routeIdentity = findIdentityForPath(deploymentIdentities, redirectPath);
-      const defaultIdentity =
-        routeIdentity ??
-        getDefaultIdentity(deploymentIdentities, matchedAccount.quickLoginIdentityId) ??
-        undefined;
-      const nextSession = createMockSession(matchedAccount, defaultIdentity, deploymentMode);
-      const nextRedirectPath = resolveSessionEntryPath(nextSession, redirectPath);
-
-      setSession(nextSession);
-
-      return {
-        success: true,
-        message: defaultIdentity ? "登录成功。" : "登录成功，请选择进入租户。",
-        account: matchedAccount,
-        session: nextSession,
-        redirectPath: nextRedirectPath,
-        identity: defaultIdentity,
-      };
+      return completeLogin(matchedAccount, redirectPath, deploymentMode);
     },
-    [setSession],
+    [completeLogin],
+  );
+
+  const loginByPassword = useCallback(
+    ({
+      phone,
+      password,
+      redirectPath,
+      deploymentMode,
+    }: MockPasswordLoginParams): MockAuthActionResult => {
+      if (!isValidMarketingPhone(phone)) {
+        return {
+          success: false,
+          message: "请输入正确的手机号。",
+        };
+      }
+
+      const matchedAccount = getMockAccountByPhone(phone);
+
+      if (!matchedAccount) {
+        return {
+          success: false,
+          message: "账号或密码错误。",
+        };
+      }
+
+      if (isMockAccountPasswordSetupRequired(matchedAccount)) {
+        return {
+          success: false,
+          message: "请先使用验证码登录并设置密码。",
+          account: matchedAccount,
+          requiresPasswordSetup: true,
+        };
+      }
+
+      if (password !== getMockAccountPassword(matchedAccount)) {
+        return {
+          success: false,
+          message: "账号或密码错误。",
+        };
+      }
+
+      return completeLogin(matchedAccount, redirectPath, deploymentMode);
+    },
+    [completeLogin],
   );
 
   const register = useCallback(
     (params: MockTenantRegistrationParams): MockAuthActionResult => {
+      if (!loadOperationsRegistrationStrategy().enabled) {
+        return {
+          success: false,
+          message: "暂无权限。",
+        };
+      }
+
       if (!params.name.trim()) {
         return {
           success: false,
@@ -228,22 +314,62 @@ export const useMockAuth = (): UseMockAuthResult => {
         };
       }
 
-      const defaultIdentity = getDefaultIdentity(payload.account.identities) ?? undefined;
-      const nextSession = createMockSession(payload.account, defaultIdentity, "publicCloud");
-
-      setSession(nextSession);
       refreshMockAccounts();
 
       return {
         success: true,
-        message: "注册成功，已为你创建个人版租户。",
+        message: "注册成功，请设置登录密码。",
         account: payload.account,
-        session: nextSession,
-        identity: defaultIdentity,
-        redirectPath: "/web/admin/workspace/meta-agent",
+        requiresPasswordSetup: true,
+        redirectPath: "/web/employee/meta-agent",
       };
     },
-    [refreshMockAccounts, setSession],
+    [refreshMockAccounts],
+  );
+
+  const setupPasswordAndLogin = useCallback(
+    ({
+      accountId,
+      password,
+      confirmPassword,
+      redirectPath,
+      deploymentMode,
+    }: MockPasswordSetupParams): MockAuthActionResult => {
+      if (password.length < 8) {
+        return {
+          success: false,
+          message: "密码至少需要 8 位。",
+        };
+      }
+
+      if (!/[A-Za-z]/.test(password) || !/\d/.test(password)) {
+        return {
+          success: false,
+          message: "密码需要同时包含字母和数字。",
+        };
+      }
+
+      if (password !== confirmPassword) {
+        return {
+          success: false,
+          message: "两次输入的密码不一致。",
+        };
+      }
+
+      const matchedAccount = saveMockAccountPassword(accountId, password);
+
+      if (!matchedAccount) {
+        return {
+          success: false,
+          message: "未找到需要设置密码的账号。",
+        };
+      }
+
+      refreshMockAccounts();
+
+      return completeLogin(matchedAccount, redirectPath, deploymentMode);
+    },
+    [completeLogin, refreshMockAccounts],
   );
 
   const quickLoginByAccountId = useCallback(
@@ -375,7 +501,9 @@ export const useMockAuth = (): UseMockAuthResult => {
     activeIdentity,
     sendVerificationCode,
     login,
+    loginByPassword,
     register,
+    setupPasswordAndLogin,
     quickLoginByAccountId,
     activateTenant,
     activateIdentity,

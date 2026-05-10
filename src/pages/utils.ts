@@ -5,6 +5,7 @@ import type {
   MessageAttachment,
   ResultCardsData,
   TextData,
+  ToolUseData,
 } from "@/types/block";
 import type {
   WorkspaceChatMessage,
@@ -320,10 +321,117 @@ const collectTrajectoryDeliverableTitles = (
   return fallbackItems.slice(startIndex, startIndex + MAX_TRAJECTORY_DELIVERABLE_COUNT);
 };
 
+const isWorkbenchTaskBlock = (block: Block): boolean => {
+  if (block.kind !== "tool_use" && block.kind !== "tool") {
+    return false;
+  }
+
+  const blockData = block.data as Partial<ToolUseData>;
+  const name = typeof blockData.name === "string" ? blockData.name.trim().toLowerCase() : "";
+  const displayName =
+    typeof blockData.display_name === "string" ? blockData.display_name.trim() : "";
+
+  return (
+    name === "task_dispatch" ||
+    name.startsWith("workbench-task") ||
+    name.startsWith("workbench_task") ||
+    ["任务分发", "任务继续", "任务完成", "任务失败"].includes(displayName)
+  );
+};
+
+const resolveTrajectoryTaskStatus = (
+  value: unknown,
+): MetaAgentWorkTrajectoryTaskItem["status"] => {
+  const normalizedStatus = typeof value === "string" ? value.trim().toLowerCase() : "";
+
+  if (normalizedStatus === "running") {
+    return "running";
+  }
+
+  if (normalizedStatus === "failed" || normalizedStatus === "error") {
+    return "failed";
+  }
+
+  return "completed";
+};
+
+const resolveWorkbenchTaskDisplayName = (blockData: Partial<ToolUseData>): string => {
+  const displayName =
+    typeof blockData.display_name === "string" ? blockData.display_name.trim() : "";
+
+  if (displayName) {
+    return displayName;
+  }
+
+  const name = typeof blockData.name === "string" ? blockData.name.trim().toLowerCase() : "";
+  if (name === "task_dispatch") return "任务分发";
+  if (name.includes("continue")) return "任务继续";
+  if (name.includes("done")) return "任务完成";
+  if (name.includes("fail")) return "任务失败";
+
+  return "任务协同";
+};
+
+const parseWorkbenchTaskPurpose = (
+  purpose: string,
+): { expertName: string; taskTitle: string } => {
+  const normalizedPurpose = purpose.trim();
+  const matchedAssign = /^分配给([^：:]+)[：:]\s*(.+)$/.exec(normalizedPurpose);
+  if (matchedAssign) {
+    return {
+      expertName: matchedAssign[1]?.trim() || META_AGENT_LABEL,
+      taskTitle: matchedAssign[2]?.trim() || "任务协同",
+    };
+  }
+
+  const matchedTask = /^(?:任务分发|任务继续|任务完成|任务失败)\s*[-－]\s*([^：:]+)[：:]\s*(.+)$/.exec(
+    normalizedPurpose,
+  );
+  if (matchedTask) {
+    return {
+      expertName: matchedTask[1]?.trim() || META_AGENT_LABEL,
+      taskTitle: matchedTask[2]?.trim() || "任务协同",
+    };
+  }
+
+  return {
+    expertName: META_AGENT_LABEL,
+    taskTitle: normalizedPurpose || "任务协同",
+  };
+};
+
+const collectWorkbenchTrajectoryTaskItems = (
+  messages: ChatMessage[],
+  dayKey: string,
+): MetaAgentWorkTrajectoryTaskItem[] =>
+  flattenTrajectoryBlocks(messages.flatMap(message => message.blocks ?? []))
+    .filter(isWorkbenchTaskBlock)
+    .map((block, index) => {
+      const blockData = block.data as Partial<ToolUseData>;
+      const displayName = resolveWorkbenchTaskDisplayName(blockData);
+      const purpose = typeof blockData.purpose === "string" ? blockData.purpose : "";
+      const { expertName, taskTitle } = parseWorkbenchTaskPurpose(purpose);
+
+      return {
+        id: `trajectory-task-${dayKey}-${block.id || index}`,
+        title: truncateTrajectoryText(taskTitle, MAX_TRAJECTORY_TITLE_LENGTH + 8),
+        agentName: expertName,
+        status: resolveTrajectoryTaskStatus(blockData.status),
+        metaLabel: displayName,
+        anchorBlockId: block.id,
+      };
+    });
+
 const buildTrajectoryTaskItems = (
   messages: ChatMessage[],
   dayKey: string,
 ): MetaAgentWorkTrajectoryTaskItem[] => {
+  const workbenchTaskItems = collectWorkbenchTrajectoryTaskItems(messages, dayKey);
+
+  if (workbenchTaskItems.length) {
+    return workbenchTaskItems;
+  }
+
   const taskItems = messages
     .filter(message => message.role === "assistant" && message.author !== "系统")
     .map((message, index) => {
@@ -644,10 +752,14 @@ const resolveMessageTimestamp = (timeLabel: string): number => {
   if (timeLabel === "刚刚") {
     return Date.now();
   }
-  const matched = /^(\d{2}):(\d{2})$/.exec(timeLabel.trim());
-  if (!matched) {
-    return Date.now();
+  const normalizedTimeLabel = timeLabel.trim();
+  const parsedDate = dayjs(normalizedTimeLabel);
+  if (parsedDate.isValid() && /\d{4}[-/]\d{1,2}[-/]\d{1,2}/.test(normalizedTimeLabel)) {
+    return parsedDate.valueOf();
   }
+  const matched = /^(\d{2}):(\d{2})$/.exec(normalizedTimeLabel);
+  if (!matched) return Date.now();
+
   const hours = Number(matched[1]);
   const minutes = Number(matched[2]);
   const date = new Date();
@@ -737,6 +849,9 @@ export const buildWorkspaceChatBlocks = (messages: ChatMessage[]): Block[] => {
           role: actorRole,
           status: "completed",
           attachments: buildBlockAttachments(message.attachments),
+          ...(message.followupSuggestions?.length
+            ? { followupSuggestions: message.followupSuggestions }
+            : {}),
         },
         actorId: message.author,
         actorName: message.author,

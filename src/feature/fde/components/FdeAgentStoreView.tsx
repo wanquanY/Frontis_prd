@@ -1,22 +1,18 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-import { PlusOutlined } from "@ant-design/icons";
-import { Button, Input, Modal, message } from "antd";
+import { Button, Empty, Modal, QRCode } from "antd";
 import classNames from "classnames";
 import dayjs from "dayjs";
 
 import { useMockAuth } from "@/feature/auth/hooks/useMockAuth";
 import { getMockTenantManagementSnapshot } from "@/feature/auth/mockTenantRegistry";
-import {
-  loadEnterpriseCommodityApplications,
-  saveEnterpriseCommodityApplications,
-} from "@/feature/fde/enterpriseCommodityApplications";
+import { loadEnterpriseCommodityApplications } from "@/feature/fde/enterpriseCommodityApplications";
 import { FDE_AGENT_STORE_ITEMS } from "@/feature/fde/mockData";
 import {
   loadStoredOperationsFulfillments,
   loadStoredOperationsProducts,
-  saveStoredOperationsFulfillments,
 } from "@/feature/operations/commerceStorage";
+import { loadOperationsServiceContactConfig } from "@/feature/operations/platformConfigStorage";
 import { loadStoredAgentPlazaCategories } from "@/feature/operations/agentPlazaCategoryStorage";
 import { OPERATIONS_AGENT_PLAZA_DEFAULT_CATEGORY } from "@/feature/operations/mockData";
 import type {
@@ -25,21 +21,16 @@ import type {
   OperationsFulfillment,
   OperationsProduct,
   OperationsProductDeliveryKind,
+  OperationsServiceContactConfig,
 } from "@/feature/operations/types";
 import { getAvatarUrl } from "@/pages/utils";
 
 import styles from "./FdeAgentStoreView.module.less";
 
-interface FdeAgentStoreViewProps {
-  onNavigateToAgentDev?: () => void;
-  viewerRole?: "employee" | "admin";
-}
-
 type AgentShelfFilter = "all" | "mine" | "teamShare" | "frontis";
 type BusinessLineFilter = "all" | BusinessLineKey;
 type BusinessLineKey = OperationsAgentPlazaCategoryOption["name"];
 type AgentSourceType = "mine" | "teamShare" | "frontis";
-type AgentActionKind = "addWorkspace" | "openTrial";
 
 interface AgentCapability {
   name: string;
@@ -110,21 +101,14 @@ interface StoreAgentItem {
   commodityApplication?: OperationsAgentSubmission | null;
 }
 
-interface AgentActionConfig {
-  primaryLabel: string;
-  primaryAction: AgentActionKind;
-  tone: "default" | "accent" | "primary";
-}
-
-interface CommodityApplicationDraft {
-  agentId: string;
-  proposedProductName: string;
-  reason: string;
+interface ContactModalInfo {
+  enabled: boolean;
+  contactName: string;
+  qrCodeValue: string;
+  remark: string;
 }
 
 const DEFAULT_TENANT_ID = "tenant-enterprise-demo";
-const DEFAULT_TENANT_NAME = "星澜服饰租户";
-const DEFAULT_VIEWER_ROLE: "employee" | "admin" = "employee";
 const ACTIVE_FULFILLMENT_STATUSES = new Set<OperationsFulfillment["status"]>([
   "active",
   "completed",
@@ -463,6 +447,10 @@ const getVisibilityLabel = (agent: StoreAgentItem): string => {
 };
 
 const getAcquisitionLabel = (product: OperationsProduct): string => {
+  if (product.contactMode && product.contactMode !== "disabled") {
+    return "联系客服";
+  }
+
   if (product.supportsTrial) {
     return "可试用";
   }
@@ -470,22 +458,32 @@ const getAcquisitionLabel = (product: OperationsProduct): string => {
   return "可直接添加";
 };
 
-const getCommodityApplicationStatusLabel = (
-  application: OperationsAgentSubmission | null | undefined,
-): string => {
-  if (!application) {
-    return "未申请";
+const getContactRemark = (template: string, agentName: string): string =>
+  template.trim().replace(/\{agentName\}/g, agentName);
+
+const resolveContactModalInfo = (
+  agent: StoreAgentItem,
+  serviceContactConfig: OperationsServiceContactConfig,
+): ContactModalInfo => {
+  const product = agent.product;
+  const shouldUseCustomContact =
+    product?.contactMode === "custom" && Boolean(product.contactQrCodeValue?.trim());
+
+  if (shouldUseCustomContact && product) {
+    return {
+      enabled: true,
+      contactName: "专属客服",
+      qrCodeValue: product.contactQrCodeValue?.trim() ?? "",
+      remark: product.contactRemark?.trim() || `扫码后请备注「${agent.name}」。`,
+    };
   }
 
-  if (application.status === "pending") {
-    return "审核中";
-  }
-
-  if (application.status === "approved") {
-    return "已进入商品化流程";
-  }
-
-  return "已驳回";
+  return {
+    enabled: serviceContactConfig.enabled,
+    contactName: serviceContactConfig.contactName,
+    qrCodeValue: serviceContactConfig.qrCodeValue,
+    remark: getContactRemark(serviceContactConfig.remarkTemplate, agent.name),
+  };
 };
 
 const buildTeamSharedAgents = (
@@ -510,7 +508,7 @@ const buildTeamSharedAgents = (
     capabilities: item.capabilities,
     versions: item.versions,
     acquisitionLabel: "团队内直接使用",
-    deliveryLabel: "添加到工作台后立即可用",
+    deliveryLabel: "联系我们开通后可用",
     commodityApplication: applicationsByAgentId.get(item.id) ?? null,
   }));
 
@@ -577,7 +575,7 @@ const buildMyAgents = (
         current: index === 0,
       })),
       acquisitionLabel: "我开发的 AI专家",
-      deliveryLabel: "添加到工作台后立即可用",
+      deliveryLabel: "联系我们开通后可用",
       commodityApplication: applicationsByAgentId.get(item.id) ?? null,
     };
   });
@@ -685,81 +683,13 @@ const resolveLatestFulfillmentsByProductId = (
       return result;
     }, new Map<string, OperationsFulfillment>());
 
-const getCardContextLabel = (agent: StoreAgentItem, _isTeamEdition: boolean): string => {
-  if (agent.sourceType === "mine") {
-    return agent.commodityApplication?.proposedProductName ?? "我开发的 AI专家";
-  }
-
-  if (agent.sourceType === "teamShare") {
-    return agent.scopeLabel;
-  }
-
-  if (agent.product?.supportsTrial) {
-    return "试用后即可添加到工作台";
-  }
-
-  return "可直接添加到工作台";
-};
-
-const getCardContextMeta = (agent: StoreAgentItem): string => {
-  if (agent.sourceType === "mine") {
-    return agent.commodityApplication
-      ? getCommodityApplicationStatusLabel(agent.commodityApplication)
-      : "可申请商品化";
-  }
-
-  if (agent.sourceType === "teamShare") {
-    return "添加后即可使用";
-  }
-
-  return agent.trialLabel ?? agent.deliveryLabel;
-};
-
-const getAgentActionConfig = (agent: StoreAgentItem): AgentActionConfig => {
-  if (agent.sourceType === "mine" || agent.sourceType === "teamShare") {
-    return {
-      primaryLabel: "添加到工作台",
-      primaryAction: "addWorkspace",
-      tone: "accent",
-    };
-  }
-
-  const hasAccess = Boolean(agent.fulfillment);
-
-  if (hasAccess) {
-    return {
-      primaryLabel: "添加到工作台",
-      primaryAction: "addWorkspace",
-      tone: "primary",
-    };
-  }
-
-  if (agent.product?.supportsTrial) {
-    return {
-      primaryLabel: "立即试用",
-      primaryAction: "openTrial",
-      tone: "primary",
-    };
-  }
-
-  return {
-    primaryLabel: "添加到工作台",
-    primaryAction: "addWorkspace",
-    tone: "primary",
-  };
-};
-
 /**
  * AI 专家广场原型页，承接团队分享与 FrontisAI发布商品化 AI 专家。
  */
-export const FdeAgentStoreView = ({
-  onNavigateToAgentDev,
-  viewerRole,
-}: FdeAgentStoreViewProps): JSX.Element => {
+export const FdeAgentStoreView = (): JSX.Element => {
   const { activeIdentity, session } = useMockAuth();
   const [shelfFilter, setShelfFilter] = useState<AgentShelfFilter>("all");
   const [businessLineFilter, setBusinessLineFilter] = useState<BusinessLineFilter>("all");
-  const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null);
   const [products, setProducts] = useState<OperationsProduct[]>(() =>
     loadStoredOperationsProducts(),
   );
@@ -769,23 +699,21 @@ export const FdeAgentStoreView = ({
   const [commodityApplications, setCommodityApplications] = useState<OperationsAgentSubmission[]>(
     () => loadEnterpriseCommodityApplications(),
   );
+  const [serviceContactConfig, setServiceContactConfig] = useState<OperationsServiceContactConfig>(
+    () => loadOperationsServiceContactConfig(),
+  );
+  const [contactAgent, setContactAgent] = useState<StoreAgentItem | null>(null);
   const [agentPlazaCategories, setAgentPlazaCategories] = useState<
     OperationsAgentPlazaCategoryOption[]
   >(() => loadStoredAgentPlazaCategories());
-  const [commodityDraft, setCommodityDraft] = useState<CommodityApplicationDraft | null>(null);
 
   const currentTenantId = activeIdentity?.tenantId ?? DEFAULT_TENANT_ID;
-  const currentTenantName = activeIdentity?.tenantName ?? DEFAULT_TENANT_NAME;
   const currentUserName = activeIdentity?.subjectName ?? session?.name ?? "当前用户";
   const tenantSnapshot = useMemo(
     () => getMockTenantManagementSnapshot(currentTenantId),
     [currentTenantId],
   );
   const isTeamEdition = tenantSnapshot?.edition === "team";
-  const hasAgentListingAccess = Boolean(tenantSnapshot?.hasAgentListingAccess);
-  const effectiveViewerRole: "employee" | "admin" =
-    viewerRole ?? (activeIdentity?.role === "admin" ? "admin" : DEFAULT_VIEWER_ROLE);
-  const isAdminView = effectiveViewerRole === "admin";
 
   const shelfFilterOptions = useMemo(
     () =>
@@ -804,6 +732,7 @@ export const FdeAgentStoreView = ({
     setProducts(loadStoredOperationsProducts());
     setFulfillments(loadStoredOperationsFulfillments());
     setCommodityApplications(loadEnterpriseCommodityApplications());
+    setServiceContactConfig(loadOperationsServiceContactConfig());
     setAgentPlazaCategories(loadStoredAgentPlazaCategories());
   }, []);
 
@@ -889,186 +818,14 @@ export const FdeAgentStoreView = ({
     [allAgents, businessLineFilter, shelfFilter],
   );
 
-  const selectedAgent = useMemo(
-    () => allAgents.find(agent => agent.id === selectedAgentId) ?? null,
-    [allAgents, selectedAgentId],
+  const contactModalInfo = useMemo<ContactModalInfo | null>(
+    () => (contactAgent ? resolveContactModalInfo(contactAgent, serviceContactConfig) : null),
+    [contactAgent, serviceContactConfig],
   );
 
-  const selectedAgentAction = useMemo(
-    () => (selectedAgent ? getAgentActionConfig(selectedAgent) : null),
-    [selectedAgent],
-  );
-
-  const openAgentDetail = useCallback((agent: StoreAgentItem): void => {
-    setSelectedAgentId(agent.id);
+  const handleContactAgent = useCallback((agent: StoreAgentItem): void => {
+    setContactAgent(agent);
   }, []);
-
-  const closeAgentDetail = useCallback((): void => {
-    setSelectedAgentId(null);
-  }, []);
-
-  const handleOpenCommodityApplication = useCallback(
-    (agent: StoreAgentItem): void => {
-      if (agent.sourceType !== "mine") {
-        return;
-      }
-
-      if (!hasAgentListingAccess && !agent.commodityApplication) {
-        message.warning(
-          "当前租户未开通 AI专家上架服务，可继续开发和企业内使用，暂不能提交商品化申请。",
-        );
-        return;
-      }
-
-      const currentApplication = commodityApplicationsByAgentId.get(agent.id);
-
-      setCommodityDraft({
-        agentId: agent.id,
-        proposedProductName:
-          currentApplication?.proposedProductName?.trim() || `${agent.name} 标准版`,
-        reason: currentApplication?.submitReason?.trim() || "",
-      });
-    },
-    [commodityApplicationsByAgentId, hasAgentListingAccess],
-  );
-
-  const handleSubmitCommodityApplication = useCallback((): void => {
-    if (!commodityDraft) {
-      return;
-    }
-
-    if (!hasAgentListingAccess) {
-      message.warning("当前租户未开通 AI专家上架服务，暂不能提交商品化申请。");
-      return;
-    }
-
-    const targetAgent = myAgents.find(agent => agent.id === commodityDraft.agentId);
-
-    if (
-      !targetAgent ||
-      !commodityDraft.proposedProductName.trim() ||
-      !commodityDraft.reason.trim()
-    ) {
-      message.warning("请先补齐商品名与申请说明。");
-      return;
-    }
-
-    const nextApplication: OperationsAgentSubmission = {
-      id: targetAgent.id,
-      name: targetAgent.name,
-      version: targetAgent.versionLabel,
-      submitter: `${currentUserName} - ${currentTenantName}`,
-      submittedAt: dayjs().format("YYYY-MM-DD HH:mm"),
-      status: "pending",
-      submissionType: "commodityApplication",
-      proposedProductName: commodityDraft.proposedProductName.trim(),
-      submitReason: commodityDraft.reason.trim(),
-      targetCustomers: `${targetAgent.businessLineLabel}场景租户`,
-      currentScopeLabel: "已发布到 AI专家广场",
-      description: targetAgent.summary,
-      plazaCategory: targetAgent.businessLineLabel,
-    };
-
-    const nextApplications = [
-      nextApplication,
-      ...commodityApplications.filter(item => item.id !== nextApplication.id),
-    ];
-
-    saveEnterpriseCommodityApplications(nextApplications);
-    refreshStorefrontState();
-    setCommodityDraft(null);
-    message.success("已提交商品化申请，运营侧审核后可进入商品中心。");
-  }, [
-    commodityApplications,
-    commodityDraft,
-    currentTenantName,
-    currentUserName,
-    hasAgentListingAccess,
-    myAgents,
-    refreshStorefrontState,
-  ]);
-
-  const handleAddToWorkspace = useCallback(
-    (agent: StoreAgentItem): void => {
-      if (agent.sourceType === "frontis" && agent.product && !agent.fulfillment) {
-        const now = dayjs();
-        const nowLabel = now.format("YYYY-MM-DD HH:mm");
-        const expiresAt =
-          agent.product.supportsTrial && agent.product.trialUnit && agent.product.trialValue
-            ? agent.product.trialUnit === "day"
-              ? now.add(agent.product.trialValue, "day").format("YYYY-MM-DD HH:mm")
-              : now.add(1, "month").format("YYYY-MM-DD HH:mm")
-            : undefined;
-        const nextFulfillment: OperationsFulfillment = {
-          id: `ops-fulfillment-frontis-${Date.now()}`,
-          orderNo: `frontis-${Date.now()}`,
-          tenantId: currentTenantId,
-          tenantName: currentTenantName,
-          productId: agent.product.id,
-          productName: agent.product.name,
-          deliveryKind: agent.product.deliveryKind,
-          quantity: 1,
-          status: "active",
-          resourcePoolId: agent.product.resourcePoolId,
-          resourcePoolName: agent.product.resourcePoolName,
-          allocationTarget: `已开通至 ${currentTenantName}`,
-          startsAt: nowLabel,
-          expiresAt,
-          updatedAt: nowLabel,
-        };
-        const nextFulfillments = [
-          nextFulfillment,
-          ...fulfillments.filter(
-            item =>
-              !(
-                item.tenantId === currentTenantId &&
-                item.productId === agent.product?.id &&
-                ACTIVE_FULFILLMENT_STATUSES.has(item.status)
-              ),
-          ),
-        ];
-
-        saveStoredOperationsFulfillments(nextFulfillments);
-        refreshStorefrontState();
-        message.success(
-          agent.product.supportsTrial
-            ? `${agent.name} 已添加到工作台，可开始试用。`
-            : `${agent.name} 已添加到当前工作台。`,
-        );
-        return;
-      }
-
-      message.success(`${agent.name} 已添加到当前工作台。`);
-    },
-    [currentTenantId, currentTenantName, fulfillments, refreshStorefrontState],
-  );
-
-  const handlePrimaryAction = useCallback(
-    (agent: StoreAgentItem, action: AgentActionKind): void => {
-      if (action === "addWorkspace" || action === "openTrial") {
-        handleAddToWorkspace(agent);
-        return;
-      }
-
-      return;
-    },
-    [handleAddToWorkspace],
-  );
-
-  const detailContent = useMemo((): JSX.Element | null => {
-    if (!selectedAgent) {
-      return null;
-    }
-
-    return (
-      <div className={styles.detailPaneBody}>
-        <div className={styles.detailPlaceholderLabel}>{selectedAgent.name}</div>
-        <div className={styles.detailPlaceholderCard}>
-          <p>AI专家详情不分功能和展现信息参考原型稿设计</p>
-        </div>
-      </div>
-    );
-  }, [selectedAgent]);
 
   return (
     <div className={styles.root}>
@@ -1109,83 +866,52 @@ export const FdeAgentStoreView = ({
             ))}
           </div>
         </div>
-
-        {isAdminView && onNavigateToAgentDev ? (
-          <Button className={styles.createButton} type="primary" onClick={onNavigateToAgentDev}>
-            <PlusOutlined />
-            开发AI专家
-          </Button>
-        ) : null}
       </div>
 
       <div className={styles.agentGrid}>
-        {filteredAgents.map(agent => {
-          const actionConfig = getAgentActionConfig(agent);
-
-          return (
-            <article key={agent.id} className={styles.agentCard}>
-              <button
-                type="button"
-                className={styles.cardPreviewButton}
-                onClick={() => openAgentDetail(agent)}
+        {filteredAgents.map(agent => (
+          <article key={agent.id} className={styles.agentCard}>
+            <div className={styles.cardContent}>
+              <div
+                className={styles.visualPanel}
+                style={{ background: getDomainTone(agent.businessLine) }}
               >
-                <div
-                  className={styles.visualPanel}
-                  style={{ background: getDomainTone(agent.businessLine) }}
-                >
-                  <span className={styles.visibilityBadge}>{getVisibilityLabel(agent)}</span>
-                  <div className={styles.visualGlow} />
-                  <img
-                    alt={agent.name}
-                    className={styles.agentPortrait}
-                    src={getAvatarUrl(agent.visualSeed)}
-                  />
-                </div>
-
-                <div className={styles.cardBody}>
-                  <div className={styles.cardTitleRow}>
-                    <h3 className={styles.cardTitle}>{agent.name}</h3>
-                    <div className={styles.cardVersionMeta}>
-                      <span className={styles.versionBadge}>{agent.versionLabel}</span>
-                    </div>
-                  </div>
-
-                  <div className={styles.badgeRow}>
-                    <span className={`${styles.miniBadge} ${styles.domainBadge}`}>
-                      {agent.businessLineLabel}
-                    </span>
-                    <span className={`${styles.miniBadge} ${styles.scopeBadge}`}>
-                      {agent.acquisitionLabel}
-                    </span>
-                  </div>
-
-                  <p className={styles.agentDescription}>{agent.summary}</p>
-
-                  <div className={styles.cardDeliveryInfo}>
-                    <strong>{getCardContextLabel(agent, isTeamEdition)}</strong>
-                    <span>{getCardContextMeta(agent)}</span>
-                  </div>
-                </div>
-              </button>
-
-              <div className={styles.cardFooter}>
-                <Button
-                  className={
-                    actionConfig.tone === "primary"
-                      ? `${styles.cardActionButton} ${styles.cardActionButtonPrimary}`
-                      : actionConfig.tone === "accent"
-                        ? `${styles.cardActionButton} ${styles.cardActionButtonAccent}`
-                        : styles.cardActionButton
-                  }
-                  type={actionConfig.tone === "primary" ? "primary" : "default"}
-                  onClick={() => handlePrimaryAction(agent, actionConfig.primaryAction)}
-                >
-                  {actionConfig.primaryLabel}
-                </Button>
+                <div className={styles.visualGlow} />
+                <img
+                  alt={agent.name}
+                  className={styles.agentPortrait}
+                  src={getAvatarUrl(agent.visualSeed)}
+                />
               </div>
-            </article>
-          );
-        })}
+
+              <div className={styles.cardBody}>
+                <div className={styles.cardTitleRow}>
+                  <h3 className={styles.cardTitle}>{agent.name}</h3>
+                </div>
+
+                <div className={styles.badgeRow}>
+                  <span className={`${styles.miniBadge} ${styles.sourceBadge}`}>
+                    {getVisibilityLabel(agent)}
+                  </span>
+                  <span className={`${styles.miniBadge} ${styles.domainBadge}`}>
+                    {agent.businessLineLabel}
+                  </span>
+                </div>
+
+                <p className={styles.agentDescription}>{agent.summary}</p>
+              </div>
+            </div>
+
+            <div className={styles.cardFooter}>
+              <Button
+                className={`${styles.cardActionButton} ${styles.cardActionButtonPrimary}`}
+                onClick={() => handleContactAgent(agent)}
+              >
+                联系我们
+              </Button>
+            </div>
+          </article>
+        ))}
       </div>
 
       {!filteredAgents.length ? (
@@ -1193,59 +919,32 @@ export const FdeAgentStoreView = ({
       ) : null}
 
       <Modal
-        className={styles.detailModal}
-        wrapClassName={styles.detailModalWrap}
-        destroyOnClose={true}
-        footer={null}
-        onCancel={closeAgentDetail}
-        open={Boolean(selectedAgent)}
-        title={
-          <span className={styles.detailModalTitle}>{selectedAgent?.name ?? "AI 专家详情"}</span>
+        open={Boolean(contactAgent)}
+        title={contactAgent ? `联系「${contactAgent.name}」` : "联系客服"}
+        footer={
+          <Button type="primary" onClick={() => setContactAgent(null)}>
+            我知道了
+          </Button>
         }
-        width={680}
+        centered
+        destroyOnHidden
+        onCancel={() => setContactAgent(null)}
       >
-        {selectedAgent ? (
-          <div className={styles.detailShell}>
-            <div className={styles.detailScrollArea}>{detailContent}</div>
-
-            <div className={styles.detailActionBar}>
-              <div className={styles.detailActionButtons}>
-                {selectedAgent.sourceType === "mine" ? (
-                  <Button
-                    className={styles.detailSecondaryButton}
-                    onClick={() => handleOpenCommodityApplication(selectedAgent)}
-                  >
-                    {selectedAgent.commodityApplication ? "查看商品化申请" : "申请商品化"}
-                  </Button>
-                ) : null}
-                {selectedAgentAction ? (
-                  <Button
-                    className={
-                      selectedAgentAction.tone === "primary"
-                        ? `${styles.detailPrimaryButton} ${styles.detailPrimaryButtonDark}`
-                        : selectedAgentAction.tone === "accent"
-                          ? `${styles.detailPrimaryButton} ${styles.detailPrimaryButtonAccent}`
-                          : styles.detailPrimaryButton
-                    }
-                    type={selectedAgentAction.tone === "primary" ? "primary" : "default"}
-                    onClick={() =>
-                      handlePrimaryAction(selectedAgent, selectedAgentAction.primaryAction)
-                    }
-                  >
-                    {selectedAgentAction.primaryLabel}
-                  </Button>
-                ) : null}
-                <Button
-                  className={styles.detailCloseButton}
-                  type="primary"
-                  onClick={closeAgentDetail}
-                >
-                  关闭
-                </Button>
-              </div>
+        {contactModalInfo?.enabled && contactModalInfo.qrCodeValue.trim() ? (
+          <div className={styles.contactModalBody}>
+            <div className={styles.contactQrPanel}>
+              <QRCode value={contactModalInfo.qrCodeValue.trim()} size={184} bordered={false} />
+            </div>
+            <div className={styles.contactInfoBlock}>
+              <div className={styles.contactName}>{contactModalInfo.contactName}</div>
+              <p className={styles.contactRemark}>{contactModalInfo.remark}</p>
             </div>
           </div>
-        ) : null}
+        ) : (
+          <div className={styles.contactEmptyState}>
+            <Empty description="运营后台暂未启用客服二维码" />
+          </div>
+        )}
       </Modal>
     </div>
   );

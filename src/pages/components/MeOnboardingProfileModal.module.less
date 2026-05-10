@@ -1,0 +1,97 @@
+.modal {
+  :global {
+    .ant-modal-content {
+      padding: 0;
+      border-radius: 20px;
+      overflow: hidden;
+    }
+
+    .ant-modal-close {
+      top: 18px;
+      right: 18px;
+    }
+  }
+}
+
+.panel {
+  padding: 28px;
+  background: var(--surface);
+}
+
+.header {
+  padding-right: 40px;
+}
+
+.eyebrow {
+  color: var(--primary);
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 700;
+}
+
+.title {
+  margin: 8px 0 0;
+  color: var(--text);
+  font-size: 24px;
+  line-height: 32px;
+  font-weight: 800;
+  letter-spacing: 0;
+}
+
+.description {
+  margin: 10px 0 0;
+  max-width: 440px;
+  color: var(--text-secondary);
+  font-size: 14px;
+  line-height: 22px;
+}
+
+.formGrid {
+  margin-top: 24px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.field {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.fieldWide {
+  grid-column: 1 / -1;
+}
+
+.fieldLabel {
+  color: var(--text);
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 700;
+}
+
+.input {
+  width: 100%;
+}
+
+.textarea {
+  resize: none;
+}
+
+.footer {
+  margin-top: 24px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+@media (max-width: 640px) {
+  .panel {
+    padding: 24px 20px;
+  }
+
+  .formGrid {
+    grid-template-columns: 1fr;
+  }
+}

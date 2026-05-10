@@ -49,7 +49,6 @@ import { ArtifactBlock } from "./ArtifactBlock";
 import { AssistantFeedbackAction } from "./AssistantFeedbackAction";
 import { ChatMarkdown } from "./ChatMarkdown";
 import { MarkdownErrorBoundary } from "./MarkdownErrorBoundary";
-import { ResultCardsBlock } from "./ResultCardsBlock";
 import { ThinkingBlock } from "./ThinkingBlock";
 import { useTypewriterText } from "./useTypewriterText";
 import styles from "./BlockItem.module.less";
@@ -135,7 +134,11 @@ interface BlockItemProps {
   onToolExpand?: () => void;
   onDownloadArtifact?: (url: string) => void;
   onAddArtifactToKnowledge?: (artifactId: string) => void;
-  /** 控制复制按钮的显示与复制内容（仅助手 text） */
+  /** 点击消息底部快捷建议后直接发送。 */
+  onQuickActionSend?: (prompt: string) => void;
+  /** 是否禁用消息底部快捷建议。 */
+  quickActionDisabled?: boolean;
+  /** 控制助手消息复制/反馈操作的显示与复制内容。 */
   copyContext?: {
     showCopy?: boolean;
     copyText?: string;
@@ -204,6 +207,66 @@ const resolveTextBlockContent = (block: Block): string => {
   return typeof content === "string" ? content.trim() : "";
 };
 
+const normalizeQuickActionPrompts = (value: unknown): string[] => {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .map(item => (typeof item === "string" ? item.trim() : ""))
+    .filter(Boolean)
+    .slice(0, 4);
+};
+
+interface QuickActionListProps {
+  prompts: string[];
+  disabled: boolean;
+  onSend?: (prompt: string) => void;
+}
+
+const collectQuickActionPrompts = (blocks: Block[]): string[] => {
+  const promptSet = new Set<string>();
+
+  blocks.forEach(child => {
+    if (child.kind !== "text") {
+      return;
+    }
+
+    const data = child.data as Partial<TextData>;
+    normalizeQuickActionPrompts(data.followupSuggestions).forEach(prompt => {
+      promptSet.add(prompt);
+    });
+  });
+
+  return Array.from(promptSet).slice(0, 4);
+};
+
+const QuickActionList = ({
+  prompts,
+  disabled,
+  onSend,
+}: QuickActionListProps): JSX.Element | null => {
+  if (!prompts.length || !onSend) {
+    return null;
+  }
+
+  return (
+    <div className={styles.messageQuickActions} aria-label="快捷操作">
+      {prompts.map(prompt => (
+        <button
+          key={prompt}
+          type="button"
+          className={styles.messageQuickActionButton}
+          disabled={disabled}
+          onClick={() => onSend(prompt)}
+        >
+          {prompt}
+        </button>
+      ))}
+    </div>
+  );
+};
+
 const resolveToolAvatarLabel = (label?: string): string => {
   const normalizedLabel = label?.trim() ?? "";
   if (!normalizedLabel) {
@@ -235,13 +298,23 @@ export function BlockItem({
   onToolExpand,
   onDownloadArtifact,
   onAddArtifactToKnowledge,
+  onQuickActionSend,
+  quickActionDisabled = false,
   copyContext,
 }: BlockItemProps) {
   const isUser = block.actorRole === "user" || (block.data as { role?: string }).role === "user";
 
   switch (block.kind) {
     case "text":
-      return <TextBlock block={block} isUser={isUser} copyContext={copyContext} />;
+      return (
+        <TextBlock
+          block={block}
+          isUser={isUser}
+          copyContext={copyContext}
+          onQuickActionSend={onQuickActionSend}
+          quickActionDisabled={quickActionDisabled}
+        />
+      );
     case "user_input":
       return <TextBlock block={block} isUser={true} />;
     case "thinking":
@@ -277,7 +350,7 @@ export function BlockItem({
         />
       );
     case "result_cards":
-      return <ResultCardsBlock block={block} onOpenResult={onOpenResult} />;
+      return null;
     case "error":
       return <ErrorBlock block={block} />;
     case "message":
@@ -290,6 +363,8 @@ export function BlockItem({
           onToolExpand={onToolExpand}
           onDownloadArtifact={onDownloadArtifact}
           onAddArtifactToKnowledge={onAddArtifactToKnowledge}
+          onQuickActionSend={onQuickActionSend}
+          quickActionDisabled={quickActionDisabled}
           copyContext={copyContext}
         />
       );
@@ -307,6 +382,8 @@ function MessageBlock({
   onToolExpand,
   onDownloadArtifact,
   onAddArtifactToKnowledge,
+  onQuickActionSend,
+  quickActionDisabled = false,
   copyContext,
 }: {
   block: Block;
@@ -316,6 +393,8 @@ function MessageBlock({
   onToolExpand?: () => void;
   onDownloadArtifact?: (url: string) => void;
   onAddArtifactToKnowledge?: (artifactId: string) => void;
+  onQuickActionSend?: (prompt: string) => void;
+  quickActionDisabled?: boolean;
   copyContext?: BlockCopyContext;
 }) {
   const orderedChildren = useMemo(() => {
@@ -325,6 +404,10 @@ function MessageBlock({
     );
 
     return children.filter(child => {
+      if (child.kind === "result_cards") {
+        return false;
+      }
+
       if (child.kind === "text") {
         return resolveTextBlockContent(child).length > 0;
       }
@@ -378,11 +461,19 @@ function MessageBlock({
     }, {});
   }, [orderedChildren]);
 
-  const messageCopyText = useMemo(() => {
+  const ownMessageCopyText = useMemo(() => {
     const lastTextChild = [...orderedChildren].reverse().find(child => child.kind === "text");
     if (!lastTextChild) return "";
     return childCopyContextMap[lastTextChild.id]?.copyText ?? "";
   }, [childCopyContextMap, orderedChildren]);
+
+  const messageCopyText = useMemo(() => {
+    if (typeof copyContext?.showCopy === "boolean") {
+      return copyContext.showCopy ? copyContext.copyText?.trim() || ownMessageCopyText : "";
+    }
+
+    return ownMessageCopyText;
+  }, [copyContext?.copyText, copyContext?.showCopy, ownMessageCopyText]);
 
   const messageCopyActions = useMemo(() => {
     if (!messageCopyText) return null;
@@ -398,6 +489,17 @@ function MessageBlock({
         {messageFeedbackAction}
       </div>
     ) : null;
+  const messageQuickActionPrompts = useMemo(
+    () => collectQuickActionPrompts(orderedChildren),
+    [orderedChildren],
+  );
+  const messageQuickActions = (
+    <QuickActionList
+      prompts={messageQuickActionPrompts}
+      disabled={quickActionDisabled}
+      onSend={onQuickActionSend}
+    />
+  );
 
   return (
     <div className={styles.messageBlock}>
@@ -418,6 +520,8 @@ function MessageBlock({
                   onToolExpand={onToolExpand}
                   onDownloadArtifact={onDownloadArtifact}
                   onAddArtifactToKnowledge={onAddArtifactToKnowledge}
+                  onQuickActionSend={onQuickActionSend}
+                  quickActionDisabled={quickActionDisabled}
                   copyContext={childCopyContextMap[child.id] ?? copyContext}
                 />
               ))}
@@ -426,6 +530,7 @@ function MessageBlock({
         </div>
       ) : null}
       {messageActions ? <div className={styles.messageActions}>{messageActions}</div> : null}
+      {messageQuickActions}
     </div>
   );
 }
@@ -471,10 +576,14 @@ function TextBlock({
   block,
   isUser,
   copyContext,
+  onQuickActionSend,
+  quickActionDisabled = false,
 }: {
   block: Block;
   isUser: boolean;
   copyContext?: BlockCopyContext;
+  onQuickActionSend?: (prompt: string) => void;
+  quickActionDisabled?: boolean;
 }) {
   const data = block.data as unknown as TextData;
   const content = data.content || "";
@@ -523,6 +632,8 @@ function TextBlock({
       typeof processCount === "number");
   const shouldShowCopy = isUser ? true : copyContext?.showCopy === true;
   const copyText = isUser ? displayContent : (copyContext?.copyText ?? content);
+  const quickActionPrompts = !isUser ? normalizeQuickActionPrompts(data.followupSuggestions) : [];
+  const shouldShowInlineQuickActions = !isUser && copyContext?.showCopy !== false;
   const actionItems = (text: string) =>
     shouldShowCopy ? buildCopyActionItems(copyText ?? text) : [];
   const copyActions = shouldShowCopy ? <Actions items={actionItems(content)} /> : null;
@@ -551,6 +662,14 @@ function TextBlock({
   const handleViewProcess = useCallback(() => {
     message.info("过程详情功能开发中");
   }, []);
+
+  const quickActions = shouldShowInlineQuickActions ? (
+    <QuickActionList
+      prompts={quickActionPrompts}
+      disabled={quickActionDisabled}
+      onSend={onQuickActionSend}
+    />
+  ) : null;
 
   if (shouldRenderAssistantResultMessage) {
     return (
@@ -660,16 +779,19 @@ function TextBlock({
           footerPlacement="outer-end"
         />
       ) : (
-        <Bubble
-          content={
-            <MarkdownErrorBoundary content={streamedDisplayContent}>
-              <ChatMarkdown source={streamedDisplayContent} />
-            </MarkdownErrorBoundary>
-          }
-          variant="borderless"
-          footer={assistantFooterActions}
-          footerPlacement="outer-start"
-        />
+        <>
+          <Bubble
+            content={
+              <MarkdownErrorBoundary content={streamedDisplayContent}>
+                <ChatMarkdown source={streamedDisplayContent} />
+              </MarkdownErrorBoundary>
+            }
+            variant="borderless"
+            footer={assistantFooterActions}
+            footerPlacement="outer-start"
+          />
+          {quickActions}
+        </>
       )}
     </div>
   );
@@ -765,14 +887,17 @@ function ToolUseBlock({
       : resolveToolDisplayName(data.name);
   const normalizedToolName =
     typeof data.name === "string" && data.name.trim() ? data.name.trim().toLowerCase() : "";
-  const isTaskDispatch = normalizedToolName === "task_dispatch";
+  const isWorkbenchTask =
+    normalizedToolName === "task_dispatch" ||
+    normalizedToolName.startsWith("workbench-task") ||
+    normalizedToolName.startsWith("workbench_task");
   const avatarUrl =
     typeof data.avatar_url === "string" && data.avatar_url.trim() ? data.avatar_url.trim() : "";
   const avatarLabel =
     typeof data.avatar_label === "string" && data.avatar_label.trim()
       ? data.avatar_label.trim()
       : "";
-  const shouldShowAssigneeAvatar = isTaskDispatch && Boolean(avatarUrl || avatarLabel);
+  const shouldShowAssigneeAvatar = isWorkbenchTask && Boolean(avatarUrl || avatarLabel);
   const purpose = typeof data.purpose === "string" ? data.purpose.trim() : "";
   const shouldShowPurpose = Boolean(purpose);
   const subagentLabel =
@@ -807,6 +932,7 @@ function ToolUseBlock({
   const [outputOverflow, setOutputOverflow] = useState(false);
   const outputRef = useRef<HTMLDivElement | null>(null);
   const hasStructuredOutput = contactResults.length > 0 || !!resultContent;
+  const isToolPanelExpanded = isOutputExpanded || searchResults.length > 0;
   const shouldShowOutputToggle =
     hasStructuredOutput && (contactResults.length > 0 || outputOverflow || !isRunning);
   const handleToggleOutput = useCallback(() => {
@@ -871,7 +997,11 @@ function ToolUseBlock({
 
   return (
     <div className={styles.toolBlock}>
-      <div className={styles.toolWrapper}>
+      <div
+        className={classNames(styles.toolWrapper, {
+          [styles.toolWrapperExpanded]: isToolPanelExpanded,
+        })}
+      >
         <div
           className={classNames(
             styles.toolUseTag,
@@ -949,7 +1079,7 @@ function ToolUseBlock({
             ) : isRunning ? (
               <span className={styles.toolUseStatusProcess}>
                 <span className={styles.toolUseSpinner} aria-hidden="true" />
-                <span className={styles.toolUseStatusText}>执行中…</span>
+                <span className={styles.toolUseStatusText}>执行中</span>
               </span>
             ) : isError ? (
               <span className={styles.toolUseStatusError}>
@@ -964,7 +1094,7 @@ function ToolUseBlock({
             ) : isSuccess ? (
               <span className={styles.toolUseStatusSuccess}>
                 <CheckCircleOutlined className={styles.toolUseStatusIcon} aria-hidden="true" />
-                <span className={styles.toolUseStatusText}>已完成</span>
+                <span className={styles.toolUseStatusText}>执行完成</span>
               </span>
             ) : null}
 
@@ -1173,7 +1303,7 @@ function SubagentBlock({
     status === "running"
       ? "执行中"
       : status === "success" || status === "completed" || status === "done"
-        ? "已完成"
+        ? "执行完成"
         : status === "failed"
           ? "执行失败"
           : status === "suspended"
@@ -1262,7 +1392,11 @@ function ToolResultBlock({ block, onToolExpand }: { block: Block; onToolExpand?:
 
   return (
     <div className={styles.toolBlock}>
-      <div className={styles.toolWrapper}>
+      <div
+        className={classNames(styles.toolWrapper, {
+          [styles.toolWrapperExpanded]: isExpanded,
+        })}
+      >
         <div className={styles.toolUseOutputSection}>
           {shouldShowToggle ? (
             <div className={styles.toolUseOutputActions}>

@@ -1,6 +1,7 @@
 import type {
   OperationsAccount,
   OperationsAgentSubmission,
+  OperationsCommunityGroupConfig,
   OperationsFulfillment,
   OperationsExternalMeteredService,
   OperationsExternalMeteredServiceForm,
@@ -18,6 +19,8 @@ import type {
   OperationsRegistrationStrategy,
   OperationsAgentPlazaCategory,
   OperationsAgentPlazaCategoryOption,
+  OperationsSkillCenterCategory,
+  OperationsSkillCenterCategoryOption,
   OperationsProduct,
   OperationsProductBillingScope,
   OperationsProductSaleType,
@@ -40,8 +43,82 @@ import type {
   OperationsUsageRecord,
   OperationsUsageTrendPoint,
 } from "@/feature/operations/types";
+import {
+  DEPARTMENT_LEAD_PERMISSION_IDS,
+  DEFAULT_TENANT_ROLE_IDS,
+  MANAGEMENT_PERMISSION_IDS,
+  OPERATIONS_PERMISSION_IDS,
+  OPERATIONS_SUPER_ADMIN_PERMISSION_IDS,
+  TENANT_ADMIN_PERMISSION_IDS,
+  TENANT_MEMBER_PERMISSION_IDS,
+  TENANT_PERMISSION_IDS,
+} from "@/constants/tenantRolePermissions";
 
 export const OPERATIONS_DEFAULT_PATH = "/ops/tenants";
+export const OPERATIONS_TENANT_OPERATIONS_ADMIN_ROLE_ID = "role-tenant-operations-admin";
+export const NEW_USER_INITIAL_PERMISSION_IDS: string[] = [
+  "workspace.metaAgent.use",
+  "workspace.expert.use",
+  TENANT_PERMISSION_IDS.expertPlazaView,
+  TENANT_PERMISSION_IDS.skillCenterView,
+  TENANT_PERMISSION_IDS.evolutionLabView,
+];
+
+export interface OperationsTenantInitialAdminRoleOption {
+  value: string;
+  label: string;
+  description: string;
+  moduleLabels: string[];
+  permissionIds: string[];
+}
+
+const DEFAULT_OPERATIONS_TENANT_INITIAL_ADMIN_ROLE_OPTION: OperationsTenantInitialAdminRoleOption =
+  {
+    value: DEFAULT_TENANT_ROLE_IDS.enterpriseAdmin,
+    label: "组织管理员",
+    description: "进入工作台和管理后台，负责组织、角色和 AI 专家管理。",
+    moduleLabels: ["FrontisAI工作台", "企业管理后台"],
+    permissionIds: TENANT_ADMIN_PERMISSION_IDS,
+  };
+
+export const OPERATIONS_TENANT_INITIAL_ADMIN_ROLE_OPTIONS: OperationsTenantInitialAdminRoleOption[] =
+  [
+    DEFAULT_OPERATIONS_TENANT_INITIAL_ADMIN_ROLE_OPTION,
+    {
+      value: OPERATIONS_TENANT_OPERATIONS_ADMIN_ROLE_ID,
+      label: "租户运营管理员",
+      description: "在组织管理员权限基础上，额外获得运营管理后台入口。",
+      moduleLabels: ["FrontisAI工作台", "企业管理后台", "租户运营后台"],
+      permissionIds: OPERATIONS_SUPER_ADMIN_PERMISSION_IDS,
+    },
+    {
+      value: DEFAULT_TENANT_ROLE_IDS.departmentLead,
+      label: "部门负责人",
+      description: "进入工作台和受限管理后台，负责部门成员与团队 AI 专家配置。",
+      moduleLabels: ["FrontisAI工作台", "企业管理后台"],
+      permissionIds: DEPARTMENT_LEAD_PERMISSION_IDS,
+    },
+    {
+      value: DEFAULT_TENANT_ROLE_IDS.employee,
+      label: "普通成员",
+      description: "仅进入工作台，使用已授权的 ME 与 AI 专家。",
+      moduleLabels: ["FrontisAI工作台"],
+      permissionIds: TENANT_MEMBER_PERMISSION_IDS,
+    },
+  ];
+
+export const getOperationsTenantInitialAdminRoleOption = (
+  roleId: string,
+): OperationsTenantInitialAdminRoleOption =>
+  OPERATIONS_TENANT_INITIAL_ADMIN_ROLE_OPTIONS.find(item => item.value === roleId) ??
+  DEFAULT_OPERATIONS_TENANT_INITIAL_ADMIN_ROLE_OPTION;
+
+export const resolveOperationsTenantAgentListingAccess = (roleId: string): boolean =>
+  getOperationsTenantInitialAdminRoleOption(roleId).permissionIds.some(
+    permissionId =>
+      permissionId === TENANT_PERMISSION_IDS.agentPublishMarketplace ||
+      permissionId === TENANT_PERMISSION_IDS.agentPublishPublic,
+  );
 
 /**
  * 解析运营后台登录后的进入路径。
@@ -60,36 +137,43 @@ export const OPERATIONS_TAB_OPTIONS: Array<{
   key: OperationsPlatformTabKey;
   label: string;
   description: string;
+  permissionIds: string[];
 }> = [
   {
     key: "tenants",
     label: "租户管理",
     description: "创建租户并配置初始管理员账号。",
+    permissionIds: [OPERATIONS_PERMISSION_IDS.tenantManage],
   },
   {
     key: "organization",
     label: "组织管理",
-    description: "管理运营账号、运营角色和全平台预设角色。",
+    description: "复用管理后台组织树与成员管理能力。",
+    permissionIds: [MANAGEMENT_PERMISSION_IDS.organizationManage],
   },
   {
-    key: "agents",
-    label: "AI专家上架审批",
-    description: "审核已开通 AI专家上架服务的租户员工提交的 AI专家商品化申请。",
+    key: "roleManagement",
+    label: "角色管理",
+    description: "复用管理后台角色、权限项和角色成员关系。",
+    permissionIds: [MANAGEMENT_PERMISSION_IDS.roleManage],
   },
   {
     key: "products",
     label: "商品中心",
-    description: "管理 AI专家商品、分类、计费方式、可见范围和上下架。",
+    description: "维护 AI专家商品、专家广场分类和技能中心分类。",
+    permissionIds: [OPERATIONS_PERMISSION_IDS.productManage],
   },
   {
-    key: "resources",
-    label: "资源计量",
-    description: "维护大模型与接口资源的成本和计量配置。",
+    key: "agents",
+    label: "AI专家上架审批",
+    description: "审核具备专家广场平台公开申请权限的租户成员提交的 AI 专家平台公开申请。",
+    permissionIds: [OPERATIONS_PERMISSION_IDS.agentReview],
   },
   {
-    key: "points",
-    label: "积分运营",
-    description: "管理注册送积分规则和积分账户运营策略。",
+    key: "platformConfig",
+    label: "运营配置",
+    description: "维护用户侧账户弹窗的交流群二维码等平台运营信息。",
+    permissionIds: [OPERATIONS_PERMISSION_IDS.platformConfig],
   },
 ];
 
@@ -101,7 +185,7 @@ export const OPERATIONS_ACCOUNT_OPTIONS: OperationsAccount[] = [
     phone: "13800000001",
     role: "superAdmin",
     roleLabel: "平台超管",
-    description: "负责平台租户创建、AI专家上架服务配置、AI专家上架审批和商品中心管理。",
+    description: "负责平台租户创建、组织角色权限、商品中心和 AI专家上架审批。",
     verificationCode: "123456",
     entryPath: "/ops/tenants",
   },
@@ -112,7 +196,7 @@ export const OPERATIONS_ACCOUNT_OPTIONS: OperationsAccount[] = [
     phone: "13800008881",
     role: "superAdmin",
     roleLabel: "平台超管",
-    description: "负责平台租户创建、AI专家上架服务配置、AI专家上架审批和商品中心管理。",
+    description: "负责平台租户创建、组织角色权限、商品中心和 AI专家上架审批。",
     verificationCode: "123456",
     entryPath: "/ops/tenants",
   },
@@ -123,7 +207,7 @@ export const OPERATIONS_ACCOUNT_OPTIONS: OperationsAccount[] = [
     phone: "13800008882",
     role: "operator",
     roleLabel: "平台运营",
-    description: "负责日常租户维护、AI专家上架审批和商品中心管理。",
+    description: "负责日常租户维护、商品中心和 AI专家上架审批。",
     verificationCode: "123456",
     entryPath: "/ops/agents",
   },
@@ -140,6 +224,8 @@ export const OPERATIONS_INITIAL_TENANTS: OperationsTenant[] = [
     industry: "零售服饰",
     adminName: "杨万泉",
     adminPhone: "13800008883",
+    adminRoleId: OPERATIONS_TENANT_OPERATIONS_ADMIN_ROLE_ID,
+    adminRoleLabel: "租户运营管理员",
     hasAgentListingAccess: true,
     hasOperationsConsoleAccess: true,
     seatCount: 80,
@@ -151,7 +237,8 @@ export const OPERATIONS_INITIAL_TENANTS: OperationsTenant[] = [
         id: "ops-tenant-001-member-001",
         name: "杨万泉",
         phone: "13800008883",
-        roleLabel: "管理员",
+        roleId: OPERATIONS_TENANT_OPERATIONS_ADMIN_ROLE_ID,
+        roleLabel: "租户运营管理员",
         addedAt: "2026-04-02 10:30",
       },
       {
@@ -183,7 +270,9 @@ export const OPERATIONS_INITIAL_TENANTS: OperationsTenant[] = [
     industry: "连锁零售",
     adminName: "周倩",
     adminPhone: "13800002222",
-    hasAgentListingAccess: false,
+    adminRoleId: DEFAULT_TENANT_ROLE_IDS.enterpriseAdmin,
+    adminRoleLabel: "组织管理员",
+    hasAgentListingAccess: true,
     hasOperationsConsoleAccess: false,
     seatCount: 20,
     effectiveAt: "2026-04-14",
@@ -194,7 +283,8 @@ export const OPERATIONS_INITIAL_TENANTS: OperationsTenant[] = [
         id: "ops-tenant-002-member-001",
         name: "周倩",
         phone: "13800002222",
-        roleLabel: "管理员",
+        roleId: DEFAULT_TENANT_ROLE_IDS.enterpriseAdmin,
+        roleLabel: "组织管理员",
         addedAt: "2026-04-14 09:12",
       },
     ],
@@ -212,7 +302,9 @@ export const OPERATIONS_INITIAL_TENANTS: OperationsTenant[] = [
     industry: "个人工作室",
     adminName: "李想",
     adminPhone: "13800005555",
-    hasAgentListingAccess: false,
+    adminRoleId: DEFAULT_TENANT_ROLE_IDS.enterpriseAdmin,
+    adminRoleLabel: "组织管理员",
+    hasAgentListingAccess: true,
     hasOperationsConsoleAccess: false,
     seatCount: 1,
     effectiveAt: "2026-04-20",
@@ -223,7 +315,8 @@ export const OPERATIONS_INITIAL_TENANTS: OperationsTenant[] = [
         id: "ops-tenant-personal-member-001",
         name: "李想",
         phone: "13800005555",
-        roleLabel: "管理员",
+        roleId: DEFAULT_TENANT_ROLE_IDS.enterpriseAdmin,
+        roleLabel: "组织管理员",
         addedAt: "2026-04-20 10:12",
       },
     ],
@@ -241,6 +334,8 @@ export const OPERATIONS_INITIAL_TENANTS: OperationsTenant[] = [
     industry: "品牌零售",
     adminName: "杨万泉",
     adminPhone: "13800009999",
+    adminRoleId: OPERATIONS_TENANT_OPERATIONS_ADMIN_ROLE_ID,
+    adminRoleLabel: "租户运营管理员",
     hasAgentListingAccess: true,
     hasOperationsConsoleAccess: true,
     seatCount: 60,
@@ -252,7 +347,8 @@ export const OPERATIONS_INITIAL_TENANTS: OperationsTenant[] = [
         id: "ops-tenant-003-member-001",
         name: "杨万泉",
         phone: "13800009999",
-        roleLabel: "管理员",
+        roleId: OPERATIONS_TENANT_OPERATIONS_ADMIN_ROLE_ID,
+        roleLabel: "租户运营管理员",
         addedAt: "2026-03-12 11:18",
       },
     ],
@@ -270,6 +366,8 @@ export const OPERATIONS_INITIAL_TENANTS: OperationsTenant[] = [
     industry: "平台运营",
     adminName: "周明越",
     adminPhone: "13800008881",
+    adminRoleId: OPERATIONS_TENANT_OPERATIONS_ADMIN_ROLE_ID,
+    adminRoleLabel: "租户运营管理员",
     hasAgentListingAccess: true,
     hasOperationsConsoleAccess: true,
     seatCount: 15,
@@ -281,7 +379,8 @@ export const OPERATIONS_INITIAL_TENANTS: OperationsTenant[] = [
         id: "ops-tenant-003-member-001",
         name: "周明越",
         phone: "13800008881",
-        roleLabel: "管理员",
+        roleId: OPERATIONS_TENANT_OPERATIONS_ADMIN_ROLE_ID,
+        roleLabel: "租户运营管理员",
         addedAt: "2026-03-12 11:18",
       },
       {
@@ -307,8 +406,8 @@ export const OPERATIONS_INITIAL_AGENT_SUBMISSIONS: OperationsAgentSubmission[] =
     submittedAt: "2026-04-16 13:20",
     status: "pending",
     submissionType: "squarePublish",
-    currentScopeLabel: "已发布到商品中心",
-    submitReason: "该 AI专家已在租户内稳定使用，申请进入商品中心供更多租户直接使用。",
+    currentScopeLabel: "已发布到专家广场",
+    submitReason: "该 AI 专家已在租户内稳定使用，申请进入专家广场供更多租户直接使用。",
     targetCustomers: "零售连锁、门店经营分析团队",
     description: "面向零售客户的经营复盘 Agent，支持日报总结、异常门店识别和行动建议输出。",
   },
@@ -320,8 +419,8 @@ export const OPERATIONS_INITIAL_AGENT_SUBMISSIONS: OperationsAgentSubmission[] =
     submittedAt: "2026-04-15 19:05",
     status: "approved",
     submissionType: "squarePublish",
-    currentScopeLabel: "已发布到商品中心",
-    submitReason: "租户内部验证完成，希望进入商品中心，供更多财务场景租户复用。",
+    currentScopeLabel: "已发布到专家广场",
+    submitReason: "租户内部验证完成，希望进入专家广场，供更多财务场景租户复用。",
     targetCustomers: "财务共享中心、对账运营团队",
     description: "自动核对客户付款凭证与订单金额，辅助运营完成到账核验。",
     lastReviewedAt: "2026-04-16 10:15",
@@ -340,8 +439,8 @@ export const OPERATIONS_INITIAL_AGENT_SUBMISSIONS: OperationsAgentSubmission[] =
     submittedAt: "2026-04-14 17:40",
     status: "rejected",
     submissionType: "squarePublish",
-    currentScopeLabel: "已发布到商品中心",
-    submitReason: "希望进入商品中心，对外提供巡检与告警能力。",
+    currentScopeLabel: "已发布到专家广场",
+    submitReason: "希望进入专家广场，对外提供巡检与告警能力。",
     targetCustomers: "设备运维、巡检团队",
     description: "面向交付运维场景，识别设备在线状态、异常告警和建议修复动作。",
     rejectReason: "缺少异常工况下的结果说明，当前版本不适合直接进入平台资产池。",
@@ -355,10 +454,10 @@ export const OPERATIONS_INITIAL_AGENT_SUBMISSIONS: OperationsAgentSubmission[] =
     submittedAt: "2026-04-13 16:25",
     status: "approved",
     submissionType: "squarePublish",
-    currentScopeLabel: "已发布到商品中心",
-    submitReason: "申请进入商品中心，面向电商运营租户统一开放使用。",
+    currentScopeLabel: "已发布到专家广场",
+    submitReason: "申请进入专家广场，面向电商运营租户统一开放使用。",
     targetCustomers: "电商运营、内容团队",
-    description: "生成商品卖点、详情页文案和推广素材建议，适合商品中心快速包装。",
+    description: "生成商品卖点、详情页文案和推广素材建议，适合内容团队快速复用。",
     lastReviewedAt: "2026-04-14 09:40",
     plazaCategory: "销售",
     plazaVisibility: "tenant",
@@ -375,7 +474,7 @@ export const OPERATIONS_INITIAL_AGENT_SUBMISSIONS: OperationsAgentSubmission[] =
     submittedAt: "2026-04-12 11:10",
     status: "approved",
     submissionType: "squarePublish",
-    currentScopeLabel: "已发布到商品中心",
+    currentScopeLabel: "已发布到专家广场",
     submitReason: "适合作为平台通用 AI专家 上架给全部租户体验。",
     targetCustomers: "行政、HR、运营支持团队",
     description: "基于制度库和流程说明回答员工常见问题，适合做平台通用免费专家。",
@@ -390,7 +489,9 @@ export const OPERATIONS_INITIAL_AGENT_SUBMISSIONS: OperationsAgentSubmission[] =
 ];
 
 export const OPERATIONS_INITIAL_REGISTRATION_STRATEGY: OperationsRegistrationStrategy = {
+  initialPermissionIds: NEW_USER_INITIAL_PERMISSION_IDS,
   defaultGiftPoints: 6000,
+  enabled: true,
   referralDailyRewardLimit: 10,
   referralEnabled: true,
   referralInviteeRewardPoints: 0,
@@ -408,6 +509,14 @@ export const OPERATIONS_INITIAL_SERVICE_CONTACT_CONFIG: OperationsServiceContact
   qrCodeValue: "frontis-service-contact-default",
   remarkTemplate: "添加时请备注 AI 专家名称，客服会根据你的使用场景确认后续方案。",
   updatedAt: "2026-04-24 20:30",
+};
+
+export const OPERATIONS_INITIAL_COMMUNITY_GROUP_CONFIG: OperationsCommunityGroupConfig = {
+  enabled: true,
+  groupName: "FrontisAI 用户交流群",
+  qrCodeValue: "https://frontis.ai/community/user-group",
+  description: "扫码加入用户交流群，获取产品更新、使用答疑和优秀案例分享。",
+  updatedAt: "2026-05-10 18:30",
 };
 
 export const OPERATIONS_INITIAL_REFERRAL_RECORDS: OperationsReferralRecord[] = [
@@ -773,7 +882,7 @@ export const OPERATIONS_INITIAL_PRODUCTS: OperationsProduct[] = [
     supportsTrial: false,
     trialUnit: "day",
     trialValue: 7,
-    contactMode: "disabled",
+    contactMode: "platformDefault",
     contactQrCodeValue: "",
     contactRemark: "",
     status: "active",
@@ -1039,6 +1148,7 @@ export const OPERATIONS_TENANT_TYPE_LABELS: Record<OperationsTenant["type"], str
 };
 
 export const OPERATIONS_AGENT_PLAZA_DEFAULT_CATEGORY: OperationsAgentPlazaCategory = "通用";
+export const OPERATIONS_SKILL_CENTER_DEFAULT_CATEGORY: OperationsSkillCenterCategory = "通用";
 
 export const OPERATIONS_INITIAL_AGENT_PLAZA_CATEGORIES: OperationsAgentPlazaCategoryOption[] = [
   {
@@ -1072,6 +1182,44 @@ export const OPERATIONS_INITIAL_AGENT_PLAZA_CATEGORIES: OperationsAgentPlazaCate
   {
     id: "ops-agent-plaza-category-office",
     name: "办公协同",
+    sortOrder: 50,
+    status: "active",
+    updatedAt: "2026-04-16 10:42",
+  },
+];
+
+export const OPERATIONS_INITIAL_SKILL_CENTER_CATEGORIES: OperationsSkillCenterCategoryOption[] = [
+  {
+    id: "ops-skill-center-category-general",
+    name: "通用",
+    sortOrder: 10,
+    status: "active",
+    updatedAt: "2026-04-16 10:42",
+  },
+  {
+    id: "ops-skill-center-category-workflow",
+    name: "工作流",
+    sortOrder: 20,
+    status: "active",
+    updatedAt: "2026-04-16 10:42",
+  },
+  {
+    id: "ops-skill-center-category-tool",
+    name: "工具",
+    sortOrder: 30,
+    status: "active",
+    updatedAt: "2026-04-16 10:42",
+  },
+  {
+    id: "ops-skill-center-category-model",
+    name: "模型能力",
+    sortOrder: 40,
+    status: "active",
+    updatedAt: "2026-04-16 10:42",
+  },
+  {
+    id: "ops-skill-center-category-data",
+    name: "数据分析",
     sortOrder: 50,
     status: "active",
     updatedAt: "2026-04-16 10:42",
@@ -1472,16 +1620,13 @@ export const OPERATIONS_EXTERNAL_SERVICE_METERING_UNIT_OPTIONS: Array<{
 export const createEmptyOperationsTenantForm = (): OperationsTenantForm => ({
   name: "",
   code: "",
-  deploymentMode: "publicCloud",
   industry: "",
   adminName: "",
   adminPhone: "",
-  hasAgentListingAccess: false,
-  hasOperationsConsoleAccess: false,
+  adminRoleId: DEFAULT_TENANT_ROLE_IDS.enterpriseAdmin,
   seatCount: 0,
   effectiveAt: "",
   expiresAt: "",
-  moduleLabels: ["FrontisAI工作台", "企业管理后台"],
 });
 
 export const createEmptyOperationsTenantMemberForm = (): OperationsTenantMemberForm => ({

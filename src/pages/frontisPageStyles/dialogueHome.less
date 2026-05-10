@@ -1,33 +1,3 @@
-.dialogueViewToolbar {
-  padding: 14px 16px 0;
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  gap: 10px;
-  flex-wrap: nowrap;
-}
-
-.dialogueViewToolbarGroup {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex: 0 0 auto;
-  margin-left: auto;
-  min-width: 0;
-}
-
-.dialogueRuntimePanelToolbarSpacer {
-  flex: 1;
-  min-width: 0;
-}
-
-.dialogueViewDivider {
-  width: 1px;
-  height: 20px;
-  flex: 0 0 auto;
-  background: color-mix(in srgb, var(--text) 12%, transparent);
-}
-
 .dialogueViewButton,
 .dialogueRuntimeAction {
   border: 0;
@@ -70,40 +40,60 @@
   color: var(--text);
 }
 
-.feishuConnectButton {
-  background: color-mix(in srgb, var(--primary) 10%, var(--surface));
-  color: var(--primary);
+.dialogueViewPanelButton {
+  width: 34px;
+  min-width: 34px;
+  height: 34px;
+  min-height: 34px;
+  padding: 0;
+  justify-content: center;
 }
 
-.feishuConnectButton:hover {
-  background: color-mix(in srgb, var(--primary) 14%, var(--surface));
-  color: var(--primary);
+.dialogueViewPanelFloatingButton {
+  position: absolute;
+  top: 14px;
+  right: 16px;
+  z-index: 8;
 }
 
-.feishuConnectButtonConnected,
-.feishuConnectButtonConnected:hover,
-.feishuConnectButtonConnected:disabled:hover {
-  background: color-mix(in srgb, var(--primary) 8%, var(--surface));
-  color: var(--primary);
-  cursor: default;
-  opacity: 1;
-}
-
-.feishuQrModal :global(.ant-modal-content) {
-  border-radius: 14px;
-}
-
-.feishuQrCard {
-  width: 100%;
-  padding: 18px 0 6px;
-  border: 0;
-  background: transparent;
-  display: flex;
-  flex-direction: column;
+.dialogueTopRightActions {
+  position: absolute;
+  top: 0;
+  right: 10px;
+  z-index: 12;
+  display: inline-flex;
   align-items: center;
-  gap: 14px;
-  color: var(--text-secondary);
-  cursor: pointer;
+  gap: 6px;
+}
+
+.dialogueViewHistoryIcon {
+  font-size: 17px;
+  line-height: 1;
+}
+
+.dialogueViewPanelIcon {
+  position: relative;
+  width: 17px;
+  height: 17px;
+  border: 2px solid currentColor;
+  border-radius: 5px;
+  color: inherit;
+}
+
+.dialogueViewPanelIcon::before {
+  position: absolute;
+  top: 3px;
+  bottom: 3px;
+  left: 5px;
+  width: 2px;
+  border-radius: 999px;
+  background: currentColor;
+  content: "";
+}
+
+.dialogueViewPanelIconCollapsed::before {
+  right: 4px;
+  left: auto;
 }
 
 .outputPanel {
@@ -134,25 +124,6 @@
   font-size: 20px;
   line-height: 28px;
   font-weight: 700;
-}
-
-.outputPanelCloseButton {
-  width: 30px;
-  height: 30px;
-  border: 0;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--text) 7%, transparent);
-  color: var(--text-muted);
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex: none;
-}
-
-.outputPanelCloseButton:hover {
-  background: color-mix(in srgb, var(--text) 12%, transparent);
-  color: var(--text);
 }
 
 .outputPanelTabs {

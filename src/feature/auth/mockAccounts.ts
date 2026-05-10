@@ -4,12 +4,26 @@ import dayjs from "dayjs";
 
 import { MANAGEMENT_CONSOLE_LABEL, PRODUCT_NAME } from "@/constants/brand";
 import {
+  DEFAULT_TENANT_ROLE_IDS,
+  DEPARTMENT_LEAD_PERMISSION_IDS,
+  MANAGEMENT_PERMISSION_IDS,
+  OPERATIONS_AGENT_REVIEWER_PERMISSION_IDS,
+  OPERATIONS_OPERATOR_PERMISSION_IDS,
+  OPERATIONS_SUPER_ADMIN_PERMISSION_IDS,
+  TENANT_ADMIN_PERMISSION_IDS,
+  TENANT_MEMBER_PERMISSION_IDS,
+} from "@/constants/tenantRolePermissions";
+import {
   getMockTenantManagementSnapshot,
   saveMockTenantManagementSnapshot,
 } from "@/feature/auth/mockTenantRegistry";
-import { OPERATIONS_ACCOUNT_OPTIONS } from "@/feature/operations/mockData";
+import {
+  NEW_USER_INITIAL_PERMISSION_IDS,
+  OPERATIONS_ACCOUNT_OPTIONS,
+} from "@/feature/operations/mockData";
 import { loadOperationsRegistrationStrategy } from "@/feature/operations/platformConfigStorage";
 import type { MockTenantPlanPackageOption } from "@/feature/tenantPlan/types";
+import { hasIdentitySystemAccess } from "@/utils/tenantRoleAccess";
 import type {
   MockAuthAccount,
   MockAuthIdentity,
@@ -27,6 +41,8 @@ import type {
 const LOGIN_PATH = "/login";
 const TENANT_SELECTION_PATH = "/select-tenant";
 const DEFAULT_MOCK_VERIFICATION_CODE = "123456";
+const DEFAULT_MOCK_PASSWORD = "Frontis@2026";
+const NEW_USER_ACCOUNT_ROLE_LABEL = "新用户";
 const ENTERPRISE_WORKSPACE_LABEL = `${PRODUCT_NAME}工作台`;
 const OPERATIONS_CONSOLE_LABEL = "运营管理平台";
 const OPERATIONS_TENANT: MockTenantInfo = {
@@ -35,6 +51,7 @@ const OPERATIONS_TENANT: MockTenantInfo = {
   code: "OPS-PLATFORM",
 };
 const STORED_MOCK_ACCOUNTS_STORAGE_KEY = "frontis.mock.auth.accounts";
+const STORED_MOCK_ACCOUNT_PASSWORDS_STORAGE_KEY = "frontis.mock.auth.account-passwords";
 const DEFAULT_ADMIN_ASSIGNED_AGENT_IDS =
   INITIAL_FRONTIS_WEB_USERS.find(item => item.id === "user-admin-001")?.assignedAgentIds ?? [];
 const DEFAULT_MEMBER_ASSIGNED_AGENT_IDS =
@@ -69,6 +86,12 @@ interface BuildMockAccountOptions {
 interface StoredMockAccountPayload {
   account: MockAuthAccount;
   snapshot: MockTenantManagementSnapshot;
+}
+
+interface StoredMockAccountPassword {
+  accountId: string;
+  password: string;
+  updatedAt: string;
 }
 
 const ENTERPRISE_TENANT: MockTenantInfo = {
@@ -121,12 +144,14 @@ const buildRuntimeUser = (
   phone: string,
   role: FrontisUserRole,
   departmentId = "dept-default",
+  roleIds: string[] = [DEFAULT_TENANT_ROLE_IDS[role]],
 ): FrontisWebUserItem => ({
   id: userId,
   departmentId,
   name,
   phone,
   role,
+  roleIds,
   status: "active",
   assignedAgentIds:
     role === "enterpriseAdmin"
@@ -157,6 +182,39 @@ const getRoleLabel = (role: FrontisUserRole): string => {
 const getWorkspaceRole = (role: FrontisUserRole): FrontisWebRole =>
   role === "enterpriseAdmin" ? "admin" : "employee";
 
+const getPermissionIdsByUserRole = (role: FrontisUserRole): string[] => {
+  if (role === "enterpriseAdmin") {
+    return TENANT_ADMIN_PERMISSION_IDS;
+  }
+
+  if (role === "departmentLead") {
+    return DEPARTMENT_LEAD_PERMISSION_IDS;
+  }
+
+  return TENANT_MEMBER_PERMISSION_IDS;
+};
+
+const hasAdminConsolePermission = (permissionIds: string[]): boolean =>
+  Object.values(MANAGEMENT_PERMISSION_IDS).some(permissionId =>
+    permissionIds.includes(permissionId),
+  );
+
+const getOperationsPermissionIds = (operationsAccountId: string): string[] => {
+  const matchedAccount = OPERATIONS_ACCOUNT_OPTIONS.find(
+    account => account.accountId === operationsAccountId,
+  );
+
+  if (matchedAccount?.role === "superAdmin") {
+    return OPERATIONS_SUPER_ADMIN_PERMISSION_IDS;
+  }
+
+  if (matchedAccount?.role === "operator") {
+    return OPERATIONS_OPERATOR_PERMISSION_IDS;
+  }
+
+  return OPERATIONS_AGENT_REVIEWER_PERMISSION_IDS;
+};
+
 const getTenantAdminDeploymentMode = (tenantId: string): MockTenantDeploymentMode =>
   getMockTenantManagementSnapshot(tenantId)?.deploymentMode ?? "publicCloud";
 
@@ -177,6 +235,7 @@ const buildWorkspaceIdentity = (
     tenantCode: tenant.code,
     platform: "enterpriseWorkspace",
     platformLabel: ENTERPRISE_WORKSPACE_LABEL,
+    permissionIds: getPermissionIdsByUserRole(role),
     role: workspaceRole,
     roleLabel: getRoleLabel(role),
     description:
@@ -202,11 +261,12 @@ const buildOperationsIdentity = (
     tenantCode: tenant.code,
     platform: "operationsAdmin",
     platformLabel: OPERATIONS_CONSOLE_LABEL,
+    permissionIds: getOperationsPermissionIds(operationsAccountId),
     role: "admin",
     roleLabel: tenant.id === OPERATIONS_TENANT.id ? "运营管理员" : "租户运营管理员",
     description:
       tenant.id === OPERATIONS_TENANT.id
-        ? "进入运营管理平台处理租户、商品、资源、积分和平台组织管理。"
+        ? "运营管理后台用于处理租户、AI 专家上架审批和统一组织权限管理。"
         : `进入 ${tenant.name} 的租户运营管理后台。`,
     entryPath: "/ops/tenants",
     operationsAccountId,
@@ -243,6 +303,7 @@ const buildOperationsAccount = (
     role: "admin",
     roleLabel: account.roleLabel,
     description: account.description,
+    password: DEFAULT_MOCK_PASSWORD,
     verificationCode: account.verificationCode,
     identities: [identity],
     quickLoginIdentityId: identity.id,
@@ -282,6 +343,7 @@ const buildTenantAccount = (
     role: getWorkspaceRole(role),
     roleLabel: getRoleLabel(role),
     description: options.description,
+    password: DEFAULT_MOCK_PASSWORD,
     verificationCode,
     identities,
     quickLoginIdentityId: options.quickLoginIdentityId ?? identities[0]?.id,
@@ -353,6 +415,90 @@ const saveStoredMockAccount = (account: MockAuthAccount): MockAuthAccount => {
 };
 
 const getStoredMockAccounts = (): MockAuthAccount[] => readStoredMockAccounts();
+
+const readStoredMockAccountPasswords = (): StoredMockAccountPassword[] => {
+  if (typeof window === "undefined") {
+    return [];
+  }
+
+  try {
+    const rawValue = window.localStorage.getItem(STORED_MOCK_ACCOUNT_PASSWORDS_STORAGE_KEY);
+
+    if (!rawValue) {
+      return [];
+    }
+
+    const parsedValue = JSON.parse(rawValue) as unknown;
+
+    if (!Array.isArray(parsedValue)) {
+      return [];
+    }
+
+    return parsedValue.filter(
+      (item): item is StoredMockAccountPassword =>
+        typeof item === "object" &&
+        item !== null &&
+        "accountId" in item &&
+        "password" in item &&
+        typeof (item as StoredMockAccountPassword).accountId === "string" &&
+        typeof (item as StoredMockAccountPassword).password === "string",
+    );
+  } catch {
+    return [];
+  }
+};
+
+const writeStoredMockAccountPasswords = (passwords: StoredMockAccountPassword[]): void => {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  window.localStorage.setItem(STORED_MOCK_ACCOUNT_PASSWORDS_STORAGE_KEY, JSON.stringify(passwords));
+};
+
+/**
+ * 获取 mock 账号当前可用密码；原型仅用于交互演示，不代表真实存储方案。
+ */
+export const getMockAccountPassword = (account: MockAuthAccount): string | undefined => {
+  const storedPassword = readStoredMockAccountPasswords().find(
+    item => item.accountId === account.accountId,
+  )?.password;
+
+  return storedPassword ?? account.password;
+};
+
+/**
+ * 判断 mock 账号是否需要先设置密码。
+ */
+export const isMockAccountPasswordSetupRequired = (account: MockAuthAccount): boolean =>
+  Boolean(account.passwordSetupRequired && !getMockAccountPassword(account));
+
+/**
+ * 保存 mock 账号密码，用于演示验证码注册后绑定密码的交互。
+ */
+export const saveMockAccountPassword = (
+  accountId: string,
+  password: string,
+): MockAuthAccount | null => {
+  const matchedAccount = getMockAccountByAccountId(accountId);
+
+  if (!matchedAccount) {
+    return null;
+  }
+
+  const nextPasswords = [
+    ...readStoredMockAccountPasswords().filter(item => item.accountId !== accountId),
+    {
+      accountId,
+      password,
+      updatedAt: new Date().toISOString(),
+    },
+  ];
+
+  writeStoredMockAccountPasswords(nextPasswords);
+
+  return matchedAccount;
+};
 
 const isRuntimeGeneratedMockAccount = (account: MockAuthAccount): boolean =>
   account.accountId.startsWith("mock-account-self-") ||
@@ -427,18 +573,35 @@ export const PERSONAL_REGISTERED_MOCK_ACCOUNT: MockAuthAccount = buildTenantAcco
   },
 );
 
-export const NEW_USER_ONBOARDING_MOCK_ACCOUNT: MockAuthAccount = buildTenantAccount(
-  "user-new-admin-001",
-  "沈一新",
-  "13800007777",
-  "enterpriseAdmin",
-  DEFAULT_MOCK_VERIFICATION_CODE,
-  {
-    accountId: "mock-account-new-user-onboarding",
-    description: "新用户首次进入示例账号，登录后直接进入 ME 并展示初始化引导。",
-    tenant: NEW_USER_ONBOARDING_TENANT,
-  },
-);
+const buildNewUserOnboardingMockAccount = (): MockAuthAccount => {
+  const account = buildTenantAccount(
+    "user-new-admin-001",
+    "沈一新",
+    "13800007777",
+    "employee",
+    DEFAULT_MOCK_VERIFICATION_CODE,
+    {
+      accountId: "mock-account-new-user-onboarding",
+      description: "新用户首次进入示例账号，登录后直接进入 ME 并展示初始化引导。",
+      tenant: NEW_USER_ONBOARDING_TENANT,
+    },
+  );
+
+  return {
+    ...account,
+    password: undefined,
+    passwordSetupRequired: true,
+    roleLabel: NEW_USER_ACCOUNT_ROLE_LABEL,
+    identities: account.identities.map(identity => ({
+      ...identity,
+      permissionIds: [...NEW_USER_INITIAL_PERMISSION_IDS],
+      roleLabel: NEW_USER_ACCOUNT_ROLE_LABEL,
+    })),
+  };
+};
+
+export const NEW_USER_ONBOARDING_MOCK_ACCOUNT: MockAuthAccount =
+  buildNewUserOnboardingMockAccount();
 
 export const MULTI_TENANT_MOCK_ACCOUNT: MockAuthAccount = {
   accountId: "mock-account-multi-tenant",
@@ -459,6 +622,7 @@ export const MULTI_TENANT_MOCK_ACCOUNT: MockAuthAccount = {
         subjectName: "王晨",
         platform: "enterpriseWorkspace",
         platformLabel: ENTERPRISE_WORKSPACE_LABEL,
+        permissionIds: getPermissionIdsByUserRole("employee"),
         role: "employee",
         roleLabel: "租户成员",
         description: `以租户成员身份进入华东运营租户的${PRODUCT_NAME}工作台，查看个人专家与工作成果。`,
@@ -473,6 +637,7 @@ export const MULTI_TENANT_MOCK_ACCOUNT: MockAuthAccount = {
         subjectName: "杨万泉",
         platform: "enterpriseWorkspace",
         platformLabel: ENTERPRISE_WORKSPACE_LABEL,
+        permissionIds: getPermissionIdsByUserRole("enterpriseAdmin"),
         role: "admin",
         roleLabel: "租户管理员",
         description: `以租户管理员身份进入集团租户的${PRODUCT_NAME}工作台，并继续进入${MANAGEMENT_CONSOLE_LABEL}。`,
@@ -608,7 +773,7 @@ export const getMockAccountByAccountId = (accountId: string): MockAuthAccount | 
   getMockAuthAccounts().find(item => item.accountId === accountId) ?? null;
 
 /**
- * 创建自注册租户管理员 mock 账号与租户快照。
+ * 创建自注册租户所有者 mock 账号与租户快照。
  */
 export const registerMockTenantAdminAccount = (
   params: MockTenantRegistrationParams,
@@ -629,19 +794,36 @@ export const registerMockTenantAdminAccount = (
     name: params.tenantName.trim(),
     code: tenantCode,
   };
+  const registrationStrategy = loadOperationsRegistrationStrategy();
+  const initialPermissionIds = registrationStrategy.initialPermissionIds.length
+    ? registrationStrategy.initialPermissionIds
+    : NEW_USER_INITIAL_PERMISSION_IDS;
+  const hasAdminAccess = hasAdminConsolePermission(initialPermissionIds);
   const account = buildTenantAccount(
     userId,
     params.name.trim(),
     normalizedPhone,
-    "enterpriseAdmin",
+    "employee",
     DEFAULT_MOCK_VERIFICATION_CODE,
     {
       accountId,
-      description: `自注册租户管理员账号，登录后即可进入${PRODUCT_NAME}并使用${MANAGEMENT_CONSOLE_LABEL}。`,
+      description: `自注册新用户账号，登录后进入${PRODUCT_NAME}完成初始化。`,
       tenant,
     },
   );
-  const registrationStrategy = loadOperationsRegistrationStrategy();
+  const accountWithRegistrationRole: MockAuthAccount = {
+    ...account,
+    password: undefined,
+    passwordSetupRequired: true,
+    roleLabel: NEW_USER_ACCOUNT_ROLE_LABEL,
+    identities: account.identities.map(identity => ({
+      ...identity,
+      permissionIds: [...initialPermissionIds],
+      roleLabel: NEW_USER_ACCOUNT_ROLE_LABEL,
+      entryPath: hasAdminAccess ? "/web/admin/workspace" : "/web/employee",
+      description: `自注册后以${NEW_USER_ACCOUNT_ROLE_LABEL}初始化身份进入 ${tenant.name}。`,
+    })),
+  };
   const snapshot = saveMockTenantManagementSnapshot({
     tenantId,
     tenantName: tenant.name,
@@ -662,7 +844,11 @@ export const registerMockTenantAdminAccount = (
     pointsBalance: registrationStrategy.defaultGiftPoints,
     totalSeats: 1,
     usedSeats: 1,
-    users: [buildRuntimeUser(userId, params.name.trim(), normalizedPhone, "enterpriseAdmin")],
+    users: [
+      buildRuntimeUser(userId, params.name.trim(), normalizedPhone, "employee", "dept-default", [
+        DEFAULT_TENANT_ROLE_IDS.employee,
+      ]),
+    ],
     agentUsageRecords: [],
     pointsLedger: [
       {
@@ -680,10 +866,10 @@ export const registerMockTenantAdminAccount = (
     referralRecords: [],
   });
 
-  saveStoredMockAccount(account);
+  saveStoredMockAccount(accountWithRegistrationRole);
 
   return {
-    account,
+    account: accountWithRegistrationRole,
     snapshot,
   };
 };
@@ -733,7 +919,14 @@ export const inviteMockTenantMemberAccount = (
   );
   const nextUsers = [
     ...matchedSnapshot.users,
-    buildRuntimeUser(userId, params.name.trim(), normalizedPhone, params.role, params.departmentId),
+    buildRuntimeUser(
+      userId,
+      params.name.trim(),
+      normalizedPhone,
+      params.role,
+      params.departmentId,
+      params.roleIds,
+    ),
   ];
   const nextSnapshot = saveMockTenantManagementSnapshot({
     ...matchedSnapshot,
@@ -787,6 +980,46 @@ export const activateMockTenantTeamPlan = (
     matchedSnapshot.usedSeats,
     nextIncludedSeats + matchedSnapshot.extraSeatCount,
   );
+  const shouldPromoteOwner = matchedSnapshot.users.some(
+    user => user.id === matchedSnapshot.adminUserId && user.role !== "enterpriseAdmin",
+  );
+  const nextUsers = shouldPromoteOwner
+    ? matchedSnapshot.users.map(user =>
+        user.id === matchedSnapshot.adminUserId
+          ? {
+              ...user,
+              assignedAgentIds: [...DEFAULT_ADMIN_ASSIGNED_AGENT_IDS],
+              assignedWorkspaceIds: [...DEFAULT_ADMIN_ASSIGNED_WORKSPACE_IDS],
+              role: "enterpriseAdmin" as const,
+              roleIds: [DEFAULT_TENANT_ROLE_IDS.enterpriseAdmin],
+            }
+          : user,
+      )
+    : matchedSnapshot.users;
+
+  if (shouldPromoteOwner) {
+    const ownerAccount = getMockAccountByAccountId(matchedSnapshot.ownerAccountId);
+
+    if (ownerAccount) {
+      saveStoredMockAccount({
+        ...ownerAccount,
+        role: "admin",
+        roleLabel: getRoleLabel("enterpriseAdmin"),
+        identities: ownerAccount.identities.map(identity =>
+          identity.tenantId === tenantId && identity.subjectId === matchedSnapshot.adminUserId
+            ? {
+                ...identity,
+                description: `已开通团队版，以组织管理员身份进入 ${matchedSnapshot.tenantName}。`,
+                entryPath: "/web/admin/workspace",
+                permissionIds: getPermissionIdsByUserRole("enterpriseAdmin"),
+                role: "admin",
+                roleLabel: getRoleLabel("enterpriseAdmin"),
+              }
+            : identity,
+        ),
+      });
+    }
+  }
 
   return saveMockTenantManagementSnapshot({
     ...matchedSnapshot,
@@ -797,6 +1030,7 @@ export const activateMockTenantTeamPlan = (
     teamPlanPackageId: targetPackage.id,
     planExpiresAt: dayjs().add(1, "year").format("YYYY-MM-DD"),
     invitePolicyLabel: "团队版租户支持组织管理与成员邀请。",
+    users: nextUsers,
   });
 };
 
@@ -1145,10 +1379,11 @@ export const getSystemEntries = (
   getSafeIdentities(identities)
     .filter(
       identity =>
-        identity.platform === "operationsAdmin" ||
-        (tenantId === OPERATIONS_TENANT.id
-          ? isTenantScopedIdentity(identity)
-          : Boolean(tenantId) && identity.tenantId === tenantId),
+        hasIdentitySystemAccess(identity) &&
+        (identity.platform === "operationsAdmin" ||
+          (tenantId === OPERATIONS_TENANT.id
+            ? isTenantScopedIdentity(identity)
+            : Boolean(tenantId) && identity.tenantId === tenantId)),
     )
     .forEach(identity => {
       const currentIdentity = identityMap.get(identity.platform);
@@ -1172,6 +1407,12 @@ export const getSystemEntries = (
       operationsAccountId: identity.operationsAccountId,
     }));
 };
+
+/**
+ * 获取系统入口在账户菜单中的展示文案。
+ */
+export const getSystemEntryMenuLabel = (entry: MockAuthSystemEntry): string =>
+  entry.platform === "operationsAdmin" ? "运营管理后台" : `进入${entry.label}`;
 
 /**
  * 获取当前账号可切换的租户入口。

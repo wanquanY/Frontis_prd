@@ -1,4 +1,10 @@
 import type { OperationsTenant } from "@/feature/operations/types";
+import { DEFAULT_TENANT_ROLE_IDS } from "@/constants/tenantRolePermissions";
+import {
+  OPERATIONS_TENANT_OPERATIONS_ADMIN_ROLE_ID,
+  getOperationsTenantInitialAdminRoleOption,
+  resolveOperationsTenantAgentListingAccess,
+} from "@/feature/operations/mockData";
 
 /**
  * 运营后台租户原型在本地存储中的 key。
@@ -9,12 +15,16 @@ interface StoredOperationsTenant extends Omit<
   OperationsTenant,
   | "hasAgentListingAccess"
   | "hasOperationsConsoleAccess"
+  | "adminRoleId"
+  | "adminRoleLabel"
   | "effectiveAt"
   | "deploymentMode"
   | "edition"
 > {
   hasAgentListingAccess?: boolean;
   hasOperationsConsoleAccess?: boolean;
+  adminRoleId?: string;
+  adminRoleLabel?: string;
   hasAgentDevAccess?: boolean;
   deploymentMode?: OperationsTenant["deploymentMode"];
   edition?: OperationsTenant["edition"];
@@ -25,26 +35,26 @@ const normalizeStoredTenant = (tenant: StoredOperationsTenant): OperationsTenant
   const {
     deploymentMode,
     edition,
-    hasAgentListingAccess,
+    adminRoleId,
     hasOperationsConsoleAccess,
-    hasAgentDevAccess,
     effectiveAt,
     ...restTenant
   } = tenant;
-  const normalizedOperationsAccess =
+  const legacyOperationsAccess =
     typeof hasOperationsConsoleAccess === "boolean"
       ? hasOperationsConsoleAccess
       : restTenant.id === "tenant-enterprise-demo" ||
         restTenant.id === "tenant-enterprise-hq" ||
         restTenant.id === "ops-tenant-004" ||
         (restTenant.moduleLabels?.some(label => label.includes("运营")) ?? false);
-  const normalizedModuleLabels = Array.from(
-    new Set([
-      "FrontisAI工作台",
-      "企业管理后台",
-      ...(normalizedOperationsAccess ? ["租户运营后台"] : []),
-    ]),
+  const normalizedAdminRole = getOperationsTenantInitialAdminRoleOption(
+    adminRoleId ??
+      (legacyOperationsAccess
+        ? OPERATIONS_TENANT_OPERATIONS_ADMIN_ROLE_ID
+        : DEFAULT_TENANT_ROLE_IDS.enterpriseAdmin),
   );
+  const normalizedModuleLabels = normalizedAdminRole.moduleLabels;
+  const normalizedOperationsAccess = normalizedModuleLabels.some(label => label.includes("运营"));
 
   return {
     ...restTenant,
@@ -57,13 +67,10 @@ const normalizeStoredTenant = (tenant: StoredOperationsTenant): OperationsTenant
             ? "privateCloud"
             : "publicCloud",
     edition: edition === "personal" || restTenant.seatCount === 1 ? "personal" : "team",
-    hasAgentListingAccess:
-      typeof hasAgentListingAccess === "boolean"
-        ? hasAgentListingAccess
-        : typeof hasAgentDevAccess === "boolean"
-          ? hasAgentDevAccess
-          : false,
+    hasAgentListingAccess: resolveOperationsTenantAgentListingAccess(normalizedAdminRole.value),
     hasOperationsConsoleAccess: normalizedOperationsAccess,
+    adminRoleId: normalizedAdminRole.value,
+    adminRoleLabel: normalizedAdminRole.label,
     effectiveAt: effectiveAt ?? "",
     moduleLabels: normalizedModuleLabels,
   };

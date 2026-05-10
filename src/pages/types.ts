@@ -108,6 +108,7 @@ export interface FrontisWebTabItem {
   label: string;
   labels?: Partial<Record<FrontisWebRole, string>>;
   icon: ReactNode;
+  permissionIds?: string[];
   roles: FrontisWebRole[];
 }
 
@@ -228,7 +229,7 @@ export interface MetaAgentWorkTrajectoryTaskItem {
   id: string;
   title: string;
   agentName: string;
-  status: "running" | "completed";
+  status: "running" | "completed" | "failed";
   metaLabel: string;
   anchorBlockId: string;
 }
@@ -560,6 +561,7 @@ export interface FrontisWebUserItem {
   name: string;
   phone: string;
   role: FrontisUserRole;
+  roleIds?: string[];
   status: FrontisUserStatus;
   assignedAgentIds: string[];
   assignedWorkspaceIds?: string[];

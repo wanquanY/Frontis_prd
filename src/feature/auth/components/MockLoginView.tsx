@@ -2,16 +2,19 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
 
 import { ArrowLeftOutlined } from "@ant-design/icons";
-import { Avatar, Button, Input, Modal, Select, message } from "antd";
+import { Avatar, Button, Input, Modal, Segmented, Select, message } from "antd";
 import { Navigate, useNavigate, useSearchParams } from "react-router-dom";
 
-import { PRODUCT_LOGO_TEXT, PRODUCT_NAME, PRODUCT_SLOGAN } from "@/constants/brand";
+import { PRODUCT_LOGO_URL, PRODUCT_NAME, PRODUCT_SLOGAN } from "@/constants/brand";
 import {
   getIdentityDeploymentMode,
+  getMockAccountPassword,
   getTenantCount,
   getTenantEntries,
+  isMockAccountPasswordSetupRequired,
 } from "@/feature/auth/mockAccounts";
 import { useMockAuth } from "@/feature/auth/hooks/useMockAuth";
+import { loadOperationsRegistrationStrategy } from "@/feature/operations/platformConfigStorage";
 import type { MockAuthAccount, MockAuthTenantEntry } from "@/feature/auth/types";
 
 import styles from "./MockLoginView.module.less";
@@ -26,6 +29,15 @@ const DEPLOYMENT_MODE_LABELS = {
   publicCloud: "公有云",
   privateCloud: "私有云",
 } as const;
+
+type LoginMode = "verificationCode" | "password";
+
+interface PendingPasswordSetup {
+  accountId: string;
+  accountName: string;
+  phone: string;
+  redirectPath?: string;
+}
 
 const getPresetAccountLabel = (account: MockAuthAccount): string => {
   const deploymentLabels = Array.from(
@@ -52,15 +64,19 @@ export const MockLoginView = (): JSX.Element => {
     activateTenant,
     activeIdentity,
     login,
+    loginByPassword,
     mockAccounts,
     logout,
     register,
     resolveSessionPath,
     sendVerificationCode,
     session,
+    setupPasswordAndLogin,
   } = useMockAuth();
+  const [loginMode, setLoginMode] = useState<LoginMode>("verificationCode");
   const [phoneValue, setPhoneValue] = useState<string>("");
   const [verificationCodeValue, setVerificationCodeValue] = useState<string>("");
+  const [passwordValue, setPasswordValue] = useState<string>("");
   const [countdown, setCountdown] = useState<number>(0);
   const [sentPhone, setSentPhone] = useState<string>("");
   const [selectedAccountId, setSelectedAccountId] = useState<string>();
@@ -72,6 +88,11 @@ export const MockLoginView = (): JSX.Element => {
   const [registerCountdown, setRegisterCountdown] = useState<number>(0);
   const [sentRegisterPhone, setSentRegisterPhone] = useState<string>("");
   const [registerRedirectPath, setRegisterRedirectPath] = useState<string | null>(null);
+  const [pendingPasswordSetup, setPendingPasswordSetup] =
+    useState<PendingPasswordSetup | null>(null);
+  const [setupPassword, setSetupPassword] = useState<string>("");
+  const [setupConfirmPassword, setSetupConfirmPassword] = useState<string>("");
+  const registrationStrategy = useMemo(() => loadOperationsRegistrationStrategy(), []);
 
   const redirectPath = useMemo(() => {
     const targetPath = searchParams.get("redirect")?.trim();
@@ -188,6 +209,18 @@ export const MockLoginView = (): JSX.Element => {
 
       message.success(result.message);
 
+      if (result.requiresPasswordSetup && result.account) {
+        setPendingPasswordSetup({
+          accountId: result.account.accountId,
+          accountName: result.account.name,
+          phone: result.account.phone,
+          redirectPath: result.redirectPath ?? redirectPath ?? "/web/employee/meta-agent",
+        });
+        setSetupPassword("");
+        setSetupConfirmPassword("");
+        return;
+      }
+
       if (result.session && !result.identity && getTenantCount(result.session.identities) > 1) {
         return;
       }
@@ -195,6 +228,32 @@ export const MockLoginView = (): JSX.Element => {
       navigate(result.redirectPath ?? "/portal", { replace: true });
     },
     [login, navigate, phoneValue, redirectPath, sentPhone, verificationCodeValue],
+  );
+
+  const handleSubmitPassword = useCallback(
+    (event: FormEvent<HTMLFormElement>): void => {
+      event.preventDefault();
+
+      const result = loginByPassword({
+        phone: phoneValue,
+        password: passwordValue,
+        redirectPath,
+      });
+
+      if (!result.success) {
+        message.error(result.message);
+        return;
+      }
+
+      message.success(result.message);
+
+      if (result.session && !result.identity && getTenantCount(result.session.identities) > 1) {
+        return;
+      }
+
+      navigate(result.redirectPath ?? "/portal", { replace: true });
+    },
+    [loginByPassword, navigate, passwordValue, phoneValue, redirectPath],
   );
 
   const handlePresetAccountChange = useCallback(
@@ -208,6 +267,7 @@ export const MockLoginView = (): JSX.Element => {
       setSelectedAccountId(accountId);
       setPhoneValue(matchedAccount.phone);
       setVerificationCodeValue(matchedAccount.verificationCode);
+      setPasswordValue(getMockAccountPassword(matchedAccount) ?? "");
       setSentPhone(matchedAccount.phone);
       setCountdown(0);
     },
@@ -220,6 +280,7 @@ export const MockLoginView = (): JSX.Element => {
 
       if (selectedAccount && nextValue !== selectedAccount.phone) {
         setSelectedAccountId(undefined);
+        setPasswordValue("");
       }
     },
     [selectedAccount],
@@ -264,6 +325,18 @@ export const MockLoginView = (): JSX.Element => {
     return "当前账号会按已开通的租户与系统权限进入，多个租户时登录后选择本次进入的租户。";
   }, [selectedAccount, selectedAccountTenantCount]);
 
+  const selectedAccountCredentialHint = useMemo<string>(() => {
+    if (!selectedAccount) {
+      return "验证码登录用于首次验证手机号；设置密码后可切换为密码登录。";
+    }
+
+    if (isMockAccountPasswordSetupRequired(selectedAccount)) {
+      return "该账号尚未设置密码，需先用验证码登录并完成密码绑定。";
+    }
+
+    return `默认密码 ${getMockAccountPassword(selectedAccount) ?? "已设置"}`;
+  }, [selectedAccount]);
+
   const presetOptions = useMemo(
     () =>
       mockAccounts.map(account => ({
@@ -289,8 +362,13 @@ export const MockLoginView = (): JSX.Element => {
   }, [mockAccounts, selectedAccountId]);
 
   const handleOpenRegisterModal = useCallback((): void => {
+    if (!registrationStrategy.enabled) {
+      message.warning("暂无权限。");
+      return;
+    }
+
     setIsRegisterModalOpen(true);
-  }, []);
+  }, [registrationStrategy.enabled]);
 
   const handleCloseRegisterModal = useCallback((): void => {
     setIsRegisterModalOpen(false);
@@ -300,6 +378,12 @@ export const MockLoginView = (): JSX.Element => {
     setRegisterCode("");
     setRegisterCountdown(0);
     setSentRegisterPhone("");
+  }, []);
+
+  const handleClosePasswordSetup = useCallback((): void => {
+    setPendingPasswordSetup(null);
+    setSetupPassword("");
+    setSetupConfirmPassword("");
   }, []);
 
   const handleSendRegisterCode = useCallback((): void => {
@@ -338,7 +422,20 @@ export const MockLoginView = (): JSX.Element => {
     }
 
     message.success(result.message);
-    setRegisterRedirectPath(result.redirectPath ?? "/web/admin/workspace/meta-agent");
+    if (result.requiresPasswordSetup && result.account) {
+      setPendingPasswordSetup({
+        accountId: result.account.accountId,
+        accountName: result.account.name,
+        phone: result.account.phone,
+        redirectPath: result.redirectPath ?? "/web/employee/meta-agent",
+      });
+      setSetupPassword("");
+      setSetupConfirmPassword("");
+      handleCloseRegisterModal();
+      return;
+    }
+
+    setRegisterRedirectPath(result.redirectPath ?? "/web/employee/meta-agent");
     handleCloseRegisterModal();
   }, [
     handleCloseRegisterModal,
@@ -348,6 +445,40 @@ export const MockLoginView = (): JSX.Element => {
     registerPhone,
     registerTenantName,
     sentRegisterPhone,
+  ]);
+
+  const handleSubmitPasswordSetup = useCallback((): void => {
+    if (!pendingPasswordSetup) {
+      return;
+    }
+
+    const result = setupPasswordAndLogin({
+      accountId: pendingPasswordSetup.accountId,
+      password: setupPassword,
+      confirmPassword: setupConfirmPassword,
+      redirectPath: pendingPasswordSetup.redirectPath,
+    });
+
+    if (!result.success) {
+      message.error(result.message);
+      return;
+    }
+
+    message.success("密码设置成功。");
+    handleClosePasswordSetup();
+
+    if (result.session && !result.identity && getTenantCount(result.session.identities) > 1) {
+      return;
+    }
+
+    navigate(result.redirectPath ?? "/web/employee/meta-agent", { replace: true });
+  }, [
+    handleClosePasswordSetup,
+    navigate,
+    pendingPasswordSetup,
+    setupConfirmPassword,
+    setupPassword,
+    setupPasswordAndLogin,
   ]);
 
   if (session && !shouldShowTenantSelectionModal) {
@@ -367,7 +498,7 @@ export const MockLoginView = (): JSX.Element => {
 
       <div className={styles.shell}>
         <div className={styles.brandBlock}>
-          <div className={styles.brandMark}>{PRODUCT_LOGO_TEXT}</div>
+          <img className={styles.brandMark} src={PRODUCT_LOGO_URL} alt={PRODUCT_NAME} />
           <div className={styles.brandCopy}>
             <p className={styles.brandTitle}>{PRODUCT_NAME}</p>
             <p className={styles.brandSubtitle}>{PRODUCT_SLOGAN}</p>
@@ -378,14 +509,30 @@ export const MockLoginView = (): JSX.Element => {
           <div className={styles.loginCardBody}>
             <div className={styles.primaryPanel}>
               <div className={styles.formHeader}>
-                <span className={styles.formEyebrow}>验证码登录</span>
+                <span className={styles.formEyebrow}>
+                  {loginMode === "verificationCode" ? "验证码登录" : "密码登录"}
+                </span>
                 <h1 className={styles.formTitle}>欢迎登录</h1>
                 <p className={styles.formDescription}>
-                  输入手机号完成验证码校验；系统会按账号已开通的租户和系统权限进入对应功能。
+                  支持手机号验证码登录和密码登录；首次注册或新用户首次进入时，需要先完成登录密码设置。
                 </p>
               </div>
 
-              <form className={styles.form} onSubmit={handleSubmit}>
+              <Segmented<LoginMode>
+                block
+                className={styles.loginModeTabs}
+                value={loginMode}
+                options={[
+                  { label: "验证码登录", value: "verificationCode" },
+                  { label: "密码登录", value: "password" },
+                ]}
+                onChange={setLoginMode}
+              />
+
+              <form
+                className={styles.form}
+                onSubmit={loginMode === "verificationCode" ? handleSubmit : handleSubmitPassword}
+              >
                 <div className={styles.fieldGroup}>
                   <label className={styles.fieldLabel} htmlFor="mock-login-phone">
                     手机号
@@ -404,41 +551,62 @@ export const MockLoginView = (): JSX.Element => {
                   />
                 </div>
 
-                <div className={styles.fieldGroup}>
-                  <label className={styles.fieldLabel} htmlFor="mock-login-code">
-                    验证码
-                  </label>
-                  <div className={styles.codeRow}>
-                    <Input
-                      id="mock-login-code"
-                      autoComplete="one-time-code"
-                      inputMode="numeric"
-                      maxLength={6}
-                      placeholder="请输入 6 位验证码"
-                      size="large"
-                      value={verificationCodeValue}
-                      onChange={event =>
-                        handleVerificationCodeChange(
-                          event.target.value.replace(/\D/g, "").slice(0, 6),
-                        )
-                      }
-                    />
-                    <Button
-                      size="large"
-                      onClick={handleSendVerificationCode}
-                      disabled={countdown > 0}
-                    >
-                      {countdown > 0 ? `${countdown}s后重试` : "获取验证码"}
-                    </Button>
+                {loginMode === "verificationCode" ? (
+                  <div className={styles.fieldGroup}>
+                    <label className={styles.fieldLabel} htmlFor="mock-login-code">
+                      验证码
+                    </label>
+                    <div className={styles.codeRow}>
+                      <Input
+                        id="mock-login-code"
+                        autoComplete="one-time-code"
+                        inputMode="numeric"
+                        maxLength={6}
+                        placeholder="请输入 6 位验证码"
+                        size="large"
+                        value={verificationCodeValue}
+                        onChange={event =>
+                          handleVerificationCodeChange(
+                            event.target.value.replace(/\D/g, "").slice(0, 6),
+                          )
+                        }
+                      />
+                      <Button
+                        size="large"
+                        onClick={handleSendVerificationCode}
+                        disabled={countdown > 0}
+                      >
+                        {countdown > 0 ? `${countdown}s后重试` : "获取验证码"}
+                      </Button>
+                    </div>
                   </div>
-                </div>
+                ) : (
+                  <div className={styles.fieldGroup}>
+                    <label className={styles.fieldLabel} htmlFor="mock-login-password">
+                      密码
+                    </label>
+                    <Input.Password
+                      id="mock-login-password"
+                      autoComplete="current-password"
+                      placeholder="请输入登录密码"
+                      size="large"
+                      value={passwordValue}
+                      onChange={event => setPasswordValue(event.target.value)}
+                    />
+                  </div>
+                )}
 
                 <Button
                   block
                   htmlType="submit"
                   size="large"
                   type="primary"
-                  disabled={!phoneValue.trim() || verificationCodeValue.trim().length !== 6}
+                  disabled={
+                    !phoneValue.trim() ||
+                    (loginMode === "verificationCode"
+                      ? verificationCodeValue.trim().length !== 6
+                      : !passwordValue.trim())
+                  }
                 >
                   登录
                 </Button>
@@ -447,14 +615,18 @@ export const MockLoginView = (): JSX.Element => {
               <div className={styles.noticePanel}>
                 <p className={styles.noticeTitle}>登录说明</p>
                 <p className={styles.noticeText}>
-                  登录即代表你同意平台服务协议与隐私政策。还没有租户时，可直接自注册并创建 1
-                  席个人版租户。
+                  登录即代表你同意平台服务协议与隐私政策。
+                  {registrationStrategy.enabled
+                    ? "还没有租户时，可直接自注册并创建 1 席个人版租户。"
+                    : "当前暂无自注册权限。"}
                 </p>
-                <div className={styles.noticeActions}>
-                  <Button type="link" onClick={handleOpenRegisterModal}>
-                    自注册创建租户
-                  </Button>
-                </div>
+                {registrationStrategy.enabled ? (
+                  <div className={styles.noticeActions}>
+                    <Button type="link" onClick={handleOpenRegisterModal}>
+                      自注册创建租户
+                    </Button>
+                  </div>
+                ) : null}
               </div>
             </div>
 
@@ -485,12 +657,18 @@ export const MockLoginView = (): JSX.Element => {
                     {selectedAccount ? selectedAccount.description : selectedAccountEntryHint}
                   </p>
                   <p className={styles.summaryHint}>{selectedAccountEntryHint}</p>
+                  <p className={styles.summaryHint}>{selectedAccountCredentialHint}</p>
 
                   {selectedAccount ? (
                     <div className={styles.quickLoginFooter}>
                       <span className={styles.quickLoginChip}>{selectedAccount.phone}</span>
                       <span className={styles.quickLoginChip}>
                         验证码 {selectedAccount.verificationCode}
+                      </span>
+                      <span className={styles.quickLoginChip}>
+                        {isMockAccountPasswordSetupRequired(selectedAccount)
+                          ? "待设置密码"
+                          : "可密码登录"}
                       </span>
                       <span className={styles.quickLoginChip}>
                         {selectedAccountTenantCount} 个租户
@@ -538,6 +716,53 @@ export const MockLoginView = (): JSX.Element => {
                 <span className={styles.tenantName}>{tenant.tenantName}</span>
               </button>
             ))}
+          </div>
+        </div>
+      </Modal>
+
+      <Modal
+        open={Boolean(pendingPasswordSetup)}
+        title="设置登录密码"
+        okText="完成并进入"
+        cancelText="取消"
+        onCancel={handleClosePasswordSetup}
+        onOk={handleSubmitPasswordSetup}
+        okButtonProps={{
+          disabled:
+            setupPassword.length < 8 ||
+            !setupConfirmPassword ||
+            setupPassword !== setupConfirmPassword,
+        }}
+        width={460}
+        centered
+      >
+        <div className={styles.registerPanel}>
+          <div className={styles.fieldGroup}>
+            <label className={styles.fieldLabel} htmlFor="mock-setup-password">
+              登录密码
+            </label>
+            <Input.Password
+              id="mock-setup-password"
+              autoComplete="new-password"
+              placeholder="至少 8 位，需包含字母和数字"
+              size="large"
+              value={setupPassword}
+              onChange={event => setSetupPassword(event.target.value)}
+            />
+          </div>
+
+          <div className={styles.fieldGroup}>
+            <label className={styles.fieldLabel} htmlFor="mock-setup-confirm-password">
+              确认密码
+            </label>
+            <Input.Password
+              id="mock-setup-confirm-password"
+              autoComplete="new-password"
+              placeholder="请再次输入登录密码"
+              size="large"
+              value={setupConfirmPassword}
+              onChange={event => setSetupConfirmPassword(event.target.value)}
+            />
           </div>
         </div>
       </Modal>

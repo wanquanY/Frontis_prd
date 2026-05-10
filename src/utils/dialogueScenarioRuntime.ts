@@ -74,6 +74,7 @@ interface ScenarioMessagePlaybackState {
   children: Block[];
   followupSuggestions?: string[];
   lastThinkingContent: string;
+  thinkingContentBySourceId?: Map<string, string>;
 }
 
 export interface CreateScenarioDispatchResultItemParams {
@@ -273,18 +274,6 @@ const upsertScenarioChildBlock = (children: Block[], block: Block): Block[] => {
 
   if (targetIndex >= 0) {
     nextChildren[targetIndex] = block;
-    return nextChildren;
-  }
-
-  if (block.kind === "text" || block.kind === "result_cards") {
-    nextChildren.push(block);
-    return nextChildren;
-  }
-
-  const firstTextBlockIndex = nextChildren.findIndex(item => item.kind === "text");
-
-  if (firstTextBlockIndex >= 0) {
-    nextChildren.splice(firstTextBlockIndex, 0, block);
     return nextChildren;
   }
 
@@ -889,99 +878,96 @@ const expandConversationFramesForTypewriter = (
       const state = ensureMessageState(frameMessage);
       const messageBlock = frameMessage.blocks.find(block => block.kind === "message");
       const messageChildren = messageBlock?.children ?? [];
-      const thinkingBlock = messageChildren.find(block => block.kind === "thinking");
-      const textBlocks = messageChildren.filter(block => block.kind === "text");
-      const staticBlocks = messageChildren.filter(
-        block => block.kind !== "thinking" && block.kind !== "text",
+      const lastTextBlockIndex = messageChildren.reduce<number>(
+        (lastIndex, block, index) => (block.kind === "text" ? index : lastIndex),
+        -1,
       );
-      const hasActionBlocks =
-        staticBlocks.length > 0 ||
-        textBlocks.length > 0 ||
-        (frameMessage.followupSuggestions?.length ?? 0) > 0;
       const preview = frameMessage.preview.trim();
       let messageHasPushedFrame = false;
+      const thinkingContentBySourceId =
+        state.thinkingContentBySourceId ?? new Map<string, string>();
 
       state.author = frameMessage.author;
       state.followupSuggestions = frameMessage.followupSuggestions;
+      state.thinkingContentBySourceId = thinkingContentBySourceId;
 
-      const thinkingContent = thinkingBlock
-        ? extractScenarioBlockContent(thinkingBlock).trim()
-        : "";
+      messageChildren.forEach((block, index) => {
+        if (block.kind === "thinking") {
+          const thinkingContent = extractScenarioBlockContent(block).trim();
+          const previousThinkingContent = thinkingContentBySourceId.get(block.id) ?? "";
 
-      if (thinkingBlock && thinkingContent) {
-        if (thinkingContent !== state.lastThinkingContent) {
-          const nextThinkingId = resolveThinkingBlockId(state, thinkingBlock.id);
-          messageHasPushedFrame =
-            streamTextualBlock(
-              pendingFrames,
-              state,
-              thinkingBlock,
-              nextThinkingId,
-              thinkingContent,
-              {
-                keepStreamingAtEnd: !hasActionBlocks,
-                preview: preview || thinkingContent,
-                panel: !hasActionBlocks ? frame.panel : undefined,
-                followupSuggestions: !hasActionBlocks ? frame.followupSuggestions : undefined,
-              },
-            ) || messageHasPushedFrame;
-          state.lastThinkingContent = thinkingContent;
-
-          if (!hasActionBlocks) {
-            hasPushedFrame = hasPushedFrame || messageHasPushedFrame;
+          if (!thinkingContent) {
             return;
           }
-        } else if (hasActionBlocks) {
-          const latestThinkingBlock = getLatestThinkingBlock(state);
 
-          if (latestThinkingBlock) {
-            finalizeStreamingBlock(state, thinkingBlock, latestThinkingBlock.id);
+          if (thinkingContent !== previousThinkingContent) {
+            const hasLaterBlocks = messageChildren
+              .slice(index + 1)
+              .some(nextBlock => nextBlock.kind !== "thinking");
+            const nextThinkingId = resolveThinkingBlockId(state, block.id);
+
+            messageHasPushedFrame =
+              streamTextualBlock(pendingFrames, state, block, nextThinkingId, thinkingContent, {
+                keepStreamingAtEnd:
+                  !hasLaterBlocks && (frameMessage.followupSuggestions?.length ?? 0) === 0,
+                preview: preview || thinkingContent,
+                panel: !hasLaterBlocks ? frame.panel : undefined,
+                followupSuggestions: !hasLaterBlocks ? frame.followupSuggestions : undefined,
+              }) || messageHasPushedFrame;
+            state.lastThinkingContent = thinkingContent;
+            thinkingContentBySourceId.set(block.id, thinkingContent);
+
+            return;
           }
-        }
-      }
 
-      const didStaticBlocksChange = upsertStaticBlocks(state, staticBlocks);
-
-      if (didStaticBlocksChange && textBlocks.length === 0) {
-        state.preview = preview || state.lastThinkingContent || state.preview;
-        pushFrame(
-          pendingFrames,
-          state.preview,
-          frame.delayMs,
-          undefined,
-          undefined,
-          undefined,
-          undefined,
-        );
-        messageHasPushedFrame = true;
-      }
-
-      textBlocks.forEach((block, index) => {
-        const textContent = extractScenarioBlockContent(block);
-
-        if (!textContent) {
-          state.children = upsertScenarioChildBlock(state.children, cloneScenarioBlock(block));
+          const latestThinkingBlock = getLatestThinkingBlock(state);
+          if (latestThinkingBlock) {
+            finalizeStreamingBlock(state, block, latestThinkingBlock.id);
+          }
           return;
         }
 
-        const isLastTextBlock = index === textBlocks.length - 1;
-        messageHasPushedFrame =
-          streamTextualBlock(pendingFrames, state, block, block.id, textContent, {
-            keepStreamingAtEnd: block.isStreaming === true,
-            preview: preview || textContent,
-            artifacts: isLastTextBlock ? frame.artifacts : undefined,
-            panel: isLastTextBlock ? frame.panel : undefined,
-            results: isLastTextBlock ? frame.results : undefined,
-            followupSuggestions: isLastTextBlock ? frame.followupSuggestions : undefined,
-          }) || messageHasPushedFrame;
+        if (block.kind === "text") {
+          const textContent = extractScenarioBlockContent(block);
+
+          if (!textContent) {
+            state.children = upsertScenarioChildBlock(state.children, cloneScenarioBlock(block));
+            return;
+          }
+
+          const isLastTextBlock = index === lastTextBlockIndex;
+          messageHasPushedFrame =
+            streamTextualBlock(pendingFrames, state, block, block.id, textContent, {
+              keepStreamingAtEnd: block.isStreaming === true,
+              preview: preview || textContent,
+              artifacts: isLastTextBlock ? frame.artifacts : undefined,
+              panel: isLastTextBlock ? frame.panel : undefined,
+              results: isLastTextBlock ? frame.results : undefined,
+              followupSuggestions: isLastTextBlock ? frame.followupSuggestions : undefined,
+            }) || messageHasPushedFrame;
+          return;
+        }
+
+        if (upsertStaticBlocks(state, [block])) {
+          state.preview = preview || state.lastThinkingContent || state.preview;
+          pushFrame(
+            pendingFrames,
+            state.preview,
+            frame.delayMs,
+            undefined,
+            undefined,
+            undefined,
+            undefined,
+          );
+          messageHasPushedFrame = true;
+        }
       });
 
       if (
         !messageHasPushedFrame &&
-        (didStaticBlocksChange ||
-          frame.artifacts?.length ||
+        (frame.artifacts?.length ||
           frame.results?.length ||
-          textBlocks.length > 0 ||
+          messageChildren.length > 0 ||
           frame.followupSuggestions?.length)
       ) {
         state.preview = preview || state.lastThinkingContent || state.preview;

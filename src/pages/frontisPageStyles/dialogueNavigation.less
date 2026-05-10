@@ -1,13 +1,16 @@
 .dialogueShell {
+  position: relative;
   flex: 1;
   min-height: 0;
   display: grid;
-  grid-template-columns: 252px minmax(0, 1fr) 422px;
+  grid-template-columns: 252px minmax(0, 1fr) 0 0;
   gap: 0;
+  transition: grid-template-columns 300ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .dialogueShellResizing {
   will-change: grid-template-columns;
+  transition: none;
 }
 
 .dialogueShellResizing .dialogueMainCard,
@@ -21,7 +24,7 @@
 }
 
 .dialogueShellArtifactsHidden {
-  grid-template-columns: 252px minmax(0, 1fr);
+  grid-template-columns: 252px minmax(0, 1fr) 0 0;
 }
 
 .dialogueShellRuntimeVisible {
@@ -97,11 +100,38 @@
 .dialogueArtifactsCard {
   padding: 0;
   border-left: 1px solid var(--panelBorder);
+  transform-origin: right center;
+  will-change: transform, opacity, clip-path;
+  animation: dialogueSidePanelReveal 300ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .dialogueSidebarCard {
   padding: 16px;
   border-right: 1px solid var(--panelBorder);
+}
+
+@keyframes dialogueSidePanelReveal {
+  from {
+    opacity: 0;
+    transform: translateX(18px);
+    clip-path: inset(0 0 0 100%);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+    clip-path: inset(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dialogueShell {
+    transition: none;
+  }
+
+  .dialogueArtifactsCard {
+    animation: none;
+  }
 }
 
 .groupSidebarCard {

@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
-
-import { Think } from "@ant-design/x";
+import classNames from "classnames";
 
 import type { Block, TextData } from "@/types/block";
 
@@ -46,19 +45,41 @@ export const ThinkingBlock = ({ block }: ThinkingBlockProps) => {
 
   return (
     <div className={styles.thinkingBlock}>
-      <Think
-        icon={<img src={thinkIcon} alt="think" className={styles.thinkIcon} />}
-        title={isComplete ? "思考完成" : "正在思考中"}
-        expanded={expanded}
-        onExpand={() => setExpanded(!expanded)}
-        blink={!isComplete}
+      <button
+        type="button"
+        className={styles.thinkingHeader}
+        aria-expanded={expanded}
+        onClick={() => setExpanded(current => !current)}
       >
-        <div className={styles.thinkingMarkdown}>
-          <MarkdownErrorBoundary content={displayContent}>
-            <ChatMarkdown source={displayContent} />
-          </MarkdownErrorBoundary>
+        <span className={styles.thinkingHeaderMain}>
+          <img src={thinkIcon} alt="" className={styles.thinkIcon} aria-hidden="true" />
+          <span className={styles.thinkingTitle}>思考过程</span>
+        </span>
+        <span className={styles.thinkingHeaderActions}>
+          <span
+            className={classNames(styles.thinkingStatus, {
+              [styles.thinkingStatusRunning]: !isComplete,
+            })}
+          >
+            {isComplete ? "已完成" : "思考中"}
+          </span>
+          <span
+            className={classNames(styles.thinkingChevron, {
+              [styles.thinkingChevronOpen]: expanded,
+            })}
+            aria-hidden="true"
+          />
+        </span>
+      </button>
+      {expanded ? (
+        <div className={styles.thinkingContent}>
+          <div className={styles.thinkingMarkdown}>
+            <MarkdownErrorBoundary content={displayContent}>
+              <ChatMarkdown source={displayContent} />
+            </MarkdownErrorBoundary>
+          </div>
         </div>
-      </Think>
+      ) : null}
     </div>
   );
 };

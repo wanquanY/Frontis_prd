@@ -18,6 +18,7 @@
 .listTitle { margin: 0; color: var(--text); font-size: 18px; font-weight: 700; flex: 0 0 auto; }
 
 .listSearchBox {
+  margin-left: auto;
   max-width: 280px;
   :global(.ant-input-affix-wrapper) {
     height: 36px; padding: 0 10px; border-radius: 10px;
@@ -32,7 +33,6 @@
 }
 
 .searchIcon { color: var(--text-muted); }
-.listNewBtn { border-radius: 10px; font-weight: 600; margin-left: auto; }
 
 .listGrid {
   flex: 1; min-height: 0; overflow-y: auto;
@@ -43,7 +43,7 @@
 }
 
 .workspaceCard {
-  display: flex; flex-direction: column; gap: 14px;
+  display: flex; flex-direction: column;
   padding: 20px; border: 1.5px solid var(--border); border-radius: 14px;
   background: var(--surface); cursor: pointer; text-align: left; width: 100%;
   transition: border-color 200ms ease, box-shadow 200ms ease, transform 160ms ease;
@@ -65,18 +65,6 @@
 .wsCardMeta { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
 .wsCardName { color: var(--text); font-size: 15px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .wsCardDesc { color: var(--text-muted); font-size: 13px; line-height: 20px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-.wsCardBottom { display: flex; align-items: center; gap: 8px; }
-
-.wsCardSkillBadge {
-  display: inline-flex; align-items: center; gap: 4px;
-  padding: 2px 10px; border-radius: 999px; font-size: 12px; font-weight: 500;
-  background: color-mix(in srgb, var(--primary) 8%, transparent); color: var(--primary);
-}
-
-.wsCardFrameworkBadge {
-  display: inline-flex; align-items: center;
-  padding: 2px 10px; border-radius: 999px; font-size: 11px; font-weight: 600;
-}
 
 /* ═══ 详情页 ═══ */
 

@@ -1,4 +1,11 @@
 .root {
+  --fdeSidebarWidth: 224px;
+  --fdeSidebarCollapsedWidth: 68px;
+  --fdeOuterGap: 0;
+  --fdeShellPanelRadius: 0;
+  --fdeShellPanelBorder: transparent;
+  --fdeNavActiveBg: var(--text);
+  --fdeNavActiveText: var(--surface);
   --fdeBg: var(--app-bg);
   --fdeSurface: var(--surface);
   --fdeSurfaceStrong: color-mix(in srgb, var(--surface) 95%, var(--app-bg));
@@ -24,17 +31,17 @@
   height: 100vh;
   padding: 0;
   gap: 0;
-  background: var(--fdeCanvas);
+  background: var(--fdeBg);
   color: var(--text);
 }
 
 .sidebar {
   flex-shrink: 0;
-  width: 280px;
+  width: var(--fdeSidebarWidth);
   height: 100vh;
   min-height: 0;
-  padding: 24px 12px 18px;
-  border-right: 1px solid var(--fdeBorder);
+  padding: 14px 16px 18px;
+  border-right: 0;
   border-radius: 0;
   background: transparent;
   box-shadow: none;
@@ -49,8 +56,8 @@
 }
 
 .sidebarCollapsed {
-  width: 76px;
-  padding: 12px 4px;
+  width: var(--fdeSidebarCollapsedWidth);
+  padding: 12px 6px;
   align-items: center;
 }
 
@@ -59,8 +66,9 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  padding: 0 6px;
+  gap: 10px;
+  padding: 0 0 13px;
+  border-bottom: 1px solid var(--border);
 }
 
 .sidebarTopCollapsed {
@@ -73,10 +81,10 @@
 .brandCard {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   min-width: 0;
   flex: 1;
-  padding: 4px 6px;
+  padding: 0;
 }
 
 .brandCardCollapsed {
@@ -86,17 +94,11 @@
   padding: 0;
 }
 
-.brandIcon {
-  width: 44px;
-  height: 44px;
-  border-radius: 14px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  background: color-mix(in srgb, var(--primary) 14%, var(--surface));
-  color: var(--primary);
-  font-size: 24px;
-  font-weight: 700;
+.brandLogo {
+  width: 40px;
+  height: 34px;
+  flex-shrink: 0;
+  object-fit: contain;
 }
 
 .brandCopy {
@@ -105,8 +107,8 @@
 
 .brandTitle {
   color: var(--text);
-  font-size: 20px;
-  line-height: 28px;
+  font-size: 14px;
+  line-height: 20px;
   font-weight: 600;
 }
 
@@ -120,11 +122,11 @@
 }
 
 .sidebarToggle {
-  width: 36px;
-  height: 36px;
+  width: 30px;
+  height: 30px;
   flex: 0 0 auto;
   border: 0;
-  border-radius: 10px;
+  border-radius: 8px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -145,11 +147,11 @@
   display: flex;
   flex: 1;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
   min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
-  padding-right: 4px;
+  padding: 12px 0 0;
   scrollbar-gutter: stable;
   overscroll-behavior: contain;
 }
@@ -162,10 +164,10 @@
 
 .navButton {
   width: 100%;
-  min-height: 44px;
-  padding: 10px 12px;
+  min-height: 38px;
+  padding: 0 12px;
   border: 0;
-  border-radius: 12px;
+  border-radius: 6px;
   background: transparent;
   color: var(--text-secondary);
   text-align: left;
@@ -178,7 +180,7 @@
     color 160ms ease;
 
   &:hover {
-    background: color-mix(in srgb, var(--text) 4%, transparent);
+    background: color-mix(in srgb, var(--text) 5%, transparent);
     color: var(--text);
   }
 }
@@ -186,21 +188,21 @@
 .navButtonCollapsed {
   width: 56px;
   min-width: 56px;
-  min-height: 56px;
-  padding: 8px 4px;
-  border-radius: 18px;
+  min-height: 42px;
+  padding: 8px 0;
+  border-radius: 8px;
   justify-content: center;
 }
 
 .navButtonActive {
-  background: color-mix(in srgb, var(--primary) 10%, var(--surface));
-  color: var(--primary);
+  background: var(--fdeNavActiveBg);
+  color: var(--fdeNavActiveText);
 }
 
 .navIcon {
-  width: 20px;
-  height: 20px;
-  flex: 0 0 20px;
+  width: 18px;
+  height: 18px;
+  flex: 0 0 18px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -227,14 +229,14 @@
   gap: 4px;
 
   & + & {
-    margin-top: 12px;
+    margin-top: 6px;
     padding-top: 12px;
     border-top: 1px solid var(--fdeBorder);
   }
 }
 
 .navGroupLabel {
-  padding: 6px 12px 2px;
+  padding: 4px 12px 2px;
   font-size: 12px;
   line-height: 18px;
   font-weight: 600;
@@ -264,16 +266,11 @@
 .sidebarFooter {
   flex: 0 0 auto;
   width: 100%;
-  padding: 10px 12px;
-  margin-top: 8px;
+  padding: 8px 10px;
+  margin-top: 12px;
   border: 0;
-  border-top: 1px solid var(--fdeBorder);
-  border-radius: 14px;
-  background: linear-gradient(
-    180deg,
-    color-mix(in srgb, var(--fdeSurface) 35%, transparent),
-    color-mix(in srgb, var(--fdeSurface) 96%, var(--fdeBg))
-  );
+  border-radius: 8px;
+  background: transparent;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -292,11 +289,11 @@
 
 .sidebarFooterCollapsed {
   width: 56px;
-  min-height: 56px;
-  padding: 8px;
+  min-height: 42px;
+  padding: 6px;
   margin-top: 8px;
   justify-content: center;
-  border-radius: 18px;
+  border-radius: 8px;
 }
 
 .footerCopy {
@@ -317,6 +314,7 @@
   min-height: 0;
   height: 100vh;
   display: flex;
+  padding: 0;
 }
 
 .mainPanel {
@@ -325,9 +323,9 @@
   min-height: 0;
   display: flex;
   flex-direction: column;
-  background: transparent;
+  background: var(--surface);
   border: 0;
-  border-radius: 0;
+  border-radius: var(--fdeShellPanelRadius);
   overflow: hidden;
 }
 
@@ -335,7 +333,7 @@
   min-height: 72px;
   padding: 16px 24px;
   border-bottom: 1px solid var(--fdeBorder);
-  background: transparent;
+  background: var(--surface);
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
@@ -449,14 +447,14 @@
   min-height: 0;
   padding: 14px 24px 20px;
   overflow: auto;
-  background: transparent;
+  background: var(--surface);
   display: flex;
   flex-direction: column;
 }
 
 @media (max-width: 1440px) {
   .sidebar {
-    width: 252px;
+    width: var(--fdeSidebarWidth);
   }
 
   .header {
@@ -536,6 +534,7 @@
   .main {
     height: auto;
     min-height: calc(100vh - 16px);
+    padding: 0;
   }
 }
 

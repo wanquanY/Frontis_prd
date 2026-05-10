@@ -1,4 +1,5 @@
 .panel {
+  position: relative;
   min-width: 248px;
   padding: 8px;
   border-radius: 18px;
@@ -7,6 +8,10 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
+}
+
+.communityEntry {
+  position: relative;
 }
 
 .header {
@@ -29,77 +34,116 @@
   line-height: 18px;
 }
 
-.pointsCard {
+.communityButton {
   width: 100%;
-  padding: 10px 12px;
+  min-height: 40px;
+  padding: 0 10px;
   border: 0;
-  border-radius: 14px;
-  background: color-mix(in srgb, var(--primary) 8%, var(--surface));
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  text-align: left;
-}
-
-.inviteButton {
-  width: 100%;
-  min-height: 38px;
-  padding: 0 12px;
-  border: 1px solid color-mix(in srgb, var(--primary) 18%, var(--border));
-  border-radius: 14px;
-  background: var(--surface);
+  border-radius: 10px;
+  background: transparent;
   color: var(--text);
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 13px;
-  line-height: 20px;
-  font-weight: 700;
+  gap: 10px;
+  font-size: 14px;
+  line-height: 22px;
+  font-weight: 500;
+  text-align: left;
   cursor: pointer;
   transition:
-    border-color 160ms ease,
-    color 160ms ease,
-    transform 160ms ease;
+    background 160ms ease,
+    color 160ms ease;
+
+  &:hover {
+    background: color-mix(in srgb, var(--primary) 8%, transparent);
+    color: var(--primary);
+  }
+
+  &:focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--primary) 32%, transparent);
+    outline-offset: 2px;
+  }
 }
 
-.inviteButton:hover {
-  border-color: color-mix(in srgb, var(--primary) 34%, var(--border));
-  color: var(--primary);
-  transform: translateY(-1px);
+.communityButtonIcon {
+  flex: 0 0 auto;
+  font-size: 16px;
 }
 
-.pointsMain {
-  min-width: 0;
+.communityPopover {
+  position: absolute;
+  left: calc(100% + 12px);
+  bottom: 0;
+  z-index: 20;
+  width: 280px;
+  padding: 16px;
+  border: 1px solid color-mix(in srgb, var(--border) 72%, transparent);
+  border-radius: 18px;
+  background: var(--surface);
+  box-shadow: var(--shadow-lg);
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 14px;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateX(-4px);
+  pointer-events: none;
+  transition:
+    opacity 160ms ease,
+    visibility 160ms ease,
+    transform 160ms ease;
+
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    right: 100%;
+    width: 12px;
+    height: 100%;
+  }
 }
 
-.pointsLabel {
-  color: var(--text-secondary);
+.communityEntry:hover .communityPopover,
+.communityEntry:focus-within .communityPopover {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(0);
+  pointer-events: auto;
+}
+
+.communityPopoverHeader {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.communityPopoverEyebrow {
+  color: var(--primary);
   font-size: 12px;
   line-height: 18px;
-}
-
-.pointsValue {
-  color: var(--text);
-  font-size: 18px;
-  line-height: 26px;
   font-weight: 700;
 }
 
-.pointsAction {
-  color: var(--primary);
-  font-size: 12px;
-  line-height: 18px;
-  font-weight: 600;
-  white-space: nowrap;
+.communityPopoverTitle {
+  color: var(--text);
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 800;
 }
 
-.divider {
-  height: 1px;
-  background: color-mix(in srgb, var(--text) 8%, transparent);
+.communityPopoverDescription {
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.communityQrBox {
+  min-height: 184px;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--text) 3%, var(--surface));
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .menuWrap :global(.ant-dropdown-menu) {

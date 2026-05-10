@@ -94,6 +94,8 @@ export interface TextData {
   media?: MessageAttachment[];
   /** 成果摘要消息中的过程数量 */
   process_count?: number;
+  /** 消息底部快捷发送建议 */
+  followupSuggestions?: string[];
 }
 
 // ============ Tool Use Data（通用工具调用） ============

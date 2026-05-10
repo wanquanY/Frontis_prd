@@ -21,12 +21,18 @@ import type { MenuProps } from "antd";
 import { Avatar, Dropdown, Empty, message } from "antd";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 
-import { getLoginPath, getSystemEntries, getTenantEntries } from "@/feature/auth/mockAccounts";
+import {
+  getLoginPath,
+  getSystemEntries,
+  getSystemEntryMenuLabel,
+  getTenantEntries,
+} from "@/feature/auth/mockAccounts";
 import { useMockAuth } from "@/feature/auth/hooks/useMockAuth";
 import type { MockAuthSystemEntry } from "@/feature/auth/types";
 import { useFdeWorkbench } from "@/feature/fde/hooks/useFdeWorkbench";
 import type { FdeWorkbenchTabKey } from "@/feature/fde/types";
 import { useOperationsAuth } from "@/feature/operations/hooks/useOperationsAuth";
+import { PRODUCT_LOGO_URL, PRODUCT_NAME, PRODUCT_SLOGAN } from "@/constants/brand";
 import {
   getFdeAvatarUrl,
   getFdeWorkbenchPath,
@@ -179,7 +185,7 @@ export const FdeWorkbenchView = (): JSX.Element => {
     ...systemEntries.map(entry => ({
       key: `system-entry-${entry.identityId}`,
       icon: <AppstoreOutlined />,
-      label: `进入${entry.label}`,
+      label: getSystemEntryMenuLabel(entry),
       onClick: () => handleOpenSystemEntry(entry),
     })),
     ...(systemEntries.length
@@ -293,13 +299,9 @@ export const FdeWorkbenchView = (): JSX.Element => {
   } else if (activeTab === "agentDev") {
     activeContent = <FdeAgentDevView />;
   } else if (activeTab === "skillMarket") {
-    activeContent = (
-      <FdeSkillMarketView onNavigateToAgentDev={() => handleNavigateTab("agentDev")} />
-    );
+    activeContent = <FdeSkillMarketView />;
   } else if (activeTab === "agentStore") {
-    activeContent = (
-      <FdeAgentStoreView onNavigateToAgentDev={() => handleNavigateTab("agentDev")} />
-    );
+    activeContent = <FdeAgentStoreView />;
   } else if (activeTab === "teamManagement") {
     activeContent = (
       <FdeTeamManagementView
@@ -349,10 +351,11 @@ export const FdeWorkbenchView = (): JSX.Element => {
               [styles.brandCardCollapsed]: isSidebarCollapsed,
             })}
           >
-            <div className={styles.brandIcon}>F</div>
+            <img className={styles.brandLogo} src={PRODUCT_LOGO_URL} alt={PRODUCT_NAME} />
             {isSidebarCollapsed ? null : (
               <div className={styles.brandCopy}>
-                <div className={styles.brandTitle}>FDE工作台</div>
+                <div className={styles.brandTitle}>{PRODUCT_NAME}</div>
+                <div className={styles.brandDescription}>{PRODUCT_SLOGAN}</div>
               </div>
             )}
           </div>

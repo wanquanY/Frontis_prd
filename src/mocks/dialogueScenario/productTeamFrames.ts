@@ -123,21 +123,6 @@ export const buildProductTeamCollabFrames = (
   const userResearchMessageId = `${messageId}-user`;
   const thinking =
     "用户要的不是一句概念说明，而是一套能直接评审和演示的首期方案。我先收目标、边界和交付物，再按顺序调度架构、增长、验收、数据和用户研究这 5 位成员。";
-  const planningMarkdown = `我先按首期上线一版“专家团协作链路”来拆这件事。
-
-这轮我先处理 3 件事：
-1. 收首期目标和边界，确认什么必须做、什么暂时不做。
-2. 把模块、依赖和分工拆清楚，避免后面讨论散掉。
-3. 按顺序调度成员专家，上一位交回结果后再进入下一位，最后由我统一交付。
-
-这轮我会按下面顺序推进：
-1. 架构规划师：先锁系统边界、依赖和易耦合点。
-2. 增长实验官：再看首问触发、续问承接和关键转化节点。
-3. 交付验收官：再补验收口径、回归范围和上线门槛。
-4. 数据洞察师：再补埋点和灰度观察指标。
-5. 用户访谈官：最后复核用户会不会真的感知到“多人协作完成任务”。
-
-你先看各位专家依次处理的过程，我会等结果按顺序回齐后再给你最终方案。`;
   const responseMarkdown = `我把这版需求收成一套能直接拿去过产品和研发评审的首期方案了，重点不只是“说清楚”，而是把成员专家各自产出的结果也沉了下来。
 
 1. 模块与边界
@@ -233,43 +218,114 @@ export const buildProductTeamCollabFrames = (
     avatarUrl: PRODUCT_TEAM_USER_RESEARCH_AVATAR_URL,
     avatarLabel: "用户访谈官",
   });
+  const mainOpeningText = createTextBlock(
+    `${mainPlanMessageId}-text-opening`,
+    `我先按真实协作过程来做，不会一上来就把所有专家和工具堆出来。
+
+这一轮我会先收需求，再做模块拆解，然后按顺序让成员专家接力：上一位交回结果后，我再判断下一步该交给谁。`,
+  );
+  const mainAfterSummaryText = createTextBlock(
+    `${mainPlanMessageId}-text-after-summary`,
+    "需求边界先收住：我们要验证的是专家团协作链路是否真实可信，不是单纯把页面元素摆出来。",
+  );
+  const mainAfterBreakdownText = createTextBlock(
+    `${mainPlanMessageId}-text-after-breakdown`,
+    "模块拆完后，我先让架构规划师看边界和依赖。这里不并行拉所有人，避免过程看起来像批量贴结果。",
+  );
+  const mainArchitectDispatchText = createTextBlock(
+    `${mainPlanMessageId}-text-dispatch-architect`,
+    "我先把第一段交给架构规划师：只看模块边界、依赖关系和容易耦合的位置。",
+  );
+  const mainAfterArchitectThinking = createThinkingBlock(
+    `${mainPlanMessageId}-thinking-after-architect`,
+    "架构规划师已经交回边界和依赖。下一步应该看用户从首问进入后会不会自然继续追问，因此交给增长实验官。",
+  );
+  const mainGrowthDispatchText = createTextBlock(
+    `${mainPlanMessageId}-text-dispatch-growth`,
+    "架构边界明确后，我再把首问触发和续问承接交给增长实验官。",
+  );
+  const mainAfterGrowthThinking = createThinkingBlock(
+    `${mainPlanMessageId}-thinking-after-growth`,
+    "增长实验官已经把入口和续问链路收住了。现在需要把它落到上线前能验收的标准，因此进入交付验收。",
+  );
+  const mainQaDispatchText = createTextBlock(
+    `${mainPlanMessageId}-text-dispatch-qa`,
+    "我把验收口径交给交付验收官，让他按真实上线检查来卡门槛和回归范围。",
+  );
+  const mainAfterQaThinking = createThinkingBlock(
+    `${mainPlanMessageId}-thinking-after-qa`,
+    "验收门槛已经回齐。上线后还需要知道用户卡在哪一段，所以继续补灰度观察和埋点。",
+  );
+  const mainDataDispatchText = createTextBlock(
+    `${mainPlanMessageId}-text-dispatch-data`,
+    "接下来交给数据洞察师：只定义首期真正要看的入口、成员曝光、文件打开和续问点击。",
+  );
+  const mainAfterDataThinking = createThinkingBlock(
+    `${mainPlanMessageId}-thinking-after-data`,
+    "数据指标已经能支撑灰度观察。最后还要从用户感知上确认：用户会不会真的相信这是多人协作完成任务。",
+  );
+  const mainUserResearchDispatchText = createTextBlock(
+    `${mainPlanMessageId}-text-dispatch-user`,
+    "最后交给用户访谈官复核真实感：不同专家必须处理不同问题，不能只是换头像重复同一句话。",
+  );
+  const mainBeforeSummaryText = createTextBlock(
+    `${mainPlanMessageId}-text-before-summary`,
+    "五位专家已经按顺序回齐。我现在再统一收口，不把成员结论原样堆在一起，而是合并成模块、边界、验收和上线建议。",
+  );
 
   const mainPlanningChildren = [
     createThinkingBlock(`${mainPlanMessageId}-thinking`, thinking),
+    mainOpeningText,
     requirementsSummaryBlock,
+    mainAfterSummaryText,
     breakdownBlock,
-    createTextBlock(`${mainPlanMessageId}-plan`, planningMarkdown),
+    mainAfterBreakdownText,
   ];
-  const mainDispatchChildren = [
+  const mainArchitectDispatchChildren = [
     ...mainPlanningChildren,
     architectDispatchBlock,
-    growthDispatchBlock,
-    qaDispatchBlock,
-    dataDispatchBlock,
-    userResearchDispatchBlock,
-    milestoneBlock,
+    mainArchitectDispatchText,
   ];
-  const mainArchitectDispatchChildren = [...mainPlanningChildren, architectDispatchBlock];
   const mainGrowthDispatchChildren = [
-    ...mainPlanningChildren,
-    architectDispatchBlock,
+    ...mainArchitectDispatchChildren,
+    mainAfterArchitectThinking,
     growthDispatchBlock,
+    mainGrowthDispatchText,
   ];
   const mainQaDispatchChildren = [
-    ...mainPlanningChildren,
-    architectDispatchBlock,
-    growthDispatchBlock,
+    ...mainGrowthDispatchChildren,
+    mainAfterGrowthThinking,
     qaDispatchBlock,
+    mainQaDispatchText,
   ];
   const mainDataDispatchChildren = [
-    ...mainPlanningChildren,
-    architectDispatchBlock,
-    growthDispatchBlock,
-    qaDispatchBlock,
+    ...mainQaDispatchChildren,
+    mainAfterQaThinking,
     dataDispatchBlock,
+    mainDataDispatchText,
+  ];
+  const mainUserResearchDispatchChildren = [
+    ...mainDataDispatchChildren,
+    mainAfterDataThinking,
+    userResearchDispatchBlock,
+    mainUserResearchDispatchText,
+  ];
+  const mainDispatchChildren = [
+    ...mainUserResearchDispatchChildren,
+    milestoneBlock,
+    mainBeforeSummaryText,
   ];
 
   const architectRunningChildren = [
+    createThinkingBlock(
+      `${architectMessageId}-thinking-running`,
+      "这一步先不评价完整方案，只拆系统边界。边界不清，后面的增长、验收和埋点都会失真。",
+    ),
+    createTextBlock(
+      `${architectMessageId}-text-running`,
+      "我先把入口、主专家编排、成员执行和成果沉淀四层依赖串起来，重点看哪里最容易互相污染。",
+      { isStreaming: true },
+    ),
     createToolUseBlock({
       id: `${architectMessageId}-tool-1`,
       name: "architecture_planning",
@@ -277,13 +333,17 @@ export const buildProductTeamCollabFrames = (
       purpose: "先把入口、编排、执行、交付四层边界拆开",
       status: "running",
     }),
-    createTextBlock(
-      `${architectMessageId}-text`,
-      "我先把入口、主专家编排、成员执行和成果沉淀四层依赖串起来，重点看哪里最容易互相污染。",
-      { isStreaming: true },
-    ),
   ];
   const growthRunningChildren = [
+    createThinkingBlock(
+      `${growthMessageId}-thinking-running`,
+      "架构边界已经明确，现在要看用户路径能不能自然接上，尤其是首问之后会不会继续往风险复核走。",
+    ),
+    createTextBlock(
+      `${growthMessageId}-text-running`,
+      "我先看用户从首页点进来后，会不会在主专家调度结束后的 3 秒内看到成员专家开始接力。",
+      { isStreaming: true },
+    ),
     createToolUseBlock({
       id: `${growthMessageId}-tool-1`,
       name: "growth_experiment",
@@ -291,13 +351,17 @@ export const buildProductTeamCollabFrames = (
       purpose: "先收首问触发、成员曝光和续问承接三个关键节点",
       status: "running",
     }),
-    createTextBlock(
-      `${growthMessageId}-text`,
-      "我先看用户从首页点进来后，会不会在主专家调度结束后的 3 秒内看到成员专家开始接力。",
-      { isStreaming: true },
-    ),
   ];
   const qaRunningChildren = [
+    createThinkingBlock(
+      `${qaMessageId}-thinking-running`,
+      "前两段已经说明链路能讲通，现在要把它变成上线前能逐项检查的门槛。",
+    ),
+    createTextBlock(
+      `${qaMessageId}-text-running`,
+      "我先按真实上线口径来卡：入口能不能触发、成员会不会出现、最终交付够不够完整。",
+      { isStreaming: true },
+    ),
     createToolUseBlock({
       id: `${qaMessageId}-tool-1`,
       name: "acceptance_review",
@@ -305,13 +369,17 @@ export const buildProductTeamCollabFrames = (
       purpose: "先整理首期必须过的验收门槛",
       status: "running",
     }),
-    createTextBlock(
-      `${qaMessageId}-text`,
-      "我先按真实上线口径来卡：入口能不能触发、成员会不会出现、最终交付够不够完整。",
-      { isStreaming: true },
-    ),
   ];
   const dataRunningChildren = [
+    createThinkingBlock(
+      `${dataMessageId}-thinking-running`,
+      "上线验收能防止明显问题，但灰度后还要能知道问题发生在入口、成员曝光还是续问承接。",
+    ),
+    createTextBlock(
+      `${dataMessageId}-text-running`,
+      "我先把入口触发、成员曝光、文件打开、续问点击这 4 类事件收成可观测口径。",
+      { isStreaming: true },
+    ),
     createToolUseBlock({
       id: `${dataMessageId}-tool-1`,
       name: "metric_design",
@@ -319,13 +387,17 @@ export const buildProductTeamCollabFrames = (
       purpose: "先定义首期灰度要看的 4 类核心事件",
       status: "running",
     }),
-    createTextBlock(
-      `${dataMessageId}-text`,
-      "我先把入口触发、成员曝光、文件打开、续问点击这 4 类事件收成可观测口径。",
-      { isStreaming: true },
-    ),
   ];
   const userRunningChildren = [
+    createThinkingBlock(
+      `${userResearchMessageId}-thinking-running`,
+      "最后这一步只看用户感知：如果用户觉得只是一个主专家把内容切成几段，这条专家团体验就不成立。",
+    ),
+    createTextBlock(
+      `${userResearchMessageId}-text-running`,
+      "我先从用户视角复核一下：他们会不会觉得这是专家团接力做事，而不是主专家一个人把台词分成几段说。",
+      { isStreaming: true },
+    ),
     createToolUseBlock({
       id: `${userResearchMessageId}-tool-1`,
       name: "feedback_synthesis",
@@ -333,14 +405,17 @@ export const buildProductTeamCollabFrames = (
       purpose: "先看用户会拿什么标准判断这是不是多专家协作",
       status: "running",
     }),
-    createTextBlock(
-      `${userResearchMessageId}-text`,
-      "我先从用户视角复核一下：他们会不会觉得这是专家团接力做事，而不是主专家一个人把台词分成几段说。",
-      { isStreaming: true },
-    ),
   ];
 
   const architectCompletedChildren = [
+    createThinkingBlock(
+      `${architectMessageId}-thinking`,
+      "这一步要先确认四层边界，再确认每层之间的依赖，否则后续专家会在同一块问题上重复输出。",
+    ),
+    createTextBlock(
+      `${architectMessageId}-text-before-planning`,
+      "我先把入口、编排、执行、交付四层拆开，避免主专家和成员专家职责互相覆盖。",
+    ),
     createToolUseBlock({
       id: `${architectMessageId}-tool-1`,
       name: "architecture_planning",
@@ -350,6 +425,10 @@ export const buildProductTeamCollabFrames = (
       output:
         "已明确入口层、编排层、执行层、交付层四层结构，成员专家只允许在执行层出现，不反向接管团队上下文。",
     }),
+    createTextBlock(
+      `${architectMessageId}-text-after-planning`,
+      "四层结构已经能站住，下一步我继续把依赖点和容易耦合的位置标出来。",
+    ),
     createToolUseBlock({
       id: `${architectMessageId}-tool-2`,
       name: "module_mapping",
@@ -382,6 +461,14 @@ export const buildProductTeamCollabFrames = (
     ),
   ];
   const growthCompletedChildren = [
+    createThinkingBlock(
+      `${growthMessageId}-thinking`,
+      "架构边界确定后，用户路径要看两个连续动作：首问能不能进来，首轮结束后会不会自然继续追问。",
+    ),
+    createTextBlock(
+      `${growthMessageId}-text-before-experiment`,
+      "我先把入口触发、成员曝光和续问承接作为一个漏斗，不单独看按钮点击。",
+    ),
     createToolUseBlock({
       id: `${growthMessageId}-tool-1`,
       name: "growth_experiment",
@@ -390,6 +477,10 @@ export const buildProductTeamCollabFrames = (
       status: "success",
       output: "首期先盯 3 个节点：首页首问触发、成员专家首屏曝光、第一条猜你想问续问点击。",
     }),
+    createTextBlock(
+      `${growthMessageId}-text-after-experiment`,
+      "入口和曝光节点明确后，我再校准第一条续问，让用户看完方案后自然进入上线风险复核。",
+    ),
     createToolUseBlock({
       id: `${growthMessageId}-tool-2`,
       name: "conversion_analysis",
@@ -418,6 +509,14 @@ export const buildProductTeamCollabFrames = (
     ),
   ];
   const qaCompletedChildren = [
+    createThinkingBlock(
+      `${qaMessageId}-thinking`,
+      "验收不能只验证脚本能跑，要按用户完整路径卡门槛：入口、过程、结果都必须闭环。",
+    ),
+    createTextBlock(
+      `${qaMessageId}-text-before-review`,
+      "我先把 P0 验收点拉出来，优先确认主专家有没有按顺序调度成员，而不是提前总结。",
+    ),
     createToolUseBlock({
       id: `${qaMessageId}-tool-1`,
       name: "acceptance_review",
@@ -426,6 +525,10 @@ export const buildProductTeamCollabFrames = (
       status: "success",
       output: "P0 验收点 4 条：首问触发、主专家调度可见、成员专家独立消息执行、主专家最终汇总。",
     }),
+    createTextBlock(
+      `${qaMessageId}-text-after-review`,
+      "P0 验收点定下来后，我再把上线清单固化成可逐条回归的口径。",
+    ),
     createToolUseBlock({
       id: `${qaMessageId}-tool-2`,
       name: "launch_checklist",
@@ -455,6 +558,14 @@ export const buildProductTeamCollabFrames = (
     ),
   ];
   const dataCompletedChildren = [
+    createThinkingBlock(
+      `${dataMessageId}-thinking`,
+      "灰度观察要能定位问题段落，所以我按入口、协作、继续追问三层来设计指标。",
+    ),
+    createTextBlock(
+      `${dataMessageId}-text-before-design`,
+      "我先定义最小事件集，避免一上来铺太多指标，最后反而看不出哪里断了。",
+    ),
     createToolUseBlock({
       id: `${dataMessageId}-tool-1`,
       name: "metric_design",
@@ -463,6 +574,10 @@ export const buildProductTeamCollabFrames = (
       status: "success",
       output: "已定义 5 个核心事件：首问点击、成员消息曝光、文件打开、续问点击、会话继续追问。",
     }),
+    createTextBlock(
+      `${dataMessageId}-text-after-design`,
+      "事件口径确定后，我再排看板顺序：先看入口，再看成员曝光，最后看续问和文件打开。",
+    ),
     createToolUseBlock({
       id: `${dataMessageId}-tool-2`,
       name: "dashboard_planning",
@@ -492,6 +607,14 @@ export const buildProductTeamCollabFrames = (
     ),
   ];
   const userCompletedChildren = [
+    createThinkingBlock(
+      `${userResearchMessageId}-thinking`,
+      "用户不会因为头像多就相信是专家团协作，他们会看不同专家是不是在解决不同问题。",
+    ),
+    createTextBlock(
+      `${userResearchMessageId}-text-before-feedback`,
+      "我先归纳用户判断协作真实性的标准：有没有明确分工、有没有不同角度、最后有没有统一收口。",
+    ),
     createToolUseBlock({
       id: `${userResearchMessageId}-tool-1`,
       name: "feedback_synthesis",
@@ -501,6 +624,10 @@ export const buildProductTeamCollabFrames = (
       output:
         "用户主要看 3 件事：主专家有没有明确分工、成员是不是各自做不同事情、最后是不是一份统一结论。",
     }),
+    createTextBlock(
+      `${userResearchMessageId}-text-after-feedback`,
+      "用户标准明确后，我再判断首期优先级：不是继续加专家数量，而是把当前专家的差异做真。",
+    ),
     createToolUseBlock({
       id: `${userResearchMessageId}-tool-2`,
       name: "priority_evidence",
@@ -880,20 +1007,6 @@ export const buildProductTeamRiskFrames = (
   const dataMessageId = `${messageId}-data`;
   const thinking =
     "这一轮不再重讲方案，而是按上线视角把最可能翻车的点排出来：我会先复核路由和时序，再复核上线门槛，最后复核灰度观察。";
-  const planningMarkdown = `这一轮我不重复讲首期方案，直接按上线视角复核风险。
-
-我会先排 4 类问题：
-1. 路由会不会断。
-2. 主专家和成员专家的时序会不会失真。
-3. 成员 skills 和工具展示会不会对不上。
-4. 灰度后能不能快速定位问题。
-
-我会按顺序推进：
-1. 先让架构规划师复核路由、时序和状态同步风险。
-2. 再让交付验收官把上线前检查表和回归矩阵补齐。
-3. 最后让数据洞察师确认灰度期的异常信号和排查顺序。
-
-等三位专家按顺序交回结果后，我再统一给你上线风险结论。`;
   const responseMarkdown = `我把这版方案上线前最需要盯的风险收成一版可直接复核的评审口径了。
 
 1. P0 风险：路由断裂
@@ -938,7 +1051,7 @@ export const buildProductTeamRiskFrames = (
     name: "task_dispatch",
     displayName: "任务分发",
     purpose: "分配给架构规划师：复核路由、时序和状态同步风险",
-    status: "success",
+    status: "failed",
     avatarUrl: PRODUCT_TEAM_ARCHITECT_AVATAR_URL,
     avatarLabel: "架构规划师",
   });
@@ -956,36 +1069,94 @@ export const buildProductTeamRiskFrames = (
     name: "task_dispatch",
     displayName: "任务分发",
     purpose: "分配给数据洞察师：定义灰度期最该盯的异常信号",
-    status: "success",
+    status: "running",
     avatarUrl: PRODUCT_TEAM_DATA_AVATAR_URL,
     avatarLabel: "数据洞察师",
   });
+  const mainRiskOpeningText = createTextBlock(
+    `${mainPlanMessageId}-text-opening`,
+    `我先不急着给最终结论，先把这版方案按上线前真实复核拆成三段来看：
+
+1. 入口和续问能不能稳定命中同一条协作链路。
+2. 主专家、成员专家和成果文件的时序会不会让用户觉得不真实。
+3. 灰度后如果出问题，能不能立刻定位是入口、成员执行还是最终收口。`,
+  );
+  const mainRiskReviewText = createTextBlock(
+    `${mainPlanMessageId}-text-risk-review`,
+    `第一轮扫描先把风险分级压出来：P0 先看路由、时序和技能映射，P1 再看灰度观察。这里我先让架构规划师复核最容易让链路失真的部分。`,
+  );
+  const mainArchitectDispatchText = createTextBlock(
+    `${mainPlanMessageId}-text-architect-dispatch`,
+    "我先把路由、时序和状态同步交给架构规划师；他回传之前，我不会提前总结，避免把协作过程做成假收口。",
+  );
+  const mainAfterArchitectThinking = createThinkingBlock(
+    `${mainPlanMessageId}-thinking-after-architect`,
+    "架构规划师已经把 P0 风险集中到路由断裂和时序失真。下一步不能直接给结论，要让交付验收官把这些风险落到可执行的上线前检查项。",
+  );
+  const mainAcceptanceReviewText = createTextBlock(
+    `${mainPlanMessageId}-text-acceptance-review`,
+    `架构结论回来后，我再反推上线前最小门槛：不是看演示能不能跑，而是看首问、成员独立消息、成果文件和第一条续问能不能连续闭环。`,
+  );
+  const mainQaDispatchText = createTextBlock(
+    `${mainPlanMessageId}-text-qa-dispatch`,
+    "我把检查项交给交付验收官，让他按真实上线回归的口径补矩阵；这一步完成后再看灰度数据。",
+  );
+  const mainAfterQaThinking = createThinkingBlock(
+    `${mainPlanMessageId}-thinking-after-qa`,
+    "上线检查表已经把最小回归链路卡住了。最后还差灰度观察口径，否则上线后只能知道体验有问题，却不知道问题卡在哪一段。",
+  );
+  const mainDataDispatchText = createTextBlock(
+    `${mainPlanMessageId}-text-data-dispatch`,
+    "最后我让数据洞察师补灰度期的异常信号，重点看入口触发、成员曝光、续问点击和文件打开这几段漏斗。",
+  );
   const mainArchitectRiskDispatchChildren = [
     createThinkingBlock(`${mainPlanMessageId}-thinking`, thinking),
+    mainRiskOpeningText,
     riskReviewBlock,
-    acceptanceBlock,
+    mainRiskReviewText,
     architectRiskDispatch,
-    createTextBlock(`${mainPlanMessageId}-plan`, planningMarkdown),
+    mainArchitectDispatchText,
   ];
   const mainQaRiskDispatchChildren = [
     createThinkingBlock(`${mainPlanMessageId}-thinking`, thinking),
+    mainRiskOpeningText,
     riskReviewBlock,
-    acceptanceBlock,
+    mainRiskReviewText,
     architectRiskDispatch,
+    mainArchitectDispatchText,
+    mainAfterArchitectThinking,
+    acceptanceBlock,
+    mainAcceptanceReviewText,
     qaRiskDispatch,
-    createTextBlock(`${mainPlanMessageId}-plan`, planningMarkdown),
+    mainQaDispatchText,
   ];
   const mainRiskDispatchChildren = [
     createThinkingBlock(`${mainPlanMessageId}-thinking`, thinking),
+    mainRiskOpeningText,
     riskReviewBlock,
-    acceptanceBlock,
+    mainRiskReviewText,
     architectRiskDispatch,
+    mainArchitectDispatchText,
+    mainAfterArchitectThinking,
+    acceptanceBlock,
+    mainAcceptanceReviewText,
     qaRiskDispatch,
+    mainQaDispatchText,
+    mainAfterQaThinking,
     dataRiskDispatch,
-    createTextBlock(`${mainPlanMessageId}-plan`, planningMarkdown),
+    mainDataDispatchText,
   ];
 
   const architectRiskRunningChildren = [
+    createThinkingBlock(
+      `${architectMessageId}-thinking-running`,
+      "这轮先不要看样式细节，真正会让协作链路崩掉的是路由命中、消息时序和成员能力映射。",
+    ),
+    createTextBlock(
+      `${architectMessageId}-text-running`,
+      "我先看首问、首条续问和隐藏场景这三处映射，再看主专家和成员消息的更新顺序会不会互相覆盖。",
+      { isStreaming: true },
+    ),
     createToolUseBlock({
       id: `${architectMessageId}-tool-1`,
       name: "risk_review",
@@ -993,13 +1164,17 @@ export const buildProductTeamRiskFrames = (
       purpose: "先排查路由、时序和多消息更新风险",
       status: "running",
     }),
-    createTextBlock(
-      `${architectMessageId}-text`,
-      "我先看首问、首条续问和隐藏场景这三处映射，再看主专家和成员消息的更新顺序会不会互相覆盖。",
-      { isStreaming: true },
-    ),
   ];
   const qaRiskRunningChildren = [
+    createThinkingBlock(
+      `${qaMessageId}-thinking-running`,
+      "架构风险已经明确，验收侧要把它转成上线前可以逐条点检的回归矩阵。",
+    ),
+    createTextBlock(
+      `${qaMessageId}-text-running`,
+      "我先把首问触发、成员执行、文件产出和续问承接这几段整理成一版最小回归矩阵。",
+      { isStreaming: true },
+    ),
     createToolUseBlock({
       id: `${qaMessageId}-tool-1`,
       name: "regression_planning",
@@ -1007,13 +1182,17 @@ export const buildProductTeamRiskFrames = (
       purpose: "先拉上线前必须回归的链路",
       status: "running",
     }),
-    createTextBlock(
-      `${qaMessageId}-text`,
-      "我先把首问触发、成员执行、文件产出和续问承接这几段整理成一版最小回归矩阵。",
-      { isStreaming: true },
-    ),
   ];
   const dataRiskRunningChildren = [
+    createThinkingBlock(
+      `${dataMessageId}-thinking-running`,
+      "验收矩阵能保证上线前不漏测，但灰度后还需要能快速定位问题段落。",
+    ),
+    createTextBlock(
+      `${dataMessageId}-text-running`,
+      "我先从灰度监控角度看，如果用户掉在入口、成员执行或最终收口，数据上分别会是什么表现。",
+      { isStreaming: true },
+    ),
     createToolUseBlock({
       id: `${dataMessageId}-tool-1`,
       name: "anomaly_insight",
@@ -1021,14 +1200,17 @@ export const buildProductTeamRiskFrames = (
       purpose: "先定义灰度期最关键的异常信号",
       status: "running",
     }),
-    createTextBlock(
-      `${dataMessageId}-text`,
-      "我先从灰度监控角度看，如果用户掉在入口、成员执行或最终收口，数据上分别会是什么表现。",
-      { isStreaming: true },
-    ),
   ];
 
   const architectRiskChildren = [
+    createThinkingBlock(
+      `${architectMessageId}-thinking`,
+      "我先把风险放回系统链路里看：入口命中、成员调度、消息更新和成果文件不是四个独立点，它们只要有一处时序错位，用户就会觉得协作是拼出来的。",
+    ),
+    createTextBlock(
+      `${architectMessageId}-text-before-review`,
+      "我先从路由和时序两处排查，因为这两处一旦出问题，后面的验收和灰度数据都会失真。",
+    ),
     createToolUseBlock({
       id: `${architectMessageId}-tool-1`,
       name: "risk_review",
@@ -1038,6 +1220,10 @@ export const buildProductTeamRiskFrames = (
       output:
         "P0 风险是 followup 路由断裂和主专家提前收尾；这两个问题一旦出现，用户会直接把整条链路认成伪协作。",
     }),
+    createTextBlock(
+      `${architectMessageId}-text-after-review`,
+      "第一轮结果很明确：不是某个页面样式的问题，而是路由命中和消息时序必须被当成 P0 卡住。",
+    ),
     createToolUseBlock({
       id: `${architectMessageId}-tool-2`,
       name: "module_mapping",
@@ -1063,6 +1249,14 @@ export const buildProductTeamRiskFrames = (
     ),
   ];
   const qaRiskChildren = [
+    createThinkingBlock(
+      `${qaMessageId}-thinking`,
+      "架构侧已经锁定了 P0 风险，验收侧要把它们变成上线前能逐项执行的检查清单，不能只写原则。",
+    ),
+    createTextBlock(
+      `${qaMessageId}-text-before-regression`,
+      "我先把用户能感知到的链路按顺序拉出来：首问、主专家调度、成员执行、文件打开、续问承接。",
+    ),
     createToolUseBlock({
       id: `${qaMessageId}-tool-1`,
       name: "regression_planning",
@@ -1072,6 +1266,10 @@ export const buildProductTeamRiskFrames = (
       output:
         "必须回归 5 段：首问点击、主专家调度、成员独立消息、右侧文件打开、第一条猜你想问续问。",
     }),
+    createTextBlock(
+      `${qaMessageId}-text-after-regression`,
+      "回归矩阵先定下来后，我再把它固化成上线清单，确保评审时不是凭感觉判断能不能上。",
+    ),
     createToolUseBlock({
       id: `${qaMessageId}-tool-2`,
       name: "launch_checklist",
@@ -1100,6 +1298,14 @@ export const buildProductTeamRiskFrames = (
     ),
   ];
   const dataRiskChildren = [
+    createThinkingBlock(
+      `${dataMessageId}-thinking`,
+      "验收能保证上线前不漏测，但灰度后还要能定位问题。这里我按用户路径拆异常信号，而不是只看总点击。",
+    ),
+    createTextBlock(
+      `${dataMessageId}-text-before-anomaly`,
+      "我先看两个最容易暴露问题的组合：入口正常但成员曝光低，以及成员曝光正常但续问点击低。",
+    ),
     createToolUseBlock({
       id: `${dataMessageId}-tool-1`,
       name: "anomaly_insight",
@@ -1109,6 +1315,10 @@ export const buildProductTeamRiskFrames = (
       output:
         "如果首问点击正常但成员消息曝光率低，先查时序和布局；如果成员曝光正常但续问点击低，先查成员结论可信度和主专家收口。",
     }),
+    createTextBlock(
+      `${dataMessageId}-text-after-anomaly`,
+      "异常信号明确后，我再把看板顺序排出来，避免灰度时只看到总量波动却不知道从哪里查起。",
+    ),
     createToolUseBlock({
       id: `${dataMessageId}-tool-2`,
       name: "dashboard_planning",
@@ -1240,15 +1450,7 @@ export const buildProductTeamRiskFrames = (
         buildScenarioMessageSnapshot(
           mainPlanMessageId,
           `${PRODUCT_TEAM_MAIN_AGENT_NAME}已完成风险分工，下面是三位专家的复核结果。`,
-          [
-            createThinkingBlock(`${mainPlanMessageId}-thinking`, thinking),
-            riskReviewBlock,
-            acceptanceBlock,
-            architectRiskDispatch,
-            qaRiskDispatch,
-            dataRiskDispatch,
-            createTextBlock(`${mainPlanMessageId}-plan`, planningMarkdown),
-          ],
+          mainRiskDispatchChildren,
           { author: PRODUCT_TEAM_MAIN_AGENT_NAME },
         ),
         buildScenarioMessageSnapshot(

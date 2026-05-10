@@ -1,54 +1,62 @@
+import { useMemo } from "react";
 import type { ReactNode } from "react";
 
-import { GiftOutlined } from "@ant-design/icons";
+import { QrcodeOutlined } from "@ant-design/icons";
+import { QRCode } from "antd";
+
+import { loadOperationsCommunityGroupConfig } from "@/feature/operations/platformConfigStorage";
 
 import styles from "./AccountDropdownPanel.module.less";
 
 interface AccountDropdownPanelProps {
   accountName: string;
   menu: ReactNode;
-  pointsBalance?: number;
   tenantName?: string;
-  onOpenInvite?: () => void;
-  onOpenRecharge?: () => void;
 }
 
 /**
- * 统一账户下拉面板，承接账户信息、积分入口和系统菜单。
+ * 统一账户下拉面板，承接账户信息和系统菜单。
  */
 export const AccountDropdownPanel = ({
   accountName,
   menu,
-  pointsBalance,
   tenantName,
-  onOpenInvite,
-  onOpenRecharge,
-}: AccountDropdownPanelProps): JSX.Element => (
-  <div className={styles.panel}>
-    <div className={styles.header}>
-      <span className={styles.name}>{accountName}</span>
-      {tenantName ? <span className={styles.meta}>{tenantName}</span> : null}
-    </div>
+}: AccountDropdownPanelProps): JSX.Element => {
+  const communityGroupConfig = useMemo(() => loadOperationsCommunityGroupConfig(), []);
+  const shouldShowCommunityEntry =
+    communityGroupConfig.enabled && Boolean(communityGroupConfig.qrCodeValue.trim());
 
-    {typeof pointsBalance === "number" ? (
-      <>
-        <div className={styles.pointsCard}>
-          <span className={styles.pointsMain}>
-            <span className={styles.pointsLabel}>积分余额</span>
-            <span className={styles.pointsValue}>{pointsBalance.toLocaleString("zh-CN")}</span>
-          </span>
-          {onOpenRecharge ? <span className={styles.pointsAction}>购买</span> : null}
-        </div>
-        {onOpenInvite ? (
-          <button type="button" className={styles.inviteButton} onClick={onOpenInvite}>
-            <GiftOutlined />
-            <span>邀请好友得积分</span>
+  return (
+    <div className={styles.panel}>
+      <div className={styles.header}>
+        <span className={styles.name}>{accountName}</span>
+        {tenantName ? <span className={styles.meta}>{tenantName}</span> : null}
+      </div>
+
+      {shouldShowCommunityEntry ? (
+        <div className={styles.communityEntry}>
+          <button type="button" className={styles.communityButton} aria-haspopup="dialog">
+            <QrcodeOutlined className={styles.communityButtonIcon} />
+            <span>扫码进交流群</span>
           </button>
-        ) : null}
-        <div className={styles.divider} />
-      </>
-    ) : null}
+          <div className={styles.communityPopover} role="dialog" aria-label="交流群二维码">
+            <div className={styles.communityPopoverHeader}>
+              <span className={styles.communityPopoverEyebrow}>用户交流群</span>
+              <strong className={styles.communityPopoverTitle}>
+                {communityGroupConfig.groupName}
+              </strong>
+              <span className={styles.communityPopoverDescription}>
+                {communityGroupConfig.description}
+              </span>
+            </div>
+            <div className={styles.communityQrBox}>
+              <QRCode value={communityGroupConfig.qrCodeValue.trim()} size={164} bordered={false} />
+            </div>
+          </div>
+        </div>
+      ) : null}
 
-    <div className={styles.menuWrap}>{menu}</div>
-  </div>
-);
+      <div className={styles.menuWrap}>{menu}</div>
+    </div>
+  );
+};

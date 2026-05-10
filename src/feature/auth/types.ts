@@ -15,6 +15,7 @@ export interface MockAuthIdentity {
   tenantCode: string;
   platform: MockIdentityPlatform;
   platformLabel: string;
+  permissionIds?: string[];
   role: MockAuthRole;
   roleLabel: string;
   description: string;
@@ -50,6 +51,8 @@ export interface MockAuthAccount {
   userId: string;
   name: string;
   phone: string;
+  password?: string;
+  passwordSetupRequired?: boolean;
   role: MockAuthRole;
   roleLabel: string;
   description: string;
@@ -216,6 +219,27 @@ export interface MockTenantRegistrationParams {
 }
 
 /**
+ * 模拟密码登录提交参数。
+ */
+export interface MockPasswordLoginParams {
+  phone: string;
+  password: string;
+  redirectPath?: string;
+  deploymentMode?: MockTenantDeploymentMode;
+}
+
+/**
+ * 模拟首次设置密码参数。
+ */
+export interface MockPasswordSetupParams {
+  accountId: string;
+  password: string;
+  confirmPassword: string;
+  redirectPath?: string;
+  deploymentMode?: MockTenantDeploymentMode;
+}
+
+/**
  * 模拟租户邀请成员参数。
  */
 export interface MockTenantInviteMemberParams {
@@ -224,6 +248,7 @@ export interface MockTenantInviteMemberParams {
   name: string;
   phone: string;
   role: FrontisUserRole;
+  roleIds?: string[];
 }
 
 /**
@@ -244,6 +269,7 @@ export interface MockAuthActionResult {
   message: string;
   redirectPath?: string;
   verificationCode?: string;
+  requiresPasswordSetup?: boolean;
   account?: MockAuthAccount;
   session?: MockAuthSession;
   identity?: MockAuthIdentity;

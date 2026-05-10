@@ -106,9 +106,9 @@ const normalizeAgentSubscriptionProduct = (
     visibleTenantIds: [],
     visibleTenantNames: [],
     billingScopes: product.billingScopes?.length ? [...product.billingScopes] : ["points"],
-    contactMode: "disabled",
-    contactQrCodeValue: "",
-    contactRemark: "",
+    contactMode: product.contactMode ?? "disabled",
+    contactQrCodeValue: product.contactQrCodeValue?.trim() ?? "",
+    contactRemark: product.contactRemark?.trim() ?? "",
   };
 
   if (!shouldUseAgentSubscriptionPlans(product)) {
@@ -161,7 +161,7 @@ const mergeStoredProductsWithPreset = (
 };
 
 /**
- * 读取运营后台商品中心当前全部商品。
+ * 读取运营后台当前全部 AI 专家上架配置。
  */
 export const loadStoredOperationsProducts = (): OperationsProduct[] =>
   mergeStoredProductsWithPreset(
@@ -169,7 +169,7 @@ export const loadStoredOperationsProducts = (): OperationsProduct[] =>
   ).map(cloneProduct);
 
 /**
- * 保存运营后台商品中心当前全部商品。
+ * 保存运营后台当前全部 AI 专家上架配置。
  */
 export const saveStoredOperationsProducts = (products: OperationsProduct[]): void => {
   saveStoredList(OPERATIONS_PRODUCTS_STORAGE_KEY, products.map(cloneProduct));

@@ -5,9 +5,11 @@ import {
   AppstoreOutlined,
   ApartmentOutlined,
   CodeOutlined,
-  ReadOutlined,
   LogoutOutlined,
+  MenuFoldOutlined,
+  MenuUnfoldOutlined,
   MessageOutlined,
+  RobotOutlined,
   ThunderboltOutlined,
 } from "@ant-design/icons";
 import type { MenuProps } from "antd";
@@ -17,32 +19,28 @@ import { useLocation, useNavigate, useParams } from "react-router-dom";
 import {
   getLoginPath,
   getSystemEntries,
+  getSystemEntryMenuLabel,
   getTenantEntries,
   getTenantAdminManagementPath,
 } from "@/feature/auth/mockAccounts";
 import { useMockAuth } from "@/feature/auth/hooks/useMockAuth";
-import { getMockTenantManagementSnapshot } from "@/feature/auth/mockTenantRegistry";
-import type { MockAuthSystemEntry, MockTenantManagementSnapshot } from "@/feature/auth/types";
+import type { MockAuthSystemEntry } from "@/feature/auth/types";
 import { useOperationsAuth } from "@/feature/operations/hooks/useOperationsAuth";
-import { loadOperationsRegistrationStrategy } from "@/feature/operations/platformConfigStorage";
 import {
   EVOLUTION_LAB_LABEL,
   EXPERT_PLAZA_LABEL,
   EXPERT_STUDIO_LABEL,
   MANAGEMENT_CONSOLE_LABEL,
   MA_WORKBENCH_LABEL,
-  PRODUCT_LOGO_TEXT,
+  PRODUCT_LOGO_URL,
   PRODUCT_NAME,
+  PRODUCT_SLOGAN,
   SKILL_CENTER_LABEL,
 } from "@/constants/brand";
 import { AccountDropdownPanel } from "@/pages/components/AccountDropdownPanel";
-import { TenantReferralInviteModal } from "@/pages/components/TenantReferralInviteModal";
 import type { FrontisWebRole } from "@/pages/types";
-import { getMetaagentAvatarUrl } from "@/pages/utils";
 
 import styles from "./UnifiedWorkbenchPage.module.less";
-
-const META_AGENT_NAV_AVATAR_URL = getMetaagentAvatarUrl("employee-writer");
 
 type UnifiedWorkbenchTabKey =
   | "metaAgent"
@@ -91,11 +89,7 @@ const TAB_ITEMS: UnifiedWorkbenchNavItem[] = [
     key: "metaAgent",
     label: MA_WORKBENCH_LABEL,
     description: "默认协同入口，持续承接同一条工作线程。",
-    icon: (
-      <Avatar src={META_AGENT_NAV_AVATAR_URL} size={28} className={styles.navAvatar}>
-        M
-      </Avatar>
-    ),
+    icon: <RobotOutlined />,
   },
   {
     key: "expertStudio",
@@ -118,12 +112,10 @@ const TAB_ITEMS: UnifiedWorkbenchNavItem[] = [
   {
     key: "frontisDev",
     label: EVOLUTION_LAB_LABEL,
-    description: "进入 Agent 开发工作区。",
+    description: "开发 AI 专家与 Skill，并管理发布范围。",
     icon: <CodeOutlined />,
   },
 ];
-const USER_MANUAL_ROUTE_PATH = "/user-manual";
-
 const getTabKeyFromPath = (tabPath?: string): UnifiedWorkbenchTabKey | null => {
   if (!tabPath) {
     return null;
@@ -152,14 +144,7 @@ export const UnifiedWorkbenchPage = ({ viewRole }: UnifiedWorkbenchPageProps): J
   const { loginByAccountId: loginOperationsByAccountId } = useOperationsAuth();
   const isAdminIdentity = activeIdentity?.role === "admin" || session?.role === "admin";
   const [isAccountMenuOpen, setIsAccountMenuOpen] = useState<boolean>(false);
-  const [isReferralInviteModalOpen, setIsReferralInviteModalOpen] = useState<boolean>(false);
-  const [referralStrategy, setReferralStrategy] = useState(() =>
-    loadOperationsRegistrationStrategy(),
-  );
-  const [tenantSnapshot, setTenantSnapshot] = useState<MockTenantManagementSnapshot | null>(() =>
-    getMockTenantManagementSnapshot(activeIdentity?.tenantId),
-  );
-  const isPublicCloudTenant = tenantSnapshot?.deploymentMode === "publicCloud";
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(false);
 
   const routeTab = useMemo<UnifiedWorkbenchTabKey | null>(
     () => getTabKeyFromPath(tabPath),
@@ -177,10 +162,6 @@ export const UnifiedWorkbenchPage = ({ viewRole }: UnifiedWorkbenchPageProps): J
 
     navigate(getUnifiedWorkbenchPath(viewRole, DEFAULT_TAB_KEY), { replace: true });
   }, [navigate, routeTab, viewRole]);
-
-  useEffect(() => {
-    setTenantSnapshot(getMockTenantManagementSnapshot(activeIdentity?.tenantId));
-  }, [activeIdentity?.tenantId]);
 
   const handleLogout = useCallback((): void => {
     const redirectPath = `${location.pathname}${location.search}`;
@@ -250,21 +231,7 @@ export const UnifiedWorkbenchPage = ({ viewRole }: UnifiedWorkbenchPageProps): J
     },
     [activateTenant, location.pathname, location.search, navigate],
   );
-  const handleOpenUserManual = useCallback((): void => {
-    setIsAccountMenuOpen(false);
-    window.open(USER_MANUAL_ROUTE_PATH, "_blank", "noopener,noreferrer");
-  }, []);
-
   const accountMenuItems: MenuProps["items"] = [
-    {
-      key: "open-user-manual",
-      icon: <ReadOutlined />,
-      label: "产品使用指南",
-      onClick: handleOpenUserManual,
-    },
-    {
-      type: "divider" as const,
-    },
     ...(isAdminIdentity
       ? [
           {
@@ -282,7 +249,7 @@ export const UnifiedWorkbenchPage = ({ viewRole }: UnifiedWorkbenchPageProps): J
     ...systemEntries.map(entry => ({
       key: `system-entry-${entry.identityId}`,
       icon: <AppstoreOutlined />,
-      label: `进入${entry.label}`,
+      label: getSystemEntryMenuLabel(entry),
       onClick: () => handleOpenSystemEntry(entry),
     })),
     ...(systemEntries.length
@@ -325,14 +292,6 @@ export const UnifiedWorkbenchPage = ({ viewRole }: UnifiedWorkbenchPageProps): J
   );
 
   const featureAccountName = activeIdentity?.subjectName ?? session?.name ?? "当前账号";
-  const handleOpenReferralInviteModal = useCallback((): void => {
-    setReferralStrategy(loadOperationsRegistrationStrategy());
-    setIsAccountMenuOpen(false);
-    setIsReferralInviteModalOpen(true);
-  }, []);
-  const handleCloseReferralInviteModal = useCallback((): void => {
-    setIsReferralInviteModalOpen(false);
-  }, []);
   const activeContent = useMemo((): JSX.Element => {
     if (activeTab === "metaAgent") {
       return <FrontisPage viewRole={viewRole} embedded={true} workspaceMode="metaAgent" />;
@@ -347,32 +306,64 @@ export const UnifiedWorkbenchPage = ({ viewRole }: UnifiedWorkbenchPageProps): J
     }
 
     if (activeTab === "skillMarket") {
-      return <FdeSkillMarketView onNavigateToAgentDev={() => handleNavigateTab("frontisDev")} />;
+      return <FdeSkillMarketView />;
     }
 
     if (activeTab === "agentStore") {
-      return (
-        <FdeAgentStoreView
-          onNavigateToAgentDev={() => handleNavigateTab("frontisDev")}
-          viewerRole={viewRole}
-        />
-      );
+      return <FdeAgentStoreView />;
     }
 
     return <FrontisPage viewRole={viewRole} embedded={true} />;
   }, [activeTab, handleNavigateTab, viewRole]);
 
-  const shouldShowFeatureHeader = activeTab !== "metaAgent" && activeTab !== "expertStudio";
+  const shouldShowFeatureHeader =
+    activeTab !== "metaAgent" &&
+    activeTab !== "expertStudio" &&
+    activeTab !== "skillMarket" &&
+    activeTab !== "agentStore";
 
   return (
     <div className={styles.root}>
-      <aside className={styles.navRail} aria-label="统一工作台一级导航">
-        <div className={styles.brandBlock}>
-          <span className={styles.brandLogo}>{PRODUCT_LOGO_TEXT}</span>
-          <span className={styles.brandName}>{PRODUCT_NAME}</span>
+      <aside
+        className={classNames(styles.navRail, {
+          [styles.navRailCollapsed]: isSidebarCollapsed,
+        })}
+        aria-label="统一工作台一级导航"
+      >
+        <div
+          className={classNames(styles.brandBlock, {
+            [styles.brandBlockCollapsed]: isSidebarCollapsed,
+          })}
+        >
+          <div
+            className={classNames(styles.brandIdentity, {
+              [styles.brandIdentityCollapsed]: isSidebarCollapsed,
+            })}
+          >
+            <img className={styles.brandLogo} src={PRODUCT_LOGO_URL} alt={PRODUCT_NAME} />
+            {isSidebarCollapsed ? null : (
+              <span className={styles.brandCopy}>
+                <span className={styles.brandName}>{PRODUCT_NAME}</span>
+                <span className={styles.brandSubtitle}>{PRODUCT_SLOGAN}</span>
+              </span>
+            )}
+          </div>
+
+          <button
+            type="button"
+            className={styles.sidebarToggle}
+            aria-label={isSidebarCollapsed ? "展开左侧菜单" : "收起左侧菜单"}
+            onClick={() => setIsSidebarCollapsed(current => !current)}
+          >
+            {isSidebarCollapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
+          </button>
         </div>
 
-        <nav className={styles.navList}>
+        <nav
+          className={classNames(styles.navList, {
+            [styles.navListCollapsed]: isSidebarCollapsed,
+          })}
+        >
           {TAB_ITEMS.map(item => (
             <button
               key={item.key}
@@ -380,6 +371,7 @@ export const UnifiedWorkbenchPage = ({ viewRole }: UnifiedWorkbenchPageProps): J
               title={item.label}
               className={classNames(styles.navButton, {
                 [styles.navButtonActive]: item.key === activeTab,
+                [styles.navButtonCollapsed]: isSidebarCollapsed,
               })}
               onClick={() => handleNavigateTab(item.key)}
             >
@@ -390,15 +382,19 @@ export const UnifiedWorkbenchPage = ({ viewRole }: UnifiedWorkbenchPageProps): J
               >
                 {item.icon}
               </span>
-              <span className={styles.navText}>{item.label}</span>
+              {isSidebarCollapsed ? null : <span className={styles.navText}>{item.label}</span>}
             </button>
           ))}
         </nav>
 
-        <div className={styles.navFooter}>
+        <div
+          className={classNames(styles.navFooter, {
+            [styles.navFooterCollapsed]: isSidebarCollapsed,
+          })}
+        >
           <Dropdown
             menu={{ items: accountMenuItems }}
-            placement="topRight"
+            placement={isSidebarCollapsed ? "topRight" : "topLeft"}
             trigger={["click"]}
             open={isAccountMenuOpen}
             onOpenChange={setIsAccountMenuOpen}
@@ -406,12 +402,6 @@ export const UnifiedWorkbenchPage = ({ viewRole }: UnifiedWorkbenchPageProps): J
               <AccountDropdownPanel
                 accountName={featureAccountName}
                 tenantName={activeIdentity?.tenantName}
-                pointsBalance={isPublicCloudTenant ? tenantSnapshot?.pointsBalance : undefined}
-                onOpenInvite={
-                  isPublicCloudTenant && referralStrategy.referralEnabled
-                    ? handleOpenReferralInviteModal
-                    : undefined
-                }
                 menu={menu}
               />
             )}
@@ -420,13 +410,16 @@ export const UnifiedWorkbenchPage = ({ viewRole }: UnifiedWorkbenchPageProps): J
               type="button"
               className={classNames(styles.navAccountButton, {
                 [styles.navAccountButtonOpen]: isAccountMenuOpen,
+                [styles.navAccountButtonCollapsed]: isSidebarCollapsed,
               })}
               aria-label="打开账户菜单"
             >
               <Avatar className={styles.accountAvatar} size={30}>
                 {featureAccountName.slice(0, 1)}
               </Avatar>
-              <span className={styles.navAccountName}>{featureAccountName}</span>
+              {isSidebarCollapsed ? null : (
+                <span className={styles.navAccountName}>{featureAccountName}</span>
+              )}
             </button>
           </Dropdown>
         </div>
@@ -453,18 +446,6 @@ export const UnifiedWorkbenchPage = ({ viewRole }: UnifiedWorkbenchPageProps): J
           </section>
         </div>
       </main>
-
-      {tenantSnapshot && isPublicCloudTenant ? (
-        <TenantReferralInviteModal
-          accountName={featureAccountName}
-          inviteeRewardPoints={referralStrategy.referralInviteeRewardPoints}
-          inviterRewardPoints={referralStrategy.referralInviterRewardPoints}
-          open={isReferralInviteModalOpen}
-          referralRecords={tenantSnapshot.referralRecords}
-          tenantCode={tenantSnapshot.tenantCode}
-          onClose={handleCloseReferralInviteModal}
-        />
-      ) : null}
     </div>
   );
 };

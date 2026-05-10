@@ -9,11 +9,10 @@ export type OperationsRole = "superAdmin" | "operator";
 export type OperationsPlatformTabKey =
   | "tenants"
   | "organization"
-  | "agents"
+  | "roleManagement"
   | "products"
-  | "fulfillment"
-  | "resources"
-  | "points";
+  | "agents"
+  | "platformConfig";
 
 /**
  * 运营后台租户状态。
@@ -78,6 +77,27 @@ export interface OperationsAgentPlazaCategoryOption {
   name: OperationsAgentPlazaCategory;
   sortOrder: number;
   status: OperationsAgentPlazaCategoryStatus;
+  updatedAt: string;
+}
+
+/**
+ * 技能中心分类名称，由运营后台维护。
+ */
+export type OperationsSkillCenterCategory = string;
+
+/**
+ * 技能中心分类状态。
+ */
+export type OperationsSkillCenterCategoryStatus = "active" | "inactive";
+
+/**
+ * 技能中心分类配置项。
+ */
+export interface OperationsSkillCenterCategoryOption {
+  id: string;
+  name: OperationsSkillCenterCategory;
+  sortOrder: number;
+  status: OperationsSkillCenterCategoryStatus;
   updatedAt: string;
 }
 
@@ -250,6 +270,8 @@ export interface OperationsTenant {
   industry: string;
   adminName: string;
   adminPhone: string;
+  adminRoleId: string;
+  adminRoleLabel: string;
   hasAgentListingAccess: boolean;
   hasOperationsConsoleAccess: boolean;
   seatCount: number;
@@ -268,16 +290,13 @@ export interface OperationsTenant {
 export interface OperationsTenantForm {
   name: string;
   code: string;
-  deploymentMode: OperationsTenantDeploymentMode;
   industry: string;
   adminName: string;
   adminPhone: string;
-  hasAgentListingAccess: boolean;
-  hasOperationsConsoleAccess: boolean;
+  adminRoleId: string;
   seatCount: number;
   effectiveAt: string;
   expiresAt: string;
-  moduleLabels: string[];
 }
 
 /**
@@ -287,6 +306,7 @@ export interface OperationsTenantMember {
   id: string;
   name: string;
   phone: string;
+  roleId?: string;
   roleLabel: string;
   addedAt: string;
 }
@@ -300,10 +320,12 @@ export interface OperationsTenantMemberForm {
 }
 
 /**
- * 平台侧注册赠送积分规则。
+ * 平台侧新用户注册策略。
  */
 export interface OperationsRegistrationStrategy {
+  initialPermissionIds: string[];
   defaultGiftPoints: number;
+  enabled: boolean;
   referralDailyRewardLimit: number;
   referralEnabled: boolean;
   referralInviteeRewardPoints: number;
@@ -323,6 +345,17 @@ export interface OperationsServiceContactConfig {
   contactName: string;
   qrCodeValue: string;
   remarkTemplate: string;
+  updatedAt: string;
+}
+
+/**
+ * 用户侧交流群入群链接二维码配置。
+ */
+export interface OperationsCommunityGroupConfig {
+  enabled: boolean;
+  groupName: string;
+  qrCodeValue: string;
+  description: string;
   updatedAt: string;
 }
 

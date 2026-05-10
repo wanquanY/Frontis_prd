@@ -3,14 +3,11 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import classNames from "classnames";
 import {
   ArrowLeftOutlined,
-  ControlOutlined,
   LogoutOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
-  ReadOutlined,
   RobotOutlined,
   AppstoreOutlined,
-  LinkOutlined,
   SafetyCertificateOutlined,
   TeamOutlined,
 } from "@ant-design/icons";
@@ -18,39 +15,48 @@ import type { MenuProps } from "antd";
 import { Avatar, Dropdown, message } from "antd";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 
-import { getLoginPath, getSystemEntries, getTenantEntries } from "@/feature/auth/mockAccounts";
+import {
+  getLoginPath,
+  getSystemEntries,
+  getSystemEntryMenuLabel,
+  getTenantEntries,
+} from "@/feature/auth/mockAccounts";
 import { inviteMockTenantMemberAccount, updateMockTenantUsers } from "@/feature/auth/mockAccounts";
 import { useMockAuth } from "@/feature/auth/hooks/useMockAuth";
 import { getMockTenantManagementSnapshot } from "@/feature/auth/mockTenantRegistry";
 import type {
   MockAuthSystemEntry,
-  MockTenantDeploymentMode,
   MockTenantInviteMemberParams,
   MockTenantManagementSnapshot,
 } from "@/feature/auth/types";
 import { useOperationsAuth } from "@/feature/operations/hooks/useOperationsAuth";
-import { MANAGEMENT_CONSOLE_LABEL, PRODUCT_LOGO_TEXT, PRODUCT_NAME } from "@/constants/brand";
+import { PRODUCT_LOGO_URL, PRODUCT_NAME, PRODUCT_SLOGAN } from "@/constants/brand";
+import {
+  createDefaultTenantRoles,
+  DEFAULT_TENANT_ROLE_IDS,
+  MANAGEMENT_PERMISSION_IDS,
+  SYSTEM_ACCESS_PERMISSION_IDS,
+  syncTenantRoleMembers,
+  type TenantRoleItem,
+} from "@/constants/tenantRolePermissions";
 import {
   INITIAL_EMPLOYEES,
   INITIAL_ORGANIZATION_DEPARTMENTS,
   INITIAL_WORKSPACES,
 } from "@/mocks/mockData";
+import { getUserPermissionIds, hasAnyPermission, hasPermission } from "@/utils/tenantRoleAccess";
 
 import { DeviceManagementView } from "./components/DeviceManagementView";
 import { AccountDropdownPanel } from "./components/AccountDropdownPanel";
 import { AgentStoreView } from "./components/agentStore/AgentStoreView";
-import { ChannelManagementView } from "./components/ChannelManagementView";
 import type { ExpertDeploymentState } from "./components/agentStore/types";
 import {
   buildInitialExpertDeploymentByEmployeeId,
   doesExpertRequireDeviceBinding,
   hasUserAccessToExpert,
 } from "./components/agentStore/utils";
-import { ModelConfigurationView } from "./components/ModelConfigurationView";
 import { OrganizationManagementView } from "./components/OrganizationManagementView";
 import { RoleManagementView } from "./components/RoleManagementView";
-import { TenantOverviewView } from "./components/TenantOverviewView";
-import { TenantPointsView } from "./components/TenantPointsView";
 import type {
   AccessScopeSubject,
   EmployeeItem,
@@ -73,12 +79,6 @@ const INITIAL_DEVICE_OWNERS: Record<string, string | null> = {
   "workspace-local-sh": "user-member-001",
   "workspace-edge-hz": "user-admin-001",
 };
-const USER_MANUAL_ROUTE_PATH = "/user-manual";
-
-interface FrontisAdminPageProps {
-  deploymentMode: MockTenantDeploymentMode;
-}
-
 const syncRootDepartmentName = (
   departments: OrganizationDepartmentItem[],
   tenantName?: string,
@@ -111,85 +111,50 @@ const syncRootDepartmentName = (
 
 const FRONTIS_ADMIN_TABS: FrontisWebTabItem[] = [
   {
-    key: "overview",
-    label: "驾驶舱",
-    icon: <AppstoreOutlined />,
-    roles: ["admin"],
-  },
-  {
-    key: "channels",
-    label: "ME 管理",
-    icon: <LinkOutlined />,
-    roles: ["admin"],
-  },
-  {
-    key: "points",
-    label: "积分管理",
-    icon: <ControlOutlined />,
-    roles: ["admin"],
-  },
-  {
     key: "store",
     label: "AI专家管理",
     icon: <RobotOutlined />,
-    roles: ["admin"],
-  },
-  {
-    key: "models",
-    label: "模型配置",
-    icon: <ControlOutlined />,
+    permissionIds: [MANAGEMENT_PERMISSION_IDS.agentManage],
     roles: ["admin"],
   },
   {
     key: "organization",
     label: "组织管理",
     icon: <TeamOutlined />,
+    permissionIds: [MANAGEMENT_PERMISSION_IDS.organizationManage],
     roles: ["admin"],
   },
   {
     key: "roleManagement",
     label: "角色管理",
     icon: <SafetyCertificateOutlined />,
+    permissionIds: [MANAGEMENT_PERMISSION_IDS.roleManage],
     roles: ["admin"],
   },
 ];
 
 const FRONTIS_ADMIN_TAB_KEYS = new Set<FrontisWebTabKey>(FRONTIS_ADMIN_TABS.map(item => item.key));
 const PERSONAL_HIDDEN_ADMIN_TAB_KEYS = new Set<FrontisWebTabKey>([
-  "overview",
-  "models",
   "organization",
   "roleManagement",
 ]);
 
-const getDefaultAdminTabKey = (
-  edition: MockTenantManagementSnapshot["edition"] | undefined,
-  deploymentMode: MockTenantDeploymentMode,
-): FrontisWebTabKey => {
-  if (edition === "personal") {
-    return deploymentMode === "publicCloud" ? "points" : "store";
-  }
-
-  return "overview";
+const getDefaultAdminTabKey = (): FrontisWebTabKey => {
+  return "store";
 };
 
 const resolveFrontisAdminTabKey = (
   tabKey: string | null,
   edition?: MockTenantManagementSnapshot["edition"],
-  deploymentMode: MockTenantDeploymentMode = "publicCloud",
 ): FrontisWebTabKey => {
   const normalizedTabKey = tabKey === "access" ? "organization" : tabKey;
-  const defaultTabKey = getDefaultAdminTabKey(edition, deploymentMode);
+  const defaultTabKey = getDefaultAdminTabKey();
 
   if (!normalizedTabKey || !FRONTIS_ADMIN_TAB_KEYS.has(normalizedTabKey as FrontisWebTabKey)) {
     return defaultTabKey;
   }
 
   const nextTabKey = normalizedTabKey as FrontisWebTabKey;
-
-  if (deploymentMode === "privateCloud" && nextTabKey === "points") {
-    return defaultTabKey;
-  }
 
   if (edition === "personal" && PERSONAL_HIDDEN_ADMIN_TAB_KEYS.has(nextTabKey)) {
     return defaultTabKey;
@@ -201,7 +166,7 @@ const resolveFrontisAdminTabKey = (
 /**
  * 老板后台管理页面。
  */
-const FrontisAdminPage = ({ deploymentMode }: FrontisAdminPageProps): JSX.Element => {
+const FrontisAdminPage = (): JSX.Element => {
   const location = useLocation();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -212,11 +177,7 @@ const FrontisAdminPage = ({ deploymentMode }: FrontisAdminPageProps): JSX.Elemen
     [activeIdentity?.tenantId],
   );
   const [activeTabKey, setActiveTabKey] = useState<FrontisWebTabKey>(() =>
-    resolveFrontisAdminTabKey(
-      searchParams.get("tab"),
-      initialTenantSnapshot?.edition,
-      deploymentMode,
-    ),
+    resolveFrontisAdminTabKey(searchParams.get("tab"), initialTenantSnapshot?.edition),
   );
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(false);
   const [isAccountMenuOpen, setIsAccountMenuOpen] = useState<boolean>(false);
@@ -225,6 +186,12 @@ const FrontisAdminPage = ({ deploymentMode }: FrontisAdminPageProps): JSX.Elemen
     initialTenantSnapshot,
   );
   const [users, setUsers] = useState<FrontisWebUserItem[]>(initialTenantSnapshot?.users ?? []);
+  const [tenantRoles, setTenantRoles] = useState<TenantRoleItem[]>(() =>
+    createDefaultTenantRoles(initialTenantSnapshot?.users ?? []),
+  );
+  const [selectedTenantRoleId, setSelectedTenantRoleId] = useState<string>(
+    DEFAULT_TENANT_ROLE_IDS.enterpriseAdmin,
+  );
   const [workspaces, setWorkspaces] = useState<WorkspaceItem[]>(INITIAL_WORKSPACES);
   const [deploymentByEmployeeId, setDeploymentByEmployeeId] = useState<
     Record<string, ExpertDeploymentState>
@@ -249,19 +216,13 @@ const FrontisAdminPage = ({ deploymentMode }: FrontisAdminPageProps): JSX.Elemen
 
     setTenantSnapshot(nextSnapshot);
     setUsers(nextSnapshot.users);
+    setTenantRoles(createDefaultTenantRoles(nextSnapshot.users));
+    setSelectedTenantRoleId(DEFAULT_TENANT_ROLE_IDS.enterpriseAdmin);
   }, [activeIdentity?.tenantId]);
 
-  const visibleAdminTabs = useMemo<FrontisWebTabItem[]>(
-    () =>
-      FRONTIS_ADMIN_TABS.filter(item =>
-        item.key === "points"
-          ? deploymentMode === "publicCloud"
-          : tenantSnapshot?.edition === "personal" && PERSONAL_HIDDEN_ADMIN_TAB_KEYS.has(item.key)
-            ? false
-            : true,
-      ),
-    [deploymentMode, tenantSnapshot?.edition],
-  );
+  useEffect(() => {
+    setTenantRoles(currentRoles => syncTenantRoleMembers(currentRoles, users));
+  }, [users]);
 
   const effectiveUsers = useMemo(
     () =>
@@ -310,17 +271,33 @@ const FrontisAdminPage = ({ deploymentMode }: FrontisAdminPageProps): JSX.Elemen
       null,
     [effectiveUsers, session?.userId],
   );
+  const currentUserPermissionIds = useMemo(
+    () => (currentUser ? getUserPermissionIds(currentUser, tenantRoles) : []),
+    [currentUser, tenantRoles],
+  );
+  const visibleAdminTabs = useMemo<FrontisWebTabItem[]>(
+    () =>
+      FRONTIS_ADMIN_TABS.filter(item => {
+        if (
+          tenantSnapshot?.edition === "personal" &&
+          PERSONAL_HIDDEN_ADMIN_TAB_KEYS.has(item.key)
+        ) {
+          return false;
+        }
+
+        return item.permissionIds
+          ? hasAnyPermission(currentUserPermissionIds, item.permissionIds)
+          : true;
+      }),
+    [currentUserPermissionIds, tenantSnapshot?.edition],
+  );
   useEffect(() => {
-    const nextTabKey = resolveFrontisAdminTabKey(
-      searchParams.get("tab"),
-      tenantSnapshot?.edition,
-      deploymentMode,
-    );
+    const nextTabKey = resolveFrontisAdminTabKey(searchParams.get("tab"), tenantSnapshot?.edition);
 
     if (nextTabKey !== activeTabKey) {
       setActiveTabKey(nextTabKey);
     }
-  }, [activeTabKey, deploymentMode, searchParams, tenantSnapshot?.edition]);
+  }, [activeTabKey, searchParams, tenantSnapshot?.edition]);
 
   useEffect(() => {
     if (!tenantSnapshot) {
@@ -331,19 +308,12 @@ const FrontisAdminPage = ({ deploymentMode }: FrontisAdminPageProps): JSX.Elemen
       return;
     }
 
-    const nextTabKey = getDefaultAdminTabKey(tenantSnapshot.edition, deploymentMode);
+    const nextTabKey = visibleAdminTabs[0]?.key ?? getDefaultAdminTabKey();
     setActiveTabKey(nextTabKey);
     const nextParams = new URLSearchParams(searchParams);
     nextParams.set("tab", nextTabKey);
     setSearchParams(nextParams);
-  }, [
-    activeTabKey,
-    deploymentMode,
-    searchParams,
-    setSearchParams,
-    tenantSnapshot,
-    visibleAdminTabs,
-  ]);
+  }, [activeTabKey, searchParams, setSearchParams, tenantSnapshot, visibleAdminTabs]);
 
   const handleAttachEmployeeToDevice = useCallback(
     (employeeId: string, workspaceId: string): void => {
@@ -495,12 +465,11 @@ const FrontisAdminPage = ({ deploymentMode }: FrontisAdminPageProps): JSX.Elemen
     [],
   );
 
-  const handleApplyGlobalModel = useCallback((model: string): void => {
-    setEmployees(prev => prev.map(item => ({ ...item, model })));
-  }, []);
-
   const handleUpdateUser = useCallback(
-    (userId: string, updates: Pick<FrontisWebUserItem, "name" | "phone" | "role">): void => {
+    (
+      userId: string,
+      updates: Pick<FrontisWebUserItem, "name" | "phone" | "role" | "roleIds">,
+    ): void => {
       setUsers(prev => {
         const nextUsers = prev.map(item =>
           item.id === userId
@@ -513,6 +482,7 @@ const FrontisAdminPage = ({ deploymentMode }: FrontisAdminPageProps): JSX.Elemen
                 name: updates.name,
                 phone: updates.phone,
                 role: updates.role,
+                roleIds: updates.roleIds,
               }
             : item,
         );
@@ -789,25 +759,11 @@ const FrontisAdminPage = ({ deploymentMode }: FrontisAdminPageProps): JSX.Elemen
     },
     [activateTenant, location.pathname, location.search, navigate],
   );
-  const handleOpenUserManual = useCallback((): void => {
-    setIsAccountMenuOpen(false);
-    window.open(USER_MANUAL_ROUTE_PATH, "_blank", "noopener,noreferrer");
-  }, []);
-
   const accountMenuItems: MenuProps["items"] = [
-    {
-      key: "open-user-manual",
-      icon: <ReadOutlined />,
-      label: "产品使用指南",
-      onClick: handleOpenUserManual,
-    },
-    {
-      type: "divider" as const,
-    },
     ...systemEntries.map(entry => ({
       key: `system-entry-${entry.identityId}`,
       icon: <AppstoreOutlined />,
-      label: `进入${entry.label}`,
+      label: getSystemEntryMenuLabel(entry),
       onClick: () => handleOpenSystemEntry(entry),
     })),
     ...(systemEntries.length
@@ -840,13 +796,13 @@ const FrontisAdminPage = ({ deploymentMode }: FrontisAdminPageProps): JSX.Elemen
 
   const handleSelectTab = useCallback(
     (tabKey: FrontisWebTabKey): void => {
-      const nextTabKey = resolveFrontisAdminTabKey(tabKey, tenantSnapshot?.edition, deploymentMode);
+      const nextTabKey = resolveFrontisAdminTabKey(tabKey, tenantSnapshot?.edition);
       const nextParams = new URLSearchParams(searchParams);
       nextParams.set("tab", nextTabKey);
       setActiveTabKey(nextTabKey);
       setSearchParams(nextParams);
     },
-    [deploymentMode, searchParams, setSearchParams, tenantSnapshot?.edition],
+    [searchParams, setSearchParams, tenantSnapshot?.edition],
   );
 
   const handleBackToWorkspace = useCallback((): void => {
@@ -857,7 +813,9 @@ const FrontisAdminPage = ({ deploymentMode }: FrontisAdminPageProps): JSX.Elemen
     navigate("/web/employee");
   }, [navigate]);
 
-  const hasManagementAccess = currentUser ? MANAGEMENT_USER_ROLES.has(currentUser.role) : true;
+  const hasManagementAccess = currentUser
+    ? hasPermission(currentUserPermissionIds, SYSTEM_ACCESS_PERMISSION_IDS.admin)
+    : true;
 
   const renderContent = (): JSX.Element => {
     if (!tenantSnapshot) {
@@ -869,20 +827,6 @@ const FrontisAdminPage = ({ deploymentMode }: FrontisAdminPageProps): JSX.Elemen
           </p>
         </div>
       );
-    }
-
-    if (activeTabKey === "overview" && tenantSnapshot.edition === "team") {
-      return (
-        <TenantOverviewView
-          deploymentMode={deploymentMode}
-          employees={employees}
-          tenantSnapshot={tenantSnapshot}
-        />
-      );
-    }
-
-    if (activeTabKey === "points" || activeTabKey === "overview") {
-      return <TenantPointsView tenantSnapshot={tenantSnapshot} />;
     }
 
     if (activeTabKey === "store") {
@@ -906,10 +850,6 @@ const FrontisAdminPage = ({ deploymentMode }: FrontisAdminPageProps): JSX.Elemen
       );
     }
 
-    if (activeTabKey === "channels") {
-      return <ChannelManagementView tenantSnapshot={tenantSnapshot} />;
-    }
-
     if (activeTabKey === "devices") {
       return (
         <DeviceManagementView
@@ -926,20 +866,33 @@ const FrontisAdminPage = ({ deploymentMode }: FrontisAdminPageProps): JSX.Elemen
       );
     }
 
-    if (activeTabKey === "models") {
-      return (
-        <ModelConfigurationView
-          deploymentMode={deploymentMode}
-          employees={employees}
-          onApplyGlobalModel={handleApplyGlobalModel}
-          onUpdateEmployeeModel={handleUpdateEmployeeModel}
-        />
-      );
-    }
-
     if (activeTabKey === "organization") {
       return (
         <OrganizationManagementView
+          canAssignRoles={hasPermission(
+            currentUserPermissionIds,
+            MANAGEMENT_PERMISSION_IDS.roleManage,
+          )}
+          canChangeMemberStatus={hasPermission(
+            currentUserPermissionIds,
+            MANAGEMENT_PERMISSION_IDS.organizationManage,
+          )}
+          canEditMembers={hasPermission(
+            currentUserPermissionIds,
+            MANAGEMENT_PERMISSION_IDS.organizationManage,
+          )}
+          canInviteMembers={hasPermission(
+            currentUserPermissionIds,
+            MANAGEMENT_PERMISSION_IDS.organizationManage,
+          )}
+          canManageDepartments={hasPermission(
+            currentUserPermissionIds,
+            MANAGEMENT_PERMISSION_IDS.organizationManage,
+          )}
+          canRemoveMembers={hasPermission(
+            currentUserPermissionIds,
+            MANAGEMENT_PERMISSION_IDS.organizationManage,
+          )}
           departments={departments}
           onAddDepartment={handleAddDepartment}
           onInviteTenantMember={handleInviteTenantMember}
@@ -950,6 +903,7 @@ const FrontisAdminPage = ({ deploymentMode }: FrontisAdminPageProps): JSX.Elemen
           onUpdateUser={handleUpdateUser}
           onUpdateUserDepartment={handleUpdateUserDepartment}
           onUpdateUserStatus={handleUpdateUserStatus}
+          roles={tenantRoles}
           tenantSnapshot={tenantSnapshot}
           users={effectiveUsers}
         />
@@ -957,7 +911,20 @@ const FrontisAdminPage = ({ deploymentMode }: FrontisAdminPageProps): JSX.Elemen
     }
 
     if (activeTabKey === "roleManagement") {
-      return <RoleManagementView tenantSnapshot={tenantSnapshot} users={effectiveUsers} />;
+      return (
+        <RoleManagementView
+          canManageCustomRoles={hasPermission(
+            currentUserPermissionIds,
+            MANAGEMENT_PERMISSION_IDS.roleManage,
+          )}
+          onRolesChange={setTenantRoles}
+          onSelectedRoleIdChange={setSelectedTenantRoleId}
+          roles={tenantRoles}
+          selectedRoleId={selectedTenantRoleId}
+          tenantSnapshot={tenantSnapshot}
+          users={effectiveUsers}
+        />
+      );
     }
 
     return (
@@ -999,11 +966,11 @@ const FrontisAdminPage = ({ deploymentMode }: FrontisAdminPageProps): JSX.Elemen
                   [styles.brandCardCollapsed]: isSidebarCollapsed,
                 })}
               >
-                <span className={styles.brandLogo}>{PRODUCT_LOGO_TEXT}</span>
+                <img className={styles.brandLogo} src={PRODUCT_LOGO_URL} alt={PRODUCT_NAME} />
                 {isSidebarCollapsed ? null : (
                   <div className={styles.brandCopy}>
                     <div className={styles.brandTitle}>{PRODUCT_NAME}</div>
-                    <div className={styles.brandSubtitle}>{MANAGEMENT_CONSOLE_LABEL}</div>
+                    <div className={styles.brandSubtitle}>{PRODUCT_SLOGAN}</div>
                   </div>
                 )}
               </div>
@@ -1036,29 +1003,20 @@ const FrontisAdminPage = ({ deploymentMode }: FrontisAdminPageProps): JSX.Elemen
               [styles.adminSidebarSectionCollapsed]: isSidebarCollapsed,
             })}
           >
-            {visibleAdminTabs.map(item => {
-              const isRoleManagement = item.key === "roleManagement";
-              const isOrganizationParentActive =
-                item.key === "organization" &&
-                (activeTabKey === "organization" || activeTabKey === "roleManagement");
-
-              return (
-                <button
-                  key={item.key}
-                  type="button"
-                  className={classNames(styles.adminNavButton, {
-                    [styles.adminNavButtonActive]:
-                      item.key === activeTabKey || isOrganizationParentActive,
-                    [styles.adminNavButtonCollapsed]: isSidebarCollapsed,
-                    [styles.adminSubNavButton]: isRoleManagement,
-                  })}
-                  onClick={() => handleSelectTab(item.key)}
-                >
-                  <span className={styles.tabIcon}>{item.icon}</span>
-                  <span className={styles.tabLabel}>{item.label}</span>
-                </button>
-              );
-            })}
+            {visibleAdminTabs.map(item => (
+              <button
+                key={item.key}
+                type="button"
+                className={classNames(styles.adminNavButton, {
+                  [styles.adminNavButtonActive]: item.key === activeTabKey,
+                  [styles.adminNavButtonCollapsed]: isSidebarCollapsed,
+                })}
+                onClick={() => handleSelectTab(item.key)}
+              >
+                <span className={styles.tabIcon}>{item.icon}</span>
+                <span className={styles.tabLabel}>{item.label}</span>
+              </button>
+            ))}
           </div>
 
           <div
@@ -1076,9 +1034,6 @@ const FrontisAdminPage = ({ deploymentMode }: FrontisAdminPageProps): JSX.Elemen
                 <AccountDropdownPanel
                   accountName={currentUser?.name ?? "未登录"}
                   tenantName={activeIdentity?.tenantName}
-                  pointsBalance={
-                    deploymentMode === "publicCloud" ? tenantSnapshot?.pointsBalance : undefined
-                  }
                   menu={menu}
                 />
               )}

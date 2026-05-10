@@ -1,26 +1,30 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-import { getAllMockTenantPointsOrders } from "@/feature/auth/mockTenantRegistry";
 import {
   loadStoredAgentPlazaCategories,
   saveStoredAgentPlazaCategories,
 } from "@/feature/operations/agentPlazaCategoryStorage";
 import {
-  loadStoredOperationsFulfillments,
   loadStoredOperationsProducts,
-  loadStoredOperationsResourcePools,
-  saveStoredOperationsFulfillments,
   saveStoredOperationsProducts,
-  saveStoredOperationsResourcePools,
 } from "@/feature/operations/commerceStorage";
 import {
-  OPERATIONS_AGENT_STATUS_LABELS,
+  loadOperationsCommunityGroupConfig,
+  loadOperationsRegistrationStrategy,
+  loadOperationsServiceContactConfig,
+  saveOperationsCommunityGroupConfig,
+  saveOperationsRegistrationStrategy,
+  saveOperationsServiceContactConfig,
+} from "@/feature/operations/platformConfigStorage";
+import {
+  loadStoredSkillCenterCategories,
+  saveStoredSkillCenterCategories,
+} from "@/feature/operations/skillCenterCategoryStorage";
+import {
   OPERATIONS_AGENT_PLAZA_DEFAULT_CATEGORY,
-  OPERATIONS_FULFILLMENT_STATUS_LABELS,
+  OPERATIONS_AGENT_STATUS_LABELS,
   OPERATIONS_INITIAL_AGENT_SUBMISSIONS,
-  OPERATIONS_INITIAL_REFERRAL_RECORDS,
   OPERATIONS_INITIAL_TENANTS,
-  OPERATIONS_INITIAL_REGISTRATION_STRATEGY,
   OPERATIONS_PRODUCT_BILLING_MODE_LABELS,
   OPERATIONS_PRODUCT_BILLING_MODE_OPTIONS,
   OPERATIONS_PRODUCT_BILLING_SPEC_LABELS,
@@ -35,39 +39,15 @@ import {
   OPERATIONS_PRODUCT_SUPPLY_KIND_LABELS,
   OPERATIONS_PRODUCT_TRIAL_UNIT_LABELS,
   OPERATIONS_PRODUCT_TRIAL_UNIT_OPTIONS,
-  OPERATIONS_RESOURCE_POOL_ALLOCATION_MODE_LABELS,
-  OPERATIONS_RESOURCE_POOL_ALLOCATION_MODE_OPTIONS,
-  OPERATIONS_RESOURCE_POOL_CAPACITY_UNIT_LABELS,
-  OPERATIONS_RESOURCE_POOL_CAPACITY_UNIT_OPTIONS,
-  OPERATIONS_RESOURCE_POOL_TYPE_LABELS,
-  OPERATIONS_RESOURCE_POOL_TYPE_OPTIONS,
   OPERATIONS_TENANT_STATUS_LABELS,
+  OPERATIONS_TENANT_INITIAL_ADMIN_ROLE_OPTIONS,
   createDefaultAgentSubscriptionPlans,
   createEmptyOperationsProductForm,
-  createEmptyOperationsTenantMemberForm,
-  createEmptyOperationsResourcePoolForm,
   createEmptyOperationsTenantForm,
+  getOperationsTenantInitialAdminRoleOption,
+  resolveOperationsTenantAgentListingAccess,
+  type OperationsTenantInitialAdminRoleOption,
 } from "@/feature/operations/mockData";
-import {
-  loadOperationsRegistrationStrategy,
-  loadOperationsServiceContactConfig,
-  saveOperationsRegistrationStrategy,
-  saveOperationsServiceContactConfig,
-} from "@/feature/operations/platformConfigStorage";
-import {
-  loadStoredOperationsExternalMeteredServices,
-  loadStoredOperationsMeteringProviders,
-  loadStoredOperationsModelServices,
-  loadStoredOperationsPointsUsageRecords,
-  saveStoredOperationsExternalMeteredServices,
-  saveStoredOperationsMeteringProviders,
-  saveStoredOperationsModelServices,
-  saveStoredOperationsPointsUsageRecords,
-} from "@/feature/operations/serviceMeteringStorage";
-import {
-  calculateOperationsSalePrice,
-  normalizeOperationsMoney,
-} from "@/feature/operations/serviceMeteringUtils";
 import {
   loadStoredOperationsTenants,
   saveStoredOperationsTenants,
@@ -75,76 +55,38 @@ import {
 import type {
   OperationsAgentPlazaCategoryOption,
   OperationsAgentSubmission,
-  OperationsExternalMeteredService,
-  OperationsExternalMeteredServiceForm,
-  OperationsFulfillment,
-  OperationsMeteringProvider,
-  OperationsMeteringProviderForm,
-  OperationsModelService,
-  OperationsModelServiceForm,
+  OperationsCommunityGroupConfig,
   OperationsProduct,
   OperationsProductForm,
   OperationsProductSubscriptionPlan,
   OperationsProductSubscriptionPlanStatus,
-  OperationsPointsUsageRecord,
-  OperationsReferralRecord,
   OperationsRegistrationStrategy,
-  OperationsResourcePool,
-  OperationsResourcePoolForm,
   OperationsServiceContactConfig,
+  OperationsSkillCenterCategoryOption,
   OperationsTenant,
   OperationsTenantForm,
-  OperationsTenantMemberForm,
 } from "@/feature/operations/types";
 import {
   loadEnterpriseCommodityApplications,
   saveEnterpriseCommodityApplications,
 } from "@/feature/fde/enterpriseCommodityApplications";
-import {
-  createMockPointsPackage,
-  getMockPointsPackages,
-  updateMockPointsPackage,
-} from "@/feature/points/mockPointsCommerce";
-import type { MockPointsPackageOption } from "@/feature/points/types";
-import {
-  createMockTenantPlanPackage,
-  getMockTenantPlanPackages,
-  getMockTenantSeatPricing,
-  updateMockTenantPlanPackage,
-  updateMockTenantSeatPricing,
-} from "@/feature/tenantPlan/mockTenantPlanCommerce";
-import type {
-  MockTenantPlanPackageOption,
-  MockTenantSeatPricing,
-} from "@/feature/tenantPlan/types";
 
 interface UseOperationsPlatformResult {
   tenants: OperationsTenant[];
   agentSubmissions: OperationsAgentSubmission[];
   agentPlazaCategories: OperationsAgentPlazaCategoryOption[];
+  skillCenterCategories: OperationsSkillCenterCategoryOption[];
   approvedAgentSubmissions: OperationsAgentSubmission[];
   approvedAgents: OperationsAgentSubmission[];
   products: OperationsProduct[];
-  fulfillments: OperationsFulfillment[];
-  resourcePools: OperationsResourcePool[];
   registrationStrategy: OperationsRegistrationStrategy;
   serviceContactConfig: OperationsServiceContactConfig;
-  referralRecords: OperationsReferralRecord[];
-  meteringProviders: OperationsMeteringProvider[];
-  modelServices: OperationsModelService[];
-  externalMeteredServices: OperationsExternalMeteredService[];
-  pointsUsageRecords: OperationsPointsUsageRecord[];
-  pointsPackages: MockPointsPackageOption[];
-  teamPlanPackages: MockTenantPlanPackageOption[];
-  teamSeatPricing: MockTenantSeatPricing;
-  pointsOrders: ReturnType<typeof getAllMockTenantPointsOrders>;
+  communityGroupConfig: OperationsCommunityGroupConfig;
   emptyTenantForm: OperationsTenantForm;
-  emptyTenantMemberForm: OperationsTenantMemberForm;
   emptyProductForm: OperationsProductForm;
-  emptyResourcePoolForm: OperationsResourcePoolForm;
+  tenantInitialAdminRoleOptions: OperationsTenantInitialAdminRoleOption[];
   tenantStatusLabels: typeof OPERATIONS_TENANT_STATUS_LABELS;
   agentStatusLabels: typeof OPERATIONS_AGENT_STATUS_LABELS;
-  fulfillmentStatusLabels: typeof OPERATIONS_FULFILLMENT_STATUS_LABELS;
   productStatusLabels: typeof OPERATIONS_PRODUCT_STATUS_LABELS;
   productSupplyKindLabels: typeof OPERATIONS_PRODUCT_SUPPLY_KIND_LABELS;
   productSaleTypeLabels: typeof OPERATIONS_PRODUCT_SALE_TYPE_LABELS;
@@ -153,20 +95,13 @@ interface UseOperationsPlatformResult {
   productBillingModeLabels: typeof OPERATIONS_PRODUCT_BILLING_MODE_LABELS;
   productMeteringUnitLabels: typeof OPERATIONS_PRODUCT_METERING_UNIT_LABELS;
   productBillingSpecLabels: typeof OPERATIONS_PRODUCT_BILLING_SPEC_LABELS;
-  resourcePoolTypeLabels: typeof OPERATIONS_RESOURCE_POOL_TYPE_LABELS;
-  resourcePoolAllocationModeLabels: typeof OPERATIONS_RESOURCE_POOL_ALLOCATION_MODE_LABELS;
-  resourcePoolCapacityUnitLabels: typeof OPERATIONS_RESOURCE_POOL_CAPACITY_UNIT_LABELS;
   productDeliveryKindOptions: typeof OPERATIONS_PRODUCT_DELIVERY_KIND_OPTIONS;
   productSaleTypeOptions: typeof OPERATIONS_PRODUCT_SALE_TYPE_OPTIONS;
   productTrialUnitOptions: typeof OPERATIONS_PRODUCT_TRIAL_UNIT_OPTIONS;
   productBillingModeOptions: typeof OPERATIONS_PRODUCT_BILLING_MODE_OPTIONS;
   productMeteringUnitOptions: typeof OPERATIONS_PRODUCT_METERING_UNIT_OPTIONS;
   productBillingSpecOptions: typeof OPERATIONS_PRODUCT_BILLING_SPEC_OPTIONS;
-  resourcePoolTypeOptions: typeof OPERATIONS_RESOURCE_POOL_TYPE_OPTIONS;
-  resourcePoolAllocationModeOptions: typeof OPERATIONS_RESOURCE_POOL_ALLOCATION_MODE_OPTIONS;
-  resourcePoolCapacityUnitOptions: typeof OPERATIONS_RESOURCE_POOL_CAPACITY_UNIT_OPTIONS;
   createTenant: (form: OperationsTenantForm) => void;
-  addTenantMember: (tenantId: string, form: OperationsTenantMemberForm) => void;
   updateTenant: (tenantId: string, form: OperationsTenantForm) => void;
   updateTenantStatus: (tenantId: string, status: OperationsTenant["status"]) => void;
   approveAgent: (submissionId: string) => void;
@@ -174,16 +109,20 @@ interface UseOperationsPlatformResult {
   createProduct: (form: OperationsProductForm) => void;
   updateProduct: (productId: string, form: OperationsProductForm) => void;
   updateProductStatus: (productId: string, status: OperationsProduct["status"]) => void;
-  updateAgentPlazaSettings: (
-    productId: string,
-    patch: Pick<
-      OperationsProduct,
-      | "plazaCategory"
-      | "plazaVisibility"
-      | "visibleTenantIds"
-      | "visibleTenantNames"
-      | "plazaStatus"
+  updateServiceContactConfig: (
+    config: Pick<
+      OperationsServiceContactConfig,
+      "enabled" | "contactName" | "qrCodeValue" | "remarkTemplate"
     >,
+  ) => void;
+  updateCommunityGroupConfig: (
+    config: Pick<
+      OperationsCommunityGroupConfig,
+      "enabled" | "groupName" | "qrCodeValue" | "description"
+    >,
+  ) => void;
+  updateRegistrationStrategy: (
+    config: Pick<OperationsRegistrationStrategy, "enabled" | "initialPermissionIds">,
   ) => void;
   createAgentPlazaCategory: (
     payload: Pick<OperationsAgentPlazaCategoryOption, "name" | "sortOrder">,
@@ -192,73 +131,12 @@ interface UseOperationsPlatformResult {
     categoryId: string,
     updates: Partial<Pick<OperationsAgentPlazaCategoryOption, "name" | "sortOrder" | "status">>,
   ) => void;
-  createResourcePool: (form: OperationsResourcePoolForm) => void;
-  updateResourcePool: (resourcePoolId: string, form: OperationsResourcePoolForm) => void;
-  updateRegistrationStrategy: (
-    patch: Partial<
-      Pick<
-        OperationsRegistrationStrategy,
-        | "defaultGiftPoints"
-        | "pointsPerCny"
-        | "minimumDeductPoints"
-        | "roundingUnit"
-        | "referralDailyRewardLimit"
-        | "referralEnabled"
-        | "referralInviteeRewardPoints"
-        | "referralInviterRewardPoints"
-        | "referralMonthlyRewardLimit"
-      >
-    >,
+  createSkillCenterCategory: (
+    payload: Pick<OperationsSkillCenterCategoryOption, "name" | "sortOrder">,
   ) => void;
-  updateServiceContactConfig: (
-    patch: Partial<
-      Pick<
-        OperationsServiceContactConfig,
-        "enabled" | "contactName" | "qrCodeValue" | "remarkTemplate"
-      >
-    >,
-  ) => void;
-  createMeteringProvider: (form: OperationsMeteringProviderForm) => void;
-  updateMeteringProvider: (providerId: string, form: OperationsMeteringProviderForm) => void;
-  createModelService: (form: OperationsModelServiceForm) => void;
-  updateModelService: (modelId: string, form: OperationsModelServiceForm) => void;
-  createExternalMeteredService: (form: OperationsExternalMeteredServiceForm) => void;
-  updateExternalMeteredService: (
-    serviceId: string,
-    form: OperationsExternalMeteredServiceForm,
-  ) => void;
-  updateTeamPlanPackage: (
-    packageId: string,
-    updates: Partial<
-      Pick<
-        MockTenantPlanPackageOption,
-        "title" | "description" | "includedSeats" | "price" | "status" | "sortOrder" | "tagLabel"
-      >
-    >,
-  ) => void;
-  createTeamPlanPackage: (
-    payload: Pick<
-      MockTenantPlanPackageOption,
-      "title" | "description" | "includedSeats" | "price" | "tagLabel"
-    >,
-  ) => void;
-  updateTeamSeatPricing: (
-    updates: Partial<Pick<MockTenantSeatPricing, "pricePerSeat" | "billingCycleLabel">>,
-  ) => void;
-  updatePointsPackage: (
-    packageId: string,
-    updates: Partial<
-      Pick<
-        MockPointsPackageOption,
-        "title" | "description" | "points" | "price" | "status" | "sortOrder" | "tagLabel"
-      >
-    >,
-  ) => void;
-  createPointsPackage: (
-    payload: Pick<
-      MockPointsPackageOption,
-      "title" | "description" | "points" | "price" | "tagLabel"
-    >,
+  updateSkillCenterCategory: (
+    categoryId: string,
+    updates: Partial<Pick<OperationsSkillCenterCategoryOption, "name" | "sortOrder" | "status">>,
   ) => void;
 }
 
@@ -275,109 +153,24 @@ const formatTimestamp = (): string => {
 
 const buildTenantMemberId = (): string => `ops-tenant-member-${Date.now()}`;
 const buildProductId = (): string => `ops-product-${Date.now()}`;
-const buildResourcePoolId = (): string => `ops-resource-pool-${Date.now()}`;
 const buildAgentPlazaCategoryId = (): string => `ops-agent-plaza-category-${Date.now()}`;
-const buildMeteringProviderId = (): string => `ops-metering-provider-${Date.now()}`;
-const buildModelServiceId = (): string => `ops-model-service-${Date.now()}`;
-const buildExternalMeteredServiceId = (): string => `ops-external-service-${Date.now()}`;
+const buildSkillCenterCategoryId = (): string => `ops-skill-center-category-${Date.now()}`;
 
 const resolveTenantEditionBySeatCount = (seatCount: number): OperationsTenant["edition"] =>
   seatCount <= 1 ? "personal" : "team";
 
-const resolveMeteringProviderName = (
-  providers: OperationsMeteringProvider[],
-  providerId: string,
-): string => providers.find(item => item.id === providerId)?.name ?? "";
-
-const buildMeteringProviderFromForm = (
-  form: OperationsMeteringProviderForm,
-): OperationsMeteringProvider => ({
-  id: buildMeteringProviderId(),
-  name: form.name.trim(),
-  providerKind: form.providerKind,
-  baseUrl: form.baseUrl.trim(),
-  billingCurrency: form.billingCurrency.trim() || "CNY",
-  credentialStatusLabel: form.credentialStatusLabel.trim() || "未配置",
-  status: form.status,
-  updatedAt: formatTimestamp(),
-});
-
-const buildModelServiceFromForm = (
-  form: OperationsModelServiceForm,
-  providers: OperationsMeteringProvider[],
-): OperationsModelService => ({
-  id: buildModelServiceId(),
-  providerId: form.providerId,
-  providerName: resolveMeteringProviderName(providers, form.providerId),
-  modelCode: form.modelCode.trim(),
-  modelName: form.modelName.trim(),
-  interfaceFormat: form.interfaceFormat,
-  modality: form.modality,
-  reasoningEnabled: form.reasoningEnabled,
-  inputCostPerMillion: normalizeOperationsMoney(form.inputCostPerMillion),
-  outputCostPerMillion: normalizeOperationsMoney(form.outputCostPerMillion),
-  pricingMode: form.pricingMode,
-  markupRate: form.markupRate,
-  grossMarginRate: form.grossMarginRate,
-  inputSalePricePerMillion: calculateOperationsSalePrice(
-    form.inputCostPerMillion,
-    form.pricingMode,
-    form.markupRate,
-    form.grossMarginRate,
-    form.inputSalePricePerMillion,
-  ),
-  outputSalePricePerMillion: calculateOperationsSalePrice(
-    form.outputCostPerMillion,
-    form.pricingMode,
-    form.markupRate,
-    form.grossMarginRate,
-    form.outputSalePricePerMillion,
-  ),
-  status: form.status,
-  updatedAt: formatTimestamp(),
-});
-
-const buildExternalMeteredServiceFromForm = (
-  form: OperationsExternalMeteredServiceForm,
-  providers: OperationsMeteringProvider[],
-): OperationsExternalMeteredService => ({
-  id: buildExternalMeteredServiceId(),
-  providerId: form.providerId,
-  providerName: resolveMeteringProviderName(providers, form.providerId),
-  name: form.name.trim(),
-  serviceTypeLabel: form.serviceTypeLabel.trim() || "第三方 API",
-  meteringUnit: form.meteringUnit,
-  costPerUnit: normalizeOperationsMoney(form.costPerUnit),
-  pricingMode: form.pricingMode,
-  markupRate: form.markupRate,
-  grossMarginRate: form.grossMarginRate,
-  salePricePerUnit: calculateOperationsSalePrice(
-    form.costPerUnit,
-    form.pricingMode,
-    form.markupRate,
-    form.grossMarginRate,
-    form.salePricePerUnit,
-  ),
-  status: form.status,
-  updatedAt: formatTimestamp(),
-});
-
-const sortAgentPlazaCategories = (
-  categories: OperationsAgentPlazaCategoryOption[],
-): OperationsAgentPlazaCategoryOption[] =>
-  [...categories].sort((leftItem, rightItem) => {
-    if (leftItem.sortOrder !== rightItem.sortOrder) {
-      return leftItem.sortOrder - rightItem.sortOrder;
-    }
-
-    return leftItem.updatedAt.localeCompare(rightItem.updatedAt);
-  });
-
-const buildAdminTenantMember = (adminName: string, adminPhone: string, addedAt: string) => ({
+const buildAdminTenantMember = (
+  adminName: string,
+  adminPhone: string,
+  addedAt: string,
+  roleId: string,
+  roleLabel: string,
+) => ({
   id: buildTenantMemberId(),
   name: adminName.trim(),
   phone: adminPhone.trim(),
-  roleLabel: "管理员",
+  roleId,
+  roleLabel,
   addedAt,
 });
 
@@ -385,12 +178,19 @@ const syncAdminTenantMember = (
   members: OperationsTenant["members"],
   adminName: string,
   adminPhone: string,
+  adminRoleId: string,
+  adminRoleLabel: string,
   fallbackAddedAt: string,
 ): OperationsTenant["members"] => {
-  const adminMemberIndex = members.findIndex(item => item.roleLabel === "管理员");
+  const adminMemberIndex = members.findIndex(
+    item => item.phone === adminPhone.trim() || item.roleLabel.includes("管理员"),
+  );
 
   if (adminMemberIndex < 0) {
-    return [buildAdminTenantMember(adminName, adminPhone, fallbackAddedAt), ...members];
+    return [
+      buildAdminTenantMember(adminName, adminPhone, fallbackAddedAt, adminRoleId, adminRoleLabel),
+      ...members,
+    ];
   }
 
   return members.map((item, index) =>
@@ -399,48 +199,67 @@ const syncAdminTenantMember = (
           ...item,
           name: adminName.trim(),
           phone: adminPhone.trim(),
+          roleId: adminRoleId,
+          roleLabel: adminRoleLabel,
         }
       : item,
   );
 };
 
-const resolveTenantModuleLabels = (hasOperationsConsoleAccess: boolean): string[] => [
-  "FrontisAI工作台",
-  "企业管理后台",
-  ...(hasOperationsConsoleAccess ? ["租户运营后台"] : []),
-];
-
 const buildTenantFromForm = (form: OperationsTenantForm): OperationsTenant => {
   const createdAt = formatTimestamp();
+  const adminRole = getOperationsTenantInitialAdminRoleOption(form.adminRoleId);
+  const hasOperationsConsoleAccess = adminRole.moduleLabels.some(label => label.includes("运营"));
+  const hasAgentListingAccess = resolveOperationsTenantAgentListingAccess(adminRole.value);
 
   return {
     id: `ops-tenant-${Date.now()}`,
     name: form.name.trim(),
     code: form.code.trim().toUpperCase(),
     type: "enterprise",
-    deploymentMode: form.deploymentMode,
+    deploymentMode: "publicCloud",
     edition: resolveTenantEditionBySeatCount(form.seatCount),
     industry: form.industry.trim(),
     adminName: form.adminName.trim(),
     adminPhone: form.adminPhone.trim(),
-    hasAgentListingAccess: form.hasAgentListingAccess,
-    hasOperationsConsoleAccess: form.hasOperationsConsoleAccess,
+    adminRoleId: adminRole.value,
+    adminRoleLabel: adminRole.label,
+    hasAgentListingAccess,
+    hasOperationsConsoleAccess,
     seatCount: form.seatCount,
     effectiveAt: form.effectiveAt.trim(),
     expiresAt: form.expiresAt.trim(),
-    moduleLabels: resolveTenantModuleLabels(form.hasOperationsConsoleAccess),
-    members: [buildAdminTenantMember(form.adminName, form.adminPhone, createdAt)],
+    moduleLabels: adminRole.moduleLabels,
+    members: [
+      buildAdminTenantMember(
+        form.adminName,
+        form.adminPhone,
+        createdAt,
+        adminRole.value,
+        adminRole.label,
+      ),
+    ],
     status: "pending",
     createdAt,
     updatedAt: createdAt,
   };
 };
 
-const getResourcePoolNameById = (
-  resourcePools: OperationsResourcePool[],
-  resourcePoolId?: string,
-): string | undefined =>
-  resourcePoolId ? resourcePools.find(item => item.id === resourcePoolId)?.name : undefined;
+interface SortableOperationsCategory {
+  sortOrder: number;
+  updatedAt: string;
+}
+
+const sortCategoryOptions = <TCategory extends SortableOperationsCategory>(
+  categories: TCategory[],
+): TCategory[] =>
+  [...categories].sort((leftItem, rightItem) => {
+    if (leftItem.sortOrder !== rightItem.sortOrder) {
+      return leftItem.sortOrder - rightItem.sortOrder;
+    }
+
+    return leftItem.updatedAt.localeCompare(rightItem.updatedAt);
+  });
 
 const cloneSubscriptionPlan = (
   plan: OperationsProductSubscriptionPlan,
@@ -468,23 +287,6 @@ const normalizeSubscriptionPlans = (
       };
     })
     .sort((leftItem, rightItem) => leftItem.sortOrder - rightItem.sortOrder);
-
-const mergeStoredTenantsWithPreset = (
-  presetTenants: OperationsTenant[],
-  storedTenants: OperationsTenant[] | null,
-): OperationsTenant[] => {
-  if (!storedTenants) {
-    return presetTenants;
-  }
-
-  const storedTenantMap = new Map(storedTenants.map(tenant => [tenant.id, tenant]));
-  const presetTenantIds = new Set(presetTenants.map(tenant => tenant.id));
-
-  return [
-    ...presetTenants.map(tenant => storedTenantMap.get(tenant.id) ?? tenant),
-    ...storedTenants.filter(tenant => !presetTenantIds.has(tenant.id)),
-  ];
-};
 
 const shouldUseSubscriptionPlans = (form: OperationsProductForm): boolean =>
   form.saleType === "paid" && form.billingMode === "subscription" && form.supplyKind === "agent";
@@ -523,14 +325,11 @@ const buildPendingProductFromSubmission = (
 const buildProductFromForm = (
   form: OperationsProductForm,
   approvedSubmissions: OperationsAgentSubmission[],
-  resourcePools: OperationsResourcePool[],
 ): OperationsProduct => {
   const linkedSubmission =
     form.supplyKind === "agent" && form.linkedAgentId
       ? approvedSubmissions.find(item => item.id === form.linkedAgentId)
       : undefined;
-  const nextResourcePoolId =
-    form.deliveryKind === "softwareService" ? undefined : form.resourcePoolId;
   const useSubscriptionPlans = shouldUseSubscriptionPlans(form);
 
   return {
@@ -544,8 +343,8 @@ const buildProductFromForm = (
     billingSpec: useSubscriptionPlans ? undefined : form.billingSpec,
     linkedAgentId: linkedSubmission?.id,
     linkedAgentName: linkedSubmission?.name,
-    resourcePoolId: nextResourcePoolId,
-    resourcePoolName: getResourcePoolNameById(resourcePools, nextResourcePoolId),
+    resourcePoolId: undefined,
+    resourcePoolName: undefined,
     description: form.description.trim(),
     price: form.saleType === "free" ? 0 : useSubscriptionPlans ? undefined : form.price,
     subscriptionPlans: useSubscriptionPlans
@@ -554,32 +353,36 @@ const buildProductFromForm = (
     supportsTrial: form.supportsTrial,
     trialUnit: form.supportsTrial ? form.trialUnit : undefined,
     trialValue: form.supportsTrial ? form.trialValue : undefined,
-    contactMode: "disabled",
-    contactQrCodeValue: undefined,
-    contactRemark: undefined,
+    contactMode: form.contactMode,
+    contactQrCodeValue: form.contactMode === "custom" ? form.contactQrCodeValue.trim() : "",
+    contactRemark: form.contactMode === "custom" ? form.contactRemark.trim() : "",
     status: form.plazaStatus === "online" ? "active" : "draft",
     plazaCategory: form.plazaCategory,
     plazaVisibility: form.plazaVisibility,
     visibleTenantIds: form.plazaVisibility === "tenant" ? form.visibleTenantIds : [],
     visibleTenantNames: form.plazaVisibility === "tenant" ? form.visibleTenantNames : [],
     plazaStatus: form.plazaStatus,
-    plazaSort: 0,
     billingScopes: form.billingScopes,
     updatedAt: formatTimestamp(),
   };
 };
 
-const buildResourcePoolFromForm = (form: OperationsResourcePoolForm): OperationsResourcePool => ({
-  id: buildResourcePoolId(),
-  name: form.name.trim(),
-  resourceType: form.resourceType,
-  provider: form.provider.trim(),
-  allocationMode: form.allocationMode,
-  totalCapacity: form.totalCapacity,
-  availableCapacity: form.availableCapacity,
-  capacityUnit: form.capacityUnit,
-  updatedAt: formatTimestamp(),
-});
+const mergeStoredTenantsWithPreset = (
+  presetTenants: OperationsTenant[],
+  storedTenants: OperationsTenant[] | null,
+): OperationsTenant[] => {
+  if (!storedTenants) {
+    return presetTenants;
+  }
+
+  const storedTenantMap = new Map(storedTenants.map(tenant => [tenant.id, tenant]));
+  const presetTenantIds = new Set(presetTenants.map(tenant => tenant.id));
+
+  return [
+    ...presetTenants.map(tenant => storedTenantMap.get(tenant.id) ?? tenant),
+    ...storedTenants.filter(tenant => !presetTenantIds.has(tenant.id)),
+  ];
+};
 
 const normalizeSubmissionSubmitter = (submitter: string): string =>
   submitter.split(" - ")[0].trim();
@@ -612,7 +415,7 @@ const buildInitialAgentSubmissions = (): OperationsAgentSubmission[] => {
 };
 
 /**
- * 提供运营后台所需的本地 mock 状态与交互动作。
+ * 提供运营后台租户管理与 AI 专家上架审核所需的本地 mock 状态和交互动作。
  */
 export const useOperationsPlatform = (): UseOperationsPlatformResult => {
   const [tenants, setTenants] = useState<OperationsTenant[]>(() =>
@@ -624,44 +427,20 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
   const [agentPlazaCategories, setAgentPlazaCategories] = useState<
     OperationsAgentPlazaCategoryOption[]
   >(() => loadStoredAgentPlazaCategories());
+  const [skillCenterCategories, setSkillCenterCategories] = useState<
+    OperationsSkillCenterCategoryOption[]
+  >(() => loadStoredSkillCenterCategories());
   const [products, setProducts] = useState<OperationsProduct[]>(() =>
     loadStoredOperationsProducts(),
   );
-  const [fulfillments, setFulfillments] = useState<OperationsFulfillment[]>(() =>
-    loadStoredOperationsFulfillments(),
-  );
-  const [resourcePools, setResourcePools] = useState<OperationsResourcePool[]>(() =>
-    loadStoredOperationsResourcePools(),
-  );
   const [registrationStrategy, setRegistrationStrategy] = useState<OperationsRegistrationStrategy>(
-    () => loadOperationsRegistrationStrategy() ?? OPERATIONS_INITIAL_REGISTRATION_STRATEGY,
+    () => loadOperationsRegistrationStrategy(),
   );
   const [serviceContactConfig, setServiceContactConfig] = useState<OperationsServiceContactConfig>(
     () => loadOperationsServiceContactConfig(),
   );
-  const [meteringProviders, setMeteringProviders] = useState<OperationsMeteringProvider[]>(() =>
-    loadStoredOperationsMeteringProviders(),
-  );
-  const [modelServices, setModelServices] = useState<OperationsModelService[]>(() =>
-    loadStoredOperationsModelServices(),
-  );
-  const [externalMeteredServices, setExternalMeteredServices] = useState<
-    OperationsExternalMeteredService[]
-  >(() => loadStoredOperationsExternalMeteredServices());
-  const [pointsUsageRecords] = useState<OperationsPointsUsageRecord[]>(() =>
-    loadStoredOperationsPointsUsageRecords(),
-  );
-  const [referralRecords] = useState<OperationsReferralRecord[]>(() =>
-    OPERATIONS_INITIAL_REFERRAL_RECORDS.map(item => ({ ...item })),
-  );
-  const [pointsPackages, setPointsPackages] = useState<MockPointsPackageOption[]>(() =>
-    getMockPointsPackages(),
-  );
-  const [teamPlanPackages, setTeamPlanPackages] = useState<MockTenantPlanPackageOption[]>(() =>
-    getMockTenantPlanPackages(),
-  );
-  const [teamSeatPricing, setTeamSeatPricing] = useState<MockTenantSeatPricing>(() =>
-    getMockTenantSeatPricing(),
+  const [communityGroupConfig, setCommunityGroupConfig] = useState<OperationsCommunityGroupConfig>(
+    () => loadOperationsCommunityGroupConfig(),
   );
 
   useEffect(() => {
@@ -677,16 +456,12 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
   }, [agentPlazaCategories]);
 
   useEffect(() => {
+    saveStoredSkillCenterCategories(skillCenterCategories);
+  }, [skillCenterCategories]);
+
+  useEffect(() => {
     saveStoredOperationsProducts(products);
   }, [products]);
-
-  useEffect(() => {
-    saveStoredOperationsFulfillments(fulfillments);
-  }, [fulfillments]);
-
-  useEffect(() => {
-    saveStoredOperationsResourcePools(resourcePools);
-  }, [resourcePools]);
 
   useEffect(() => {
     saveOperationsRegistrationStrategy(registrationStrategy);
@@ -697,60 +472,23 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
   }, [serviceContactConfig]);
 
   useEffect(() => {
-    saveStoredOperationsMeteringProviders(meteringProviders);
-  }, [meteringProviders]);
-
-  useEffect(() => {
-    saveStoredOperationsModelServices(modelServices);
-  }, [modelServices]);
-
-  useEffect(() => {
-    saveStoredOperationsExternalMeteredServices(externalMeteredServices);
-  }, [externalMeteredServices]);
-
-  useEffect(() => {
-    saveStoredOperationsPointsUsageRecords(pointsUsageRecords);
-  }, [pointsUsageRecords]);
+    saveOperationsCommunityGroupConfig(communityGroupConfig);
+  }, [communityGroupConfig]);
 
   const approvedAgentSubmissions = useMemo<OperationsAgentSubmission[]>(
     () => agentSubmissions.filter(item => item.status === "approved"),
     [agentSubmissions],
   );
-  const pointsOrders = getAllMockTenantPointsOrders();
 
   const createTenant = useCallback((form: OperationsTenantForm): void => {
     setTenants(currentTenants => [buildTenantFromForm(form), ...currentTenants]);
   }, []);
 
-  const addTenantMember = useCallback(
-    (tenantId: string, form: OperationsTenantMemberForm): void => {
-      const nextTimestamp = formatTimestamp();
-
-      setTenants(currentTenants =>
-        currentTenants.map(item =>
-          item.id === tenantId
-            ? {
-                ...item,
-                members: [
-                  ...item.members,
-                  {
-                    id: buildTenantMemberId(),
-                    name: form.name.trim(),
-                    phone: form.phone.trim(),
-                    roleLabel: "成员",
-                    addedAt: nextTimestamp,
-                  },
-                ],
-                updatedAt: nextTimestamp,
-              }
-            : item,
-        ),
-      );
-    },
-    [],
-  );
-
   const updateTenant = useCallback((tenantId: string, form: OperationsTenantForm): void => {
+    const adminRole = getOperationsTenantInitialAdminRoleOption(form.adminRoleId);
+    const hasOperationsConsoleAccess = adminRole.moduleLabels.some(label => label.includes("运营"));
+    const hasAgentListingAccess = resolveOperationsTenantAgentListingAccess(adminRole.value);
+
     setTenants(currentTenants =>
       currentTenants.map(item =>
         item.id === tenantId
@@ -758,21 +496,24 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
               ...item,
               name: form.name.trim(),
               code: form.code.trim().toUpperCase(),
-              deploymentMode: form.deploymentMode,
               edition: resolveTenantEditionBySeatCount(form.seatCount),
               industry: form.industry.trim(),
               adminName: form.adminName.trim(),
               adminPhone: form.adminPhone.trim(),
-              hasAgentListingAccess: form.hasAgentListingAccess,
-              hasOperationsConsoleAccess: form.hasOperationsConsoleAccess,
+              adminRoleId: adminRole.value,
+              adminRoleLabel: adminRole.label,
+              hasAgentListingAccess,
+              hasOperationsConsoleAccess,
               seatCount: form.seatCount,
               effectiveAt: form.effectiveAt.trim(),
               expiresAt: form.expiresAt.trim(),
-              moduleLabels: resolveTenantModuleLabels(form.hasOperationsConsoleAccess),
+              moduleLabels: adminRole.moduleLabels,
               members: syncAdminTenantMember(
                 item.members,
                 form.adminName,
                 form.adminPhone,
+                adminRole.value,
+                adminRole.label,
                 item.createdAt,
               ),
               updatedAt: formatTimestamp(),
@@ -858,11 +599,11 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
   const createProduct = useCallback(
     (form: OperationsProductForm): void => {
       setProducts(currentProducts => [
-        buildProductFromForm(form, approvedAgentSubmissions, resourcePools),
+        buildProductFromForm(form, approvedAgentSubmissions),
         ...currentProducts,
       ]);
     },
-    [approvedAgentSubmissions, resourcePools],
+    [approvedAgentSubmissions],
   );
 
   const updateProduct = useCallback(
@@ -877,8 +618,6 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
             form.supplyKind === "agent" && form.linkedAgentId
               ? approvedAgentSubmissions.find(agent => agent.id === form.linkedAgentId)
               : undefined;
-          const nextResourcePoolId =
-            form.deliveryKind === "softwareService" ? undefined : form.resourcePoolId;
           const useSubscriptionPlans = shouldUseSubscriptionPlans(form);
 
           return {
@@ -892,8 +631,8 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
             billingSpec: useSubscriptionPlans ? undefined : form.billingSpec,
             linkedAgentId: linkedSubmission?.id,
             linkedAgentName: linkedSubmission?.name,
-            resourcePoolId: nextResourcePoolId,
-            resourcePoolName: getResourcePoolNameById(resourcePools, nextResourcePoolId),
+            resourcePoolId: undefined,
+            resourcePoolName: undefined,
             description: form.description.trim(),
             price: form.saleType === "free" ? 0 : useSubscriptionPlans ? undefined : form.price,
             subscriptionPlans: useSubscriptionPlans
@@ -902,9 +641,9 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
             supportsTrial: form.supportsTrial,
             trialUnit: form.supportsTrial ? form.trialUnit : undefined,
             trialValue: form.supportsTrial ? form.trialValue : undefined,
-            contactMode: "disabled",
-            contactQrCodeValue: undefined,
-            contactRemark: undefined,
+            contactMode: form.contactMode,
+            contactQrCodeValue: form.contactMode === "custom" ? form.contactQrCodeValue.trim() : "",
+            contactRemark: form.contactMode === "custom" ? form.contactRemark.trim() : "",
             status: form.plazaStatus === "online" ? "active" : "inactive",
             plazaCategory: form.plazaCategory,
             plazaVisibility: form.plazaVisibility,
@@ -917,7 +656,7 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
         }),
       );
     },
-    [approvedAgentSubmissions, resourcePools],
+    [approvedAgentSubmissions],
   );
 
   const updateProductStatus = useCallback(
@@ -938,29 +677,50 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
     [],
   );
 
-  const updateAgentPlazaSettings = useCallback(
+  const updateServiceContactConfig = useCallback(
     (
-      productId: string,
-      patch: Pick<
-        OperationsProduct,
-        | "plazaCategory"
-        | "plazaVisibility"
-        | "visibleTenantIds"
-        | "visibleTenantNames"
-        | "plazaStatus"
+      config: Pick<
+        OperationsServiceContactConfig,
+        "enabled" | "contactName" | "qrCodeValue" | "remarkTemplate"
       >,
     ): void => {
-      setProducts(currentProducts =>
-        currentProducts.map(item =>
-          item.id === productId
-            ? {
-                ...item,
-                ...patch,
-                updatedAt: formatTimestamp(),
-              }
-            : item,
-        ),
-      );
+      setServiceContactConfig({
+        enabled: config.enabled,
+        contactName: config.contactName.trim(),
+        qrCodeValue: config.qrCodeValue.trim(),
+        remarkTemplate: config.remarkTemplate.trim(),
+        updatedAt: formatTimestamp(),
+      });
+    },
+    [],
+  );
+
+  const updateCommunityGroupConfig = useCallback(
+    (
+      config: Pick<
+        OperationsCommunityGroupConfig,
+        "enabled" | "groupName" | "qrCodeValue" | "description"
+      >,
+    ): void => {
+      setCommunityGroupConfig({
+        enabled: config.enabled,
+        groupName: config.groupName.trim(),
+        qrCodeValue: config.qrCodeValue.trim(),
+        description: config.description.trim(),
+        updatedAt: formatTimestamp(),
+      });
+    },
+    [],
+  );
+
+  const updateRegistrationStrategy = useCallback(
+    (config: Pick<OperationsRegistrationStrategy, "enabled" | "initialPermissionIds">): void => {
+      setRegistrationStrategy(currentStrategy => ({
+        ...currentStrategy,
+        enabled: config.enabled,
+        initialPermissionIds: [...config.initialPermissionIds],
+        updatedAt: formatTimestamp(),
+      }));
     },
     [],
   );
@@ -970,7 +730,7 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
       const updatedAt = formatTimestamp();
 
       setAgentPlazaCategories(currentCategories =>
-        sortAgentPlazaCategories([
+        sortCategoryOptions([
           ...currentCategories,
           {
             id: buildAgentPlazaCategoryId(),
@@ -1001,7 +761,7 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
       const hasRenamed = nextName !== currentCategory.name;
 
       setAgentPlazaCategories(currentCategories =>
-        sortAgentPlazaCategories(
+        sortCategoryOptions(
           currentCategories.map(item =>
             item.id === categoryId
               ? {
@@ -1049,273 +809,72 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
     [agentPlazaCategories],
   );
 
-  const createResourcePool = useCallback((form: OperationsResourcePoolForm): void => {
-    setResourcePools(currentPools => [buildResourcePoolFromForm(form), ...currentPools]);
-  }, []);
+  const createSkillCenterCategory = useCallback(
+    (payload: Pick<OperationsSkillCenterCategoryOption, "name" | "sortOrder">): void => {
+      const updatedAt = formatTimestamp();
 
-  const updateResourcePool = useCallback(
-    (resourcePoolId: string, form: OperationsResourcePoolForm): void => {
-      const nextUpdatedAt = formatTimestamp();
-      const nextPoolName = form.name.trim();
-
-      setResourcePools(currentPools =>
-        currentPools.map(item =>
-          item.id === resourcePoolId
-            ? {
-                ...item,
-                name: nextPoolName,
-                resourceType: form.resourceType,
-                provider: form.provider.trim(),
-                allocationMode: form.allocationMode,
-                totalCapacity: form.totalCapacity,
-                availableCapacity: form.availableCapacity,
-                capacityUnit: form.capacityUnit,
-                updatedAt: nextUpdatedAt,
-              }
-            : item,
-        ),
-      );
-
-      setProducts(currentProducts =>
-        currentProducts.map(item =>
-          item.resourcePoolId === resourcePoolId
-            ? {
-                ...item,
-                resourcePoolName: nextPoolName,
-                updatedAt: nextUpdatedAt,
-              }
-            : item,
-        ),
-      );
-
-      setFulfillments(currentFulfillments =>
-        currentFulfillments.map(item =>
-          item.resourcePoolId === resourcePoolId
-            ? {
-                ...item,
-                resourcePoolName: nextPoolName,
-                updatedAt: nextUpdatedAt,
-              }
-            : item,
-        ),
+      setSkillCenterCategories(currentCategories =>
+        sortCategoryOptions([
+          ...currentCategories,
+          {
+            id: buildSkillCenterCategoryId(),
+            name: payload.name.trim(),
+            sortOrder: payload.sortOrder,
+            status: "active",
+            updatedAt,
+          },
+        ]),
       );
     },
     [],
   );
 
-  const updateRegistrationStrategy = useCallback(
+  const updateSkillCenterCategory = useCallback(
     (
-      patch: Partial<
-        Pick<
-          OperationsRegistrationStrategy,
-          | "defaultGiftPoints"
-          | "pointsPerCny"
-          | "minimumDeductPoints"
-          | "roundingUnit"
-          | "referralDailyRewardLimit"
-          | "referralEnabled"
-          | "referralInviteeRewardPoints"
-          | "referralInviterRewardPoints"
-          | "referralMonthlyRewardLimit"
-        >
-      >,
+      categoryId: string,
+      updates: Partial<Pick<OperationsSkillCenterCategoryOption, "name" | "sortOrder" | "status">>,
     ): void => {
-      setRegistrationStrategy(currentState => ({
-        ...currentState,
-        ...patch,
-        updatedAt: formatTimestamp(),
-      }));
-    },
-    [],
-  );
+      const currentCategory = skillCenterCategories.find(item => item.id === categoryId) ?? null;
 
-  const updateServiceContactConfig = useCallback(
-    (
-      patch: Partial<
-        Pick<
-          OperationsServiceContactConfig,
-          "enabled" | "contactName" | "qrCodeValue" | "remarkTemplate"
-        >
-      >,
-    ): void => {
-      setServiceContactConfig(currentState => ({
-        ...currentState,
-        ...patch,
-        contactName: patch.contactName?.trim() ?? currentState.contactName,
-        qrCodeValue: patch.qrCodeValue?.trim() ?? currentState.qrCodeValue,
-        remarkTemplate: patch.remarkTemplate?.trim() ?? currentState.remarkTemplate,
-        updatedAt: formatTimestamp(),
-      }));
-    },
-    [],
-  );
+      if (!currentCategory) {
+        return;
+      }
 
-  const createMeteringProvider = useCallback((form: OperationsMeteringProviderForm): void => {
-    setMeteringProviders(currentProviders => [
-      buildMeteringProviderFromForm(form),
-      ...currentProviders,
-    ]);
-  }, []);
+      const updatedAt = formatTimestamp();
+      const nextName = updates.name?.trim() || currentCategory.name;
 
-  const updateMeteringProvider = useCallback(
-    (providerId: string, form: OperationsMeteringProviderForm): void => {
-      const nextProviderName = form.name.trim();
-      const nextUpdatedAt = formatTimestamp();
-
-      setMeteringProviders(currentProviders =>
-        currentProviders.map(item =>
-          item.id === providerId
-            ? {
-                ...item,
-                name: nextProviderName,
-                providerKind: form.providerKind,
-                baseUrl: form.baseUrl.trim(),
-                billingCurrency: form.billingCurrency.trim() || "CNY",
-                credentialStatusLabel: form.credentialStatusLabel.trim() || "未配置",
-                status: form.status,
-                updatedAt: nextUpdatedAt,
-              }
-            : item,
-        ),
-      );
-
-      setModelServices(currentModels =>
-        currentModels.map(item =>
-          item.providerId === providerId
-            ? {
-                ...item,
-                providerName: nextProviderName,
-                updatedAt: nextUpdatedAt,
-              }
-            : item,
-        ),
-      );
-
-      setExternalMeteredServices(currentServices =>
-        currentServices.map(item =>
-          item.providerId === providerId
-            ? {
-                ...item,
-                providerName: nextProviderName,
-                updatedAt: nextUpdatedAt,
-              }
-            : item,
+      setSkillCenterCategories(currentCategories =>
+        sortCategoryOptions(
+          currentCategories.map(item =>
+            item.id === categoryId
+              ? {
+                  ...item,
+                  ...updates,
+                  name: nextName,
+                  sortOrder:
+                    typeof updates.sortOrder === "number" ? updates.sortOrder : item.sortOrder,
+                  status: updates.status ?? item.status,
+                  updatedAt,
+                }
+              : item,
+          ),
         ),
       );
     },
+    [skillCenterCategories],
+  );
+
+  const tenantInitialAdminRoleOptions = useMemo<OperationsTenantInitialAdminRoleOption[]>(
+    () => OPERATIONS_TENANT_INITIAL_ADMIN_ROLE_OPTIONS,
     [],
   );
 
-  const createModelService = useCallback(
-    (form: OperationsModelServiceForm): void => {
-      setModelServices(currentModels => [
-        buildModelServiceFromForm(form, meteringProviders),
-        ...currentModels,
-      ]);
-    },
-    [meteringProviders],
-  );
-
-  const updateModelService = useCallback(
-    (modelId: string, form: OperationsModelServiceForm): void => {
-      setModelServices(currentModels =>
-        currentModels.map(item =>
-          item.id === modelId
-            ? {
-                ...buildModelServiceFromForm(form, meteringProviders),
-                id: item.id,
-              }
-            : item,
-        ),
-      );
-    },
-    [meteringProviders],
-  );
-
-  const createExternalMeteredService = useCallback(
-    (form: OperationsExternalMeteredServiceForm): void => {
-      setExternalMeteredServices(currentServices => [
-        buildExternalMeteredServiceFromForm(form, meteringProviders),
-        ...currentServices,
-      ]);
-    },
-    [meteringProviders],
-  );
-
-  const updateExternalMeteredService = useCallback(
-    (serviceId: string, form: OperationsExternalMeteredServiceForm): void => {
-      setExternalMeteredServices(currentServices =>
-        currentServices.map(item =>
-          item.id === serviceId
-            ? {
-                ...buildExternalMeteredServiceFromForm(form, meteringProviders),
-                id: item.id,
-              }
-            : item,
-        ),
-      );
-    },
-    [meteringProviders],
-  );
-
-  const handleUpdatePointsPackage = useCallback(
-    (
-      packageId: string,
-      updates: Partial<
-        Pick<
-          MockPointsPackageOption,
-          "title" | "description" | "points" | "price" | "status" | "sortOrder" | "tagLabel"
-        >
-      >,
-    ): void => {
-      setPointsPackages(updateMockPointsPackage(packageId, updates));
-    },
+  const emptyTenantForm = useMemo<OperationsTenantForm>(
+    () => createEmptyOperationsTenantForm(),
     [],
   );
-
-  const handleCreatePointsPackage = useCallback(
-    (
-      payload: Pick<
-        MockPointsPackageOption,
-        "title" | "description" | "points" | "price" | "tagLabel"
-      >,
-    ): void => {
-      setPointsPackages(createMockPointsPackage(payload));
-    },
-    [],
-  );
-
-  const handleUpdateTeamPlanPackage = useCallback(
-    (
-      packageId: string,
-      updates: Partial<
-        Pick<
-          MockTenantPlanPackageOption,
-          "title" | "description" | "includedSeats" | "price" | "status" | "sortOrder" | "tagLabel"
-        >
-      >,
-    ): void => {
-      setTeamPlanPackages(updateMockTenantPlanPackage(packageId, updates));
-    },
-    [],
-  );
-
-  const handleCreateTeamPlanPackage = useCallback(
-    (
-      payload: Pick<
-        MockTenantPlanPackageOption,
-        "title" | "description" | "includedSeats" | "price" | "tagLabel"
-      >,
-    ): void => {
-      setTeamPlanPackages(createMockTenantPlanPackage(payload));
-    },
-    [],
-  );
-
-  const handleUpdateTeamSeatPricing = useCallback(
-    (updates: Partial<Pick<MockTenantSeatPricing, "pricePerSeat" | "billingCycleLabel">>): void => {
-      setTeamSeatPricing(updateMockTenantSeatPricing(updates));
-    },
+  const emptyProductForm = useMemo<OperationsProductForm>(
+    () => createEmptyOperationsProductForm(),
     [],
   );
 
@@ -1323,29 +882,18 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
     tenants,
     agentSubmissions,
     agentPlazaCategories,
+    skillCenterCategories,
     approvedAgentSubmissions,
     approvedAgents: approvedAgentSubmissions,
     products,
-    fulfillments,
-    resourcePools,
     registrationStrategy,
     serviceContactConfig,
-    referralRecords,
-    meteringProviders,
-    modelServices,
-    externalMeteredServices,
-    pointsUsageRecords,
-    pointsPackages,
-    teamPlanPackages,
-    teamSeatPricing,
-    pointsOrders,
-    emptyTenantForm: createEmptyOperationsTenantForm(),
-    emptyTenantMemberForm: createEmptyOperationsTenantMemberForm(),
-    emptyProductForm: createEmptyOperationsProductForm(),
-    emptyResourcePoolForm: createEmptyOperationsResourcePoolForm(),
+    communityGroupConfig,
+    emptyTenantForm,
+    emptyProductForm,
+    tenantInitialAdminRoleOptions,
     tenantStatusLabels: OPERATIONS_TENANT_STATUS_LABELS,
     agentStatusLabels: OPERATIONS_AGENT_STATUS_LABELS,
-    fulfillmentStatusLabels: OPERATIONS_FULFILLMENT_STATUS_LABELS,
     productStatusLabels: OPERATIONS_PRODUCT_STATUS_LABELS,
     productSupplyKindLabels: OPERATIONS_PRODUCT_SUPPLY_KIND_LABELS,
     productSaleTypeLabels: OPERATIONS_PRODUCT_SALE_TYPE_LABELS,
@@ -1354,20 +902,13 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
     productBillingModeLabels: OPERATIONS_PRODUCT_BILLING_MODE_LABELS,
     productMeteringUnitLabels: OPERATIONS_PRODUCT_METERING_UNIT_LABELS,
     productBillingSpecLabels: OPERATIONS_PRODUCT_BILLING_SPEC_LABELS,
-    resourcePoolTypeLabels: OPERATIONS_RESOURCE_POOL_TYPE_LABELS,
-    resourcePoolAllocationModeLabels: OPERATIONS_RESOURCE_POOL_ALLOCATION_MODE_LABELS,
-    resourcePoolCapacityUnitLabels: OPERATIONS_RESOURCE_POOL_CAPACITY_UNIT_LABELS,
     productDeliveryKindOptions: OPERATIONS_PRODUCT_DELIVERY_KIND_OPTIONS,
     productSaleTypeOptions: OPERATIONS_PRODUCT_SALE_TYPE_OPTIONS,
     productTrialUnitOptions: OPERATIONS_PRODUCT_TRIAL_UNIT_OPTIONS,
     productBillingModeOptions: OPERATIONS_PRODUCT_BILLING_MODE_OPTIONS,
     productMeteringUnitOptions: OPERATIONS_PRODUCT_METERING_UNIT_OPTIONS,
     productBillingSpecOptions: OPERATIONS_PRODUCT_BILLING_SPEC_OPTIONS,
-    resourcePoolTypeOptions: OPERATIONS_RESOURCE_POOL_TYPE_OPTIONS,
-    resourcePoolAllocationModeOptions: OPERATIONS_RESOURCE_POOL_ALLOCATION_MODE_OPTIONS,
-    resourcePoolCapacityUnitOptions: OPERATIONS_RESOURCE_POOL_CAPACITY_UNIT_OPTIONS,
     createTenant,
-    addTenantMember,
     updateTenant,
     updateTenantStatus,
     approveAgent,
@@ -1375,23 +916,12 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
     createProduct,
     updateProduct,
     updateProductStatus,
-    updateAgentPlazaSettings,
+    updateServiceContactConfig,
+    updateCommunityGroupConfig,
+    updateRegistrationStrategy,
     createAgentPlazaCategory,
     updateAgentPlazaCategory,
-    createResourcePool,
-    updateResourcePool,
-    updateRegistrationStrategy,
-    updateServiceContactConfig,
-    createMeteringProvider,
-    updateMeteringProvider,
-    createModelService,
-    updateModelService,
-    createExternalMeteredService,
-    updateExternalMeteredService,
-    updateTeamPlanPackage: handleUpdateTeamPlanPackage,
-    createTeamPlanPackage: handleCreateTeamPlanPackage,
-    updateTeamSeatPricing: handleUpdateTeamSeatPricing,
-    updatePointsPackage: handleUpdatePointsPackage,
-    createPointsPackage: handleCreatePointsPackage,
+    createSkillCenterCategory,
+    updateSkillCenterCategory,
   };
 };

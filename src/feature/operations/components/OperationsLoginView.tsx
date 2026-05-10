@@ -6,7 +6,7 @@ import { Navigate, useNavigate, useSearchParams } from "react-router-dom";
 
 import {
   MANAGEMENT_CONSOLE_LABEL,
-  PRODUCT_LOGO_TEXT,
+  PRODUCT_LOGO_URL,
   PRODUCT_NAME,
   PRODUCT_SLOGAN,
 } from "@/constants/brand";
@@ -130,7 +130,7 @@ export const OperationsLoginView = (): JSX.Element => {
     <div className={styles.page}>
       <div className={styles.shell}>
         <div className={styles.brandBlock}>
-          <div className={styles.brandMark}>{PRODUCT_LOGO_TEXT}</div>
+          <img className={styles.brandMark} src={PRODUCT_LOGO_URL} alt={PRODUCT_NAME} />
           <div className={styles.brandCopy}>
             <p className={styles.brandTitle}>{PRODUCT_NAME}</p>
             <p className={styles.brandSubtitle}>{PRODUCT_SLOGAN}</p>

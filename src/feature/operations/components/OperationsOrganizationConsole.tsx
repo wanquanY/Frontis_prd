@@ -1,818 +1,370 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
-import { EditOutlined, PlusOutlined } from "@ant-design/icons";
-import { Button, Checkbox, Input, Modal, Select, message } from "antd";
-import classNames from "classnames";
+import { message } from "antd";
 
 import {
-  DEPARTMENT_LEAD_PERMISSION_IDS,
-  TENANT_MEMBER_PERMISSION_IDS,
-  TENANT_ROLE_PERMISSION_GROUPS,
-  TENANT_ROLE_PERMISSION_IDS,
+  createDefaultTenantRoles,
+  DEFAULT_TENANT_ROLE_IDS,
+  OPERATIONS_OPERATOR_PERMISSION_IDS,
+  OPERATIONS_SUPER_ADMIN_PERMISSION_IDS,
+  syncTenantRoleMembers,
+  type TenantRoleItem,
 } from "@/constants/tenantRolePermissions";
+import { inviteMockTenantMemberAccount, updateMockTenantUsers } from "@/feature/auth/mockAccounts";
+import { useMockAuth } from "@/feature/auth/hooks/useMockAuth";
+import { getMockTenantManagementSnapshot } from "@/feature/auth/mockTenantRegistry";
+import type {
+  MockTenantInviteMemberParams,
+  MockTenantManagementSnapshot,
+} from "@/feature/auth/types";
+import { INITIAL_ORGANIZATION_DEPARTMENTS } from "@/mocks/mockData";
+import { OrganizationManagementView } from "@/pages/components/OrganizationManagementView";
+import { RoleManagementView } from "@/pages/components/RoleManagementView";
 import adminStyles from "@/pages/components/FrontisAdminViews.module.less";
+import type {
+  FrontisUserStatus,
+  FrontisWebUserItem,
+  OrganizationDepartmentItem,
+} from "@/pages/types";
 
-import styles from "./OperationsPlatformView.module.less";
-
-interface PermissionItem {
-  id: string;
-  label: string;
+export interface OperationsOrganizationConsoleProps {
+  canAssignRoles?: boolean;
+  canChangeMemberStatus?: boolean;
+  canEditMembers?: boolean;
+  canInviteMembers?: boolean;
+  canManageCustomRoles?: boolean;
+  canManageDepartments?: boolean;
+  canRemoveMembers?: boolean;
+  view: "organization" | "roleManagement";
 }
 
-interface PermissionGroup {
-  items: PermissionItem[];
-  title: string;
-}
+const FALLBACK_TENANT_ID = "tenant-enterprise-demo";
+const OPERATIONS_SUPER_ADMIN_ROLE_ID = "role-operations-super-admin";
+const OPERATIONS_OPERATOR_ROLE_ID = "role-operations-operator";
 
-interface OperationsRoleItem {
-  builtin: boolean;
-  id: string;
-  memberIds: string[];
-  name: string;
-  permissionIds: string[];
-}
+const resolveSnapshot = (tenantId?: string): MockTenantManagementSnapshot | null =>
+  getMockTenantManagementSnapshot(tenantId) ?? getMockTenantManagementSnapshot(FALLBACK_TENANT_ID);
 
-interface OperationsAccountItem {
-  id: string;
-  name: string;
-  phone: string;
-  roleId: string;
-  status: "active" | "disabled";
-}
+const buildUsersWithOperationsRole = (
+  users: FrontisWebUserItem[],
+  currentAccountPhone?: string,
+): FrontisWebUserItem[] =>
+  users.map(user => {
+    const roleIds = new Set(
+      user.roleIds?.length ? user.roleIds : [DEFAULT_TENANT_ROLE_IDS[user.role]],
+    );
 
-interface TenantPresetRoleItem {
-  id: string;
-  name: string;
-  permissionIds: string[];
-}
-
-interface DraftRoleForm {
-  name: string;
-  permissionIds: string[];
-}
-
-interface DraftAccountForm {
-  name: string;
-  phone: string;
-  roleId: string;
-}
-
-type OrganizationConsoleTabKey = "accounts" | "operationRoles" | "tenantPresets";
-
-const OPERATION_PERMISSION_GROUPS: PermissionGroup[] = [
-  {
-    title: "租户",
-    items: [
-      { id: "tenant.view", label: "查看租户" },
-      { id: "tenant.create", label: "创建租户" },
-      { id: "tenant.edit", label: "编辑租户" },
-      { id: "tenant.status", label: "启停租户" },
-      { id: "tenant.points.recharge", label: "配置租户积分" },
-      { id: "tenant.agentListing.configure", label: "配置上架服务" },
-      { id: "tenant.operations.configure", label: "配置运营系统" },
-    ],
-  },
-  {
-    title: "积分",
-    items: [
-      { id: "points.rule.manage", label: "管理积分规则" },
-      { id: "points.referral.manage", label: "管理邀请奖励" },
-      { id: "points.reconciliation.view", label: "查看积分对账" },
-    ],
-  },
-  {
-    title: "AI 专家",
-    items: [
-      { id: "agent.review", label: "审核上架申请" },
-      { id: "agent.plaza.manage", label: "管理 AI 专家商品" },
-      { id: "agent.category.manage", label: "管理商品分类" },
-    ],
-  },
-  {
-    title: "资源计量",
-    items: [
-      { id: "resource.model.manage", label: "管理模型计量" },
-      { id: "resource.external.manage", label: "管理接口计量" },
-    ],
-  },
-  {
-    title: "平台组织",
-    items: [
-      { id: "ops.account.manage", label: "管理运营账号" },
-      { id: "ops.role.manage", label: "管理运营角色" },
-      { id: "tenant.preset.manage", label: "管理平台预设角色" },
-    ],
-  },
-];
-
-const DEFAULT_ROLE_FORM: DraftRoleForm = {
-  name: "",
-  permissionIds: [],
-};
-
-const DEFAULT_ACCOUNT_FORM: DraftAccountForm = {
-  name: "",
-  phone: "",
-  roleId: "ops-role-operator-admin",
-};
-
-const getPermissionIds = (groups: PermissionGroup[]): string[] =>
-  groups.flatMap(group => group.items.map(item => item.id));
-
-const resolveNextRolePermissionIds = (
-  groups: PermissionGroup[],
-  currentPermissionIds: string[],
-  permissionIds: string[],
-  checked: boolean,
-): string[] => {
-  const allPermissionIds = getPermissionIds(groups);
-  const permissionSet = new Set(currentPermissionIds);
-
-  permissionIds.forEach(permissionId => {
-    if (checked) {
-      permissionSet.add(permissionId);
-      return;
+    if (currentAccountPhone && user.phone === currentAccountPhone) {
+      roleIds.add(OPERATIONS_SUPER_ADMIN_ROLE_ID);
     }
 
-    permissionSet.delete(permissionId);
+    return {
+      ...user,
+      roleIds: Array.from(roleIds),
+    };
   });
 
-  return allPermissionIds.filter(permissionId => permissionSet.has(permissionId));
-};
-
-const createInitialOperationRoles = (): OperationsRoleItem[] => [
+const createOperationsTenantRoles = (users: FrontisWebUserItem[]): TenantRoleItem[] => [
+  ...createDefaultTenantRoles(users),
   {
-    id: "ops-role-super-admin",
-    builtin: true,
+    id: OPERATIONS_SUPER_ADMIN_ROLE_ID,
+    builtin: false,
     name: "平台超管",
-    memberIds: ["ops-account-001"],
-    permissionIds: getPermissionIds(OPERATION_PERMISSION_GROUPS),
+    memberIds: users
+      .filter(user => user.roleIds?.includes(OPERATIONS_SUPER_ADMIN_ROLE_ID))
+      .map(user => user.id),
+    permissionIds: OPERATIONS_SUPER_ADMIN_PERMISSION_IDS,
   },
   {
-    id: "ops-role-operator-admin",
-    builtin: true,
-    name: "运营管理员",
-    memberIds: ["ops-account-002"],
-    permissionIds: [
-      "tenant.view",
-      "tenant.create",
-      "tenant.edit",
-      "tenant.status",
-      "tenant.points.recharge",
-      "tenant.agentListing.configure",
-      "points.rule.manage",
-      "points.referral.manage",
-      "points.reconciliation.view",
-      "agent.review",
-      "agent.plaza.manage",
-      "agent.category.manage",
-      "resource.model.manage",
-      "resource.external.manage",
-    ],
-  },
-  {
-    id: "ops-role-service",
-    builtin: true,
-    name: "广场运营",
-    memberIds: [],
-    permissionIds: ["agent.review", "agent.plaza.manage", "agent.category.manage"],
+    id: OPERATIONS_OPERATOR_ROLE_ID,
+    builtin: false,
+    name: "平台运营",
+    memberIds: users
+      .filter(user => user.roleIds?.includes(OPERATIONS_OPERATOR_ROLE_ID))
+      .map(user => user.id),
+    permissionIds: OPERATIONS_OPERATOR_PERMISSION_IDS,
   },
 ];
 
-const createInitialAccounts = (): OperationsAccountItem[] => [
-  {
-    id: "ops-account-001",
-    name: "周明越",
-    phone: "13800008881",
-    roleId: "ops-role-super-admin",
-    status: "active",
-  },
-  {
-    id: "ops-account-002",
-    name: "陈可心",
-    phone: "13800008882",
-    roleId: "ops-role-operator-admin",
-    status: "active",
-  },
-];
+const syncRootDepartmentName = (
+  departments: OrganizationDepartmentItem[],
+  tenantName?: string,
+): OrganizationDepartmentItem[] => {
+  const nextTenantName = tenantName?.trim();
 
-const createInitialTenantPresets = (): TenantPresetRoleItem[] => [
-  {
-    id: "tenant-preset-org-admin",
-    name: "组织管理员",
-    permissionIds: TENANT_ROLE_PERMISSION_IDS,
-  },
-  {
-    id: "tenant-preset-department-lead",
-    name: "部门负责人",
-    permissionIds: DEPARTMENT_LEAD_PERMISSION_IDS,
-  },
-  {
-    id: "tenant-preset-member",
-    name: "普通成员",
-    permissionIds: TENANT_MEMBER_PERMISSION_IDS,
-  },
-];
-
-const TAB_OPTIONS: Array<{ key: OrganizationConsoleTabKey; label: string }> = [
-  { key: "accounts", label: "运营账号" },
-  { key: "operationRoles", label: "运营角色" },
-  { key: "tenantPresets", label: "平台预设角色" },
-];
-
-const getRoleLabel = (roles: OperationsRoleItem[], roleId: string): string =>
-  roles.find(role => role.id === roleId)?.name ?? "未分配";
-
-const renderPermissionTree = (groups: PermissionGroup[], permissionIds: string[]): JSX.Element => {
-  const visibleGroups = groups
-    .map(group => ({
-      ...group,
-      items: group.items.filter(permission => permissionIds.includes(permission.id)),
-    }))
-    .filter(group => group.items.length > 0);
-
-  if (!visibleGroups.length) {
-    return <div className={adminStyles.consoleEmpty}>暂无权限</div>;
+  if (!nextTenantName) {
+    return departments;
   }
 
-  return (
-    <div className={adminStyles.rolePermissionTree}>
-      {visibleGroups.map(group => (
-        <div key={group.title} className={adminStyles.rolePermissionTreeGroup}>
-          <div className={adminStyles.rolePermissionTreeHeader}>
-            <span className={adminStyles.rolePermissionTreeTitle}>{group.title}</span>
-            <span className={adminStyles.consolePill}>{group.items.length} 项</span>
-          </div>
-          <div className={adminStyles.rolePermissionTreeItems}>
-            {group.items.map(permission => (
-              <div key={permission.id} className={adminStyles.rolePermissionTreeItem}>
-                <span className={adminStyles.rolePermissionTreeDot} />
-                <span>{permission.label}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      ))}
-    </div>
-  );
+  let hasUpdatedRoot = false;
+
+  return departments.map(department => {
+    if (hasUpdatedRoot || department.parentId !== null) {
+      return department;
+    }
+
+    hasUpdatedRoot = true;
+
+    return department.name === nextTenantName
+      ? department
+      : {
+          ...department,
+          name: nextTenantName,
+        };
+  });
 };
 
 /**
- * 运营后台组织、运营角色与全平台预设角色管理视图。
+ * 运营后台组织管理视图，复用管理后台组织树与统一角色权限。
  */
-export const OperationsOrganizationConsole = (): JSX.Element => {
-  const [activeTab, setActiveTab] = useState<OrganizationConsoleTabKey>("accounts");
-  const [operationRoles, setOperationRoles] = useState<OperationsRoleItem[]>(
-    createInitialOperationRoles,
+export const OperationsOrganizationConsole = ({
+  canAssignRoles = true,
+  canChangeMemberStatus = true,
+  canEditMembers = true,
+  canInviteMembers = true,
+  canManageCustomRoles = true,
+  canManageDepartments = true,
+  canRemoveMembers = true,
+  view,
+}: OperationsOrganizationConsoleProps): JSX.Element => {
+  const { activeIdentity, session } = useMockAuth();
+  const initialSnapshot = useMemo<MockTenantManagementSnapshot | null>(
+    () => resolveSnapshot(activeIdentity?.tenantId),
+    [activeIdentity?.tenantId],
   );
-  const [accounts, setAccounts] = useState<OperationsAccountItem[]>(createInitialAccounts);
-  const [tenantPresets, setTenantPresets] = useState<TenantPresetRoleItem[]>(
-    createInitialTenantPresets,
+  const [tenantSnapshot, setTenantSnapshot] = useState<MockTenantManagementSnapshot | null>(
+    initialSnapshot,
   );
-  const [selectedOperationRoleId, setSelectedOperationRoleId] =
-    useState<string>("ops-role-operator-admin");
-  const [selectedPresetId, setSelectedPresetId] = useState<string>("tenant-preset-org-admin");
-  const [isAccountModalOpen, setIsAccountModalOpen] = useState<boolean>(false);
-  const [isOperationRoleModalOpen, setIsOperationRoleModalOpen] = useState<boolean>(false);
-  const [isPresetModalOpen, setIsPresetModalOpen] = useState<boolean>(false);
-  const [editingOperationRoleId, setEditingOperationRoleId] = useState<string>("");
-  const [editingPresetId, setEditingPresetId] = useState<string>("");
-  const [draftAccount, setDraftAccount] = useState<DraftAccountForm>(DEFAULT_ACCOUNT_FORM);
-  const [draftRole, setDraftRole] = useState<DraftRoleForm>(DEFAULT_ROLE_FORM);
-  const [draftPreset, setDraftPreset] = useState<DraftRoleForm>(DEFAULT_ROLE_FORM);
-
-  const selectedOperationRole = useMemo<OperationsRoleItem | null>(
-    () => operationRoles.find(role => role.id === selectedOperationRoleId) ?? operationRoles[0],
-    [operationRoles, selectedOperationRoleId],
+  const [users, setUsers] = useState<FrontisWebUserItem[]>(() =>
+    buildUsersWithOperationsRole(initialSnapshot?.users ?? [], session?.phone),
   );
-  const selectedPreset = useMemo<TenantPresetRoleItem | null>(
-    () => tenantPresets.find(role => role.id === selectedPresetId) ?? tenantPresets[0],
-    [selectedPresetId, tenantPresets],
+  const [tenantRoles, setTenantRoles] = useState<TenantRoleItem[]>(() =>
+    createOperationsTenantRoles(
+      buildUsersWithOperationsRole(initialSnapshot?.users ?? [], session?.phone),
+    ),
+  );
+  const [selectedRoleId, setSelectedRoleId] = useState<string>(
+    DEFAULT_TENANT_ROLE_IDS.enterpriseAdmin,
+  );
+  const [departments, setDepartments] = useState<OrganizationDepartmentItem[]>(() =>
+    syncRootDepartmentName(INITIAL_ORGANIZATION_DEPARTMENTS, initialSnapshot?.tenantName),
   );
 
-  const handleOpenAccountModal = useCallback((): void => {
-    setDraftAccount(DEFAULT_ACCOUNT_FORM);
-    setIsAccountModalOpen(true);
-  }, []);
+  useEffect(() => {
+    const nextSnapshot = resolveSnapshot(activeIdentity?.tenantId);
 
-  const handleCreateAccount = useCallback((): void => {
-    const name = draftAccount.name.trim();
-    const phone = draftAccount.phone.trim();
-
-    if (!name || !phone) {
-      message.warning("请填写账号信息");
+    if (!nextSnapshot) {
       return;
     }
 
-    const nextAccount: OperationsAccountItem = {
-      id: `ops-account-${Date.now()}`,
-      name,
-      phone,
-      roleId: draftAccount.roleId,
-      status: "active",
-    };
+    setTenantSnapshot(nextSnapshot);
+    const nextUsers = buildUsersWithOperationsRole(nextSnapshot.users, session?.phone);
 
-    setAccounts(current => [...current, nextAccount]);
-    setOperationRoles(current =>
-      current.map(role =>
-        role.id === draftAccount.roleId
-          ? { ...role, memberIds: [...role.memberIds, nextAccount.id] }
-          : role,
-      ),
+    setUsers(nextUsers);
+    setTenantRoles(createOperationsTenantRoles(nextUsers));
+    setSelectedRoleId(DEFAULT_TENANT_ROLE_IDS.enterpriseAdmin);
+    setDepartments(currentDepartments =>
+      syncRootDepartmentName(currentDepartments, nextSnapshot.tenantName),
     );
-    setIsAccountModalOpen(false);
-    message.success("已创建账号");
-  }, [draftAccount]);
+  }, [activeIdentity?.tenantId, session?.phone]);
 
-  const handleOpenCreateOperationRole = useCallback((): void => {
-    setEditingOperationRoleId("");
-    setDraftRole(DEFAULT_ROLE_FORM);
-    setIsOperationRoleModalOpen(true);
-  }, []);
+  useEffect(() => {
+    setTenantRoles(currentRoles => syncTenantRoleMembers(currentRoles, users));
+  }, [users]);
 
-  const handleOpenEditOperationRole = useCallback((role: OperationsRoleItem): void => {
-    if (role.builtin) {
-      message.info("系统角色不可编辑");
-      return;
-    }
+  const syncUsersToTenant = useCallback(
+    (nextUsers: FrontisWebUserItem[]): void => {
+      if (!tenantSnapshot) {
+        return;
+      }
 
-    setEditingOperationRoleId(role.id);
-    setDraftRole({
-      name: role.name,
-      permissionIds: role.permissionIds,
-    });
-    setIsOperationRoleModalOpen(true);
-  }, []);
+      const nextSnapshot = updateMockTenantUsers(tenantSnapshot.tenantId, nextUsers);
 
-  const handleSubmitOperationRole = useCallback((): void => {
-    const name = draftRole.name.trim();
-
-    if (!name || !draftRole.permissionIds.length) {
-      message.warning("请填写角色名称并选择权限");
-      return;
-    }
-
-    if (editingOperationRoleId) {
-      setOperationRoles(current =>
-        current.map(role =>
-          role.id === editingOperationRoleId && !role.builtin
-            ? {
-                ...role,
-                name,
-                permissionIds: draftRole.permissionIds,
-              }
-            : role,
-        ),
-      );
-      setSelectedOperationRoleId(editingOperationRoleId);
-    } else {
-      const nextRole: OperationsRoleItem = {
-        id: `ops-role-custom-${Date.now()}`,
-        builtin: false,
-        memberIds: [],
-        name,
-        permissionIds: draftRole.permissionIds,
-      };
-
-      setOperationRoles(current => [...current, nextRole]);
-      setSelectedOperationRoleId(nextRole.id);
-    }
-
-    setIsOperationRoleModalOpen(false);
-    message.success("已保存");
-  }, [draftRole, editingOperationRoleId]);
-
-  const handleOpenPresetModal = useCallback((role: TenantPresetRoleItem): void => {
-    setEditingPresetId(role.id);
-    setSelectedPresetId(role.id);
-    setDraftPreset({
-      name: role.name,
-      permissionIds: role.permissionIds,
-    });
-    setIsPresetModalOpen(true);
-  }, []);
-
-  const handleOpenCreatePreset = useCallback((): void => {
-    setEditingPresetId("");
-    setDraftPreset({
-      name: "",
-      permissionIds: [],
-    });
-    setIsPresetModalOpen(true);
-  }, []);
-
-  const handleClosePresetModal = useCallback((): void => {
-    setEditingPresetId("");
-    setDraftPreset(DEFAULT_ROLE_FORM);
-    setIsPresetModalOpen(false);
-  }, []);
-
-  const handleSubmitPreset = useCallback((): void => {
-    const name = draftPreset.name.trim();
-
-    if (!name) {
-      message.warning("请输入角色名称");
-      return;
-    }
-
-    if (!draftPreset.permissionIds.length) {
-      message.warning("请至少选择一项权限");
-      return;
-    }
-
-    if (editingPresetId) {
-      setTenantPresets(current =>
-        current.map(role =>
-          role.id === editingPresetId
-            ? {
-                ...role,
-                name,
-                permissionIds: draftPreset.permissionIds,
-              }
-            : role,
-        ),
-      );
-      setSelectedPresetId(editingPresetId);
-    } else {
-      const nextPreset: TenantPresetRoleItem = {
-        id: `tenant-preset-custom-${Date.now()}`,
-        name,
-        permissionIds: draftPreset.permissionIds,
-      };
-
-      setTenantPresets(current => [...current, nextPreset]);
-      setSelectedPresetId(nextPreset.id);
-    }
-
-    handleClosePresetModal();
-    message.success("已保存预设");
-  }, [draftPreset, editingPresetId, handleClosePresetModal]);
-
-  return (
-    <div className={adminStyles.consolePage}>
-      <header className={adminStyles.consoleHeader}>
-        <div className={adminStyles.consoleHeaderMain}>
-          <h1 className={adminStyles.consoleTitle}>组织管理</h1>
-        </div>
-      </header>
-
-      <div className={styles.detailTabBar}>
-        {TAB_OPTIONS.map(tab => (
-          <button
-            key={tab.key}
-            type="button"
-            className={classNames(
-              styles.detailTabButton,
-              activeTab === tab.key && styles.detailTabButtonActive,
-            )}
-            onClick={() => setActiveTab(tab.key)}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
-
-      {activeTab === "accounts" ? (
-        <section className={adminStyles.consoleSection}>
-          <div className={adminStyles.consoleSectionHeader}>
-            <h2 className={adminStyles.consoleSectionTitle}>运营账号</h2>
-            <Button type="primary" icon={<PlusOutlined />} onClick={handleOpenAccountModal}>
-              创建账号
-            </Button>
-          </div>
-          <div className={adminStyles.consoleHtmlTableWrap}>
-            <table className={adminStyles.consoleHtmlTable}>
-              <thead>
-                <tr>
-                  <th>账号</th>
-                  <th>手机号</th>
-                  <th>角色</th>
-                  <th>状态</th>
-                </tr>
-              </thead>
-              <tbody>
-                {accounts.map(account => (
-                  <tr key={account.id}>
-                    <td>
-                      <span className={adminStyles.consoleHtmlTableStrong}>{account.name}</span>
-                    </td>
-                    <td>{account.phone}</td>
-                    <td>{getRoleLabel(operationRoles, account.roleId)}</td>
-                    <td>{account.status === "active" ? "启用" : "停用"}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
-      ) : null}
-
-      {activeTab === "operationRoles" ? (
-        <div className={adminStyles.consoleSplitLayout}>
-          <aside className={adminStyles.consoleSidebar}>
-            <div className={adminStyles.consoleSectionHeader}>
-              <h2 className={adminStyles.consoleSectionTitle}>运营角色</h2>
-              <Button
-                type="primary"
-                icon={<PlusOutlined />}
-                onClick={handleOpenCreateOperationRole}
-              >
-                创建角色
-              </Button>
-            </div>
-            <div className={adminStyles.consoleSidebarList}>
-              {operationRoles.map(role => (
-                <button
-                  key={role.id}
-                  type="button"
-                  className={classNames(
-                    adminStyles.consoleSidebarItem,
-                    selectedOperationRole?.id === role.id && adminStyles.consoleSidebarItemActive,
-                  )}
-                  onClick={() => setSelectedOperationRoleId(role.id)}
-                >
-                  <span className={adminStyles.consoleSidebarItemTitle}>{role.name}</span>
-                  <span className={adminStyles.consoleSidebarItemMeta}>
-                    <span className={adminStyles.consolePill}>{role.memberIds.length}</span>
-                  </span>
-                </button>
-              ))}
-            </div>
-          </aside>
-          <section className={adminStyles.consoleContentPane}>
-            {selectedOperationRole ? (
-              <>
-                <div className={adminStyles.consolePaneHeader}>
-                  <div className={adminStyles.consolePaneHeaderMain}>
-                    <h2 className={adminStyles.consolePaneTitle}>{selectedOperationRole.name}</h2>
-                    <div className={adminStyles.roleHeaderMeta}>
-                      <span className={adminStyles.consolePill}>
-                        {selectedOperationRole.permissionIds.length} 项权限
-                      </span>
-                      {selectedOperationRole.builtin ? (
-                        <span className={adminStyles.consolePill}>系统角色</span>
-                      ) : null}
-                    </div>
-                  </div>
-                  {selectedOperationRole.builtin ? null : (
-                    <Button
-                      icon={<EditOutlined />}
-                      onClick={() => handleOpenEditOperationRole(selectedOperationRole)}
-                    >
-                      编辑
-                    </Button>
-                  )}
-                </div>
-                <div className={adminStyles.consoleSection}>
-                  <h3 className={adminStyles.consoleSectionTitle}>权限</h3>
-                  {renderPermissionTree(
-                    OPERATION_PERMISSION_GROUPS,
-                    selectedOperationRole.permissionIds,
-                  )}
-                </div>
-              </>
-            ) : null}
-          </section>
-        </div>
-      ) : null}
-
-      {activeTab === "tenantPresets" ? (
-        <div className={adminStyles.consoleSplitLayout}>
-          <aside className={adminStyles.consoleSidebar}>
-            <div className={adminStyles.consoleSidebarList}>
-              {tenantPresets.map(role => (
-                <button
-                  key={role.id}
-                  type="button"
-                  className={classNames(
-                    adminStyles.consoleSidebarItem,
-                    selectedPreset?.id === role.id && adminStyles.consoleSidebarItemActive,
-                  )}
-                  onClick={() => setSelectedPresetId(role.id)}
-                >
-                  <span className={adminStyles.consoleSidebarItemTitle}>{role.name}</span>
-                  <span className={adminStyles.consoleSidebarItemMeta}>
-                    {role.permissionIds.length} 项权限
-                  </span>
-                </button>
-              ))}
-            </div>
-          </aside>
-          <section className={adminStyles.consoleContentPane}>
-            {selectedPreset ? (
-              <>
-                <div className={adminStyles.consolePaneHeader}>
-                  <div className={adminStyles.consolePaneHeaderMain}>
-                    <h2 className={adminStyles.consolePaneTitle}>{selectedPreset.name}</h2>
-                    <div className={adminStyles.roleHeaderMeta}>
-                      <span className={adminStyles.consolePill}>
-                        {selectedPreset.permissionIds.length} 项权限
-                      </span>
-                    </div>
-                  </div>
-                  <div className={adminStyles.consoleActions}>
-                    <Button type="primary" icon={<PlusOutlined />} onClick={handleOpenCreatePreset}>
-                      创建预设角色
-                    </Button>
-                    <Button
-                      icon={<EditOutlined />}
-                      onClick={() => handleOpenPresetModal(selectedPreset)}
-                    >
-                      编辑
-                    </Button>
-                  </div>
-                </div>
-                <div className={adminStyles.consoleSection}>
-                  <h3 className={adminStyles.consoleSectionTitle}>权限</h3>
-                  {renderPermissionTree(
-                    TENANT_ROLE_PERMISSION_GROUPS,
-                    selectedPreset.permissionIds,
-                  )}
-                </div>
-              </>
-            ) : null}
-          </section>
-        </div>
-      ) : null}
-
-      <Modal
-        title="创建账号"
-        open={isAccountModalOpen}
-        okText="创建"
-        cancelText="取消"
-        width={520}
-        onCancel={() => setIsAccountModalOpen(false)}
-        onOk={handleCreateAccount}
-      >
-        <div className={adminStyles.consoleRows}>
-          <div className={adminStyles.consoleInfoRow}>
-            <span className={adminStyles.consoleInfoLabel}>姓名</span>
-            <Input
-              value={draftAccount.name}
-              onChange={event =>
-                setDraftAccount(current => ({ ...current, name: event.target.value }))
-              }
-            />
-          </div>
-          <div className={adminStyles.consoleInfoRow}>
-            <span className={adminStyles.consoleInfoLabel}>手机号</span>
-            <Input
-              value={draftAccount.phone}
-              onChange={event =>
-                setDraftAccount(current => ({ ...current, phone: event.target.value }))
-              }
-            />
-          </div>
-          <div className={adminStyles.consoleInfoRow}>
-            <span className={adminStyles.consoleInfoLabel}>角色</span>
-            <Select
-              value={draftAccount.roleId}
-              options={operationRoles.map(role => ({ label: role.name, value: role.id }))}
-              onChange={roleId => setDraftAccount(current => ({ ...current, roleId }))}
-            />
-          </div>
-        </div>
-      </Modal>
-
-      <Modal
-        title={editingOperationRoleId ? "编辑运营角色" : "创建运营角色"}
-        open={isOperationRoleModalOpen}
-        okText="保存"
-        cancelText="取消"
-        className={classNames(styles.fixedModal, styles.largeModal)}
-        width={760}
-        onCancel={() => setIsOperationRoleModalOpen(false)}
-        onOk={handleSubmitOperationRole}
-        destroyOnHidden
-      >
-        <RoleForm groups={OPERATION_PERMISSION_GROUPS} value={draftRole} onChange={setDraftRole} />
-      </Modal>
-
-      <Modal
-        title={editingPresetId ? "编辑平台预设角色" : "创建平台预设角色"}
-        open={isPresetModalOpen}
-        okText="保存"
-        cancelText="取消"
-        className={classNames(styles.fixedModal, styles.largeModal)}
-        width={760}
-        onCancel={handleClosePresetModal}
-        onOk={handleSubmitPreset}
-        destroyOnHidden
-      >
-        <RoleForm
-          groups={TENANT_ROLE_PERMISSION_GROUPS}
-          value={draftPreset}
-          onChange={setDraftPreset}
-        />
-      </Modal>
-    </div>
+      if (nextSnapshot) {
+        setTenantSnapshot(nextSnapshot);
+      }
+    },
+    [tenantSnapshot],
   );
-};
 
-interface RoleFormProps {
-  groups: PermissionGroup[];
-  onChange: (value: DraftRoleForm) => void;
-  readonlyName?: boolean;
-  value: DraftRoleForm;
-}
+  const handleAddDepartment = useCallback((dept: OrganizationDepartmentItem): void => {
+    setDepartments(currentDepartments => [...currentDepartments, dept]);
+  }, []);
 
-const RoleForm = ({
-  groups,
-  onChange,
-  readonlyName = false,
-  value,
-}: RoleFormProps): JSX.Element => {
-  const allPermissionIds = getPermissionIds(groups);
-  const isAllChecked = value.permissionIds.length === allPermissionIds.length;
-  const isAllIndeterminate =
-    value.permissionIds.length > 0 && value.permissionIds.length < allPermissionIds.length;
+  const handleUpdateDepartment = useCallback(
+    (deptId: string, updates: Partial<Pick<OrganizationDepartmentItem, "name">>): void => {
+      setDepartments(currentDepartments =>
+        currentDepartments.map(department =>
+          department.id === deptId ? { ...department, ...updates } : department,
+        ),
+      );
+    },
+    [],
+  );
+
+  const handleRemoveDepartment = useCallback((deptId: string): void => {
+    setDepartments(currentDepartments =>
+      currentDepartments.filter(department => department.id !== deptId),
+    );
+  }, []);
+
+  const handleSetDepartmentLeader = useCallback(
+    (deptId: string, userId: string | undefined): void => {
+      setDepartments(currentDepartments =>
+        currentDepartments.map(department =>
+          department.id === deptId ? { ...department, leaderUserId: userId } : department,
+        ),
+      );
+    },
+    [],
+  );
+
+  const handleUpdateUser = useCallback(
+    (
+      userId: string,
+      updates: Pick<FrontisWebUserItem, "name" | "phone" | "role" | "roleIds">,
+    ): void => {
+      setUsers(currentUsers => {
+        const nextUsers = currentUsers.map(user =>
+          user.id === userId
+            ? {
+                ...user,
+                name: updates.name,
+                phone: updates.phone,
+                role: updates.role,
+                roleIds: updates.roleIds,
+              }
+            : user,
+        );
+
+        syncUsersToTenant(nextUsers);
+
+        return nextUsers;
+      });
+    },
+    [syncUsersToTenant],
+  );
+
+  const handleUpdateUserDepartment = useCallback(
+    (userId: string, departmentId: string): void => {
+      setUsers(currentUsers => {
+        const nextUsers = currentUsers.map(user =>
+          user.id === userId ? { ...user, departmentId } : user,
+        );
+
+        syncUsersToTenant(nextUsers);
+
+        return nextUsers;
+      });
+    },
+    [syncUsersToTenant],
+  );
+
+  const handleUpdateUserStatus = useCallback(
+    (userId: string, status: FrontisUserStatus): void => {
+      setUsers(currentUsers => {
+        const nextUsers = currentUsers.map(user =>
+          user.id === userId ? { ...user, status } : user,
+        );
+
+        syncUsersToTenant(nextUsers);
+
+        return nextUsers;
+      });
+    },
+    [syncUsersToTenant],
+  );
+
+  const handleRemoveUser = useCallback(
+    (userId: string): void => {
+      setUsers(currentUsers => {
+        const nextUsers = currentUsers.filter(user => user.id !== userId);
+
+        syncUsersToTenant(nextUsers);
+
+        return nextUsers;
+      });
+    },
+    [syncUsersToTenant],
+  );
+
+  const handleInviteTenantMember = useCallback(
+    (params: MockTenantInviteMemberParams): boolean => {
+      if (!tenantSnapshot) {
+        return false;
+      }
+
+      if (tenantSnapshot.edition !== "team") {
+        message.warning("当前租户仍是个人版，请先开通团队版。");
+        return false;
+      }
+
+      if (tenantSnapshot.usedSeats >= tenantSnapshot.totalSeats) {
+        message.warning("当前席位不足，暂无法继续邀请成员。");
+        return false;
+      }
+
+      const result = inviteMockTenantMemberAccount(tenantSnapshot.tenantId, {
+        ...params,
+        inviterName: session?.name ?? params.inviterName,
+      });
+
+      if (!result) {
+        message.warning("邀请失败，请确认手机号未注册且当前席位仍有余量。");
+        return false;
+      }
+
+      setTenantSnapshot(result.snapshot);
+      setUsers(result.snapshot.users);
+      message.success("成员已加入组织，并会按所选角色获得权限。");
+      return true;
+    },
+    [session?.name, tenantSnapshot],
+  );
+
+  if (!tenantSnapshot) {
+    return (
+      <div className={adminStyles.consolePage}>
+        <div className={adminStyles.consoleEmpty}>当前组织信息未加载</div>
+      </div>
+    );
+  }
+
+  if (view === "roleManagement") {
+    return (
+      <RoleManagementView
+        canManageCustomRoles={canManageCustomRoles}
+        onRolesChange={setTenantRoles}
+        onSelectedRoleIdChange={setSelectedRoleId}
+        roles={tenantRoles}
+        selectedRoleId={selectedRoleId}
+        tenantSnapshot={tenantSnapshot}
+        users={users}
+      />
+    );
+  }
 
   return (
-    <div className={adminStyles.consoleRows}>
-      <div className={adminStyles.consoleInfoRow}>
-        <span className={adminStyles.consoleInfoLabel}>角色名称</span>
-        <Input
-          disabled={readonlyName}
-          value={value.name}
-          onChange={event => onChange({ ...value, name: event.target.value })}
-        />
-      </div>
-      <div className={adminStyles.consoleInfoRow}>
-        <span className={adminStyles.consoleInfoLabel}>权限</span>
-        <div className={adminStyles.rolePermissionPicker}>
-          <div className={adminStyles.rolePermissionPickerToolbar}>
-            <Checkbox
-              checked={isAllChecked}
-              indeterminate={isAllIndeterminate}
-              onChange={event =>
-                onChange({
-                  ...value,
-                  permissionIds: event.target.checked ? allPermissionIds : [],
-                })
-              }
-            >
-              全部权限
-            </Checkbox>
-            <span className={adminStyles.consolePill}>
-              已选 {value.permissionIds.length} / {allPermissionIds.length}
-            </span>
-          </div>
-          {groups.map(group => {
-            const groupPermissionIds = group.items.map(permission => permission.id);
-            const checkedCount = groupPermissionIds.filter(permissionId =>
-              value.permissionIds.includes(permissionId),
-            ).length;
-
-            return (
-              <div key={group.title} className={adminStyles.rolePermissionPickerGroup}>
-                <div className={adminStyles.rolePermissionGroupHeader}>
-                  <Checkbox
-                    checked={checkedCount === groupPermissionIds.length}
-                    indeterminate={checkedCount > 0 && checkedCount < groupPermissionIds.length}
-                    onChange={event =>
-                      onChange({
-                        ...value,
-                        permissionIds: resolveNextRolePermissionIds(
-                          groups,
-                          value.permissionIds,
-                          groupPermissionIds,
-                          event.target.checked,
-                        ),
-                      })
-                    }
-                  >
-                    <span className={adminStyles.rolePermissionMatrixTitle}>{group.title}</span>
-                  </Checkbox>
-                  <span className={adminStyles.consolePill}>
-                    {checkedCount}/{groupPermissionIds.length}
-                  </span>
-                </div>
-                <div className={adminStyles.rolePermissionCheckboxList}>
-                  {group.items.map(permission => (
-                    <Checkbox
-                      key={permission.id}
-                      checked={value.permissionIds.includes(permission.id)}
-                      onChange={event =>
-                        onChange({
-                          ...value,
-                          permissionIds: resolveNextRolePermissionIds(
-                            groups,
-                            value.permissionIds,
-                            [permission.id],
-                            event.target.checked,
-                          ),
-                        })
-                      }
-                    >
-                      {permission.label}
-                    </Checkbox>
-                  ))}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    </div>
+    <OrganizationManagementView
+      canAssignRoles={canAssignRoles}
+      canChangeMemberStatus={canChangeMemberStatus}
+      canEditMembers={canEditMembers}
+      canInviteMembers={canInviteMembers}
+      canManageDepartments={canManageDepartments}
+      canRemoveMembers={canRemoveMembers}
+      departments={departments}
+      onAddDepartment={handleAddDepartment}
+      onInviteTenantMember={handleInviteTenantMember}
+      onRemoveDepartment={handleRemoveDepartment}
+      onRemoveUser={handleRemoveUser}
+      onSetDepartmentLeader={handleSetDepartmentLeader}
+      onUpdateDepartment={handleUpdateDepartment}
+      onUpdateUser={handleUpdateUser}
+      onUpdateUserDepartment={handleUpdateUserDepartment}
+      onUpdateUserStatus={handleUpdateUserStatus}
+      roles={tenantRoles}
+      tenantSnapshot={tenantSnapshot}
+      users={users}
+    />
   );
 };

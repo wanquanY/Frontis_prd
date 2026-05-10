@@ -113,18 +113,18 @@ const App = (): JSX.Element => {
             }
           />
           <Route
-            path="/ops/agents/:submissionId"
-            element={
-              <OperationsAuthRoute>
-                <Navigate replace to="/ops/agents" />
-              </OperationsAuthRoute>
-            }
-          />
-          <Route
             path="/ops/products/:productId"
             element={
               <OperationsAuthRoute>
                 <OperationsPlatformPage />
+              </OperationsAuthRoute>
+            }
+          />
+          <Route
+            path="/ops/agents/:submissionId"
+            element={
+              <OperationsAuthRoute>
+                <Navigate replace to="/ops/agents" />
               </OperationsAuthRoute>
             }
           />
@@ -172,7 +172,7 @@ const App = (): JSX.Element => {
             path="/web/admin/public-cloud"
             element={
               <AuthRoute allowedRole={["admin"]}>
-                <FrontisAdminPage deploymentMode="publicCloud" />
+                <FrontisAdminPage />
               </AuthRoute>
             }
           />
@@ -180,7 +180,7 @@ const App = (): JSX.Element => {
             path="/web/admin/private-cloud"
             element={
               <AuthRoute allowedRole={["admin"]}>
-                <FrontisAdminPage deploymentMode="privateCloud" />
+                <FrontisAdminPage />
               </AuthRoute>
             }
           />

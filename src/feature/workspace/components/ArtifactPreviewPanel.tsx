@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, type ChangeEvent } from "react";
+import { ArrowLeftOutlined, DownloadOutlined, ExportOutlined } from "@ant-design/icons";
 import { Spin } from "antd";
 import classNames from "classnames";
 
@@ -6,7 +7,6 @@ import { MarkdownRenderer } from "@/components/MarkdownRenderer";
 import { useArtifactPreview } from "@/feature/workspace/hooks/useArtifactPreview";
 import type { ArtifactFileGroup, ArtifactItem } from "@/types/artifact";
 import { resolveFileLogo } from "@/utils/fileLogo";
-import { DownloadOutlineIcon } from "@/utils/icons";
 
 import styles from "./ArtifactPreviewPanel.module.less";
 
@@ -14,9 +14,9 @@ interface ArtifactPreviewPanelProps {
   files: ArtifactItem[];
   fileGroups?: ArtifactFileGroup[];
   showHeader?: boolean;
+  reserveHeaderActionSpace?: boolean;
   loading?: boolean;
   error?: string;
-  onClose?: () => void;
   onDownloadFile?: (file: ArtifactItem) => void;
   resolveFileUrl?: (file: ArtifactItem) => Promise<string>;
   onPreviewStateChange?: (previewing: boolean) => void;
@@ -24,21 +24,6 @@ interface ArtifactPreviewPanelProps {
 }
 
 type HtmlPreviewMode = "preview" | "source";
-
-const CloseIcon = ({ className }: { className?: string }): JSX.Element => (
-  <svg
-    viewBox="0 0 12 12"
-    width="12"
-    height="12"
-    fill="none"
-    xmlns="http://www.w3.org/2000/svg"
-    aria-hidden="true"
-    focusable="false"
-    className={className}
-  >
-    <path d="M1 1L11 11M11 1L1 11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-  </svg>
-);
 
 const SearchIcon = ({ className }: { className?: string }): JSX.Element => (
   <svg
@@ -67,9 +52,9 @@ export const ArtifactPreviewPanel = ({
   files,
   fileGroups,
   showHeader = true,
+  reserveHeaderActionSpace = false,
   loading = false,
   error,
-  onClose,
   onDownloadFile,
   resolveFileUrl,
   onPreviewStateChange,
@@ -143,11 +128,6 @@ export const ArtifactPreviewPanel = ({
 
     setExpandedGroupIds(new Set([fileGroups[0].id]));
   }, [fileGroups]);
-
-  const handleClosePanel = useCallback(() => {
-    setSelectedFileId(undefined);
-    onClose?.();
-  }, [onClose]);
 
   const handleBackToList = useCallback(() => {
     setSelectedFileId(undefined);
@@ -234,7 +214,7 @@ export const ArtifactPreviewPanel = ({
               disabled={!onDownloadFile || item.isDeleted}
               onClick={() => onDownloadFile?.(item)}
             >
-              <DownloadOutlineIcon className={styles.fileActionIcon} />
+              <DownloadOutlined className={styles.fileActionIcon} />
             </button>
           </span>
         </article>
@@ -400,7 +380,12 @@ export const ArtifactPreviewPanel = ({
   }, [htmlPreviewMode, previewState, selectedFile]);
 
   return (
-    <aside className={styles.panel} aria-label="成果文件面板">
+    <aside
+      className={classNames(styles.panel, {
+        [styles.panelHeaderActionReserved]: reserveHeaderActionSpace,
+      })}
+      aria-label="成果文件面板"
+    >
       {!selectedFile && showHeader ? (
         <div className={styles.header}>
           <div className={styles.headerText}>
@@ -409,25 +394,18 @@ export const ArtifactPreviewPanel = ({
               {loading ? "成果文件加载中..." : `${files.length} 个成果文件`}
             </div>
           </div>
-          <button
-            type="button"
-            className={styles.closeButton}
-            aria-label="关闭成果面板"
-            onClick={handleClosePanel}
-          >
-            <CloseIcon className={styles.closeIcon} />
-          </button>
         </div>
       ) : selectedFile ? (
         <div className={styles.previewHeader}>
           <div className={styles.previewHeaderInfo}>
             <button
               type="button"
-              className={styles.backButton}
+              className={classNames(styles.previewIconButton, styles.backButton)}
               aria-label="返回成果列表"
+              title="返回成果列表"
               onClick={handleBackToList}
             >
-              ← 返回
+              <ArrowLeftOutlined className={styles.previewHeaderIcon} />
             </button>
             <div className={styles.previewHeaderMeta}>
               <div className={styles.previewHeaderTitle} title={selectedFile.fileName}>
@@ -467,28 +445,24 @@ export const ArtifactPreviewPanel = ({
             {shouldShowHtmlTabs ? (
               <button
                 type="button"
-                className={styles.previewHeaderButton}
+                className={styles.previewIconButton}
                 onClick={handleOpenHtmlDelivery}
                 disabled={!previewState.previewBody.trim()}
+                aria-label="新窗口打开预览"
+                title="新窗口打开"
               >
-                新窗口交付
+                <ExportOutlined className={styles.previewHeaderIcon} />
               </button>
             ) : null}
             <button
               type="button"
-              className={styles.previewHeaderButton}
+              className={styles.previewIconButton}
               onClick={handleDownloadFile}
               disabled={!onDownloadFile || selectedFile.isDeleted}
+              aria-label={`下载 ${selectedFile.fileName}`}
+              title="下载"
             >
-              下载
-            </button>
-            <button
-              type="button"
-              className={styles.closeButton}
-              aria-label="关闭成果面板"
-              onClick={handleClosePanel}
-            >
-              <CloseIcon className={styles.closeIcon} />
+              <DownloadOutlined className={styles.previewHeaderIcon} />
             </button>
           </div>
         </div>

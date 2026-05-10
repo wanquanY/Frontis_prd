@@ -24,9 +24,134 @@ const BOTTOM_THRESHOLD = 32;
 const HISTORY_STICK_DURATION = 1200;
 const BOTTOM_RESTORE_STABLE_DELAY = 240;
 const HISTORY_LOAD_TRIGGER_TOP = 16;
+const META_AGENT_ACTOR_NAME = "ME";
+const SYSTEM_ACTOR_NAME_SET = new Set([META_AGENT_ACTOR_NAME, "系统", "智能体"]);
 
 const getDistanceToBottom = (element: HTMLDivElement): number =>
   element.scrollHeight - element.scrollTop - element.clientHeight;
+
+const getBlockStringData = (block: Block, key: string): string => {
+  const value = block.data[key];
+
+  return typeof value === "string" ? value.trim() : "";
+};
+
+const flattenBlockTree = (block: Block): Block[] => [
+  block,
+  ...(block.children ?? []).flatMap(child => flattenBlockTree(child)),
+];
+
+const isTaskDispatchBlock = (block: Block): boolean => {
+  if (block.kind !== "tool_use") {
+    return false;
+  }
+
+  const name = getBlockStringData(block, "name").toLowerCase();
+  const displayName = getBlockStringData(block, "display_name");
+
+  return name === "task_dispatch" || displayName === "任务分发";
+};
+
+const parseTaskDispatchPurpose = (
+  purpose: string,
+  fallbackExpertName: string,
+): { expertName: string; taskTitle: string } | null => {
+  const matched = purpose.match(/^分配给([^：:]+)[：:]\s*(.+)$/);
+
+  if (!matched) {
+    const normalizedFallback = fallbackExpertName.trim();
+    const normalizedPurpose = purpose.trim();
+    if (!normalizedFallback || !normalizedPurpose) {
+      return null;
+    }
+
+    return {
+      expertName: normalizedFallback,
+      taskTitle: normalizedPurpose,
+    };
+  }
+
+  const expertName = matched[1].trim() || fallbackExpertName.trim();
+  const taskTitle = matched[2].trim();
+
+  if (!expertName || !taskTitle) {
+    return null;
+  }
+
+  return { expertName, taskTitle };
+};
+
+const resolveTaskDispatchItems = (block: Block): Array<{ expertName: string; taskTitle: string }> =>
+  flattenBlockTree(block)
+    .filter(isTaskDispatchBlock)
+    .map(item =>
+      parseTaskDispatchPurpose(
+        getBlockStringData(item, "purpose"),
+        getBlockStringData(item, "avatar_label"),
+      ),
+    )
+    .filter((item): item is { expertName: string; taskTitle: string } => Boolean(item));
+
+const resolveFallbackTaskTitle = (block: Block): string => {
+  const firstTool = flattenBlockTree(block).find(
+    item => item.kind === "tool_use" || item.kind === "tool",
+  );
+
+  if (!firstTool) {
+    return "任务执行";
+  }
+
+  const displayName = getBlockStringData(firstTool, "display_name");
+  const purpose = getBlockStringData(firstTool, "purpose");
+
+  return purpose || displayName || "任务执行";
+};
+
+const isMemberActorName = (actorName: string): boolean => {
+  const normalizedName = actorName.trim();
+
+  return Boolean(normalizedName) && !SYSTEM_ACTOR_NAME_SET.has(normalizedName);
+};
+
+const collectBlockCopyText = (block: Block): string => {
+  if (block.kind === "text") {
+    const content = (block.data as Partial<TextData>).content;
+
+    return typeof content === "string" ? content.trim() : "";
+  }
+
+  return (block.children ?? [])
+    .map(child => collectBlockCopyText(child))
+    .filter(Boolean)
+    .join("\n\n");
+};
+
+const resolveAssignedOutputStatus = (
+  block: Block,
+): { label: string; tone: "running" | "done" | "error" } => {
+  const flattenedBlocks = flattenBlockTree(block);
+
+  if (flattenedBlocks.some(item => item.isStreaming === true)) {
+    return { label: "执行中", tone: "running" };
+  }
+
+  const statuses = flattenedBlocks
+    .map(item => getBlockStringData(item, "status").toLowerCase())
+    .filter(Boolean);
+
+  if (
+    flattenedBlocks.some(item => item.kind === "error") ||
+    statuses.some(status => ["failed", "error", "aborted"].includes(status))
+  ) {
+    return { label: "异常终止", tone: "error" };
+  }
+
+  if (statuses.some(status => ["running", "pending", "streaming"].includes(status))) {
+    return { label: "执行中", tone: "running" };
+  }
+
+  return { label: "已完成", tone: "done" };
+};
 
 /**
  * WorkspaceChatPanel
@@ -36,6 +161,7 @@ const getDistanceToBottom = (element: HTMLDivElement): number =>
 export const WorkspaceChatPanel = ({
   blocks,
   focusBlockId,
+  focusRequestKey,
   messages,
   actorAvatars,
   mentionableActorLabels,
@@ -47,6 +173,7 @@ export const WorkspaceChatPanel = ({
   onOpenArtifact,
   onOpenResult,
   onActorNameClick,
+  onQuickActionSend,
   greeting = DEFAULT_GREETING,
   workspaceSummary,
   currentSessionId,
@@ -59,6 +186,7 @@ export const WorkspaceChatPanel = ({
   planBannerHeight = 0,
   isHistoryLoading = false,
   showMessageMeta = false,
+  collapseAssignedActorOutputs = false,
   showStreamingPlaceholder = true,
 }: WorkspaceChatPanelProps): JSX.Element => {
   const scrollRef = useRef<HTMLDivElement | null>(null);
@@ -66,6 +194,9 @@ export const WorkspaceChatPanel = ({
   const blockRowRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   const [showScrollToBottom, setShowScrollToBottom] = useState(false);
   const [highlightBlockId, setHighlightBlockId] = useState<string | null>(null);
+  const [expandedAssignedOutputIds, setExpandedAssignedOutputIds] = useState<Set<string>>(
+    () => new Set(),
+  );
   const shouldScrollOnSessionChangeRef = useRef(false);
   const autoScrollingRef = useRef(false);
   const autoScrollReleaseRafRef = useRef<number | null>(null);
@@ -111,6 +242,7 @@ export const WorkspaceChatPanel = ({
   const copyContextMap = useMemo(() => {
     const map: Record<string, { showCopy: boolean; copyText: string }> = {};
     let currentTexts: { id: string; text: string }[] = [];
+    let currentPrimaryTexts: { id: string; text: string }[] = [];
 
     const flush = () => {
       if (!currentTexts.length) return;
@@ -118,12 +250,14 @@ export const WorkspaceChatPanel = ({
         .map(item => item.text)
         .filter(Boolean)
         .join("\n\n");
-      const last = currentTexts[currentTexts.length - 1];
-      map[last.id] = { showCopy: true, copyText: combined };
-      currentTexts.slice(0, -1).forEach(item => {
+      const copyTargetItems = currentPrimaryTexts.length ? currentPrimaryTexts : currentTexts;
+      const last = copyTargetItems[copyTargetItems.length - 1];
+      currentTexts.forEach(item => {
         map[item.id] = { showCopy: false, copyText: combined };
       });
+      map[last.id] = { showCopy: true, copyText: combined };
       currentTexts = [];
+      currentPrimaryTexts = [];
     };
 
     visibleBlocks.forEach(block => {
@@ -131,14 +265,23 @@ export const WorkspaceChatPanel = ({
         flush();
         return;
       }
-      if (block.kind === "text") {
-        const text = (block.data as unknown as TextData | undefined)?.content;
-        currentTexts.push({ id: block.id, text: typeof text === "string" ? text : "" });
+
+      const text = collectBlockCopyText(block);
+      if (!text) {
+        return;
+      }
+
+      const item = { id: block.id, text };
+      currentTexts.push(item);
+
+      const actorName = block.actorName?.trim() ?? "";
+      if (!collapseAssignedActorOutputs || !isMemberActorName(actorName)) {
+        currentPrimaryTexts.push(item);
       }
     });
     flush();
     return map;
-  }, [isUserBlock, visibleBlocks]);
+  }, [collapseAssignedActorOutputs, isUserBlock, visibleBlocks]);
 
   const clearRestoreBottomTimer = useCallback(() => {
     if (restoreBottomTimerRef.current) {
@@ -244,7 +387,8 @@ export const WorkspaceChatPanel = ({
   useEffect(() => {
     const targetId = focusBlockId?.trim() || "";
     if (!targetId) return;
-    if (handledFocusBlockIdRef.current === targetId) return;
+    const targetRequestKey = focusRequestKey?.trim() || targetId;
+    if (handledFocusBlockIdRef.current === targetRequestKey) return;
     const container = scrollRef.current;
     const targetEl = blockRowRefs.current.get(targetId);
     if (!targetEl || !container) return;
@@ -266,13 +410,13 @@ export const WorkspaceChatPanel = ({
     } catch {
       container.scrollTop = nextTop;
     }
-    handledFocusBlockIdRef.current = targetId;
+    handledFocusBlockIdRef.current = targetRequestKey;
     setHighlightBlockId(targetId);
     const timer = window.setTimeout(() => {
       setHighlightBlockId(current => (current === targetId ? null : current));
     }, 3000);
     return () => window.clearTimeout(timer);
-  }, [focusBlockId, visibleBlocks.length]);
+  }, [focusBlockId, focusRequestKey, visibleBlocks.length]);
 
   // 新会话切换时先同步重置滚动态，避免继承上一个会话的滚动交互状态。
   useLayoutEffect(() => {
@@ -280,6 +424,7 @@ export const WorkspaceChatPanel = ({
     historyLoadLockedRef.current = false;
     historyPrependAnchorRef.current = null;
     handledFocusBlockIdRef.current = "";
+    setExpandedAssignedOutputIds(new Set());
     setShowScrollToBottom(false);
     if (targetId) {
       shouldScrollOnSessionChangeRef.current = false;
@@ -428,6 +573,19 @@ export const WorkspaceChatPanel = ({
   const shouldShowSummary = !!normalizedSummary && !!isNewSession && !hasBlocks;
   const shouldShowWelcome =
     !hasBlocks && !hasMessages && (!isNewSession || !normalizedSummary) && !currentSessionId;
+
+  const handleToggleAssignedOutput = useCallback((blockId: string): void => {
+    setExpandedAssignedOutputIds(current => {
+      const next = new Set(current);
+      if (next.has(blockId)) {
+        next.delete(blockId);
+        return next;
+      }
+
+      next.add(blockId);
+      return next;
+    });
+  }, []);
   const scrollPaddingBottom = hasPlanBanner ? Math.max(planBannerHeight, 0) : 0;
   const scrollStyle = hasPlanBanner
     ? ({ paddingBottom: scrollPaddingBottom } as CSSProperties)
@@ -533,39 +691,64 @@ export const WorkspaceChatPanel = ({
       return { src: resolvedAssistantAvatarUrl, alt: resolvedAssistantAvatarAlt };
     };
 
+    const shouldHideActorName = (actorName: string, isUser: boolean): boolean =>
+      isUser || actorName.trim().toUpperCase() === "ME";
+
+    const shouldHideActorAvatar = (actorName: string, isUser: boolean): boolean =>
+      !isUser && actorName.trim().toUpperCase() === "ME";
+
+    const latestTaskTitleByExpertName = new Map<string, string>();
+
+    const rememberTaskDispatches = (sourceBlock: Block): void => {
+      resolveTaskDispatchItems(sourceBlock).forEach(item => {
+        latestTaskTitleByExpertName.set(item.expertName, item.taskTitle);
+      });
+    };
+
     const renderActorNameMeta = (
       actorName: string,
       actorMentionLabel: string | undefined,
       isClickable: boolean,
       blockTime: string,
+      showActorName: boolean,
       automationLabel?: string,
-    ): JSX.Element => (
-      <>
-        {isClickable ? (
-          <button
-            type="button"
-            className={classNames(
-              styles.messageMetaName,
-              styles.messageMetaNameButton,
-              styles.messageMetaNameClickable,
-            )}
-            onClick={() => {
-              if (!actorMentionLabel) return;
-              onActorNameClick?.(actorMentionLabel);
-            }}
-            aria-label={`在输入框中提及 ${actorName}`}
-          >
-            {actorName}
-          </button>
-        ) : (
-          <span className={styles.messageMetaName}>{actorName}</span>
-        )}
-        {blockTime ? <span className={styles.messageMetaTime}>{blockTime}</span> : null}
-        {automationLabel ? (
-          <span className={styles.messageMetaAutomation}>{automationLabel}</span>
-        ) : null}
-      </>
-    );
+    ): JSX.Element | null => {
+      const shouldRenderActorName = showActorName && actorName.trim().length > 0;
+      const shouldRenderMeta = shouldRenderActorName || blockTime || automationLabel;
+
+      if (!shouldRenderMeta) {
+        return null;
+      }
+
+      return (
+        <>
+          {shouldRenderActorName && isClickable ? (
+            <button
+              type="button"
+              className={classNames(
+                styles.messageMetaName,
+                styles.messageMetaNameButton,
+                styles.messageMetaNameClickable,
+              )}
+              onClick={() => {
+                if (!actorMentionLabel) return;
+                onActorNameClick?.(actorMentionLabel);
+              }}
+              aria-label={`在输入框中提及 ${actorName}`}
+            >
+              {actorName}
+            </button>
+          ) : null}
+          {shouldRenderActorName && !isClickable ? (
+            <span className={styles.messageMetaName}>{actorName}</span>
+          ) : null}
+          {blockTime ? <span className={styles.messageMetaTime}>{blockTime}</span> : null}
+          {automationLabel ? (
+            <span className={styles.messageMetaAutomation}>{automationLabel}</span>
+          ) : null}
+        </>
+      );
+    };
 
     return visibleBlocks.map((block, index) => {
       const isUser = isUserBlock(block);
@@ -585,8 +768,16 @@ export const WorkspaceChatPanel = ({
       const isClickableActorName = Boolean(onActorNameClick && actorMentionLabel);
       const blockTime = resolveBlockTime(block);
       const automationLabel = resolveAutomationLabel(block);
+      const shouldShowActorName = shouldShowActorMeta && !shouldHideActorName(actorName, isUser);
+      const assignedTaskTitle = latestTaskTitleByExpertName.get(actorName.trim());
+      const shouldCollapseAssignedOutput =
+        collapseAssignedActorOutputs && !isUser && isMemberActorName(actorName);
+      const assignedOutputTaskTitle =
+        assignedTaskTitle ?? (shouldCollapseAssignedOutput ? resolveFallbackTaskTitle(block) : "");
 
       if (isUser) {
+        rememberTaskDispatches(block);
+
         return (
           <div
             key={block.id}
@@ -596,9 +787,21 @@ export const WorkspaceChatPanel = ({
             })}
             aria-label="用户消息"
           >
-            {showMessageMeta && shouldShowActorMeta ? (
-              <div className={classNames(styles.messageMeta, styles.userMessageMeta)}>
-                {renderActorNameMeta(actorName, actorMentionLabel, isClickableActorName, blockTime)}
+            {showMessageMeta && blockTime ? (
+              <div
+                className={classNames(
+                  styles.messageMeta,
+                  styles.userMessageMeta,
+                  styles.messageMetaTimeOnly,
+                )}
+              >
+                {renderActorNameMeta(
+                  actorName,
+                  actorMentionLabel,
+                  isClickableActorName,
+                  blockTime,
+                  shouldShowActorName,
+                )}
               </div>
             ) : null}
             <BlockItem
@@ -614,7 +817,10 @@ export const WorkspaceChatPanel = ({
         );
       }
 
-      const shouldShowAvatar = !prevBlock || prevIsUser || !isPrevSameActor;
+      const shouldShowAvatar =
+        !shouldCollapseAssignedOutput &&
+        !shouldHideActorAvatar(actorName, isUser) &&
+        (!prevBlock || prevIsUser || !isPrevSameActor);
       const avatar = resolveAvatar(block);
       const hitlChild = block.children?.find(
         child =>
@@ -622,32 +828,127 @@ export const WorkspaceChatPanel = ({
       );
       const data = block.data;
       const lowerClass = !hitlChild && data.name !== "plan";
+      const isAssignedOutputExpanded = expandedAssignedOutputIds.has(block.id);
+      const assignedOutputStatus = shouldCollapseAssignedOutput
+        ? resolveAssignedOutputStatus(block)
+        : null;
+
+      rememberTaskDispatches(block);
+
+      if (shouldCollapseAssignedOutput) {
+        return (
+          <div
+            key={block.id}
+            ref={setBlockRowRef(block)}
+            className={classNames(
+              styles.assistantBlockRow,
+              styles.assistantBlockRowNoAvatar,
+              styles.assignedOutputRow,
+              {
+                [styles.focusedRow]: highlightBlockId === block.id,
+              },
+            )}
+            aria-label={`${actorName} 输出`}
+          >
+            <section
+              className={classNames(styles.assignedOutputPanel, {
+                [styles.assignedOutputPanelExpanded]: isAssignedOutputExpanded,
+              })}
+            >
+              <button
+                type="button"
+                className={styles.assignedOutputHeader}
+                aria-expanded={isAssignedOutputExpanded}
+                onClick={() => {
+                  handleToolExpand();
+                  handleToggleAssignedOutput(block.id);
+                }}
+              >
+                <span className={styles.assignedOutputTitle}>
+                  <span className={styles.assignedOutputAvatar} aria-hidden={true}>
+                    <img src={avatar.src} alt="" className={styles.assignedOutputAvatarImage} />
+                  </span>
+                  <span className={styles.assignedOutputTitleText}>
+                    <strong>{actorName}</strong>
+                    <span>{assignedOutputTaskTitle}</span>
+                  </span>
+                </span>
+                <span className={styles.assignedOutputMeta}>
+                  {assignedOutputStatus ? (
+                    <span
+                      className={classNames(styles.assignedOutputStatus, {
+                        [styles.assignedOutputStatusRunning]:
+                          assignedOutputStatus.tone === "running",
+                        [styles.assignedOutputStatusDone]: assignedOutputStatus.tone === "done",
+                        [styles.assignedOutputStatusError]: assignedOutputStatus.tone === "error",
+                      })}
+                    >
+                      {assignedOutputStatus.label}
+                    </span>
+                  ) : null}
+                  <span
+                    className={classNames(styles.assignedOutputChevron, {
+                      [styles.assignedOutputChevronOpen]: isAssignedOutputExpanded,
+                    })}
+                    aria-hidden={true}
+                  />
+                </span>
+              </button>
+
+              {isAssignedOutputExpanded ? (
+                <div className={styles.assignedOutputBody}>
+                  <BlockItem
+                    block={block}
+                    onHITLRespond={onHITLRespond}
+                    onOpenArtifact={onOpenArtifact}
+                    onOpenResult={onOpenResult}
+                    onToolExpand={handleToolExpand}
+                    onDownloadArtifact={onDownloadArtifact}
+                    onAddArtifactToKnowledge={onAddArtifactToKnowledge}
+                    onQuickActionSend={onQuickActionSend}
+                    quickActionDisabled={isStreaming}
+                    copyContext={copyContextMap[block.id]}
+                  />
+                </div>
+              ) : null}
+            </section>
+          </div>
+        );
+      }
 
       return (
         <div
           key={block.id}
           ref={setBlockRowRef(block)}
           className={classNames(styles.assistantBlockRow, {
+            [styles.assistantBlockRowNoAvatar]: shouldHideActorAvatar(actorName, isUser),
             [styles.toolBlockLower]: lowerClass,
             [styles.focusedRow]: highlightBlockId === block.id,
           })}
           aria-label="智能体消息"
         >
-          <div className={styles.assistantBlockAvatarSlot} aria-hidden={!shouldShowAvatar}>
-            {shouldShowAvatar ? (
-              <img src={avatar.src} alt={avatar.alt} className={styles.assistantBlockAvatar} />
-            ) : (
-              <span className={styles.assistantBlockAvatarPlaceholder} aria-hidden={true} />
-            )}
-          </div>
-          <div className={styles.assistantBlockContent}>
-            {showMessageMeta && shouldShowActorMeta ? (
+          {shouldHideActorAvatar(actorName, isUser) ? null : (
+            <div className={styles.assistantBlockAvatarSlot} aria-hidden={!shouldShowAvatar}>
+              {shouldShowAvatar ? (
+                <img src={avatar.src} alt={avatar.alt} className={styles.assistantBlockAvatar} />
+              ) : (
+                <span className={styles.assistantBlockAvatarPlaceholder} aria-hidden={true} />
+              )}
+            </div>
+          )}
+          <div
+            className={classNames(styles.assistantBlockContent, {
+              [styles.assistantBlockContentNoAvatar]: shouldHideActorAvatar(actorName, isUser),
+            })}
+          >
+            {showMessageMeta && (shouldShowActorName || automationLabel) ? (
               <div className={styles.messageMeta}>
                 {renderActorNameMeta(
                   actorName,
                   actorMentionLabel,
                   isClickableActorName,
-                  blockTime,
+                  "",
+                  shouldShowActorName,
                   automationLabel,
                 )}
               </div>
@@ -660,6 +961,8 @@ export const WorkspaceChatPanel = ({
               onToolExpand={handleToolExpand}
               onDownloadArtifact={onDownloadArtifact}
               onAddArtifactToKnowledge={onAddArtifactToKnowledge}
+              onQuickActionSend={onQuickActionSend}
+              quickActionDisabled={isStreaming}
               copyContext={copyContextMap[block.id]}
             />
           </div>
@@ -674,8 +977,13 @@ export const WorkspaceChatPanel = ({
     handleToolExpand,
     onDownloadArtifact,
     onAddArtifactToKnowledge,
+    onQuickActionSend,
+    isStreaming,
     actorAvatars,
+    collapseAssignedActorOutputs,
     copyContextMap,
+    expandedAssignedOutputIds,
+    handleToggleAssignedOutput,
     highlightBlockId,
     mentionableActorLabels,
     onActorNameClick,

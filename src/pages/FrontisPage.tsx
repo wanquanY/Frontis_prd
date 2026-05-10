@@ -3,11 +3,17 @@ import { AppstoreOutlined, LogoutOutlined } from "@ant-design/icons";
 import type { MenuProps } from "antd";
 import { Empty, message } from "antd";
 import { useLocation, useNavigate } from "react-router-dom";
-import type { WorkspaceComposerAttachmentItem } from "@/feature/workspace/types";
-import type { Block } from "@/types/block";
+import type { AiCeoAgentHomeConfig, AiCeoHomeCaseItem } from "@/constants/aiCeoHome";
+import { AI_CEO_AGENT_HOME_CONFIGS, AI_CEO_DEFAULT_HOME_CONFIG } from "@/constants/aiCeoHome";
+import {
+  EXPERT_PLAZA_LABEL,
+  MANAGEMENT_CONSOLE_LABEL,
+  MA_WORKBENCH_LABEL,
+} from "@/constants/brand";
 import {
   getLoginPath,
   getSystemEntries,
+  getSystemEntryMenuLabel,
   getTenantEntries,
   getTenantAdminManagementPath,
 } from "@/feature/auth/mockAccounts";
@@ -15,23 +21,16 @@ import { useMockAuth } from "@/feature/auth/hooks/useMockAuth";
 import { getMockTenantUsers } from "@/feature/auth/mockTenantRegistry";
 import type { MockAuthSystemEntry } from "@/feature/auth/types";
 import { useOperationsAuth } from "@/feature/operations/hooks/useOperationsAuth";
-import type { AiCeoAgentHomeConfig, AiCeoHomeCaseItem } from "@/constants/aiCeoHome";
-import {
-  EXPERT_PLAZA_LABEL,
-  MANAGEMENT_CONSOLE_LABEL,
-  MA_WORKBENCH_LABEL,
-} from "@/constants/brand";
-import type { ArtifactItem } from "@/types/artifact";
-import { hasUserInAccessScope } from "@/utils/organizationAccess";
-import { isChatAttachmentFileAllowed } from "@/utils/chatAttachmentFileTypes";
-import { AI_CEO_AGENT_HOME_CONFIGS, AI_CEO_DEFAULT_HOME_CONFIG } from "@/constants/aiCeoHome";
+import { useMeOnboardingProfileModal } from "@/feature/workspace/hooks/useMeOnboardingProfileModal";
+import type { WorkspaceComposerAttachmentItem } from "@/feature/workspace/types";
 import {
   FRONTIS_COMPLETE_PRD_V430_DOCUMENT_CONTENT,
   FRONTIS_COMPLETE_PRD_V430_DOCUMENT_NAME,
 } from "@/mocks/documents/productManagerDocuments";
-import { dialogueScenarioRuntimeHelpers } from "@/utils/dialogueScenarioRuntime";
-
-import { DialoguePrototypeView } from "./components/DialoguePrototypeView";
+import {
+  buildMetaAgentCapabilityDemoArtifacts,
+  buildMetaAgentHistoryMessages,
+} from "@/mocks/dialogueScenario/metaAgentHistoryMock";
 import {
   INITIAL_DIALOGUE_ARTIFACTS,
   INITIAL_DIALOGUE_RESULTS,
@@ -41,10 +40,17 @@ import {
   INITIAL_ORGANIZATION_DEPARTMENTS,
   INITIAL_WORKSPACES,
 } from "@/mocks/mockData";
+import type { ArtifactItem } from "@/types/artifact";
 import type {
   DialogueScenarioFrame,
   DialogueScenarioMessageSnapshot,
 } from "@/types/dialogueScenario";
+import { dialogueScenarioRuntimeHelpers } from "@/utils/dialogueScenarioRuntime";
+import { isChatAttachmentFileAllowed } from "@/utils/chatAttachmentFileTypes";
+import { hasUserInAccessScope } from "@/utils/organizationAccess";
+
+import { DialoguePrototypeView } from "./components/DialoguePrototypeView";
+import { MeOnboardingProfileModal } from "./components/MeOnboardingProfileModal";
 import { buildDialogueScenarioReplay, findDialogueScenario } from "./dialogueScenarioSimulation";
 import type {
   DialogueGeneratedResultItem,
@@ -78,9 +84,6 @@ interface FrontisPageProps {
   workspaceMode?: "metaAgent" | "expertStudio";
 }
 
-const FEISHU_QR_CONFIGURED_STORAGE_KEY = "frontis_meta_agent_feishu_qr_configured";
-const FEISHU_QR_CODE_STORAGE_KEY = "frontis_meta_agent_feishu_qr_code";
-const FEISHU_QR_UPDATED_EVENT = "frontis:feishu-qrcode-updated";
 const DEFAULT_CONVERSATION_EMPLOYEE_ID = "employee-writer";
 const MANAGEMENT_USER_ROLES = new Set(["enterpriseAdmin"]);
 const ACTIVE_WORKSPACE_STATUSES = new Set<StatusTone>(["online", "busy", "idle"]);
@@ -90,7 +93,6 @@ const MAX_HOME_PROMPT_ITEM_COUNT = 6;
 const DEFAULT_WORKSPACE_AGENT_NAME = "ME";
 const EXPERT_TEAM_MAIN_AGENT_NAME = DEFAULT_WORKSPACE_AGENT_NAME;
 const META_AGENT_SCENARIO_TEAM_ID = "team-product";
-const META_AGENT_PRIMARY_SEED_SOURCE_ID = "dialogue-seed-team-product-collab";
 const META_AGENT_PRIMARY_SEED_SESSION_ID = "dialogue-seed-metaagent-collab";
 const META_AGENT_ONBOARDING_SESSION_ID = "dialogue-seed-metaagent-onboarding";
 const NEW_USER_ONBOARDING_TENANT_ID = "tenant-new-user-onboarding-demo";
@@ -98,27 +100,7 @@ const EXPERT_TEAM_MAIN_AGENT_DESCRIPTION =
   "作为默认主Agent，负责理解需求、调度你有权限使用的专家并统一交付。";
 const PRODUCT_TEAM_COLLAB_QUESTION = "帮我把这个需求拆成核心模块、边界和依赖关系。";
 const PRODUCT_TEAM_RISK_QUESTION = "这版方案上线前，架构层面最需要提前规避哪些风险？";
-const META_AGENT_RISK_PRIORITY_DOCUMENT = `# 上线风险优先级清单
-
-## P0
-- 权限边界未收敛前，不允许开放批量成员和外部专家调用。
-- 关键工作流需要保留任务、成果和调用链路的审计记录。
-
-## P1
-- 成果预览和下载需要同源权限校验。
-- ME 调度范围需以用户授权专家为准，而不是仅限工作台已添加专家。
-`;
-const META_AGENT_RISK_ACCEPTANCE_DOCUMENT = `# 上线前验收与回归计划
-
-## 验收范围
-- 组织角色、权限配置、预设角色继承关系。
-- ME 自动升级专家版本后的任务连续性。
-- 工作轨迹、任务、成果之间的定位关系。
-
-## 回归重点
-- 个人版不展示租户总览。
-- 团队版企业管理员可查看团队 AI 专家看板。
-`;
+const META_AGENT_ONBOARDING_QUICK_PROMPT = "请根据我的信息生成公司宣传材料";
 
 interface ExpertTeamDialogueRouting {
   mode: "primary" | "member" | "all";
@@ -146,90 +128,22 @@ const resolveScenarioFrameMessages = (
         },
       ];
 
-const replaceMetaAgentCopy = (value: string): string =>
-  value
-    .replace(/产研协作专家团/g, DEFAULT_WORKSPACE_AGENT_NAME)
-    .replace(/Metaagent/g, DEFAULT_WORKSPACE_AGENT_NAME)
-    .replace(/默认Agent/g, DEFAULT_WORKSPACE_AGENT_NAME)
-    .replace(/工作站/g, "")
-    .replace(/\s{2,}/g, " ")
-    .trim();
-
 const isMetaAgentEmployee = (employee: EmployeeItem | null): boolean =>
   Boolean(employee?.isExpertTeam && employee.name === DEFAULT_WORKSPACE_AGENT_NAME);
 
-const createMetaAgentArtifactBlock = (artifact: ArtifactItem, sequence: number): Block => ({
-  id: `block-${artifact.id}`,
-  kind: "artifact",
-  data: {
-    artifact_id: artifact.artifactId,
-    kind: "markdown",
-    title: artifact.fileName,
-    status: "completed",
-    format: "markdown",
-  },
-  sequence,
-});
-
-const createMetaAgentRiskArtifacts = (): ArtifactItem[] => [
-  dialogueScenarioRuntimeHelpers.createMarkdownArtifact(
-    META_AGENT_PRIMARY_SEED_SESSION_ID,
-    "metaagent-risk-priority",
-    "上线风险优先级清单.md",
-    DEFAULT_WORKSPACE_AGENT_NAME,
-    "上线风险复核",
-    META_AGENT_RISK_PRIORITY_DOCUMENT,
-    "11:18",
-    dialogueScenarioRuntimeHelpers.resolveTextArtifactSize(META_AGENT_RISK_PRIORITY_DOCUMENT),
-  ),
-  dialogueScenarioRuntimeHelpers.createMarkdownArtifact(
-    META_AGENT_PRIMARY_SEED_SESSION_ID,
-    "metaagent-risk-acceptance",
-    "上线前验收与回归计划.md",
-    DEFAULT_WORKSPACE_AGENT_NAME,
-    "上线风险复核",
-    META_AGENT_RISK_ACCEPTANCE_DOCUMENT,
-    "11:21",
-    dialogueScenarioRuntimeHelpers.resolveTextArtifactSize(META_AGENT_RISK_ACCEPTANCE_DOCUMENT),
-  ),
-];
-
 const buildMetaAgentSeedSessions = (): DialogueSessionItem[] => {
-  const sourceSession = INITIAL_DIALOGUE_SESSIONS.find(
-    item => item.id === META_AGENT_PRIMARY_SEED_SOURCE_ID,
+  const flattenedMessages = buildMetaAgentHistoryMessages(
+    DEFAULT_WORKSPACE_AGENT_NAME,
+    META_AGENT_PRIMARY_SEED_SESSION_ID,
   );
-  const riskArtifacts = createMetaAgentRiskArtifacts();
-  const flattenedMessages = [
-    ...(sourceSession?.messages.map(message => ({
-      ...message,
-      author: replaceMetaAgentCopy(message.author),
-      content: replaceMetaAgentCopy(message.content),
-    })) ?? []),
-    {
-      id: "metaagent-risk-user-1",
-      role: "user" as const,
-      author: "你",
-      content: PRODUCT_TEAM_RISK_QUESTION,
-      timeLabel: "11:15",
-    },
-    {
-      id: "metaagent-risk-assistant-1",
-      role: "assistant" as const,
-      author: DEFAULT_WORKSPACE_AGENT_NAME,
-      content:
-        "我已拉起架构规划师、交付验收官和数据洞察师协同评审，当前先给你一版统一风险结论和处理优先级。",
-      timeLabel: "11:15",
-      blocks: riskArtifacts.map((artifact, index) => createMetaAgentArtifactBlock(artifact, index)),
-    },
-  ];
 
   return [
     {
       id: META_AGENT_PRIMARY_SEED_SESSION_ID,
       employeeId: DEFAULT_CONVERSATION_EMPLOYEE_ID,
       title: "ME 持续对话",
-      preview: "ME 已汇总近期协同任务，并持续在同一条工作线程内追加记录。",
-      updatedAt: "11:15",
+      preview: "ME 已汇总近期协同任务、工具调用样例和能力补充说明。",
+      updatedAt: "11:22",
       messages: flattenedMessages,
     },
   ];
@@ -252,16 +166,17 @@ const buildMetaAgentOnboardingSession = (): DialogueSessionItem => ({
       id: "metaagent-onboarding-assistant-1",
       role: "assistant",
       author: DEFAULT_WORKSPACE_AGENT_NAME,
-      content: `**你好，我是 ME。**
+      content: `**你好，我是 ME，你在 AI 世界里的数字分身。**
 
-你可以把我当成你的工作入口：直接告诉我目标、上传文件，或者描述一个业务场景，我会帮你拆解任务、选择合适的 AI 专家，并把过程结论和成果文件整理出来。
+我会在持续协作中了解你的目标、偏好、判断标准和优先级。面对任务时，我会代表你在 AI 世界里行动：判断该调度哪些 AI 专家、如何拆解任务、哪些结果需要优先处理，并把过程、结论和成果向你汇报。
 
-你也可以先把我调成更顺手的样子：
+你可以先从这些事情开始：
 
-- 给我起一个你习惯的名字
-- 设置回答风格，比如严谨、简洁、销售型或管理型
-- 让我优先按你的工作场景来组织输出`,
+- 告诉我你的业务目标、工作背景和常用判断标准
+- 上传资料、会议记录或历史文件，让我逐步积累你的个人工作记忆
+- 交给我一个任务，我会替你调度专家团推进，并同步关键进展`,
       timeLabel: "刚刚",
+      followupSuggestions: [META_AGENT_ONBOARDING_QUICK_PROMPT],
     },
   ],
 });
@@ -313,15 +228,16 @@ const createMetaAgentV430PrdArtifact = (): ArtifactItem =>
 const NORMALIZED_INITIAL_DIALOGUE_ARTIFACTS: Record<string, ArtifactItem[]> = {
   ...INITIAL_DIALOGUE_ARTIFACTS,
   [META_AGENT_PRIMARY_SEED_SESSION_ID]: [
-    ...(INITIAL_DIALOGUE_ARTIFACTS[META_AGENT_PRIMARY_SEED_SOURCE_ID] ?? []),
-    ...createMetaAgentRiskArtifacts(),
+    ...buildMetaAgentCapabilityDemoArtifacts(
+      META_AGENT_PRIMARY_SEED_SESSION_ID,
+      DEFAULT_WORKSPACE_AGENT_NAME,
+    ),
     createMetaAgentV430PrdArtifact(),
   ],
 };
 const NORMALIZED_INITIAL_DIALOGUE_RESULTS: Record<string, DialogueGeneratedResultItem[]> = {
   ...INITIAL_DIALOGUE_RESULTS,
-  [META_AGENT_PRIMARY_SEED_SESSION_ID]:
-    INITIAL_DIALOGUE_RESULTS[META_AGENT_PRIMARY_SEED_SOURCE_ID] ?? [],
+  [META_AGENT_PRIMARY_SEED_SESSION_ID]: [],
 };
 
 const clampHomePromptItems = (config: AiCeoAgentHomeConfig): AiCeoAgentHomeConfig => ({
@@ -590,57 +506,66 @@ const buildMetaAgentHomeConfig = (
     ).values(),
   );
   const metaPromptItems = [
-    { id: "metaagent-1", question: PRODUCT_TEAM_COLLAB_QUESTION },
-    { id: "metaagent-2", question: PRODUCT_TEAM_RISK_QUESTION },
+    {
+      id: "metaagent-1",
+      question: "按照现在 ME 的能力总表，帮我重新梳理对话中的工具调用展示。",
+    },
+    {
+      id: "metaagent-2",
+      question: "这轮如果创建或编辑了文件，最后帮我把文件卡片放到回复结尾。",
+    },
     {
       id: "metaagent-3",
-      question: "结合我的目标，帮我协调有权限的专家给出分工方案和最终交付清单。",
+      question: "调用 AI 专家时，把右上角进度卡片和今日成果一起同步出来。",
     },
-    { id: "metaagent-4", question: "先判断这个需求该调用哪些专家，再给我一版统一输出。" },
+    {
+      id: "metaagent-4",
+      question: "把本轮过程整理进工作记录，保留工具摘要和最终成果。",
+    },
   ];
   const fallbackCaseImage = primaryConfig.caseItems?.[0]?.coverImage;
   const metaCaseItems: AiCeoHomeCaseItem[] = [
     {
-      id: "metaagent-case-collab",
-      scene: "多专家协同",
-      title: "ME 协同拆解需求",
-      summary: "ME 先识别问题，再调度产品、架构、增长等专家分工协作并统一交付。",
+      id: "metaagent-case-tool-display",
+      scene: "工具消息",
+      title: "ME 梳理工具调用展示",
+      summary: "ME 按真实执行顺序展示思考、工具、Skill、MCP、AI 专家任务和文件卡片。",
       coverImage: fallbackCaseImage,
-      replayScenarioQuestion: PRODUCT_TEAM_COLLAB_QUESTION,
+      replayScenarioQuestion: metaPromptItems[0].question,
       messages: [
         {
-          id: "metaagent-case-collab-1",
+          id: "metaagent-case-tool-display-1",
           role: "user",
           actor: "你",
-          content: PRODUCT_TEAM_COLLAB_QUESTION,
+          content: metaPromptItems[0].question,
         },
         {
-          id: "metaagent-case-collab-2",
+          id: "metaagent-case-tool-display-2",
           role: "assistant",
           actor: DEFAULT_WORKSPACE_AGENT_NAME,
-          content: "我会先拆解需求，再调度相关专家协同分析，最后统一给你一版可执行方案。",
+          content: "我会按任务顺序展示思考、工具调用、协作进度和最终文件卡片。",
         },
       ],
     },
     {
-      id: "metaagent-case-risk",
-      scene: "风险评审",
-      title: "ME 协同评估上线风险",
-      summary: "ME 汇总架构、质量与数据视角，统一输出上线风险和治理建议。",
+      id: "metaagent-case-work-record",
+      scene: "工作记录",
+      title: "ME 汇总本轮成果",
+      summary: "ME 在任务结束后沉淀工具摘要、AI 专家进度、文件卡片和工作记录。",
       coverImage: primaryConfig.caseItems?.[1]?.coverImage ?? fallbackCaseImage,
-      replayScenarioQuestion: PRODUCT_TEAM_RISK_QUESTION,
+      replayScenarioQuestion: metaPromptItems[3].question,
       messages: [
         {
-          id: "metaagent-case-risk-1",
+          id: "metaagent-case-work-record-1",
           role: "user",
           actor: "你",
-          content: PRODUCT_TEAM_RISK_QUESTION,
+          content: metaPromptItems[3].question,
         },
         {
-          id: "metaagent-case-risk-2",
+          id: "metaagent-case-work-record-2",
           role: "assistant",
           actor: DEFAULT_WORKSPACE_AGENT_NAME,
-          content: "我会调度相关专家一起评审，把关键风险、影响范围和处理建议统一整理出来。",
+          content: "我会把本轮过程压成可追溯的工作记录，并把产出文件放到最终回复。",
         },
       ],
     },
@@ -765,20 +690,6 @@ const buildExpertTeamHomeConfig = (
 
 const resolveDialogueScenarioEmployeeId = (employee: EmployeeItem): string =>
   employee.isExpertTeam && employee.expertTeamId ? employee.expertTeamId : employee.id;
-
-const resolveMetaAgentFallbackQuestion = (content: string): string => {
-  const normalizedContent = content.trim();
-  if (
-    normalizedContent.includes("风险") ||
-    normalizedContent.includes("上线") ||
-    normalizedContent.includes("灰度") ||
-    normalizedContent.includes("验收")
-  ) {
-    return PRODUCT_TEAM_RISK_QUESTION;
-  }
-
-  return PRODUCT_TEAM_COLLAB_QUESTION;
-};
 
 /**
  * 解析专家团对话的目标路由。
@@ -907,20 +818,6 @@ const FrontisPage = ({
     null,
   );
   const [removedExpertStudioAgentIds, setRemovedExpertStudioAgentIds] = useState<string[]>([]);
-  const [isFeishuQrConfigured, setIsFeishuQrConfigured] = useState<boolean>(
-    () => localStorage.getItem(FEISHU_QR_CONFIGURED_STORAGE_KEY) === "true",
-  );
-  const [feishuQrCode, setFeishuQrCode] = useState<string>(() => {
-    const storedQrCode = localStorage.getItem(FEISHU_QR_CODE_STORAGE_KEY);
-    if (storedQrCode) {
-      return storedQrCode;
-    }
-
-    return localStorage.getItem(FEISHU_QR_CONFIGURED_STORAGE_KEY) === "true"
-      ? "https://applink.feishu.cn/client/bot/open?app=frontis-meta-agent"
-      : "";
-  });
-  const [isFeishuWorkspaceConnected, setIsFeishuWorkspaceConnected] = useState<boolean>(false);
   const dialogueTimerRefs = useRef<number[]>([]);
   const latestDialogueAttachmentsRef = useRef<WorkspaceComposerAttachmentItem[]>([]);
 
@@ -936,33 +833,7 @@ const FrontisPage = ({
     setActiveMetaAgentTrajectoryId(null);
     setActiveMetaAgentTrajectoryAnchorBlockId(null);
     setRemovedExpertStudioAgentIds([]);
-    setIsFeishuWorkspaceConnected(false);
   }, [activeIdentity?.tenantId, viewRole, workspaceMode]);
-
-  useEffect(() => {
-    const handleFeishuQrUpdated = (event: Event): void => {
-      const configured =
-        event instanceof CustomEvent
-          ? Boolean(event.detail?.configured)
-          : localStorage.getItem(FEISHU_QR_CONFIGURED_STORAGE_KEY) === "true";
-      const nextQrCode =
-        event instanceof CustomEvent && typeof event.detail?.qrCode === "string"
-          ? event.detail.qrCode
-          : (localStorage.getItem(FEISHU_QR_CODE_STORAGE_KEY) ?? "");
-
-      setIsFeishuQrConfigured(configured);
-      setFeishuQrCode(nextQrCode);
-      if (!configured) {
-        setIsFeishuWorkspaceConnected(false);
-      }
-    };
-
-    window.addEventListener(FEISHU_QR_UPDATED_EVENT, handleFeishuQrUpdated);
-
-    return () => {
-      window.removeEventListener(FEISHU_QR_UPDATED_EVENT, handleFeishuQrUpdated);
-    };
-  }, []);
 
   const employees = useMemo(
     () => INITIAL_EMPLOYEES.map(item => mapEmployeeForRole(item, viewRole)),
@@ -985,6 +856,24 @@ const FrontisPage = ({
       null,
     [session?.userId, tenantUsers, viewRole],
   );
+  const shouldEnableMeOnboardingProfileModal =
+    workspaceMode === "metaAgent" &&
+    activeIdentity?.platform === "enterpriseWorkspace" &&
+    isNewUserOnboardingTenant(activeIdentity?.tenantId);
+  const meOnboardingProfileModalState = useMeOnboardingProfileModal({
+    enabled: shouldEnableMeOnboardingProfileModal,
+    accountId: session?.accountId,
+    tenantId: activeIdentity?.tenantId,
+    defaultNickname: currentUser?.name ?? session?.name,
+    showOnEveryEntry: isNewUserOnboardingTenant(activeIdentity?.tenantId),
+  });
+  const {
+    isOpen: isMeOnboardingProfileModalOpen,
+    profile: meOnboardingProfile,
+    handleChangeProfile: handleChangeMeOnboardingProfile,
+    handleSkipProfile: handleSkipMeOnboardingProfile,
+    handleSubmitProfile: submitMeOnboardingProfile,
+  } = meOnboardingProfileModalState;
   const roleVisibleEmployees = useMemo(
     () => employees.filter(item => item.portalRoles.includes(viewRole)),
     [employees, viewRole],
@@ -1095,7 +984,6 @@ const FrontisPage = ({
     [activeEmployee, conversationEmployeeDirectory],
   );
   const isMetaAgentDialogue = useMemo(() => isMetaAgentEmployee(activeEmployee), [activeEmployee]);
-  const shouldShowFeishuConnectAction = workspaceMode === "metaAgent" && isFeishuQrConfigured;
 
   const employeeDialogueSessions = useMemo(
     () =>
@@ -1182,27 +1070,7 @@ const FrontisPage = ({
     () => effectiveSelectedSkills.map(item => item.name).join("、"),
     [effectiveSelectedSkills],
   );
-  const expertTeamScenarioLabel = useMemo(
-    () =>
-      activeEmployee
-        ? getExpertTeamScenarioLabel(activeEmployee.summary, activeEmployee.name)
-        : "当前业务场景",
-    [activeEmployee],
-  );
-  const dialoguePlaceholder = useMemo(
-    () =>
-      isExpertTeamDialogue
-        ? `请输入你的具体需求，例如：${expertTeamScenarioLabel}`
-        : effectiveSelectedSkills.length
-          ? `已选择技能：${selectedSkillNamesLabel}，请输入你的具体需求`
-          : "输入消息或上传附件",
-    [
-      effectiveSelectedSkills.length,
-      expertTeamScenarioLabel,
-      isExpertTeamDialogue,
-      selectedSkillNamesLabel,
-    ],
-  );
+  const dialoguePlaceholder = "请告诉我你的需求或问题";
 
   useEffect(() => {
     if (isMetaAgentDialogue && isDialogueHomeActive) {
@@ -1445,6 +1313,11 @@ const FrontisPage = ({
     );
   }, []);
 
+  const handleSubmitMeOnboardingProfile = useCallback((): void => {
+    submitMeOnboardingProfile();
+    message.success("ME 已记住你的基础信息。");
+  }, [submitMeOnboardingProfile]);
+
   const handleRenameDialogueSession = useCallback((sessionId: string, title: string): void => {
     const nextTitle = title.trim();
     if (!nextTitle) return;
@@ -1524,24 +1397,15 @@ const FrontisPage = ({
         .trim();
       const scenarioQuestion = normalizedScenarioQuestion || fallbackContent;
       const isSingleThreadMetaAgentDialogue = isMetaAgentEmployee(activeEmployee);
-      const exactTeamScenario = activeEmployee.isExpertTeam
+      const exactTeamScenario = activeEmployee.isExpertTeam && !isSingleThreadMetaAgentDialogue
         ? findDialogueScenario(
             resolveDialogueScenarioEmployeeId(activeEmployee),
             scenarioQuestion,
             createId("dialogue-scenario"),
           )
         : null;
-      const metaAgentFallbackScenario =
-        !exactTeamScenario && isSingleThreadMetaAgentDialogue
-          ? findDialogueScenario(
-              META_AGENT_SCENARIO_TEAM_ID,
-              resolveMetaAgentFallbackQuestion(scenarioQuestion),
-              createId("dialogue-scenario"),
-            )
-          : null;
       const matchedScenario =
         exactTeamScenario ??
-        metaAgentFallbackScenario ??
         findDialogueScenario(
           respondingEmployee.id,
           scenarioQuestion,
@@ -1850,15 +1714,6 @@ const FrontisPage = ({
     setActiveMetaAgentTrajectoryAnchorBlockId(null);
   }, []);
 
-  const handleConnectFeishu = useCallback((): void => {
-    if (!isFeishuQrConfigured) {
-      return;
-    }
-
-    setIsFeishuWorkspaceConnected(true);
-    message.success("飞书已连接。");
-  }, [isFeishuQrConfigured]);
-
   const handleOpenHomeCase = useCallback(
     (item: AiCeoHomeCaseItem): void => {
       if (!activeEmployee) {
@@ -1894,6 +1749,17 @@ const FrontisPage = ({
       commitDialogue(question, Boolean(activeCaseReplay));
     },
     [activeCaseReplay, commitDialogue],
+  );
+
+  const handleSendDialogueQuickPrompt = useCallback(
+    (question: string): void => {
+      if (isDialogueResponding) {
+        return;
+      }
+
+      commitDialogue(question);
+    },
+    [commitDialogue, isDialogueResponding],
   );
 
   const handleStopDialogue = useCallback((): void => {
@@ -2011,7 +1877,7 @@ const FrontisPage = ({
     ...systemEntries.map(entry => ({
       key: `system-entry-${entry.identityId}`,
       icon: <AppstoreOutlined />,
-      label: `进入${entry.label}`,
+      label: getSystemEntryMenuLabel(entry),
       onClick: () => handleOpenSystemEntry(entry),
     })),
     ...(systemEntries.length
@@ -2076,6 +1942,7 @@ const FrontisPage = ({
           caseReplayOpenPanel={activeCaseReplay?.openPanel ?? null}
           onCaseReplayAction={handleStartCasePractice}
           onHomePromptSend={handleSendDialogueHomePrompt}
+          onQuickPromptSend={handleSendDialogueQuickPrompt}
           onHomeCaseSelect={handleOpenHomeCase}
           onRemoveEmployee={
             workspaceMode === "expertStudio" ? handleRemoveExpertStudioAgent : undefined
@@ -2096,10 +1963,6 @@ const FrontisPage = ({
           activeMetaAgentTrajectory={activeMetaAgentTrajectory}
           onSelectMetaAgentTrajectory={handleSelectMetaAgentTrajectory}
           onClearMetaAgentTrajectory={handleClearMetaAgentTrajectory}
-          onFeishuConnect={handleConnectFeishu}
-          isFeishuConnected={isFeishuWorkspaceConnected}
-          feishuQrCode={feishuQrCode}
-          showFeishuConnectAction={shouldShowFeishuConnectAction}
           showAccountEntry={!embedded}
           viewerName={currentUser?.name ?? "你"}
         />
@@ -2119,8 +1982,23 @@ const FrontisPage = ({
     );
   };
 
+  const meOnboardingProfileModal = (
+    <MeOnboardingProfileModal
+      open={isMeOnboardingProfileModalOpen}
+      value={meOnboardingProfile}
+      onChange={handleChangeMeOnboardingProfile}
+      onSubmit={handleSubmitMeOnboardingProfile}
+      onSkip={handleSkipMeOnboardingProfile}
+    />
+  );
+
   if (embedded) {
-    return <div className={styles.embeddedPage}>{renderContent()}</div>;
+    return (
+      <div className={styles.embeddedPage}>
+        {renderContent()}
+        {meOnboardingProfileModal}
+      </div>
+    );
   }
 
   return (
@@ -2130,6 +2008,7 @@ const FrontisPage = ({
           <div className={styles.content}>{renderContent()}</div>
         </div>
       </main>
+      {meOnboardingProfileModal}
     </div>
   );
 };

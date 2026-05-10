@@ -8,6 +8,12 @@
   flex-direction: column;
 }
 
+.panelHeaderActionReserved {
+  .previewHeader {
+    padding-right: 64px;
+  }
+}
+
 .header {
   padding: 20px 16px 12px;
   display: flex;
@@ -72,11 +78,62 @@
 }
 
 .previewHeaderActions {
+  flex: none;
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  flex-wrap: wrap;
-  gap: 10px;
+  flex-wrap: nowrap;
+  gap: 4px;
+}
+
+.previewIconButton {
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border-radius: 7px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-secondary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  transition:
+    border-color 0.18s ease,
+    background 0.18s ease,
+    color 0.18s ease,
+    opacity 0.18s ease;
+
+  &:hover:not(:disabled) {
+    border-color: color-mix(in srgb, var(--text) 8%, transparent);
+    background: color-mix(in srgb, var(--text) 5%, transparent);
+    color: var(--text);
+  }
+
+  &:active:not(:disabled) {
+    background: color-mix(in srgb, var(--text) 8%, transparent);
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.38;
+  }
+
+  &:focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--primary) 35%, transparent);
+    outline-offset: 2px;
+  }
+}
+
+.previewHeaderIcon {
+  width: 16px;
+  height: 16px;
+  font-size: 16px;
+  line-height: 1;
+
+  svg {
+    display: block;
+  }
 }
 
 .previewTabGroup {
@@ -156,33 +213,6 @@
   font-size: 14px;
   line-height: 20px;
   color: var(--text-muted);
-}
-
-.closeButton {
-  width: 28px;
-  height: 28px;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--text) 7%, transparent);
-  color: var(--text-muted);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex: none;
-
-  &:hover {
-    color: var(--text-secondary);
-    background: color-mix(in srgb, var(--text) 12%, transparent);
-  }
-
-  &:focus-visible {
-    outline: 2px solid color-mix(in srgb, var(--primary) 35%, transparent);
-    outline-offset: 2px;
-  }
-}
-
-.closeIcon {
-  width: 12px;
-  height: 12px;
 }
 
 .content {
@@ -517,8 +547,14 @@
 }
 
 .fileActionIcon {
-  width: 12px;
-  height: 12px;
+  width: 14px;
+  height: 14px;
+  font-size: 14px;
+  line-height: 1;
+
+  svg {
+    display: block;
+  }
 }
 
 @media (hover: none), (pointer: coarse) {
@@ -556,53 +592,7 @@
 }
 
 .backButton {
-  height: 32px;
-  padding: 0 12px;
-  border-radius: 8px;
-  border: 1px solid var(--border);
-  background: var(--surface);
-  color: var(--text-secondary);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-family:
-    "PingFang SC",
-    system-ui,
-    -apple-system,
-    "Segoe UI",
-    Arial,
-    sans-serif;
-  font-size: 16px;
-  line-height: 20px;
-
-  &:hover {
-    background: color-mix(in srgb, var(--text) 3%, transparent);
-  }
-
-  &:focus-visible {
-    outline: 2px solid color-mix(in srgb, var(--primary) 35%, transparent);
-    outline-offset: 2px;
-  }
-}
-
-.sectionCard {
-  flex: 1;
-  min-height: 0;
-  border-radius: 12px;
-  background: transparent;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.previewCard {
-  flex: 1;
-  min-height: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
+  flex: none;
 }
 
 .previewLine {
@@ -783,38 +773,22 @@
   background: transparent;
 }
 
-.previewHeaderButton {
-  height: 36px;
-  border-radius: 8px;
-  border: 1px solid var(--border);
-  background: var(--surface);
-  color: var(--text-secondary);
-  padding: 0 14px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-family:
-    "PingFang SC",
-    system-ui,
-    -apple-system,
-    "Segoe UI",
-    Arial,
-    sans-serif;
-  font-weight: 600;
-  font-size: 14px;
-  line-height: 20px;
+.sectionCard {
+  flex: 1;
+  min-height: 0;
+  border-radius: 12px;
+  background: transparent;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
 
-  &:hover:not(:disabled) {
-    background: color-mix(in srgb, var(--text) 4%, transparent);
-  }
-
-  &:disabled {
-    opacity: 0.45;
-    cursor: not-allowed;
-  }
-
-  &:focus-visible {
-    outline: 2px solid color-mix(in srgb, var(--primary) 35%, transparent);
-    outline-offset: 2px;
-  }
+.previewCard {
+  flex: 1;
+  min-height: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }

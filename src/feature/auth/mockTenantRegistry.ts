@@ -1,6 +1,7 @@
 import { INITIAL_FRONTIS_WEB_USERS } from "@/mocks/mockData";
 import type { FrontisWebUserItem } from "@/pages/types";
 
+import { DEFAULT_TENANT_ROLE_IDS } from "@/constants/tenantRolePermissions";
 import type {
   MockTenantAgentUsageRecordItem,
   MockTenantManagementSnapshot,
@@ -10,6 +11,7 @@ import type {
 } from "@/feature/auth/types";
 
 const MOCK_TENANT_MANAGEMENT_STORAGE_KEY = "frontis.mock.tenant-management";
+const NEW_USER_ONBOARDING_TENANT_ID = "tenant-new-user-onboarding-demo";
 
 const DEFAULT_ADMIN_ASSIGNED_AGENT_IDS =
   INITIAL_FRONTIS_WEB_USERS.find(item => item.id === "user-admin-001")?.assignedAgentIds ?? [];
@@ -64,6 +66,7 @@ const createTenantUser = (
     dialogueCount: 0,
     lastActiveAt: "刚刚",
     resultCount: 0,
+    roleIds: overrides.roleIds ?? [DEFAULT_TENANT_ROLE_IDS[overrides.role]],
     status: "active",
     tokenUsage: 0,
   });
@@ -626,7 +629,7 @@ const PRESET_TENANT_SNAPSHOTS: MockTenantManagementSnapshot[] = [
         id: "user-new-admin-001",
         name: "沈一新",
         phone: "13800007777",
-        role: "enterpriseAdmin",
+        role: "employee",
       }),
     ],
     agentUsageRecords: [],
@@ -659,7 +662,12 @@ const mergeSnapshotWithPreset = (
     ownerAccountId: presetSnapshot.ownerAccountId,
     adminUserId: presetSnapshot.adminUserId,
     deploymentMode: presetSnapshot.deploymentMode,
-    users: storedSnapshot.users.length ? storedSnapshot.users : presetSnapshot.users,
+    users:
+      presetSnapshot.tenantId === NEW_USER_ONBOARDING_TENANT_ID
+        ? presetSnapshot.users
+        : storedSnapshot.users.length
+          ? storedSnapshot.users
+          : presetSnapshot.users,
     agentUsageRecords: mergeStoredItemsWithPreset(
       presetSnapshot.agentUsageRecords,
       storedSnapshot.agentUsageRecords ?? [],

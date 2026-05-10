@@ -19,7 +19,7 @@ export type NotificationCategory = "all" | "system" | "alert" | "todo" | "securi
  */
 export type NotificationActionTab = Extract<
   FrontisWebTabKey,
-  "devices" | "models" | "organization" | "store"
+  "devices" | "organization" | "store"
 >;
 
 /**
@@ -89,8 +89,8 @@ export const NOTIFICATION_ITEMS: NotificationItem[] = [
     title: "系统更新公告",
     summary: "平台将于本周六 02:00-06:00 进行系统维护升级，届时部分功能可能暂时不可用。",
     timeLabel: "3天前",
-    actionLabel: "查看模型底座",
-    actionTab: "models",
+    actionLabel: "查看AI专家管理",
+    actionTab: "store",
   },
   {
     id: "notice-agent-v20",

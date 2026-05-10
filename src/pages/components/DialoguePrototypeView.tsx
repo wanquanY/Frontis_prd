@@ -9,7 +9,7 @@ import {
   DatabaseOutlined,
   DownOutlined,
   FileTextOutlined,
-  FolderOutlined,
+  HistoryOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
   MoreOutlined,
@@ -32,7 +32,7 @@ import {
   type MouseEvent as ReactMouseEvent,
 } from "react";
 import type { InputRef, MenuProps } from "antd";
-import { Avatar, DatePicker, Dropdown, Input, Modal, Popover, QRCode } from "antd";
+import { Avatar, DatePicker, Dropdown, Input, Popover } from "antd";
 import type { Block } from "@/types/block";
 import { resolveFileLogo } from "@/utils/fileLogo";
 
@@ -70,6 +70,9 @@ import {
   resolveArtifactUrl,
 } from "../utils";
 import { DialogueHomeView } from "./DialogueHomeView";
+import { DialogueHistoryPanel } from "./DialogueHistoryPanel";
+import { DialogueInsightPanel } from "./DialogueInsightPanel";
+import { buildDialogueInsightTasks, filterTodayArtifactFiles } from "./dialogueInsightPanelUtils";
 import { DialogueResultPanel } from "./DialogueResultPanel";
 import styles from "../FrontisPage.module.less";
 
@@ -106,9 +109,9 @@ interface DialoguePrototypeViewProps {
   onHomeCaseSelect: (item: AiCeoHomeCaseItem) => void;
   onDialogueSessionSelect: (sessionId: string) => void;
   onHomePromptSend: (question: string) => void;
+  onQuickPromptSend: (question: string) => void;
   onSelectMetaAgentTrajectory: (trajectoryId: string, anchorBlockId?: string) => void;
   onClearMetaAgentTrajectory: () => void;
-  onFeishuConnect?: () => void;
   onRemoveEmployee?: (employeeId: string) => void;
   onRemoveDialogueSession: (sessionId: string) => void;
   onRenameDialogueSession: (sessionId: string, title: string) => void;
@@ -121,9 +124,6 @@ interface DialoguePrototypeViewProps {
   hideAgentSidebar?: boolean;
   metaAgentTrajectoryItems: MetaAgentWorkTrajectoryItem[];
   showAccountEntry?: boolean;
-  showFeishuConnectAction?: boolean;
-  isFeishuConnected?: boolean;
-  feishuQrCode?: string;
   viewerName: string;
 }
 
@@ -144,6 +144,20 @@ const META_AGENT_TRAJECTORY_TIME_FILTER_OPTIONS: Array<{
   { key: "recentThreeMonths", label: "最近三个月" },
   { key: "custom", label: "自定义范围" },
 ];
+
+const getMetaAgentTaskStatusLabel = (
+  status: MetaAgentWorkTrajectoryItem["tasks"][number]["status"],
+): string => {
+  if (status === "running") {
+    return "执行中";
+  }
+
+  if (status === "failed") {
+    return "执行失败";
+  }
+
+  return "执行完成";
+};
 
 const normalizeMemoryQuery = (value: string): string => value.trim().toLowerCase();
 
@@ -347,6 +361,16 @@ const getSkillButtonWidth = (label: string, isSelected = false): number =>
   measureSkillLabelWidth(label) +
   (isSelected ? SELECTED_SKILL_BUTTON_BASE_WIDTH : SKILL_BUTTON_BASE_WIDTH);
 
+const isMetaCoordinatorEmployee = (
+  employee: EmployeeItem,
+  defaultAgentIds: readonly string[],
+): boolean =>
+  Boolean(
+    employee.isExpertTeam &&
+      defaultAgentIds.includes(employee.id) &&
+      employee.name === EXPERT_TEAM_MAIN_AGENT_NAME,
+  );
+
 /**
  * 对话视图。
  */
@@ -383,9 +407,9 @@ export const DialoguePrototypeView = ({
   onHomeCaseSelect,
   onDialogueSessionSelect,
   onHomePromptSend,
+  onQuickPromptSend,
   onSelectMetaAgentTrajectory,
   onClearMetaAgentTrajectory,
-  onFeishuConnect,
   onRemoveEmployee,
   onRemoveDialogueSession,
   onRenameDialogueSession,
@@ -398,9 +422,6 @@ export const DialoguePrototypeView = ({
   hideAgentSidebar = false,
   metaAgentTrajectoryItems,
   showAccountEntry = true,
-  showFeishuConnectAction = false,
-  isFeishuConnected = false,
-  feishuQrCode = "",
   viewerName,
 }: DialoguePrototypeViewProps): JSX.Element => {
   const attachmentInputRef = useRef<HTMLInputElement | null>(null);
@@ -418,8 +439,10 @@ export const DialoguePrototypeView = ({
   const [sidePanelMode, setSidePanelMode] = useState<"artifacts" | "results" | null>(null);
   const [preferredArtifactId, setPreferredArtifactId] = useState<string>();
   const [activeResultId, setActiveResultId] = useState<string | null>(null);
+  const [isDialogueHistoryOpen, setIsDialogueHistoryOpen] = useState<boolean>(false);
+  const [historyFocusBlockId, setHistoryFocusBlockId] = useState<string>("");
+  const [historyFocusRequestKey, setHistoryFocusRequestKey] = useState<string>("");
   const [isMetaAgentTrajectoryOpen, setIsMetaAgentTrajectoryOpen] = useState<boolean>(false);
-  const [isFeishuQrModalOpen, setIsFeishuQrModalOpen] = useState<boolean>(false);
   const [metaAgentTrajectorySearchValue, setMetaAgentTrajectorySearchValue] = useState<string>("");
   const [isMetaAgentTrajectoryTimeFilterOpen, setIsMetaAgentTrajectoryTimeFilterOpen] =
     useState<boolean>(false);
@@ -459,17 +482,6 @@ export const DialoguePrototypeView = ({
   const [viewportWidth, setViewportWidth] = useState<number>(
     typeof window === "undefined" ? 1440 : window.innerWidth,
   );
-  const handleOpenFeishuQrModal = useCallback((): void => {
-    if (isFeishuConnected) {
-      return;
-    }
-
-    setIsFeishuQrModalOpen(true);
-  }, [isFeishuConnected]);
-  const handleConfirmFeishuConnection = useCallback((): void => {
-    onFeishuConnect?.();
-    setIsFeishuQrModalOpen(false);
-  }, [onFeishuConnect]);
   const hasArtifactPanel = activeDialogueArtifacts.length > 0;
   const hasResultPanel = activeDialogueResults.length > 0;
   const employeeGroups = useMemo(
@@ -485,6 +497,12 @@ export const DialoguePrototypeView = ({
     !isHomeVisible && sidePanelMode === "artifacts" && hasArtifactPanel;
   const isResultPanelVisible = !isHomeVisible && sidePanelMode === "results" && hasResultPanel;
   const isSidePanelVisible = isArtifactPanelVisible || isResultPanelVisible;
+  const isMetaAgentWorkspace =
+    hideAgentSidebar && isMetaCoordinatorEmployee(activeEmployee, defaultAgentIds);
+  const resolvedFocusBlockId = focusBlockId?.trim() || historyFocusBlockId;
+  const resolvedFocusRequestKey = focusBlockId?.trim()
+    ? `external:${focusBlockId.trim()}`
+    : historyFocusRequestKey;
   const clampSidePanelWidth = useCallback(
     (width: number): number => {
       if (!Number.isFinite(width)) {
@@ -527,7 +545,7 @@ export const DialoguePrototypeView = ({
       }
 
       return {
-        gridTemplateColumns: "minmax(0, 1fr)",
+        gridTemplateColumns: "minmax(0, 1fr) 0px 0px",
       };
     }
 
@@ -540,7 +558,7 @@ export const DialoguePrototypeView = ({
     }
 
     return {
-      gridTemplateColumns: `${sidebarWidth}px minmax(0, 1fr)`,
+      gridTemplateColumns: `${sidebarWidth}px minmax(0, 1fr) 0px 0px`,
     };
   }, [
     buildVisibleSidePanelGridTemplateColumns,
@@ -564,6 +582,25 @@ export const DialoguePrototypeView = ({
     () => homeSkillItems.filter(item => !selectedSkillIds.includes(item.id)),
     [homeSkillItems, selectedSkillIds],
   );
+  const dialogueInsightTasks = useMemo(
+    () =>
+      buildDialogueInsightTasks({
+        activeName: activeEmployee.name,
+        messages: dialogueMessages,
+        trajectories: metaAgentTrajectoryItems,
+      }),
+    [activeEmployee.name, dialogueMessages, metaAgentTrajectoryItems],
+  );
+  const todayArtifactFiles = useMemo(
+    () => filterTodayArtifactFiles(activeDialogueArtifacts),
+    [activeDialogueArtifacts],
+  );
+  const shouldShowDialogueInsightPanel =
+    isMetaAgentWorkspace &&
+    !isHomeVisible &&
+    !isSidePanelVisible &&
+    (dialogueInsightTasks.length > 0 || todayArtifactFiles.length > 0);
+  const shouldShowWorkRecordEntry = isMetaAgentWorkspace && !isHomeVisible && !isSidePanelVisible;
   const { visibleSkillItems, overflowSkillItems } = useMemo(() => {
     if (selectedSkillItems.length > 0) {
       return {
@@ -941,12 +978,7 @@ export const DialoguePrototypeView = ({
     conversationEmployeeDirectory,
   ]);
   const isMetaCoordinatorAgent = useCallback(
-    (employee: EmployeeItem): boolean =>
-      Boolean(
-        employee.isExpertTeam &&
-        defaultAgentIds.includes(employee.id) &&
-        employee.name === EXPERT_TEAM_MAIN_AGENT_NAME,
-      ),
+    (employee: EmployeeItem): boolean => isMetaCoordinatorEmployee(employee, defaultAgentIds),
     [defaultAgentIds],
   );
   const supportsDialogueSessions = !isMetaCoordinatorAgent(activeEmployee);
@@ -1000,7 +1032,30 @@ export const DialoguePrototypeView = ({
     setPreferredArtifactId(undefined);
     setActiveResultId(null);
     setIsArtifactPreviewing(false);
+    setIsDialogueHistoryOpen(false);
   }, [isHomeVisible]);
+
+  useEffect(() => {
+    if (!isSidePanelVisible) {
+      return;
+    }
+
+    setIsDialogueHistoryOpen(false);
+  }, [isSidePanelVisible]);
+
+  useEffect(() => {
+    if (shouldShowWorkRecordEntry || !isDialogueHistoryOpen) {
+      return;
+    }
+
+    setIsDialogueHistoryOpen(false);
+  }, [isDialogueHistoryOpen, shouldShowWorkRecordEntry]);
+
+  useEffect(() => {
+    setIsDialogueHistoryOpen(false);
+    setHistoryFocusBlockId("");
+    setHistoryFocusRequestKey("");
+  }, [activeEmployee.id]);
 
   useEffect(() => {
     if (shouldShowMetaAgentTrajectory) {
@@ -1604,6 +1659,15 @@ export const DialoguePrototypeView = ({
     setSidePanelMode("artifacts");
   };
 
+  const handleOpenArtifactFile = (file: ArtifactItem): void => {
+    setPreferredArtifactId(file.id);
+    setIsArtifactPreviewing(true);
+    setSidePanelWidth(currentWidth =>
+      clampSidePanelWidth(Math.max(currentWidth, DIALOGUE_ARTIFACT_PREVIEW_PANEL_DEFAULT_WIDTH)),
+    );
+    setSidePanelMode("artifacts");
+  };
+
   const handleOpenResult = (resultId: string): void => {
     if (!activeDialogueResults.some(item => item.id === resultId)) {
       return;
@@ -1634,6 +1698,19 @@ export const DialoguePrototypeView = ({
     );
     setActiveResultId(resultId);
     setSidePanelMode("results");
+  };
+
+  const handleLocateDialogueHistoryMessage = (sessionId: string, anchorBlockId: string): void => {
+    if (!anchorBlockId.trim()) {
+      return;
+    }
+
+    if (sessionId !== activeDialogueSession?.id) {
+      onDialogueSessionSelect(sessionId);
+    }
+
+    setHistoryFocusBlockId(anchorBlockId);
+    setHistoryFocusRequestKey(`${sessionId}:${anchorBlockId}:${Date.now()}`);
   };
 
   const handleSidePanelResizeStart = (event: ReactMouseEvent<HTMLDivElement>): void => {
@@ -1886,7 +1963,7 @@ export const DialoguePrototypeView = ({
                   onClick={() => handleLocateMetaAgentTrajectory(item.id, task.anchorBlockId)}
                 >
                   <span className={styles.metaAgentTrajectoryDetailTaskStatus}>
-                    {task.status === "completed" ? "已完成" : "进行中"}
+                    {getMetaAgentTaskStatusLabel(task.status)}
                   </span>
                   <span className={styles.metaAgentTrajectoryDetailTaskBody}>
                     <strong>{task.title}</strong>
@@ -1983,7 +2060,7 @@ export const DialoguePrototypeView = ({
                       onClick={() => handleLocateMetaAgentTrajectory(item.id, task.anchorBlockId)}
                     >
                       <span className={styles.outputTaskStatus}>
-                        {task.status === "completed" ? "已完成" : "进行中"}
+                        {getMetaAgentTaskStatusLabel(task.status)}
                       </span>
                       <span className={styles.outputTaskBody}>
                         <strong>{task.title}</strong>
@@ -2161,20 +2238,6 @@ export const DialoguePrototypeView = ({
   const expertTeamMemberStrip = expertTeamMemberAvatars ? (
     <div className={styles.dialogueExpertTeamStrip}>
       <div className={styles.dialogueExpertTeamAvatars}>{expertTeamMemberAvatars}</div>
-    </div>
-  ) : null;
-  const expertTeamToolbarStrip = expertTeamMemberAvatars ? (
-    <div
-      className={classNames(styles.dialogueExpertTeamStrip, styles.dialogueExpertTeamStripToolbar)}
-    >
-      <div
-        className={classNames(
-          styles.dialogueExpertTeamAvatars,
-          styles.dialogueExpertTeamAvatarsToolbar,
-        )}
-      >
-        {expertTeamMemberAvatars}
-      </div>
     </div>
   ) : null;
   const expertTeamScenarioLabel = useMemo(
@@ -2455,62 +2518,6 @@ export const DialoguePrototypeView = ({
       ) : null}
 
       <section className={styles.dialogueMainCard}>
-        {showFeishuConnectAction || !isHomeVisible ? (
-          <div className={styles.dialogueViewToolbar}>
-            {shouldShowExpertTeamUi ? expertTeamToolbarStrip : null}
-            <div className={styles.dialogueViewToolbarGroup}>
-              {showFeishuConnectAction ? (
-                <button
-                  type="button"
-                  className={classNames(styles.dialogueViewButton, styles.feishuConnectButton, {
-                    [styles.feishuConnectButtonConnected]: isFeishuConnected,
-                  })}
-                  disabled={isFeishuConnected}
-                  onClick={handleOpenFeishuQrModal}
-                >
-                  {isFeishuConnected ? <CheckCircleOutlined /> : <MessageOutlined />}
-                  <span>{isFeishuConnected ? "已连接" : "扫码连接飞书"}</span>
-                </button>
-              ) : null}
-              {!isHomeVisible ? (
-                <button
-                  type="button"
-                  className={classNames(styles.dialogueViewButton, {
-                    [styles.dialogueViewButtonActive]: isArtifactPanelVisible,
-                  })}
-                  onClick={handleToggleArtifactsPanel}
-                  disabled={!hasArtifactPanel}
-                >
-                  <FolderOutlined />
-                  <span>成果</span>
-                </button>
-              ) : null}
-            </div>
-          </div>
-        ) : null}
-
-        <Modal
-          className={styles.feishuQrModal}
-          width={420}
-          centered
-          title="扫码连接飞书"
-          open={isFeishuQrModalOpen}
-          footer={null}
-          onCancel={() => setIsFeishuQrModalOpen(false)}
-        >
-          <button
-            type="button"
-            className={styles.feishuQrCard}
-            onClick={handleConfirmFeishuConnection}
-          >
-            <QRCode
-              value={feishuQrCode || "https://applink.feishu.cn/client/bot/open"}
-              size={220}
-            />
-            <span>点击二维码模拟扫码连接</span>
-          </button>
-        </Modal>
-
         {isHomeVisible ? (
           <div className={styles.dialogueHomeLayout}>
             <div
@@ -2541,11 +2548,12 @@ export const DialoguePrototypeView = ({
           </div>
         ) : (
           <>
-            <div className={styles.dialogueStage}>
+            <div className={classNames(styles.dialogueStage, styles.dialogueStageHeaderOffset)}>
               <div className={styles.chatPanelBody}>
                 <WorkspaceChatPanel
                   blocks={chatBlocks}
-                  focusBlockId={focusBlockId}
+                  focusBlockId={resolvedFocusBlockId}
+                  focusRequestKey={resolvedFocusRequestKey}
                   messages={chatMessages}
                   actorAvatars={dialogueActorAvatars}
                   currentSessionId={activeDialogueSession?.id ?? activeEmployee.id}
@@ -2555,8 +2563,10 @@ export const DialoguePrototypeView = ({
                   workspaceSummary={activeEmployee.summary}
                   greeting="输入消息或上传文件，开始协作"
                   showMessageMeta={true}
+                  collapseAssignedActorOutputs={isMetaAgentWorkspace}
                   onOpenArtifact={handleOpenArtifact}
                   onOpenResult={handleOpenResult}
+                  onQuickActionSend={onQuickPromptSend}
                 />
               </div>
             </div>
@@ -2564,6 +2574,59 @@ export const DialoguePrototypeView = ({
           </>
         )}
       </section>
+
+      {!isHomeVisible ? (
+        <div className={styles.dialogueTopRightActions}>
+          {shouldShowWorkRecordEntry ? (
+            <button
+              type="button"
+              className={classNames(styles.dialogueViewButton, styles.dialogueViewPanelButton, {
+                [styles.dialogueViewButtonActive]: isDialogueHistoryOpen,
+              })}
+              aria-label={isDialogueHistoryOpen ? "关闭工作记录" : "打开工作记录"}
+              aria-pressed={isDialogueHistoryOpen}
+              title={isDialogueHistoryOpen ? "关闭工作记录" : "工作记录"}
+              onClick={() => setIsDialogueHistoryOpen(current => !current)}
+            >
+              <HistoryOutlined className={styles.dialogueViewHistoryIcon} />
+            </button>
+          ) : null}
+          <button
+            type="button"
+            className={classNames(styles.dialogueViewButton, styles.dialogueViewPanelButton, {
+              [styles.dialogueViewButtonActive]: isArtifactPanelVisible,
+            })}
+            aria-label={isArtifactPanelVisible ? "收起成果列表" : "展开成果列表"}
+            aria-pressed={isArtifactPanelVisible}
+            title={isArtifactPanelVisible ? "收起成果列表" : "展开成果列表"}
+            onClick={handleToggleArtifactsPanel}
+            disabled={!hasArtifactPanel}
+          >
+            <span
+              className={classNames(styles.dialogueViewPanelIcon, {
+                [styles.dialogueViewPanelIconCollapsed]: isArtifactPanelVisible,
+              })}
+              aria-hidden={true}
+            />
+          </button>
+        </div>
+      ) : null}
+
+      {shouldShowWorkRecordEntry && isDialogueHistoryOpen ? (
+        <DialogueHistoryPanel
+          sessions={dialogueSessions}
+          onClose={() => setIsDialogueHistoryOpen(false)}
+          onLocateMessage={handleLocateDialogueHistoryMessage}
+        />
+      ) : null}
+
+      {shouldShowDialogueInsightPanel ? (
+        <DialogueInsightPanel
+          tasks={dialogueInsightTasks}
+          files={todayArtifactFiles}
+          onOpenFile={handleOpenArtifactFile}
+        />
+      ) : null}
 
       {isSidePanelVisible && !isStackedLayout ? (
         <div
@@ -2584,31 +2647,17 @@ export const DialoguePrototypeView = ({
             {!isArtifactPreviewing ? (
               <div className={styles.outputPanelHeader}>
                 <div className={styles.outputPanelTitleGroup}>
-                  <span className={styles.outputPanelTitle}>成果</span>
+                  <span className={styles.outputPanelTitle}>成果列表</span>
                 </div>
-                <button
-                  type="button"
-                  className={styles.outputPanelCloseButton}
-                  aria-label="关闭成果面板"
-                  onClick={() => {
-                    setSidePanelMode(null);
-                    setIsArtifactPreviewing(false);
-                  }}
-                >
-                  <CloseOutlined />
-                </button>
               </div>
             ) : null}
             <div className={styles.outputPanelBody}>
               <ArtifactPreviewPanel
                 files={activeDialogueArtifacts}
                 showHeader={false}
+                reserveHeaderActionSpace={!isStackedLayout}
                 loading={false}
                 error=""
-                onClose={() => {
-                  setSidePanelMode(null);
-                  setIsArtifactPreviewing(false);
-                }}
                 onDownloadFile={downloadArtifact}
                 resolveFileUrl={resolveArtifactUrl}
                 onPreviewStateChange={setIsArtifactPreviewing}

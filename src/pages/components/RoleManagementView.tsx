@@ -1,27 +1,24 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import classNames from "classnames";
 import { DeleteOutlined, EditOutlined, PlusOutlined } from "@ant-design/icons";
 import { Button, Checkbox, Input, Modal, Popconfirm, message } from "antd";
 
 import {
-  DEPARTMENT_LEAD_PERMISSION_IDS,
-  TENANT_MEMBER_PERMISSION_IDS,
+  createDefaultTenantRoles,
+  DEFAULT_TENANT_ROLE_IDS,
   TENANT_ROLE_PERMISSION_GROUPS,
   TENANT_ROLE_PERMISSION_IDS,
+  normalizeTenantRolePermissionIds,
+  syncTenantRoleMembers,
+  type TenantRolePermissionGroup,
+  type TenantRolePermissionMenu,
+  type TenantRoleItem,
 } from "@/constants/tenantRolePermissions";
 import type { MockTenantManagementSnapshot } from "@/feature/auth/types";
 import type { FrontisWebUserItem } from "../types";
 
 import adminStyles from "./FrontisAdminViews.module.less";
-
-interface TenantRoleItem {
-  builtin: boolean;
-  id: string;
-  memberIds: string[];
-  name: string;
-  permissionIds: string[];
-}
 
 interface DraftRoleForm {
   name: string;
@@ -29,12 +26,20 @@ interface DraftRoleForm {
 }
 
 export interface RoleManagementViewProps {
+  onRolesChange?: (roles: TenantRoleItem[]) => void;
+  onSelectedRoleIdChange?: (roleId: string) => void;
+  canManageCustomRoles?: boolean;
+  roles?: TenantRoleItem[];
+  selectedRoleId?: string;
   tenantSnapshot: MockTenantManagementSnapshot;
   users: FrontisWebUserItem[];
+  embedded?: boolean;
 }
 
 const PERMISSION_LABEL_BY_ID = new Map(
-  TENANT_ROLE_PERMISSION_GROUPS.flatMap(group => group.items.map(item => [item.id, item.label])),
+  TENANT_ROLE_PERMISSION_GROUPS.flatMap(group =>
+    group.menus.flatMap(menu => menu.items.map(item => [item.id, item.label])),
+  ),
 );
 
 const DEFAULT_DRAFT_ROLE: DraftRoleForm = {
@@ -42,38 +47,20 @@ const DEFAULT_DRAFT_ROLE: DraftRoleForm = {
   permissionIds: [],
 };
 
-const createInitialRoles = (users: FrontisWebUserItem[]): TenantRoleItem[] => {
-  const adminUsers = users.filter(user => user.role === "enterpriseAdmin");
-  const leadUsers = users.filter(user => user.role === "departmentLead");
-  const memberUsers = users.filter(user => user.role === "employee");
-
-  return [
-    {
-      id: "role-enterprise-admin",
-      builtin: true,
-      name: "组织管理员",
-      memberIds: adminUsers.map(user => user.id),
-      permissionIds: TENANT_ROLE_PERMISSION_IDS,
-    },
-    {
-      id: "role-department-lead",
-      builtin: true,
-      name: "部门负责人",
-      memberIds: leadUsers.map(user => user.id),
-      permissionIds: DEPARTMENT_LEAD_PERMISSION_IDS,
-    },
-    {
-      id: "role-tenant-member",
-      builtin: true,
-      name: "普通成员",
-      memberIds: memberUsers.map(user => user.id),
-      permissionIds: TENANT_MEMBER_PERMISSION_IDS,
-    },
-  ];
-};
-
 const getPermissionLabel = (permissionId: string): string =>
   PERMISSION_LABEL_BY_ID.get(permissionId) ?? permissionId;
+
+const getPermissionGroupItemIds = (group: TenantRolePermissionGroup): string[] =>
+  group.menus.flatMap(menu => menu.items.map(item => item.id));
+
+const getPermissionMenuItemIds = (menu: TenantRolePermissionMenu): string[] =>
+  menu.items.map(item => item.id);
+
+const isLeafPermissionMenu = (menu: TenantRolePermissionMenu): boolean =>
+  menu.displayMode === "leaf";
+
+const getSelectedPermissionCount = (permissionIds: string[], selectedPermissionIds: string[]) =>
+  permissionIds.filter(permissionId => selectedPermissionIds.includes(permissionId)).length;
 
 const resolveNextPermissionIds = (
   currentPermissionIds: string[],
@@ -98,18 +85,65 @@ const resolveNextPermissionIds = (
  * 组织角色与后台权限配置视图。
  */
 export const RoleManagementView = ({
-  tenantSnapshot,
+  onRolesChange,
+  onSelectedRoleIdChange,
+  canManageCustomRoles = true,
+  roles: controlledRoles,
+  selectedRoleId: controlledSelectedRoleId,
   users,
+  embedded = false,
 }: RoleManagementViewProps): JSX.Element => {
-  const [roles, setRoles] = useState<TenantRoleItem[]>(() => createInitialRoles(users));
-  const [selectedRoleId, setSelectedRoleId] = useState<string>("role-enterprise-admin");
+  const [innerRoles, setInnerRoles] = useState<TenantRoleItem[]>(() =>
+    createDefaultTenantRoles(users),
+  );
+  const [innerSelectedRoleId, setInnerSelectedRoleId] = useState<string>(
+    DEFAULT_TENANT_ROLE_IDS.enterpriseAdmin,
+  );
   const [isRoleModalOpen, setIsRoleModalOpen] = useState<boolean>(false);
   const [editingRoleId, setEditingRoleId] = useState<string>("");
   const [draftRole, setDraftRole] = useState<DraftRoleForm>(DEFAULT_DRAFT_ROLE);
+  const roles = controlledRoles ?? innerRoles;
+  const selectedRoleId = controlledSelectedRoleId ?? innerSelectedRoleId;
+
+  const updateRoles = useCallback(
+    (nextRoles: TenantRoleItem[]): void => {
+      if (onRolesChange) {
+        onRolesChange(nextRoles);
+        return;
+      }
+
+      setInnerRoles(nextRoles);
+    },
+    [onRolesChange],
+  );
+
+  const updateSelectedRoleId = useCallback(
+    (nextRoleId: string): void => {
+      if (onSelectedRoleIdChange) {
+        onSelectedRoleIdChange(nextRoleId);
+        return;
+      }
+
+      setInnerSelectedRoleId(nextRoleId);
+    },
+    [onSelectedRoleIdChange],
+  );
+
+  useEffect(() => {
+    if (controlledRoles) {
+      return;
+    }
+
+    setInnerRoles(currentRoles => syncTenantRoleMembers(currentRoles, users));
+  }, [controlledRoles, users]);
 
   const selectedRole = useMemo<TenantRoleItem | null>(
     () => roles.find(role => role.id === selectedRoleId) ?? roles[0] ?? null,
     [roles, selectedRoleId],
+  );
+  const selectedPermissionIds = useMemo<string[]>(
+    () => (selectedRole ? normalizeTenantRolePermissionIds(selectedRole.permissionIds) : []),
+    [selectedRole],
   );
 
   const assignedUsers = useMemo<FrontisWebUserItem[]>(
@@ -121,12 +155,17 @@ export const RoleManagementView = ({
       selectedRole
         ? TENANT_ROLE_PERMISSION_GROUPS.map(group => ({
             ...group,
-            items: group.items.filter(permission =>
-              selectedRole.permissionIds.includes(permission.id),
-            ),
-          })).filter(group => group.items.length > 0)
+            menus: group.menus
+              .map(menu => ({
+                ...menu,
+                items: menu.items.filter(permission =>
+                  selectedPermissionIds.includes(permission.id),
+                ),
+              }))
+              .filter(menu => menu.items.length > 0),
+          })).filter(group => group.menus.length > 0)
         : [],
-    [selectedRole],
+    [selectedPermissionIds, selectedRole],
   );
   const isAllPermissionsChecked =
     draftRole.permissionIds.length === TENANT_ROLE_PERMISSION_IDS.length;
@@ -141,15 +180,10 @@ export const RoleManagementView = ({
   }, []);
 
   const handleOpenEdit = useCallback((role: TenantRoleItem): void => {
-    if (role.builtin) {
-      message.info("平台预设角色不可编辑");
-      return;
-    }
-
     setEditingRoleId(role.id);
     setDraftRole({
       name: role.name,
-      permissionIds: role.permissionIds,
+      permissionIds: normalizeTenantRolePermissionIds(role.permissionIds),
     });
     setIsRoleModalOpen(true);
   }, []);
@@ -184,23 +218,21 @@ export const RoleManagementView = ({
     }));
   }, []);
 
-  const handleDeleteRole = useCallback((role: TenantRoleItem): void => {
-    if (role.builtin) {
-      message.info("平台预设角色不可删除");
-      return;
-    }
+  const handleDeleteRole = useCallback(
+    (role: TenantRoleItem): void => {
+      if (role.memberIds.length > 0) {
+        message.warning("请先移除该角色下的成员");
+        return;
+      }
 
-    if (role.memberIds.length > 0) {
-      message.warning("请先移除该角色下的成员");
-      return;
-    }
+      const nextRoles = roles.filter(item => item.id !== role.id);
 
-    setRoles(currentRoles => currentRoles.filter(item => item.id !== role.id));
-    setSelectedRoleId(currentSelectedRoleId =>
-      currentSelectedRoleId === role.id ? "role-enterprise-admin" : currentSelectedRoleId,
-    );
-    message.success("角色已删除");
-  }, []);
+      updateRoles(nextRoles);
+      updateSelectedRoleId(selectedRoleId === role.id ? (nextRoles[0]?.id ?? "") : selectedRoleId);
+      message.success("角色已删除");
+    },
+    [roles, selectedRoleId, updateRoles, updateSelectedRoleId],
+  );
 
   const handleSubmitRole = useCallback((): void => {
     const nextName = draftRole.name.trim();
@@ -216,18 +248,18 @@ export const RoleManagementView = ({
     }
 
     if (editingRoleId) {
-      setRoles(currentRoles =>
-        currentRoles.map(role =>
-          role.id === editingRoleId && !role.builtin
+      updateRoles(
+        roles.map(role =>
+          role.id === editingRoleId
             ? {
                 ...role,
                 name: nextName,
-                permissionIds: draftRole.permissionIds,
+                permissionIds: normalizeTenantRolePermissionIds(draftRole.permissionIds),
               }
             : role,
         ),
       );
-      setSelectedRoleId(editingRoleId);
+      updateSelectedRoleId(editingRoleId);
       message.success("已保存");
       handleCloseModal();
       return;
@@ -238,30 +270,46 @@ export const RoleManagementView = ({
       builtin: false,
       memberIds: [],
       name: nextName,
-      permissionIds: draftRole.permissionIds,
+      permissionIds: normalizeTenantRolePermissionIds(draftRole.permissionIds),
     };
 
-    setRoles(currentRoles => [...currentRoles, nextRole]);
-    setSelectedRoleId(nextRole.id);
+    updateRoles([...roles, nextRole]);
+    updateSelectedRoleId(nextRole.id);
     message.success("已创建");
     handleCloseModal();
-  }, [draftRole, editingRoleId, handleCloseModal]);
+  }, [draftRole, editingRoleId, handleCloseModal, roles, updateRoles, updateSelectedRoleId]);
 
   return (
-    <div className={adminStyles.consolePage}>
-      <header className={adminStyles.consoleHeader}>
-        <div className={adminStyles.consoleHeaderMain}>
-          <h1 className={adminStyles.consoleTitle}>角色管理</h1>
+    <div className={classNames(!embedded && adminStyles.consolePage)}>
+      {embedded ? null : (
+        <header className={adminStyles.consoleHeader}>
+          <div className={adminStyles.consoleHeaderMain}>
+            <h1 className={adminStyles.consoleTitle}>角色管理</h1>
+          </div>
+          <div className={adminStyles.consoleActions}>
+            {canManageCustomRoles ? (
+              <Button type="primary" icon={<PlusOutlined />} onClick={handleOpenCreate}>
+                创建角色
+              </Button>
+            ) : null}
+          </div>
+        </header>
+      )}
+
+      {embedded ? (
+        <div className={adminStyles.consoleHeader}>
+          <div className={adminStyles.consoleHeaderMain}>
+            <h2 className={adminStyles.consolePaneTitle}>角色权限</h2>
+          </div>
+          <div className={adminStyles.consoleActions}>
+            {canManageCustomRoles ? (
+              <Button type="primary" icon={<PlusOutlined />} onClick={handleOpenCreate}>
+                创建角色
+              </Button>
+            ) : null}
+          </div>
         </div>
-        <div className={adminStyles.consoleActions}>
-          <span className={adminStyles.consoleMetaTag}>
-            {tenantSnapshot.edition === "team" ? "团队版" : "个人版"}
-          </span>
-          <Button type="primary" icon={<PlusOutlined />} onClick={handleOpenCreate}>
-            创建角色
-          </Button>
-        </div>
-      </header>
+      ) : null}
 
       <div className={adminStyles.consoleSplitLayout}>
         <aside className={adminStyles.consoleSidebar}>
@@ -274,7 +322,7 @@ export const RoleManagementView = ({
                   adminStyles.consoleSidebarItem,
                   selectedRole?.id === role.id && adminStyles.consoleSidebarItemActive,
                 )}
-                onClick={() => setSelectedRoleId(role.id)}
+                onClick={() => updateSelectedRoleId(role.id)}
               >
                 <span className={adminStyles.consoleSidebarItemTitle}>{role.name}</span>
                 <span className={adminStyles.consoleSidebarItemMeta}>
@@ -293,22 +341,19 @@ export const RoleManagementView = ({
                   <h2 className={adminStyles.consolePaneTitle}>{selectedRole.name}</h2>
                   <div className={adminStyles.roleHeaderMeta}>
                     <span className={adminStyles.consolePill}>
-                      {selectedRole.permissionIds.length} 项权限
+                      {selectedPermissionIds.length} 项权限
                     </span>
                     <span className={adminStyles.consolePill}>{assignedUsers.length} 名成员</span>
-                    {selectedRole.builtin ? (
-                      <span className={adminStyles.consolePill}>平台预设</span>
-                    ) : null}
                   </div>
                 </div>
-                {selectedRole.builtin ? null : (
+                {!canManageCustomRoles ? null : (
                   <div className={adminStyles.consoleActions}>
                     <Button icon={<EditOutlined />} onClick={() => handleOpenEdit(selectedRole)}>
                       编辑
                     </Button>
                     <Popconfirm
                       title="删除角色"
-                      description="删除后该自定义角色将从租户角色列表移除。"
+                      description="删除后该角色将从租户角色列表移除。"
                       okText="删除"
                       cancelText="取消"
                       okButtonProps={{ danger: true }}
@@ -329,15 +374,40 @@ export const RoleManagementView = ({
                     <div key={group.title} className={adminStyles.rolePermissionTreeGroup}>
                       <div className={adminStyles.rolePermissionTreeHeader}>
                         <span className={adminStyles.rolePermissionTreeTitle}>{group.title}</span>
-                        <span className={adminStyles.consolePill}>{group.items.length} 项</span>
+                        <span className={adminStyles.consolePill}>
+                          {getPermissionGroupItemIds(group).length} 项
+                        </span>
                       </div>
                       <div className={adminStyles.rolePermissionTreeItems}>
-                        {group.items.map(permission => (
-                          <div key={permission.id} className={adminStyles.rolePermissionTreeItem}>
-                            <span className={adminStyles.rolePermissionTreeDot} />
-                            <span>{permission.label}</span>
-                          </div>
-                        ))}
+                        {group.menus.map(menu =>
+                          isLeafPermissionMenu(menu) ? (
+                            <div
+                              key={menu.title}
+                              className={adminStyles.rolePermissionTreeMenuLeaf}
+                            >
+                              <span className={adminStyles.rolePermissionTreeDot} />
+                              <strong>{menu.items[0]?.label ?? menu.title}</strong>
+                            </div>
+                          ) : (
+                            <div key={menu.title} className={adminStyles.rolePermissionTreeMenu}>
+                              <div className={adminStyles.rolePermissionTreeMenuHeader}>
+                                <span className={adminStyles.rolePermissionTreeDot} />
+                                <strong>{menu.title}</strong>
+                              </div>
+                              <div className={adminStyles.rolePermissionTreeFunctionList}>
+                                {menu.items.map(permission => (
+                                  <div
+                                    key={permission.id}
+                                    className={adminStyles.rolePermissionTreeItem}
+                                  >
+                                    <span className={adminStyles.rolePermissionTreeDot} />
+                                    <span>{permission.label}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          ),
+                        )}
                       </div>
                     </div>
                   ))}
@@ -398,20 +468,20 @@ export const RoleManagementView = ({
                 <div key={group.title} className={adminStyles.rolePermissionPickerGroup}>
                   <div className={adminStyles.rolePermissionGroupHeader}>
                     <Checkbox
-                      checked={group.items.every(permission =>
-                        draftRole.permissionIds.includes(permission.id),
+                      checked={getPermissionGroupItemIds(group).every(permissionId =>
+                        draftRole.permissionIds.includes(permissionId),
                       )}
                       indeterminate={
-                        group.items.some(permission =>
-                          draftRole.permissionIds.includes(permission.id),
+                        getPermissionGroupItemIds(group).some(permissionId =>
+                          draftRole.permissionIds.includes(permissionId),
                         ) &&
-                        !group.items.every(permission =>
-                          draftRole.permissionIds.includes(permission.id),
+                        !getPermissionGroupItemIds(group).every(permissionId =>
+                          draftRole.permissionIds.includes(permissionId),
                         )
                       }
                       onChange={event =>
                         handleTogglePermissionGroup(
-                          group.items.map(permission => permission.id),
+                          getPermissionGroupItemIds(group),
                           event.target.checked,
                         )
                       }
@@ -419,26 +489,82 @@ export const RoleManagementView = ({
                       <span className={adminStyles.rolePermissionMatrixTitle}>{group.title}</span>
                     </Checkbox>
                     <span className={adminStyles.consolePill}>
-                      {
-                        group.items.filter(permission =>
-                          draftRole.permissionIds.includes(permission.id),
-                        ).length
-                      }
-                      /{group.items.length}
+                      {getSelectedPermissionCount(
+                        getPermissionGroupItemIds(group),
+                        draftRole.permissionIds,
+                      )}
+                      /{getPermissionGroupItemIds(group).length}
                     </span>
                   </div>
-                  <div className={adminStyles.rolePermissionCheckboxList}>
-                    {group.items.map(permission => (
-                      <Checkbox
-                        key={permission.id}
-                        checked={draftRole.permissionIds.includes(permission.id)}
-                        onChange={event =>
-                          handleTogglePermission(permission.id, event.target.checked)
-                        }
-                      >
-                        {getPermissionLabel(permission.id)}
-                      </Checkbox>
-                    ))}
+                  <div className={adminStyles.rolePermissionPickerMenuList}>
+                    {group.menus.map(menu => {
+                      const menuPermissionIds = getPermissionMenuItemIds(menu);
+                      const isMenuChecked = menuPermissionIds.every(permissionId =>
+                        draftRole.permissionIds.includes(permissionId),
+                      );
+                      const isMenuIndeterminate =
+                        menuPermissionIds.some(permissionId =>
+                          draftRole.permissionIds.includes(permissionId),
+                        ) && !isMenuChecked;
+
+                      if (isLeafPermissionMenu(menu)) {
+                        return (
+                          <div
+                            key={menu.title}
+                            className={adminStyles.rolePermissionPickerMenuLeaf}
+                          >
+                            <Checkbox
+                              checked={isMenuChecked}
+                              onChange={event =>
+                                handleTogglePermissionGroup(menuPermissionIds, event.target.checked)
+                              }
+                            >
+                              <span className={adminStyles.rolePermissionMatrixTitle}>
+                                {menu.items[0]?.label ?? menu.title}
+                              </span>
+                            </Checkbox>
+                          </div>
+                        );
+                      }
+
+                      return (
+                        <div key={menu.title} className={adminStyles.rolePermissionPickerMenu}>
+                          <div className={adminStyles.rolePermissionPickerMenuHeader}>
+                            <Checkbox
+                              checked={isMenuChecked}
+                              indeterminate={isMenuIndeterminate}
+                              onChange={event =>
+                                handleTogglePermissionGroup(menuPermissionIds, event.target.checked)
+                              }
+                            >
+                              <span className={adminStyles.rolePermissionMatrixTitle}>
+                                {menu.title}
+                              </span>
+                            </Checkbox>
+                            <span className={adminStyles.consolePill}>
+                              {getSelectedPermissionCount(
+                                menuPermissionIds,
+                                draftRole.permissionIds,
+                              )}
+                              /{menuPermissionIds.length}
+                            </span>
+                          </div>
+                          <div className={adminStyles.rolePermissionPickerFunctionList}>
+                            {menu.items.map(permission => (
+                              <Checkbox
+                                key={permission.id}
+                                checked={draftRole.permissionIds.includes(permission.id)}
+                                onChange={event =>
+                                  handleTogglePermission(permission.id, event.target.checked)
+                                }
+                              >
+                                {getPermissionLabel(permission.id)}
+                              </Checkbox>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               ))}

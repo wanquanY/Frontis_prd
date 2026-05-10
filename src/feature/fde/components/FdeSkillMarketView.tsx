@@ -1,7 +1,8 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
-import { PlusOutlined, SearchOutlined } from "@ant-design/icons";
-import { Button, Card, Modal } from "antd";
+import { SearchOutlined } from "@ant-design/icons";
+
+import { loadStoredSkillCenterCategories } from "@/feature/operations/skillCenterCategoryStorage";
 
 import styles from "./FdeSkillMarketView.module.less";
 
@@ -9,6 +10,8 @@ import styles from "./FdeSkillMarketView.module.less";
 type SkillType = "workflow" | "skill" | "model" | "tool";
 type SkillTab = "public" | "mine" | "mcp";
 type Visibility = "仅自己可见" | "公开" | "团队";
+type PrimaryCatalogTab = "skill" | "mcp";
+type SkillCategoryFilter = "all" | string;
 
 interface Skill {
   id: string;
@@ -24,6 +27,31 @@ interface Skill {
   tab: SkillTab;
   visibility?: Visibility;
 }
+
+const PRIMARY_CATALOG_TABS: Array<{ key: PrimaryCatalogTab; label: string }> = [
+  { key: "skill", label: "Skill" },
+  { key: "mcp", label: "MCP" },
+];
+
+const getSkillCategory = (skill: Skill): string => {
+  if (skill.type === "workflow") {
+    return "工作流";
+  }
+
+  if (skill.type === "model") {
+    return "模型能力";
+  }
+
+  if (skill.type === "tool") {
+    return "工具";
+  }
+
+  if (skill.tags.some(tag => tag.includes("数据") || tag.includes("分析"))) {
+    return "数据分析";
+  }
+
+  return "通用";
+};
 
 // 模拟数据 - 来自 0405.html
 const SKILLS: Skill[] = [
@@ -240,268 +268,136 @@ const SKILLS: Skill[] = [
   },
 ];
 
-// 类型映射
-const typeMap: Record<SkillType, { label: string; className: string }> = {
-  workflow: { label: "Workflow", className: styles.typeWorkflow },
-  skill: { label: "Skill", className: styles.typeSkill },
-  model: { label: "模型", className: styles.typeModel },
-  tool: { label: "MCP Tool", className: styles.typeTool },
-};
-
-// 可见性映射
-const visibilityMap: Record<Visibility, { className: string }> = {
-  "仅自己可见": { className: styles.visPrivate },
-  公开: { className: styles.visPublic },
-  团队: { className: styles.visTeam },
-};
-
-interface FdeSkillMarketViewProps {
-  onNavigateToAgentDev?: () => void;
-}
-
 /**
- * Skill 市场视图。
+ * 技能中心视图。
  * 基于同事版本的新版市场布局接入当前 FDE 开发工作台。
  */
-export const FdeSkillMarketView = ({
-  onNavigateToAgentDev,
-}: FdeSkillMarketViewProps): JSX.Element => {
+export const FdeSkillMarketView = (): JSX.Element => {
   const [searchKeyword, setSearchKeyword] = useState("");
-  const [primaryTab, setPrimaryTab] = useState<"mcp" | "skill">("skill");
-  const [subTab, setSubTab] = useState<"public" | "mine">("public");
-  const [selectedSkill, setSelectedSkill] = useState<Skill | null>(null);
-  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [primaryTab, setPrimaryTab] = useState<PrimaryCatalogTab>("skill");
+  const [activeCategory, setActiveCategory] = useState<SkillCategoryFilter>("all");
+  const skillCategories = useMemo(
+    () =>
+      loadStoredSkillCenterCategories()
+        .filter(category => category.status === "active")
+        .map(category => category.name),
+    [],
+  );
+  const categoryTabs = useMemo(
+    () => [
+      {
+        key: "all",
+        label: "全部",
+      },
+      ...skillCategories.map(category => ({
+        key: category,
+        label: category,
+      })),
+    ],
+    [skillCategories],
+  );
+  useEffect(() => {
+    if (activeCategory === "all") {
+      return;
+    }
 
-  // 当前选中的 tab
-  const curSkillTab = primaryTab === "mcp" ? "mcp" : subTab;
+    if (!skillCategories.includes(activeCategory)) {
+      setActiveCategory("all");
+    }
+  }, [activeCategory, skillCategories]);
 
-  // 过滤 Skill 列表
   const filteredSkills = useMemo(() => {
-    let list = SKILLS.filter((s) => s.tab === curSkillTab);
+    let list = SKILLS.filter(skill =>
+      primaryTab === "mcp" ? skill.tab === "mcp" : skill.tab !== "mcp",
+    );
+
+    if (activeCategory !== "all") {
+      list = list.filter(skill => getSkillCategory(skill) === activeCategory);
+    }
+
     if (searchKeyword.trim()) {
       const kw = searchKeyword.toLowerCase();
       list = list.filter(
-        (s) =>
-          s.name.toLowerCase().includes(kw) ||
-          s.desc.toLowerCase().includes(kw) ||
-          s.tags.some((t) => t.toLowerCase().includes(kw))
+        skill =>
+          skill.name.toLowerCase().includes(kw) ||
+          skill.desc.toLowerCase().includes(kw) ||
+          skill.tags.some(tag => tag.toLowerCase().includes(kw)),
       );
     }
     return list;
-  }, [curSkillTab, searchKeyword]);
-
-  // 打开详情
-  const openDetail = (skill: Skill) => {
-    setSelectedSkill(skill);
-    setIsDetailModalOpen(true);
-  };
+  }, [activeCategory, primaryTab, searchKeyword]);
 
   return (
     <div className={styles.root}>
-      {/* 搜索框 */}
-      <div className={styles.searchBox}>
-        <SearchOutlined className={styles.searchIcon} />
-        <input
-          className={styles.searchInput}
-          placeholder="搜索 Skill、工具名称…"
-          value={searchKeyword}
-          onChange={(e) => setSearchKeyword(e.target.value)}
-        />
-      </div>
-
-      {/* 控制栏 */}
-      <div className={styles.controlsRow}>
-        {/* 主标签 */}
+      <div className={styles.primaryToolbar}>
         <div className={styles.marketTabs}>
-          <button
-            type="button"
-            className={`${styles.marketTab} ${
-              primaryTab === "mcp" ? styles.marketTabActive : ""
-            }`}
-            onClick={() => setPrimaryTab("mcp")}
-          >
-            MCP工具
-          </button>
-          <button
-            type="button"
-            className={`${styles.marketTab} ${
-              primaryTab === "skill" ? styles.marketTabActive : ""
-            }`}
-            onClick={() => setPrimaryTab("skill")}
-          >
-            Skill
-          </button>
+          {PRIMARY_CATALOG_TABS.map(tab => (
+            <button
+              key={tab.key}
+              type="button"
+              className={`${styles.marketTab} ${
+                primaryTab === tab.key ? styles.marketTabActive : ""
+              }`}
+              onClick={() => setPrimaryTab(tab.key)}
+            >
+              {tab.label}
+            </button>
+          ))}
         </div>
 
-        {/* 子标签 */}
-        {primaryTab === "skill" && (
-          <div className={styles.subTabs}>
-            <button
-              type="button"
-              className={`${styles.subTab} ${
-                subTab === "public" ? styles.subTabActive : ""
-              }`}
-              onClick={() => setSubTab("public")}
-            >
-              公共
-            </button>
-            <button
-              type="button"
-              className={`${styles.subTab} ${
-                subTab === "mine" ? styles.subTabActive : ""
-              }`}
-              onClick={() => setSubTab("mine")}
-            >
-              我的
-            </button>
-          </div>
-        )}
-
-        {/* 创建按钮 */}
-        <Button
-          type="primary"
-          icon={<PlusOutlined />}
-          className={styles.createBtn}
-          onClick={onNavigateToAgentDev}
-        >
-          创建Skill
-        </Button>
+        <div className={styles.searchBox}>
+          <SearchOutlined className={styles.searchIcon} />
+          <input
+            className={styles.searchInput}
+            placeholder="搜索 Skill、MCP"
+            value={searchKeyword}
+            onChange={event => setSearchKeyword(event.target.value)}
+          />
+        </div>
       </div>
 
-      {/* Skill 卡片网格 */}
+      <div className={styles.categoryTabs} role="tablist" aria-label="技能中心分类">
+        {categoryTabs.map(tab => (
+          <button
+            key={tab.key}
+            type="button"
+            role="tab"
+            aria-selected={activeCategory === tab.key}
+            className={`${styles.categoryTab} ${
+              activeCategory === tab.key ? styles.categoryTabActive : ""
+            }`}
+            onClick={() => setActiveCategory(tab.key)}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
       {filteredSkills.length === 0 ? (
         <div className={styles.empty}>暂无匹配的 Skill / 工具</div>
       ) : (
         <div className={styles.skillGrid}>
-          {filteredSkills.map((skill) => {
-            const t = typeMap[skill.type] || {
-              label: skill.type,
-              className: "",
-            };
-            return (
-              <Card
-                key={skill.id}
-                className={styles.skillCard}
-                bordered={false}
-                onClick={() => openDetail(skill)}
-              >
-                <div className={styles.cardTop}>
-                  <div
-                    className={styles.skillIcon}
-                    style={{ background: skill.iconColor }}
-                  >
-                    {skill.iconText}
-                  </div>
-                  <div className={styles.cardMeta}>
-                    <div className={styles.cardTitleLine}>
-                      {skill.name}
-                      <span className={`${styles.typeBadge} ${t.className}`}>
-                        {t.label}
-                      </span>
-                      {skill.tab === "mine" && skill.visibility && (
-                        <span
-                          className={`${styles.visibilityBadge} ${
-                            visibilityMap[skill.visibility]?.className || ""
-                          }`}
-                        >
-                          {skill.visibility}
-                        </span>
-                      )}
-                    </div>
-                    <div className={styles.cardVersion}>{skill.version}</div>
-                  </div>
+          {filteredSkills.map(skill => (
+            <article key={skill.id} className={styles.skillCard}>
+              <div className={styles.cardTop}>
+                <div className={styles.skillIcon} style={{ background: skill.iconColor }}>
+                  {skill.iconText}
                 </div>
-
-                <div className={styles.cardDesc}>{skill.desc}</div>
-
-                <div className={styles.cardTags}>
-                  {skill.tags.map((tag) => (
-                    <span key={tag} className={styles.skillTag}>
-                      {tag}
-                    </span>
-                  ))}
+                <div className={styles.cardMeta}>
+                  <h3 className={styles.cardTitle}>{skill.name}</h3>
+                  <p className={styles.cardDesc}>{skill.desc}</p>
                 </div>
+              </div>
 
-                <div className={styles.cardFooter}>
-                  <span>{skill.publisher}</span>
-                  <span>{skill.publishTime}</span>
-                </div>
-              </Card>
-            );
-          })}
+              <div className={styles.cardFooter}>
+                <span>{skill.publisher}</span>
+                <span>{getSkillCategory(skill)}</span>
+                <span>{skill.publishTime}</span>
+              </div>
+            </article>
+          ))}
         </div>
       )}
-
-      {/* 详情弹窗 */}
-      <Modal
-        title={selectedSkill ? `${selectedSkill.name} 详情` : "详情"}
-        open={isDetailModalOpen}
-        onCancel={() => setIsDetailModalOpen(false)}
-        footer={null}
-        width={600}
-      >
-        {selectedSkill && (
-          <div className={styles.detailContent}>
-            <div className={styles.detailHeader}>
-              <div
-                className={styles.skillIcon}
-                style={{ background: selectedSkill.iconColor }}
-              >
-                {selectedSkill.iconText}
-              </div>
-              <div>
-                <div className={styles.detailTitle}>
-                  {selectedSkill.name}
-                  <span
-                    className={`${styles.typeBadge} ${
-                      typeMap[selectedSkill.type]?.className || ""
-                    }`}
-                  >
-                    {typeMap[selectedSkill.type]?.label || selectedSkill.type}
-                  </span>
-                </div>
-                <div className={styles.detailVersion}>
-                  {selectedSkill.version}
-                </div>
-              </div>
-            </div>
-
-            <div className={styles.detailSection}>
-              <div className={styles.detailSectionTitle}>描述</div>
-              <div className={styles.detailDesc}>{selectedSkill.desc}</div>
-            </div>
-
-            <div className={styles.detailSection}>
-              <div className={styles.detailSectionTitle}>标签</div>
-              <div className={styles.detailTags}>
-                {selectedSkill.tags.map((tag) => (
-                  <span key={tag} className={styles.skillTag}>
-                    {tag}
-                  </span>
-                ))}
-              </div>
-            </div>
-
-            <div className={styles.detailSection}>
-              <div className={styles.detailSectionTitle}>发布信息</div>
-              <div className={styles.detailRow}>
-                <span className={styles.detailLabel}>发布者</span>
-                <span>{selectedSkill.publisher}</span>
-              </div>
-              <div className={styles.detailRow}>
-                <span className={styles.detailLabel}>发布时间</span>
-                <span>{selectedSkill.publishTime}</span>
-              </div>
-              {selectedSkill.tab === "mine" && selectedSkill.visibility && (
-                <div className={styles.detailRow}>
-                  <span className={styles.detailLabel}>可见性</span>
-                  <span>{selectedSkill.visibility}</span>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-      </Modal>
     </div>
   );
 };

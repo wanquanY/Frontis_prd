@@ -332,6 +332,14 @@
   line-height: 20px;
 }
 
+.configFooterRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding-top: 4px;
+}
+
 .modalFieldWide {
   grid-column: 1 / -1;
 }
@@ -349,6 +357,165 @@
 
 .fullWidthInput {
   width: 100%;
+}
+
+.serviceContactGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 260px;
+  gap: 24px;
+}
+
+.platformConfigStack {
+  display: flex;
+  max-width: 760px;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.serviceContactForm {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.platformConfigForm {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.registrationTemplateCard {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid color-mix(in srgb, var(--text) 10%, var(--border));
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--text) 2%, var(--surface));
+}
+
+.registrationTemplateHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.registrationTemplateTitle {
+  color: var(--text);
+  font-size: 15px;
+  line-height: 22px;
+  font-weight: 700;
+}
+
+.registrationTemplateDescription {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.registrationAbilityList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.registrationAbilityItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 100%;
+  min-height: 32px;
+  padding: 4px 6px 4px 10px;
+  border: 1px solid color-mix(in srgb, var(--primary) 14%, var(--border));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--primary) 6%, var(--surface));
+}
+
+.registrationAbilityLabel {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 20px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.registrationAbilityRemove {
+  flex: 0 0 auto;
+  padding: 2px 7px;
+  border: 0;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--primary) 10%, var(--surface));
+  color: var(--primary);
+  font-size: 12px;
+  line-height: 18px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.registrationAbilitySelect {
+  width: 100%;
+}
+
+.registrationLifecycleNote {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.serviceContactPreview {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+  padding: 18px;
+  border: 1px solid color-mix(in srgb, var(--text) 10%, var(--border));
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--text) 2%, var(--surface));
+}
+
+.platformConfigPreview {
+  width: 260px;
+  max-width: 100%;
+}
+
+.serviceContactPreviewHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.serviceContactPreviewTitle {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text);
+  font-size: 15px;
+  line-height: 22px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.serviceContactQrBox {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 188px;
+  border-radius: 10px;
+  background: var(--surface);
+}
+
+.serviceContactRemark {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 20px;
 }
 
 .modalControl {
@@ -449,6 +616,11 @@
     grid-template-columns: 1fr;
   }
 
+  .serviceContactGrid,
+  .serviceContactForm {
+    grid-template-columns: 1fr;
+  }
+
   .subscriptionPlanEditorGrid {
     grid-template-columns: 1fr;
   }
@@ -462,5 +634,4 @@
   .detailTabBar {
     gap: 20px;
   }
-
 }

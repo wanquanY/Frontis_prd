@@ -127,6 +127,14 @@ export interface WorkspaceComposerAttachmentItem {
   error?: string;
 }
 
+export interface MeOnboardingProfileValues {
+  nickname: string;
+  companyName: string;
+  industry: string;
+  role: string;
+  companyDescription: string;
+}
+
 export type WorkspaceKnowledgeClassifyKey = "none" | "topic" | "file" | "time";
 
 export interface WorkspaceKnowledgeGroup {
@@ -376,6 +384,8 @@ export interface WorkspaceChatPanelProps {
   blocks: Block[];
   /** 初次进入时聚焦的 block_id（用于从自动化执行记录跳转定位输出）。 */
   focusBlockId?: string;
+  /** 同一个 focusBlockId 需要重复定位时传入新的请求标识。 */
+  focusRequestKey?: string;
   /** 对话消息列表（按时间正序） */
   messages: WorkspaceChatMessage[];
   /** actorId -> 头像与名称映射（用于按 block 显示对应智能体头像） */
@@ -420,10 +430,14 @@ export interface WorkspaceChatPanelProps {
   isHistoryLoading?: boolean;
   /** 是否展示消息发送者与时间（群聊场景） */
   showMessageMeta?: boolean;
+  /** 是否将被任务分发调用的成员智能体输出折叠展示。 */
+  collapseAssignedActorOutputs?: boolean;
   /** 是否展示流式占位（群聊场景通常关闭） */
   showStreamingPlaceholder?: boolean;
   /** 点击消息发送者名称后回填到输入框 */
   onActorNameClick?: (mentionLabel: string) => void;
+  /** 点击消息快捷建议后直接发送 */
+  onQuickActionSend?: (prompt: string) => void;
 }
 
 export interface WorkspaceEmptyStateProps {
