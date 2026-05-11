@@ -23,11 +23,17 @@ interface DialogueInsightPanelProps {
   onOpenFile: (file: ArtifactItem) => void;
 }
 
+interface DialogueInsightGoalItem {
+  id: string;
+  title: string;
+  tasks: DialogueInsightTaskItem[];
+}
+
 const getAvatarText = (name: string): string => name.trim().slice(0, 1) || "AI";
 
 const TASK_STATUS_LABELS: Record<DialogueInsightTaskStatus, string> = {
   running: "执行中",
-  completed: "已完成",
+  completed: "执行完成",
   aborted: "执行失败",
 };
 
@@ -57,8 +63,41 @@ const TaskStatusIcon = ({ status }: TaskStatusIconProps): JSX.Element => (
   </span>
 );
 
+const buildGoalItems = (tasks: DialogueInsightTaskItem[]): DialogueInsightGoalItem[] => {
+  const goalMap = new Map<string, DialogueInsightGoalItem>();
+
+  tasks.forEach(task => {
+    const goalId = task.goalId || "goal-default";
+    const goalTitle = task.goalTitle || "本轮目标";
+    const currentGoal = goalMap.get(goalId);
+
+    if (currentGoal) {
+      currentGoal.tasks.push(task);
+      return;
+    }
+
+    goalMap.set(goalId, {
+      id: goalId,
+      title: goalTitle,
+      tasks: [task],
+    });
+  });
+
+  return Array.from(goalMap.values());
+};
+
+const resolveLatestTask = (tasks: DialogueInsightTaskItem[]): DialogueInsightTaskItem | null => {
+  for (let index = tasks.length - 1; index >= 0; index -= 1) {
+    if (tasks[index].status === "running") {
+      return tasks[index];
+    }
+  }
+
+  return tasks.at(-1) ?? null;
+};
+
 /**
- * ME 对话右上角动态面板，展示当前任务进度和当日成果文件。
+ * ME 对话右上角动态面板，展示当前任务和当日成果文件。
  */
 export const DialogueInsightPanel = ({
   tasks,
@@ -68,10 +107,8 @@ export const DialogueInsightPanel = ({
   const [isExpanded, setIsExpanded] = useState(true);
   const hasTasks = tasks.length > 0;
   const hasFiles = files.length > 0;
-  const latestTask = useMemo(
-    () => tasks.find(task => task.status === "running") ?? tasks.at(-1) ?? null,
-    [tasks],
-  );
+  const goals = useMemo(() => buildGoalItems(tasks), [tasks]);
+  const latestTask = useMemo(() => resolveLatestTask(tasks), [tasks]);
 
   if (!hasTasks && !hasFiles) {
     return null;
@@ -94,11 +131,11 @@ export const DialogueInsightPanel = ({
       {hasTasks ? (
         <section className={classNames(styles.section, styles.progressSection)}>
           <div className={styles.sectionHeader}>
-            <div className={styles.sectionTitle}>进度</div>
+            <div className={styles.sectionTitle}>任务</div>
             <button
               type="button"
               className={styles.toggleButton}
-              aria-label={isExpanded ? "收起进度卡片" : "展开进度卡片"}
+              aria-label={isExpanded ? "收起任务卡片" : "展开任务卡片"}
               aria-expanded={isExpanded}
               onClick={handleToggleExpanded}
             >
@@ -107,36 +144,48 @@ export const DialogueInsightPanel = ({
           </div>
 
           {isExpanded ? (
-            <div className={styles.taskList}>
-              {tasks.map(task => (
-                <article key={task.id} className={styles.taskItem}>
-                  <span className={styles.taskHeader}>
-                    <TaskStatusIcon status={task.status} />
-                    <span className={styles.taskDescription} title={task.taskDescription}>
-                      {task.taskDescription}
+            <div className={styles.goalList}>
+              {goals.map(goal => (
+                <section key={goal.id} className={styles.goalItem}>
+                  <div className={styles.goalHeader}>
+                    <span className={styles.goalTitle} title={goal.title}>
+                      {goal.title}
                     </span>
-                  </span>
-                  <span className={styles.taskExpert}>
-                    <span className={styles.agentAvatar} aria-hidden={true}>
-                      {task.expertAvatarUrl ? (
-                        <img
-                          className={styles.agentAvatarImage}
-                          src={task.expertAvatarUrl}
-                          alt=""
-                        />
-                      ) : (
-                        getAvatarText(task.expertAvatarLabel ?? task.expertName)
-                      )}
-                    </span>
-                    <span className={styles.agentName} title={task.expertName}>
-                      {task.expertName}
-                    </span>
-                  </span>
-                </article>
+                    <span className={styles.goalCount}>{goal.tasks.length}</span>
+                  </div>
+                  <div className={styles.taskList}>
+                    {goal.tasks.map(task => (
+                      <article key={task.id} className={styles.taskItem}>
+                        <span className={styles.taskHeader}>
+                          <TaskStatusIcon status={task.status} />
+                          <span className={styles.taskDescription} title={task.taskDescription}>
+                            {task.taskDescription}
+                          </span>
+                        </span>
+                        <span className={styles.taskExpert}>
+                          <span className={styles.agentAvatar} aria-hidden={true}>
+                            {task.expertAvatarUrl ? (
+                              <img
+                                className={styles.agentAvatarImage}
+                                src={task.expertAvatarUrl}
+                                alt=""
+                              />
+                            ) : (
+                              getAvatarText(task.expertAvatarLabel ?? task.expertName)
+                            )}
+                          </span>
+                          <span className={styles.agentName} title={task.expertName}>
+                            {task.expertName}
+                          </span>
+                        </span>
+                      </article>
+                    ))}
+                  </div>
+                </section>
               ))}
             </div>
           ) : (
-            <div className={styles.collapsedProgress} aria-label="当前最新进度">
+            <div className={styles.collapsedProgress} aria-label="当前最新任务">
               {displayTask ? (
                 <>
                   <TaskStatusIcon status={displayTask.status} />

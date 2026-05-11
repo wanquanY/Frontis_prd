@@ -1,9 +1,13 @@
 import type { OperationsTenant } from "@/feature/operations/types";
-import { DEFAULT_TENANT_ROLE_IDS } from "@/constants/tenantRolePermissions";
+import {
+  DEFAULT_TENANT_ROLE_IDS,
+  normalizeTenantRolePermissionIds,
+} from "@/constants/tenantRolePermissions";
 import {
   OPERATIONS_TENANT_OPERATIONS_ADMIN_ROLE_ID,
   getOperationsTenantInitialAdminRoleOption,
-  resolveOperationsTenantAgentListingAccess,
+  resolveOperationsTenantAgentListingAccessByPermissions,
+  resolveOperationsTenantModuleLabels,
 } from "@/feature/operations/mockData";
 
 /**
@@ -15,6 +19,7 @@ interface StoredOperationsTenant extends Omit<
   OperationsTenant,
   | "hasAgentListingAccess"
   | "hasOperationsConsoleAccess"
+  | "adminPermissionIds"
   | "adminRoleId"
   | "adminRoleLabel"
   | "effectiveAt"
@@ -23,6 +28,7 @@ interface StoredOperationsTenant extends Omit<
 > {
   hasAgentListingAccess?: boolean;
   hasOperationsConsoleAccess?: boolean;
+  adminPermissionIds?: string[];
   adminRoleId?: string;
   adminRoleLabel?: string;
   hasAgentDevAccess?: boolean;
@@ -35,6 +41,7 @@ const normalizeStoredTenant = (tenant: StoredOperationsTenant): OperationsTenant
   const {
     deploymentMode,
     edition,
+    adminPermissionIds,
     adminRoleId,
     hasOperationsConsoleAccess,
     effectiveAt,
@@ -53,7 +60,10 @@ const normalizeStoredTenant = (tenant: StoredOperationsTenant): OperationsTenant
         ? OPERATIONS_TENANT_OPERATIONS_ADMIN_ROLE_ID
         : DEFAULT_TENANT_ROLE_IDS.enterpriseAdmin),
   );
-  const normalizedModuleLabels = normalizedAdminRole.moduleLabels;
+  const normalizedPermissionIds = normalizeTenantRolePermissionIds(
+    Array.isArray(adminPermissionIds) ? adminPermissionIds : normalizedAdminRole.permissionIds,
+  );
+  const normalizedModuleLabels = resolveOperationsTenantModuleLabels(normalizedPermissionIds);
   const normalizedOperationsAccess = normalizedModuleLabels.some(label => label.includes("运营"));
 
   return {
@@ -67,8 +77,10 @@ const normalizeStoredTenant = (tenant: StoredOperationsTenant): OperationsTenant
             ? "privateCloud"
             : "publicCloud",
     edition: edition === "personal" || restTenant.seatCount === 1 ? "personal" : "team",
-    hasAgentListingAccess: resolveOperationsTenantAgentListingAccess(normalizedAdminRole.value),
+    hasAgentListingAccess:
+      resolveOperationsTenantAgentListingAccessByPermissions(normalizedPermissionIds),
     hasOperationsConsoleAccess: normalizedOperationsAccess,
+    adminPermissionIds: normalizedPermissionIds,
     adminRoleId: normalizedAdminRole.value,
     adminRoleLabel: normalizedAdminRole.label,
     effectiveAt: effectiveAt ?? "",

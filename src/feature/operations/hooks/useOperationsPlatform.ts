@@ -40,13 +40,11 @@ import {
   OPERATIONS_PRODUCT_TRIAL_UNIT_LABELS,
   OPERATIONS_PRODUCT_TRIAL_UNIT_OPTIONS,
   OPERATIONS_TENANT_STATUS_LABELS,
-  OPERATIONS_TENANT_INITIAL_ADMIN_ROLE_OPTIONS,
   createDefaultAgentSubscriptionPlans,
   createEmptyOperationsProductForm,
   createEmptyOperationsTenantForm,
-  getOperationsTenantInitialAdminRoleOption,
-  resolveOperationsTenantAgentListingAccess,
-  type OperationsTenantInitialAdminRoleOption,
+  resolveOperationsTenantAgentListingAccessByPermissions,
+  resolveOperationsTenantModuleLabels,
 } from "@/feature/operations/mockData";
 import {
   loadStoredOperationsTenants,
@@ -70,6 +68,10 @@ import {
   loadEnterpriseCommodityApplications,
   saveEnterpriseCommodityApplications,
 } from "@/feature/fde/enterpriseCommodityApplications";
+import {
+  DEFAULT_TENANT_ROLE_IDS,
+  normalizeTenantRolePermissionIds,
+} from "@/constants/tenantRolePermissions";
 
 interface UseOperationsPlatformResult {
   tenants: OperationsTenant[];
@@ -84,7 +86,6 @@ interface UseOperationsPlatformResult {
   communityGroupConfig: OperationsCommunityGroupConfig;
   emptyTenantForm: OperationsTenantForm;
   emptyProductForm: OperationsProductForm;
-  tenantInitialAdminRoleOptions: OperationsTenantInitialAdminRoleOption[];
   tenantStatusLabels: typeof OPERATIONS_TENANT_STATUS_LABELS;
   agentStatusLabels: typeof OPERATIONS_AGENT_STATUS_LABELS;
   productStatusLabels: typeof OPERATIONS_PRODUCT_STATUS_LABELS;
@@ -159,18 +160,12 @@ const buildSkillCenterCategoryId = (): string => `ops-skill-center-category-${Da
 const resolveTenantEditionBySeatCount = (seatCount: number): OperationsTenant["edition"] =>
   seatCount <= 1 ? "personal" : "team";
 
-const buildAdminTenantMember = (
-  adminName: string,
-  adminPhone: string,
-  addedAt: string,
-  roleId: string,
-  roleLabel: string,
-) => ({
+const buildAdminTenantMember = (adminName: string, adminPhone: string, addedAt: string) => ({
   id: buildTenantMemberId(),
   name: adminName.trim(),
   phone: adminPhone.trim(),
-  roleId,
-  roleLabel,
+  roleId: DEFAULT_TENANT_ROLE_IDS.enterpriseAdmin,
+  roleLabel: "初始管理员",
   addedAt,
 });
 
@@ -178,8 +173,6 @@ const syncAdminTenantMember = (
   members: OperationsTenant["members"],
   adminName: string,
   adminPhone: string,
-  adminRoleId: string,
-  adminRoleLabel: string,
   fallbackAddedAt: string,
 ): OperationsTenant["members"] => {
   const adminMemberIndex = members.findIndex(
@@ -187,10 +180,7 @@ const syncAdminTenantMember = (
   );
 
   if (adminMemberIndex < 0) {
-    return [
-      buildAdminTenantMember(adminName, adminPhone, fallbackAddedAt, adminRoleId, adminRoleLabel),
-      ...members,
-    ];
+    return [buildAdminTenantMember(adminName, adminPhone, fallbackAddedAt), ...members];
   }
 
   return members.map((item, index) =>
@@ -199,8 +189,8 @@ const syncAdminTenantMember = (
           ...item,
           name: adminName.trim(),
           phone: adminPhone.trim(),
-          roleId: adminRoleId,
-          roleLabel: adminRoleLabel,
+          roleId: item.roleId ?? DEFAULT_TENANT_ROLE_IDS.enterpriseAdmin,
+          roleLabel: "初始管理员",
         }
       : item,
   );
@@ -208,9 +198,11 @@ const syncAdminTenantMember = (
 
 const buildTenantFromForm = (form: OperationsTenantForm): OperationsTenant => {
   const createdAt = formatTimestamp();
-  const adminRole = getOperationsTenantInitialAdminRoleOption(form.adminRoleId);
-  const hasOperationsConsoleAccess = adminRole.moduleLabels.some(label => label.includes("运营"));
-  const hasAgentListingAccess = resolveOperationsTenantAgentListingAccess(adminRole.value);
+  const adminPermissionIds = normalizeTenantRolePermissionIds(form.adminPermissionIds);
+  const moduleLabels = resolveOperationsTenantModuleLabels(adminPermissionIds);
+  const hasOperationsConsoleAccess = moduleLabels.some(label => label.includes("运营"));
+  const hasAgentListingAccess =
+    resolveOperationsTenantAgentListingAccessByPermissions(adminPermissionIds);
 
   return {
     id: `ops-tenant-${Date.now()}`,
@@ -222,23 +214,16 @@ const buildTenantFromForm = (form: OperationsTenantForm): OperationsTenant => {
     industry: form.industry.trim(),
     adminName: form.adminName.trim(),
     adminPhone: form.adminPhone.trim(),
-    adminRoleId: adminRole.value,
-    adminRoleLabel: adminRole.label,
+    adminPermissionIds,
+    adminRoleId: DEFAULT_TENANT_ROLE_IDS.enterpriseAdmin,
+    adminRoleLabel: "初始管理员",
     hasAgentListingAccess,
     hasOperationsConsoleAccess,
     seatCount: form.seatCount,
     effectiveAt: form.effectiveAt.trim(),
     expiresAt: form.expiresAt.trim(),
-    moduleLabels: adminRole.moduleLabels,
-    members: [
-      buildAdminTenantMember(
-        form.adminName,
-        form.adminPhone,
-        createdAt,
-        adminRole.value,
-        adminRole.label,
-      ),
-    ],
+    moduleLabels,
+    members: [buildAdminTenantMember(form.adminName, form.adminPhone, createdAt)],
     status: "pending",
     createdAt,
     updatedAt: createdAt,
@@ -485,9 +470,11 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
   }, []);
 
   const updateTenant = useCallback((tenantId: string, form: OperationsTenantForm): void => {
-    const adminRole = getOperationsTenantInitialAdminRoleOption(form.adminRoleId);
-    const hasOperationsConsoleAccess = adminRole.moduleLabels.some(label => label.includes("运营"));
-    const hasAgentListingAccess = resolveOperationsTenantAgentListingAccess(adminRole.value);
+    const adminPermissionIds = normalizeTenantRolePermissionIds(form.adminPermissionIds);
+    const moduleLabels = resolveOperationsTenantModuleLabels(adminPermissionIds);
+    const hasOperationsConsoleAccess = moduleLabels.some(label => label.includes("运营"));
+    const hasAgentListingAccess =
+      resolveOperationsTenantAgentListingAccessByPermissions(adminPermissionIds);
 
     setTenants(currentTenants =>
       currentTenants.map(item =>
@@ -500,20 +487,19 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
               industry: form.industry.trim(),
               adminName: form.adminName.trim(),
               adminPhone: form.adminPhone.trim(),
-              adminRoleId: adminRole.value,
-              adminRoleLabel: adminRole.label,
+              adminPermissionIds,
+              adminRoleId: item.adminRoleId,
+              adminRoleLabel: item.adminRoleLabel,
               hasAgentListingAccess,
               hasOperationsConsoleAccess,
               seatCount: form.seatCount,
               effectiveAt: form.effectiveAt.trim(),
               expiresAt: form.expiresAt.trim(),
-              moduleLabels: adminRole.moduleLabels,
+              moduleLabels,
               members: syncAdminTenantMember(
                 item.members,
                 form.adminName,
                 form.adminPhone,
-                adminRole.value,
-                adminRole.label,
                 item.createdAt,
               ),
               updatedAt: formatTimestamp(),
@@ -864,11 +850,6 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
     [skillCenterCategories],
   );
 
-  const tenantInitialAdminRoleOptions = useMemo<OperationsTenantInitialAdminRoleOption[]>(
-    () => OPERATIONS_TENANT_INITIAL_ADMIN_ROLE_OPTIONS,
-    [],
-  );
-
   const emptyTenantForm = useMemo<OperationsTenantForm>(
     () => createEmptyOperationsTenantForm(),
     [],
@@ -891,7 +872,6 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
     communityGroupConfig,
     emptyTenantForm,
     emptyProductForm,
-    tenantInitialAdminRoleOptions,
     tenantStatusLabels: OPERATIONS_TENANT_STATUS_LABELS,
     agentStatusLabels: OPERATIONS_AGENT_STATUS_LABELS,
     productStatusLabels: OPERATIONS_PRODUCT_STATUS_LABELS,

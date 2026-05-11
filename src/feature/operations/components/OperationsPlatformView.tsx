@@ -43,9 +43,9 @@ import type { MockAuthSystemEntry } from "@/feature/auth/types";
 import { OPERATIONS_DEFAULT_PATH, OPERATIONS_TAB_OPTIONS } from "@/feature/operations/mockData";
 import { hasAnyPermission, hasPermission } from "@/utils/tenantRoleAccess";
 import {
-  MANAGEMENT_PERMISSION_IDS,
   OPERATIONS_PERMISSION_IDS,
   TENANT_ROLE_PERMISSION_GROUPS,
+  normalizeTenantRolePermissionIds,
 } from "@/constants/tenantRolePermissions";
 import { PRODUCT_LOGO_URL, PRODUCT_NAME, PRODUCT_SLOGAN } from "@/constants/brand";
 import type {
@@ -138,7 +138,6 @@ const TENANT_FIELD_IDS = {
   industry: "operations-tenant-industry",
   adminName: "operations-tenant-admin-name",
   adminPhone: "operations-tenant-admin-phone",
-  adminRoleId: "operations-tenant-admin-role",
   seatCount: "operations-tenant-seat-count",
   effectiveAt: "operations-tenant-effective-at",
   expiresAt: "operations-tenant-expires-at",
@@ -200,6 +199,16 @@ const PERMISSION_LABEL_MAP = new Map<string, string>(
     group.menus.flatMap(menu => menu.items.map(item => [item.id, item.label] as const)),
   ),
 );
+
+const TENANT_PERMISSION_SELECT_OPTIONS = TENANT_ROLE_PERMISSION_GROUPS.map(group => ({
+  label: group.title,
+  options: group.menus.flatMap(menu =>
+    menu.items.map(permission => ({
+      value: permission.id,
+      label: menu.displayMode === "leaf" ? permission.label : `${menu.title} / ${permission.label}`,
+    })),
+  ),
+}));
 
 const isValidHttpUrl = (value: string): boolean => {
   try {
@@ -313,7 +322,7 @@ const TenantConsole = ({
                 <tr>
                   <th>租户</th>
                   <th>初始管理员</th>
-                  <th>初始角色</th>
+                  <th>管理员权限</th>
                   <th>版本</th>
                   <th>状态</th>
                   <th>更新时间</th>
@@ -333,7 +342,7 @@ const TenantConsole = ({
                       </button>
                     </td>
                     <td>{tenant.adminName}</td>
-                    <td>{tenant.adminRoleLabel}</td>
+                    <td>{tenant.adminPermissionIds.length} 项</td>
                     <td>{OPERATIONS_TENANT_EDITION_LABELS[tenant.edition]}</td>
                     <td>
                       <span className={getTenantStatusClassName(tenant.status)}>
@@ -420,8 +429,10 @@ const TenantDetailConsole = ({
                   </span>
                 </div>
                 <div className={adminStyles.consoleInfoRow}>
-                  <span className={adminStyles.consoleInfoLabel}>初始角色</span>
-                  <span className={adminStyles.consoleInfoValue}>{tenant.adminRoleLabel}</span>
+                  <span className={adminStyles.consoleInfoLabel}>管理员权限</span>
+                  <span className={adminStyles.consoleInfoValue}>
+                    {tenant.adminPermissionIds.length} 项
+                  </span>
                 </div>
                 <div className={adminStyles.consoleInfoRow}>
                   <span className={adminStyles.consoleInfoLabel}>席位数量</span>
@@ -460,6 +471,21 @@ const TenantDetailConsole = ({
                 {tenant.moduleLabels.map(label => (
                   <span key={label} className={adminStyles.consolePill}>
                     {label}
+                  </span>
+                ))}
+              </div>
+            </section>
+
+            <section className={adminStyles.detailBlock}>
+              <h3
+                className={classNames(adminStyles.detailBlockTitle, styles.detailBlockTitleReset)}
+              >
+                初始管理员权限
+              </h3>
+              <div className={styles.permissionTagList}>
+                {tenant.adminPermissionIds.map(permissionId => (
+                  <span key={permissionId} className={adminStyles.consolePill}>
+                    {getPermissionLabel(permissionId)}
                   </span>
                 ))}
               </div>
@@ -995,7 +1021,6 @@ export const OperationsPlatformView = (): JSX.Element => {
     rejectAgent,
     serviceContactConfig,
     skillCenterCategories,
-    tenantInitialAdminRoleOptions,
     tenantStatusLabels,
     tenants,
     updateAgentPlazaCategory,
@@ -1053,9 +1078,9 @@ export const OperationsPlatformView = (): JSX.Element => {
   const canManageTenants = hasOperationsPermission(OPERATIONS_PERMISSION_IDS.tenantManage);
   const canReviewAgent = hasOperationsPermission(OPERATIONS_PERMISSION_IDS.agentReview);
   const canManageOrganization = hasOperationsPermission(
-    MANAGEMENT_PERMISSION_IDS.organizationManage,
+    OPERATIONS_PERMISSION_IDS.organizationManage,
   );
-  const canManageRoles = hasOperationsPermission(MANAGEMENT_PERMISSION_IDS.roleManage);
+  const canManageRoles = hasOperationsPermission(OPERATIONS_PERMISSION_IDS.roleManage);
   const activeTab = useMemo<OperationsPlatformTabKey>(
     () => activeTabFromRoute ?? visibleOperationsTabs[0]?.key ?? "tenants",
     [activeTabFromRoute, visibleOperationsTabs],
@@ -1184,7 +1209,7 @@ export const OperationsPlatformView = (): JSX.Element => {
         industry: tenant.industry,
         adminName: tenant.adminName,
         adminPhone: tenant.adminPhone,
-        adminRoleId: tenant.adminRoleId,
+        adminPermissionIds: normalizeTenantRolePermissionIds(tenant.adminPermissionIds),
         seatCount: tenant.seatCount,
         effectiveAt: tenant.effectiveAt,
         expiresAt: tenant.expiresAt,
@@ -1200,7 +1225,7 @@ export const OperationsPlatformView = (): JSX.Element => {
     if (
       !tenantEditor.form.name.trim() ||
       !tenantEditor.form.adminName.trim() ||
-      !tenantEditor.form.adminRoleId.trim() ||
+      !tenantEditor.form.adminPermissionIds.length ||
       tenantEditor.form.adminPhone.trim().length !== 11 ||
       tenantEditor.form.seatCount < 1 ||
       !tenantEditor.form.effectiveAt.trim() ||
@@ -1687,23 +1712,29 @@ export const OperationsPlatformView = (): JSX.Element => {
             />
           </div>
 
-          <div className={styles.modalField}>
-            <label className={styles.modalLabel} htmlFor={TENANT_FIELD_IDS.adminRoleId}>
-              初始管理员角色
-            </label>
-            <Select<string>
-              id={TENANT_FIELD_IDS.adminRoleId}
-              value={tenantEditor.form.adminRoleId}
-              options={tenantInitialAdminRoleOptions.map(item => ({
-                value: item.value,
-                label: item.label,
-              }))}
-              onChange={nextValue =>
+          <div className={classNames(styles.modalField, styles.fullSpanField)}>
+            <div className={styles.tenantPermissionHeader}>
+              <span className={styles.modalLabel}>初始管理员权限</span>
+              <span className={adminStyles.consolePill}>
+                已选 {tenantEditor.form.adminPermissionIds.length} 项
+              </span>
+            </div>
+            <Select<string[]>
+              className={styles.permissionSelect}
+              mode="multiple"
+              allowClear
+              showSearch
+              placeholder="请选择初始管理员拥有的权限"
+              value={tenantEditor.form.adminPermissionIds}
+              options={TENANT_PERMISSION_SELECT_OPTIONS}
+              maxTagCount="responsive"
+              optionFilterProp="label"
+              onChange={nextPermissionIds =>
                 setTenantEditor(currentState => ({
                   ...currentState,
                   form: {
                     ...currentState.form,
-                    adminRoleId: nextValue,
+                    adminPermissionIds: normalizeTenantRolePermissionIds(nextPermissionIds),
                   },
                 }))
               }

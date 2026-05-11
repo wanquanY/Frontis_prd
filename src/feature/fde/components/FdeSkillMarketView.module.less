@@ -95,6 +95,28 @@
   }
 }
 
+.publishButton {
+  height: 38px;
+  padding: 0 16px;
+  border: 1px solid rgba(6, 182, 212, 0.28);
+  border-radius: 10px;
+  background: #06b6d4;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background 0.2s,
+    border-color 0.2s,
+    box-shadow 0.2s;
+
+  &:hover {
+    background: #0891b2;
+    border-color: rgba(8, 145, 178, 0.36);
+    box-shadow: 0 8px 18px rgba(8, 145, 178, 0.18);
+  }
+}
+
 .categoryTabs {
   display: flex;
   gap: 3px;
@@ -236,6 +258,206 @@
   color: var(--text-soft);
 }
 
+.cardFooterMeta {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.deleteButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex: 0 0 auto;
+  height: 28px;
+  padding: 0 9px;
+  border: 1px solid rgba(239, 68, 68, 0.24);
+  border-radius: 8px;
+  background: rgba(239, 68, 68, 0.06);
+  color: #dc2626;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background 0.2s,
+    border-color 0.2s;
+
+  &:hover {
+    border-color: rgba(220, 38, 38, 0.42);
+    background: rgba(239, 68, 68, 0.1);
+  }
+}
+
+.publishModalMask {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(15, 23, 42, 0.34);
+}
+
+.publishModal {
+  width: min(640px, 100%);
+  max-height: min(720px, calc(100vh - 48px));
+  overflow-y: auto;
+  padding: 22px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--panel);
+  box-shadow: 0 24px 72px rgba(15, 23, 42, 0.24);
+}
+
+.publishModalHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.publishModalTitle {
+  margin: 0;
+  color: var(--text-strong);
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.publishModalClose {
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+  color: var(--text-soft);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+
+  &:hover {
+    color: var(--text-strong);
+    background: var(--bg-soft);
+  }
+}
+
+.publishFormGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.publishField {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 7px;
+  color: var(--text-soft);
+  font-size: 12px;
+  font-weight: 600;
+
+  input,
+  select,
+  textarea {
+    width: 100%;
+    min-width: 0;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: var(--panel);
+    color: var(--text);
+    font-size: 13px;
+    font-weight: 400;
+    outline: none;
+    transition:
+      border-color 0.2s,
+      box-shadow 0.2s;
+
+    &:focus {
+      border-color: rgba(6, 182, 212, 0.48);
+      box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.12);
+    }
+  }
+
+  input,
+  select {
+    height: 38px;
+    padding: 0 12px;
+  }
+
+  textarea {
+    resize: vertical;
+    padding: 10px 12px;
+    line-height: 1.6;
+  }
+}
+
+.publishScopeGroup {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin: 16px 0;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+
+  legend {
+    padding: 0 6px;
+    color: var(--text-soft);
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  label {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    color: var(--text);
+    font-size: 13px;
+    cursor: pointer;
+  }
+}
+
+.publishModalFooter {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.secondaryButton,
+.primaryButton {
+  height: 36px;
+  padding: 0 15px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.secondaryButton {
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--text);
+
+  &:hover {
+    background: var(--bg-soft);
+  }
+}
+
+.primaryButton {
+  border: 1px solid #06b6d4;
+  background: #06b6d4;
+  color: #ffffff;
+
+  &:hover {
+    background: #0891b2;
+    border-color: #0891b2;
+  }
+}
+
 @media (max-width: 640px) {
   .root {
     padding: 16px;
@@ -256,6 +478,10 @@
     min-width: 0;
   }
 
+  .publishButton {
+    width: 100%;
+  }
+
   .marketTab,
   .categoryTab {
     flex: 1;
@@ -269,5 +495,15 @@
     align-items: flex-start;
     flex-direction: column;
     gap: 4px;
+  }
+
+  .publishFormGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .publishScopeGroup,
+  .publishModalFooter {
+    align-items: stretch;
+    flex-direction: column;
   }
 }

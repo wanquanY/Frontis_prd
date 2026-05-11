@@ -16,6 +16,8 @@ interface CreateMetaAgentToolBlockOptions {
   name: string;
   displayName: string;
   purpose: string;
+  goalId?: string;
+  goalTitle?: string;
   status?: string;
   output?: string;
   isError?: boolean;
@@ -86,6 +88,8 @@ const createToolUseBlock = ({
   name,
   displayName,
   purpose,
+  goalId,
+  goalTitle,
   status = "success",
   output,
   isError,
@@ -103,6 +107,8 @@ const createToolUseBlock = ({
       display_name: displayName,
       call_id: callId,
       purpose,
+      goal_id: goalId,
+      goal_title: goalTitle,
       status,
       avatar_label: avatarLabel,
       search_results: searchResults,
@@ -275,7 +281,7 @@ const buildLocalToolDemoBlocks = (
         displayName: "执行 Shell 命令",
         purpose: "运行文本校验，确认旧口径已经清理",
         output:
-          "rg \"是否展开|预设角色|普通成员创建\" Frontis AI · 5-15 PRD.md\n结果：仅保留工具、Skill/MCP、Workbench Task 明细中的展开规则。",
+          'rg "是否展开|预设角色|普通成员创建" Frontis AI · 5-15 PRD.md\n结果：仅保留工具、Skill/MCP、Workbench Task 明细中的展开规则。',
       }),
       createToolUseBlock({
         id: `${messageId}-write`,
@@ -338,44 +344,63 @@ const buildSkillMcpTaskDemoBlocks = (
       }),
       createTextBlock(
         `${messageId}-after-mcp`,
-        "我确认问题不是所有能力都要配展开，而是过程中的特殊事件才需要有展开策略。下面我先让数据洞察师复核“进度卡片”和“今日成果”的数据口径。",
+        "我确认问题不是所有能力都要配展开，而是过程中的特殊事件才需要有展开策略。下面我按两个 Goal 分发：先复核任务分组口径，再校准任务状态回填规则。",
       ),
       createToolUseBlock({
         id: `${messageId}-dispatch`,
         name: "task_dispatch",
         displayName: "任务分发",
-        purpose: "分配给数据洞察师：复核进度卡片和今日成果的数据口径",
-        status: "running",
+        purpose: "分配给数据洞察师：复核任务卡片的多 Goal 分组口径",
+        goalId: "goal-task-structure",
+        goalTitle: "Goal 1：梳理任务分组机制",
         avatarLabel: "数",
       }),
       createToolUseBlock({
         id: `${messageId}-continue`,
         name: "workbench-task continue",
         displayName: "任务继续",
-        purpose: "任务继续 - 数据洞察师：补充当日文件去重和排序规则",
+        purpose: "任务继续 - 数据洞察师：补充 Goal 下多任务的排序规则",
+        goalId: "goal-task-structure",
+        goalTitle: "Goal 1：梳理任务分组机制",
         output:
-          "补充要求：今日成果按当日 ME 创建或编辑的文件汇总；同一路径只保留最新版本；点击文件项打开预览面板。",
+          "补充要求：任务卡片标题改为“任务”；一个 Goal 下可以有多个任务，任务按真实执行顺序展示。",
         avatarLabel: "数",
       }),
       createToolUseBlock({
         id: `${messageId}-done`,
         name: "workbench-task done",
         displayName: "任务完成",
-        purpose: "任务完成 - 数据洞察师：进度卡片和成果文件规则已回齐",
+        purpose: "任务完成 - 数据洞察师：任务分组与状态规则已回齐",
+        goalId: "goal-task-structure",
+        goalTitle: "Goal 1：梳理任务分组机制",
         output:
-          "数据洞察师结论：进度区只在本轮调用 AI 专家时展示；状态限定为执行中、执行完成、执行失败；今日成果汇总当日全部产出文件。",
+          "数据洞察师结论：任务区只在本轮调用 AI 专家时展示；状态限定为执行中、执行完成、执行失败；收起态只显示最新任务。",
         avatarLabel: "数",
       }),
       createToolUseBlock({
         id: `${messageId}-fail`,
         name: "workbench-task fail",
         displayName: "任务失败",
-        purpose: "任务失败 - 文档同步助手：在线文档写入超时",
+        purpose: "任务失败 - 状态回填助手：首次回写任务状态超时",
+        goalId: "goal-task-status",
+        goalTitle: "Goal 2：校准任务状态回填",
         status: "failed",
         output:
-          "失败原因：飞书文档写入接口超时，未返回文档版本号。处理方式：保留本地文件卡片和工作记录，下一轮可重新发起同步。",
+          "失败原因：状态回填接口超时，未写入最新任务状态。处理方式：保留当前任务记录，重新发起状态回写。",
         isError: true,
-        avatarLabel: "文",
+        avatarLabel: "状",
+      }),
+      createToolUseBlock({
+        id: `${messageId}-status-retry`,
+        name: "workbench-task continue",
+        displayName: "任务继续",
+        purpose: "任务继续 - 状态回填助手：重试同步最新任务状态",
+        goalId: "goal-task-status",
+        goalTitle: "Goal 2：校准任务状态回填",
+        status: "running",
+        output:
+          "正在重试：只回填任务区需要展示的任务名称、AI 专家头像和名称，以及执行中、执行完成、执行失败三类状态。",
+        avatarLabel: "状",
       }),
       createToolUseBlock({
         id: `${messageId}-edit`,
@@ -395,7 +420,7 @@ const buildSkillMcpTaskDemoBlocks = (
       }),
       createTextBlock(
         `${messageId}-final`,
-        `我已经把这轮涉及的 Skill、MCP、AI 专家协作和文件产出都按 ME 的过程消息规则串起来了。最后输出两份文件卡片：一份是工具消息展示样例，一份是 ME 能力补充说明，点击可以直接预览。`,
+        `我已经把这轮涉及的 Skill、MCP 和 AI 专家协作都按 ME 的过程消息规则串起来了。任务卡片按 Goal 分组：一个 Goal 下可以连续展示多个任务，收起时只保留最新任务状态。`,
       ),
       createArtifactBlock(
         `${messageId}-artifact-prd-patch`,
@@ -632,7 +657,8 @@ const META_AGENT_HISTORY_ROUNDS: MetaAgentHistoryRound[] = [
   {
     id: "daily-output-file-cleanup",
     dateTime: "2026-05-08 18:44",
-    userContent: "我把今天改过的几份 PRD 和需求池文件发你，帮我整理哪些是最终成果，哪些只是过程稿。",
+    userContent:
+      "我把今天改过的几份 PRD 和需求池文件发你，帮我整理哪些是最终成果，哪些只是过程稿。",
     attachments: [
       createMockAttachment(
         "history-attachment-prd-diff-md",

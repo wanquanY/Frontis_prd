@@ -270,6 +270,7 @@ export interface OperationsTenant {
   industry: string;
   adminName: string;
   adminPhone: string;
+  adminPermissionIds: string[];
   adminRoleId: string;
   adminRoleLabel: string;
   hasAgentListingAccess: boolean;
@@ -293,7 +294,7 @@ export interface OperationsTenantForm {
   industry: string;
   adminName: string;
   adminPhone: string;
-  adminRoleId: string;
+  adminPermissionIds: string[];
   seatCount: number;
   effectiveAt: string;
   expiresAt: string;

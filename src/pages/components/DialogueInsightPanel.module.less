@@ -113,7 +113,7 @@
   }
 }
 
-.taskList,
+.goalList,
 .fileList {
   min-width: 0;
   min-height: 0;
@@ -124,15 +124,69 @@
   overflow-y: auto;
 }
 
-.taskList::-webkit-scrollbar,
+.goalList::-webkit-scrollbar,
 .fileList::-webkit-scrollbar {
   width: 4px;
 }
 
-.taskList::-webkit-scrollbar-thumb,
+.goalList::-webkit-scrollbar-thumb,
 .fileList::-webkit-scrollbar-thumb {
   border-radius: 999px;
   background: color-mix(in srgb, var(--text) 12%, transparent);
+}
+
+.goalItem {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.goalItem + .goalItem {
+  padding-top: 10px;
+  border-top: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+}
+
+.goalHeader {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.goalTitle {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text);
+  font-size: 13px;
+  line-height: 20px;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.goalCount {
+  min-width: 22px;
+  height: 22px;
+  padding: 0 7px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--primary) 10%, transparent);
+  color: var(--primary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  font-size: 11px;
+  line-height: 16px;
+  font-weight: 800;
+}
+
+.taskList {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 .taskItem {

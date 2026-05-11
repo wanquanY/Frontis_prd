@@ -62,6 +62,8 @@ export const SYSTEM_ACCESS_PERMISSION_IDS = {
 
 export const OPERATIONS_PERMISSION_IDS = {
   tenantManage: "ops.tenant.manage",
+  organizationManage: "ops.organization.manage",
+  roleManage: "ops.role.manage",
   productManage: "ops.product.manage",
   agentReview: "ops.agent.review",
   platformConfig: "ops.platform.config",
@@ -76,6 +78,8 @@ export const MANAGEMENT_PERMISSION_IDS = {
 export const TENANT_PERMISSION_IDS = {
   expertPlazaView: "workspace.expertPlaza.view",
   skillCenterView: "workspace.skillCenter.view",
+  mcpPublishTenant: "workspace.skillCenter.mcp.publishTenant",
+  mcpPublishPublic: "workspace.skillCenter.mcp.publishPublic",
   evolutionLabView: "development.view",
   develop: "development.manageOwn",
   agentPublishTenant: "agent.publish.tenant",
@@ -101,9 +105,18 @@ const WORKSPACE_PERMISSION_MENUS: TenantRolePermissionMenu[] = [
     items: [{ id: TENANT_PERMISSION_IDS.expertPlazaView, label: EXPERT_PLAZA_LABEL }],
   },
   {
-    displayMode: "leaf",
     title: SKILL_CENTER_LABEL,
-    items: [{ id: TENANT_PERMISSION_IDS.skillCenterView, label: SKILL_CENTER_LABEL }],
+    items: [
+      { id: TENANT_PERMISSION_IDS.skillCenterView, label: "浏览 Skill 和 MCP" },
+      {
+        id: TENANT_PERMISSION_IDS.mcpPublishTenant,
+        label: `发布 MCP 到${SKILL_CENTER_LABEL}（组织内）`,
+      },
+      {
+        id: TENANT_PERMISSION_IDS.mcpPublishPublic,
+        label: `上架 MCP 到${SKILL_CENTER_LABEL}（平台公开）`,
+      },
+    ],
   },
   {
     title: EVOLUTION_LAB_LABEL,
@@ -153,6 +166,16 @@ const OPERATIONS_PERMISSION_MENUS: TenantRolePermissionMenu[] = [
     displayMode: "leaf",
     title: "租户管理",
     items: [{ id: OPERATIONS_PERMISSION_IDS.tenantManage, label: "租户管理" }],
+  },
+  {
+    displayMode: "leaf",
+    title: "组织管理",
+    items: [{ id: OPERATIONS_PERMISSION_IDS.organizationManage, label: "组织管理" }],
+  },
+  {
+    displayMode: "leaf",
+    title: "角色管理",
+    items: [{ id: OPERATIONS_PERMISSION_IDS.roleManage, label: "角色管理" }],
   },
   {
     displayMode: "leaf",
@@ -219,6 +242,9 @@ const LEGACY_TENANT_PERMISSION_ID_MAPPINGS: Record<string, string> = {
   "ops.tenant.create": OPERATIONS_PERMISSION_IDS.tenantManage,
   "ops.tenant.edit": OPERATIONS_PERMISSION_IDS.tenantManage,
   "ops.tenant.status": OPERATIONS_PERMISSION_IDS.tenantManage,
+  "mcp.publish.marketplace": TENANT_PERMISSION_IDS.mcpPublishPublic,
+  "mcp.publish.public": TENANT_PERMISSION_IDS.mcpPublishPublic,
+  "mcp.publish.tenant": TENANT_PERMISSION_IDS.mcpPublishTenant,
   "skill.manageOwn": TENANT_PERMISSION_IDS.develop,
 };
 

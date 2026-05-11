@@ -1,8 +1,12 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
-import { SearchOutlined } from "@ant-design/icons";
+import { DeleteOutlined, SearchOutlined } from "@ant-design/icons";
+import { Popconfirm, message } from "antd";
 
+import { TENANT_PERMISSION_IDS } from "@/constants/tenantRolePermissions";
+import { useMockAuth } from "@/feature/auth/hooks/useMockAuth";
 import { loadStoredSkillCenterCategories } from "@/feature/operations/skillCenterCategoryStorage";
+import { hasPermission } from "@/utils/tenantRoleAccess";
 
 import styles from "./FdeSkillMarketView.module.less";
 
@@ -12,6 +16,7 @@ type SkillTab = "public" | "mine" | "mcp";
 type Visibility = "仅自己可见" | "公开" | "团队";
 type PrimaryCatalogTab = "skill" | "mcp";
 type SkillCategoryFilter = "all" | string;
+type McpPublishScope = "organization" | "platform";
 
 interface Skill {
   id: string;
@@ -28,10 +33,28 @@ interface Skill {
   visibility?: Visibility;
 }
 
+interface McpPublishFormState {
+  name: string;
+  version: string;
+  endpoint: string;
+  category: string;
+  scope: McpPublishScope;
+  description: string;
+}
+
 const PRIMARY_CATALOG_TABS: Array<{ key: PrimaryCatalogTab; label: string }> = [
   { key: "skill", label: "Skill" },
   { key: "mcp", label: "MCP" },
 ];
+
+const DEFAULT_MCP_PUBLISH_FORM: McpPublishFormState = {
+  name: "",
+  version: "v1.0.0",
+  endpoint: "",
+  category: "通用",
+  scope: "organization",
+  description: "",
+};
 
 const getSkillCategory = (skill: Skill): string => {
   if (skill.type === "workflow") {
@@ -52,6 +75,9 @@ const getSkillCategory = (skill: Skill): string => {
 
   return "通用";
 };
+
+const canRemoveSkillItem = (skill: Skill): boolean =>
+  skill.tab === "mine" || skill.id.startsWith("mcp-custom-");
 
 // 模拟数据 - 来自 0405.html
 const SKILLS: Skill[] = [
@@ -273,9 +299,32 @@ const SKILLS: Skill[] = [
  * 基于同事版本的新版市场布局接入当前 FDE 开发工作台。
  */
 export const FdeSkillMarketView = (): JSX.Element => {
+  const { activeIdentity } = useMockAuth();
+  const currentPermissionIds = activeIdentity?.permissionIds ?? [];
+  const canPublishMcpOrganization = hasPermission(
+    currentPermissionIds,
+    TENANT_PERMISSION_IDS.mcpPublishTenant,
+  );
+  const canPublishMcpPlatform = hasPermission(
+    currentPermissionIds,
+    TENANT_PERMISSION_IDS.mcpPublishPublic,
+  );
+  const canPublishMcp = canPublishMcpOrganization || canPublishMcpPlatform;
+  const defaultMcpPublishScope: McpPublishScope = canPublishMcpOrganization
+    ? "organization"
+    : "platform";
+  const mcpPublishButtonLabel = canPublishMcpOrganization
+    ? canPublishMcpPlatform
+      ? "发布 / 上架 MCP"
+      : "发布 MCP"
+    : "上架 MCP";
   const [searchKeyword, setSearchKeyword] = useState("");
   const [primaryTab, setPrimaryTab] = useState<PrimaryCatalogTab>("skill");
   const [activeCategory, setActiveCategory] = useState<SkillCategoryFilter>("all");
+  const [skillItems, setSkillItems] = useState<Skill[]>(SKILLS);
+  const [isMcpPublishOpen, setIsMcpPublishOpen] = useState(false);
+  const [mcpPublishForm, setMcpPublishForm] =
+    useState<McpPublishFormState>(DEFAULT_MCP_PUBLISH_FORM);
   const skillCategories = useMemo(
     () =>
       loadStoredSkillCenterCategories()
@@ -296,6 +345,11 @@ export const FdeSkillMarketView = (): JSX.Element => {
     ],
     [skillCategories],
   );
+  const publishCategoryOptions = useMemo(
+    () => Array.from(new Set(["通用", ...skillCategories])),
+    [skillCategories],
+  );
+
   useEffect(() => {
     if (activeCategory === "all") {
       return;
@@ -307,7 +361,7 @@ export const FdeSkillMarketView = (): JSX.Element => {
   }, [activeCategory, skillCategories]);
 
   const filteredSkills = useMemo(() => {
-    let list = SKILLS.filter(skill =>
+    let list = skillItems.filter(skill =>
       primaryTab === "mcp" ? skill.tab === "mcp" : skill.tab !== "mcp",
     );
 
@@ -325,7 +379,80 @@ export const FdeSkillMarketView = (): JSX.Element => {
       );
     }
     return list;
-  }, [activeCategory, primaryTab, searchKeyword]);
+  }, [activeCategory, primaryTab, searchKeyword, skillItems]);
+
+  const handleOpenMcpPublish = useCallback((): void => {
+    if (!canPublishMcp) {
+      return;
+    }
+
+    setMcpPublishForm({
+      ...DEFAULT_MCP_PUBLISH_FORM,
+      category: skillCategories[0] ?? DEFAULT_MCP_PUBLISH_FORM.category,
+      scope: defaultMcpPublishScope,
+    });
+    setIsMcpPublishOpen(true);
+  }, [canPublishMcp, defaultMcpPublishScope, skillCategories]);
+
+  const handleCloseMcpPublish = useCallback((): void => {
+    setIsMcpPublishOpen(false);
+  }, []);
+
+  const updateMcpPublishForm = useCallback((updates: Partial<McpPublishFormState>): void => {
+    setMcpPublishForm(current => ({
+      ...current,
+      ...updates,
+    }));
+  }, []);
+
+  const handleSubmitMcpPublish = useCallback((): void => {
+    const trimmedName = mcpPublishForm.name.trim();
+    const trimmedVersion = mcpPublishForm.version.trim();
+    const trimmedEndpoint = mcpPublishForm.endpoint.trim();
+    const trimmedDescription = mcpPublishForm.description.trim();
+
+    if (!trimmedName || !trimmedVersion || !trimmedEndpoint || !trimmedDescription) {
+      message.warning("请完整填写 MCP 名称、版本、服务地址和描述");
+      return;
+    }
+
+    const nextItem: Skill = {
+      id: `mcp-custom-${Date.now()}`,
+      name: trimmedName,
+      version: trimmedVersion,
+      type: "tool",
+      tags: [mcpPublishForm.category, mcpPublishForm.scope === "platform" ? "平台公开" : "组织内"],
+      iconColor: mcpPublishForm.scope === "platform" ? "#0f766e" : "#2563eb",
+      iconText: "M",
+      publisher:
+        mcpPublishForm.scope === "platform"
+          ? "FrontisAI发布"
+          : (activeIdentity?.tenantName ?? "当前租户"),
+      publishTime: new Date().toISOString().slice(0, 10),
+      desc: trimmedDescription,
+      tab: "mcp",
+      visibility: mcpPublishForm.scope === "platform" ? "公开" : "团队",
+    };
+
+    setSkillItems(current => [nextItem, ...current]);
+    setIsMcpPublishOpen(false);
+    setPrimaryTab("mcp");
+    setActiveCategory("all");
+    message.success(
+      mcpPublishForm.scope === "platform" ? "MCP 已上架为平台公开" : "MCP 已发布到当前组织技能中心",
+    );
+  }, [activeIdentity?.tenantName, mcpPublishForm]);
+
+  const handleRemoveSkill = useCallback((skill: Skill): void => {
+    if (!canRemoveSkillItem(skill)) {
+      return;
+    }
+
+    setSkillItems(current => current.filter(item => item.id !== skill.id));
+    message.success(
+      skill.tab === "mcp" ? "已从技能中心删除该 MCP。" : "已从技能中心删除该 Skill。",
+    );
+  }, []);
 
   return (
     <div className={styles.root}>
@@ -354,6 +481,12 @@ export const FdeSkillMarketView = (): JSX.Element => {
             onChange={event => setSearchKeyword(event.target.value)}
           />
         </div>
+
+        {primaryTab === "mcp" && canPublishMcp ? (
+          <button type="button" className={styles.publishButton} onClick={handleOpenMcpPublish}>
+            {mcpPublishButtonLabel}
+          </button>
+        ) : null}
       </div>
 
       <div className={styles.categoryTabs} role="tablist" aria-label="技能中心分类">
@@ -390,14 +523,155 @@ export const FdeSkillMarketView = (): JSX.Element => {
               </div>
 
               <div className={styles.cardFooter}>
-                <span>{skill.publisher}</span>
-                <span>{getSkillCategory(skill)}</span>
-                <span>{skill.publishTime}</span>
+                <div className={styles.cardFooterMeta}>
+                  <span>{skill.publisher}</span>
+                  <span>{getSkillCategory(skill)}</span>
+                  <span>{skill.publishTime}</span>
+                </div>
+                {canRemoveSkillItem(skill) ? (
+                  <Popconfirm
+                    title={skill.tab === "mcp" ? "删除 MCP" : "删除 Skill"}
+                    description={
+                      skill.tab === "mcp"
+                        ? "删除后，该 MCP 将不再显示在技能中心。"
+                        : "删除后，该 Skill 将不再显示在技能中心。"
+                    }
+                    okText="删除"
+                    cancelText="取消"
+                    okButtonProps={{ danger: true }}
+                    onConfirm={() => handleRemoveSkill(skill)}
+                  >
+                    <button
+                      type="button"
+                      className={styles.deleteButton}
+                      aria-label={skill.tab === "mcp" ? "删除 MCP" : "删除 Skill"}
+                    >
+                      <DeleteOutlined />
+                      删除
+                    </button>
+                  </Popconfirm>
+                ) : null}
               </div>
             </article>
           ))}
         </div>
       )}
+
+      {isMcpPublishOpen ? (
+        <div className={styles.publishModalMask} role="presentation">
+          <div
+            className={styles.publishModal}
+            role="dialog"
+            aria-modal="true"
+            aria-label="发布或上架 MCP"
+          >
+            <div className={styles.publishModalHeader}>
+              <h3 className={styles.publishModalTitle}>发布 / 上架 MCP</h3>
+              <button
+                type="button"
+                className={styles.publishModalClose}
+                aria-label="关闭 MCP 发布上架弹窗"
+                onClick={handleCloseMcpPublish}
+              >
+                ×
+              </button>
+            </div>
+
+            <div className={styles.publishFormGrid}>
+              <label className={styles.publishField}>
+                <span>MCP 名称</span>
+                <input
+                  value={mcpPublishForm.name}
+                  placeholder="例如：订单查询 MCP"
+                  onChange={event => updateMcpPublishForm({ name: event.target.value })}
+                />
+              </label>
+              <label className={styles.publishField}>
+                <span>版本号</span>
+                <input
+                  value={mcpPublishForm.version}
+                  placeholder="v1.0.0"
+                  onChange={event => updateMcpPublishForm({ version: event.target.value })}
+                />
+              </label>
+              <label className={styles.publishField}>
+                <span>服务地址</span>
+                <input
+                  value={mcpPublishForm.endpoint}
+                  placeholder="https://mcp.example.com/server"
+                  onChange={event => updateMcpPublishForm({ endpoint: event.target.value })}
+                />
+              </label>
+              <label className={styles.publishField}>
+                <span>分类</span>
+                <select
+                  value={mcpPublishForm.category}
+                  onChange={event => updateMcpPublishForm({ category: event.target.value })}
+                >
+                  {publishCategoryOptions.map(category => (
+                    <option key={category} value={category}>
+                      {category}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+
+            <fieldset className={styles.publishScopeGroup}>
+              <legend>发布范围</legend>
+              {canPublishMcpOrganization ? (
+                <label>
+                  <input
+                    type="radio"
+                    name="mcpPublishScope"
+                    checked={mcpPublishForm.scope === "organization"}
+                    onChange={() => updateMcpPublishForm({ scope: "organization" })}
+                  />
+                  <span>组织内发布</span>
+                </label>
+              ) : null}
+              {canPublishMcpPlatform ? (
+                <label>
+                  <input
+                    type="radio"
+                    name="mcpPublishScope"
+                    checked={mcpPublishForm.scope === "platform"}
+                    onChange={() => updateMcpPublishForm({ scope: "platform" })}
+                  />
+                  <span>平台公开上架</span>
+                </label>
+              ) : null}
+            </fieldset>
+
+            <label className={styles.publishField}>
+              <span>描述</span>
+              <textarea
+                value={mcpPublishForm.description}
+                rows={4}
+                placeholder="说明 MCP 的能力、适用场景和调用边界"
+                onChange={event => updateMcpPublishForm({ description: event.target.value })}
+              />
+            </label>
+
+            <div className={styles.publishModalFooter}>
+              <button
+                type="button"
+                className={styles.secondaryButton}
+                onClick={handleCloseMcpPublish}
+              >
+                取消
+              </button>
+              <button
+                type="button"
+                className={styles.primaryButton}
+                onClick={handleSubmitMcpPublish}
+              >
+                确认提交
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 };

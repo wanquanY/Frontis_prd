@@ -7,6 +7,8 @@ import type { ChatMessage, MetaAgentWorkTrajectoryItem } from "../types";
 
 export interface DialogueInsightTaskItem {
   id: string;
+  goalId: string;
+  goalTitle: string;
   taskDescription: string;
   expertName: string;
   status: DialogueInsightTaskStatus;
@@ -40,18 +42,45 @@ const getBlockStringData = (block: Block, key: string): string => {
   return typeof value === "string" ? value.trim() : "";
 };
 
+const getTaskGoalInfoFromBlock = (
+  block: Block,
+  fallbackIndex: number,
+): { goalId: string; goalTitle: string } => {
+  const goalId = getBlockStringData(block, "goal_id");
+  const goalTitle = getBlockStringData(block, "goal_title");
+
+  if (goalId || goalTitle) {
+    const normalizedGoalTitle = goalTitle || "本轮目标";
+
+    return {
+      goalId: goalId || `goal-${normalizedGoalTitle}`,
+      goalTitle: normalizedGoalTitle,
+    };
+  }
+
+  return {
+    goalId: `goal-default-${Math.floor(fallbackIndex / 2)}`,
+    goalTitle: "本轮目标",
+  };
+};
+
 const flattenBlocks = (blocks: Block[] = []): Block[] =>
   blocks.flatMap(block => [block, ...flattenBlocks(block.children ?? [])]);
 
-const isTaskDispatchBlock = (block: Block): boolean => {
+const isWorkbenchTaskBlock = (block: Block): boolean => {
   if (block.kind !== "tool_use") {
     return false;
   }
 
-  const name = getBlockStringData(block, "name");
+  const name = getBlockStringData(block, "name").toLowerCase();
   const displayName = getBlockStringData(block, "display_name");
 
-  return name === "task_dispatch" || displayName === "任务分发";
+  return (
+    name === "task_dispatch" ||
+    name.startsWith("workbench-task") ||
+    name.startsWith("workbench_task") ||
+    ["任务分发", "任务继续", "任务完成", "任务失败"].includes(displayName)
+  );
 };
 
 const resolveTaskStatus = (status: string): DialogueInsightTaskStatus => {
@@ -108,18 +137,29 @@ const parseDispatchPurpose = (
   expertName: string;
   taskDescription: string;
 } => {
-  const matched = purpose.match(/^分配给([^：:]+)[：:]\s*(.+)$/);
+  const matchedAssign = purpose.match(/^分配给([^：:]+)[：:]\s*(.+)$/);
 
-  if (!matched) {
+  if (matchedAssign) {
     return {
-      expertName: fallbackExpertName,
-      taskDescription: purpose,
+      expertName: matchedAssign[1].trim() || fallbackExpertName,
+      taskDescription: matchedAssign[2].trim() || purpose,
+    };
+  }
+
+  const matchedTask = purpose.match(
+    /^(?:任务分发|任务继续|任务完成|任务失败)\s*[-－]\s*([^：:]+)[：:]\s*(.+)$/,
+  );
+
+  if (matchedTask) {
+    return {
+      expertName: matchedTask[1].trim() || fallbackExpertName,
+      taskDescription: matchedTask[2].trim() || purpose,
     };
   }
 
   return {
-    expertName: matched[1].trim() || fallbackExpertName,
-    taskDescription: matched[2].trim() || purpose,
+    expertName: fallbackExpertName,
+    taskDescription: purpose,
   };
 };
 
@@ -131,7 +171,7 @@ const dedupeDialogueInsightTasks = (
   return items.filter(item => {
     const normalizedExpertName = item.expertName.trim();
     const normalizedTask = item.taskDescription.trim();
-    const key = `${normalizedExpertName}::${normalizedTask}`;
+    const key = `${item.goalId}::${normalizedExpertName}::${normalizedTask}`;
 
     if (!normalizedExpertName || !normalizedTask || existingKeys.has(key)) {
       return false;
@@ -154,15 +194,18 @@ const buildTasksFromDispatchBlocks = (
     }
 
     const taskItems = flattenBlocks(message.blocks)
-      .filter(isTaskDispatchBlock)
-      .map(block => {
+      .filter(isWorkbenchTaskBlock)
+      .map((block, blockIndex) => {
         const purpose = getBlockStringData(block, "purpose");
         const avatarLabel = getBlockStringData(block, "avatar_label");
         const avatarUrl = getBlockStringData(block, "avatar_url");
         const { expertName, taskDescription } = parseDispatchPurpose(purpose, avatarLabel);
+        const goalInfo = getTaskGoalInfoFromBlock(block, blockIndex);
 
         return {
           id: block.id,
+          goalId: goalInfo.goalId,
+          goalTitle: goalInfo.goalTitle,
           taskDescription,
           expertName,
           status: getTaskStatusFromBlock(block),
@@ -204,9 +247,16 @@ export const buildDialogueInsightTasks = ({
       .filter(task => !isMetaAgentActivityName(task.agentName, activeName))
       .map(task => ({
         id: task.id,
+        goalId: `trajectory-goal-${latestTrajectory.id}`,
+        goalTitle: latestTrajectory.title,
         taskDescription: task.title,
         expertName: task.agentName,
-        status: task.status === "completed" ? "completed" : "running",
+        status:
+          task.status === "completed"
+            ? "completed"
+            : task.status === "failed"
+              ? "aborted"
+              : "running",
         expertAvatarLabel: task.agentName,
       })),
   );

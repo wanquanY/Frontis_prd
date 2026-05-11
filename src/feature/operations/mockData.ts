@@ -46,12 +46,13 @@ import type {
 import {
   DEPARTMENT_LEAD_PERMISSION_IDS,
   DEFAULT_TENANT_ROLE_IDS,
-  MANAGEMENT_PERMISSION_IDS,
   OPERATIONS_PERMISSION_IDS,
   OPERATIONS_SUPER_ADMIN_PERMISSION_IDS,
+  SYSTEM_ACCESS_DERIVED_PERMISSION_IDS,
   TENANT_ADMIN_PERMISSION_IDS,
   TENANT_MEMBER_PERMISSION_IDS,
   TENANT_PERMISSION_IDS,
+  normalizeTenantRolePermissionIds,
 } from "@/constants/tenantRolePermissions";
 
 export const OPERATIONS_DEFAULT_PATH = "/ops/tenants";
@@ -120,6 +121,46 @@ export const resolveOperationsTenantAgentListingAccess = (roleId: string): boole
       permissionId === TENANT_PERMISSION_IDS.agentPublishPublic,
   );
 
+export const resolveOperationsTenantAgentListingAccessByPermissions = (
+  permissionIds: string[],
+): boolean =>
+  permissionIds.some(
+    permissionId =>
+      permissionId === TENANT_PERMISSION_IDS.agentPublishMarketplace ||
+      permissionId === TENANT_PERMISSION_IDS.agentPublishPublic,
+  );
+
+export const resolveOperationsTenantModuleLabels = (permissionIds: string[]): string[] => {
+  const normalizedPermissionIds = normalizeTenantRolePermissionIds(permissionIds);
+  const moduleLabels: string[] = [];
+
+  if (
+    normalizedPermissionIds.some(permissionId =>
+      SYSTEM_ACCESS_DERIVED_PERMISSION_IDS.workspace.includes(permissionId),
+    )
+  ) {
+    moduleLabels.push("FrontisAI工作台");
+  }
+
+  if (
+    normalizedPermissionIds.some(permissionId =>
+      SYSTEM_ACCESS_DERIVED_PERMISSION_IDS.admin.includes(permissionId),
+    )
+  ) {
+    moduleLabels.push("企业管理后台");
+  }
+
+  if (
+    normalizedPermissionIds.some(permissionId =>
+      SYSTEM_ACCESS_DERIVED_PERMISSION_IDS.operations.includes(permissionId),
+    )
+  ) {
+    moduleLabels.push("运营管理平台");
+  }
+
+  return moduleLabels;
+};
+
 /**
  * 解析运营后台登录后的进入路径。
  */
@@ -149,13 +190,13 @@ export const OPERATIONS_TAB_OPTIONS: Array<{
     key: "organization",
     label: "组织管理",
     description: "复用管理后台组织树与成员管理能力。",
-    permissionIds: [MANAGEMENT_PERMISSION_IDS.organizationManage],
+    permissionIds: [OPERATIONS_PERMISSION_IDS.organizationManage],
   },
   {
     key: "roleManagement",
     label: "角色管理",
     description: "复用管理后台角色、权限项和角色成员关系。",
-    permissionIds: [MANAGEMENT_PERMISSION_IDS.roleManage],
+    permissionIds: [OPERATIONS_PERMISSION_IDS.roleManage],
   },
   {
     key: "products",
@@ -224,6 +265,7 @@ export const OPERATIONS_INITIAL_TENANTS: OperationsTenant[] = [
     industry: "零售服饰",
     adminName: "杨万泉",
     adminPhone: "13800008883",
+    adminPermissionIds: OPERATIONS_SUPER_ADMIN_PERMISSION_IDS,
     adminRoleId: OPERATIONS_TENANT_OPERATIONS_ADMIN_ROLE_ID,
     adminRoleLabel: "租户运营管理员",
     hasAgentListingAccess: true,
@@ -270,6 +312,7 @@ export const OPERATIONS_INITIAL_TENANTS: OperationsTenant[] = [
     industry: "连锁零售",
     adminName: "周倩",
     adminPhone: "13800002222",
+    adminPermissionIds: TENANT_ADMIN_PERMISSION_IDS,
     adminRoleId: DEFAULT_TENANT_ROLE_IDS.enterpriseAdmin,
     adminRoleLabel: "组织管理员",
     hasAgentListingAccess: true,
@@ -302,6 +345,7 @@ export const OPERATIONS_INITIAL_TENANTS: OperationsTenant[] = [
     industry: "个人工作室",
     adminName: "李想",
     adminPhone: "13800005555",
+    adminPermissionIds: TENANT_ADMIN_PERMISSION_IDS,
     adminRoleId: DEFAULT_TENANT_ROLE_IDS.enterpriseAdmin,
     adminRoleLabel: "组织管理员",
     hasAgentListingAccess: true,
@@ -334,6 +378,7 @@ export const OPERATIONS_INITIAL_TENANTS: OperationsTenant[] = [
     industry: "品牌零售",
     adminName: "杨万泉",
     adminPhone: "13800009999",
+    adminPermissionIds: OPERATIONS_SUPER_ADMIN_PERMISSION_IDS,
     adminRoleId: OPERATIONS_TENANT_OPERATIONS_ADMIN_ROLE_ID,
     adminRoleLabel: "租户运营管理员",
     hasAgentListingAccess: true,
@@ -366,6 +411,7 @@ export const OPERATIONS_INITIAL_TENANTS: OperationsTenant[] = [
     industry: "平台运营",
     adminName: "周明越",
     adminPhone: "13800008881",
+    adminPermissionIds: OPERATIONS_SUPER_ADMIN_PERMISSION_IDS,
     adminRoleId: OPERATIONS_TENANT_OPERATIONS_ADMIN_ROLE_ID,
     adminRoleLabel: "租户运营管理员",
     hasAgentListingAccess: true,
@@ -1623,7 +1669,7 @@ export const createEmptyOperationsTenantForm = (): OperationsTenantForm => ({
   industry: "",
   adminName: "",
   adminPhone: "",
-  adminRoleId: DEFAULT_TENANT_ROLE_IDS.enterpriseAdmin,
+  adminPermissionIds: TENANT_ADMIN_PERMISSION_IDS,
   seatCount: 0,
   effectiveAt: "",
   expiresAt: "",

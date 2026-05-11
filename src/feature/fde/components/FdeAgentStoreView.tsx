@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-import { Button, Empty, Modal, QRCode } from "antd";
+import { Button, Empty, Modal, Popconfirm, QRCode, message } from "antd";
 import classNames from "classnames";
 import dayjs from "dayjs";
 
@@ -703,6 +703,7 @@ export const FdeAgentStoreView = (): JSX.Element => {
     () => loadOperationsServiceContactConfig(),
   );
   const [contactAgent, setContactAgent] = useState<StoreAgentItem | null>(null);
+  const [removedMineAgentIds, setRemovedMineAgentIds] = useState<Set<string>>(() => new Set());
   const [agentPlazaCategories, setAgentPlazaCategories] = useState<
     OperationsAgentPlazaCategoryOption[]
   >(() => loadStoredAgentPlazaCategories());
@@ -797,6 +798,10 @@ export const FdeAgentStoreView = (): JSX.Element => {
   const filteredAgents = useMemo(
     () =>
       allAgents.filter(agent => {
+        if (removedMineAgentIds.has(agent.id)) {
+          return false;
+        }
+
         if (shelfFilter === "mine" && agent.sourceType !== "mine") {
           return false;
         }
@@ -815,7 +820,7 @@ export const FdeAgentStoreView = (): JSX.Element => {
 
         return true;
       }),
-    [allAgents, businessLineFilter, shelfFilter],
+    [allAgents, businessLineFilter, removedMineAgentIds, shelfFilter],
   );
 
   const contactModalInfo = useMemo<ContactModalInfo | null>(
@@ -825,6 +830,15 @@ export const FdeAgentStoreView = (): JSX.Element => {
 
   const handleContactAgent = useCallback((agent: StoreAgentItem): void => {
     setContactAgent(agent);
+  }, []);
+
+  const handleRemoveMineAgent = useCallback((agent: StoreAgentItem): void => {
+    if (agent.sourceType !== "mine") {
+      return;
+    }
+
+    setRemovedMineAgentIds(current => new Set([...current, agent.id]));
+    message.success("已从专家广场删除该 AI 专家。");
   }, []);
 
   return (
@@ -903,6 +917,18 @@ export const FdeAgentStoreView = (): JSX.Element => {
             </div>
 
             <div className={styles.cardFooter}>
+              {agent.sourceType === "mine" ? (
+                <Popconfirm
+                  title="删除 AI 专家"
+                  description="删除后，该 AI 专家将不再显示在专家广场。"
+                  okText="删除"
+                  cancelText="取消"
+                  okButtonProps={{ danger: true }}
+                  onConfirm={() => handleRemoveMineAgent(agent)}
+                >
+                  <Button className={styles.cardActionButton}>删除</Button>
+                </Popconfirm>
+              ) : null}
               <Button
                 className={`${styles.cardActionButton} ${styles.cardActionButtonPrimary}`}
                 onClick={() => handleContactAgent(agent)}
