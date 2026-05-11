@@ -270,6 +270,7 @@ export interface MockAuthActionResult {
   redirectPath?: string;
   verificationCode?: string;
   requiresPasswordSetup?: boolean;
+  isNewlyRegistered?: boolean;
   account?: MockAuthAccount;
   session?: MockAuthSession;
   identity?: MockAuthIdentity;

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AppstoreOutlined, LogoutOutlined } from "@ant-design/icons";
 import type { MenuProps } from "antd";
 import { Empty, message } from "antd";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import type { AiCeoAgentHomeConfig, AiCeoHomeCaseItem } from "@/constants/aiCeoHome";
 import { AI_CEO_AGENT_HOME_CONFIGS, AI_CEO_DEFAULT_HOME_CONFIG } from "@/constants/aiCeoHome";
 import {
@@ -22,6 +22,10 @@ import { getMockTenantUsers } from "@/feature/auth/mockTenantRegistry";
 import type { MockAuthSystemEntry } from "@/feature/auth/types";
 import { useOperationsAuth } from "@/feature/operations/hooks/useOperationsAuth";
 import { useMeOnboardingProfileModal } from "@/feature/workspace/hooks/useMeOnboardingProfileModal";
+import {
+  clearRegistrationOnboardingDraft,
+  loadRegistrationOnboardingDraft,
+} from "@/feature/auth/registrationFlowStorage";
 import type { WorkspaceComposerAttachmentItem } from "@/feature/workspace/types";
 import {
   FRONTIS_COMPLETE_PRD_V430_DOCUMENT_CONTENT,
@@ -787,6 +791,7 @@ const FrontisPage = ({
 }: FrontisPageProps): JSX.Element => {
   const location = useLocation();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { activateIdentity, activateTenant, activeIdentity, logout, session } = useMockAuth();
   const { loginByAccountId: loginOperationsByAccountId } = useOperationsAuth();
   const [dialogueSessions, setDialogueSessions] = useState<DialogueSessionItem[]>(() =>
@@ -856,16 +861,22 @@ const FrontisPage = ({
       null,
     [session?.userId, tenantUsers, viewRole],
   );
+  const registrationOnboardingDraft = useMemo(() => loadRegistrationOnboardingDraft(), []);
+  const shouldForceRegistrationOnboardingProfileModal = searchParams.get("from") === "register";
   const shouldEnableMeOnboardingProfileModal =
     workspaceMode === "metaAgent" &&
     activeIdentity?.platform === "enterpriseWorkspace" &&
-    isNewUserOnboardingTenant(activeIdentity?.tenantId);
+    (isNewUserOnboardingTenant(activeIdentity?.tenantId) ||
+      shouldForceRegistrationOnboardingProfileModal);
   const meOnboardingProfileModalState = useMeOnboardingProfileModal({
     enabled: shouldEnableMeOnboardingProfileModal,
     accountId: session?.accountId,
     tenantId: activeIdentity?.tenantId,
-    defaultNickname: currentUser?.name ?? session?.name,
-    showOnEveryEntry: isNewUserOnboardingTenant(activeIdentity?.tenantId),
+    defaultNickname:
+      registrationOnboardingDraft?.nickname || currentUser?.name || session?.name,
+    defaultCompanyName: registrationOnboardingDraft?.companyName,
+    showOnEveryEntry:
+      isNewUserOnboardingTenant(activeIdentity?.tenantId) || shouldForceRegistrationOnboardingProfileModal,
   });
   const {
     isOpen: isMeOnboardingProfileModalOpen,
@@ -1315,8 +1326,12 @@ const FrontisPage = ({
 
   const handleSubmitMeOnboardingProfile = useCallback((): void => {
     submitMeOnboardingProfile();
+    if (shouldForceRegistrationOnboardingProfileModal) {
+      clearRegistrationOnboardingDraft();
+      navigate(location.pathname, { replace: true });
+    }
     message.success("ME 已记住你的基础信息。");
-  }, [submitMeOnboardingProfile]);
+  }, [location.pathname, navigate, shouldForceRegistrationOnboardingProfileModal, submitMeOnboardingProfile]);
 
   const handleRenameDialogueSession = useCallback((sessionId: string, title: string): void => {
     const nextTitle = title.trim();

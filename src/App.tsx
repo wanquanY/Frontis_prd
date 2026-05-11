@@ -82,6 +82,7 @@ const App = (): JSX.Element => {
         <Routes>
           <Route path="/" element={<Navigate replace to="/portal" />} />
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<Navigate replace to="/login" />} />
           <Route path="/ops/login" element={<LegacyOperationsLoginRedirect />} />
           <Route path="/user-manual" element={<UserManualPage />} />
           <Route path="/select-tenant" element={<IdentitySelectionPage />} />

@@ -171,8 +171,8 @@ export const MarketingPortalLayout = (): JSX.Element => {
                   </button>
                 </Dropdown>
               ) : (
-                <NavLink className={styles.headerLogin} to="/login">
-                  登录
+                <NavLink className={styles.headerCta} to="/login">
+                  注册登录
                 </NavLink>
               )}
             </div>

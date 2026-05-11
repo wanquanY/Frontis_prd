@@ -1,6 +1,6 @@
 import type { ArtifactItem } from "@/types/artifact";
 import type { Block, ToolContactLookupItem, ToolSearchResultItem } from "@/types/block";
-import type { AttachmentItem, ChatMessage, DialogueGeneratedResultItem } from "@/pages/types";
+import type { AttachmentItem, ChatMessage } from "@/pages/types";
 
 interface MetaAgentHistoryRound {
   assistantContent: string;
@@ -38,7 +38,6 @@ const META_AGENT_FILE_PREVIEW_TXT_SUFFIX = "metaagent-file-preview-txt";
 const META_AGENT_FILE_PREVIEW_IMAGE_SUFFIX = "metaagent-file-preview-image";
 const META_AGENT_FILE_PREVIEW_VIDEO_SUFFIX = "metaagent-file-preview-video";
 const META_AGENT_FILE_PREVIEW_AUDIO_SUFFIX = "metaagent-file-preview-audio";
-const META_AGENT_DATA_INSIGHT_RESULT_SUFFIX = "metaagent-data-insight-result";
 
 const ME_PREVIEW_INLINE_IMAGE_URL = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(`
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 360">
@@ -345,30 +344,6 @@ const createArtifactBlock = (
     title,
     status: "completed",
     format,
-  },
-  actorRole: "assistant",
-});
-
-const createResultCardsBlock = (
-  id: string,
-  items: Array<{
-    id: string;
-    title: string;
-    subtitle: string;
-    badge: string;
-    createdAt: string;
-  }>,
-): Block => ({
-  id,
-  kind: "result_cards",
-  data: {
-    items: items.map(item => ({
-      id: item.id,
-      title: item.title,
-      subtitle: item.subtitle,
-      badge: item.badge,
-      created_at: item.createdAt,
-    })),
   },
   actorRole: "assistant",
 });
@@ -692,7 +667,6 @@ const buildSkillMcpTaskDemoBlocks = (
 ): Block[] => {
   const messageId = `metaagent-history-${round.id}-assistant`;
   const prdPatchArtifactId = `${sessionId}-${META_AGENT_PRD_PATCH_SUFFIX}`;
-  const dataInsightResultId = `${sessionId}-${META_AGENT_DATA_INSIGHT_RESULT_SUFFIX}`;
 
   return createAssistantMessageBlocks(
     messageId,
@@ -725,73 +699,18 @@ const buildSkillMcpTaskDemoBlocks = (
       }),
       createTextBlock(
         `${messageId}-after-mcp`,
-        "我确认问题不是所有能力都要配展开，而是过程中的特殊事件才需要有展开策略。下面我按两个 Goal 分发：先复核任务分组口径，再校准任务状态回填规则。",
+        "我确认问题不是所有能力都要配展开，而是过程中的特殊事件才需要有展开策略。这里先把任务分给数据洞察师，他处理期间我继续改文档和 mock，不需要等他返回才做下一步。",
       ),
       createToolUseBlock({
         id: `${messageId}-dispatch`,
         name: "task_dispatch",
         displayName: "任务分发",
-        purpose: "分配给数据洞察师：复核任务卡片的多 Goal 分组口径",
+        purpose: "分配给数据洞察师：校准任务区多 Goal 展示和收起态规则",
         goalId: "goal-task-structure",
         goalTitle: "Goal 1：梳理任务分组机制",
-        avatarLabel: "数",
-      }),
-      createToolUseBlock({
-        id: `${messageId}-continue`,
-        name: "workbench-task continue",
-        displayName: "任务继续",
-        purpose: "任务继续 - 数据洞察师：补充 Goal 下多任务的排序规则",
-        goalId: "goal-task-structure",
-        goalTitle: "Goal 1：梳理任务分组机制",
-        output:
-          "补充要求：任务卡片标题改为“任务”；一个 Goal 下可以有多个任务，任务按真实执行顺序展示。",
-        avatarLabel: "数",
-      }),
-      createToolUseBlock({
-        id: `${messageId}-done`,
-        name: "workbench-task done",
-        displayName: "任务完成",
-        purpose: "任务完成 - 数据洞察师：任务分组与状态规则已回齐",
-        goalId: "goal-task-structure",
-        goalTitle: "Goal 1：梳理任务分组机制",
-        output:
-          "数据洞察师结论：任务区只在本轮调用 AI 专家时展示；状态限定为执行中、执行完成、执行失败；收起态只显示最新任务。",
-        avatarLabel: "数",
-      }),
-      createToolUseBlock({
-        id: `${messageId}-fail`,
-        name: "workbench-task fail",
-        displayName: "任务失败",
-        purpose: "任务失败 - 状态回填助手：首次回写任务状态超时",
-        goalId: "goal-task-status",
-        goalTitle: "Goal 2：校准任务状态回填",
-        status: "failed",
-        output:
-          "失败原因：状态回填接口超时，未写入最新任务状态。处理方式：保留当前任务记录，重新发起状态回写。",
-        isError: true,
-        avatarLabel: "状",
-      }),
-      createToolUseBlock({
-        id: `${messageId}-status-retry`,
-        name: "workbench-task continue",
-        displayName: "任务继续",
-        purpose: "任务继续 - 状态回填助手：重试同步最新任务状态",
-        goalId: "goal-task-status",
-        goalTitle: "Goal 2：校准任务状态回填",
         status: "running",
-        output:
-          "正在重试：只回填任务区需要展示的任务名称、AI 专家头像和名称，以及执行中、执行完成、执行失败三类状态。",
-        avatarLabel: "状",
+        avatarLabel: "数",
       }),
-      createResultCardsBlock(`${messageId}-expert-results`, [
-        {
-          id: dataInsightResultId,
-          title: "数据洞察师任务回传",
-          subtitle: "多 Goal 任务分组、状态回填和收起态规则",
-          badge: "AI 专家结果",
-          createdAt: "刚刚",
-        },
-      ]),
       createToolUseBlock({
         id: `${messageId}-edit`,
         name: "edit_file",
@@ -800,6 +719,10 @@ const buildSkillMcpTaskDemoBlocks = (
         output:
           "已编辑 Frontis AI · 5-15 PRD.md：移除 ME 能力总表、基础对话、文件卡片和工作记录中的“是否展开”列。",
       }),
+      createTextBlock(
+        `${messageId}-before-expert-return`,
+        "数据洞察师还在执行，我先把文档里的表格口径收干净。几分钟后他返回结果时，会作为一条新的任务过程消息插入到当前对话里，而不是塞回最初那条任务分发里面。",
+      ),
       createToolUseBlock({
         id: `${messageId}-write`,
         name: "write_file",
@@ -808,9 +731,20 @@ const buildSkillMcpTaskDemoBlocks = (
         output:
           "已写入 ME 能力补充说明.md\n路径：/workspace/docs/ME 能力补充说明.md\n用途：说明展开规则只作用于对话中的特殊过程事件。",
       }),
+      createToolUseBlock({
+        id: `${messageId}-done`,
+        name: "workbench-task done",
+        displayName: "任务完成",
+        purpose: "任务完成 - 数据洞察师：校准任务区多 Goal 展示和收起态规则",
+        goalId: "goal-task-structure",
+        goalTitle: "Goal 1：梳理任务分组机制",
+        output:
+          "数据洞察师返回结果：\n\n1. 任务区标题统一为“任务”，不再叫进度。\n2. 一个 Goal 下允许展示多个任务，任务按真实事件顺序排列。\n3. 调度事件和返回事件是异步关系：任务分发先出现，专家完成后再出现任务完成/任务失败。\n4. 收起态只展示当前最新任务及状态；展开态展示本轮所有 Goal 和任务。\n5. 状态只保留执行中、执行完成、执行失败。",
+        avatarLabel: "数",
+      }),
       createTextBlock(
         `${messageId}-final`,
-        `我已经把这轮涉及的 Skill、MCP 和 AI 专家协作都按 ME 的过程消息规则串起来了。任务卡片按 Goal 分组：一个 Goal 下可以连续展示多个任务，收起时只保留最新任务状态。`,
+        `数据洞察师的结果已经回来了。我把它作为独立的“任务完成”过程消息展示，点开同一套浅灰工具展开区可以查看完整返回内容；任务卡片按 Goal 分组，收起时只保留最新任务状态。`,
       ),
       createArtifactBlock(
         `${messageId}-artifact-prd-patch`,
@@ -1209,7 +1143,7 @@ const META_AGENT_HISTORY_ROUNDS: MetaAgentHistoryRound[] = [
       ),
     ],
     assistantContent:
-      "我已经把 Skill、MCP、Workbench Task 和文件卡片按真实执行顺序补进 mock 对话。任务分发、任务继续、任务完成和任务失败都有独立样例，最终回复结尾追加文件卡片。",
+      "我已经把 Skill、MCP、Workbench Task 和文件卡片按真实执行顺序补进 mock 对话。AI 专家先被调度，ME 中间继续处理文档和 mock，专家几分钟后再以独立的任务完成消息返回结果，最终回复结尾追加文件卡片。",
     assistantBlocks: buildSkillMcpTaskDemoBlocks,
   },
   {

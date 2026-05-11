@@ -2,10 +2,10 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
 
 import { ArrowLeftOutlined } from "@ant-design/icons";
-import { Avatar, Button, Input, Modal, Segmented, Select, message } from "antd";
-import { Navigate, useNavigate, useSearchParams } from "react-router-dom";
+import { Avatar, Button, Checkbox, Input, Modal, Select, message } from "antd";
+import { Link, Navigate, useNavigate, useSearchParams } from "react-router-dom";
 
-import { PRODUCT_LOGO_URL, PRODUCT_NAME, PRODUCT_SLOGAN } from "@/constants/brand";
+import { PRODUCT_LOGO_URL, PRODUCT_NAME } from "@/constants/brand";
 import {
   getIdentityDeploymentMode,
   getMockAccountPassword,
@@ -14,6 +14,8 @@ import {
   isMockAccountPasswordSetupRequired,
 } from "@/feature/auth/mockAccounts";
 import { useMockAuth } from "@/feature/auth/hooks/useMockAuth";
+import { saveRegistrationOnboardingDraft } from "@/feature/auth/registrationFlowStorage";
+import { isValidMarketingPhone } from "@/feature/marketingPortal/utils";
 import { loadOperationsRegistrationStrategy } from "@/feature/operations/platformConfigStorage";
 import type { MockAuthAccount, MockAuthTenantEntry } from "@/feature/auth/types";
 
@@ -30,14 +32,8 @@ const DEPLOYMENT_MODE_LABELS = {
   privateCloud: "私有云",
 } as const;
 
-type LoginMode = "verificationCode" | "password";
-
-interface PendingPasswordSetup {
-  accountId: string;
-  accountName: string;
-  phone: string;
-  redirectPath?: string;
-}
+type VerificationStep = "phone" | "code" | "password";
+type PasswordReturnStep = "phone" | "code";
 
 const getPresetAccountLabel = (account: MockAuthAccount): string => {
   const deploymentLabels = Array.from(
@@ -67,31 +63,20 @@ export const MockLoginView = (): JSX.Element => {
     loginByPassword,
     mockAccounts,
     logout,
-    register,
     resolveSessionPath,
     sendVerificationCode,
     session,
-    setupPasswordAndLogin,
   } = useMockAuth();
-  const [loginMode, setLoginMode] = useState<LoginMode>("verificationCode");
+  const [verificationStep, setVerificationStep] = useState<VerificationStep>("phone");
+  const [passwordReturnStep, setPasswordReturnStep] = useState<PasswordReturnStep>("code");
   const [phoneValue, setPhoneValue] = useState<string>("");
   const [verificationCodeValue, setVerificationCodeValue] = useState<string>("");
   const [passwordValue, setPasswordValue] = useState<string>("");
   const [countdown, setCountdown] = useState<number>(0);
   const [sentPhone, setSentPhone] = useState<string>("");
   const [selectedAccountId, setSelectedAccountId] = useState<string>();
-  const [isRegisterModalOpen, setIsRegisterModalOpen] = useState<boolean>(false);
-  const [registerName, setRegisterName] = useState<string>("");
-  const [registerTenantName, setRegisterTenantName] = useState<string>("");
-  const [registerPhone, setRegisterPhone] = useState<string>("");
-  const [registerCode, setRegisterCode] = useState<string>("");
-  const [registerCountdown, setRegisterCountdown] = useState<number>(0);
-  const [sentRegisterPhone, setSentRegisterPhone] = useState<string>("");
-  const [registerRedirectPath, setRegisterRedirectPath] = useState<string | null>(null);
-  const [pendingPasswordSetup, setPendingPasswordSetup] =
-    useState<PendingPasswordSetup | null>(null);
-  const [setupPassword, setSetupPassword] = useState<string>("");
-  const [setupConfirmPassword, setSetupConfirmPassword] = useState<string>("");
+  const [agreeProtocol, setAgreeProtocol] = useState<boolean>(true);
+  const [rememberLogin, setRememberLogin] = useState<boolean>(true);
   const registrationStrategy = useMemo(() => loadOperationsRegistrationStrategy(), []);
 
   const redirectPath = useMemo(() => {
@@ -116,22 +101,11 @@ export const MockLoginView = (): JSX.Element => {
     return () => window.clearTimeout(timer);
   }, [countdown]);
 
-  useEffect(() => {
-    if (registerCountdown <= 0) {
-      return;
-    }
-
-    const timer = window.setTimeout(() => {
-      setRegisterCountdown(current => current - 1);
-    }, 1000);
-
-    return () => window.clearTimeout(timer);
-  }, [registerCountdown]);
-
   const selectedAccount = useMemo<MockAuthAccount | null>(
     () => mockAccounts.find(item => item.accountId === selectedAccountId) ?? null,
     [mockAccounts, selectedAccountId],
   );
+
   const tenantEntries = useMemo<MockAuthTenantEntry[]>(() => {
     if (!session || activeIdentity) {
       return [];
@@ -170,26 +144,60 @@ export const MockLoginView = (): JSX.Element => {
     logout();
   }, [logout]);
 
-  const handleSendVerificationCode = useCallback((): void => {
-    if (countdown > 0) {
-      return;
-    }
+  const handleSendVerificationCode = useCallback(
+    (shouldEnterCodeStep = false): void => {
+      if (countdown > 0 && sentPhone === phoneValue.trim()) {
+        if (shouldEnterCodeStep) {
+          setVerificationStep("code");
+        }
+        return;
+      }
 
-    const result = sendVerificationCode(phoneValue, "login");
+      if (!isValidMarketingPhone(phoneValue)) {
+        message.warning("请输入正确的手机号。");
+        return;
+      }
 
-    if (!result.success) {
-      message.warning(result.message);
-      return;
-    }
+      const result = sendVerificationCode(phoneValue, "login");
 
-    setSentPhone(phoneValue.trim());
-    setCountdown(60);
-    message.success(result.message);
-  }, [countdown, phoneValue, sendVerificationCode]);
+      if (!result.success) {
+        message.warning(result.message);
+        return;
+      }
+
+      setSentPhone(phoneValue.trim());
+      setCountdown(60);
+      setVerificationCodeValue(selectedAccount?.verificationCode ?? "");
+      if (shouldEnterCodeStep) {
+        setVerificationStep("code");
+      }
+      message.success(result.message);
+    },
+    [countdown, phoneValue, selectedAccount, sendVerificationCode, sentPhone],
+  );
+
+  const handleStartVerification = useCallback(
+    (event: FormEvent<HTMLFormElement>): void => {
+      event.preventDefault();
+
+      if (!agreeProtocol) {
+        message.warning("请先阅读并同意服务协议与隐私政策。");
+        return;
+      }
+
+      handleSendVerificationCode(true);
+    },
+    [agreeProtocol, handleSendVerificationCode],
+  );
 
   const handleSubmit = useCallback(
     (event: FormEvent<HTMLFormElement>): void => {
       event.preventDefault();
+
+      if (!agreeProtocol) {
+        message.warning("请先阅读并同意服务协议与隐私政策。");
+        return;
+      }
 
       if (sentPhone !== phoneValue.trim()) {
         message.warning("请先获取验证码。");
@@ -209,16 +217,17 @@ export const MockLoginView = (): JSX.Element => {
 
       message.success(result.message);
 
-      if (result.requiresPasswordSetup && result.account) {
-        setPendingPasswordSetup({
-          accountId: result.account.accountId,
-          accountName: result.account.name,
+      if (result.isNewlyRegistered && result.account) {
+        const workspaceName =
+          result.identity?.tenantName ?? result.account.identities[0]?.tenantName ?? "";
+
+        saveRegistrationOnboardingDraft({
+          nickname: result.account.name,
+          companyName: "",
+          workspaceName,
           phone: result.account.phone,
-          redirectPath: result.redirectPath ?? redirectPath ?? "/web/employee/meta-agent",
+          giftPoints: registrationStrategy.defaultGiftPoints,
         });
-        setSetupPassword("");
-        setSetupConfirmPassword("");
-        return;
       }
 
       if (result.session && !result.identity && getTenantCount(result.session.identities) > 1) {
@@ -227,12 +236,26 @@ export const MockLoginView = (): JSX.Element => {
 
       navigate(result.redirectPath ?? "/portal", { replace: true });
     },
-    [login, navigate, phoneValue, redirectPath, sentPhone, verificationCodeValue],
+    [
+      agreeProtocol,
+      login,
+      navigate,
+      phoneValue,
+      redirectPath,
+      registrationStrategy.defaultGiftPoints,
+      sentPhone,
+      verificationCodeValue,
+    ],
   );
 
   const handleSubmitPassword = useCallback(
     (event: FormEvent<HTMLFormElement>): void => {
       event.preventDefault();
+
+      if (!agreeProtocol) {
+        message.warning("请先阅读并同意服务协议与隐私政策。");
+        return;
+      }
 
       const result = loginByPassword({
         phone: phoneValue,
@@ -253,7 +276,7 @@ export const MockLoginView = (): JSX.Element => {
 
       navigate(result.redirectPath ?? "/portal", { replace: true });
     },
-    [loginByPassword, navigate, passwordValue, phoneValue, redirectPath],
+    [agreeProtocol, loginByPassword, navigate, passwordValue, phoneValue, redirectPath],
   );
 
   const handlePresetAccountChange = useCallback(
@@ -270,6 +293,7 @@ export const MockLoginView = (): JSX.Element => {
       setPasswordValue(getMockAccountPassword(matchedAccount) ?? "");
       setSentPhone(matchedAccount.phone);
       setCountdown(0);
+      setVerificationStep("phone");
     },
     [mockAccounts],
   );
@@ -278,12 +302,17 @@ export const MockLoginView = (): JSX.Element => {
     (nextValue: string): void => {
       setPhoneValue(nextValue);
 
+      if (nextValue !== sentPhone) {
+        setVerificationStep("phone");
+        setVerificationCodeValue("");
+      }
+
       if (selectedAccount && nextValue !== selectedAccount.phone) {
         setSelectedAccountId(undefined);
         setPasswordValue("");
       }
     },
-    [selectedAccount],
+    [selectedAccount, sentPhone],
   );
 
   const handleVerificationCodeChange = useCallback(
@@ -315,14 +344,14 @@ export const MockLoginView = (): JSX.Element => {
 
   const selectedAccountEntryHint = useMemo<string>(() => {
     if (!selectedAccount) {
-      return "选择预置账号后，将自动回填手机号和验证码。";
+      return "选择预置账号后，将自动回填手机号、验证码和可用密码。";
     }
 
     if (selectedAccountTenantCount > 1) {
       return "当前预置账号登录后会弹出租户选择框，请先选择本次要进入的租户。";
     }
 
-    return "当前账号会按已开通的租户与系统权限进入，多个租户时登录后选择本次进入的租户。";
+    return "当前账号会按已开通的租户与系统权限进入。";
   }, [selectedAccount, selectedAccountTenantCount]);
 
   const selectedAccountCredentialHint = useMemo<string>(() => {
@@ -359,187 +388,180 @@ export const MockLoginView = (): JSX.Element => {
     setPhoneValue("");
     setVerificationCodeValue("");
     setSentPhone("");
+    setVerificationStep("phone");
   }, [mockAccounts, selectedAccountId]);
 
-  const handleOpenRegisterModal = useCallback((): void => {
-    if (!registrationStrategy.enabled) {
-      message.warning("暂无权限。");
-      return;
+  const maskedSentPhone = useMemo<string>(() => {
+    const normalizedPhone = sentPhone || phoneValue.trim();
+
+    if (normalizedPhone.length !== 11) {
+      return "+86";
     }
 
-    setIsRegisterModalOpen(true);
-  }, [registrationStrategy.enabled]);
+    return `+86${normalizedPhone.slice(0, 3)}******${normalizedPhone.slice(-2)}`;
+  }, [phoneValue, sentPhone]);
 
-  const handleCloseRegisterModal = useCallback((): void => {
-    setIsRegisterModalOpen(false);
-    setRegisterName("");
-    setRegisterTenantName("");
-    setRegisterPhone("");
-    setRegisterCode("");
-    setRegisterCountdown(0);
-    setSentRegisterPhone("");
+  const handleSwitchToPassword = useCallback((): void => {
+    setPasswordReturnStep("code");
+    setVerificationStep("password");
   }, []);
 
-  const handleClosePasswordSetup = useCallback((): void => {
-    setPendingPasswordSetup(null);
-    setSetupPassword("");
-    setSetupConfirmPassword("");
-  }, []);
-
-  const handleSendRegisterCode = useCallback((): void => {
-    if (registerCountdown > 0) {
+  const handleBackFromPassword = useCallback((): void => {
+    if (passwordReturnStep === "code" || sentPhone === phoneValue.trim()) {
+      setVerificationStep("code");
       return;
     }
 
-    const result = sendVerificationCode(registerPhone, "register");
-
-    if (!result.success) {
-      message.warning(result.message);
-      return;
-    }
-
-    setSentRegisterPhone(registerPhone.trim());
-    setRegisterCountdown(60);
-    message.success("注册验证码已发送，请注意查收。");
-  }, [registerCountdown, registerPhone, sendVerificationCode]);
-
-  const handleSubmitRegister = useCallback((): void => {
-    if (sentRegisterPhone !== registerPhone.trim()) {
-      message.warning("请先获取验证码。");
-      return;
-    }
-
-    const result = register({
-      name: registerName,
-      phone: registerPhone,
-      tenantName: registerTenantName,
-      verificationCode: registerCode,
-    });
-
-    if (!result.success) {
-      message.error(result.message);
-      return;
-    }
-
-    message.success(result.message);
-    if (result.requiresPasswordSetup && result.account) {
-      setPendingPasswordSetup({
-        accountId: result.account.accountId,
-        accountName: result.account.name,
-        phone: result.account.phone,
-        redirectPath: result.redirectPath ?? "/web/employee/meta-agent",
-      });
-      setSetupPassword("");
-      setSetupConfirmPassword("");
-      handleCloseRegisterModal();
-      return;
-    }
-
-    setRegisterRedirectPath(result.redirectPath ?? "/web/employee/meta-agent");
-    handleCloseRegisterModal();
-  }, [
-    handleCloseRegisterModal,
-    register,
-    registerCode,
-    registerName,
-    registerPhone,
-    registerTenantName,
-    sentRegisterPhone,
-  ]);
-
-  const handleSubmitPasswordSetup = useCallback((): void => {
-    if (!pendingPasswordSetup) {
-      return;
-    }
-
-    const result = setupPasswordAndLogin({
-      accountId: pendingPasswordSetup.accountId,
-      password: setupPassword,
-      confirmPassword: setupConfirmPassword,
-      redirectPath: pendingPasswordSetup.redirectPath,
-    });
-
-    if (!result.success) {
-      message.error(result.message);
-      return;
-    }
-
-    message.success("密码设置成功。");
-    handleClosePasswordSetup();
-
-    if (result.session && !result.identity && getTenantCount(result.session.identities) > 1) {
-      return;
-    }
-
-    navigate(result.redirectPath ?? "/web/employee/meta-agent", { replace: true });
-  }, [
-    handleClosePasswordSetup,
-    navigate,
-    pendingPasswordSetup,
-    setupConfirmPassword,
-    setupPassword,
-    setupPasswordAndLogin,
-  ]);
+    setVerificationStep("phone");
+  }, [passwordReturnStep, phoneValue, sentPhone]);
 
   if (session && !shouldShowTenantSelectionModal) {
-    return (
-      <Navigate replace to={registerRedirectPath ?? resolveSessionPath(session, redirectPath)} />
-    );
+    return <Navigate replace to={resolveSessionPath(session, redirectPath)} />;
   }
 
   return (
     <div className={styles.page}>
-      <div className={styles.pageToolbar}>
-        <button type="button" className={styles.backButton} onClick={handleBack}>
-          <ArrowLeftOutlined />
-          返回营销门户
-        </button>
-      </div>
-
-      <div className={styles.shell}>
-        <div className={styles.brandBlock}>
+      <header className={styles.header}>
+        <button type="button" className={styles.brandLink} onClick={handleBack}>
           <img className={styles.brandMark} src={PRODUCT_LOGO_URL} alt={PRODUCT_NAME} />
-          <div className={styles.brandCopy}>
-            <p className={styles.brandTitle}>{PRODUCT_NAME}</p>
-            <p className={styles.brandSubtitle}>{PRODUCT_SLOGAN}</p>
-          </div>
-        </div>
+          <span className={styles.brandTitle}>{PRODUCT_NAME}</span>
+        </button>
+      </header>
 
-        <section className={styles.loginCard}>
-          <div className={styles.loginCardBody}>
-            <div className={styles.primaryPanel}>
+      <main className={styles.main}>
+        <section className={styles.heroPanel} aria-label="平台介绍">
+          <h1 className={styles.heroTitle}>
+            <span>行业领先的</span>
+            <span>企业级AI专家平台</span>
+          </h1>
+          <p className={styles.heroSubtitle}>企业跃迁，从这里开始</p>
+        </section>
+
+        <section
+          className={`${styles.authPanel} ${
+            verificationStep === "phone" ? "" : styles.authPanelFlow
+          }`}
+          aria-label={`登录到 ${PRODUCT_NAME}`}
+        >
+          {verificationStep === "code" ? (
+            <form className={styles.form} onSubmit={handleSubmit}>
+              <button
+                type="button"
+                className={styles.inlineBackButton}
+                onClick={() => setVerificationStep("phone")}
+              >
+                <ArrowLeftOutlined />
+                返回
+              </button>
+
               <div className={styles.formHeader}>
-                <span className={styles.formEyebrow}>
-                  {loginMode === "verificationCode" ? "验证码登录" : "密码登录"}
-                </span>
-                <h1 className={styles.formTitle}>欢迎登录</h1>
+                <h2 className={styles.formTitle}>输入手机号验证码</h2>
                 <p className={styles.formDescription}>
-                  支持手机号验证码登录和密码登录；首次注册或新用户首次进入时，需要先完成登录密码设置。
+                  请输入发送至 <strong>{maskedSentPhone}</strong> 的 6 位验证码，10 分钟内有效。
                 </p>
               </div>
 
-              <Segmented<LoginMode>
-                block
-                className={styles.loginModeTabs}
-                value={loginMode}
-                options={[
-                  { label: "验证码登录", value: "verificationCode" },
-                  { label: "密码登录", value: "password" },
-                ]}
-                onChange={setLoginMode}
+              <Input.OTP
+                className={styles.otpInput}
+                length={6}
+                value={verificationCodeValue}
+                onChange={nextValue =>
+                  handleVerificationCodeChange(nextValue.replace(/\D/g, "").slice(0, 6))
+                }
               />
 
-              <form
-                className={styles.form}
-                onSubmit={loginMode === "verificationCode" ? handleSubmit : handleSubmitPassword}
+              <div className={styles.verificationActions}>
+                <button
+                  type="button"
+                  className={styles.textAction}
+                  disabled={countdown > 0}
+                  onClick={() => handleSendVerificationCode(false)}
+                >
+                  {countdown > 0 ? `${countdown} 秒后可重新获取验证码` : "重新获取验证码"}
+                </button>
+                <button
+                  type="button"
+                  className={styles.linkAction}
+                  onClick={handleSwitchToPassword}
+                >
+                  切换到密码验证
+                </button>
+                <p className={styles.accountHelp}>
+                  手机号已停用？<Link to="/user-manual">找回账号</Link>
+                </p>
+              </div>
+
+              <Button
+                block
+                htmlType="submit"
+                size="large"
+                type="primary"
+                className={styles.primaryButton}
+                disabled={verificationCodeValue.trim().length !== 6}
               >
-                <div className={styles.fieldGroup}>
-                  <label className={styles.fieldLabel} htmlFor="mock-login-phone">
-                    手机号
-                  </label>
+                下一步
+              </Button>
+            </form>
+          ) : verificationStep === "password" ? (
+            <form className={styles.form} onSubmit={handleSubmitPassword}>
+              <button
+                type="button"
+                className={styles.inlineBackButton}
+                onClick={handleBackFromPassword}
+              >
+                <ArrowLeftOutlined />
+                返回
+              </button>
+
+              <div className={styles.formHeader}>
+                <h2 className={styles.formTitle}>
+                  使用密码
+                  <br />
+                  登录
+                </h2>
+                <p className={styles.passwordDescription}>手机号 {maskedSentPhone}</p>
+              </div>
+
+              <Input.Password
+                id="mock-login-password"
+                autoComplete="current-password"
+                placeholder="请输入登录密码"
+                size="large"
+                value={passwordValue}
+                onChange={event => setPasswordValue(event.target.value)}
+              />
+
+              <Button
+                block
+                htmlType="submit"
+                size="large"
+                type="primary"
+                className={styles.primaryButton}
+                disabled={!passwordValue.trim()}
+              >
+                下一步
+              </Button>
+            </form>
+          ) : (
+            <>
+              <div className={styles.formHeader}>
+                <h2 className={styles.formTitle}>
+                  登录到
+                  <br />
+                  {PRODUCT_NAME}
+                </h2>
+              </div>
+
+              <p className={styles.loginModeLabel}>输入手机号</p>
+              <p className={styles.autoRegisterHint}>未注册手机号将自动注册并登录</p>
+
+              <form className={styles.form} onSubmit={handleStartVerification}>
+                <div className={styles.phoneField}>
+                  <span className={styles.countryCode}>+86</span>
                   <Input
                     id="mock-login-phone"
                     autoComplete="tel"
+                    bordered={false}
                     inputMode="numeric"
                     maxLength={11}
                     placeholder="请输入手机号"
@@ -551,139 +573,93 @@ export const MockLoginView = (): JSX.Element => {
                   />
                 </div>
 
-                {loginMode === "verificationCode" ? (
-                  <div className={styles.fieldGroup}>
-                    <label className={styles.fieldLabel} htmlFor="mock-login-code">
-                      验证码
-                    </label>
-                    <div className={styles.codeRow}>
-                      <Input
-                        id="mock-login-code"
-                        autoComplete="one-time-code"
-                        inputMode="numeric"
-                        maxLength={6}
-                        placeholder="请输入 6 位验证码"
-                        size="large"
-                        value={verificationCodeValue}
-                        onChange={event =>
-                          handleVerificationCodeChange(
-                            event.target.value.replace(/\D/g, "").slice(0, 6),
-                          )
-                        }
-                      />
-                      <Button
-                        size="large"
-                        onClick={handleSendVerificationCode}
-                        disabled={countdown > 0}
-                      >
-                        {countdown > 0 ? `${countdown}s后重试` : "获取验证码"}
-                      </Button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className={styles.fieldGroup}>
-                    <label className={styles.fieldLabel} htmlFor="mock-login-password">
-                      密码
-                    </label>
-                    <Input.Password
-                      id="mock-login-password"
-                      autoComplete="current-password"
-                      placeholder="请输入登录密码"
-                      size="large"
-                      value={passwordValue}
-                      onChange={event => setPasswordValue(event.target.value)}
-                    />
-                  </div>
-                )}
-
                 <Button
                   block
                   htmlType="submit"
                   size="large"
                   type="primary"
-                  disabled={
-                    !phoneValue.trim() ||
-                    (loginMode === "verificationCode"
-                      ? verificationCodeValue.trim().length !== 6
-                      : !passwordValue.trim())
-                  }
+                  className={styles.primaryButton}
+                  disabled={!isValidMarketingPhone(phoneValue) || !agreeProtocol}
                 >
-                  登录
+                  下一步
                 </Button>
               </form>
 
-              <div className={styles.noticePanel}>
-                <p className={styles.noticeTitle}>登录说明</p>
-                <p className={styles.noticeText}>
-                  登录即代表你同意平台服务协议与隐私政策。
-                  {registrationStrategy.enabled
-                    ? "还没有租户时，可直接自注册并创建 1 席个人版租户。"
-                    : "当前暂无自注册权限。"}
+              <div className={styles.loginChecks}>
+                <Checkbox
+                  checked={agreeProtocol}
+                  onChange={event => setAgreeProtocol(event.target.checked)}
+                >
+                  我已阅读并同意 <Link to="/user-manual">服务协议</Link> 和{" "}
+                  <Link to="/user-manual">隐私政策</Link>
+                </Checkbox>
+                <Checkbox
+                  checked={rememberLogin}
+                  onChange={event => setRememberLogin(event.target.checked)}
+                >
+                  记住我的登录状态
+                </Checkbox>
+              </div>
+            </>
+          )}
+
+          {verificationStep === "phone" ? (
+            <div className={styles.quickLoginPanel}>
+              <div className={styles.quickLoginHeader}>
+                <span className={styles.quickLoginTitle}>模拟账号</span>
+                <span className={styles.quickLoginDescription}>选择后自动回填登录信息</span>
+              </div>
+              <Select
+                size="large"
+                placeholder="请选择一个模拟账号"
+                value={selectedAccountId}
+                options={presetOptions}
+                onChange={handlePresetAccountChange}
+              />
+
+              <div className={styles.selectedSummary}>
+                <p className={styles.summaryTitle}>
+                  {selectedAccount
+                    ? `${selectedAccount.roleLabel} · ${selectedAccount.name}`
+                    : "未选择模拟账号"}
                 </p>
-                {registrationStrategy.enabled ? (
-                  <div className={styles.noticeActions}>
-                    <Button type="link" onClick={handleOpenRegisterModal}>
-                      自注册创建租户
-                    </Button>
+                <p className={styles.summaryDescription}>
+                  {selectedAccount ? selectedAccount.description : selectedAccountEntryHint}
+                </p>
+                <p className={styles.summaryHint}>{selectedAccountCredentialHint}</p>
+
+                {selectedAccount ? (
+                  <div className={styles.quickLoginFooter}>
+                    <span className={styles.quickLoginChip}>{selectedAccount.phone}</span>
+                    <span className={styles.quickLoginChip}>
+                      验证码 {selectedAccount.verificationCode}
+                    </span>
+                    <span className={styles.quickLoginChip}>
+                      {isMockAccountPasswordSetupRequired(selectedAccount)
+                        ? "待设置密码"
+                        : "可密码登录"}
+                    </span>
+                    <span className={styles.quickLoginChip}>
+                      {selectedAccountTenantCount} 个租户
+                    </span>
+                    <span className={styles.quickLoginChip}>
+                      {selectedAccountIdentityCount} 个身份
+                    </span>
                   </div>
                 ) : null}
               </div>
             </div>
-
-            <aside className={styles.quickLoginPanel}>
-              <div className={styles.quickLoginSection}>
-                <p className={styles.quickLoginTitle}>模拟账号填充</p>
-                <p className={styles.quickLoginDescription}>
-                  预置账号会按已配置的租户和系统权限进入；私有云租户账号不会展示运营管理平台入口。
-                </p>
-                <div className={styles.selectorBlock}>
-                  <span className={styles.selectorLabel}>选择预置账号</span>
-                  <Select
-                    size="large"
-                    placeholder="请选择一个模拟账号"
-                    value={selectedAccountId}
-                    options={presetOptions}
-                    onChange={handlePresetAccountChange}
-                  />
-                </div>
-
-                <div className={styles.selectedSummary}>
-                  <p className={styles.summaryTitle}>
-                    {selectedAccount
-                      ? `${selectedAccount.roleLabel} · ${selectedAccount.name}`
-                      : "未选择模拟账号"}
-                  </p>
-                  <p className={styles.summaryDescription}>
-                    {selectedAccount ? selectedAccount.description : selectedAccountEntryHint}
-                  </p>
-                  <p className={styles.summaryHint}>{selectedAccountEntryHint}</p>
-                  <p className={styles.summaryHint}>{selectedAccountCredentialHint}</p>
-
-                  {selectedAccount ? (
-                    <div className={styles.quickLoginFooter}>
-                      <span className={styles.quickLoginChip}>{selectedAccount.phone}</span>
-                      <span className={styles.quickLoginChip}>
-                        验证码 {selectedAccount.verificationCode}
-                      </span>
-                      <span className={styles.quickLoginChip}>
-                        {isMockAccountPasswordSetupRequired(selectedAccount)
-                          ? "待设置密码"
-                          : "可密码登录"}
-                      </span>
-                      <span className={styles.quickLoginChip}>
-                        {selectedAccountTenantCount} 个租户
-                      </span>
-                      <span className={styles.quickLoginChip}>
-                        {selectedAccountIdentityCount} 个身份
-                      </span>
-                    </div>
-                  ) : null}
-                </div>
-              </div>
-            </aside>
-          </div>
+          ) : null}
         </section>
-      </div>
+      </main>
+
+      <div className={styles.footerDivider} />
+      <footer className={styles.footer}>
+        <div className={styles.footerCopy}>
+          <p>Copyright © www.frontis.cn, All Rights Reserved.京ICP备2022014486号-1</p>
+          <p>京公网安备 11010502041971号</p>
+        </div>
+      </footer>
 
       <Modal
         open={shouldShowTenantSelectionModal}
@@ -716,146 +692,6 @@ export const MockLoginView = (): JSX.Element => {
                 <span className={styles.tenantName}>{tenant.tenantName}</span>
               </button>
             ))}
-          </div>
-        </div>
-      </Modal>
-
-      <Modal
-        open={Boolean(pendingPasswordSetup)}
-        title="设置登录密码"
-        okText="完成并进入"
-        cancelText="取消"
-        onCancel={handleClosePasswordSetup}
-        onOk={handleSubmitPasswordSetup}
-        okButtonProps={{
-          disabled:
-            setupPassword.length < 8 ||
-            !setupConfirmPassword ||
-            setupPassword !== setupConfirmPassword,
-        }}
-        width={460}
-        centered
-      >
-        <div className={styles.registerPanel}>
-          <div className={styles.fieldGroup}>
-            <label className={styles.fieldLabel} htmlFor="mock-setup-password">
-              登录密码
-            </label>
-            <Input.Password
-              id="mock-setup-password"
-              autoComplete="new-password"
-              placeholder="至少 8 位，需包含字母和数字"
-              size="large"
-              value={setupPassword}
-              onChange={event => setSetupPassword(event.target.value)}
-            />
-          </div>
-
-          <div className={styles.fieldGroup}>
-            <label className={styles.fieldLabel} htmlFor="mock-setup-confirm-password">
-              确认密码
-            </label>
-            <Input.Password
-              id="mock-setup-confirm-password"
-              autoComplete="new-password"
-              placeholder="请再次输入登录密码"
-              size="large"
-              value={setupConfirmPassword}
-              onChange={event => setSetupConfirmPassword(event.target.value)}
-            />
-          </div>
-        </div>
-      </Modal>
-
-      <Modal
-        open={isRegisterModalOpen}
-        title="自注册创建租户"
-        okText="完成注册"
-        cancelText="取消"
-        onCancel={handleCloseRegisterModal}
-        onOk={handleSubmitRegister}
-        okButtonProps={{
-          disabled:
-            !registerName.trim() ||
-            !registerTenantName.trim() ||
-            !registerPhone.trim() ||
-            registerCode.trim().length !== 6,
-        }}
-      >
-        <div className={styles.registerPanel}>
-          <p className={styles.registerDescription}>
-            完成注册后，系统会自动为你创建 1 席个人版租户，可在管理后台后续开通团队版。
-          </p>
-
-          <div className={styles.fieldGroup}>
-            <label className={styles.fieldLabel} htmlFor="mock-register-name">
-              你的姓名
-            </label>
-            <Input
-              id="mock-register-name"
-              placeholder="请输入姓名"
-              size="large"
-              value={registerName}
-              onChange={event => setRegisterName(event.target.value)}
-            />
-          </div>
-
-          <div className={styles.fieldGroup}>
-            <label className={styles.fieldLabel} htmlFor="mock-register-tenant">
-              租户名称
-            </label>
-            <Input
-              id="mock-register-tenant"
-              placeholder="例如：李想的工作室"
-              size="large"
-              value={registerTenantName}
-              onChange={event => setRegisterTenantName(event.target.value)}
-            />
-          </div>
-
-          <div className={styles.fieldGroup}>
-            <label className={styles.fieldLabel} htmlFor="mock-register-phone">
-              手机号
-            </label>
-            <Input
-              id="mock-register-phone"
-              autoComplete="tel"
-              inputMode="numeric"
-              maxLength={11}
-              placeholder="请输入手机号"
-              size="large"
-              value={registerPhone}
-              onChange={event =>
-                setRegisterPhone(event.target.value.replace(/\D/g, "").slice(0, 11))
-              }
-            />
-          </div>
-
-          <div className={styles.fieldGroup}>
-            <label className={styles.fieldLabel} htmlFor="mock-register-code">
-              验证码
-            </label>
-            <div className={styles.codeRow}>
-              <Input
-                id="mock-register-code"
-                autoComplete="one-time-code"
-                inputMode="numeric"
-                maxLength={6}
-                placeholder="请输入 6 位验证码"
-                size="large"
-                value={registerCode}
-                onChange={event =>
-                  setRegisterCode(event.target.value.replace(/\D/g, "").slice(0, 6))
-                }
-              />
-              <Button
-                size="large"
-                onClick={handleSendRegisterCode}
-                disabled={registerCountdown > 0}
-              >
-                {registerCountdown > 0 ? `${registerCountdown}s后重试` : "获取验证码"}
-              </Button>
-            </div>
           </div>
         </div>
       </Modal>

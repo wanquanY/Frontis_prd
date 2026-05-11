@@ -7,6 +7,7 @@ export interface UseMeOnboardingProfileModalParams {
   accountId?: string;
   tenantId?: string;
   defaultNickname?: string;
+  defaultCompanyName?: string;
   showOnEveryEntry?: boolean;
 }
 
@@ -86,6 +87,7 @@ export const useMeOnboardingProfileModal = ({
   accountId,
   tenantId,
   defaultNickname,
+  defaultCompanyName,
   showOnEveryEntry = false,
 }: UseMeOnboardingProfileModalParams): UseMeOnboardingProfileModalResult => {
   const [isOpen, setIsOpen] = useState<boolean>(false);
@@ -108,9 +110,10 @@ export const useMeOnboardingProfileModal = ({
     setProfile({
       ...DEFAULT_ME_ONBOARDING_PROFILE_VALUES,
       nickname: defaultNickname ?? "",
+      companyName: defaultCompanyName ?? "",
     });
     setIsOpen(true);
-  }, [defaultNickname, enabled, showOnEveryEntry, storageKey]);
+  }, [defaultCompanyName, defaultNickname, enabled, showOnEveryEntry, storageKey]);
 
   const handleChangeProfile = useCallback((nextValue: MeOnboardingProfileValues): void => {
     setProfile(nextValue);

@@ -20,7 +20,6 @@ import {
   resolveSessionEntryPath,
   saveMockAccountPassword,
 } from "@/feature/auth/mockAccounts";
-import { loadOperationsRegistrationStrategy } from "@/feature/operations/platformConfigStorage";
 import type {
   MockAuthActionResult,
   MockAuthAccount,
@@ -54,6 +53,15 @@ interface UseMockAuthResult {
   resolveSessionPath: typeof resolveSessionEntryPath;
 }
 
+const DEFAULT_NEW_USER_REDIRECT_PATH = "/web/employee/meta-agent?from=register";
+const DEFAULT_MOCK_VERIFICATION_CODE = "123456";
+
+const normalizePhone = (phone: string): string => phone.replace(/\s+/g, "").trim();
+
+const buildNewUserName = (phone: string): string => `用户${normalizePhone(phone).slice(-4)}`;
+
+const buildNewUserWorkspaceName = (name: string): string => `${name}的工作台`;
+
 /**
  * 提供原型系统模拟登录、租户选择和退出能力。
  */
@@ -84,13 +92,6 @@ export const useMockAuth = (): UseMockAuthResult => {
 
   const sendVerificationCode = useCallback(
     (phone: string, scene: "login" | "register" = "login"): MockAuthActionResult => {
-      if (scene === "register" && !loadOperationsRegistrationStrategy().enabled) {
-        return {
-          success: false,
-          message: "暂无权限。",
-        };
-      }
-
       if (!isValidMarketingPhone(phone)) {
         return {
           success: false,
@@ -102,8 +103,8 @@ export const useMockAuth = (): UseMockAuthResult => {
 
       if (scene === "login" && !matchedAccount) {
         return {
-          success: false,
-          message: "暂无权限。",
+          success: true,
+          message: "验证码已发送，请注意查收。",
         };
       }
 
@@ -180,19 +181,48 @@ export const useMockAuth = (): UseMockAuthResult => {
         };
       }
 
-      const matchedAccount = getMockAccountByPhone(phone);
-
-      if (!matchedAccount) {
-        return {
-          success: false,
-          message: "账号或验证码错误。",
-        };
-      }
-
       if (!/^\d{6}$/.test(verificationCode.trim())) {
         return {
           success: false,
           message: "请输入 6 位验证码。",
+        };
+      }
+
+      const matchedAccount = getMockAccountByPhone(phone);
+
+      if (!matchedAccount) {
+        if (verificationCode.trim() !== DEFAULT_MOCK_VERIFICATION_CODE) {
+          return {
+            success: false,
+            message: "验证码错误。",
+          };
+        }
+
+        const newUserName = buildNewUserName(phone);
+        const payload = registerMockTenantAdminAccount({
+          name: newUserName,
+          phone,
+          tenantName: buildNewUserWorkspaceName(newUserName),
+          verificationCode,
+        });
+
+        if (!payload) {
+          return {
+            success: false,
+            message: "当前手机号已注册，请直接登录。",
+          };
+        }
+
+        refreshMockAccounts();
+
+        return {
+          ...completeLogin(
+            payload.account,
+            redirectPath ?? DEFAULT_NEW_USER_REDIRECT_PATH,
+            deploymentMode,
+          ),
+          message: "注册登录成功。",
+          isNewlyRegistered: true,
         };
       }
 
@@ -203,18 +233,9 @@ export const useMockAuth = (): UseMockAuthResult => {
         };
       }
 
-      if (isMockAccountPasswordSetupRequired(matchedAccount)) {
-        return {
-          success: true,
-          message: "请先设置登录密码。",
-          account: matchedAccount,
-          requiresPasswordSetup: true,
-        };
-      }
-
       return completeLogin(matchedAccount, redirectPath, deploymentMode);
     },
-    [completeLogin],
+    [completeLogin, refreshMockAccounts],
   );
 
   const loginByPassword = useCallback(
@@ -263,13 +284,6 @@ export const useMockAuth = (): UseMockAuthResult => {
 
   const register = useCallback(
     (params: MockTenantRegistrationParams): MockAuthActionResult => {
-      if (!loadOperationsRegistrationStrategy().enabled) {
-        return {
-          success: false,
-          message: "暂无权限。",
-        };
-      }
-
       if (!params.name.trim()) {
         return {
           success: false,

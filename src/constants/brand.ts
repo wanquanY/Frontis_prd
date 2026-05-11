@@ -1,12 +1,17 @@
 /**
- * 产品品牌名称。
+ * 产品英文品牌名称。
  */
-export const PRODUCT_NAME = "Frontis AI";
+export const PRODUCT_NAME = "Frontis Horizon";
+
+/**
+ * 产品中文品牌名称。
+ */
+export const PRODUCT_CN_NAME = "衔远大观";
 
 /**
  * 产品品牌 slogan。
  */
-export const PRODUCT_SLOGAN = "超越聊天，智能跃迁";
+export const PRODUCT_SLOGAN = "衔远大观，智能跃迁";
 
 /**
  * 品牌 Logo 文案。

@@ -166,20 +166,21 @@ const parseDispatchPurpose = (
 const dedupeDialogueInsightTasks = (
   items: DialogueInsightTaskItem[],
 ): DialogueInsightTaskItem[] => {
-  const existingKeys = new Set<string>();
+  const latestItemByKey = new Map<string, DialogueInsightTaskItem>();
 
-  return items.filter(item => {
+  items.forEach(item => {
     const normalizedExpertName = item.expertName.trim();
     const normalizedTask = item.taskDescription.trim();
     const key = `${item.goalId}::${normalizedExpertName}::${normalizedTask}`;
 
-    if (!normalizedExpertName || !normalizedTask || existingKeys.has(key)) {
-      return false;
+    if (!normalizedExpertName || !normalizedTask) {
+      return;
     }
 
-    existingKeys.add(key);
-    return true;
+    latestItemByKey.set(key, item);
   });
+
+  return Array.from(latestItemByKey.values());
 };
 
 const buildTasksFromDispatchBlocks = (

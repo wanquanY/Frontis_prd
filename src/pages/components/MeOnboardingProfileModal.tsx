@@ -70,20 +70,20 @@ export const MeOnboardingProfileModal = ({
         <div className={styles.formGrid}>
           <div className={styles.field}>
             <label className={styles.fieldLabel} htmlFor="me-onboarding-profile-nickname">
-              你的称呼
+              用户称呼
             </label>
             <Input
               id="me-onboarding-profile-nickname"
               className={styles.input}
               value={value.nickname}
-              placeholder="例如：沈一新"
+              placeholder="例如：一新"
               onChange={event => handleFieldChange("nickname", event.currentTarget.value)}
             />
           </div>
 
           <div className={styles.field}>
             <label className={styles.fieldLabel} htmlFor="me-onboarding-profile-company">
-              公司 / 品牌名称
+              公司名称
             </label>
             <Input
               id="me-onboarding-profile-company"

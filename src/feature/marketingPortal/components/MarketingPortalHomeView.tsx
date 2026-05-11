@@ -392,8 +392,8 @@ export const MarketingPortalHomeView = (): JSX.Element => {
               </p>
 
               <div className={styles.heroActions}>
-                <Link className={layoutStyles.primaryButton} to="/portal/agents">
-                  看看 AI 专家能替你做什么
+                <Link className={layoutStyles.primaryButton} to="/login">
+                  注册登录，领取体验空间
                   <ArrowRightOutlined />
                 </Link>
                 <button
@@ -473,8 +473,8 @@ export const MarketingPortalHomeView = (): JSX.Element => {
                 </div>
 
                 <div className={styles.heroActions}>
-                  <Link className={layoutStyles.primaryButton} to="/portal/contact">
-                    {PORTAL_HOME_PACKAGE.primaryActionLabel}
+                  <Link className={layoutStyles.primaryButton} to="/login">
+                    注册登录，领取体验空间
                     <ArrowRightOutlined />
                   </Link>
                   <Link className={layoutStyles.secondaryButton} to="/portal/contact">

@@ -205,7 +205,12 @@ const resolveToolDisplayName = (rawName?: string): string => {
 };
 
 const normalizeToolKeyword = (value?: string): string =>
-  typeof value === "string" ? value.trim().toLowerCase().replace(/[\s.-]+/g, "_") : "";
+  typeof value === "string"
+    ? value
+        .trim()
+        .toLowerCase()
+        .replace(/[\s.-]+/g, "_")
+    : "";
 
 const includesAnyToolKeyword = (value: string, keywords: string[]): boolean =>
   keywords.some(keyword => value.includes(keyword));
@@ -215,12 +220,25 @@ const resolveToolIcon = (name?: string, displayName?: string): JSX.Element => {
   const normalizedDisplayName = normalizeToolKeyword(displayName);
   const keyword = `${normalizedName} ${normalizedDisplayName}`;
 
-  if (includesAnyToolKeyword(keyword, ["task_dispatch", "workbench_task", "任务分发"])) {
-    return <BranchesOutlined />;
+  if (
+    includesAnyToolKeyword(keyword, [
+      "task_continue",
+      "task_done",
+      "task_fail",
+      "任务继续",
+      "任务完成",
+      "任务失败",
+    ])
+  ) {
+    return <RobotOutlined />;
   }
 
-  if (includesAnyToolKeyword(keyword, ["task_continue", "task_done", "task_fail", "任务继续", "任务完成", "任务失败"])) {
-    return <RobotOutlined />;
+  if (
+    normalizedName.includes("task_dispatch") ||
+    normalizedDisplayName.includes("任务分发") ||
+    (normalizedName.includes("workbench_task") && normalizedDisplayName.includes("任务分发"))
+  ) {
+    return <BranchesOutlined />;
   }
 
   if (includesAnyToolKeyword(keyword, ["skill", "技能"])) {
@@ -235,7 +253,17 @@ const resolveToolIcon = (name?: string, displayName?: string): JSX.Element => {
     return <SearchOutlined />;
   }
 
-  if (includesAnyToolKeyword(keyword, ["browser", "web_fetch", "read_url", "html", "网页", "浏览器", "链接"])) {
+  if (
+    includesAnyToolKeyword(keyword, [
+      "browser",
+      "web_fetch",
+      "read_url",
+      "html",
+      "网页",
+      "浏览器",
+      "链接",
+    ])
+  ) {
     return <GlobalOutlined />;
   }
 
@@ -259,7 +287,9 @@ const resolveToolIcon = (name?: string, displayName?: string): JSX.Element => {
     return <EditOutlined />;
   }
 
-  if (includesAnyToolKeyword(keyword, ["exec", "bash", "shell", "python", "code", "代码", "命令"])) {
+  if (
+    includesAnyToolKeyword(keyword, ["exec", "bash", "shell", "python", "code", "代码", "命令"])
+  ) {
     return <CodeOutlined />;
   }
 
@@ -946,10 +976,7 @@ function ToolUseBlock({
     typeof data.display_name === "string" && data.display_name.trim()
       ? resolveToolDisplayName(data.display_name)
       : resolveToolDisplayName(data.name);
-  const toolIcon = useMemo(
-    () => resolveToolIcon(data.name, displayName),
-    [data.name, displayName],
-  );
+  const toolIcon = useMemo(() => resolveToolIcon(data.name, displayName), [data.name, displayName]);
   const normalizedToolName =
     typeof data.name === "string" && data.name.trim() ? data.name.trim().toLowerCase() : "";
   const isWorkbenchTask =
@@ -1393,7 +1420,7 @@ function SubagentBlock({
             {renderToolAvatar(avatarUrl, avatarLabel)}
           </span>
           <span className={styles.toolUseIcon} aria-hidden="true">
-            <ToolOutlined />
+            <RobotOutlined />
           </span>
           <span className={styles.toolUseName} title={title}>
             {title}
