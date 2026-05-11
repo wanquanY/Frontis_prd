@@ -12,6 +12,7 @@ export interface ArtifactItem {
   taskName: string;
   canonicalPath?: string;
   mimeType?: string;
+  previewPosterUrl?: string;
   isDeleted?: boolean;
 }
 

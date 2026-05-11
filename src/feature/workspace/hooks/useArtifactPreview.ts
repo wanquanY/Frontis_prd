@@ -3,6 +3,9 @@ import { useEffect, useMemo, useState } from "react";
 import type { ArtifactItem } from "@/types/artifact";
 
 export type ArtifactPreviewType =
+  | "document"
+  | "spreadsheet"
+  | "presentation"
   | "image"
   | "video"
   | "audio"
@@ -26,6 +29,9 @@ const IMAGE_EXTENSIONS = new Set(["png", "jpg", "jpeg", "gif", "webp", "bmp", "s
 const VIDEO_EXTENSIONS = new Set(["mp4", "webm", "mov", "m4v", "ogg"]);
 const AUDIO_EXTENSIONS = new Set(["mp3", "wav", "m4a", "aac", "ogg", "flac"]);
 const MARKDOWN_EXTENSIONS = new Set(["md", "markdown"]);
+const DOCUMENT_EXTENSIONS = new Set(["doc", "docx", "rtf", "odt", "txt", "text"]);
+const SPREADSHEET_EXTENSIONS = new Set(["csv", "tsv", "xls", "xlsx", "ods"]);
+const PRESENTATION_EXTENSIONS = new Set(["ppt", "pptx", "odp"]);
 const CODE_EXTENSIONS = new Set([
   "json",
   "js",
@@ -43,12 +49,18 @@ const CODE_EXTENSIONS = new Set([
   "xml",
   "toml",
   "ini",
-  "log",
-  "csv",
-  "tsv",
+  "css",
+  "scss",
+  "less",
+  "vue",
+  "svelte",
+  "php",
+  "rb",
+  "kt",
+  "swift",
+  "dockerfile",
 ]);
-const TEXT_EXTENSIONS = new Set(["txt", "text"]);
-const OFFICE_EXTENSIONS = new Set(["doc", "docx", "xls", "xlsx", "ppt", "pptx"]);
+const TEXT_EXTENSIONS = new Set(["log"]);
 
 const normalizeText = (value?: string): string => (typeof value === "string" ? value.trim() : "");
 
@@ -68,21 +80,41 @@ const resolvePreviewType = (file?: ArtifactItem): ArtifactPreviewType => {
   if (mimeType.startsWith("video/") || VIDEO_EXTENSIONS.has(extension)) return "video";
   if (mimeType.startsWith("audio/") || AUDIO_EXTENSIONS.has(extension)) return "audio";
   if (mimeType === "application/pdf" || extension === "pdf") return "pdf";
-  if (mimeType.includes("markdown") || MARKDOWN_EXTENSIONS.has(extension)) return "markdown";
   if (mimeType.includes("html") || extension === "html" || extension === "htm") return "html";
+  if (
+    mimeType.includes("spreadsheet") ||
+    mimeType.includes("excel") ||
+    mimeType === "text/csv" ||
+    SPREADSHEET_EXTENSIONS.has(extension)
+  ) {
+    return "spreadsheet";
+  }
+  if (mimeType.includes("presentation") || PRESENTATION_EXTENSIONS.has(extension)) {
+    return "presentation";
+  }
+  if (
+    mimeType.includes("wordprocessing") ||
+    mimeType.includes("msword") ||
+    mimeType.includes("markdown") ||
+    MARKDOWN_EXTENSIONS.has(extension) ||
+    DOCUMENT_EXTENSIONS.has(extension)
+  ) {
+    return "document";
+  }
   if (mimeType.startsWith("text/")) {
     if (extension === "html" || extension === "htm") return "html";
-    if (MARKDOWN_EXTENSIONS.has(extension)) return "markdown";
     if (CODE_EXTENSIONS.has(extension)) return "code";
     return "text";
   }
   if (mimeType.includes("json") || CODE_EXTENSIONS.has(extension)) return "code";
   if (TEXT_EXTENSIONS.has(extension)) return "text";
-  if (OFFICE_EXTENSIONS.has(extension)) return "office";
   return "unknown";
 };
 
 const requiresTextBody = (previewType: ArtifactPreviewType): boolean =>
+  previewType === "document" ||
+  previewType === "spreadsheet" ||
+  previewType === "presentation" ||
   previewType === "markdown" ||
   previewType === "html" ||
   previewType === "code" ||

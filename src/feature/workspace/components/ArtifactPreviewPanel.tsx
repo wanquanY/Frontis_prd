@@ -25,6 +25,36 @@ interface ArtifactPreviewPanelProps {
 
 type HtmlPreviewMode = "preview" | "source";
 
+interface SpreadsheetPreviewSheet {
+  name: string;
+  columns: string[];
+  rows: string[][];
+}
+
+interface PresentationPreviewSlide {
+  title: string;
+  subtitle?: string;
+  bullets: string[];
+  imageUrl?: string;
+}
+
+type CodeTokenKind =
+  | "plain"
+  | "keyword"
+  | "string"
+  | "comment"
+  | "number"
+  | "function"
+  | "property"
+  | "literal"
+  | "operator"
+  | "tag";
+
+interface CodeToken {
+  text: string;
+  kind: CodeTokenKind;
+}
+
 const SearchIcon = ({ className }: { className?: string }): JSX.Element => (
   <svg
     viewBox="0 0 20 20"
@@ -42,6 +72,327 @@ const SearchIcon = ({ className }: { className?: string }): JSX.Element => (
 );
 
 const normalizeKeyword = (value: string): string => value.trim().toLowerCase();
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null && !Array.isArray(value);
+
+const stringifyCell = (value: unknown): string => {
+  if (typeof value === "string") return value;
+  if (typeof value === "number" || typeof value === "boolean") return String(value);
+  if (value === null || value === undefined) return "";
+  return JSON.stringify(value);
+};
+
+const toStringArray = (value: unknown): string[] =>
+  Array.isArray(value) ? value.map(item => stringifyCell(item)) : [];
+
+const PYTHON_KEYWORDS = new Set([
+  "as",
+  "async",
+  "await",
+  "break",
+  "class",
+  "continue",
+  "def",
+  "elif",
+  "else",
+  "except",
+  "finally",
+  "for",
+  "from",
+  "if",
+  "import",
+  "in",
+  "is",
+  "lambda",
+  "pass",
+  "raise",
+  "return",
+  "try",
+  "while",
+  "with",
+  "yield",
+]);
+
+const JS_KEYWORDS = new Set([
+  "async",
+  "await",
+  "break",
+  "case",
+  "catch",
+  "class",
+  "const",
+  "continue",
+  "default",
+  "else",
+  "export",
+  "extends",
+  "finally",
+  "for",
+  "from",
+  "function",
+  "if",
+  "import",
+  "interface",
+  "let",
+  "new",
+  "return",
+  "switch",
+  "throw",
+  "try",
+  "type",
+  "while",
+]);
+
+const SQL_KEYWORDS = new Set([
+  "and",
+  "as",
+  "by",
+  "case",
+  "delete",
+  "from",
+  "group",
+  "having",
+  "insert",
+  "into",
+  "join",
+  "left",
+  "limit",
+  "on",
+  "or",
+  "order",
+  "right",
+  "select",
+  "set",
+  "then",
+  "update",
+  "values",
+  "when",
+  "where",
+]);
+
+const LITERALS = new Set(["true", "false", "null", "undefined", "none", "True", "False", "None"]);
+
+const getFileExtension = (fileName: string): string => {
+  const extension = fileName.split(".").pop()?.trim().toLowerCase();
+  return extension && extension !== fileName.toLowerCase() ? extension : "";
+};
+
+const getSpreadsheetColumnName = (index: number): string => {
+  let columnIndex = index + 1;
+  let name = "";
+
+  while (columnIndex > 0) {
+    const remainder = (columnIndex - 1) % 26;
+    name = String.fromCharCode(65 + remainder) + name;
+    columnIndex = Math.floor((columnIndex - 1) / 26);
+  }
+
+  return name;
+};
+
+const resolveCodeLanguageLabel = (fileName: string): string => {
+  const extension = getFileExtension(fileName);
+  const languageMap: Record<string, string> = {
+    js: "JavaScript",
+    jsx: "React JSX",
+    ts: "TypeScript",
+    tsx: "React TSX",
+    py: "Python",
+    json: "JSON",
+    html: "HTML",
+    css: "CSS",
+    less: "Less",
+    scss: "SCSS",
+    sql: "SQL",
+    yaml: "YAML",
+    yml: "YAML",
+    md: "Markdown",
+    txt: "Text",
+  };
+
+  return languageMap[extension] ?? (extension ? extension.toUpperCase() : "Text");
+};
+
+const getKeywordSet = (extension: string): Set<string> => {
+  if (extension === "py") return PYTHON_KEYWORDS;
+  if (extension === "sql") return SQL_KEYWORDS;
+  if (["js", "jsx", "ts", "tsx"].includes(extension)) return JS_KEYWORDS;
+  return new Set<string>();
+};
+
+const pushPlainToken = (tokens: CodeToken[], text: string): void => {
+  if (!text) return;
+  const previousToken = tokens[tokens.length - 1];
+  if (previousToken?.kind === "plain") {
+    previousToken.text += text;
+    return;
+  }
+  tokens.push({ text, kind: "plain" });
+};
+
+const tokenizeHtmlLine = (line: string): CodeToken[] => {
+  const tokens: CodeToken[] = [];
+  const pattern =
+    /(<!--.*?-->)|(<!doctype\b|<\/?[A-Za-z][\w:-]*)|([A-Za-z_:][\w:.-]*)(?==)|("(?:\\.|[^"])*"|'(?:\\.|[^'])*')|([<>/=])/gi;
+  let lastIndex = 0;
+
+  line.replace(pattern, (match, comment, tag, property, stringValue, operator, offset: number) => {
+    pushPlainToken(tokens, line.slice(lastIndex, offset));
+
+    if (comment) tokens.push({ text: match, kind: "comment" });
+    else if (tag) tokens.push({ text: match, kind: "tag" });
+    else if (property) tokens.push({ text: match, kind: "property" });
+    else if (stringValue) tokens.push({ text: match, kind: "string" });
+    else if (operator) tokens.push({ text: match, kind: "operator" });
+
+    lastIndex = offset + match.length;
+    return match;
+  });
+
+  pushPlainToken(tokens, line.slice(lastIndex));
+  return tokens;
+};
+
+const tokenizeCodeLine = (line: string, fileName: string): CodeToken[] => {
+  const extension = getFileExtension(fileName);
+
+  if (extension === "html" || extension === "htm") {
+    return tokenizeHtmlLine(line);
+  }
+
+  const keywordSet = getKeywordSet(extension);
+  const commentPattern = extension === "py" ? "#.*" : "\\/\\/.*|\\/\\*.*?\\*\\/";
+  const pattern = new RegExp(
+    `(${commentPattern})|("(?:\\\\.|[^"])*"|'(?:\\\\.|[^'])*'|\\\`(?:\\\\.|[^\\\`])*\\\`)|(\\b\\d+(?:\\.\\d+)?\\b)|(\\b[A-Za-z_$][\\w$]*(?=\\s*\\())|(\\b[A-Za-z_$][\\w$]*\\b)|([{}[\\]().,:;+\\-*/%=<>!&|?])`,
+    "g",
+  );
+  const tokens: CodeToken[] = [];
+  let lastIndex = 0;
+
+  line.replace(
+    pattern,
+    (
+      match,
+      comment,
+      stringValue,
+      numberValue,
+      functionName,
+      identifier,
+      operator,
+      offset: number,
+    ) => {
+      pushPlainToken(tokens, line.slice(lastIndex, offset));
+
+      if (comment) tokens.push({ text: match, kind: "comment" });
+      else if (stringValue) tokens.push({ text: match, kind: "string" });
+      else if (numberValue) tokens.push({ text: match, kind: "number" });
+      else if (functionName) tokens.push({ text: match, kind: "function" });
+      else if (identifier) {
+        if (keywordSet.has(identifier) || SQL_KEYWORDS.has(identifier.toLowerCase())) {
+          tokens.push({ text: match, kind: "keyword" });
+        } else if (LITERALS.has(identifier)) {
+          tokens.push({ text: match, kind: "literal" });
+        } else {
+          tokens.push({ text: match, kind: "plain" });
+        }
+      } else if (operator) tokens.push({ text: match, kind: "operator" });
+
+      lastIndex = offset + match.length;
+      return match;
+    },
+  );
+
+  pushPlainToken(tokens, line.slice(lastIndex));
+  return tokens;
+};
+
+const getCodeTokenClassName = (kind: CodeTokenKind): string | undefined => {
+  const classMap: Record<CodeTokenKind, string | undefined> = {
+    plain: undefined,
+    keyword: styles.codeTokenKeyword,
+    string: styles.codeTokenString,
+    comment: styles.codeTokenComment,
+    number: styles.codeTokenNumber,
+    function: styles.codeTokenFunction,
+    property: styles.codeTokenProperty,
+    literal: styles.codeTokenLiteral,
+    operator: styles.codeTokenOperator,
+    tag: styles.codeTokenTag,
+  };
+
+  return classMap[kind];
+};
+
+const parseSpreadsheetSheets = (body: string): SpreadsheetPreviewSheet[] => {
+  const trimmedBody = body.trim();
+  if (!trimmedBody) return [];
+
+  try {
+    const parsed: unknown = JSON.parse(trimmedBody);
+    if (isRecord(parsed) && Array.isArray(parsed.sheets)) {
+      return parsed.sheets
+        .filter(isRecord)
+        .map((sheet, index) => ({
+          name:
+            typeof sheet.name === "string" && sheet.name.trim() ? sheet.name : `Sheet ${index + 1}`,
+          columns: toStringArray(sheet.columns),
+          rows: Array.isArray(sheet.rows)
+            ? sheet.rows.map(row => toStringArray(row)).filter(row => row.length > 0)
+            : [],
+        }))
+        .filter(sheet => sheet.columns.length > 0 || sheet.rows.length > 0);
+    }
+  } catch {
+    // 非 JSON 时按 CSV / TSV 文本降级解析。
+  }
+
+  const delimiter = trimmedBody.includes("\t") ? "\t" : ",";
+  const rows = trimmedBody
+    .split(/\r?\n/)
+    .map(line => line.split(delimiter).map(cell => cell.trim()))
+    .filter(row => row.some(Boolean));
+
+  if (!rows.length) return [];
+
+  const [columns, ...dataRows] = rows;
+  return [
+    {
+      name: "Sheet 1",
+      columns,
+      rows: dataRows,
+    },
+  ];
+};
+
+const parsePresentationSlides = (body: string): PresentationPreviewSlide[] => {
+  const trimmedBody = body.trim();
+  if (!trimmedBody) return [];
+
+  try {
+    const parsed: unknown = JSON.parse(trimmedBody);
+    if (isRecord(parsed) && Array.isArray(parsed.slides)) {
+      return parsed.slides.filter(isRecord).map((slide, index) => ({
+        title:
+          typeof slide.title === "string" && slide.title.trim()
+            ? slide.title
+            : `第 ${index + 1} 页`,
+        subtitle: typeof slide.subtitle === "string" ? slide.subtitle : undefined,
+        bullets: toStringArray(slide.bullets),
+        imageUrl: typeof slide.imageUrl === "string" ? slide.imageUrl : undefined,
+      }));
+    }
+  } catch {
+    // 非 JSON 时按纯文本生成一页预览。
+  }
+
+  return [
+    {
+      title: "演示文稿预览",
+      bullets: trimmedBody.split(/\r?\n/).filter(Boolean),
+    },
+  ];
+};
 
 /**
  * ArtifactPreviewPanel
@@ -63,6 +414,8 @@ export const ArtifactPreviewPanel = ({
   const [keyword, setKeyword] = useState("");
   const [selectedFileId, setSelectedFileId] = useState<string>();
   const [htmlPreviewMode, setHtmlPreviewMode] = useState<HtmlPreviewMode>("preview");
+  const [selectedSlideIndex, setSelectedSlideIndex] = useState(0);
+  const [selectedSheetIndex, setSelectedSheetIndex] = useState(0);
   const [expandedGroupIds, setExpandedGroupIds] = useState<Set<string>>(() => new Set());
 
   const filteredFiles = useMemo(() => {
@@ -118,6 +471,8 @@ export const ArtifactPreviewPanel = ({
 
   useEffect(() => {
     setHtmlPreviewMode("preview");
+    setSelectedSlideIndex(0);
+    setSelectedSheetIndex(0);
   }, [selectedFileId]);
 
   useEffect(() => {
@@ -178,6 +533,46 @@ export const ArtifactPreviewPanel = ({
 
   const shouldShowHtmlTabs = previewState.previewType === "html";
   const shouldRenderGroupedList = Boolean(fileGroups?.length);
+
+  const renderCodePreview = useCallback(
+    (content: string): JSX.Element => {
+      const lines = content.replace(/\n$/, "").split("\n");
+      const languageLabel = selectedFile ? resolveCodeLanguageLabel(selectedFile.fileName) : "Text";
+
+      return (
+        <div className={styles.codeStage}>
+          <div className={styles.codeToolbar}>
+            <span className={styles.codeLanguage}>{languageLabel}</span>
+            <span className={styles.codeMeta}>{lines.length} 行</span>
+          </div>
+          <pre className={styles.codeBlock}>
+            <code>
+              {lines.map((line, index) => (
+                <span key={`${index}-${line}`} className={styles.codeLine}>
+                  <span className={styles.codeLineNumber}>{index + 1}</span>
+                  <span className={styles.codeLineContent}>
+                    {line
+                      ? tokenizeCodeLine(line, selectedFile?.fileName ?? "").map(
+                          (token, tokenIndex) => (
+                            <span
+                              key={`${index}-${tokenIndex}-${token.text}`}
+                              className={getCodeTokenClassName(token.kind)}
+                            >
+                              {token.text}
+                            </span>
+                          ),
+                        )
+                      : " "}
+                  </span>
+                </span>
+              ))}
+            </code>
+          </pre>
+        </div>
+      );
+    },
+    [selectedFile],
+  );
 
   const renderFileCard = useCallback(
     (item: ArtifactItem): JSX.Element => {
@@ -260,16 +655,23 @@ export const ArtifactPreviewPanel = ({
 
     if (previewState.previewType === "video" && previewState.previewUrl) {
       return (
-        <div className={styles.mediaStage}>
-          <video
-            className={styles.mediaVideo}
-            src={previewState.previewUrl}
-            controls
-            playsInline
-            preload="metadata"
-          >
-            <track kind="captions" />
-          </video>
+        <div className={styles.videoStage}>
+          <div className={styles.videoPlayerShell}>
+            <video
+              className={styles.mediaVideo}
+              src={previewState.previewUrl}
+              poster={selectedFile.previewPosterUrl}
+              controls
+              playsInline
+              preload="metadata"
+            >
+              <track kind="captions" />
+            </video>
+          </div>
+          <div className={styles.mediaCaption}>
+            <span>{selectedFile.fileName}</span>
+            <span>{selectedFile.fileSize}</span>
+          </div>
         </div>
       );
     }
@@ -277,22 +679,40 @@ export const ArtifactPreviewPanel = ({
     if (previewState.previewType === "audio" && previewState.previewUrl) {
       return (
         <div className={styles.audioStage}>
-          <audio
-            className={styles.audioPlayer}
-            src={previewState.previewUrl}
-            controls
-            preload="metadata"
-          >
-            <track kind="captions" />
-          </audio>
+          <div className={styles.audioCard}>
+            <div className={styles.audioMeta}>
+              <div className={styles.audioCover} aria-hidden={true}>
+                <span />
+              </div>
+              <div className={styles.audioInfo}>
+                <div className={styles.audioTitle}>{selectedFile.fileName}</div>
+                <div className={styles.audioSubtitle}>
+                  {selectedFile.fileSize} · {selectedFile.producedAt}
+                </div>
+              </div>
+            </div>
+            <div className={styles.audioWave} aria-hidden={true}>
+              {Array.from({ length: 28 }).map((_, index) => (
+                <span key={index} />
+              ))}
+            </div>
+            <audio
+              className={styles.audioPlayer}
+              src={previewState.previewUrl}
+              controls
+              preload="metadata"
+            >
+              <track kind="captions" />
+            </audio>
+          </div>
         </div>
       );
     }
 
-    if (previewState.previewType === "markdown") {
+    if (previewState.previewType === "document" || previewState.previewType === "markdown") {
       return previewState.previewBody.trim() ? (
-        <div className={styles.markdownStage}>
-          <div className={styles.markdownCard}>
+        <div className={styles.documentStage}>
+          <div className={styles.documentPaper}>
             <MarkdownRenderer
               source={previewState.previewBody}
               enableMermaidActions={true}
@@ -307,14 +727,146 @@ export const ArtifactPreviewPanel = ({
       );
     }
 
+    if (previewState.previewType === "spreadsheet") {
+      const sheets = parseSpreadsheetSheets(previewState.previewBody);
+      const activeSheet = sheets[Math.min(selectedSheetIndex, sheets.length - 1)];
+
+      return activeSheet ? (
+        <div className={styles.spreadsheetStage} aria-label="表格文件预览">
+          <div className={styles.workbookToolbar}>
+            <div className={styles.nameBox}>A1</div>
+            <div className={styles.formulaBar}>
+              <span className={styles.formulaLabel}>fx</span>
+              <span className={styles.formulaValue}>{activeSheet.columns[0] ?? ""}</span>
+            </div>
+          </div>
+          <div className={styles.workbookGridWrap}>
+            <table className={styles.workbookGrid}>
+              <thead>
+                <tr>
+                  <th className={styles.cornerCell} aria-label="选择全部单元格" />
+                  {activeSheet.columns.map((column, columnIndex) => (
+                    <th key={column} className={styles.columnHeader}>
+                      {getSpreadsheetColumnName(columnIndex)}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <th className={styles.rowHeader}>1</th>
+                  {activeSheet.columns.map((column, columnIndex) => (
+                    <td
+                      key={column}
+                      className={columnIndex === 0 ? styles.activeSpreadsheetCell : undefined}
+                    >
+                      {column}
+                    </td>
+                  ))}
+                </tr>
+                {activeSheet.rows.map((row, rowIndex) => (
+                  <tr key={`${activeSheet.name}-${rowIndex}`}>
+                    <th className={styles.rowHeader}>{rowIndex + 2}</th>
+                    {activeSheet.columns.map((column, columnIndex) => (
+                      <td key={`${column}-${columnIndex}`}>{row[columnIndex] ?? ""}</td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className={styles.sheetTabBar} role="tablist" aria-label="工作表">
+            {sheets.map((sheet, index) => (
+              <button
+                key={sheet.name}
+                type="button"
+                role="tab"
+                aria-selected={selectedSheetIndex === index}
+                className={`${styles.sheetTab} ${
+                  selectedSheetIndex === index ? styles.sheetTabActive : ""
+                }`}
+                onClick={() => setSelectedSheetIndex(index)}
+              >
+                {sheet.name}
+              </button>
+            ))}
+            <span className={styles.sheetTabSpacer} />
+          </div>
+          <div className={styles.workbookStatusBar}>
+            <span>就绪</span>
+            <span>
+              {activeSheet.rows.length + 1} 行 · {activeSheet.columns.length} 列
+            </span>
+          </div>
+        </div>
+      ) : (
+        <div className={styles.previewStateBox} role="alert">
+          <div className={styles.previewStateTitle}>暂无可预览内容</div>
+        </div>
+      );
+    }
+
+    if (previewState.previewType === "presentation") {
+      const slides = parsePresentationSlides(previewState.previewBody);
+      const activeSlide = slides[Math.min(selectedSlideIndex, slides.length - 1)];
+
+      return activeSlide ? (
+        <div className={styles.presentationStage} aria-label="演示文稿预览">
+          <div className={styles.presentationCanvas}>
+            <article className={styles.slideCard}>
+              <div className={styles.slideIndex}>
+                {selectedSlideIndex + 1} / {slides.length}
+              </div>
+              <div className={styles.slideBody}>
+                <h3>{activeSlide.title}</h3>
+                {activeSlide.subtitle ? <p>{activeSlide.subtitle}</p> : null}
+                {activeSlide.bullets.length ? (
+                  <ul>
+                    {activeSlide.bullets.map(item => (
+                      <li key={item}>{item}</li>
+                    ))}
+                  </ul>
+                ) : null}
+              </div>
+              {activeSlide.imageUrl ? (
+                <img
+                  className={styles.slideImage}
+                  src={activeSlide.imageUrl}
+                  alt=""
+                  aria-hidden={true}
+                />
+              ) : null}
+            </article>
+          </div>
+          <div className={styles.slideFilmstrip} role="tablist" aria-label="幻灯片缩略图">
+            {slides.map((slide, index) => (
+              <button
+                key={`${slide.title}-${index}`}
+                type="button"
+                role="tab"
+                aria-selected={selectedSlideIndex === index}
+                className={classNames(styles.slideThumb, {
+                  [styles.slideThumbActive]: selectedSlideIndex === index,
+                })}
+                onClick={() => setSelectedSlideIndex(index)}
+              >
+                <span className={styles.slideThumbIndex}>{index + 1}</span>
+                <span className={styles.slideThumbTitle}>{slide.title}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <div className={styles.previewStateBox} role="alert">
+          <div className={styles.previewStateTitle}>暂无可预览内容</div>
+        </div>
+      );
+    }
+
     if (previewState.previewType === "html") {
       return previewState.previewBody.trim() ? (
         htmlPreviewMode === "source" ? (
-          <div className={styles.codeStage}>
-            <pre className={styles.codeBlock}>
-              <code>{previewState.previewBody}</code>
-            </pre>
-          </div>
+          renderCodePreview(previewState.previewBody)
         ) : (
           <div className={styles.htmlStage}>
             <div className={styles.htmlViewport}>
@@ -348,11 +900,7 @@ export const ArtifactPreviewPanel = ({
 
     if (previewState.previewType === "code" || previewState.previewType === "text") {
       return previewState.previewBody.trim() ? (
-        <div className={styles.codeStage}>
-          <pre className={styles.codeBlock}>
-            <code>{previewState.previewBody}</code>
-          </pre>
-        </div>
+        renderCodePreview(previewState.previewBody)
       ) : (
         <div className={styles.previewStateBox} role="alert">
           <div className={styles.previewStateTitle}>暂无可预览内容</div>
@@ -377,7 +925,14 @@ export const ArtifactPreviewPanel = ({
         <div className={styles.previewStateText}>你仍然可以下载该文件后在本地查看。</div>
       </div>
     );
-  }, [htmlPreviewMode, previewState, selectedFile]);
+  }, [
+    htmlPreviewMode,
+    previewState,
+    renderCodePreview,
+    selectedFile,
+    selectedSheetIndex,
+    selectedSlideIndex,
+  ]);
 
   return (
     <aside

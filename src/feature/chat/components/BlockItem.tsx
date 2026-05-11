@@ -8,17 +8,29 @@ import classNames from "classnames";
 import { Bubble, Actions } from "@ant-design/x";
 import { Input, InputNumber, Select, DatePicker, Switch, Rate, message } from "antd";
 import {
+  ApiOutlined,
+  BranchesOutlined,
   CheckCircleFilled,
   CheckCircleOutlined,
+  CloudDownloadOutlined,
   CodeOutlined,
   CloseCircleFilled,
+  DatabaseOutlined,
   DownloadOutlined,
   DownOutlined,
   EditOutlined,
+  FileAddOutlined,
+  FileSearchOutlined,
   FileTextOutlined,
+  FolderOpenOutlined,
   GlobalOutlined,
+  HistoryOutlined,
   LoadingOutlined,
+  OrderedListOutlined,
   PaperClipOutlined,
+  PictureOutlined,
+  QuestionCircleOutlined,
+  RobotOutlined,
   SearchOutlined,
   ThunderboltOutlined,
   ToolOutlined,
@@ -60,16 +72,7 @@ import planFailedIcon from "@/assets/images/planIcon/plan-failed.png";
 import planPendingIcon from "@/assets/images/planIcon/plan-pending.png";
 import planIgnoreIcon from "@/assets/images/planIcon/plan-ignore.png";
 
-import fileListIcon from "@/assets/images/toolsIcon/file-list-icon.png";
-import fileReadIcon from "@/assets/images/toolsIcon/file-read-icon.png";
-import htmlAnalysisIcon from "@/assets/images/toolsIcon/html-analysis-icon.png";
-import readAttachmentIcon from "@/assets/images/toolsIcon/read-attachment-icon.png";
-import readDocIcon from "@/assets/images/toolsIcon/read-doc-icon.png";
-// import readHtmlIcon from "@/assets/images/toolsIcon/read-html-icon.png"
-import webSearchIcon from "@/assets/images/toolsIcon/web-search-icon.png";
 import planListIcon from "@/assets/images/toolsIcon/plan-list-icon.png";
-import askUserIcon from "@/assets/images/toolsIcon/ask-user-icon.png";
-import rememberHistoryIcon from "@/assets/images/toolsIcon/remember-history-icon.png";
 import hitlError from "@/assets/images/hitl-error.png";
 
 interface MentionDisplaySegment {
@@ -199,6 +202,88 @@ const resolveToolDisplayName = (rawName?: string): string => {
   const normalizedName = typeof rawName === "string" ? rawName.trim() : "";
   if (!normalizedName) return "工具";
   return TOOL_DISPLAY_NAME_MAP[normalizedName.toLowerCase()] || normalizedName;
+};
+
+const normalizeToolKeyword = (value?: string): string =>
+  typeof value === "string" ? value.trim().toLowerCase().replace(/[\s.-]+/g, "_") : "";
+
+const includesAnyToolKeyword = (value: string, keywords: string[]): boolean =>
+  keywords.some(keyword => value.includes(keyword));
+
+const resolveToolIcon = (name?: string, displayName?: string): JSX.Element => {
+  const normalizedName = normalizeToolKeyword(name);
+  const normalizedDisplayName = normalizeToolKeyword(displayName);
+  const keyword = `${normalizedName} ${normalizedDisplayName}`;
+
+  if (includesAnyToolKeyword(keyword, ["task_dispatch", "workbench_task", "任务分发"])) {
+    return <BranchesOutlined />;
+  }
+
+  if (includesAnyToolKeyword(keyword, ["task_continue", "task_done", "task_fail", "任务继续", "任务完成", "任务失败"])) {
+    return <RobotOutlined />;
+  }
+
+  if (includesAnyToolKeyword(keyword, ["skill", "技能"])) {
+    return <ThunderboltOutlined />;
+  }
+
+  if (includesAnyToolKeyword(keyword, ["mcp", "飞书", "feishu", "api"])) {
+    return <ApiOutlined />;
+  }
+
+  if (includesAnyToolKeyword(keyword, ["web_search", "search", "搜索"])) {
+    return <SearchOutlined />;
+  }
+
+  if (includesAnyToolKeyword(keyword, ["browser", "web_fetch", "read_url", "html", "网页", "浏览器", "链接"])) {
+    return <GlobalOutlined />;
+  }
+
+  if (includesAnyToolKeyword(keyword, ["http", "request", "download", "下载", "抓取"])) {
+    return <CloudDownloadOutlined />;
+  }
+
+  if (includesAnyToolKeyword(keyword, ["list", "ls", "目录", "列出", "文件列表"])) {
+    return <FolderOpenOutlined />;
+  }
+
+  if (includesAnyToolKeyword(keyword, ["read", "读取", "查看"])) {
+    return <FileSearchOutlined />;
+  }
+
+  if (includesAnyToolKeyword(keyword, ["write", "create", "生成", "创建", "写入"])) {
+    return <FileAddOutlined />;
+  }
+
+  if (includesAnyToolKeyword(keyword, ["edit", "patch", "修改", "编辑"])) {
+    return <EditOutlined />;
+  }
+
+  if (includesAnyToolKeyword(keyword, ["exec", "bash", "shell", "python", "code", "代码", "命令"])) {
+    return <CodeOutlined />;
+  }
+
+  if (includesAnyToolKeyword(keyword, ["database", "sql", "table", "sheet", "表格", "数据"])) {
+    return <DatabaseOutlined />;
+  }
+
+  if (includesAnyToolKeyword(keyword, ["image", "picture", "图片", "图像"])) {
+    return <PictureOutlined />;
+  }
+
+  if (includesAnyToolKeyword(keyword, ["ask_user", "hitl", "确认", "询问"])) {
+    return <QuestionCircleOutlined />;
+  }
+
+  if (includesAnyToolKeyword(keyword, ["recall_history", "history", "记忆", "历史"])) {
+    return <HistoryOutlined />;
+  }
+
+  if (includesAnyToolKeyword(keyword, ["plan", "todo", "任务列表", "规划"])) {
+    return <OrderedListOutlined />;
+  }
+
+  return <ToolOutlined />;
 };
 
 const resolveTextBlockContent = (block: Block): string => {
@@ -811,30 +896,6 @@ function ToolUseBlock({
 }) {
   const data = block.data as unknown as ToolUseData;
 
-  const toolIcon = useMemo(() => {
-    const map: Record<string, JSX.Element> = {
-      exec: <CodeOutlined />,
-      bash: <CodeOutlined />,
-      browser: <GlobalOutlined />,
-      web_fetch: <SearchOutlined />,
-      read: <FileTextOutlined />,
-      write: <EditOutlined />,
-      edit: <EditOutlined />,
-      web_search: <img src={webSearchIcon} alt="web_search" />,
-      ask_user: <img src={askUserIcon} alt="ask_user" />,
-      read_attachment: <img src={readAttachmentIcon} alt="read_attachment" />,
-      analyze_attachment: <img src={htmlAnalysisIcon} alt="analyze_attachment" />,
-      list_space_data: <img src={fileListIcon} alt="list_space_data" />,
-      read_space_data: <img src={fileReadIcon} alt="read_space_data" />,
-      analyze_space_data: <img src={htmlAnalysisIcon} alt="analyze_space_data" />,
-      read_url: <img src={readDocIcon} alt="read_url" />,
-      generate_image: <img src={readAttachmentIcon} alt="generate_image" />,
-      recall_history: <img src={rememberHistoryIcon} alt="recall_history" />,
-      plan: <img src={planListIcon} alt="plan" />,
-    };
-    return map[data.name] ?? <ToolOutlined />;
-  }, [data.name]);
-
   // 获取子块中的 tool_result
   const resultBlock = block.children?.find(c => c.kind === "tool_result");
   const resultData = resultBlock?.data as unknown as ToolResultData | undefined;
@@ -885,6 +946,10 @@ function ToolUseBlock({
     typeof data.display_name === "string" && data.display_name.trim()
       ? resolveToolDisplayName(data.display_name)
       : resolveToolDisplayName(data.name);
+  const toolIcon = useMemo(
+    () => resolveToolIcon(data.name, displayName),
+    [data.name, displayName],
+  );
   const normalizedToolName =
     typeof data.name === "string" && data.name.trim() ? data.name.trim().toLowerCase() : "";
   const isWorkbenchTask =

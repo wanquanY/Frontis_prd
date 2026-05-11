@@ -1,6 +1,6 @@
 import type { ArtifactItem } from "@/types/artifact";
 import type { Block, ToolContactLookupItem, ToolSearchResultItem } from "@/types/block";
-import type { AttachmentItem, ChatMessage } from "@/pages/types";
+import type { AttachmentItem, ChatMessage, DialogueGeneratedResultItem } from "@/pages/types";
 
 interface MetaAgentHistoryRound {
   assistantContent: string;
@@ -28,6 +28,53 @@ interface CreateMetaAgentToolBlockOptions {
 
 const META_AGENT_TOOL_GUIDE_SUFFIX = "metaagent-tool-display-guide";
 const META_AGENT_PRD_PATCH_SUFFIX = "metaagent-prd-me-update";
+const META_AGENT_FILE_PREVIEW_DOCX_SUFFIX = "metaagent-file-preview-docx";
+const META_AGENT_FILE_PREVIEW_XLSX_SUFFIX = "metaagent-file-preview-xlsx";
+const META_AGENT_FILE_PREVIEW_PPTX_SUFFIX = "metaagent-file-preview-pptx";
+const META_AGENT_FILE_PREVIEW_HTML_SUFFIX = "metaagent-file-preview-html";
+const META_AGENT_FILE_PREVIEW_JSON_SUFFIX = "metaagent-file-preview-json";
+const META_AGENT_FILE_PREVIEW_PY_SUFFIX = "metaagent-file-preview-python";
+const META_AGENT_FILE_PREVIEW_TXT_SUFFIX = "metaagent-file-preview-txt";
+const META_AGENT_FILE_PREVIEW_IMAGE_SUFFIX = "metaagent-file-preview-image";
+const META_AGENT_FILE_PREVIEW_VIDEO_SUFFIX = "metaagent-file-preview-video";
+const META_AGENT_FILE_PREVIEW_AUDIO_SUFFIX = "metaagent-file-preview-audio";
+const META_AGENT_DATA_INSIGHT_RESULT_SUFFIX = "metaagent-data-insight-result";
+
+const ME_PREVIEW_INLINE_IMAGE_URL = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(`
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 360">
+  <rect width="720" height="360" rx="28" fill="#f7fbff"/>
+  <rect x="48" y="54" width="624" height="252" rx="20" fill="#ffffff" stroke="#d7e3f2"/>
+  <circle cx="106" cy="116" r="34" fill="#06b6d4"/>
+  <path d="M92 116h28M106 102v28" stroke="#fff" stroke-width="10" stroke-linecap="round"/>
+  <rect x="164" y="92" width="388" height="22" rx="11" fill="#0f172a"/>
+  <rect x="164" y="132" width="472" height="16" rx="8" fill="#8aa0b8"/>
+  <rect x="84" y="194" width="160" height="58" rx="14" fill="#e0f2fe"/>
+  <rect x="280" y="194" width="160" height="58" rx="14" fill="#dcfce7"/>
+  <rect x="476" y="194" width="160" height="58" rx="14" fill="#fef3c7"/>
+</svg>
+`)}`;
+
+const ME_PREVIEW_VIDEO_POSTER_URL = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(`
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 540">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0f172a"/>
+      <stop offset="1" stop-color="#06b6d4"/>
+    </linearGradient>
+  </defs>
+  <rect width="960" height="540" fill="url(#g)"/>
+  <rect x="76" y="72" width="808" height="396" rx="28" fill="rgba(255,255,255,.12)" stroke="rgba(255,255,255,.32)"/>
+  <circle cx="480" cy="270" r="58" fill="rgba(255,255,255,.92)"/>
+  <path d="M466 237l56 33-56 33z" fill="#0f172a"/>
+  <rect x="130" y="400" width="700" height="12" rx="6" fill="rgba(255,255,255,.35)"/>
+  <rect x="130" y="400" width="286" height="12" rx="6" fill="#ffffff"/>
+  <text x="130" y="152" fill="#fff" font-size="34" font-family="Arial, sans-serif" font-weight="700">ME 文件预览演示视频</text>
+</svg>
+`)}`;
+
+const ME_PREVIEW_AUDIO_DATA_URL =
+  "data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABAAZGF0YQAAAAA=";
+const ME_PREVIEW_VIDEO_DATA_URL = "data:video/mp4;base64,";
 
 const META_AGENT_TOOL_GUIDE_CONTENT = `# ME 工具消息展示样例
 
@@ -47,6 +94,157 @@ const META_AGENT_PRD_PATCH_CONTENT = `# ME 能力补充说明
 2. 基础对话只描述输入、消息、时间和状态保留。
 3. 展开规则只保留在思考块、工具、Skill/MCP 和 Workbench Task 这些特殊过程事件中。
 4. 本轮创建或编辑文件后，最终回复结尾追加文件卡片。
+`;
+
+const ME_FILE_PREVIEW_DOCX_CONTENT = `# ME 输出文件预览能力说明
+
+ME 产出的常见文档统一按文件类型进入对应预览器。
+
+## 文档类
+
+Markdown、TXT、DOCX、RTF 等按文档预览处理，支持标题、段落、列表、表格和图文混排。
+
+![ME 文档混排示意](${ME_PREVIEW_INLINE_IMAGE_URL})
+
+| 类型 | 预览方式 | 说明 |
+| --- | --- | --- |
+| md / markdown | 富文本渲染 | 保留标题、表格、Mermaid、图片 |
+| txt | 文本文档渲染 | 保留换行和段落 |
+| docx / doc | 富文本文档预览 | 原型用结构化内容模拟正文、表格和图片 |
+`;
+
+const ME_FILE_PREVIEW_TXT_CONTENT = `ME 输出文件类型规则
+
+1. 文档类：md、txt、doc、docx、rtf。
+2. 表格类：csv、tsv、xls、xlsx。
+3. 演示类：ppt、pptx。
+4. 页面类：html 支持预览和源码切换。
+5. 代码类：json、py、ts、js、sql、yaml 等按代码预览。
+6. 媒体类：图片、音频、视频按媒体预览。`;
+
+const ME_FILE_PREVIEW_XLSX_CONTENT = JSON.stringify(
+  {
+    sheets: [
+      {
+        name: "文件类型矩阵",
+        columns: ["类型", "扩展名", "预览能力", "说明"],
+        rows: [
+          ["文档", "md / txt / docx", "富文本预览", "支持文本、表格和图片混排"],
+          ["表格", "csv / xlsx", "表格预览", "按 Sheet 展示列和行"],
+          ["演示", "pptx", "幻灯片预览", "按页展示标题、要点和配图"],
+          ["页面", "html", "页面 + 源码", "可切换渲染预览和源代码"],
+          ["代码", "json / py", "代码预览", "保留缩进和等宽字体"],
+          ["图片", "png / jpg / svg", "图片预览", "等比适配预览区域"],
+          ["音频", "mp3 / wav / m4a", "音频播放器", "展示音频信息、波形和播放控件"],
+          ["视频", "mp4 / webm / mov", "视频播放器", "展示视频海报、播放区域和媒体信息"],
+        ],
+      },
+      {
+        name: "本轮 mock 文件",
+        columns: ["文件名", "任务", "状态"],
+        rows: [
+          ["ME 输出文件预览能力说明.docx", "文档预览", "可预览"],
+          ["ME 文件类型矩阵.xlsx", "表格预览", "可预览"],
+          ["ME 文件预览交互方案.pptx", "演示预览", "可预览"],
+          ["me_file_preview_demo.html", "HTML 预览", "可预览源码"],
+          ["ME 文件预览演示视频.mp4", "视频预览", "可预览"],
+          ["ME 文件预览语音说明.mp3", "音频预览", "可预览"],
+        ],
+      },
+    ],
+  },
+  null,
+  2,
+);
+
+const ME_FILE_PREVIEW_PPTX_CONTENT = JSON.stringify(
+  {
+    slides: [
+      {
+        title: "ME 文件预览分类",
+        subtitle: "按内容形态决定预览器，不按单一文件后缀硬塞展示。",
+        bullets: ["文档类进入富文本预览", "表格类进入 Sheet 预览", "HTML 同时支持页面和源码"],
+        imageUrl: ME_PREVIEW_INLINE_IMAGE_URL,
+      },
+      {
+        title: "任务结束文件卡片",
+        subtitle: "只要本轮创建或编辑文件，最终回复结尾追加文件卡片。",
+        bullets: ["点击卡片打开右侧预览", "同一路径只展示最新版本", "今日成果汇总当日全部产出"],
+      },
+      {
+        title: "混合内容处理",
+        subtitle: "文档中既有文字也有图片时，预览器按富文本结构展示。",
+        bullets: ["正文、列表、表格连续排版", "图片按容器宽度适配", "代码片段仍保留等宽样式"],
+      },
+    ],
+  },
+  null,
+  2,
+);
+
+const ME_FILE_PREVIEW_HTML_CONTENT = `<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <title>ME 文件预览 Demo</title>
+    <style>
+      body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #f8fafc; color: #0f172a; }
+      main { max-width: 880px; margin: 0 auto; padding: 40px; }
+      section { background: #fff; border: 1px solid #dbe4f0; border-radius: 18px; padding: 28px; box-shadow: 0 18px 45px rgba(15, 23, 42, .08); }
+      h1 { margin: 0 0 12px; font-size: 30px; }
+      p { line-height: 1.8; color: #475569; }
+      .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 24px; }
+      .card { border-radius: 14px; padding: 18px; background: #ecfeff; font-weight: 700; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <section>
+        <h1>HTML 文件既能预览也能看源码</h1>
+        <p>ME 输出 HTML 时，默认展示页面效果；右上角可以切换到源码，适合检查结构、样式和交付内容。</p>
+        <div class="grid">
+          <div class="card">页面预览</div>
+          <div class="card">源码查看</div>
+          <div class="card">新窗口打开</div>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>`;
+
+const ME_FILE_PREVIEW_JSON_CONTENT = JSON.stringify(
+  {
+    meOutputPreviewTypes: {
+      document: ["md", "txt", "docx", "rtf"],
+      spreadsheet: ["csv", "xlsx"],
+      presentation: ["pptx"],
+      page: ["html"],
+      code: ["json", "py", "ts", "js", "sql", "yaml"],
+      media: ["png", "jpg", "svg", "mp4", "mp3"],
+    },
+    rule: "ME 根据文件内容形态选择预览器；不支持内嵌的二进制格式保留下载。",
+  },
+  null,
+  2,
+);
+
+const ME_FILE_PREVIEW_PY_CONTENT = `from pathlib import Path
+
+PREVIEW_GROUPS = {
+    "document": ["md", "txt", "docx"],
+    "spreadsheet": ["csv", "xlsx"],
+    "presentation": ["pptx"],
+    "page": ["html"],
+    "code": ["json", "py", "ts", "js"],
+}
+
+
+def resolve_preview_group(filename: str) -> str:
+    suffix = Path(filename).suffix.lower().lstrip(".")
+    for group_name, extensions in PREVIEW_GROUPS.items():
+        if suffix in extensions:
+            return group_name
+    return "download"
 `;
 
 const createMockAttachment = (
@@ -133,15 +331,44 @@ const createToolUseBlock = ({
   };
 };
 
-const createArtifactBlock = (id: string, artifactId: string, title: string): Block => ({
+const createArtifactBlock = (
+  id: string,
+  artifactId: string,
+  title: string,
+  format = "markdown",
+): Block => ({
   id,
   kind: "artifact",
   data: {
     artifact_id: artifactId,
-    kind: "markdown",
+    kind: format,
     title,
     status: "completed",
-    format: "markdown",
+    format,
+  },
+  actorRole: "assistant",
+});
+
+const createResultCardsBlock = (
+  id: string,
+  items: Array<{
+    id: string;
+    title: string;
+    subtitle: string;
+    badge: string;
+    createdAt: string;
+  }>,
+): Block => ({
+  id,
+  kind: "result_cards",
+  data: {
+    items: items.map(item => ({
+      id: item.id,
+      title: item.title,
+      subtitle: item.subtitle,
+      badge: item.badge,
+      created_at: item.createdAt,
+    })),
   },
   actorRole: "assistant",
 });
@@ -184,29 +411,182 @@ const createMarkdownArtifact = (
   mimeType: "text/markdown",
 });
 
+const createPreviewArtifact = ({
+  sessionId,
+  suffix,
+  fileName,
+  fileType,
+  producerName,
+  taskName,
+  content,
+  producedAt,
+  mimeType,
+}: {
+  sessionId: string;
+  suffix: string;
+  fileName: string;
+  fileType: string;
+  producerName: string;
+  taskName: string;
+  content: string;
+  producedAt: string;
+  mimeType: string;
+}): ArtifactItem => ({
+  id: `${sessionId}-${suffix}`,
+  artifactId: `${sessionId}-${suffix}`,
+  fileName,
+  fileType,
+  producerName,
+  producedAt,
+  fileSize: `${Math.max(1, Math.ceil(new TextEncoder().encode(content).length / 1024))} KB`,
+  taskName,
+  canonicalPath: `data:${mimeType};charset=utf-8,${encodeURIComponent(content)}`,
+  mimeType,
+});
+
 export const buildMetaAgentCapabilityDemoArtifacts = (
   sessionId: string,
   agentName: string,
-): ArtifactItem[] => [
-  createMarkdownArtifact(
-    sessionId,
-    META_AGENT_TOOL_GUIDE_SUFFIX,
-    "ME 工具消息展示样例.md",
-    agentName,
-    "ME 工具展示梳理",
-    META_AGENT_TOOL_GUIDE_CONTENT,
-    "10:42",
-  ),
-  createMarkdownArtifact(
-    sessionId,
-    META_AGENT_PRD_PATCH_SUFFIX,
-    "ME 能力补充说明.md",
-    agentName,
-    "ME 能力补充",
-    META_AGENT_PRD_PATCH_CONTENT,
-    "11:15",
-  ),
-];
+): ArtifactItem[] => {
+  const imageArtifact: ArtifactItem = {
+    id: `${sessionId}-${META_AGENT_FILE_PREVIEW_IMAGE_SUFFIX}`,
+    artifactId: `${sessionId}-${META_AGENT_FILE_PREVIEW_IMAGE_SUFFIX}`,
+    fileName: "ME 文件预览图文示意.png",
+    fileType: "png",
+    producerName: agentName,
+    producedAt: "14:36",
+    fileSize: "18 KB",
+    taskName: "图片预览",
+    canonicalPath: ME_PREVIEW_INLINE_IMAGE_URL,
+    mimeType: "image/png",
+  };
+  const videoArtifact: ArtifactItem = {
+    id: `${sessionId}-${META_AGENT_FILE_PREVIEW_VIDEO_SUFFIX}`,
+    artifactId: `${sessionId}-${META_AGENT_FILE_PREVIEW_VIDEO_SUFFIX}`,
+    fileName: "ME 文件预览演示视频.mp4",
+    fileType: "mp4",
+    producerName: agentName,
+    producedAt: "14:40",
+    fileSize: "2.8 MB",
+    taskName: "视频预览",
+    canonicalPath: ME_PREVIEW_VIDEO_DATA_URL,
+    mimeType: "video/mp4",
+    previewPosterUrl: ME_PREVIEW_VIDEO_POSTER_URL,
+  };
+  const audioArtifact: ArtifactItem = {
+    id: `${sessionId}-${META_AGENT_FILE_PREVIEW_AUDIO_SUFFIX}`,
+    artifactId: `${sessionId}-${META_AGENT_FILE_PREVIEW_AUDIO_SUFFIX}`,
+    fileName: "ME 文件预览语音说明.mp3",
+    fileType: "mp3",
+    producerName: agentName,
+    producedAt: "14:41",
+    fileSize: "420 KB",
+    taskName: "音频预览",
+    canonicalPath: ME_PREVIEW_AUDIO_DATA_URL,
+    mimeType: "audio/mpeg",
+  };
+
+  return [
+    createMarkdownArtifact(
+      sessionId,
+      META_AGENT_TOOL_GUIDE_SUFFIX,
+      "ME 工具消息展示样例.md",
+      agentName,
+      "ME 工具展示梳理",
+      META_AGENT_TOOL_GUIDE_CONTENT,
+      "10:42",
+    ),
+    createMarkdownArtifact(
+      sessionId,
+      META_AGENT_PRD_PATCH_SUFFIX,
+      "ME 能力补充说明.md",
+      agentName,
+      "ME 能力补充",
+      META_AGENT_PRD_PATCH_CONTENT,
+      "11:15",
+    ),
+    createPreviewArtifact({
+      sessionId,
+      suffix: META_AGENT_FILE_PREVIEW_DOCX_SUFFIX,
+      fileName: "ME 输出文件预览能力说明.docx",
+      fileType: "docx",
+      producerName: agentName,
+      taskName: "文档预览设计",
+      content: ME_FILE_PREVIEW_DOCX_CONTENT,
+      producedAt: "14:31",
+      mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    }),
+    createPreviewArtifact({
+      sessionId,
+      suffix: META_AGENT_FILE_PREVIEW_TXT_SUFFIX,
+      fileName: "ME 输出文件类型规则.txt",
+      fileType: "txt",
+      producerName: agentName,
+      taskName: "文本文档预览",
+      content: ME_FILE_PREVIEW_TXT_CONTENT,
+      producedAt: "14:32",
+      mimeType: "text/plain",
+    }),
+    createPreviewArtifact({
+      sessionId,
+      suffix: META_AGENT_FILE_PREVIEW_XLSX_SUFFIX,
+      fileName: "ME 文件类型矩阵.xlsx",
+      fileType: "xlsx",
+      producerName: agentName,
+      taskName: "表格预览设计",
+      content: ME_FILE_PREVIEW_XLSX_CONTENT,
+      producedAt: "14:33",
+      mimeType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    }),
+    createPreviewArtifact({
+      sessionId,
+      suffix: META_AGENT_FILE_PREVIEW_PPTX_SUFFIX,
+      fileName: "ME 文件预览交互方案.pptx",
+      fileType: "pptx",
+      producerName: agentName,
+      taskName: "演示文稿预览设计",
+      content: ME_FILE_PREVIEW_PPTX_CONTENT,
+      producedAt: "14:34",
+      mimeType: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+    }),
+    imageArtifact,
+    createPreviewArtifact({
+      sessionId,
+      suffix: META_AGENT_FILE_PREVIEW_HTML_SUFFIX,
+      fileName: "me_file_preview_demo.html",
+      fileType: "html",
+      producerName: agentName,
+      taskName: "HTML 预览设计",
+      content: ME_FILE_PREVIEW_HTML_CONTENT,
+      producedAt: "14:37",
+      mimeType: "text/html",
+    }),
+    createPreviewArtifact({
+      sessionId,
+      suffix: META_AGENT_FILE_PREVIEW_JSON_SUFFIX,
+      fileName: "me_file_preview_schema.json",
+      fileType: "json",
+      producerName: agentName,
+      taskName: "代码预览设计",
+      content: ME_FILE_PREVIEW_JSON_CONTENT,
+      producedAt: "14:38",
+      mimeType: "application/json",
+    }),
+    createPreviewArtifact({
+      sessionId,
+      suffix: META_AGENT_FILE_PREVIEW_PY_SUFFIX,
+      fileName: "resolve_me_file_preview.py",
+      fileType: "py",
+      producerName: agentName,
+      taskName: "代码预览设计",
+      content: ME_FILE_PREVIEW_PY_CONTENT,
+      producedAt: "14:39",
+      mimeType: "text/x-python",
+    }),
+    videoArtifact,
+    audioArtifact,
+  ];
+};
 
 const buildLocalToolDemoBlocks = (
   round: MetaAgentHistoryRound,
@@ -312,6 +692,7 @@ const buildSkillMcpTaskDemoBlocks = (
 ): Block[] => {
   const messageId = `metaagent-history-${round.id}-assistant`;
   const prdPatchArtifactId = `${sessionId}-${META_AGENT_PRD_PATCH_SUFFIX}`;
+  const dataInsightResultId = `${sessionId}-${META_AGENT_DATA_INSIGHT_RESULT_SUFFIX}`;
 
   return createAssistantMessageBlocks(
     messageId,
@@ -402,6 +783,15 @@ const buildSkillMcpTaskDemoBlocks = (
           "正在重试：只回填任务区需要展示的任务名称、AI 专家头像和名称，以及执行中、执行完成、执行失败三类状态。",
         avatarLabel: "状",
       }),
+      createResultCardsBlock(`${messageId}-expert-results`, [
+        {
+          id: dataInsightResultId,
+          title: "数据洞察师任务回传",
+          subtitle: "多 Goal 任务分组、状态回填和收起态规则",
+          badge: "AI 专家结果",
+          createdAt: "刚刚",
+        },
+      ]),
       createToolUseBlock({
         id: `${messageId}-edit`,
         name: "edit_file",
@@ -426,6 +816,121 @@ const buildSkillMcpTaskDemoBlocks = (
         `${messageId}-artifact-prd-patch`,
         prdPatchArtifactId,
         "ME 能力补充说明.md",
+      ),
+    ],
+    agentName,
+  );
+};
+
+const buildFilePreviewDemoBlocks = (
+  round: MetaAgentHistoryRound,
+  agentName: string,
+  sessionId: string,
+): Block[] => {
+  const messageId = `metaagent-history-${round.id}-assistant`;
+  const artifactId = (suffix: string): string => `${sessionId}-${suffix}`;
+
+  return createAssistantMessageBlocks(
+    messageId,
+    [
+      createThinkingBlock(
+        `${messageId}-thinking`,
+        "我会把 ME 输出文件先按内容形态分组：文档、表格、演示、页面、图片、音频、视频和代码。预览不是只看后缀，像 DOCX 这类富文本文档要能展示正文、表格和图片，HTML 要同时支持页面预览和源码查看。",
+      ),
+      createToolUseBlock({
+        id: `${messageId}-matrix`,
+        name: "write_file",
+        displayName: "创建/写入文件",
+        purpose: "生成 ME 文件类型矩阵表格",
+        output:
+          "已创建 ME 文件类型矩阵.xlsx，覆盖文档、表格、演示、页面、代码、图片、音频和视频输出。",
+      }),
+      createToolUseBlock({
+        id: `${messageId}-docx`,
+        name: "write_file",
+        displayName: "创建/写入文件",
+        purpose: "生成包含文本、表格和图片的富文本文档",
+        output: "已创建 ME 输出文件预览能力说明.docx，文档预览中包含标题、列表、表格和内嵌图片。",
+      }),
+      createTextBlock(
+        `${messageId}-mid-text`,
+        "我把预览器拆成几类：文档类用富文本阅读，表格类用工作簿网格，PPTX 用幻灯片卡片，HTML 保留“预览 / 源码”切换，JSON 和 Python 走代码预览，音频和视频走媒体播放器。",
+      ),
+      createToolUseBlock({
+        id: `${messageId}-html`,
+        name: "write_file",
+        displayName: "创建/写入文件",
+        purpose: "生成 HTML 预览与源码切换示例",
+        output:
+          "已创建 me_file_preview_demo.html，打开后默认渲染页面，右上角可切换源码并新窗口打开。",
+      }),
+      createToolUseBlock({
+        id: `${messageId}-code`,
+        name: "write_file",
+        displayName: "创建/写入文件",
+        purpose: "生成 JSON 与 Python 代码预览样例",
+        output:
+          "已创建 me_file_preview_schema.json 和 resolve_me_file_preview.py，代码预览保留缩进、换行和等宽字体。",
+      }),
+      createToolUseBlock({
+        id: `${messageId}-media`,
+        name: "write_file",
+        displayName: "创建/写入文件",
+        purpose: "生成音频和视频预览样例",
+        output:
+          "已创建 ME 文件预览演示视频.mp4 和 ME 文件预览语音说明.mp3，分别进入视频播放器和音频播放器预览。",
+      }),
+      createTextBlock(
+        `${messageId}-final`,
+        `我已经把 ME 输出文件的预览类型做成一组 mock 成果：文档、表格、演示、图片、音频、视频、HTML 和代码都可以点开查看。后续 ME 只要在一轮任务里创建或编辑这些文件，最终回复结尾就追加对应文件卡片。`,
+      ),
+      createArtifactBlock(
+        `${messageId}-artifact-docx`,
+        artifactId(META_AGENT_FILE_PREVIEW_DOCX_SUFFIX),
+        "ME 输出文件预览能力说明.docx",
+        "document",
+      ),
+      createArtifactBlock(
+        `${messageId}-artifact-xlsx`,
+        artifactId(META_AGENT_FILE_PREVIEW_XLSX_SUFFIX),
+        "ME 文件类型矩阵.xlsx",
+        "spreadsheet",
+      ),
+      createArtifactBlock(
+        `${messageId}-artifact-pptx`,
+        artifactId(META_AGENT_FILE_PREVIEW_PPTX_SUFFIX),
+        "ME 文件预览交互方案.pptx",
+        "presentation",
+      ),
+      createArtifactBlock(
+        `${messageId}-artifact-html`,
+        artifactId(META_AGENT_FILE_PREVIEW_HTML_SUFFIX),
+        "me_file_preview_demo.html",
+        "html",
+      ),
+      createArtifactBlock(
+        `${messageId}-artifact-json`,
+        artifactId(META_AGENT_FILE_PREVIEW_JSON_SUFFIX),
+        "me_file_preview_schema.json",
+        "code",
+      ),
+      createArtifactBlock(
+        `${messageId}-artifact-py`,
+        artifactId(META_AGENT_FILE_PREVIEW_PY_SUFFIX),
+        "resolve_me_file_preview.py",
+        "code",
+      ),
+      createArtifactBlock(
+        `${messageId}-artifact-video`,
+        artifactId(META_AGENT_FILE_PREVIEW_VIDEO_SUFFIX),
+        "ME 文件预览演示视频.mp4",
+        "video",
+      ),
+      createArtifactBlock(
+        `${messageId}-artifact-audio`,
+        artifactId(META_AGENT_FILE_PREVIEW_AUDIO_SUFFIX),
+        "ME 文件预览语音说明.mp3",
+        "audio",
       ),
     ],
     agentName,
@@ -706,6 +1211,15 @@ const META_AGENT_HISTORY_ROUNDS: MetaAgentHistoryRound[] = [
     assistantContent:
       "我已经把 Skill、MCP、Workbench Task 和文件卡片按真实执行顺序补进 mock 对话。任务分发、任务继续、任务完成和任务失败都有独立样例，最终回复结尾追加文件卡片。",
     assistantBlocks: buildSkillMcpTaskDemoBlocks,
+  },
+  {
+    id: "me-file-preview-demo",
+    dateTime: "2026-05-11 14:24",
+    userContent:
+      "现在需要定义 ME 输出的所有文件类型和预览效果，常见文件都要能分类预览，HTML 要能预览也能看代码，JSON 和 Python 走代码预览。",
+    assistantContent:
+      "我已经按文档、表格、演示、图片、音频、视频、HTML 和代码重建了一组 ME mock 成果文件。DOCX 支持图文混排预览，XLSX 展示工作簿网格，PPTX 展示幻灯片，HTML 支持预览和源码切换，JSON/Python 走代码预览，音频和视频走媒体播放器。",
+    assistantBlocks: buildFilePreviewDemoBlocks,
   },
 ];
 
