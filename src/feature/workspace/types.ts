@@ -131,7 +131,9 @@ export interface MeOnboardingProfileValues {
   nickname: string;
   companyName: string;
   industry: string;
+  customIndustry: string;
   role: string;
+  customRole: string;
   companyDescription: string;
 }
 

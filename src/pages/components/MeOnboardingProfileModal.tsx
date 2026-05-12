@@ -1,4 +1,5 @@
 import { Button, Input, Modal, Select } from "antd";
+
 import type { MeOnboardingProfileValues } from "@/feature/workspace/types";
 
 import styles from "./MeOnboardingProfileModal.module.less";
@@ -31,6 +32,8 @@ const ROLE_OPTIONS = [
   { label: "其他", value: "其他" },
 ];
 
+const OTHER_OPTION_VALUE = "其他";
+
 /**
  * 新用户首次进入 ME 时的轻量资料补充弹窗。
  */
@@ -45,6 +48,22 @@ export const MeOnboardingProfileModal = ({
     onChange({
       ...value,
       [field]: nextValue ?? "",
+    });
+  };
+
+  const handleIndustryChange = (nextValue?: string): void => {
+    onChange({
+      ...value,
+      industry: nextValue ?? "",
+      customIndustry: nextValue === OTHER_OPTION_VALUE ? value.customIndustry : "",
+    });
+  };
+
+  const handleRoleChange = (nextValue?: string): void => {
+    onChange({
+      ...value,
+      role: nextValue ?? "",
+      customRole: nextValue === OTHER_OPTION_VALUE ? value.customRole : "",
     });
   };
 
@@ -105,23 +124,41 @@ export const MeOnboardingProfileModal = ({
               placeholder="请选择行业"
               options={INDUSTRY_OPTIONS}
               allowClear
-              onChange={nextValue => handleFieldChange("industry", nextValue)}
+              onChange={handleIndustryChange}
             />
+            {value.industry === OTHER_OPTION_VALUE ? (
+              <Input
+                id="me-onboarding-profile-custom-industry"
+                className={styles.input}
+                value={value.customIndustry}
+                placeholder="请填写所属行业"
+                onChange={event => handleFieldChange("customIndustry", event.currentTarget.value)}
+              />
+            ) : null}
           </div>
 
           <div className={styles.field}>
             <label className={styles.fieldLabel} htmlFor="me-onboarding-profile-role">
-              你的角色
+              你的身份
             </label>
             <Select
               id="me-onboarding-profile-role"
               className={styles.input}
               value={value.role || undefined}
-              placeholder="请选择你主要负责的方向"
+              placeholder="请选择你的身份"
               options={ROLE_OPTIONS}
               allowClear
-              onChange={nextValue => handleFieldChange("role", nextValue)}
+              onChange={handleRoleChange}
             />
+            {value.role === OTHER_OPTION_VALUE ? (
+              <Input
+                id="me-onboarding-profile-custom-role"
+                className={styles.input}
+                value={value.customRole}
+                placeholder="请填写你的身份"
+                onChange={event => handleFieldChange("customRole", event.currentTarget.value)}
+              />
+            ) : null}
           </div>
 
           <div className={`${styles.field} ${styles.fieldWide}`}>

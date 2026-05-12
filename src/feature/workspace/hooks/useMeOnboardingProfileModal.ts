@@ -23,11 +23,14 @@ export const DEFAULT_ME_ONBOARDING_PROFILE_VALUES: MeOnboardingProfileValues = {
   nickname: "",
   companyName: "",
   industry: "",
+  customIndustry: "",
   role: "",
+  customRole: "",
   companyDescription: "",
 };
 
 const ME_ONBOARDING_PROFILE_MODAL_STORAGE_PREFIX = "frontis:me-onboarding-profile-modal:";
+const OTHER_OPTION_VALUE = "其他";
 
 const buildStorageKey = (accountId?: string, tenantId?: string): string | null => {
   if (!accountId || !tenantId) {
@@ -75,7 +78,10 @@ const normalizeProfileValues = (profile: MeOnboardingProfileValues): MeOnboardin
   nickname: profile.nickname.trim(),
   companyName: profile.companyName.trim(),
   industry: profile.industry.trim(),
+  customIndustry:
+    profile.industry === OTHER_OPTION_VALUE ? (profile.customIndustry?.trim() ?? "") : "",
   role: profile.role.trim(),
+  customRole: profile.role === OTHER_OPTION_VALUE ? (profile.customRole?.trim() ?? "") : "",
   companyDescription: profile.companyDescription.trim(),
 });
 
