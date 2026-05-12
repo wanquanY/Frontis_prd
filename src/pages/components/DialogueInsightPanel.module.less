@@ -4,7 +4,8 @@
   right: 16px;
   z-index: 7;
   width: 300px;
-  height: 440px;
+  height: auto;
+  max-height: 300px;
   padding: 16px;
   border: 1px solid color-mix(in srgb, var(--border) 78%, transparent);
   border-radius: 20px;
@@ -22,11 +23,6 @@
   padding: 14px 16px;
 }
 
-.panelSingleSection {
-  height: auto;
-  max-height: 300px;
-}
-
 .section {
   min-width: 0;
   min-height: 0;
@@ -36,34 +32,13 @@
 }
 
 .progressSection {
-  height: 220px;
-  flex: 0 0 220px;
+  max-height: 268px;
+  flex: 0 1 auto;
 }
 
 .panelCollapsed .progressSection {
   height: auto;
   flex: 0 0 auto;
-}
-
-.panelSingleSection .progressSection {
-  height: auto;
-  max-height: 220px;
-  flex: 0 1 auto;
-}
-
-.resultSection {
-  height: 172px;
-  flex: 0 0 172px;
-  padding-top: 14px;
-  border-top: 1px solid var(--border);
-}
-
-.panelSingleSection .resultSection {
-  height: auto;
-  max-height: 172px;
-  flex: 0 1 auto;
-  padding-top: 0;
-  border-top: 0;
 }
 
 .sectionHeader {
@@ -113,8 +88,7 @@
   }
 }
 
-.goalList,
-.fileList {
+.goalList {
   min-width: 0;
   min-height: 0;
   padding-right: 4px;
@@ -124,13 +98,11 @@
   overflow-y: auto;
 }
 
-.goalList::-webkit-scrollbar,
-.fileList::-webkit-scrollbar {
+.goalList::-webkit-scrollbar {
   width: 4px;
 }
 
-.goalList::-webkit-scrollbar-thumb,
-.fileList::-webkit-scrollbar-thumb {
+.goalList::-webkit-scrollbar-thumb {
   border-radius: 999px;
   background: color-mix(in srgb, var(--text) 12%, transparent);
 }
@@ -305,51 +277,4 @@
 
 .taskStatusAborted {
   color: color-mix(in srgb, var(--danger) 76%, var(--text));
-}
-
-.fileItem {
-  width: 100%;
-  min-width: 0;
-  height: 34px;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  color: inherit;
-  cursor: pointer;
-  display: grid;
-  grid-template-columns: 24px minmax(0, 1fr);
-  align-items: center;
-  gap: 9px;
-  text-align: left;
-}
-
-.fileItem:hover .fileName {
-  color: var(--primary);
-}
-
-.fileIcon {
-  width: 24px;
-  height: 24px;
-  border-radius: 8px;
-  background: color-mix(in srgb, var(--text) 5%, var(--surface));
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.fileIconImage {
-  width: 18px;
-  height: 18px;
-  object-fit: contain;
-}
-
-.fileName {
-  min-width: 0;
-  overflow: hidden;
-  color: var(--text);
-  font-size: 13px;
-  line-height: 20px;
-  font-weight: 700;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }

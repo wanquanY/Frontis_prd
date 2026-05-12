@@ -72,7 +72,7 @@ import {
 import { DialogueHomeView } from "./DialogueHomeView";
 import { DialogueHistoryPanel } from "./DialogueHistoryPanel";
 import { DialogueInsightPanel } from "./DialogueInsightPanel";
-import { buildDialogueInsightTasks, filterTodayArtifactFiles } from "./dialogueInsightPanelUtils";
+import { buildDialogueInsightTasks } from "./dialogueInsightPanelUtils";
 import { DialogueResultPanel } from "./DialogueResultPanel";
 import styles from "../FrontisPage.module.less";
 
@@ -367,8 +367,8 @@ const isMetaCoordinatorEmployee = (
 ): boolean =>
   Boolean(
     employee.isExpertTeam &&
-      defaultAgentIds.includes(employee.id) &&
-      employee.name === EXPERT_TEAM_MAIN_AGENT_NAME,
+    defaultAgentIds.includes(employee.id) &&
+    employee.name === EXPERT_TEAM_MAIN_AGENT_NAME,
   );
 
 /**
@@ -591,15 +591,11 @@ export const DialoguePrototypeView = ({
       }),
     [activeEmployee.name, dialogueMessages, metaAgentTrajectoryItems],
   );
-  const todayArtifactFiles = useMemo(
-    () => filterTodayArtifactFiles(activeDialogueArtifacts),
-    [activeDialogueArtifacts],
-  );
   const shouldShowDialogueInsightPanel =
     isMetaAgentWorkspace &&
     !isHomeVisible &&
     !isSidePanelVisible &&
-    (dialogueInsightTasks.length > 0 || todayArtifactFiles.length > 0);
+    dialogueInsightTasks.length > 0;
   const shouldShowWorkRecordEntry = isMetaAgentWorkspace && !isHomeVisible && !isSidePanelVisible;
   const { visibleSkillItems, overflowSkillItems } = useMemo(() => {
     if (selectedSkillItems.length > 0) {
@@ -1659,15 +1655,6 @@ export const DialoguePrototypeView = ({
     setSidePanelMode("artifacts");
   };
 
-  const handleOpenArtifactFile = (file: ArtifactItem): void => {
-    setPreferredArtifactId(file.id);
-    setIsArtifactPreviewing(true);
-    setSidePanelWidth(currentWidth =>
-      clampSidePanelWidth(Math.max(currentWidth, DIALOGUE_ARTIFACT_PREVIEW_PANEL_DEFAULT_WIDTH)),
-    );
-    setSidePanelMode("artifacts");
-  };
-
   const handleOpenResult = (resultId: string): void => {
     if (!activeDialogueResults.some(item => item.id === resultId)) {
       return;
@@ -2621,11 +2608,7 @@ export const DialoguePrototypeView = ({
       ) : null}
 
       {shouldShowDialogueInsightPanel ? (
-        <DialogueInsightPanel
-          tasks={dialogueInsightTasks}
-          files={todayArtifactFiles}
-          onOpenFile={handleOpenArtifactFile}
-        />
+        <DialogueInsightPanel tasks={dialogueInsightTasks} />
       ) : null}
 
       {isSidePanelVisible && !isStackedLayout ? (
