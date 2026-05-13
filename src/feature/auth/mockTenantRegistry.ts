@@ -55,13 +55,15 @@ const createTenantUser = (
   buildTenantUser({
     ...overrides,
     assignedAgentIds:
-      overrides.role === "enterpriseAdmin"
+      overrides.assignedAgentIds ??
+      (overrides.role === "enterpriseAdmin"
         ? [...DEFAULT_ADMIN_ASSIGNED_AGENT_IDS]
-        : [...DEFAULT_MEMBER_ASSIGNED_AGENT_IDS],
+        : [...DEFAULT_MEMBER_ASSIGNED_AGENT_IDS]),
     assignedWorkspaceIds:
-      overrides.role === "enterpriseAdmin"
+      overrides.assignedWorkspaceIds ??
+      (overrides.role === "enterpriseAdmin"
         ? [...DEFAULT_ADMIN_ASSIGNED_WORKSPACE_IDS]
-        : [...DEFAULT_MEMBER_ASSIGNED_WORKSPACE_IDS],
+        : [...DEFAULT_MEMBER_ASSIGNED_WORKSPACE_IDS]),
     departmentId: "dept-default",
     dialogueCount: 0,
     lastActiveAt: "刚刚",
@@ -630,6 +632,7 @@ const PRESET_TENANT_SNAPSHOTS: MockTenantManagementSnapshot[] = [
         name: "沈一新",
         phone: "13800007777",
         role: "employee",
+        assignedAgentIds: [],
       }),
     ],
     agentUsageRecords: [],

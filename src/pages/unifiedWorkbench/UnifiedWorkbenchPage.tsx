@@ -399,11 +399,7 @@ export const UnifiedWorkbenchPage = ({ viewRole }: UnifiedWorkbenchPageProps): J
             open={isAccountMenuOpen}
             onOpenChange={setIsAccountMenuOpen}
             dropdownRender={menu => (
-              <AccountDropdownPanel
-                accountName={featureAccountName}
-                tenantName={activeIdentity?.tenantName}
-                menu={menu}
-              />
+              <AccountDropdownPanel accountName={featureAccountName} menu={menu} />
             )}
           >
             <button

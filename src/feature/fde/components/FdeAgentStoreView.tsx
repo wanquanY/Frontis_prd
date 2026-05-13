@@ -15,6 +15,10 @@ import {
 import { loadOperationsServiceContactConfig } from "@/feature/operations/platformConfigStorage";
 import { loadStoredAgentPlazaCategories } from "@/feature/operations/agentPlazaCategoryStorage";
 import { OPERATIONS_AGENT_PLAZA_DEFAULT_CATEGORY } from "@/feature/operations/mockData";
+import {
+  TENANT_PERMISSION_IDS,
+  normalizeTenantRolePermissionIds,
+} from "@/constants/tenantRolePermissions";
 import type {
   OperationsAgentPlazaCategoryOption,
   OperationsAgentSubmission,
@@ -448,15 +452,14 @@ const getVisibilityLabel = (agent: StoreAgentItem): string => {
 
 const getAcquisitionLabel = (product: OperationsProduct): string => {
   if (product.contactMode && product.contactMode !== "disabled") {
-    return "联系客服";
+    return "联系我们";
   }
 
-  if (product.supportsTrial) {
-    return "可试用";
-  }
-
-  return "可直接添加";
+  return "添加到专家列表";
 };
+
+const shouldContactForAgent = (agent: StoreAgentItem): boolean =>
+  Boolean(agent.product?.contactMode && agent.product.contactMode !== "disabled");
 
 const getContactRemark = (template: string, agentName: string): string =>
   template.trim().replace(/\{agentName\}/g, agentName);
@@ -704,6 +707,7 @@ export const FdeAgentStoreView = (): JSX.Element => {
   );
   const [contactAgent, setContactAgent] = useState<StoreAgentItem | null>(null);
   const [removedMineAgentIds, setRemovedMineAgentIds] = useState<Set<string>>(() => new Set());
+  const [expertListOverrides, setExpertListOverrides] = useState<Record<string, boolean>>({});
   const [agentPlazaCategories, setAgentPlazaCategories] = useState<
     OperationsAgentPlazaCategoryOption[]
   >(() => loadStoredAgentPlazaCategories());
@@ -715,13 +719,34 @@ export const FdeAgentStoreView = (): JSX.Element => {
     [currentTenantId],
   );
   const isTeamEdition = tenantSnapshot?.edition === "team";
+  const currentPermissionIds = useMemo(
+    () => normalizeTenantRolePermissionIds(activeIdentity?.permissionIds ?? []),
+    [activeIdentity?.permissionIds],
+  );
+  const canManageOwnPublishedAgents =
+    isTeamEdition &&
+    currentPermissionIds.includes(TENANT_PERMISSION_IDS.develop) &&
+    currentPermissionIds.includes(TENANT_PERMISSION_IDS.agentPublishTenant);
+  const canApplyForMarketplaceListing =
+    canManageOwnPublishedAgents &&
+    (tenantSnapshot?.hasAgentListingAccess ||
+      currentPermissionIds.includes(TENANT_PERMISSION_IDS.agentPublishMarketplace) ||
+      currentPermissionIds.includes(TENANT_PERMISSION_IDS.agentPublishPublic));
 
   const shelfFilterOptions = useMemo(
     () =>
-      isTeamEdition
-        ? SHELF_FILTER_OPTIONS
-        : SHELF_FILTER_OPTIONS.filter(item => item.value !== "teamShare"),
-    [isTeamEdition],
+      SHELF_FILTER_OPTIONS.filter(item => {
+        if (item.value === "mine") {
+          return canManageOwnPublishedAgents;
+        }
+
+        if (item.value === "teamShare") {
+          return isTeamEdition;
+        }
+
+        return true;
+      }),
+    [canManageOwnPublishedAgents, isTeamEdition],
   );
 
   const businessLineOptions = useMemo(
@@ -742,10 +767,10 @@ export const FdeAgentStoreView = (): JSX.Element => {
   }, [refreshStorefrontState]);
 
   useEffect(() => {
-    if (!isTeamEdition && shelfFilter === "teamShare") {
+    if (!shelfFilterOptions.some(item => item.value === shelfFilter)) {
       setShelfFilter("all");
     }
-  }, [isTeamEdition, shelfFilter]);
+  }, [shelfFilter, shelfFilterOptions]);
 
   useEffect(() => {
     if (businessLineFilter === "all") {
@@ -778,8 +803,11 @@ export const FdeAgentStoreView = (): JSX.Element => {
     [commodityApplicationsByAgentId],
   );
   const myAgents = useMemo(
-    () => buildMyAgents(currentUserName, commodityApplicationsByAgentId),
-    [commodityApplicationsByAgentId, currentUserName],
+    () =>
+      canManageOwnPublishedAgents
+        ? buildMyAgents(currentUserName, commodityApplicationsByAgentId)
+        : [],
+    [canManageOwnPublishedAgents, commodityApplicationsByAgentId, currentUserName],
   );
 
   const frontisAgents = useMemo(
@@ -840,6 +868,80 @@ export const FdeAgentStoreView = (): JSX.Element => {
     setRemovedMineAgentIds(current => new Set([...current, agent.id]));
     message.success("已从专家广场删除该 AI 专家。");
   }, []);
+
+  const isInExpertList = useCallback(
+    (agent: StoreAgentItem): boolean => expertListOverrides[agent.id] ?? Boolean(agent.fulfillment),
+    [expertListOverrides],
+  );
+
+  const handleAddToExpertList = useCallback((agent: StoreAgentItem): void => {
+    setExpertListOverrides(current => ({ ...current, [agent.id]: true }));
+    message.success(`已添加「${agent.name}」到专家列表。`);
+  }, []);
+
+  const handleRemoveFromExpertList = useCallback((agent: StoreAgentItem): void => {
+    setExpertListOverrides(current => ({ ...current, [agent.id]: false }));
+    message.success(`已从专家列表移除「${agent.name}」。`);
+  }, []);
+
+  const handleApplyForMarketplaceListing = useCallback((agent: StoreAgentItem): void => {
+    message.success(`已提交「${agent.name}」上架申请。`);
+  }, []);
+
+  const renderExpertListAction = (agent: StoreAgentItem): JSX.Element => {
+    const isAddedToExpertList = isInExpertList(agent);
+
+    return (
+      <Button
+        className={`${styles.cardActionButton} ${styles.cardActionButtonPrimary}`}
+        onClick={() =>
+          isAddedToExpertList ? handleRemoveFromExpertList(agent) : handleAddToExpertList(agent)
+        }
+      >
+        {isAddedToExpertList ? "从专家列表移除" : "添加到专家列表"}
+      </Button>
+    );
+  };
+
+  const renderAgentActions = (agent: StoreAgentItem): JSX.Element => {
+    const shouldContact = agent.sourceType === "frontis" && shouldContactForAgent(agent);
+
+    if (shouldContact) {
+      return (
+        <>
+          <Button
+            className={`${styles.cardActionButton} ${styles.cardActionButtonPrimary}`}
+            onClick={() => handleContactAgent(agent)}
+          >
+            联系我们
+          </Button>
+        </>
+      );
+    }
+
+    return (
+      <>
+        {agent.sourceType === "mine" ? (
+          <Popconfirm
+            title="删除 AI 专家"
+            description="删除后，该 AI 专家将不再显示在专家广场。"
+            okText="删除"
+            cancelText="取消"
+            okButtonProps={{ danger: true }}
+            onConfirm={() => handleRemoveMineAgent(agent)}
+          >
+            <Button className={styles.cardActionButton}>删除</Button>
+          </Popconfirm>
+        ) : null}
+        {renderExpertListAction(agent)}
+        {agent.sourceType === "mine" && canApplyForMarketplaceListing ? (
+          <Button className={styles.cardActionButton} onClick={() => handleApplyForMarketplaceListing(agent)}>
+            申请上架
+          </Button>
+        ) : null}
+      </>
+    );
+  };
 
   return (
     <div className={styles.root}>
@@ -917,24 +1019,7 @@ export const FdeAgentStoreView = (): JSX.Element => {
             </div>
 
             <div className={styles.cardFooter}>
-              {agent.sourceType === "mine" ? (
-                <Popconfirm
-                  title="删除 AI 专家"
-                  description="删除后，该 AI 专家将不再显示在专家广场。"
-                  okText="删除"
-                  cancelText="取消"
-                  okButtonProps={{ danger: true }}
-                  onConfirm={() => handleRemoveMineAgent(agent)}
-                >
-                  <Button className={styles.cardActionButton}>删除</Button>
-                </Popconfirm>
-              ) : null}
-              <Button
-                className={`${styles.cardActionButton} ${styles.cardActionButtonPrimary}`}
-                onClick={() => handleContactAgent(agent)}
-              >
-                联系我们
-              </Button>
+              {renderAgentActions(agent)}
             </div>
           </article>
         ))}

@@ -11,7 +11,6 @@ import styles from "./AccountDropdownPanel.module.less";
 interface AccountDropdownPanelProps {
   accountName: string;
   menu: ReactNode;
-  tenantName?: string;
 }
 
 /**
@@ -20,7 +19,6 @@ interface AccountDropdownPanelProps {
 export const AccountDropdownPanel = ({
   accountName,
   menu,
-  tenantName,
 }: AccountDropdownPanelProps): JSX.Element => {
   const communityGroupConfig = useMemo(() => loadOperationsCommunityGroupConfig(), []);
   const shouldShowCommunityEntry =
@@ -30,7 +28,6 @@ export const AccountDropdownPanel = ({
     <div className={styles.panel}>
       <div className={styles.header}>
         <span className={styles.name}>{accountName}</span>
-        {tenantName ? <span className={styles.meta}>{tenantName}</span> : null}
       </div>
 
       {shouldShowCommunityEntry ? (

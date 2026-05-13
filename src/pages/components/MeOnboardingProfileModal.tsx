@@ -1,13 +1,26 @@
-import { Button, Input, Modal, Select } from "antd";
+import { useState } from "react";
+
+import { Avatar, Button, Input, Modal, Select } from "antd";
 
 import type { MeOnboardingProfileValues } from "@/feature/workspace/types";
 
 import styles from "./MeOnboardingProfileModal.module.less";
 
+export interface MeSchedulableExpertOption {
+  id: string;
+  name: string;
+  role: string;
+  summary: string;
+  avatarUrl?: string;
+}
+
 interface MeOnboardingProfileModalProps {
   open: boolean;
   value: MeOnboardingProfileValues;
+  schedulableExperts: MeSchedulableExpertOption[];
+  addedSchedulableExpertIds: string[];
   onChange: (nextValue: MeOnboardingProfileValues) => void;
+  onAddSchedulableExpert: (expertId: string) => void;
   onSubmit: () => void;
   onSkip: () => void;
 }
@@ -40,10 +53,15 @@ const OTHER_OPTION_VALUE = "其他";
 export const MeOnboardingProfileModal = ({
   open,
   value,
+  schedulableExperts,
+  addedSchedulableExpertIds,
   onChange,
+  onAddSchedulableExpert,
   onSubmit,
   onSkip,
 }: MeOnboardingProfileModalProps): JSX.Element => {
+  const [isExpertPickerOpen, setIsExpertPickerOpen] = useState<boolean>(false);
+
   const handleFieldChange = (field: keyof MeOnboardingProfileValues, nextValue?: string): void => {
     onChange({
       ...value,
@@ -84,6 +102,13 @@ export const MeOnboardingProfileModal = ({
           <p className={styles.description}>
             这些信息会帮助 ME 更快理解你的业务背景，后续也可以在对话里继续补充。
           </p>
+          <Button
+            className={styles.expertEntryButton}
+            type="default"
+            onClick={() => setIsExpertPickerOpen(true)}
+          >
+            给ME添加可调度的AI专家
+          </Button>
         </header>
 
         <div className={styles.formGrid}>
@@ -187,6 +212,54 @@ export const MeOnboardingProfileModal = ({
           </Button>
         </footer>
       </section>
+
+      <Modal
+        centered
+        width={520}
+        open={isExpertPickerOpen}
+        title="给 ME 添加可调度的 AI 专家"
+        footer={
+          <Button type="primary" onClick={() => setIsExpertPickerOpen(false)}>
+            完成
+          </Button>
+        }
+        onCancel={() => setIsExpertPickerOpen(false)}
+        destroyOnHidden
+      >
+        <div className={styles.expertPickerList}>
+          {schedulableExperts.map(expert => {
+            const isAdded = addedSchedulableExpertIds.includes(expert.id);
+
+            return (
+              <article key={expert.id} className={styles.expertPickerItem}>
+                <div className={styles.expertPickerIdentity}>
+                  <Avatar className={styles.expertPickerAvatar} src={expert.avatarUrl} size={40}>
+                    {expert.name.slice(0, 1)}
+                  </Avatar>
+                  <div className={styles.expertPickerBody}>
+                    <div className={styles.expertPickerTitleRow}>
+                      <span className={styles.expertPickerName}>{expert.name}</span>
+                      <span className={styles.expertPickerRole}>{expert.role}</span>
+                    </div>
+                    <p className={styles.expertPickerSummary}>{expert.summary}</p>
+                  </div>
+                </div>
+                <Button
+                  className={styles.expertPickerAction}
+                  type={isAdded ? "default" : "primary"}
+                  disabled={isAdded}
+                  onClick={() => onAddSchedulableExpert(expert.id)}
+                >
+                  {isAdded ? "已添加" : "添加到专家列表"}
+                </Button>
+              </article>
+            );
+          })}
+          {!schedulableExperts.length ? (
+            <div className={styles.expertPickerEmpty}>暂无可直接添加的 AI 专家。</div>
+          ) : null}
+        </div>
+      </Modal>
     </Modal>
   );
 };

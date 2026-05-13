@@ -1031,11 +1031,7 @@ const FrontisAdminPage = (): JSX.Element => {
               open={isAccountMenuOpen}
               onOpenChange={setIsAccountMenuOpen}
               dropdownRender={menu => (
-                <AccountDropdownPanel
-                  accountName={currentUser?.name ?? "未登录"}
-                  tenantName={activeIdentity?.tenantName}
-                  menu={menu}
-                />
+                <AccountDropdownPanel accountName={currentUser?.name ?? "未登录"} menu={menu} />
               )}
             >
               <button

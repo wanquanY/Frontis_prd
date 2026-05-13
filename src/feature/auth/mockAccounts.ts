@@ -145,6 +145,7 @@ const buildRuntimeUser = (
   role: FrontisUserRole,
   departmentId = "dept-default",
   roleIds: string[] = [DEFAULT_TENANT_ROLE_IDS[role]],
+  assignedAgentIds?: string[],
 ): FrontisWebUserItem => ({
   id: userId,
   departmentId,
@@ -154,9 +155,10 @@ const buildRuntimeUser = (
   roleIds,
   status: "active",
   assignedAgentIds:
-    role === "enterpriseAdmin"
+    assignedAgentIds ??
+    (role === "enterpriseAdmin"
       ? [...DEFAULT_ADMIN_ASSIGNED_AGENT_IDS]
-      : [...DEFAULT_MEMBER_ASSIGNED_AGENT_IDS],
+      : [...DEFAULT_MEMBER_ASSIGNED_AGENT_IDS]),
   assignedWorkspaceIds:
     role === "enterpriseAdmin"
       ? [...DEFAULT_ADMIN_ASSIGNED_WORKSPACE_IDS]
@@ -845,9 +847,15 @@ export const registerMockTenantAdminAccount = (
     totalSeats: 1,
     usedSeats: 1,
     users: [
-      buildRuntimeUser(userId, params.name.trim(), normalizedPhone, "employee", "dept-default", [
-        DEFAULT_TENANT_ROLE_IDS.employee,
-      ]),
+      buildRuntimeUser(
+        userId,
+        params.name.trim(),
+        normalizedPhone,
+        "employee",
+        "dept-default",
+        [DEFAULT_TENANT_ROLE_IDS.employee],
+        [],
+      ),
     ],
     agentUsageRecords: [],
     pointsLedger: [

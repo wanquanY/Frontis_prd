@@ -54,7 +54,10 @@ import { isChatAttachmentFileAllowed } from "@/utils/chatAttachmentFileTypes";
 import { hasUserInAccessScope } from "@/utils/organizationAccess";
 
 import { DialoguePrototypeView } from "./components/DialoguePrototypeView";
-import { MeOnboardingProfileModal } from "./components/MeOnboardingProfileModal";
+import {
+  MeOnboardingProfileModal,
+  type MeSchedulableExpertOption,
+} from "./components/MeOnboardingProfileModal";
 import { buildDialogueScenarioReplay, findDialogueScenario } from "./dialogueScenarioSimulation";
 import type {
   DialogueGeneratedResultItem,
@@ -823,6 +826,7 @@ const FrontisPage = ({
     null,
   );
   const [removedExpertStudioAgentIds, setRemovedExpertStudioAgentIds] = useState<string[]>([]);
+  const [onboardingSchedulableAgentIds, setOnboardingSchedulableAgentIds] = useState<string[]>([]);
   const dialogueTimerRefs = useRef<number[]>([]);
   const latestDialogueAttachmentsRef = useRef<WorkspaceComposerAttachmentItem[]>([]);
 
@@ -838,6 +842,7 @@ const FrontisPage = ({
     setActiveMetaAgentTrajectoryId(null);
     setActiveMetaAgentTrajectoryAnchorBlockId(null);
     setRemovedExpertStudioAgentIds([]);
+    setOnboardingSchedulableAgentIds([]);
   }, [activeIdentity?.tenantId, viewRole, workspaceMode]);
 
   const employees = useMemo(
@@ -889,10 +894,18 @@ const FrontisPage = ({
     () => employees.filter(item => item.portalRoles.includes(viewRole)),
     [employees, viewRole],
   );
+  const baseAssignedAgentIds = useMemo(
+    () => (shouldEnableMeOnboardingProfileModal ? [] : (currentUser?.assignedAgentIds ?? [])),
+    [currentUser?.assignedAgentIds, shouldEnableMeOnboardingProfileModal],
+  );
+  const assignedMeSchedulableAgentIds = useMemo(
+    () => new Set([...baseAssignedAgentIds, ...onboardingSchedulableAgentIds]),
+    [baseAssignedAgentIds, onboardingSchedulableAgentIds],
+  );
   const assignedConversationEmployees = useMemo(
     () =>
       roleVisibleEmployees.filter(item => {
-        const isAssigned = currentUser?.assignedAgentIds.includes(item.id) ?? false;
+        const isAssigned = assignedMeSchedulableAgentIds.has(item.id);
 
         if (!isAssigned || item.id === DEFAULT_CONVERSATION_EMPLOYEE_ID) {
           return false;
@@ -914,7 +927,39 @@ const FrontisPage = ({
             : false)
         );
       }),
-    [currentUser, roleVisibleEmployees, tenantUsers, viewRole],
+    [assignedMeSchedulableAgentIds, currentUser, roleVisibleEmployees, tenantUsers, viewRole],
+  );
+  const meSchedulableExpertOptions = useMemo<MeSchedulableExpertOption[]>(
+    () =>
+      roleVisibleEmployees
+        .filter(
+          item =>
+            item.id !== DEFAULT_CONVERSATION_EMPLOYEE_ID &&
+            item.visibility === "all" &&
+            !item.isExpertTeam,
+        )
+        .map(item => ({
+          id: item.id,
+          name: item.name,
+          role: item.role,
+          summary: item.summary,
+          avatarUrl: item.avatarUrl,
+        })),
+    [roleVisibleEmployees],
+  );
+  const handleAddMeSchedulableExpert = useCallback(
+    (expertId: string): void => {
+      const matchedExpert = meSchedulableExpertOptions.find(item => item.id === expertId);
+
+      setOnboardingSchedulableAgentIds(currentIds =>
+        currentIds.includes(expertId) ? currentIds : [...currentIds, expertId],
+      );
+
+      if (matchedExpert) {
+        message.success(`已添加「${matchedExpert.name}」到专家列表。`);
+      }
+    },
+    [meSchedulableExpertOptions],
   );
   const expertStudioAssignedEmployees = useMemo(
     () =>
@@ -2001,7 +2046,10 @@ const FrontisPage = ({
     <MeOnboardingProfileModal
       open={isMeOnboardingProfileModalOpen}
       value={meOnboardingProfile}
+      schedulableExperts={meSchedulableExpertOptions}
+      addedSchedulableExpertIds={[...assignedMeSchedulableAgentIds]}
       onChange={handleChangeMeOnboardingProfile}
+      onAddSchedulableExpert={handleAddMeSchedulableExpert}
       onSubmit={handleSubmitMeOnboardingProfile}
       onSkip={handleSkipMeOnboardingProfile}
     />

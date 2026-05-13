@@ -46,6 +46,15 @@
   line-height: 22px;
 }
 
+.expertEntryButton {
+  margin-top: 14px;
+  height: 34px;
+  border-color: color-mix(in srgb, var(--primary) 36%, var(--border));
+  color: var(--primary);
+  font-size: 13px;
+  font-weight: 700;
+}
+
 .formGrid {
   margin-top: 24px;
   display: grid;
@@ -86,6 +95,85 @@
   gap: 10px;
 }
 
+.expertPickerList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.expertPickerItem {
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.expertPickerIdentity {
+  min-width: 0;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.expertPickerAvatar {
+  flex: 0 0 auto;
+  background: color-mix(in srgb, var(--primary) 16%, var(--surface));
+  color: var(--primary);
+  font-weight: 700;
+}
+
+.expertPickerBody {
+  min-width: 0;
+}
+
+.expertPickerTitleRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.expertPickerName {
+  color: var(--text);
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 800;
+}
+
+.expertPickerRole {
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.expertPickerSummary {
+  margin: 4px 0 0;
+  display: -webkit-box;
+  overflow: hidden;
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 18px;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.expertPickerAction {
+  flex: 0 0 auto;
+}
+
+.expertPickerEmpty {
+  padding: 22px 12px;
+  border: 1px dashed var(--border);
+  border-radius: 12px;
+  color: var(--text-secondary);
+  font-size: 13px;
+  text-align: center;
+}
+
 @media (max-width: 640px) {
   .panel {
     padding: 24px 20px;
@@ -93,5 +181,14 @@
 
   .formGrid {
     grid-template-columns: 1fr;
+  }
+
+  .expertPickerItem {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .expertPickerAction {
+    width: 100%;
   }
 }

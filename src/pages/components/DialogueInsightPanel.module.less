@@ -176,20 +176,20 @@
   min-width: 0;
   display: grid;
   grid-template-columns: 18px minmax(0, 1fr);
-  align-items: flex-start;
+  align-items: center;
   gap: 8px;
 }
 
 .taskDescription {
   min-width: 0;
   color: var(--text);
-  display: -webkit-box;
+  display: block;
   overflow: hidden;
   font-size: 13px;
   line-height: 19px;
   font-weight: 700;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .taskExpert {
