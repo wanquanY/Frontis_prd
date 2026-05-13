@@ -33,7 +33,7 @@ import styles from "./FdeAgentStoreView.module.less";
 
 type AgentShelfFilter = "all" | "mine" | "teamShare" | "frontis";
 type BusinessLineFilter = "all" | BusinessLineKey;
-type BusinessLineKey = OperationsAgentPlazaCategoryOption["name"];
+export type BusinessLineKey = OperationsAgentPlazaCategoryOption["name"];
 type AgentSourceType = "mine" | "teamShare" | "frontis";
 
 interface AgentCapability {
@@ -78,7 +78,7 @@ interface PlatformAgentBlueprint {
   capabilities: AgentCapability[];
 }
 
-interface StoreAgentItem {
+export interface StoreAgentItem {
   id: string;
   sourceType: AgentSourceType;
   visualSeed: string;
@@ -387,7 +387,7 @@ const FRONTIS_AGENT_BLUEPRINTS: Record<string, PlatformAgentBlueprint> = {
 const getBusinessLineLabel = (line: BusinessLineKey): string =>
   line.trim() || OPERATIONS_AGENT_PLAZA_DEFAULT_CATEGORY;
 
-const getDomainTone = (line: BusinessLineKey): string =>
+export const getAgentStoreDomainTone = (line: BusinessLineKey): string =>
   DOMAIN_TONE_MAP[line] ?? DEFAULT_DOMAIN_TONE;
 
 const getBusinessLineOptions = (
@@ -458,7 +458,7 @@ const getAcquisitionLabel = (product: OperationsProduct): string => {
   return "添加到专家列表";
 };
 
-const shouldContactForAgent = (agent: StoreAgentItem): boolean =>
+export const shouldContactForAgent = (agent: StoreAgentItem): boolean =>
   Boolean(agent.product?.contactMode && agent.product.contactMode !== "disabled");
 
 const getContactRemark = (template: string, agentName: string): string =>
@@ -607,7 +607,7 @@ const buildPlatformAgentVersions = (
   },
 ];
 
-const buildFrontisAgents = (
+export const buildFrontisAgents = (
   products: OperationsProduct[],
   tenantId: string,
   latestFulfillmentsByProductId: Map<string, OperationsFulfillment>,
@@ -668,7 +668,7 @@ const buildFrontisAgents = (
       };
     });
 
-const resolveLatestFulfillmentsByProductId = (
+export const resolveLatestFulfillmentsByProductId = (
   tenantId: string,
   fulfillments: OperationsFulfillment[],
 ): Map<string, OperationsFulfillment> =>
@@ -935,7 +935,10 @@ export const FdeAgentStoreView = (): JSX.Element => {
         ) : null}
         {renderExpertListAction(agent)}
         {agent.sourceType === "mine" && canApplyForMarketplaceListing ? (
-          <Button className={styles.cardActionButton} onClick={() => handleApplyForMarketplaceListing(agent)}>
+          <Button
+            className={styles.cardActionButton}
+            onClick={() => handleApplyForMarketplaceListing(agent)}
+          >
             申请上架
           </Button>
         ) : null}
@@ -990,7 +993,7 @@ export const FdeAgentStoreView = (): JSX.Element => {
             <div className={styles.cardContent}>
               <div
                 className={styles.visualPanel}
-                style={{ background: getDomainTone(agent.businessLine) }}
+                style={{ background: getAgentStoreDomainTone(agent.businessLine) }}
               >
                 <div className={styles.visualGlow} />
                 <img
@@ -1018,9 +1021,7 @@ export const FdeAgentStoreView = (): JSX.Element => {
               </div>
             </div>
 
-            <div className={styles.cardFooter}>
-              {renderAgentActions(agent)}
-            </div>
+            <div className={styles.cardFooter}>{renderAgentActions(agent)}</div>
           </article>
         ))}
       </div>

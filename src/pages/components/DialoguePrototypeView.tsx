@@ -582,6 +582,9 @@ export const DialoguePrototypeView = ({
     () => homeSkillItems.filter(item => !selectedSkillIds.includes(item.id)),
     [homeSkillItems, selectedSkillIds],
   );
+  const shouldShowComposerSkillBar =
+    !activeEmployee.isExpertTeam &&
+    (selectedSkillItems.length > 0 || availableSkillItems.length > 0);
   const dialogueInsightTasks = useMemo(
     () =>
       buildDialogueInsightTasks({
@@ -2086,7 +2089,7 @@ export const DialoguePrototypeView = ({
         onAttachmentsSelected={onDialogueAttachmentsSelected}
         allowAttachmentOnlySend={true}
         footerExtra={
-          activeEmployee.isExpertTeam ? null : (
+          shouldShowComposerSkillBar ? (
             <div className={styles.dialogueComposerSkillBar}>
               <span className={styles.dialogueComposerSkillDivider} aria-hidden={true} />
               <div ref={skillTrackRef} className={styles.dialogueComposerSkillTrack}>
@@ -2138,7 +2141,7 @@ export const DialoguePrototypeView = ({
                 ) : null}
               </div>
             </div>
-          )
+          ) : null
         }
         sending={isDialogueResponding}
         showModelSelector={false}

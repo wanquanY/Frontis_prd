@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AppstoreOutlined, LogoutOutlined } from "@ant-design/icons";
 import type { MenuProps } from "antd";
-import { Empty, message } from "antd";
+import { Button, Empty, Modal, message } from "antd";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import type { AiCeoAgentHomeConfig, AiCeoHomeCaseItem } from "@/constants/aiCeoHome";
 import { AI_CEO_AGENT_HOME_CONFIGS, AI_CEO_DEFAULT_HOME_CONFIG } from "@/constants/aiCeoHome";
@@ -26,6 +26,18 @@ import {
   clearRegistrationOnboardingDraft,
   loadRegistrationOnboardingDraft,
 } from "@/feature/auth/registrationFlowStorage";
+import {
+  buildFrontisAgents,
+  getAgentStoreDomainTone,
+  resolveLatestFulfillmentsByProductId,
+  shouldContactForAgent,
+  type StoreAgentItem,
+} from "@/feature/fde/components/FdeAgentStoreView";
+import agentStoreStyles from "@/feature/fde/components/FdeAgentStoreView.module.less";
+import {
+  loadStoredOperationsFulfillments,
+  loadStoredOperationsProducts,
+} from "@/feature/operations/commerceStorage";
 import type { WorkspaceComposerAttachmentItem } from "@/feature/workspace/types";
 import {
   FRONTIS_COMPLETE_PRD_V430_DOCUMENT_CONTENT,
@@ -54,10 +66,7 @@ import { isChatAttachmentFileAllowed } from "@/utils/chatAttachmentFileTypes";
 import { hasUserInAccessScope } from "@/utils/organizationAccess";
 
 import { DialoguePrototypeView } from "./components/DialoguePrototypeView";
-import {
-  MeOnboardingProfileModal,
-  type MeSchedulableExpertOption,
-} from "./components/MeOnboardingProfileModal";
+import { MeOnboardingProfileModal } from "./components/MeOnboardingProfileModal";
 import { buildDialogueScenarioReplay, findDialogueScenario } from "./dialogueScenarioSimulation";
 import type {
   DialogueGeneratedResultItem,
@@ -74,6 +83,7 @@ import {
   createComposerAttachment,
   createId,
   getExpertTeamScenarioLabel,
+  getAvatarUrl,
   getMetaagentAvatarUrl,
   revokeComposerAttachmentPreview,
 } from "./utils";
@@ -108,6 +118,7 @@ const EXPERT_TEAM_MAIN_AGENT_DESCRIPTION =
 const PRODUCT_TEAM_COLLAB_QUESTION = "帮我把这个需求拆成核心模块、边界和依赖关系。";
 const PRODUCT_TEAM_RISK_QUESTION = "这版方案上线前，架构层面最需要提前规避哪些风险？";
 const META_AGENT_ONBOARDING_QUICK_PROMPT = "请根据我的信息生成公司宣传材料";
+const META_AGENT_ADD_EXPERT_QUICK_PROMPT = "给ME添加可调度的AI专家";
 
 interface ExpertTeamDialogueRouting {
   mode: "primary" | "member" | "all";
@@ -136,7 +147,11 @@ const resolveScenarioFrameMessages = (
       ];
 
 const isMetaAgentEmployee = (employee: EmployeeItem | null): boolean =>
-  Boolean(employee?.isExpertTeam && employee.name === DEFAULT_WORKSPACE_AGENT_NAME);
+  Boolean(
+    employee &&
+    employee.id === DEFAULT_CONVERSATION_EMPLOYEE_ID &&
+    employee.name === DEFAULT_WORKSPACE_AGENT_NAME,
+  );
 
 const buildMetaAgentSeedSessions = (): DialogueSessionItem[] => {
   const flattenedMessages = buildMetaAgentHistoryMessages(
@@ -183,13 +198,39 @@ const buildMetaAgentOnboardingSession = (): DialogueSessionItem => ({
 - 上传资料、会议记录或历史文件，让我逐步积累你的个人工作记忆
 - 交给我一个任务，我会替你调度专家团推进，并同步关键进展`,
       timeLabel: "刚刚",
-      followupSuggestions: [META_AGENT_ONBOARDING_QUICK_PROMPT],
+      followupSuggestions: [META_AGENT_ONBOARDING_QUICK_PROMPT, META_AGENT_ADD_EXPERT_QUICK_PROMPT],
     },
   ],
 });
 
 const isNewUserOnboardingTenant = (tenantId?: string): boolean =>
   tenantId === NEW_USER_ONBOARDING_TENANT_ID;
+
+const mapStoreAgentToEmployee = (agent: StoreAgentItem): EmployeeItem => ({
+  id: agent.id,
+  name: agent.name,
+  avatarUrl: getAvatarUrl(agent.visualSeed),
+  role: `${agent.scene} · ${agent.techShape}`,
+  portalRoles: ["admin", "employee"],
+  status: "online",
+  workspaceId: "workspace-cloud",
+  connectionMode: "cloud",
+  model: agent.model,
+  summary: agent.summary,
+  lastAction: "已从 AI专家广场添加，可由 ME 调度。",
+  source: "coworker",
+  visibility: "all",
+  developerName: agent.submitterLabel,
+  subAgentModel: agent.model,
+  agentId: agent.product?.linkedAgentId || agent.id,
+  runtimeAgentId: `rt-${agent.id}`,
+  accessScopeSubjects: [],
+  boundMembers: [],
+  welcomeMessage: `我是${agent.name}，${agent.summary}`,
+  systemPrompt: `你是${agent.name}，${agent.summary}`,
+  skills: agent.capabilities.map(item => item.name),
+  expertSetupMode: "permission",
+});
 
 const buildInitialDialogueSessions = (
   viewRole: FrontisWebRole,
@@ -827,8 +868,16 @@ const FrontisPage = ({
   );
   const [removedExpertStudioAgentIds, setRemovedExpertStudioAgentIds] = useState<string[]>([]);
   const [onboardingSchedulableAgentIds, setOnboardingSchedulableAgentIds] = useState<string[]>([]);
+  const [isMeExpertPickerOpen, setIsMeExpertPickerOpen] = useState<boolean>(false);
   const dialogueTimerRefs = useRef<number[]>([]);
   const latestDialogueAttachmentsRef = useRef<WorkspaceComposerAttachmentItem[]>([]);
+  const activeTenantId = activeIdentity?.tenantId ?? NEW_USER_ONBOARDING_TENANT_ID;
+  const [agentStoreProducts, setAgentStoreProducts] = useState(() =>
+    loadStoredOperationsProducts(),
+  );
+  const [agentStoreFulfillments, setAgentStoreFulfillments] = useState(() =>
+    loadStoredOperationsFulfillments(),
+  );
 
   useEffect(() => {
     setDialogueSessions(buildInitialDialogueSessions(viewRole, activeIdentity?.tenantId));
@@ -843,11 +892,37 @@ const FrontisPage = ({
     setActiveMetaAgentTrajectoryAnchorBlockId(null);
     setRemovedExpertStudioAgentIds([]);
     setOnboardingSchedulableAgentIds([]);
+    setIsMeExpertPickerOpen(false);
   }, [activeIdentity?.tenantId, viewRole, workspaceMode]);
 
+  useEffect(() => {
+    setAgentStoreProducts(loadStoredOperationsProducts());
+    setAgentStoreFulfillments(loadStoredOperationsFulfillments());
+  }, [activeTenantId]);
+
+  const latestAgentStoreFulfillmentsByProductId = useMemo(
+    () => resolveLatestFulfillmentsByProductId(activeTenantId, agentStoreFulfillments),
+    [activeTenantId, agentStoreFulfillments],
+  );
+  const directAddableAgentStoreItems = useMemo(
+    () =>
+      buildFrontisAgents(
+        agentStoreProducts,
+        activeTenantId,
+        latestAgentStoreFulfillmentsByProductId,
+      ).filter(agent => !shouldContactForAgent(agent)),
+    [activeTenantId, agentStoreProducts, latestAgentStoreFulfillmentsByProductId],
+  );
+  const marketplaceEmployees = useMemo(
+    () => directAddableAgentStoreItems.map(mapStoreAgentToEmployee),
+    [directAddableAgentStoreItems],
+  );
   const employees = useMemo(
-    () => INITIAL_EMPLOYEES.map(item => mapEmployeeForRole(item, viewRole)),
-    [viewRole],
+    () => [
+      ...INITIAL_EMPLOYEES.map(item => mapEmployeeForRole(item, viewRole)),
+      ...marketplaceEmployees,
+    ],
+    [marketplaceEmployees, viewRole],
   );
   const workspaces = useMemo(() => INITIAL_WORKSPACES, []);
   const tenantUsers = useMemo(
@@ -877,11 +952,11 @@ const FrontisPage = ({
     enabled: shouldEnableMeOnboardingProfileModal,
     accountId: session?.accountId,
     tenantId: activeIdentity?.tenantId,
-    defaultNickname:
-      registrationOnboardingDraft?.nickname || currentUser?.name || session?.name,
+    defaultNickname: registrationOnboardingDraft?.nickname || currentUser?.name || session?.name,
     defaultCompanyName: registrationOnboardingDraft?.companyName,
     showOnEveryEntry:
-      isNewUserOnboardingTenant(activeIdentity?.tenantId) || shouldForceRegistrationOnboardingProfileModal,
+      isNewUserOnboardingTenant(activeIdentity?.tenantId) ||
+      shouldForceRegistrationOnboardingProfileModal,
   });
   const {
     isOpen: isMeOnboardingProfileModalOpen,
@@ -929,24 +1004,7 @@ const FrontisPage = ({
       }),
     [assignedMeSchedulableAgentIds, currentUser, roleVisibleEmployees, tenantUsers, viewRole],
   );
-  const meSchedulableExpertOptions = useMemo<MeSchedulableExpertOption[]>(
-    () =>
-      roleVisibleEmployees
-        .filter(
-          item =>
-            item.id !== DEFAULT_CONVERSATION_EMPLOYEE_ID &&
-            item.visibility === "all" &&
-            !item.isExpertTeam,
-        )
-        .map(item => ({
-          id: item.id,
-          name: item.name,
-          role: item.role,
-          summary: item.summary,
-          avatarUrl: item.avatarUrl,
-        })),
-    [roleVisibleEmployees],
-  );
+  const meSchedulableExpertOptions = directAddableAgentStoreItems;
   const handleAddMeSchedulableExpert = useCallback(
     (expertId: string): void => {
       const matchedExpert = meSchedulableExpertOptions.find(item => item.id === expertId);
@@ -1101,6 +1159,16 @@ const FrontisPage = ({
   const activeAgentHomeConfig = useMemo(() => {
     if (!activeEmployee) {
       return resolveRoleAwareHomeConfig("employee-writer", AI_CEO_DEFAULT_HOME_CONFIG, viewRole);
+    }
+
+    if (isMetaAgentEmployee(activeEmployee)) {
+      const primaryConfig = resolveRoleAwareHomeConfig(
+        DEFAULT_CONVERSATION_EMPLOYEE_ID,
+        AI_CEO_AGENT_HOME_CONFIGS[DEFAULT_CONVERSATION_EMPLOYEE_ID] ?? AI_CEO_DEFAULT_HOME_CONFIG,
+        viewRole,
+      );
+
+      return buildMetaAgentHomeConfig(activeExpertTeamMembers, primaryConfig);
     }
 
     if (activeEmployee.isExpertTeam) {
@@ -1376,7 +1444,12 @@ const FrontisPage = ({
       navigate(location.pathname, { replace: true });
     }
     message.success("ME 已记住你的基础信息。");
-  }, [location.pathname, navigate, shouldForceRegistrationOnboardingProfileModal, submitMeOnboardingProfile]);
+  }, [
+    location.pathname,
+    navigate,
+    shouldForceRegistrationOnboardingProfileModal,
+    submitMeOnboardingProfile,
+  ]);
 
   const handleRenameDialogueSession = useCallback((sessionId: string, title: string): void => {
     const nextTitle = title.trim();
@@ -1457,13 +1530,14 @@ const FrontisPage = ({
         .trim();
       const scenarioQuestion = normalizedScenarioQuestion || fallbackContent;
       const isSingleThreadMetaAgentDialogue = isMetaAgentEmployee(activeEmployee);
-      const exactTeamScenario = activeEmployee.isExpertTeam && !isSingleThreadMetaAgentDialogue
-        ? findDialogueScenario(
-            resolveDialogueScenarioEmployeeId(activeEmployee),
-            scenarioQuestion,
-            createId("dialogue-scenario"),
-          )
-        : null;
+      const exactTeamScenario =
+        activeEmployee.isExpertTeam && !isSingleThreadMetaAgentDialogue
+          ? findDialogueScenario(
+              resolveDialogueScenarioEmployeeId(activeEmployee),
+              scenarioQuestion,
+              createId("dialogue-scenario"),
+            )
+          : null;
       const matchedScenario =
         exactTeamScenario ??
         findDialogueScenario(
@@ -1817,6 +1891,11 @@ const FrontisPage = ({
         return;
       }
 
+      if (question === META_AGENT_ADD_EXPERT_QUICK_PROMPT) {
+        setIsMeExpertPickerOpen(true);
+        return;
+      }
+
       commitDialogue(question);
     },
     [commitDialogue, isDialogueResponding],
@@ -2046,13 +2125,88 @@ const FrontisPage = ({
     <MeOnboardingProfileModal
       open={isMeOnboardingProfileModalOpen}
       value={meOnboardingProfile}
-      schedulableExperts={meSchedulableExpertOptions}
-      addedSchedulableExpertIds={[...assignedMeSchedulableAgentIds]}
       onChange={handleChangeMeOnboardingProfile}
-      onAddSchedulableExpert={handleAddMeSchedulableExpert}
       onSubmit={handleSubmitMeOnboardingProfile}
       onSkip={handleSkipMeOnboardingProfile}
     />
+  );
+
+  const meExpertPickerModal = (
+    <Modal
+      centered
+      width={760}
+      open={isMeExpertPickerOpen}
+      title="给 ME 添加可调度的 AI 专家"
+      className={styles.meExpertPickerModal}
+      footer={
+        <Button type="primary" onClick={() => setIsMeExpertPickerOpen(false)}>
+          完成
+        </Button>
+      }
+      onCancel={() => setIsMeExpertPickerOpen(false)}
+      destroyOnHidden
+    >
+      {meSchedulableExpertOptions.length > 0 ? (
+        <div className={styles.meExpertPickerStoreRoot}>
+          <div className={agentStoreStyles.agentGrid}>
+            {meSchedulableExpertOptions.map(expert => {
+              const isAdded = assignedMeSchedulableAgentIds.has(expert.id);
+
+              return (
+                <article key={expert.id} className={agentStoreStyles.agentCard}>
+                  <div className={agentStoreStyles.cardContent}>
+                    <div
+                      className={agentStoreStyles.visualPanel}
+                      style={{ background: getAgentStoreDomainTone(expert.businessLine) }}
+                    >
+                      <div className={agentStoreStyles.visualGlow} />
+                      <img
+                        alt={expert.name}
+                        className={agentStoreStyles.agentPortrait}
+                        src={getAvatarUrl(expert.visualSeed)}
+                      />
+                    </div>
+
+                    <div className={agentStoreStyles.cardBody}>
+                      <div className={agentStoreStyles.cardTitleRow}>
+                        <h3 className={agentStoreStyles.cardTitle}>{expert.name}</h3>
+                      </div>
+
+                      <div className={agentStoreStyles.badgeRow}>
+                        <span
+                          className={`${agentStoreStyles.miniBadge} ${agentStoreStyles.sourceBadge}`}
+                        >
+                          FrontisAI发布
+                        </span>
+                        <span
+                          className={`${agentStoreStyles.miniBadge} ${agentStoreStyles.domainBadge}`}
+                        >
+                          {expert.businessLineLabel}
+                        </span>
+                      </div>
+
+                      <p className={agentStoreStyles.agentDescription}>{expert.summary}</p>
+                    </div>
+                  </div>
+
+                  <div className={agentStoreStyles.cardFooter}>
+                    <Button
+                      className={`${agentStoreStyles.cardActionButton} ${agentStoreStyles.cardActionButtonPrimary}`}
+                      disabled={isAdded}
+                      onClick={() => handleAddMeSchedulableExpert(expert.id)}
+                    >
+                      {isAdded ? "已添加" : "添加到专家列表"}
+                    </Button>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        </div>
+      ) : (
+        <div className={styles.meExpertPickerEmpty}>暂无可添加的 AI 专家。</div>
+      )}
+    </Modal>
   );
 
   if (embedded) {
@@ -2060,6 +2214,7 @@ const FrontisPage = ({
       <div className={styles.embeddedPage}>
         {renderContent()}
         {meOnboardingProfileModal}
+        {meExpertPickerModal}
       </div>
     );
   }
@@ -2072,6 +2227,7 @@ const FrontisPage = ({
         </div>
       </main>
       {meOnboardingProfileModal}
+      {meExpertPickerModal}
     </div>
   );
 };

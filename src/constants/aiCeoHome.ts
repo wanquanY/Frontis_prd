@@ -4,9 +4,7 @@ import {
   PRODUCT_MANAGER_PRD_QUESTION,
 } from "@/mocks/dialogueScenario/aiCeoScenarioPrompts";
 import benchmarkProductionCover from "@/assets/images/aiCeoScenarioOutputs/benchmark-production-page.png";
-import ceoChatDrawerCover from "@/assets/images/aiCeoScenarioOutputs/ceo-chat-drawer.png";
 import employeeAssessCover from "@/assets/images/aiCeoScenarioOutputs/employee-assess-wangjianguo.png";
-import redlineWarningCover from "@/assets/images/aiCeoScenarioOutputs/redline-warning-panel.png";
 import scoreRankFullListCover from "@/assets/images/aiCeoScenarioOutputs/score-rank-full-list.png";
 import scoreRankOverviewCover from "@/assets/images/aiCeoScenarioOutputs/score-rank-overview.png";
 import sequenceOverviewCover from "@/assets/images/aiCeoScenarioOutputs/sequence-overview-page.png";
@@ -114,86 +112,6 @@ const buildReplayCase = (
   replayScenarioQuestion,
   messages,
 });
-
-const CEO_HOME_CASES: AiCeoHomeCaseItem[] = [
-  buildReplayCase(
-    "ceo-case-dispatch",
-    "飞书代发",
-    "老板确认后直接代发收口任务",
-    "先完成经营判断，再把老板确认过的动作口径发给负责人。",
-    [
-      {
-        id: "ceo-case-dispatch-1",
-        role: "user",
-        actor: "老板",
-        content: "管理和销售这两条线今天该怎么收口？",
-        delayMs: 280,
-      },
-      {
-        id: "ceo-case-dispatch-2",
-        role: "assistant",
-        actor: "CEO分身",
-        content: "管理序列先拆 6 个预警来源，销售序列先拉关注区名单，底线问题和连续下滑分开处理。",
-        delayMs: 760,
-      },
-      {
-        id: "ceo-case-dispatch-3",
-        role: "user",
-        actor: "老板",
-        content: "把这段发给负责人。",
-        delayMs: 360,
-      },
-      {
-        id: "ceo-case-dispatch-4",
-        role: "system",
-        actor: "系统",
-        content: "已查询飞书通讯录，锁定陈峰和刘敏。",
-        delayMs: 520,
-      },
-      {
-        id: "ceo-case-dispatch-5",
-        role: "assistant",
-        actor: "CEO分身",
-        content: "已分别发出，并带上回执要求：管理序列 12:00 前，销售序列 17:00 前。",
-        delayMs: 900,
-      },
-    ],
-    ceoChatDrawerCover,
-    "管理和销售这两条线今天该怎么收口？",
-  ),
-  buildReplayCase(
-    "ceo-case-risk",
-    "风险追问",
-    "先看风险，再决定要不要约谈",
-    "老板问风险时，先看证据和级别，再给今天就能执行的动作。",
-    [
-      {
-        id: "ceo-case-risk-1",
-        role: "user",
-        actor: "老板",
-        content: "小张最近有没有触碰红线？",
-        delayMs: 280,
-      },
-      {
-        id: "ceo-case-risk-2",
-        role: "system",
-        actor: "系统",
-        content: "正在拉取最近一周的红黄灯事件和品质安全记录。",
-        delayMs: 480,
-      },
-      {
-        id: "ceo-case-risk-3",
-        role: "assistant",
-        actor: "CEO分身",
-        content:
-          "有风险苗头，但还没到正式红线。我建议今天先约谈，重点核查两次异常处置里的判断逻辑。",
-        delayMs: 880,
-      },
-    ],
-    redlineWarningCover,
-    "小张最近有没有触碰红线？",
-  ),
-];
 
 const CLOUD_WORKSPACE_CASES: AiCeoHomeCaseItem[] = [
   buildReplayCase(
@@ -667,30 +585,21 @@ export const AI_CEO_AGENT_HOME_CONFIGS: Record<string, AiCeoAgentHomeConfig> = {
     ],
   },
   "employee-writer": {
-    intro:
-      "我是 CEO 分身，你直接提问题就行，我会先判断该调哪项能力，再把结果收口成你能直接继续追问的一轮对话。",
-    guideLabel: "推荐起手式",
-    guideTitle: "先问经营判断，再决定要不要继续追人、追风险、追动作。",
+    intro: "我是 ME，会先理解你的目标，再根据你当前可用的 AI 专家和工具协助完成任务。",
+    guideLabel: "ME",
+    guideTitle: "直接描述目标、背景和限制条件即可。",
     guideItems: [
-      "先抛一个经营或人员问题，我来判断该调哪项能力。",
-      "如果你确认了动作，我可以继续模拟飞书触达、追问和回执闭环。",
-      "每轮回答底部都有猜你想问，适合连续往下钻。",
+      "我会先判断任务是否需要工具、文件或 AI 专家协作。",
+      "如果当前没有可调度专家，我会先直接处理基础对话、附件和文件任务。",
+      "后续添加 AI 专家后，我会按权限调度并统一汇总结果。",
     ],
-    skillItems: [
-      { id: "sequence_overview", name: "经营总览", iconKey: "overview" },
-      { id: "employee_assess", name: "员工评估", iconKey: "employee" },
-      { id: "redline_detect", name: "风险识别", iconKey: "risk" },
-      { id: "benchmark_find", name: "标杆识别", iconKey: "benchmark" },
-      { id: "score_rank", name: "评分排名", iconKey: "ranking" },
-    ],
+    skillItems: [],
     promptItems: [
-      { id: "writer-1", question: "给我看一下各序列的整体情况，按平均分排序。" },
-      { id: "writer-2", question: "管理和销售这两条线今天该怎么收口？" },
-      { id: "writer-3", question: "小张最近有没有触碰红线？" },
-      { id: "writer-4", question: "生产序列最近有哪些表现突出的标杆？我想了解一下。" },
-      { id: "writer-5", question: "销售序列这季度的人员排名怎么样？有没有需要关注的？" },
+      { id: "writer-1", question: "帮我整理一下今天要处理的任务。" },
+      { id: "writer-2", question: "我上传一份资料，你帮我提炼重点和下一步动作。" },
+      { id: "writer-3", question: "帮我生成一份可直接预览的文档。" },
     ],
-    caseItems: CEO_HOME_CASES,
+    caseItems: [],
   },
   [WORKSPACE_DEFAULT_AGENT_CONFIG_IDS["workspace-cloud"]]: {
     intro:
