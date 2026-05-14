@@ -1,0 +1,1673 @@
+/* ═══════════════════════════════════════════════════════════
+   EvolutionLabView — Agent 工作空间
+   ═══════════════════════════════════════════════════════════ */
+
+/* ═══ 列表页 ═══ */
+
+.listRoot {
+  flex: 1; min-height: 0; display: flex; flex-direction: column;
+  overflow: hidden; background: var(--surface);
+}
+
+.listHeader {
+  display: flex; align-items: center; gap: 16px;
+  padding: 20px 28px;
+  border-bottom: 1px solid color-mix(in srgb, var(--text) 6%, transparent);
+}
+
+.listTitle { margin: 0; color: var(--text); font-size: 18px; font-weight: 700; flex: 0 0 auto; }
+
+.listSearchBox {
+  margin-left: auto;
+  max-width: 280px;
+  :global(.ant-input-affix-wrapper) {
+    height: 36px; padding: 0 10px; border-radius: 10px;
+    border-color: var(--border);
+    background: var(--surface); box-shadow: none;
+  }
+  :global(.ant-input-affix-wrapper:hover),
+  :global(.ant-input-affix-wrapper-focused) {
+    border-color: color-mix(in srgb, var(--primary) 36%, var(--border)); box-shadow: none;
+  }
+  :global(.ant-input) { color: var(--text); font-size: 13px; }
+}
+
+.searchIcon { color: var(--text-muted); }
+
+.listGrid {
+  flex: 1; min-height: 0; overflow-y: auto;
+  padding: 24px 28px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr));
+  gap: 16px; align-content: start;
+}
+
+.workspaceCard {
+  display: flex; flex-direction: column;
+  padding: 20px; border: 1.5px solid var(--border); border-radius: 14px;
+  background: var(--surface); cursor: pointer; text-align: left; width: 100%;
+  transition: border-color 200ms ease, box-shadow 200ms ease, transform 160ms ease;
+  &:hover {
+    border-color: color-mix(in srgb, var(--primary) 40%, var(--border));
+    box-shadow: 0 4px 20px color-mix(in srgb, var(--primary) 8%, transparent);
+    transform: translateY(-2px);
+  }
+}
+
+.wsCardTop { display: flex; gap: 14px; }
+
+.wsCardIcon {
+  width: 44px; height: 44px; flex: 0 0 44px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px; font-weight: 700;
+}
+
+.wsCardMeta { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.wsCardName { color: var(--text); font-size: 15px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.wsCardDesc { color: var(--text-muted); font-size: 13px; line-height: 20px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+
+/* ═══ 详情页 ═══ */
+
+.detailRoot {
+  flex: 1; min-height: 0; display: flex; flex-direction: column; overflow: hidden;
+}
+
+.detailTopBar {
+  display: flex; align-items: center; gap: 12px;
+  padding: 8px 16px;
+  border-bottom: 1px solid color-mix(in srgb, var(--text) 6%, transparent);
+  background: var(--surface);
+}
+
+.detailBackBtn {
+  width: 32px; height: 32px; border: 1px solid var(--border); border-radius: 8px;
+  background: transparent; color: var(--text-secondary); font-size: 14px;
+  cursor: pointer; display: inline-flex; align-items: center; justify-content: center;
+  transition: border-color 160ms ease, color 160ms ease;
+  &:hover { border-color: var(--primary); color: var(--primary); }
+}
+
+.detailTopName { color: var(--text); font-size: 15px; font-weight: 600; }
+
+.detailBody { flex: 1; min-height: 0; display: flex; overflow: hidden; }
+
+/* ═══ 左侧面板 ═══ */
+
+.leftPanel {
+  width: 280px; flex: 0 0 280px; display: flex; flex-direction: column;
+  border-right: 1px solid color-mix(in srgb, var(--text) 6%, transparent);
+  background: var(--surface); position: relative;
+}
+
+.leftTabs {
+  display: flex; align-items: center;
+  border-bottom: 1px solid color-mix(in srgb, var(--text) 6%, transparent);
+}
+
+.leftTabBtn {
+  flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  padding: 12px 4px; border: none; border-bottom: 2px solid transparent;
+  background: transparent; color: var(--text-muted); font-size: 13px; font-weight: 500;
+  cursor: pointer; transition: color 160ms ease, border-color 160ms ease;
+  &:hover { color: var(--text-secondary); }
+}
+
+.leftTabBtnActive {
+  color: var(--text); border-bottom-color: var(--primary); font-weight: 600;
+}
+
+.leftBody {
+  flex: 1; min-height: 0; overflow-y: auto; padding: 12px;
+  display: flex; flex-direction: column; gap: 8px;
+}
+
+.newChatBtn {
+  width: 100%; height: 42px; border: 1.5px solid var(--primary); border-radius: 10px;
+  background: color-mix(in srgb, var(--primary) 6%, transparent);
+  color: var(--primary); font-size: 14px; font-weight: 600;
+  cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  transition: background 160ms ease;
+  &:hover { background: color-mix(in srgb, var(--primary) 12%, transparent); }
+}
+
+.convList { display: flex; flex-direction: column; gap: 2px; }
+
+.convItemWrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  border-radius: 8px;
+  transition: background 120ms ease;
+  &:hover {
+    background: color-mix(in srgb, var(--text) 4%, transparent);
+    .convMoreBtn { opacity: 1; pointer-events: auto; }
+  }
+}
+
+.convItem {
+  display: flex; flex-direction: column; gap: 2px;
+  padding: 10px 8px; border: none; background: transparent;
+  text-align: left; cursor: pointer; flex: 1; min-width: 0;
+  border-radius: 8px;
+}
+
+.convMoreBtn {
+  position: absolute;
+  right: 6px;
+  top: 10px;
+  background: var(--surface);
+  border: 1px solid color-mix(in srgb, var(--text) 10%, transparent);
+  border-radius: 6px;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  cursor: pointer;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s, background 0.2s, color 0.2s;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  &:hover {
+    color: var(--primary);
+    background: color-mix(in srgb, var(--primary) 5%, var(--surface));
+  }
+}
+
+.convTitleRow { display: flex; align-items: center; width: 100%; min-width: 0; }
+.convTitle {
+  display: flex; align-items: center; gap: 4px;
+  color: var(--text); font-size: 13px; font-weight: 500;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  padding-right: 20px; flex: 1; min-width: 0;
+}
+.convIcon { color: var(--text-muted); font-size: 12px; flex-shrink: 0; }
+.convIconStar { color: #f5a623; font-size: 12px; flex-shrink: 0; }
+.convRenameInput { width: 100%; font-size: 13px; font-weight: 500; }
+
+.convDate { color: var(--text-muted); font-size: 11px; }
+.convSummary { color: var(--text-muted); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* 知识库条目 */
+
+.kbItem {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 8px; border-radius: 8px;
+  transition: background 120ms ease;
+  &:hover { background: color-mix(in srgb, var(--text) 4%, transparent); }
+}
+
+.kbIcon { color: var(--primary); font-size: 16px; flex: 0 0 auto; }
+.kbMeta { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.kbName { color: var(--text); font-size: 13px; font-weight: 500; }
+.kbCount { color: var(--text-muted); font-size: 11px; }
+
+/* 回流数据 */
+
+.feedbackBtn {
+  display: flex; align-items: center; gap: 8px;
+  padding: 12px 16px; border: none;
+  border-top: 1px solid color-mix(in srgb, var(--text) 6%, transparent);
+  background: transparent; color: var(--text-secondary); font-size: 13px; font-weight: 500;
+  cursor: pointer; transition: background 120ms ease, color 120ms ease;
+  &:hover { background: color-mix(in srgb, var(--text) 4%, transparent); color: var(--text); }
+}
+
+.feedbackBtnActive { color: var(--primary); background: color-mix(in srgb, var(--primary) 6%, transparent); }
+
+.feedbackPanel {
+  padding: 12px 16px; display: flex; flex-direction: column; gap: 8px;
+  border-top: 1px solid color-mix(in srgb, var(--text) 6%, transparent);
+  background: var(--surface);
+  animation: fadeSlideIn 200ms ease both;
+}
+
+.feedbackPanelTitle { margin: 0; color: var(--text); font-size: 13px; font-weight: 600; }
+
+.feedbackRow {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 6px 0;
+}
+
+.feedbackEnterprise { color: var(--text-secondary); font-size: 13px; }
+.feedbackCount { color: var(--text-muted); font-size: 12px; }
+
+/* ═══ 中间面板 ═══ */
+
+.centerPanel {
+  flex: 1; min-width: 0; display: flex; flex-direction: column; background: var(--surface);
+}
+
+/* 5 tab 栏 */
+
+.flowTabs {
+  display: flex; align-items: center; gap: 8px;
+  padding: 0;
+  border-bottom: none;
+  background: transparent;
+  margin-bottom: 0;
+}
+
+.flowTabBtn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 14px; background: #f5f5f5; border: 1px solid #e8e8e8;
+  border-radius: 20px; font-size: 13px; font-weight: 500;
+  color: #333; cursor: pointer; transition: all 0.2s; white-space: nowrap;
+  &:hover { background: #ebebeb; border-color: #d9d9d9; }
+}
+
+.flowTabBtnActive {
+  background: color-mix(in srgb, var(--primary) 10%, #fff);
+  border-color: color-mix(in srgb, var(--primary) 30%, transparent);
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.flowTabRight { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+
+.newDialogBtn {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 6px 12px; border: 1px solid var(--border); border-radius: 8px;
+  background: transparent; color: var(--text-secondary); font-size: 12px;
+  cursor: pointer; transition: border-color 160ms ease, color 160ms ease;
+  &:hover { border-color: var(--primary); color: var(--primary); }
+}
+
+/* 对话内容 */
+
+.chatBody {
+  flex: 1; min-height: 0; overflow-y: auto; padding: 24px;
+  display: flex; flex-direction: column; gap: 20px;
+}
+
+/* 工作空间概览 */
+
+.overviewCard {
+  display: flex; flex-direction: column; align-items: center; gap: 14px;
+  padding: 40px 24px; text-align: center;
+}
+
+.overviewTitle { margin: 0; color: var(--text); font-size: 16px; font-weight: 700; }
+.overviewText { margin: 0; color: var(--text-secondary); font-size: 14px; line-height: 24px; max-width: 600px; }
+
+/* 消息 */
+
+.msgRow { display: flex; }
+.msgRowUser { justify-content: flex-end; }
+.msgRowAssistant { justify-content: flex-start; }
+.msgBubble { max-width: 680px; display: flex; flex-direction: column; gap: 8px; }
+.msgBubbleUser .msgText { padding: 10px 16px; border-radius: 14px 14px 4px 14px; background: color-mix(in srgb, var(--text) 6%, var(--surface)); }
+.msgBubbleAssistant .msgText { padding: 0; }
+.msgBubbleSystem { max-width: 100%; }
+.msgBubbleSystem .msgText {
+  padding: 12px 18px; border-radius: 12px;
+  background: color-mix(in srgb, var(--primary) 6%, transparent);
+  color: var(--text); font-weight: 500;
+}
+.msgText { color: var(--text); font-size: 14px; line-height: 24px; }
+.msgParagraph { margin: 0; }
+.msgBullet { margin: 0; padding-left: 12px; color: var(--text-secondary); }
+
+/* 框架选择 */
+
+.frameworkSelectRow { display: flex; gap: 10px; flex-wrap: wrap; padding: 4px 0; }
+
+.frameworkBtn {
+  height: 40px; padding: 0 24px; border: 1.5px solid var(--border); border-radius: 10px;
+  background: var(--surface); color: var(--text); font-size: 14px; font-weight: 600;
+  cursor: pointer; transition: border-color 160ms ease, background 160ms ease, color 160ms ease;
+  &:hover:not(:disabled) { border-color: var(--primary); color: var(--primary); background: color-mix(in srgb, var(--primary) 6%, transparent); }
+  &:disabled { opacity: 0.5; cursor: default; }
+}
+
+.frameworkBtnSelected {
+  border-color: var(--primary); background: color-mix(in srgb, var(--primary) 10%, transparent);
+  color: var(--primary);
+  &:disabled { opacity: 1; }
+}
+
+/* 工具操作 */
+
+.toolOpsBlock { display: flex; flex-direction: column; }
+.toolOpsToggle {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 0; border: none; background: transparent;
+  color: var(--text-muted); font-size: 13px; cursor: pointer;
+  transition: color 120ms ease; &:hover { color: var(--text-secondary); }
+}
+.toolOpsArrow { font-size: 10px; transition: transform 200ms ease; }
+.toolOpsArrowOpen { transform: rotate(180deg); }
+.toolOpsDetail {
+  display: flex; flex-direction: column; gap: 6px; padding: 8px 0 4px 4px;
+  border-left: 2px solid color-mix(in srgb, var(--text) 8%, transparent); margin-left: 4px;
+}
+.toolOpsItem { display: flex; align-items: center; gap: 8px; padding-left: 10px; }
+.toolOpsCheck { color: #3cbf7b; font-size: 12px; flex: 0 0 auto; }
+.toolOpsLine { height: 8px; border-radius: 4px; background: color-mix(in srgb, var(--text) 6%, transparent); }
+
+/* HTTP 请求 */
+
+.httpReqBlock {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 6px 12px; border-radius: 8px;
+  background: color-mix(in srgb, var(--text) 4%, transparent);
+  color: var(--text-muted); font-size: 13px; align-self: flex-start;
+}
+.httpReqLabel { color: var(--text-secondary); font-weight: 600; }
+.httpReqUrl { color: var(--text-muted); font-family: monospace; font-size: 12px; max-width: 300px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.httpReqArrow { font-size: 10px; }
+
+.streamingIndicator { display: flex; align-items: center; gap: 8px; color: var(--text-muted); font-size: 13px; padding: 4px 0; }
+
+/* 摘要卡片 */
+
+.summaryCard {
+  border: 1px solid color-mix(in srgb, var(--text) 8%, transparent);
+  border-radius: 14px; background: var(--surface);
+  padding: 20px 24px; display: flex; flex-direction: column; gap: 16px;
+}
+.summaryTitle { margin: 0; display: flex; align-items: center; gap: 8px; color: var(--text); font-size: 17px; font-weight: 700; }
+.summarySection { display: flex; flex-direction: column; gap: 8px; }
+.summarySectionTitle { margin: 0; color: var(--text); font-size: 14px; font-weight: 700; }
+.summaryText { margin: 0; color: var(--text-secondary); font-size: 14px; line-height: 22px; }
+.summaryTable {
+  width: 100%; border-collapse: separate; border-spacing: 0; font-size: 13px;
+  th, td { padding: 8px 12px; text-align: left; }
+  th { color: var(--text-muted); font-weight: 600; border-bottom: 1px solid color-mix(in srgb, var(--text) 8%, transparent); }
+  td { color: var(--text-secondary); border-bottom: 1px solid color-mix(in srgb, var(--text) 4%, transparent); }
+  tr:last-child td { border-bottom: none; }
+}
+
+.fileCard {
+  display: inline-flex; align-items: center; gap: 10px;
+  padding: 10px 14px; border: 1px solid color-mix(in srgb, var(--text) 8%, transparent);
+  border-radius: 10px; background: var(--surface); cursor: pointer;
+  transition: border-color 160ms ease; align-self: flex-start;
+  &:hover { border-color: color-mix(in srgb, var(--primary) 30%, var(--border)); }
+}
+.fileCardIcon { font-size: 22px; color: var(--text-muted); }
+.fileCardInfo { display: flex; flex-direction: column; gap: 1px; }
+.fileCardName { color: var(--text); font-size: 13px; font-weight: 500; }
+.fileCardHint { color: var(--text-muted); font-size: 11px; }
+
+/* ═══ 进化 tab 专属 ═══ */
+
+.enterpriseSelect {
+  display: flex; flex-direction: column; gap: 12px;
+  padding: 16px 0;
+}
+
+.enterpriseSelectLabel { color: var(--text); font-size: 14px; font-weight: 700; }
+
+.enterpriseCheckbox {
+  display: flex; align-items: center; gap: 8px;
+  color: var(--text); font-size: 14px; line-height: 28px;
+}
+
+.evoConfirmText {
+  margin-top: 8px; padding: 12px 16px; border-radius: 10px;
+  background: color-mix(in srgb, var(--primary) 6%, transparent);
+  color: var(--text); font-size: 14px; line-height: 22px;
+}
+
+.evoComposerBar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 16px;
+}
+
+.evoComposerHint { color: var(--text-muted); font-size: 13px; }
+
+/* 进化建议卡片 */
+
+.evoSuggestionsCard {
+  display: flex; flex-direction: column; gap: 12px;
+  padding: 20px; border: 1px solid color-mix(in srgb, var(--text) 8%, transparent);
+  border-radius: 14px; background: var(--surface);
+}
+
+.evoSuggestionsTitle { margin: 0; color: var(--text); font-size: 15px; font-weight: 700; }
+
+.evoSuggestionItem {
+  display: flex; flex-direction: column; gap: 4px;
+  padding: 12px; border-radius: 10px;
+  background: var(--surface);
+}
+
+.evoSuggestionHeader { display: flex; align-items: center; gap: 8px; }
+.evoSuggestionName { color: var(--text); font-size: 14px; font-weight: 600; }
+
+.evoSuggestionScope {
+  padding: 1px 8px; border-radius: 999px; font-size: 11px; font-weight: 500;
+  background: color-mix(in srgb, var(--primary) 10%, transparent); color: var(--primary);
+}
+
+.evoSuggestionDesc { margin: 0; color: var(--text-muted); font-size: 13px; line-height: 20px; }
+
+/* 进度 */
+
+.evoProgressCard {
+  display: flex; flex-direction: column; gap: 12px;
+  padding: 20px; border: 1px solid color-mix(in srgb, var(--text) 8%, transparent);
+  border-radius: 14px; background: var(--surface);
+}
+
+.evoProgressTitle { margin: 0; color: var(--text); font-size: 15px; font-weight: 700; }
+
+.evoProgressRow { display: flex; align-items: center; gap: 10px; }
+.evoProgressLabel { width: 80px; color: var(--text-secondary); font-size: 13px; flex: 0 0 80px; }
+
+.evoProgressBarBg {
+  flex: 1; height: 6px; border-radius: 3px;
+  background: color-mix(in srgb, var(--text) 8%, transparent);
+  overflow: hidden;
+}
+
+.evoProgressBarFill {
+  height: 100%; border-radius: 3px;
+  background: var(--primary);
+}
+
+/* 血缘 */
+
+.evoLineageCard {
+  display: flex; flex-direction: column; gap: 8px;
+  padding: 20px; border: 1px solid color-mix(in srgb, var(--text) 8%, transparent);
+  border-radius: 14px; background: var(--surface);
+}
+
+.evoLineageTitle { margin: 0; color: var(--text); font-size: 15px; font-weight: 700; }
+.evoLineageText { margin: 0; color: var(--text-secondary); font-size: 14px; line-height: 22px; }
+
+/* ═══ 雷达图卡片 ═══ */
+
+.radarCard {
+  padding: 20px; border-radius: 14px;
+  background: #111827; cursor: pointer;
+  transition: box-shadow 200ms ease;
+  &:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.3); }
+}
+
+.radarCardHeader { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; }
+
+.radarCardIcon {
+  width: 32px; height: 32px; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  background: #ef4444; color: #fff; font-size: 16px;
+}
+
+.radarCardTitle { color: #fff; font-size: 14px; font-weight: 600; }
+
+.radarSvgWrap { position: relative; height: 220px; margin-bottom: 12px; }
+.radarSvg { width: 100%; height: 100%; }
+
+.radarLabel {
+  position: absolute; font-size: 11px; color: #9ca3af;
+}
+.radarLabelTop { top: 4px; left: 50%; transform: translateX(-50%); }
+.radarLabelRight { top: 50%; right: 4px; transform: translateY(-50%); }
+.radarLabelBottom { bottom: 4px; left: 50%; transform: translateX(-50%); }
+.radarLabelLeft { top: 50%; left: 4px; transform: translateY(-50%); }
+.radarLabelBL { bottom: 20%; left: 12%; }
+.radarLabelBR { bottom: 20%; right: 12%; }
+
+.radarLegend { display: flex; justify-content: center; gap: 16px; margin-bottom: 8px; }
+.radarLegendItem { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #9ca3af; }
+.radarDotGray { width: 8px; height: 8px; border-radius: 50%; background: #6b7280; }
+.radarDotGreen { width: 8px; height: 8px; border-radius: 50%; background: #10b981; }
+
+.radarHint { margin: 0; text-align: center; font-size: 11px; color: #6b7280; }
+
+/* ═══ 版本演进趋势折线图 ═══ */
+
+.trendChartWrap {
+  position: relative; height: 180px;
+  background: var(--surface); border: 1px solid color-mix(in srgb, var(--text) 8%, transparent);
+  border-radius: 10px; overflow: hidden;
+}
+.trendChartWrap canvas { width: 100%; height: 100%; }
+
+.trendLegend { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 6px; }
+.trendLegendItem { display: flex; align-items: center; gap: 4px; font-size: 11px; color: var(--text-secondary); }
+.trendLegendDot { width: 8px; height: 8px; border-radius: 50%; flex: 0 0 8px; }
+
+/* ═══ 测试 tab ═══ */
+
+.testWelcome {
+  flex: 1; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 14px;
+  padding: 40px;
+}
+
+.testWelcomeIcon { font-size: 40px; color: var(--primary); opacity: 0.6; }
+.testWelcomeTitle { margin: 0; color: var(--text); font-size: 16px; font-weight: 700; }
+.testWelcomeDesc { margin: 0; color: var(--text-muted); font-size: 14px; }
+
+.runtimeWriteItem {
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 0; color: var(--text-secondary); font-size: 13px; line-height: 20px;
+  animation: fadeSlideIn 300ms ease both;
+}
+
+.runtimeWriteIcon { color: #3cbf7b; font-size: 14px; flex: 0 0 auto; }
+.runtimeWriteIconLoading { color: var(--primary); font-size: 14px; flex: 0 0 auto; }
+
+.runtimeDoneMsg {
+  display: flex; align-items: center; gap: 10px;
+  margin: 12px 0 8px; padding: 14px 18px; border-radius: 12px;
+  background: color-mix(in srgb, #3cbf7b 8%, transparent);
+  color: var(--text); font-size: 14px; font-weight: 500;
+  animation: fadeSlideIn 400ms ease both;
+}
+
+@keyframes fadeSlideIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ═══ 发布 tab ═══ */
+
+.publishBody {
+  flex: 1; min-height: 0; overflow-y: auto; padding: 28px 32px;
+  display: flex; flex-direction: column; gap: 24px;
+}
+
+.publishTypeSection { display: flex; flex-direction: column; gap: 16px; }
+.publishSectionTitle { margin: 0; color: var(--text); font-size: 14px; font-weight: 700; }
+.publishTypeCards { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+
+.publishTypeCard {
+  display: flex; align-items: center; gap: 14px;
+  padding: 20px; border: 1.5px solid var(--border); border-radius: 12px;
+  background: var(--surface); cursor: pointer; text-align: left;
+  transition: border-color 160ms ease, background 160ms ease;
+  &:hover { border-color: var(--primary); background: color-mix(in srgb, var(--primary) 4%, transparent); }
+}
+
+.publishTypeCardIcon { font-size: 28px; color: var(--primary); flex: 0 0 auto; }
+.publishTypeCardCopy { display: flex; flex-direction: column; gap: 2px; }
+.publishTypeCardTitle { color: var(--text); font-size: 15px; font-weight: 600; }
+.publishTypeCardDesc { color: var(--text-muted); font-size: 13px; }
+
+.publishFormArea { display: flex; flex-direction: column; gap: 24px; }
+.publishFormSection { display: flex; flex-direction: column; gap: 12px; }
+.publishNoticeCard {
+  display: flex; flex-direction: column; gap: 6px;
+  padding: 14px 16px; border: 1px solid color-mix(in srgb, var(--primary) 16%, transparent);
+  border-radius: 12px; background: color-mix(in srgb, var(--primary) 6%, white);
+}
+.publishNoticeTitle { color: var(--text); font-size: 13px; font-weight: 600; }
+.publishNoticeText { color: var(--text-secondary); font-size: 12px; line-height: 20px; }
+
+.publishSkillList { display: flex; flex-direction: column; gap: 6px; }
+.publishSkillItem {
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 14px; border: 1.5px solid var(--border); border-radius: 10px;
+  background: var(--surface); color: var(--text); font-size: 13px;
+  cursor: pointer; transition: border-color 160ms ease, background 160ms ease;
+  &:hover { border-color: color-mix(in srgb, var(--primary) 40%, var(--border)); }
+}
+.publishSkillItemActive {
+  border-color: var(--primary); background: color-mix(in srgb, var(--primary) 8%, transparent);
+  color: var(--primary); font-weight: 500;
+}
+
+.publishFormRow { display: flex; flex-direction: column; gap: 6px; }
+.publishFormLabel { color: var(--text-secondary); font-size: 13px; font-weight: 500; }
+.publishRequired { color: #f5222d; }
+
+.publishCoverGrid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; }
+
+.publishCoverItem {
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  padding: 8px; border: 2px solid transparent; border-radius: 10px;
+  background: transparent; cursor: pointer;
+  transition: border-color 160ms ease;
+  &:hover { border-color: color-mix(in srgb, var(--text) 12%, transparent); }
+}
+.publishCoverItemActive { border-color: var(--primary); }
+.publishCoverSwatch { width: 100%; aspect-ratio: 1.6; border-radius: 8px; display: block; }
+.publishCoverLabel { color: var(--text-muted); font-size: 11px; }
+
+.publishFooter {
+  display: flex; justify-content: flex-end; gap: 10px;
+  padding-top: 12px;
+  border-top: 1px solid color-mix(in srgb, var(--text) 6%, transparent);
+}
+
+.publishSuccessView {
+  flex: 1; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 16px;
+  padding: 60px 40px; text-align: center;
+}
+.publishSuccessTitle { margin: 0; color: var(--text); font-size: 18px; font-weight: 700; }
+.publishSuccessHint { margin: 0; color: var(--text-secondary); font-size: 14px; max-width: 400px; }
+
+/* ═══ 右侧资产中心 ═══ */
+
+.rightPanel {
+  width: fit-content; min-width: 320px; max-width: 480px; flex: 0 0 auto; display: flex; flex-direction: column;
+  border-left: 1px solid color-mix(in srgb, var(--text) 6%, transparent);
+  background: var(--surface);
+  animation: slideInRight 200ms ease;
+}
+
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(20px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+.rightHeader {
+  display: flex; align-items: center; gap: 8px;
+  padding: 14px 16px;
+  border-bottom: 1px solid color-mix(in srgb, var(--text) 6%, transparent);
+  font-size: 14px; font-weight: 700; color: var(--text);
+}
+
+.rightTitle { flex: 0 0 auto; }
+
+.rightCount {
+  margin-left: auto;
+  color: var(--text-muted); font-size: 12px; font-weight: 400;
+}
+
+.rightToggleBtn {
+  width: 28px; height: 28px; border: 0; border-radius: 6px;
+  background: transparent; color: var(--text-muted); font-size: 14px;
+  cursor: pointer; display: inline-flex; align-items: center; justify-content: center;
+  transition: background 160ms ease, color 160ms ease;
+  &:hover { background: color-mix(in srgb, var(--text) 6%, transparent); color: var(--text); }
+}
+
+.rightTabs {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  padding: 0 16px;
+  border-bottom: 1px solid color-mix(in srgb, var(--text) 6%, transparent);
+}
+
+.rightTab {
+  padding: 12px 0;
+  margin-right: 24px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: all 0.2s;
+  position: relative;
+
+  &:hover {
+    color: var(--text);
+  }
+}
+
+.rightTabActive {
+  color: var(--text);
+  font-weight: 600;
+  border-bottom-color: var(--primary);
+}
+
+.otherResultsSubTabs {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  padding: 12px 16px;
+  border-bottom: 1px solid color-mix(in srgb, var(--text) 6%, transparent);
+}
+
+.otherResultsSubTab {
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: all 0.2s;
+  white-space: nowrap;
+
+  &:hover {
+    color: var(--text);
+  }
+}
+
+.otherResultsSubTabActive {
+  color: var(--primary);
+  font-weight: 600;
+  border-bottom-color: var(--primary);
+}
+
+
+
+/* 收起状态的右侧面板 */
+.rightPanelCollapsed {
+  width: 48px; flex: 0 0 48px; display: flex; flex-direction: column;
+  border-left: 1px solid color-mix(in srgb, var(--text) 6%, transparent);
+  background: var(--surface);
+  padding: 12px 0;
+}
+
+.rightPanelCollapsedBtn {
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  padding: 12px 4px; border: 0; background: transparent; cursor: pointer;
+  color: var(--text-muted); font-size: 12px; writing-mode: vertical-rl;
+  text-orientation: mixed; letter-spacing: 2px;
+  transition: color 160ms ease, background 160ms ease;
+  &:hover { color: var(--primary); background: color-mix(in srgb, var(--primary) 6%, transparent); }
+}
+
+.rightPanelCollapsedText {
+  font-size: 12px; font-weight: 500;
+}
+
+.rightBody {
+  flex: 1; min-height: 0; overflow-y: auto; padding: 12px 16px;
+  display: flex; flex-direction: column; gap: 20px;
+}
+
+/* 资产 section */
+
+.assetSection { display: flex; flex-direction: column; gap: 8px; }
+
+.assetSectionTitle {
+  margin: 0; color: var(--text-muted); font-size: 12px; font-weight: 600;
+  letter-spacing: 0.5px; text-transform: uppercase;
+}
+
+.assetFileItem {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 10px; border-radius: 8px;
+  animation: fadeSlideIn 300ms ease both;
+  transition: background 120ms ease;
+  &:hover { background: color-mix(in srgb, var(--text) 4%, transparent); }
+}
+
+.assetFileIcon { font-size: 14px; color: var(--text-muted); flex: 0 0 auto; }
+.assetFileName { color: var(--text); font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.assetEmpty { color: var(--text-muted); font-size: 12px; padding: 4px 0; }
+
+/* 成果列表 */
+
+.resultItem {
+  display: flex; align-items: flex-start; gap: 8px;
+  padding: 10px 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--text) 4%, transparent);
+  &:last-child { border-bottom: none; }
+}
+
+.resultItemArrow { color: var(--text-muted); font-size: 10px; margin-top: 5px; flex: 0 0 auto; }
+.resultItemCheck { flex: 0 0 auto; }
+.resultItemIcon { color: var(--text-muted); font-size: 16px; flex: 0 0 auto; margin-top: 1px; }
+
+.resultItemMeta { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.resultItemTitle { color: var(--text); font-size: 13px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.resultItemSub { color: var(--text-muted); font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* ═══ 欢迎 orb ═══ */
+
+.welcomeOrb {
+  width: 64px;
+  height: 64px;
+  display: block;
+  object-fit: contain;
+}
+
+/* ═══ 底部输入栏 ═══ */
+
+.composerBar { padding: 12px 20px 16px; display: flex; flex-direction: column; gap: 8px; background: transparent; border-top: none; }
+.composerTopActions { display: flex; gap: 8px; }
+.topActionBtn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 14px; background: #f5f5f5; border: 1px solid #e8e8e8;
+  border-radius: 20px; font-size: 13px; font-weight: 500;
+  color: #333; cursor: pointer; transition: all 0.2s; white-space: nowrap;
+  &:hover { background: #ebebeb; border-color: #d9d9d9; }
+}
+.topActionIcon { font-size: 14px; color: #666; }
+.topActionArrow { font-size: 10px; color: #999; transform: rotate(45deg); margin-left: 2px; }
+.composerInputWrapper {
+  border: 1px solid var(--border); border-radius: 14px; background: var(--surface); overflow: hidden;
+  transition: border-color 160ms ease;
+  &:focus-within { border-color: color-mix(in srgb, var(--primary) 50%, var(--border)); }
+}
+.composerTextarea {
+  :global(.ant-input) { border: none; background: transparent; padding: 14px 16px 8px; font-size: 14px; color: var(--text); resize: none; box-shadow: none !important; }
+}
+.composerFooter { display: flex; align-items: center; justify-content: space-between; padding: 4px 8px 8px 12px; }
+.composerActions { display: flex; align-items: center; gap: 4px; }
+.composerIconBtn {
+  width: 32px; height: 32px; border: none; border-radius: 8px; background: transparent;
+  color: var(--text-muted); font-size: 16px; cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center;
+  transition: background 120ms ease, color 120ms ease;
+  &:hover { background: color-mix(in srgb, var(--text) 6%, transparent); color: var(--text); }
+}
+.composerModelSelect {
+  :global {
+    .ant-select-selector {
+      background: #f4f5f7 !important;
+      padding: 0 10px !important;
+      color: var(--text-secondary) !important;
+      font-weight: 500;
+      font-size: 13px;
+      border-radius: 8px !important;
+      height: 28px !important;
+      display: flex;
+      align-items: center;
+      transition: background 120ms ease;
+    }
+    .ant-select-selection-item {
+      display: flex;
+      align-items: center;
+    }
+    .ant-select-arrow {
+      color: var(--text-muted);
+      margin-top: -6px;
+    }
+  }
+}
+
+.modelSelector {
+  display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px;
+  border: none; border-radius: 8px; background: #f4f5f7;
+  color: var(--text-secondary); font-size: 13px; font-weight: 500; cursor: pointer;
+  transition: background 120ms ease;
+  &:hover { background: #ebebeb; }
+}
+.modelIcon {
+  width: 16px; height: 16px; border-radius: 50%;
+  background: linear-gradient(135deg, #d4a574, #c4956a);
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 9px; color: #fff; font-weight: 700;
+}
+.composerRight { display: flex; align-items: center; gap: 6px; }
+.micBtn {
+  width: 32px; height: 32px; border: none; border-radius: 8px; background: transparent;
+  color: var(--text-muted); font-size: 16px; cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center;
+  transition: background 120ms ease, color 120ms ease;
+  &:hover { background: color-mix(in srgb, var(--text) 6%, transparent); color: var(--text); }
+}
+.sendBtn {
+  width: 32px; height: 32px; border: none; border-radius: 50%;
+  background: var(--primary); color: #fff; font-size: 15px; cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center;
+  transition: opacity 160ms ease; &:hover { opacity: 0.85; }
+}
+.sendBtnDisabled { opacity: 0.4; pointer-events: none; }
+
+/* ═══ 进化与效能 右侧面板 ═══ */
+
+.evoRightTabs {
+  display: flex;
+  border-bottom: 1px solid color-mix(in srgb, var(--text) 6%, transparent);
+}
+
+.evoRightTab {
+  flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  padding: 10px 4px; border: none; border-bottom: 2px solid transparent;
+  background: transparent; color: var(--text-muted); font-size: 12px; font-weight: 500;
+  cursor: pointer; transition: color 160ms ease, border-color 160ms ease, background 160ms ease;
+  &:hover { background: color-mix(in srgb, var(--text) 3%, transparent); color: var(--text-secondary); }
+}
+
+.evoRightTabActive {
+  color: var(--primary); background: color-mix(in srgb, var(--primary) 6%, transparent);
+  border-bottom-color: var(--primary); font-weight: 600;
+}
+
+.evoSection { display: flex; flex-direction: column; gap: 8px; }
+
+.evoSectionLabel {
+  color: var(--text-muted); font-size: 12px; font-weight: 600;
+  letter-spacing: 0.5px; padding-left: 2px;
+}
+
+/* 版本演进树（时间轴） */
+
+.evoTimeline {
+  position: relative; padding-left: 24px;
+}
+
+.evoTimelineLine {
+  position: absolute; left: 8px; top: 0; bottom: 0; width: 2px;
+  background: color-mix(in srgb, var(--text) 10%, transparent);
+}
+
+.evoTimelineItem { position: relative; margin-bottom: 12px; }
+.evoTimelineItem:last-child { margin-bottom: 0; }
+
+.evoTimelineDot {
+  position: absolute; left: -20px; top: 10px; width: 14px; height: 14px;
+  border-radius: 50%; border: 2px solid #fff;
+}
+.evoTimelineDotCurrent { background: var(--primary); }
+.evoTimelineDotNormal { background: #fff; border-color: var(--primary); }
+
+.evoVersionCard {
+  border: 1px solid color-mix(in srgb, var(--text) 8%, transparent);
+  border-radius: 8px; padding: 10px 12px; background: var(--surface);
+  box-shadow: 0 1px 3px color-mix(in srgb, var(--text) 4%, transparent);
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    border-color: color-mix(in srgb, var(--primary) 30%, transparent);
+    box-shadow: 0 2px 8px color-mix(in srgb, var(--primary) 12%, transparent);
+    transform: translateY(-1px);
+  }
+}
+.evoVersionCardCurrent {
+  background: color-mix(in srgb, var(--primary) 6%, transparent);
+  border-color: color-mix(in srgb, var(--primary) 20%, transparent);
+}
+.evoVersionCardSelected {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary) 20%, transparent);
+}
+
+.evoVersionTop { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.evoVersionName { font-size: 14px; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.evoVersionBadge { font-size: 11px; font-weight: 500; padding: 1px 8px; border-radius: 999px; }
+.evoVersionBadgeGreen { background: #e6ffed; color: #00b42a; }
+.evoVersionBadgeGray { background: color-mix(in srgb, var(--text) 6%, transparent); color: var(--text-muted); }
+
+.evoVersionTime { font-size: 12px; color: var(--text-muted); margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.evoVersionDesc { font-size: 12px; color: var(--text-secondary); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* 进化趋势 核心指标 */
+
+.evoTrendMetricsGrid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+}
+
+.evoTrendMetricCard {
+  background: var(--surface); border: 1px solid color-mix(in srgb, var(--text) 8%, transparent);
+  border-radius: 8px; padding: 10px 12px;
+}
+.evoTrendMetricLabel { font-size: 12px; color: var(--text-secondary); font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.evoTrendMetricBottom { display: flex; align-items: baseline; justify-content: space-between; margin-top: 4px; }
+.evoTrendMetricValue { font-size: 15px; font-weight: 700; color: var(--primary); }
+.evoTrendMetricTrend { font-size: 11px; color: #00b42a; font-weight: 500; }
+
+/* 数据分析 指标卡片网格 */
+
+.evoMetricsGrid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+}
+
+.evoMetricCard {
+  background: #1f2937; border-radius: 10px; padding: 12px;
+  display: flex; flex-direction: column; gap: 6px;
+}
+
+.evoMetricTop { display: flex; justify-content: space-between; align-items: center; }
+.evoMetricLabel { font-size: 12px; color: #9ca3af; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.evoMetricTrend { font-size: 11px; color: #34d399; }
+.evoMetricValue { font-size: 18px; font-weight: 700; color: #fff; }
+
+/* 血缘关系图 Canvas */
+
+.lineageCanvasWrap {
+  position: relative; height: 220px;
+  background: #1e293b; border-radius: 10px; overflow: hidden;
+}
+.lineageCanvasWrap canvas { width: 100%; height: 100%; }
+
+.lineageLegend {
+  position: absolute; bottom: 8px; left: 10px;
+  display: flex; gap: 12px; font-size: 11px; color: #94a3b8;
+}
+.lineageLegendItem { display: flex; align-items: center; gap: 4px; }
+.lineageDotAgent { width: 8px; height: 8px; border-radius: 50%; background: #22d3ee; flex: 0 0 8px; }
+.lineageDotData { width: 8px; height: 8px; border-radius: 2px; background: #fb923c; flex: 0 0 8px; }
+
+/* 回流数据审核工作台 */
+
+.dataTable {
+  border: 1px solid color-mix(in srgb, var(--text) 8%, transparent);
+  border-radius: 8px; overflow-x: auto;
+}
+
+.dataTableInner {
+  width: 100%; border-collapse: collapse; font-size: 11px; white-space: nowrap;
+  th, td { padding: 6px 8px; text-align: left; }
+  thead tr {
+    background: color-mix(in srgb, var(--text) 4%, transparent);
+    th { font-weight: 600; color: var(--text-muted); font-size: 11px; }
+  }
+  tbody tr { border-top: 1px solid color-mix(in srgb, var(--text) 4%, transparent); }
+  tbody td { color: var(--text-secondary); }
+}
+
+.dataTableId { color: var(--primary); font-weight: 500; }
+
+.sourceBadge {
+  display: inline-block; font-size: 10px; font-weight: 500;
+  padding: 1px 6px; border-radius: 4px;
+}
+.sourceBadgeBlue { background: #dbeafe; color: #2563eb; }
+.sourceBadgeOrange { background: #fff7e6; color: #f97316; }
+
+.starsWrap { display: inline-flex; gap: 1px; font-size: 11px; }
+.starActive { color: #facc15; }
+.starInactive { color: #d1d5db; }
+
+.viewBtn {
+  display: inline-flex; align-items: center; gap: 3px;
+  border: none; background: transparent; color: var(--primary);
+  font-size: 11px; font-weight: 500; cursor: pointer;
+  &:hover { text-decoration: underline; }
+}
+
+/* ═══ 版本卡片操作按钮 ═══ */
+
+.evoVersionActions {
+  display: flex; gap: 8px; margin-top: 8px;
+}
+
+.evoVersionActionBtn {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 4px 10px; border: 1px solid var(--border); border-radius: 6px;
+  background: var(--surface); color: var(--text-secondary); font-size: 12px; font-weight: 500;
+  cursor: pointer; transition: border-color 160ms ease, color 160ms ease, background 160ms ease;
+  &:hover { border-color: var(--primary); color: var(--primary); }
+}
+
+.evoVersionActionBtnPrimary {
+  border-color: var(--primary); background: color-mix(in srgb, var(--primary) 8%, transparent);
+  color: var(--primary);
+  &:hover { background: color-mix(in srgb, var(--primary) 14%, transparent); }
+}
+
+/* ═══ 评测报告详情 ═══ */
+
+.reportDetail {
+  display: flex; flex-direction: column; gap: 12px;
+}
+
+.reportBackRow {
+  display: flex; align-items: center; gap: 8px;
+}
+
+.reportBackBtn {
+  display: inline-flex; align-items: center; gap: 4px;
+  border: none; background: transparent; color: var(--text-muted); font-size: 13px;
+  cursor: pointer; transition: color 160ms ease;
+  &:hover { color: var(--primary); }
+}
+
+.reportDetailTitle {
+  font-size: 14px; font-weight: 600; color: var(--text);
+}
+
+.reportSummaryCard {
+  background: color-mix(in srgb, #3b82f6 8%, transparent);
+  border-radius: 10px; padding: 12px 14px;
+}
+
+.reportSummaryTitle { margin: 0 0 6px; font-size: 13px; font-weight: 600; color: #3b82f6; }
+.reportSummaryText { margin: 0; font-size: 12px; line-height: 20px; color: var(--text-secondary); }
+
+.reportSection {
+  border: 1px solid color-mix(in srgb, var(--text) 8%, transparent);
+  border-radius: 10px; padding: 12px 14px; background: var(--surface);
+  display: flex; flex-direction: column; gap: 8px;
+}
+
+.reportSectionTitle { margin: 0; font-size: 13px; font-weight: 600; color: var(--text); }
+
+.reportBenchmarkRow {
+  display: flex; justify-content: space-between; align-items: center;
+  padding-bottom: 8px; border-bottom: 1px solid color-mix(in srgb, var(--text) 6%, transparent);
+}
+
+.reportBenchmarkLabel { font-size: 13px; font-weight: 500; color: var(--text); }
+
+.reportBenchmarkRight { display: flex; align-items: center; gap: 6px; }
+
+.reportBenchmarkScore { font-size: 18px; font-weight: 700; color: #3b82f6; }
+
+.reportBenchmarkTrend { font-size: 11px; color: #00b42a; font-weight: 500; }
+
+.reportMetricsGrid {
+  display: flex; flex-direction: column; gap: 10px;
+}
+
+.reportMetricItem {
+  display: flex; flex-direction: column; gap: 4px;
+}
+
+.reportMetricHeader {
+  display: flex; justify-content: space-between; align-items: center;
+}
+
+.reportMetricLabel { font-size: 12px; color: var(--text-secondary); font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.reportMetricValue { font-size: 13px; font-weight: 600; color: var(--text); white-space: nowrap; }
+
+.reportProgressBar {
+  height: 5px; background: color-mix(in srgb, var(--text) 8%, transparent);
+  border-radius: 3px; overflow: hidden;
+}
+
+.reportProgressFill {
+  height: 100%; border-radius: 3px; transition: width 500ms ease;
+}
+
+.reportProgressGood { background: #00b42a; }
+.reportProgressAverage { background: #ff7d00; }
+.reportProgressPoor { background: #f53f3f; }
+
+.reportMetricTrend {
+  font-size: 11px; color: #00b42a; font-weight: 500; align-self: flex-end;
+}
+
+.reportDetailRow {
+  display: flex; justify-content: space-between; align-items: flex-start;
+  padding: 6px 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--text) 4%, transparent);
+  &:last-child { border-bottom: none; }
+}
+
+.reportDetailLabel { font-size: 12px; color: var(--text-muted); font-weight: 500; flex: 0 0 auto; white-space: nowrap; }
+.reportDetailValue { font-size: 12px; color: var(--text); text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.reportIssueRow {
+  display: flex; align-items: flex-start; gap: 8px; padding: 4px 0;
+}
+
+.reportIssueDot {
+  width: 8px; height: 8px; border-radius: 50%; flex: 0 0 8px; margin-top: 5px;
+}
+.reportIssueDotYellow { background: #facc15; }
+.reportIssueDotGreen { background: #00b42a; }
+
+.reportIssueText { font-size: 12px; color: var(--text-secondary); line-height: 18px; }
+
+.reportConclusionCard {
+  background: color-mix(in srgb, #00b42a 8%, transparent);
+  border-radius: 10px; padding: 12px 14px;
+}
+
+.reportConclusionTitle { margin: 0 0 6px; font-size: 13px; font-weight: 600; color: #00b42a; }
+.reportConclusionText { margin: 0; font-size: 12px; line-height: 20px; color: var(--text-secondary); }
+
+/* ═══ 部署配置页 ═══ */
+
+.deployConfigList {
+  --deploy-icon-blue: color-mix(in srgb, #3b82f6 14%, transparent);
+  --deploy-icon-gray: color-mix(in srgb, var(--text) 6%, transparent);
+  --deploy-icon-purple: color-mix(in srgb, #7c3aed 14%, transparent);
+  --deploy-icon-orange: color-mix(in srgb, #f97316 14%, transparent);
+  display: flex; flex-direction: column; gap: 10px;
+}
+
+.deployConfigCard {
+  display: flex; align-items: center; gap: 12px;
+  padding: 14px 16px; border: none;
+  border-radius: 12px; background: #f4f5f7;
+  cursor: pointer;
+  transition: background 0.2s;
+  &:hover { background: #ebebeb; }
+}
+
+.deployConfigIcon {
+  width: 32px; height: 32px; flex: 0 0 32px; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 15px; color: var(--text-secondary);
+}
+
+.deployConfigContent { flex: 0 0 auto; margin-right: 8px; }
+.deployConfigTitle { font-size: 13px; font-weight: 500; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.deployConfigSubtitle { font-size: 11px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.deployConfigValue { font-size: 13px; font-weight: 500; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.deployConfigTrailing { display: flex; align-items: center; justify-content: flex-end; gap: 6px; flex: 1; min-width: 0; }
+
+.deploySelect {
+  max-width: 100%;
+  :global {
+    .ant-select-selector {
+      background: transparent !important;
+      padding: 0 4px !important;
+      color: var(--text) !important;
+      font-weight: 500;
+      font-size: 13px;
+    }
+    .ant-select-selection-item {
+      text-align: right;
+    }
+    .ant-select-arrow {
+      color: var(--text-muted);
+      margin-top: -6px;
+    }
+  }
+}
+
+.deployStartBtn { margin-top: 8px; border-radius: 10px; height: 40px; font-weight: 600; }
+
+.deployHistoryLink {
+  text-align: center; font-size: 12px; color: var(--primary);
+  cursor: pointer;
+  &:hover { text-decoration: underline; }
+}
+
+/* ─── 部署进度 ─── */
+
+.deployProgressWrap {
+  --deploy-icon-blue: color-mix(in srgb, #3b82f6 14%, transparent);
+  display: flex; flex-direction: column; gap: 12px;
+}
+
+.deployStatusCard {
+  display: flex; align-items: center; gap: 10px; margin-bottom: 4px;
+}
+
+.deployStatusIcon {
+  width: 36px; height: 36px; border-radius: 50%; flex: 0 0 36px;
+  display: flex; align-items: center; justify-content: center;
+  background: color-mix(in srgb, #3b82f6 12%, transparent);
+  color: #3b82f6; font-size: 18px;
+}
+
+.deployStatusTitle { font-size: 14px; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.deployStatusSubtitle { font-size: 12px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.deployProgressBarWrap { display: flex; flex-direction: column; gap: 6px; }
+.deployProgressBarLabel { display: flex; justify-content: space-between; font-size: 12px; color: var(--text-secondary); }
+
+.deployProgressBarBg {
+  height: 6px; border-radius: 3px;
+  background: color-mix(in srgb, var(--text) 8%, transparent);
+  overflow: hidden;
+}
+.deployProgressBarFill {
+  height: 100%; border-radius: 3px; background: #3b82f6;
+  transition: width 400ms ease;
+}
+
+.deploySteps { display: flex; flex-direction: column; gap: 10px; }
+
+.deployStepRow { display: flex; align-items: center; gap: 10px; }
+
+.deployStepDot {
+  width: 24px; height: 24px; flex: 0 0 24px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 600;
+}
+.deployStepDotWait { background: color-mix(in srgb, var(--text) 8%, transparent); color: var(--text-muted); }
+.deployStepDotActive { background: color-mix(in srgb, #3b82f6 14%, transparent); color: #3b82f6; }
+.deployStepDotDone { background: #00b42a; color: #fff; font-size: 12px; }
+
+.deployStepText { display: flex; flex-direction: column; }
+.deployStepName { font-size: 13px; font-weight: 500; color: var(--text); }
+.deployStepStatus { font-size: 11px; color: var(--text-muted); }
+.deployStepStatusDone { color: #00b42a; }
+.deployStepStatusActive { color: #3b82f6; }
+
+.deployInfoCard {
+  border: 1px solid color-mix(in srgb, var(--text) 8%, transparent);
+  border-radius: 10px; padding: 12px 14px; background: var(--surface);
+}
+.deployInfoTitle { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 8px; }
+.deployInfoRow {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 5px 0; border-bottom: 1px solid color-mix(in srgb, var(--text) 4%, transparent);
+  &:last-child { border-bottom: none; }
+}
+.deployInfoLabel { font-size: 12px; color: var(--text-muted); }
+.deployInfoValue { font-size: 12px; font-weight: 500; color: var(--text); }
+
+/* ─── 发布上架（Agent Store） ─── */
+
+.deployStoreWrap {
+  --deploy-icon-blue: color-mix(in srgb, #3b82f6 14%, transparent);
+  --deploy-icon-gray: color-mix(in srgb, var(--text) 6%, transparent);
+  --deploy-icon-purple: color-mix(in srgb, #7c3aed 14%, transparent);
+  display: flex; flex-direction: column; gap: 10px;
+}
+
+.deployStoreCard {
+  border: 1px solid color-mix(in srgb, var(--text) 8%, transparent);
+  border-radius: 10px; padding: 12px 14px; background: var(--surface);
+}
+
+.deployStoreStatusRow { display: flex; align-items: center; gap: 6px; margin-bottom: 10px; }
+.deployStoreStatusDot { width: 8px; height: 8px; border-radius: 50%; background: #00b42a; flex: 0 0 8px; }
+.deployStoreStatusText { font-size: 13px; font-weight: 500; color: var(--text); }
+.deployStoreVersionId { margin-left: auto; font-size: 11px; color: var(--text-muted); font-family: monospace; }
+
+.deployStoreTimeGrid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+.deployStoreTimeLabel { font-size: 11px; color: var(--text-muted); margin-bottom: 2px; }
+.deployStoreTimeValue { font-size: 12px; font-weight: 500; color: var(--text); }
+
+.deployStoreLinks { display: flex; flex-wrap: wrap; gap: 8px; }
+.deployStoreLink {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 11px; color: var(--primary); cursor: pointer; white-space: nowrap;
+  &:hover { text-decoration: underline; }
+}
+
+.deployStoreAgentBadge {
+  font-size: 11px; color: var(--primary); font-weight: 500; margin-left: 4px;
+}
+
+.deployStoreLinkUrl {
+  font-size: 12px; color: var(--primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%;
+}
+
+/* ═══ 暗色数据卡片（核心评估指标 / 工作流拓扑） ═══ */
+
+.evoDarkCardsRow {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 18px;
+}
+
+.evoDarkCard {
+  background: #1f2937; border-radius: 14px; padding: 16px 18px; cursor: pointer;
+  border: 1.5px solid transparent; transition: border-color 200ms ease, box-shadow 200ms ease;
+  &:hover {
+    border-color: color-mix(in srgb, var(--primary) 40%, transparent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 10%, transparent);
+  }
+}
+
+.evoDarkCardHeader {
+  display: flex; align-items: center; gap: 8px; margin-bottom: 14px;
+}
+
+.evoDarkDot { width: 8px; height: 8px; border-radius: 50%; flex: 0 0 8px; }
+
+.evoDarkCardTitle { color: #f3f4f6; font-size: 14px; font-weight: 600; }
+
+.evoDarkMetricsGrid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 10px 16px;
+}
+
+.evoDarkMetricItem { display: flex; flex-direction: column; gap: 2px; }
+
+.evoDarkMetricLabel { font-size: 11px; color: #9ca3af; }
+
+.evoDarkMetricRow { display: flex; align-items: baseline; gap: 6px; }
+
+.evoDarkMetricValue { font-size: 16px; font-weight: 700; color: #f9fafb; }
+
+.evoDarkMetricTrend { font-size: 11px; font-weight: 500; }
+
+/* ═══ 工作流拓扑图（卡片内小版） ═══ */
+
+.topologyWrap {
+  position: relative; width: 100%; height: 140px; margin-bottom: 8px; overflow: hidden;
+}
+
+.topologyZoomInner {
+  position: relative; width: 100%; height: 100%;
+  transition: transform 200ms ease; transform-origin: center center;
+}
+
+.topologySvg {
+  position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none;
+}
+
+.topologyNode {
+  position: absolute; transform: translate(-50%, -50%);
+  width: 36px; height: 36px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 8px; font-weight: 600; color: #fff; text-align: center; line-height: 1.2;
+  white-space: pre-line;
+  animation: topoNodeEnter 0.6s ease both, topoNodePulse 4s ease-in-out infinite 0.8s;
+  box-shadow: 0 0 8px rgba(255,255,255,0.15);
+}
+
+.topologyEdgeAnim {
+  stroke-dasharray: 4 3;
+  animation: topoEdgeFlow 1.5s linear infinite, topoEdgeFadeIn 0.6s ease both;
+}
+
+.topologyLegend {
+  display: flex; align-items: center; gap: 12px; justify-content: center;
+  position: relative; z-index: 2;
+}
+
+.topologyLegendItem {
+  display: flex; align-items: center; gap: 4px; font-size: 10px; color: #9ca3af;
+}
+
+.topologyLegendDot { width: 8px; height: 8px; border-radius: 50%; flex: 0 0 8px; }
+
+.topologyZoomControls {
+  position: absolute; top: 6px; right: 6px; z-index: 3;
+  display: flex; flex-direction: column; gap: 4px;
+}
+
+.topologyZoomBtn {
+  width: 24px; height: 24px; border: none; border-radius: 6px;
+  background: rgba(255,255,255,0.12); color: #d1d5db; font-size: 12px;
+  display: inline-flex; align-items: center; justify-content: center;
+  cursor: pointer; backdrop-filter: blur(4px);
+  transition: background 160ms ease, color 160ms ease;
+  &:hover { background: rgba(255,255,255,0.22); color: #fff; }
+}
+
+/* ═══ 工作流拓扑图（侧边栏大版） ═══ */
+
+.sidebarTopologyWrap {
+  position: relative; width: 100%; height: 220px; margin-bottom: 10px;
+  background: color-mix(in srgb, var(--text) 3%, transparent); border-radius: 10px;
+  overflow: hidden;
+}
+
+.sidebarTopologyNode {
+  position: absolute; transform: translate(-50%, -50%);
+  width: 52px; height: 52px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 600; color: #fff; text-align: center; line-height: 1.2;
+  white-space: pre-line;
+  animation: topoNodeEnter 0.6s ease both, topoNodePulse 4s ease-in-out infinite 0.8s;
+  box-shadow: 0 0 12px rgba(255,255,255,0.1);
+}
+
+/* ═══ 拓扑图动画关键帧 ═══ */
+
+@keyframes topoNodeEnter {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(0.3); }
+  60% { opacity: 1; transform: translate(-50%, -50%) scale(1.08); }
+  100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+
+@keyframes topoNodePulse {
+  0%, 100% { box-shadow: 0 0 8px rgba(255,255,255,0.1); transform: translate(-50%, -50%) scale(1); }
+  15% { box-shadow: 0 0 20px rgba(255,255,255,0.3); transform: translate(-50%, -50%) scale(1.08); }
+  30% { box-shadow: 0 0 8px rgba(255,255,255,0.1); transform: translate(-50%, -50%) scale(1); }
+  45%, 100% { box-shadow: 0 0 8px rgba(255,255,255,0.1); transform: translate(-50%, -50%) scale(1); }
+}
+
+@keyframes topoEdgeFlow {
+  0% { stroke-dashoffset: 0; }
+  100% { stroke-dashoffset: -14; }
+}
+
+@keyframes topoEdgeFadeIn {
+  0% { opacity: 0; }
+  100% { opacity: 0.7; }
+}
+
+/* ═══ 侧边栏详细指标进度条 ═══ */
+
+.evoMetricProgressBg {
+  flex: 1; height: 6px; border-radius: 3px;
+  background: color-mix(in srgb, var(--text) 8%, transparent);
+  overflow: hidden;
+}
+
+.evoMetricProgressFill {
+  height: 100%; border-radius: 3px;
+  background: var(--primary);
+  transition: width 400ms ease;
+}
+
+/* ═══ 失败节点排行表 ═══ */
+
+.failedNodeTable {
+  border: 1px solid color-mix(in srgb, var(--text) 8%, transparent);
+  border-radius: 10px; overflow: hidden; margin-top: 4px;
+}
+
+.failedNodeTableInner {
+  width: 100%; border-collapse: collapse; font-size: 12px;
+
+  th {
+    padding: 8px 10px; text-align: left; font-weight: 600;
+    color: var(--text-secondary); font-size: 11px;
+    background: color-mix(in srgb, var(--text) 3%, transparent);
+    border-bottom: 1px solid color-mix(in srgb, var(--text) 8%, transparent);
+  }
+
+  td {
+    padding: 7px 10px; color: var(--text); border-bottom: 1px solid color-mix(in srgb, var(--text) 5%, transparent);
+  }
+
+  tr:last-child td { border-bottom: 0; }
+}
+
+/* ═══ 工具详情 侧边栏 ═══ */
+
+.toolDetailsHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  flex-shrink: 0;
+}
+.toolDetailsHeaderTitle {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.toolDetailsHeaderSub {
+  font-size: 13px;
+  color: var(--text-muted);
+  font-weight: 400;
+}
+.toolDetailsHeaderActions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.toolDetailsNavBtn {
+  background: transparent;
+  border: none;
+  padding: 4px;
+  color: var(--text-muted);
+  font-size: 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s;
+  &:hover {
+    color: var(--text);
+  }
+  &:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+    &:hover { color: var(--text-muted); }
+  }
+}
+.toolDetailsStatusBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  background: #e6f7eb;
+  color: #00b42a;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+}
+.statusDot {
+  width: 6px;
+  height: 6px;
+  background: #00b42a;
+  border-radius: 50%;
+}
+
+.toolDetailsTaskListHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+.toolDetailsTaskListTitle {
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+.toolDetailsTaskListCount {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+.toolDetailsTaskCard {
+  background: #f4f5f7;
+  border-radius: 12px;
+  padding: 12px 16px;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 8px;
+  animation: toolCardFadeIn 0.35s ease;
+}
+@keyframes toolCardFadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.toolDetailsTaskIcon {
+  color: var(--primary);
+  font-size: 16px;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.toolDetailsTaskIconDone {
+  color: #00b42a;
+  font-size: 16px;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.toolDetailsTaskBody {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.toolDetailsTaskText {
+  font-size: 14px;
+  color: var(--text);
+}
+.toolDetailsTaskFile {
+  font-size: 12px;
+  color: var(--primary);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.toolDetailsEmpty {
+  font-size: 13px;
+  color: var(--text-muted);
+  text-align: center;
+  padding: 24px 0;
+}
+
+
+.failedNodeHigh {
+  display: inline-block; padding: 1px 6px; border-radius: 4px; font-size: 10px; font-weight: 600;
+  background: color-mix(in srgb, #ef4444 14%, transparent); color: #ef4444;
+}
+
+.failedNodeMedium {
+  display: inline-block; padding: 1px 6px; border-radius: 4px; font-size: 10px; font-weight: 600;
+  background: color-mix(in srgb, #f59e0b 14%, transparent); color: #f59e0b;
+}

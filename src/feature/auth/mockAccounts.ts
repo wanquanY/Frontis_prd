@@ -1,6 +1,5 @@
 import { INITIAL_FRONTIS_WEB_USERS } from "@/mocks/mockData";
 import type { FrontisUserRole, FrontisWebRole, FrontisWebUserItem } from "@/pages/types";
-import dayjs from "dayjs";
 
 import { MANAGEMENT_CONSOLE_LABEL, PRODUCT_NAME } from "@/constants/brand";
 import {
@@ -22,7 +21,6 @@ import {
   OPERATIONS_ACCOUNT_OPTIONS,
 } from "@/feature/operations/mockData";
 import { loadOperationsRegistrationStrategy } from "@/feature/operations/platformConfigStorage";
-import type { MockTenantPlanPackageOption } from "@/feature/tenantPlan/types";
 import { hasIdentitySystemAccess } from "@/utils/tenantRoleAccess";
 import type {
   MockAuthAccount,
@@ -861,8 +859,8 @@ export const registerMockTenantAdminAccount = (
     pointsLedger: [
       {
         id: `${tenantId}-register-bonus`,
-        title: "注册送积分",
-        description: "新租户创建完成后自动发放的初始积分。",
+        title: "注册送额度",
+        description: "新租户创建完成后自动发放的初始额度。",
         points: registrationStrategy.defaultGiftPoints,
         direction: "income",
         createdAt: "刚刚",
@@ -870,7 +868,6 @@ export const registerMockTenantAdminAccount = (
       },
     ],
     pointsUsageRecords: [],
-    pointsOrders: [],
     referralRecords: [],
   });
 
@@ -921,7 +918,7 @@ export const inviteMockTenantMemberAccount = (
     DEFAULT_MOCK_VERIFICATION_CODE,
     {
       accountId,
-      description: `${matchedSnapshot.tenantName} 邀请成员账号，进入后共用租户积分。`,
+      description: `${matchedSnapshot.tenantName} 邀请成员账号，进入后共用租户额度。`,
       tenant,
     },
   );
@@ -948,157 +945,6 @@ export const inviteMockTenantMemberAccount = (
     account,
     snapshot: nextSnapshot,
   };
-};
-
-/**
- * 为指定租户补充席位。
- */
-export const addMockTenantSeats = (
-  tenantId: string,
-  seatCount: number,
-): MockTenantManagementSnapshot | null => {
-  const matchedSnapshot = getMockTenantManagementSnapshot(tenantId);
-
-  if (!matchedSnapshot || matchedSnapshot.edition !== "team" || seatCount <= 0) {
-    return null;
-  }
-
-  return saveMockTenantManagementSnapshot({
-    ...matchedSnapshot,
-    extraSeatCount: matchedSnapshot.extraSeatCount + seatCount,
-    totalSeats: matchedSnapshot.totalSeats + seatCount,
-  });
-};
-
-/**
- * 开通或切换到团队版套餐。
- */
-export const activateMockTenantTeamPlan = (
-  tenantId: string,
-  targetPackage: MockTenantPlanPackageOption,
-): MockTenantManagementSnapshot | null => {
-  const matchedSnapshot = getMockTenantManagementSnapshot(tenantId);
-
-  if (!matchedSnapshot || targetPackage.status !== "active") {
-    return null;
-  }
-
-  const nextIncludedSeats = targetPackage.includedSeats;
-  const nextTotalSeats = Math.max(
-    matchedSnapshot.usedSeats,
-    nextIncludedSeats + matchedSnapshot.extraSeatCount,
-  );
-  const shouldPromoteOwner = matchedSnapshot.users.some(
-    user => user.id === matchedSnapshot.adminUserId && user.role !== "enterpriseAdmin",
-  );
-  const nextUsers = shouldPromoteOwner
-    ? matchedSnapshot.users.map(user =>
-        user.id === matchedSnapshot.adminUserId
-          ? {
-              ...user,
-              assignedAgentIds: [...DEFAULT_ADMIN_ASSIGNED_AGENT_IDS],
-              assignedWorkspaceIds: [...DEFAULT_ADMIN_ASSIGNED_WORKSPACE_IDS],
-              role: "enterpriseAdmin" as const,
-              roleIds: [DEFAULT_TENANT_ROLE_IDS.enterpriseAdmin],
-            }
-          : user,
-      )
-    : matchedSnapshot.users;
-
-  if (shouldPromoteOwner) {
-    const ownerAccount = getMockAccountByAccountId(matchedSnapshot.ownerAccountId);
-
-    if (ownerAccount) {
-      saveStoredMockAccount({
-        ...ownerAccount,
-        role: "admin",
-        roleLabel: getRoleLabel("enterpriseAdmin"),
-        identities: ownerAccount.identities.map(identity =>
-          identity.tenantId === tenantId && identity.subjectId === matchedSnapshot.adminUserId
-            ? {
-                ...identity,
-                description: `已开通团队版，以组织管理员身份进入 ${matchedSnapshot.tenantName}。`,
-                entryPath: "/web/admin/workspace",
-                permissionIds: getPermissionIdsByUserRole("enterpriseAdmin"),
-                role: "admin",
-                roleLabel: getRoleLabel("enterpriseAdmin"),
-              }
-            : identity,
-        ),
-      });
-    }
-  }
-
-  return saveMockTenantManagementSnapshot({
-    ...matchedSnapshot,
-    edition: "team",
-    planLabel: targetPackage.title,
-    includedSeats: nextIncludedSeats,
-    totalSeats: nextTotalSeats,
-    teamPlanPackageId: targetPackage.id,
-    planExpiresAt: dayjs().add(1, "year").format("YYYY-MM-DD"),
-    invitePolicyLabel: "团队版租户支持组织管理与成员邀请。",
-    users: nextUsers,
-  });
-};
-
-/**
- * 为指定租户补充积分。
- */
-export const rechargeMockTenantPoints = (
-  tenantId: string,
-  points: number,
-  actorName: string,
-  options?: {
-    title?: string;
-    description?: string;
-    packageId?: string;
-    packageTitle?: string;
-    price?: number;
-    paymentChannelLabel?: string;
-  },
-): MockTenantManagementSnapshot | null => {
-  const matchedSnapshot = getMockTenantManagementSnapshot(tenantId);
-
-  if (!matchedSnapshot || points <= 0) {
-    return null;
-  }
-
-  return saveMockTenantManagementSnapshot({
-    ...matchedSnapshot,
-    pointsBalance: matchedSnapshot.pointsBalance + points,
-    pointsLedger: [
-      {
-        id: `${tenantId}-recharge-${Date.now()}`,
-        title: options?.title ?? "管理员充值",
-        description: options?.description ?? "补充租户积分，用于继续运行模型与第三方接口。",
-        points,
-        direction: "income",
-        createdAt: "刚刚",
-        actorName: options?.title === "购买标准积分包" ? "FrontisAI" : actorName,
-      },
-      ...matchedSnapshot.pointsLedger,
-    ],
-    pointsOrders:
-      options?.packageId && options.packageTitle && typeof options.price === "number"
-        ? [
-            {
-              id: `${tenantId}-points-order-${Date.now()}`,
-              orderNo: `PT-${Date.now().toString().slice(-10)}`,
-              packageId: options.packageId,
-              packageTitle: options.packageTitle,
-              packagePoints: points,
-              amount: options.price,
-              status: "paid",
-              paymentChannelLabel: options.paymentChannelLabel ?? "统一扫码支付",
-              purchaserName: actorName,
-              createdAt: "刚刚",
-              paidAt: "刚刚",
-            },
-            ...matchedSnapshot.pointsOrders,
-          ]
-        : matchedSnapshot.pointsOrders,
-  });
 };
 
 /**
@@ -1237,10 +1083,6 @@ const getTargetPlatformByPath = (redirectPath?: string): MockIdentityPlatform | 
     return "enterpriseAdmin";
   }
 
-  if (normalizedRedirectPath.startsWith("/fde")) {
-    return "enterpriseWorkspace";
-  }
-
   if (normalizedRedirectPath.startsWith("/ops")) {
     return "operationsAdmin";
   }
@@ -1310,14 +1152,11 @@ const isRedirectAllowedForIdentity = (
 
     return (
       normalizedRedirectPath.startsWith("/web/admin") ||
-      normalizedRedirectPath.startsWith("/web/employee") ||
-      normalizedRedirectPath.startsWith("/fde")
+      normalizedRedirectPath.startsWith("/web/employee")
     );
   }
 
-  return (
-    normalizedRedirectPath.startsWith("/web/employee") || normalizedRedirectPath.startsWith("/fde")
-  );
+  return normalizedRedirectPath.startsWith("/web/employee");
 };
 
 /**
@@ -1516,7 +1355,7 @@ export const resolveSessionEntryPath = (
   const fallbackIdentity = activeIdentity ?? getDefaultIdentity(identities);
 
   if (!fallbackIdentity) {
-    return "/portal";
+    return "/login";
   }
 
   return resolveIdentityEntryPath(fallbackIdentity, redirectPath);

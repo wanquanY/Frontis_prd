@@ -84,7 +84,7 @@ export const IdentitySelectionView = (): JSX.Element => {
         return;
       }
 
-      navigate(result.redirectPath ?? "/portal", { replace: true });
+      navigate(result.redirectPath ?? "/login", { replace: true });
     },
     [activateTenant, navigate, redirectPath],
   );
@@ -107,10 +107,10 @@ export const IdentitySelectionView = (): JSX.Element => {
         <button
           type="button"
           className={styles.backButton}
-          onClick={() => navigate("/portal")}
+          onClick={() => navigate("/login")}
         >
           <ArrowLeftOutlined />
-          返回营销门户
+          返回登录
         </button>
       </div>
 

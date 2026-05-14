@@ -10,8 +10,8 @@ import {
   PRODUCT_MANAGER_ADMIN_PRD_DOCUMENT_NAME,
   PRODUCT_MANAGER_BACKLOG_DOCUMENT_CONTENT,
   PRODUCT_MANAGER_BACKLOG_DOCUMENT_NAME,
-  PRODUCT_MANAGER_FDE_DELIVERY_PRD_DOCUMENT_CONTENT,
-  PRODUCT_MANAGER_FDE_DELIVERY_PRD_DOCUMENT_NAME,
+  PRODUCT_MANAGER_OPERATIONS_PRD_DOCUMENT_CONTENT,
+  PRODUCT_MANAGER_OPERATIONS_PRD_DOCUMENT_NAME,
   PRODUCT_MANAGER_PRD_DOCUMENT_CONTENT,
   PRODUCT_MANAGER_PRD_DOCUMENT_NAME,
   PRODUCT_MANAGER_WORKSPACE_PRD_DOCUMENT_CONTENT,
@@ -35,7 +35,7 @@ const PRODUCT_MANAGER_PRD_FOLLOWUPS = [
   PRODUCT_MANAGER_BACKLOG_QUESTION,
   "把这版 PRD 的范围边界和不做项再补完整。",
   "继续给我一版阶段里程碑和评审节奏。",
-  "把用户工作台、企业后台、FDE 三段范围拆成更清晰的小节。",
+  "把工作台、企业管理后台、运营管理后台三段范围拆成更清晰的小节。",
 ];
 
 const PRODUCT_MANAGER_BACKLOG_FOLLOWUPS = [
@@ -84,13 +84,13 @@ const buildProductManagerArtifacts = (
     ),
     createMarkdownArtifact(
       sessionId,
-      "product-manager-fde-delivery-prd",
-      PRODUCT_MANAGER_FDE_DELIVERY_PRD_DOCUMENT_NAME,
+      "product-manager-operations-prd",
+      PRODUCT_MANAGER_OPERATIONS_PRD_DOCUMENT_NAME,
       "产品经理AI专家",
-      "FDE配置交付 PRD 拆分",
-      PRODUCT_MANAGER_FDE_DELIVERY_PRD_DOCUMENT_CONTENT,
+      "运营管理后台 PRD 拆分",
+      PRODUCT_MANAGER_OPERATIONS_PRD_DOCUMENT_CONTENT,
       "2026-04-08 10:45",
-      resolveTextArtifactSize(PRODUCT_MANAGER_FDE_DELIVERY_PRD_DOCUMENT_CONTENT),
+      resolveTextArtifactSize(PRODUCT_MANAGER_OPERATIONS_PRD_DOCUMENT_CONTENT),
     ),
   );
 
@@ -122,13 +122,13 @@ const buildProductManagerFrames = (
 
   if (mode === "backlog") {
     const thinking =
-      "我会沿着刚才的 PRD 继续往下拆，把用户工作台、企业管理后台和 FDE 三段范围拆成 Epic、Feature 和 User Story。";
+      "我会沿着刚才的 PRD 继续往下拆，把工作台、企业管理后台和运营管理后台三段范围拆成 Epic、Feature 和 User Story。";
     const responseMarkdown = `我已把这版需求继续拆成《Frontis AI · Product Backlog》，现在右侧成果面板里会同时看到总览 PRD、3 份拆分 PRD 和 Backlog 这 5 份真实文档。
 
 这版 Backlog 先收口了 3 件事：
 1. 把工作台里的产品经理专家、默认 Agent 和模拟对话放到同一条交付链路里。
-2. 把企业后台设备分配、激活码和默认 Agent 触发关系拆成明确故事。
-3. 把 FDE 看板收口和版本管理独立 Agent 的约束同步到执行层。
+2. 把企业后台 AI 专家管理、组织管理和角色管理拆成明确故事。
+3. 把运营管理后台的租户、商品、审核和平台配置能力同步到执行层。
 
 如果你要继续推进，我下一步建议直接补两项：
 - 把 P0 / P1 再细化成迭代里程碑；
@@ -154,7 +154,7 @@ const buildProductManagerFrames = (
         purpose: "补充后续排期与验收建议",
         status: "completed",
         output:
-          "建议先打通产品经理专家与真实 PRD/Backlog 文档链路，再补企业后台与 FDE 端联动说明。",
+          "建议先打通产品经理专家与真实 PRD/Backlog 文档链路，再补企业后台与运营管理后台联动说明。",
       }),
     ];
 
@@ -189,15 +189,15 @@ const buildProductManagerFrames = (
   }
 
   const thinking =
-    "我先把目标、用户角色、核心范围和本期边界收清楚，再按用户工作台、企业后台、FDE 三段结构输出正式 PRD 草案。";
+    "我先把目标、用户角色、核心范围和本期边界收清楚，再按工作台、企业管理后台、运营管理后台三段结构输出正式 PRD 草案。";
   const responseMarkdown = `我已经生成一版《Frontis AI · 正式 PRD》草案，并把核心结构先收好了。
 
 这版 PRD 当前覆盖：
 1. 产品目标、角色和跨系统关系。
-2. 用户工作台、企业管理后台、FDE 业务管理三段范围。
+2. 工作台、企业管理后台、运营管理后台三段范围。
 3. 默认 Agent、激活码、版本管理等最近几轮调整。
 
-右侧成果面板里已经放入仓库里的总览 PRD 和按工作台、企业管理后台、FDE配置交付拆分的 3 份子 PRD；如果你继续往下推进，我建议下一步直接拆 Product Backlog，把 Epic、Feature 和 User Story 一次补齐。`;
+右侧成果面板里已经放入仓库里的总览 PRD 和按工作台、企业管理后台、运营管理后台拆分的 3 份子 PRD；如果你继续往下推进，我建议下一步直接拆 Product Backlog，把 Epic、Feature 和 User Story 一次补齐。`;
   const toolBlocks = [
     createToolUseBlock({
       id: `${messageId}-tool-1`,
@@ -206,7 +206,7 @@ const buildProductManagerFrames = (
       purpose: "收敛目标、角色和范围边界",
       status: "completed",
       output: prettyJson({
-        modules: ["用户工作台", "企业管理后台", "FDE 业务管理"],
+        modules: ["工作台", "企业管理后台", "运营管理后台"],
         latestAdjustments: ["默认 Agent", "激活码规则", "版本管理收口"],
       }),
     }),

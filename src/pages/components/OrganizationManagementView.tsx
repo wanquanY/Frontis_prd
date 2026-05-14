@@ -29,7 +29,6 @@ export interface OrganizationManagementViewProps {
   departments: OrganizationDepartmentItem[];
   onAddDepartment: (dept: OrganizationDepartmentItem) => void;
   onInviteTenantMember?: (params: MockTenantInviteMemberParams) => boolean;
-  onOpenSeatPurchase?: () => void;
   onRemoveDepartment: (deptId: string) => void;
   onRemoveUser: (userId: string) => void;
   onSetDepartmentLeader: (deptId: string, userId: string | undefined) => void;
@@ -157,7 +156,6 @@ export const OrganizationManagementView = ({
   canRemoveMembers = true,
   onAddDepartment,
   onInviteTenantMember,
-  onOpenSeatPurchase,
   onRemoveDepartment,
   onRemoveUser,
   onSetDepartmentLeader,
@@ -689,10 +687,9 @@ export const OrganizationManagementView = ({
           <div className={adminStyles.consoleActions}>
             {tenantSnapshot ? (
               <span className={adminStyles.consoleMetaTag}>
-                已用席位 {tenantSnapshot.usedSeats}/{tenantSnapshot.totalSeats}
+                成员 {tenantSnapshot.usedSeats}/{tenantSnapshot.totalSeats}
               </span>
             ) : null}
-            {onOpenSeatPurchase ? <Button onClick={onOpenSeatPurchase}>扩容席位</Button> : null}
             {onInviteTenantMember && canInviteMembers ? (
               <Button type="primary" icon={<PlusOutlined />} onClick={handleOpenUserCreate}>
                 邀请成员

@@ -78,12 +78,12 @@ export interface MockAuthSession {
 }
 
 /**
- * 租户积分流水方向。
+ * 租户额度流水方向。
  */
 export type MockTenantPointsLedgerDirection = "income" | "expense";
 
 /**
- * 租户积分流水记录。
+ * 租户额度流水记录。
  */
 export interface MockTenantPointsLedgerItem {
   id: string;
@@ -96,7 +96,7 @@ export interface MockTenantPointsLedgerItem {
 }
 
 /**
- * 租户积分消耗记录。
+ * 租户额度消耗记录。
  */
 export interface MockTenantPointsUsageRecordItem {
   id: string;
@@ -108,11 +108,6 @@ export interface MockTenantPointsUsageRecordItem {
   occurredAt: string;
   description: string;
 }
-
-/**
- * 积分购买订单状态。
- */
-export type MockTenantPointsOrderStatus = "paid" | "pending" | "expired" | "closed";
 
 /**
  * 租户邀请好友裂变记录状态。
@@ -130,23 +125,6 @@ export interface MockTenantReferralInviteRecord {
   rewardPoints: number;
   rewardedAt?: string;
   status: MockTenantReferralInviteStatus;
-}
-
-/**
- * 租户积分购买订单。
- */
-export interface MockTenantPointsOrderItem {
-  id: string;
-  orderNo: string;
-  packageId: string;
-  packageTitle: string;
-  packagePoints: number;
-  amount: number;
-  status: MockTenantPointsOrderStatus;
-  paymentChannelLabel: string;
-  purchaserName: string;
-  createdAt: string;
-  paidAt?: string;
 }
 
 /**
@@ -204,7 +182,6 @@ export interface MockTenantManagementSnapshot {
   agentUsageRecords: MockTenantAgentUsageRecordItem[];
   pointsLedger: MockTenantPointsLedgerItem[];
   pointsUsageRecords: MockTenantPointsUsageRecordItem[];
-  pointsOrders: MockTenantPointsOrderItem[];
   referralRecords: MockTenantReferralInviteRecord[];
 }
 

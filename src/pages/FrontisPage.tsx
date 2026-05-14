@@ -32,8 +32,8 @@ import {
   resolveLatestFulfillmentsByProductId,
   shouldContactForAgent,
   type StoreAgentItem,
-} from "@/feature/fde/components/FdeAgentStoreView";
-import agentStoreStyles from "@/feature/fde/components/FdeAgentStoreView.module.less";
+} from "@/feature/workbenchLab/components/ExpertPlazaView";
+import agentStoreStyles from "@/feature/workbenchLab/components/ExpertPlazaView.module.less";
 import {
   loadStoredOperationsFulfillments,
   loadStoredOperationsProducts,
@@ -229,7 +229,6 @@ const mapStoreAgentToEmployee = (agent: StoreAgentItem): EmployeeItem => ({
   welcomeMessage: `我是${agent.name}，${agent.summary}`,
   systemPrompt: `你是${agent.name}，${agent.summary}`,
   skills: agent.capabilities.map(item => item.name),
-  expertSetupMode: "permission",
 });
 
 const buildInitialDialogueSessions = (
@@ -1993,7 +1992,7 @@ const FrontisPage = ({
         return;
       }
 
-      navigate(result.redirectPath ?? "/portal", { replace: true });
+      navigate(result.redirectPath ?? "/login", { replace: true });
     },
     [activateTenant, location.pathname, location.search, navigate],
   );

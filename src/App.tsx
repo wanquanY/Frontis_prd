@@ -6,7 +6,6 @@ import { AuthRoute } from "@/feature/auth/components/AuthRoute";
 import { useMockAuth } from "@/feature/auth/hooks/useMockAuth";
 import { OperationsAuthRoute } from "@/feature/operations/components/OperationsAuthRoute";
 import { getMockTenantManagementSnapshot } from "@/feature/auth/mockTenantRegistry";
-import type { FrontisWebRole } from "@/pages/types";
 
 const FrontisAdminPage = lazy(() => import("@/pages/FrontisAdminPage"));
 const IdentitySelectionPage = lazy(() => import("@/pages/identity/IdentitySelectionPage"));
@@ -14,39 +13,6 @@ const LoginPage = lazy(() => import("@/pages/login/LoginPage"));
 const UnifiedWorkbenchPage = lazy(() => import("@/pages/unifiedWorkbench/UnifiedWorkbenchPage"));
 const UserManualPage = lazy(() => import("@/pages/UserManualPage"));
 const OperationsPlatformPage = lazy(() => import("@/pages/operations/OperationsPlatformPage"));
-const MarketingPortalShellPage = lazy(
-  () => import("@/pages/marketingPortal/MarketingPortalShellPage"),
-);
-const MarketingPortalHomePage = lazy(
-  () => import("@/pages/marketingPortal/MarketingPortalHomePage"),
-);
-const MarketingPortalAgentsPage = lazy(
-  () => import("@/pages/marketingPortal/MarketingPortalAgentsPage"),
-);
-const MarketingPortalSceneDetailPage = lazy(
-  () => import("@/pages/marketingPortal/MarketingPortalSceneDetailPage"),
-);
-const MarketingPortalAgentDetailPage = lazy(
-  () => import("@/pages/marketingPortal/MarketingPortalAgentDetailPage"),
-);
-const MarketingPortalCasesPage = lazy(
-  () => import("@/pages/marketingPortal/MarketingPortalCasesPage"),
-);
-const MarketingPortalCaseDetailPage = lazy(
-  () => import("@/pages/marketingPortal/MarketingPortalCaseDetailPage"),
-);
-const MarketingPortalContactPage = lazy(
-  () => import("@/pages/marketingPortal/MarketingPortalContactPage"),
-);
-
-const getLegacyFdeRedirectPath = (role?: FrontisWebRole | null): string =>
-  role === "admin" ? "/web/admin/workspace/frontis-dev" : "/web/employee/frontis-dev";
-
-const LegacyFdeRouteRedirect = (): JSX.Element => {
-  const { session } = useMockAuth();
-
-  return <Navigate replace to={getLegacyFdeRedirectPath(session?.role)} />;
-};
 
 const LegacyOperationsLoginRedirect = (): JSX.Element => {
   const location = useLocation();
@@ -80,23 +46,13 @@ const App = (): JSX.Element => {
     <ErrorBoundary>
       <Suspense fallback={<div />}>
         <Routes>
-          <Route path="/" element={<Navigate replace to="/portal" />} />
+          <Route path="/" element={<Navigate replace to="/login" />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<Navigate replace to="/login" />} />
           <Route path="/ops/login" element={<LegacyOperationsLoginRedirect />} />
           <Route path="/user-manual" element={<UserManualPage />} />
           <Route path="/select-tenant" element={<IdentitySelectionPage />} />
           <Route path="/select-identity" element={<Navigate replace to="/select-tenant" />} />
-          <Route path="/portal" element={<MarketingPortalShellPage />}>
-            <Route index element={<MarketingPortalHomePage />} />
-            <Route path="agents" element={<MarketingPortalAgentsPage />} />
-            <Route path="agents/scenes/:sceneId" element={<MarketingPortalSceneDetailPage />} />
-            <Route path="agents/:agentSlug" element={<MarketingPortalAgentDetailPage />} />
-            <Route path="cases" element={<MarketingPortalCasesPage />} />
-            <Route path="cases/:caseSlug" element={<MarketingPortalCaseDetailPage />} />
-            <Route path="contact" element={<MarketingPortalContactPage />} />
-            <Route path="*" element={<Navigate replace to="/portal" />} />
-          </Route>
           <Route
             path="/ops"
             element={
@@ -126,14 +82,6 @@ const App = (): JSX.Element => {
             element={
               <OperationsAuthRoute>
                 <Navigate replace to="/ops/agents" />
-              </OperationsAuthRoute>
-            }
-          />
-          <Route
-            path="/ops/usage/:recordId"
-            element={
-              <OperationsAuthRoute>
-                <Navigate replace to="/ops/tenants" />
               </OperationsAuthRoute>
             }
           />
@@ -201,31 +149,7 @@ const App = (): JSX.Element => {
               </AuthRoute>
             }
           />
-          <Route
-            path="/fde"
-            element={
-              <AuthRoute allowedRole={["employee", "admin"]}>
-                <LegacyFdeRouteRedirect />
-              </AuthRoute>
-            }
-          />
-          <Route
-            path="/fde/:tabPath"
-            element={
-              <AuthRoute allowedRole={["employee", "admin"]}>
-                <LegacyFdeRouteRedirect />
-              </AuthRoute>
-            }
-          />
-          <Route
-            path="/fde-dev/*"
-            element={
-              <AuthRoute allowedRole={["employee", "admin"]}>
-                <LegacyFdeRouteRedirect />
-              </AuthRoute>
-            }
-          />
-          <Route path="*" element={<Navigate replace to="/portal" />} />
+          <Route path="*" element={<Navigate replace to="/login" />} />
         </Routes>
       </Suspense>
     </ErrorBoundary>

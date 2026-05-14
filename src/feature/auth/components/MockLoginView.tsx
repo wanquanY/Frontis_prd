@@ -15,8 +15,8 @@ import {
 } from "@/feature/auth/mockAccounts";
 import { useMockAuth } from "@/feature/auth/hooks/useMockAuth";
 import { saveRegistrationOnboardingDraft } from "@/feature/auth/registrationFlowStorage";
-import { isValidMarketingPhone } from "@/feature/marketingPortal/utils";
 import { loadOperationsRegistrationStrategy } from "@/feature/operations/platformConfigStorage";
+import { isValidMainlandPhone } from "@/utils/phone";
 import type { MockAuthAccount, MockAuthTenantEntry } from "@/feature/auth/types";
 
 import styles from "./MockLoginView.module.less";
@@ -118,7 +118,7 @@ export const MockLoginView = (): JSX.Element => {
   );
 
   const handleBack = useCallback((): void => {
-    navigate("/portal");
+    navigate("/login");
   }, [navigate]);
 
   const handleSelectTenant = useCallback(
@@ -131,7 +131,7 @@ export const MockLoginView = (): JSX.Element => {
       }
 
       message.success(result.message);
-      navigate(result.redirectPath ?? "/portal", { replace: true });
+      navigate(result.redirectPath ?? "/login", { replace: true });
     },
     [activateTenant, navigate, redirectPath],
   );
@@ -153,7 +153,7 @@ export const MockLoginView = (): JSX.Element => {
         return;
       }
 
-      if (!isValidMarketingPhone(phoneValue)) {
+      if (!isValidMainlandPhone(phoneValue)) {
         message.warning("请输入正确的手机号。");
         return;
       }
@@ -234,7 +234,7 @@ export const MockLoginView = (): JSX.Element => {
         return;
       }
 
-      navigate(result.redirectPath ?? "/portal", { replace: true });
+      navigate(result.redirectPath ?? "/login", { replace: true });
     },
     [
       agreeProtocol,
@@ -274,7 +274,7 @@ export const MockLoginView = (): JSX.Element => {
         return;
       }
 
-      navigate(result.redirectPath ?? "/portal", { replace: true });
+      navigate(result.redirectPath ?? "/login", { replace: true });
     },
     [agreeProtocol, loginByPassword, navigate, passwordValue, phoneValue, redirectPath],
   );
@@ -579,7 +579,7 @@ export const MockLoginView = (): JSX.Element => {
                   size="large"
                   type="primary"
                   className={styles.primaryButton}
-                  disabled={!isValidMarketingPhone(phoneValue) || !agreeProtocol}
+                  disabled={!isValidMainlandPhone(phoneValue) || !agreeProtocol}
                 >
                   下一步
                 </Button>

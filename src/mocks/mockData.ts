@@ -12,8 +12,8 @@ import {
   PRODUCT_MANAGER_ADMIN_PRD_DOCUMENT_NAME,
   PRODUCT_MANAGER_BACKLOG_DOCUMENT_CONTENT,
   PRODUCT_MANAGER_BACKLOG_DOCUMENT_NAME,
-  PRODUCT_MANAGER_FDE_DELIVERY_PRD_DOCUMENT_CONTENT,
-  PRODUCT_MANAGER_FDE_DELIVERY_PRD_DOCUMENT_NAME,
+  PRODUCT_MANAGER_OPERATIONS_PRD_DOCUMENT_CONTENT,
+  PRODUCT_MANAGER_OPERATIONS_PRD_DOCUMENT_NAME,
   PRODUCT_MANAGER_PRD_DOCUMENT_CONTENT,
   PRODUCT_MANAGER_PRD_DOCUMENT_NAME,
   PRODUCT_MANAGER_WORKSPACE_PRD_DOCUMENT_CONTENT,
@@ -162,8 +162,8 @@ export const INITIAL_WORKSPACES: WorkspaceItem[] = [
     type: "local",
     status: "draft",
     region: "北京 · 总部",
-    summary: "总部本地部署，当前设备离线。",
-    runtimeHint: "设备离线中，请联系运维排查。",
+    summary: "总部本地部署，当前未启用。",
+    runtimeHint: "本地工作区待启用，请联系运维排查。",
   },
   {
     id: "workspace-edge-hz",
@@ -171,8 +171,8 @@ export const INITIAL_WORKSPACES: WorkspaceItem[] = [
     type: "edge",
     status: "error",
     region: "杭州 · 仓配中心",
-    summary: "仓配现场边缘部署，当前设备异常。",
-    runtimeHint: "设备异常中，请联系运维排查。",
+    summary: "仓配现场边缘部署，当前运行异常。",
+    runtimeHint: "边缘工作区异常中，请联系运维排查。",
   },
 ];
 
@@ -206,7 +206,6 @@ export const INITIAL_EMPLOYEES: EmployeeItem[] = [
     systemPrompt:
       "你是一名需求拆解助手，负责帮助个人工作室梳理需求背景、拆解工作步骤并形成可执行建议。",
     skills: ["requirements_summary", "backlog_breakdown"],
-    expertSetupMode: "permission",
   },
   {
     id: "employee-pm",
@@ -233,7 +232,6 @@ export const INITIAL_EMPLOYEES: EmployeeItem[] = [
     welcomeMessage: "我会先看盘面，再把序列均分、预警和趋势翻译成老板可直接复述的经营结论。",
     systemPrompt: "你是一名序列总览专家，负责分析公司各序列的均分、预警、趋势和经营重点。",
     skills: ["sequence_overview"],
-    expertSetupMode: "permission",
   },
   {
     id: "employee-designer",
@@ -268,7 +266,6 @@ export const INITIAL_EMPLOYEES: EmployeeItem[] = [
       "benchmark_find",
       "score_rank",
     ],
-    expertSetupMode: "permission",
   },
   {
     id: "employee-research",
@@ -296,7 +293,6 @@ export const INITIAL_EMPLOYEES: EmployeeItem[] = [
     systemPrompt:
       "你是一名红线检测专家，负责判断员工是否触碰品质安全、诚信担当和匠心传承三条底线。",
     skills: ["redline_detect"],
-    expertSetupMode: "permission",
   },
   {
     id: "employee-ops",
@@ -323,7 +319,6 @@ export const INITIAL_EMPLOYEES: EmployeeItem[] = [
     welcomeMessage: "我会把真正值得表扬、值得培养、值得放大使用的人直接挑出来给你。",
     systemPrompt: "你是一名标杆识别专家，负责筛选高表现员工、提炼典型事迹并输出培养建议。",
     skills: ["benchmark_find"],
-    expertSetupMode: "permission",
   },
   {
     id: ECOMMERCE_AUTOMATION_AGENT_DEMO.id,
@@ -347,7 +342,6 @@ export const INITIAL_EMPLOYEES: EmployeeItem[] = [
     welcomeMessage: ECOMMERCE_AUTOMATION_AGENT_DEMO.welcomeMessage,
     systemPrompt: ECOMMERCE_AUTOMATION_AGENT_DEMO.systemPrompt,
     skills: ECOMMERCE_AUTOMATION_SKILL_DEMOS.map(item => item.id),
-    expertSetupMode: "device",
   },
   {
     id: LIVE_BROADCAST_AGENT_DEMO.id,
@@ -374,7 +368,6 @@ export const INITIAL_EMPLOYEES: EmployeeItem[] = [
     welcomeMessage: LIVE_BROADCAST_AGENT_DEMO.welcomeMessage,
     systemPrompt: LIVE_BROADCAST_AGENT_DEMO.systemPrompt,
     skills: LIVE_BROADCAST_SKILL_DEMOS.map(item => item.id),
-    expertSetupMode: "permission",
   },
   {
     id: XIAOCANMAMA_IP_AGENT_DEMO.id,
@@ -401,7 +394,6 @@ export const INITIAL_EMPLOYEES: EmployeeItem[] = [
     welcomeMessage: XIAOCANMAMA_IP_AGENT_DEMO.welcomeMessage,
     systemPrompt: XIAOCANMAMA_IP_AGENT_DEMO.systemPrompt,
     skills: XIAOCANMAMA_IP_SKILL_DEMOS.map(item => item.id),
-    expertSetupMode: "permission",
   },
   {
     id: "employee-writer",
@@ -429,7 +421,6 @@ export const INITIAL_EMPLOYEES: EmployeeItem[] = [
     systemPrompt:
       "你是 ME，负责理解用户目标、处理基础对话和文件任务；当用户具备可调度 AI 专家权限时，再按权限调度专家并统一汇总结果。",
     skills: [],
-    expertSetupMode: "permission",
   },
   {
     id: "employee-sales",
@@ -456,7 +447,6 @@ export const INITIAL_EMPLOYEES: EmployeeItem[] = [
     welcomeMessage: "我会把标杆区、中间区、关注区和名次变化一次性拆给你看。",
     systemPrompt: "你是一名评分排名专家，负责统计序列内的评分排名、分区分布、关注区和变化情况。",
     skills: ["score_rank"],
-    expertSetupMode: "permission",
   },
   {
     id: "employee-product-manager",
@@ -488,7 +478,6 @@ export const INITIAL_EMPLOYEES: EmployeeItem[] = [
     systemPrompt:
       "你是一名产品经理AI专家，负责收敛需求背景、生成正式 PRD、拆解 Product Backlog，并补充范围边界、交付说明和里程碑建议。",
     skills: ["requirements_summary", "prd_generate", "backlog_breakdown", "milestone_plan"],
-    expertSetupMode: "permission",
   },
   {
     id: "employee-architect",
@@ -516,7 +505,6 @@ export const INITIAL_EMPLOYEES: EmployeeItem[] = [
     systemPrompt:
       "你是一名架构规划师，负责拆解业务边界、系统模块、数据流和实施约束，输出能直接指导研发落地的方案。",
     skills: ["architecture_planning", "module_mapping", "risk_review"],
-    expertSetupMode: "permission",
   },
   {
     id: "employee-growth",
@@ -544,7 +532,6 @@ export const INITIAL_EMPLOYEES: EmployeeItem[] = [
     systemPrompt:
       "你是一名增长实验官，负责设计转化路径、实验方案、指标口径和验证节奏，帮助团队快速判断方案是否有效。",
     skills: ["growth_experiment", "conversion_analysis", "metric_design"],
-    expertSetupMode: "permission",
   },
   {
     id: "employee-qa",
@@ -571,7 +558,6 @@ export const INITIAL_EMPLOYEES: EmployeeItem[] = [
     welcomeMessage: "我会从验收口径、异常路径和回归范围帮你把交付风险提前拦下来。",
     systemPrompt: "你是一名交付验收官，负责定义验收标准、回归范围、上线检查项和交付风险提示。",
     skills: ["acceptance_review", "regression_planning", "launch_checklist"],
-    expertSetupMode: "permission",
   },
   {
     id: "employee-data",
@@ -598,7 +584,6 @@ export const INITIAL_EMPLOYEES: EmployeeItem[] = [
     welcomeMessage: "我会把关键指标、异常信号和看板结构整理成能直接追踪的方案。",
     systemPrompt: "你是一名数据洞察师，负责沉淀指标体系、看板结构、异常判断口径和数据解释建议。",
     skills: ["metric_design", "dashboard_planning", "anomaly_insight"],
-    expertSetupMode: "permission",
   },
   {
     id: "employee-user-researcher",
@@ -625,7 +610,6 @@ export const INITIAL_EMPLOYEES: EmployeeItem[] = [
     welcomeMessage: "我会先还原用户原话和场景，再帮你判断哪些问题最值得优先处理。",
     systemPrompt: "你是一名用户访谈官，负责汇总用户反馈、访谈证据、场景问题和优先级判断依据。",
     skills: ["user_interview", "feedback_synthesis", "priority_evidence"],
-    expertSetupMode: "permission",
   },
 ];
 
@@ -643,7 +627,7 @@ export const INITIAL_EMPLOYEE_DOCUMENTS: Record<string, string[]> = {
     PRODUCT_MANAGER_PRD_DOCUMENT_NAME,
     PRODUCT_MANAGER_WORKSPACE_PRD_DOCUMENT_NAME,
     PRODUCT_MANAGER_ADMIN_PRD_DOCUMENT_NAME,
-    PRODUCT_MANAGER_FDE_DELIVERY_PRD_DOCUMENT_NAME,
+    PRODUCT_MANAGER_OPERATIONS_PRD_DOCUMENT_NAME,
     PRODUCT_MANAGER_BACKLOG_DOCUMENT_NAME,
     "需求澄清纪要.md",
   ],
@@ -723,8 +707,8 @@ export const INITIAL_EMPLOYEE_DOCUMENT_CONTENTS: Record<string, Record<string, s
     [PRODUCT_MANAGER_PRD_DOCUMENT_NAME]: PRODUCT_MANAGER_PRD_DOCUMENT_CONTENT,
     [PRODUCT_MANAGER_WORKSPACE_PRD_DOCUMENT_NAME]: PRODUCT_MANAGER_WORKSPACE_PRD_DOCUMENT_CONTENT,
     [PRODUCT_MANAGER_ADMIN_PRD_DOCUMENT_NAME]: PRODUCT_MANAGER_ADMIN_PRD_DOCUMENT_CONTENT,
-    [PRODUCT_MANAGER_FDE_DELIVERY_PRD_DOCUMENT_NAME]:
-      PRODUCT_MANAGER_FDE_DELIVERY_PRD_DOCUMENT_CONTENT,
+    [PRODUCT_MANAGER_OPERATIONS_PRD_DOCUMENT_NAME]:
+      PRODUCT_MANAGER_OPERATIONS_PRD_DOCUMENT_CONTENT,
     [PRODUCT_MANAGER_BACKLOG_DOCUMENT_NAME]: PRODUCT_MANAGER_BACKLOG_DOCUMENT_CONTENT,
     "需求澄清纪要.md":
       "# 需求澄清纪要\n\n- 本轮以 mock 数据驱动，不接真实接口\n- 文档输出优先覆盖 PRD 与 Backlog 两种产品经理常用交付物\n- 若需求继续收敛，可在当前基础上追加阶段目标和里程碑\n",

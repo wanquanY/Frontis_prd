@@ -14,7 +14,6 @@ import type {
   OperationsModelService,
   OperationsModelServiceForm,
   OperationsPlatformTabKey,
-  OperationsPointsUsageRecord,
   OperationsReferralRecord,
   OperationsRegistrationStrategy,
   OperationsAgentPlazaCategory,
@@ -40,8 +39,6 @@ import type {
   OperationsTenant,
   OperationsTenantForm,
   OperationsTenantMemberForm,
-  OperationsUsageRecord,
-  OperationsUsageTrendPoint,
 } from "@/feature/operations/types";
 import {
   DEPARTMENT_LEAD_PERMISSION_IDS,
@@ -743,55 +740,6 @@ export const OPERATIONS_INITIAL_EXTERNAL_METERED_SERVICES: OperationsExternalMet
   },
 ];
 
-export const OPERATIONS_INITIAL_POINTS_USAGE_RECORDS: OperationsPointsUsageRecord[] = [
-  {
-    id: "ops-points-usage-001",
-    tenantName: "星澜服饰租户",
-    userName: "林子航",
-    sourceType: "largeModel",
-    sourceName: "客户对账体验助手",
-    providerName: "OpenAI",
-    modelName: "GPT-4.1",
-    inputTokens: 118000,
-    outputTokens: 32000,
-    costAmount: 1.07,
-    saleAmount: 1.5,
-    points: 150,
-    marginAmount: 0.43,
-    occurredAt: "2026-04-24 10:32",
-  },
-  {
-    id: "ops-points-usage-002",
-    tenantName: "北辰科技个人租户",
-    userName: "周明越",
-    sourceType: "thirdPartyApi",
-    sourceName: "企业工商信息查询",
-    providerName: "企业信息接口服务",
-    unitCount: 18,
-    unitLabel: "次调用",
-    costAmount: 1.44,
-    saleAmount: 2.16,
-    points: 216,
-    marginAmount: 0.72,
-    occurredAt: "2026-04-24 09:48",
-  },
-  {
-    id: "ops-points-usage-003",
-    tenantName: "星澜服饰集团租户",
-    userName: "许念",
-    sourceType: "skill",
-    sourceName: "票据 OCR 识别",
-    providerName: "阿里云百炼",
-    unitCount: 42,
-    unitLabel: "张图片",
-    costAmount: 1.26,
-    saleAmount: 1.76,
-    points: 176,
-    marginAmount: 0.5,
-    occurredAt: "2026-04-23 18:12",
-  },
-];
-
 export const OPERATIONS_INITIAL_PRODUCTS: OperationsProduct[] = [
   {
     id: "ops-product-001",
@@ -996,7 +944,7 @@ export const OPERATIONS_INITIAL_FULFILLMENTS: OperationsFulfillment[] = [
     tenantId: "ops-tenant-003",
     tenantName: "Frontis 内部运营组",
     productId: "ops-product-004",
-    productName: "模型积分包 50 万",
+    productName: "模型服务额度 50 万",
     deliveryKind: "thirdPartyApi",
     quantity: 1,
     status: "active",
@@ -1114,71 +1062,6 @@ export const OPERATIONS_INITIAL_RESOURCE_POOLS: OperationsResourcePool[] = [
     availableCapacity: 999,
     capacityUnit: "apiKey",
     updatedAt: "2026-04-17 08:40",
-  },
-];
-
-export const OPERATIONS_USAGE_TREND_POINTS: OperationsUsageTrendPoint[] = [
-  { periodLabel: "04-11", requestCount: 1240, tokenCount: 368000, totalCost: 1820 },
-  { periodLabel: "04-12", requestCount: 1380, tokenCount: 402500, totalCost: 1985 },
-  { periodLabel: "04-13", requestCount: 1525, tokenCount: 449200, totalCost: 2240 },
-  { periodLabel: "04-14", requestCount: 1670, tokenCount: 486800, totalCost: 2415 },
-  { periodLabel: "04-15", requestCount: 1810, tokenCount: 519600, totalCost: 2588 },
-  { periodLabel: "04-16", requestCount: 1945, tokenCount: 551400, totalCost: 2796 },
-  { periodLabel: "04-17", requestCount: 1760, tokenCount: 504000, totalCost: 2632 },
-];
-
-export const OPERATIONS_USAGE_RECORDS: OperationsUsageRecord[] = [
-  {
-    id: "ops-usage-001",
-    tenantId: "ops-tenant-001",
-    tenantName: "星澜服饰集团",
-    productId: "ops-product-002",
-    productName: "对账核验标准版",
-    agentName: "客户对账核验助手",
-    requestCount: 1420,
-    tokenCount: 422000,
-    activeUsers: 18,
-    totalCost: 2150,
-    periodLabel: "近 7 天",
-  },
-  {
-    id: "ops-usage-002",
-    tenantId: "ops-tenant-001",
-    tenantName: "星澜服饰集团",
-    productId: "ops-product-003",
-    productName: "云端工作站 10 席位包",
-    agentName: "工作站运行资源",
-    requestCount: 960,
-    tokenCount: 301000,
-    activeUsers: 24,
-    totalCost: 1680,
-    periodLabel: "近 7 天",
-  },
-  {
-    id: "ops-usage-003",
-    tenantId: "ops-tenant-001",
-    tenantName: "星澜服饰集团",
-    productId: "ops-product-004",
-    productName: "模型积分包 50 万",
-    agentName: "多模型资源池",
-    requestCount: 2105,
-    tokenCount: 618000,
-    activeUsers: 11,
-    totalCost: 2986,
-    periodLabel: "近 7 天",
-  },
-  {
-    id: "ops-usage-004",
-    tenantId: "ops-tenant-003",
-    tenantName: "Frontis 内部运营组",
-    productId: "ops-product-005",
-    productName: "实施陪跑服务包",
-    agentName: "运营交付协同",
-    requestCount: 430,
-    tokenCount: 124000,
-    activeUsers: 6,
-    totalCost: 714,
-    periodLabel: "近 7 天",
   },
 ];
 
@@ -1601,7 +1484,7 @@ export const OPERATIONS_MODEL_INTERFACE_FORMAT_LABELS: Record<
   gemini: "Gemini 格式",
 };
 
-export const OPERATIONS_USAGE_PRICING_MODE_LABELS: Record<
+export const OPERATIONS_SERVICE_PRICING_MODE_LABELS: Record<
   "markup" | "grossMargin" | "manual",
   string
 > = {

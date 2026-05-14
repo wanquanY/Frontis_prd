@@ -45,7 +45,7 @@ import styles from "./UnifiedWorkbenchPage.module.less";
 type UnifiedWorkbenchTabKey =
   | "metaAgent"
   | "expertStudio"
-  | "frontisDev"
+  | "evolutionLab"
   | "skillMarket"
   | "agentStore";
 
@@ -62,25 +62,25 @@ interface UnifiedWorkbenchNavItem {
 
 const DEFAULT_TAB_KEY: UnifiedWorkbenchTabKey = "metaAgent";
 const FrontisPage = lazy(() => import("@/pages/FrontisPage"));
-const FdeAgentDevView = lazy(() =>
-  import("@/feature/fde/components/FdeAgentDevView").then(module => ({
-    default: module.FdeAgentDevView,
+const EvolutionLabView = lazy(() =>
+  import("@/feature/workbenchLab/components/EvolutionLabView").then(module => ({
+    default: module.EvolutionLabView,
   })),
 );
-const FdeSkillMarketView = lazy(() =>
-  import("@/feature/fde/components/FdeSkillMarketView").then(module => ({
-    default: module.FdeSkillMarketView,
+const SkillCenterView = lazy(() =>
+  import("@/feature/workbenchLab/components/SkillCenterView").then(module => ({
+    default: module.SkillCenterView,
   })),
 );
-const FdeAgentStoreView = lazy(() =>
-  import("@/feature/fde/components/FdeAgentStoreView").then(module => ({
-    default: module.FdeAgentStoreView,
+const ExpertPlazaView = lazy(() =>
+  import("@/feature/workbenchLab/components/ExpertPlazaView").then(module => ({
+    default: module.ExpertPlazaView,
   })),
 );
 const TAB_SEGMENTS: Record<UnifiedWorkbenchTabKey, string> = {
   metaAgent: "meta-agent",
   expertStudio: "expert-studio",
-  frontisDev: "frontis-dev",
+  evolutionLab: "evolution-lab",
   skillMarket: "skill-market",
   agentStore: "agent-store",
 };
@@ -110,7 +110,7 @@ const TAB_ITEMS: UnifiedWorkbenchNavItem[] = [
     icon: <ThunderboltOutlined />,
   },
   {
-    key: "frontisDev",
+    key: "evolutionLab",
     label: EVOLUTION_LAB_LABEL,
     description: "开发 AI 专家与 Skill，并管理发布范围。",
     icon: <CodeOutlined />,
@@ -134,7 +134,7 @@ const getUnifiedWorkbenchPath = (
 };
 
 /**
- * 统一用户端页面，聚合员工对话工作台与 FDE 开发视图。
+ * 统一用户端页面，聚合 ME、专家列表、专家广场、技能中心与进化实验室。
  */
 export const UnifiedWorkbenchPage = ({ viewRole }: UnifiedWorkbenchPageProps): JSX.Element => {
   const location = useLocation();
@@ -227,7 +227,7 @@ export const UnifiedWorkbenchPage = ({ viewRole }: UnifiedWorkbenchPageProps): J
         return;
       }
 
-      navigate(result.redirectPath ?? "/portal", { replace: true });
+      navigate(result.redirectPath ?? "/login", { replace: true });
     },
     [activateTenant, location.pathname, location.search, navigate],
   );
@@ -301,16 +301,16 @@ export const UnifiedWorkbenchPage = ({ viewRole }: UnifiedWorkbenchPageProps): J
       return <FrontisPage viewRole={viewRole} embedded={true} workspaceMode="expertStudio" />;
     }
 
-    if (activeTab === "frontisDev") {
-      return <FdeAgentDevView onNavigate={() => handleNavigateTab("agentStore")} />;
+    if (activeTab === "evolutionLab") {
+      return <EvolutionLabView onNavigate={() => handleNavigateTab("agentStore")} />;
     }
 
     if (activeTab === "skillMarket") {
-      return <FdeSkillMarketView />;
+      return <SkillCenterView />;
     }
 
     if (activeTab === "agentStore") {
-      return <FdeAgentStoreView />;
+      return <ExpertPlazaView />;
     }
 
     return <FrontisPage viewRole={viewRole} embedded={true} />;

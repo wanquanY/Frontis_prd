@@ -383,12 +383,12 @@ export interface OperationsReferralRecord {
 }
 
 /**
- * 积分消耗计费配置状态。
+ * 平台服务配置状态。
  */
 export type OperationsMeteringStatus = "active" | "inactive";
 
 /**
- * 积分消耗服务商类型。
+ * 平台服务商类型。
  */
 export type OperationsMeteringProviderKind = "largeModel" | "thirdPartyApi" | "skillService";
 
@@ -403,9 +403,9 @@ export type OperationsModelModality = "text" | "multimodal" | "embedding" | "ima
 export type OperationsModelInterfaceFormat = "anthropic" | "gemini" | "openai";
 
 /**
- * 消耗计费定价模式。
+ * 服务定价模式。
  */
-export type OperationsUsagePricingMode = "markup" | "grossMargin" | "manual";
+export type OperationsServicePricingMode = "markup" | "grossMargin" | "manual";
 
 /**
  * 第三方接口计量单位。
@@ -418,12 +418,7 @@ export type OperationsExternalServiceMeteringUnit =
   | "thousandCharacters";
 
 /**
- * 消耗来源类型。
- */
-export type OperationsPointsUsageSourceType = "largeModel" | "skill" | "thirdPartyApi";
-
-/**
- * 积分消耗服务商。
+ * 平台服务商。
  */
 export interface OperationsMeteringProvider {
   id: string;
@@ -437,7 +432,7 @@ export interface OperationsMeteringProvider {
 }
 
 /**
- * 积分消耗服务商表单。
+ * 平台服务商表单。
  */
 export interface OperationsMeteringProviderForm {
   name: string;
@@ -462,7 +457,7 @@ export interface OperationsModelService {
   reasoningEnabled: boolean;
   inputCostPerMillion: number;
   outputCostPerMillion: number;
-  pricingMode: OperationsUsagePricingMode;
+  pricingMode: OperationsServicePricingMode;
   markupRate: number;
   grossMarginRate: number;
   inputSalePricePerMillion: number;
@@ -483,7 +478,7 @@ export interface OperationsModelServiceForm {
   reasoningEnabled: boolean;
   inputCostPerMillion: number;
   outputCostPerMillion: number;
-  pricingMode: OperationsUsagePricingMode;
+  pricingMode: OperationsServicePricingMode;
   markupRate: number;
   grossMarginRate: number;
   inputSalePricePerMillion: number;
@@ -502,7 +497,7 @@ export interface OperationsExternalMeteredService {
   serviceTypeLabel: string;
   meteringUnit: OperationsExternalServiceMeteringUnit;
   costPerUnit: number;
-  pricingMode: OperationsUsagePricingMode;
+  pricingMode: OperationsServicePricingMode;
   markupRate: number;
   grossMarginRate: number;
   salePricePerUnit: number;
@@ -519,33 +514,11 @@ export interface OperationsExternalMeteredServiceForm {
   serviceTypeLabel: string;
   meteringUnit: OperationsExternalServiceMeteringUnit;
   costPerUnit: number;
-  pricingMode: OperationsUsagePricingMode;
+  pricingMode: OperationsServicePricingMode;
   markupRate: number;
   grossMarginRate: number;
   salePricePerUnit: number;
   status: OperationsMeteringStatus;
-}
-
-/**
- * 积分消耗对账记录。
- */
-export interface OperationsPointsUsageRecord {
-  id: string;
-  tenantName: string;
-  userName: string;
-  sourceType: OperationsPointsUsageSourceType;
-  sourceName: string;
-  providerName: string;
-  modelName?: string;
-  inputTokens?: number;
-  outputTokens?: number;
-  unitCount?: number;
-  unitLabel?: string;
-  costAmount: number;
-  saleAmount: number;
-  points: number;
-  marginAmount: number;
-  occurredAt: string;
 }
 
 /**
@@ -702,31 +675,4 @@ export interface OperationsResourcePoolForm {
   totalCapacity: number;
   availableCapacity: number;
   capacityUnit: OperationsResourcePoolCapacityUnit;
-}
-
-/**
- * 用量费用明细。
- */
-export interface OperationsUsageRecord {
-  id: string;
-  tenantId: string;
-  tenantName: string;
-  productId: string;
-  productName: string;
-  agentName: string;
-  requestCount: number;
-  tokenCount: number;
-  activeUsers: number;
-  totalCost: number;
-  periodLabel: string;
-}
-
-/**
- * 用量费用趋势点。
- */
-export interface OperationsUsageTrendPoint {
-  periodLabel: string;
-  requestCount: number;
-  tokenCount: number;
-  totalCost: number;
 }

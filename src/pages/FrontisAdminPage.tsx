@@ -42,19 +42,12 @@ import {
 import {
   INITIAL_EMPLOYEES,
   INITIAL_ORGANIZATION_DEPARTMENTS,
-  INITIAL_WORKSPACES,
 } from "@/mocks/mockData";
 import { getUserPermissionIds, hasAnyPermission, hasPermission } from "@/utils/tenantRoleAccess";
 
-import { DeviceManagementView } from "./components/DeviceManagementView";
 import { AccountDropdownPanel } from "./components/AccountDropdownPanel";
 import { AgentStoreView } from "./components/agentStore/AgentStoreView";
-import type { ExpertDeploymentState } from "./components/agentStore/types";
-import {
-  buildInitialExpertDeploymentByEmployeeId,
-  doesExpertRequireDeviceBinding,
-  hasUserAccessToExpert,
-} from "./components/agentStore/utils";
+import { hasUserAccessToExpert } from "./components/agentStore/utils";
 import { OrganizationManagementView } from "./components/OrganizationManagementView";
 import { RoleManagementView } from "./components/RoleManagementView";
 import type {
@@ -66,19 +59,10 @@ import type {
   FrontisWebTabKey,
   FrontisWebUserItem,
   OrganizationDepartmentItem,
-  WorkspaceItem,
 } from "./types";
 import styles from "./FrontisPage.module.less";
 
 const MANAGEMENT_USER_ROLES = new Set<FrontisUserRole>(["enterpriseAdmin"]);
-const INITIAL_DEVICE_OWNERS: Record<string, string | null> = {
-  "workspace-cloud": null,
-  "workspace-local": null,
-  "workspace-cloud-gz": "user-admin-002",
-  "workspace-local-bj": "user-admin-001",
-  "workspace-local-sh": "user-member-001",
-  "workspace-edge-hz": "user-admin-001",
-};
 const syncRootDepartmentName = (
   departments: OrganizationDepartmentItem[],
   tenantName?: string,
@@ -192,12 +176,6 @@ const FrontisAdminPage = (): JSX.Element => {
   const [selectedTenantRoleId, setSelectedTenantRoleId] = useState<string>(
     DEFAULT_TENANT_ROLE_IDS.enterpriseAdmin,
   );
-  const [workspaces, setWorkspaces] = useState<WorkspaceItem[]>(INITIAL_WORKSPACES);
-  const [deploymentByEmployeeId, setDeploymentByEmployeeId] = useState<
-    Record<string, ExpertDeploymentState>
-  >(() => buildInitialExpertDeploymentByEmployeeId(INITIAL_EMPLOYEES));
-  const [deviceOwners, setDeviceOwners] =
-    useState<Record<string, string | null>>(INITIAL_DEVICE_OWNERS);
   const [departments, setDepartments] = useState<OrganizationDepartmentItem[]>(() =>
     syncRootDepartmentName(INITIAL_ORGANIZATION_DEPARTMENTS, activeIdentity?.tenantName),
   );
@@ -229,19 +207,10 @@ const FrontisAdminPage = (): JSX.Element => {
       users.map(user => ({
         ...user,
         assignedAgentIds: employees
-          .filter(employee =>
-            hasUserAccessToExpert(
-              user,
-              employee,
-              deploymentByEmployeeId[employee.id],
-              deviceOwners,
-              users,
-              departments,
-            ),
-          )
+          .filter(employee => hasUserAccessToExpert(user, employee, users, departments))
           .map(employee => employee.id),
       })),
-    [deploymentByEmployeeId, departments, deviceOwners, employees, users],
+    [departments, employees, users],
   );
 
   const syncUsersToTenant = useCallback(
@@ -315,118 +284,25 @@ const FrontisAdminPage = (): JSX.Element => {
     setSearchParams(nextParams);
   }, [activeTabKey, searchParams, setSearchParams, tenantSnapshot, visibleAdminTabs]);
 
-  const handleAttachEmployeeToDevice = useCallback(
-    (employeeId: string, workspaceId: string): void => {
-      setDeploymentByEmployeeId(prev => {
-        const currentState = prev[employeeId] ?? {
-          accessByWorkspaceId: {},
-          assignedWorkspaceIds: [],
-        };
-        const employee = employees.find(item => item.id === employeeId);
-
-        if (!employee || currentState.assignedWorkspaceIds.includes(workspaceId)) {
-          return prev;
-        }
-
-        return {
-          ...prev,
-          [employeeId]: {
-            accessByWorkspaceId: {
-              ...currentState.accessByWorkspaceId,
-              [workspaceId]: {
-                accessScopeSubjects: doesExpertRequireDeviceBinding(employee)
-                  ? []
-                  : [...employee.accessScopeSubjects],
-                visibility: doesExpertRequireDeviceBinding(employee)
-                  ? "bound"
-                  : employee.visibility,
-              },
-            },
-            assignedWorkspaceIds: [...currentState.assignedWorkspaceIds, workspaceId],
-          },
-        };
-      });
-    },
-    [employees],
-  );
-
-  const handleDetachEmployeeFromDevice = useCallback(
-    (employeeId: string, workspaceId: string): void => {
-      setDeploymentByEmployeeId(prev => {
-        const currentState = prev[employeeId];
-        if (!currentState) {
-          return prev;
-        }
-
-        const nextAccessByWorkspaceId = { ...currentState.accessByWorkspaceId };
-        delete nextAccessByWorkspaceId[workspaceId];
-
-        return {
-          ...prev,
-          [employeeId]: {
-            accessByWorkspaceId: nextAccessByWorkspaceId,
-            assignedWorkspaceIds: currentState.assignedWorkspaceIds.filter(
-              id => id !== workspaceId,
-            ),
-          },
-        };
-      });
-    },
-    [],
-  );
-
-  const handleUpdateEmployeeDeviceAccess = useCallback(
+  const handleUpdateEmployeeAccess = useCallback(
     (
       employeeId: string,
-      workspaceId: string,
       visibility: EmployeeItem["visibility"],
       accessScopeSubjects: AccessScopeSubject[],
     ): void => {
-      const employee = employees.find(item => item.id === employeeId);
-
-      if (!employee) {
-        return;
-      }
-
-      if (!doesExpertRequireDeviceBinding(employee)) {
-        setEmployees(prev =>
-          prev.map(item =>
-            item.id === employeeId
-              ? {
-                  ...item,
-                  accessScopeSubjects,
-                  visibility,
-                }
-              : item,
-          ),
-        );
-        return;
-      }
-
-      setDeploymentByEmployeeId(prev => {
-        const currentState = prev[employeeId] ?? {
-          accessByWorkspaceId: {},
-          assignedWorkspaceIds: [],
-        };
-
-        return {
-          ...prev,
-          [employeeId]: {
-            accessByWorkspaceId: {
-              ...currentState.accessByWorkspaceId,
-              [workspaceId]: {
+      setEmployees(prev =>
+        prev.map(item =>
+          item.id === employeeId
+            ? {
+                ...item,
                 accessScopeSubjects,
                 visibility,
-              },
-            },
-            assignedWorkspaceIds: currentState.assignedWorkspaceIds.includes(workspaceId)
-              ? currentState.assignedWorkspaceIds
-              : [...currentState.assignedWorkspaceIds, workspaceId],
-          },
-        };
-      });
+              }
+            : item,
+        ),
+      );
     },
-    [employees],
+    [],
   );
 
   const handleUpdateEmployeeModel = useCallback((employeeId: string, model: string): void => {
@@ -567,100 +443,6 @@ const FrontisAdminPage = (): JSX.Element => {
     [syncUsersToTenant],
   );
 
-  const handleAssignDeviceOwner = useCallback((deviceId: string, ownerId: string | null): void => {
-    setDeviceOwners(prev => ({
-      ...prev,
-      [deviceId]: ownerId,
-    }));
-
-    setUsers(prev =>
-      prev.map(item => {
-        const nextWorkspaceIds = new Set(item.assignedWorkspaceIds ?? []);
-        nextWorkspaceIds.delete(deviceId);
-
-        if (item.id === ownerId) {
-          nextWorkspaceIds.add(deviceId);
-        }
-
-        return {
-          ...item,
-          assignedWorkspaceIds: Array.from(nextWorkspaceIds),
-        };
-      }),
-    );
-  }, []);
-
-  const handleAddWorkspace = useCallback(
-    (workspace: WorkspaceItem, ownerId: string | null): void => {
-      setWorkspaces(prev => {
-        if (prev.some(item => item.id === workspace.id)) {
-          return prev;
-        }
-
-        return [...prev, workspace];
-      });
-
-      setDeviceOwners(prev => ({
-        ...prev,
-        [workspace.id]: ownerId,
-      }));
-
-      setUsers(prev =>
-        prev.map(item => {
-          const nextWorkspaceIds = new Set(item.assignedWorkspaceIds ?? []);
-          nextWorkspaceIds.delete(workspace.id);
-
-          if (item.id === ownerId) {
-            nextWorkspaceIds.add(workspace.id);
-          }
-
-          return {
-            ...item,
-            assignedWorkspaceIds: Array.from(nextWorkspaceIds),
-          };
-        }),
-      );
-    },
-    [],
-  );
-
-  const handleRemoveWorkspace = useCallback((workspaceId: string): void => {
-    setWorkspaces(prev => prev.filter(item => item.id !== workspaceId));
-
-    setDeviceOwners(prev => {
-      const nextOwners = { ...prev };
-      delete nextOwners[workspaceId];
-      return nextOwners;
-    });
-
-    setUsers(prev =>
-      prev.map(item => ({
-        ...item,
-        assignedWorkspaceIds: (item.assignedWorkspaceIds ?? []).filter(id => id !== workspaceId),
-      })),
-    );
-
-    setDeploymentByEmployeeId(prev =>
-      Object.fromEntries(
-        Object.entries(prev).map(([employeeId, deploymentState]) => {
-          const nextAccessByWorkspaceId = { ...deploymentState.accessByWorkspaceId };
-          delete nextAccessByWorkspaceId[workspaceId];
-
-          return [
-            employeeId,
-            {
-              ...deploymentState,
-              accessByWorkspaceId: nextAccessByWorkspaceId,
-              assignedWorkspaceIds: deploymentState.assignedWorkspaceIds.filter(
-                assignedWorkspaceId => assignedWorkspaceId !== workspaceId,
-              ),
-            },
-          ];
-        }),
-      ),
-    );
-  }, []);
-
   const handleInviteTenantMember = useCallback(
     (params: MockTenantInviteMemberParams): boolean => {
       if (!activeIdentity?.tenantId || !tenantSnapshot) {
@@ -673,20 +455,20 @@ const FrontisAdminPage = (): JSX.Element => {
       }
 
       if (tenantSnapshot.usedSeats >= tenantSnapshot.totalSeats) {
-        message.warning("当前席位不足，暂无法继续邀请成员。");
+        message.warning("当前成员名额不足，暂无法继续邀请成员。");
         return false;
       }
 
       const result = inviteMockTenantMemberAccount(activeIdentity.tenantId, params);
 
       if (!result) {
-        message.warning("邀请失败，请确认手机号未注册且当前席位仍有余量。");
+        message.warning("邀请失败，请确认手机号未注册且当前成员名额仍有余量。");
         return false;
       }
 
       setTenantSnapshot(result.snapshot);
       setUsers(result.snapshot.users);
-      message.success("成员已加入当前租户，并可直接使用该租户积分。");
+      message.success("成员已加入当前租户。");
       return true;
     },
     [activeIdentity?.tenantId, tenantSnapshot],
@@ -755,7 +537,7 @@ const FrontisAdminPage = (): JSX.Element => {
         return;
       }
 
-      navigate(result.redirectPath ?? "/portal", { replace: true });
+      navigate(result.redirectPath ?? "/login", { replace: true });
     },
     [activateTenant, location.pathname, location.search, navigate],
   );
@@ -823,7 +605,7 @@ const FrontisAdminPage = (): JSX.Element => {
         <div className={styles.emptyPanel}>
           <h2 className={styles.emptyPanelTitle}>当前租户信息未加载</h2>
           <p className={styles.emptyPanelDescription}>
-            请返回工作台后重新进入管理后台，系统会按当前租户加载积分、席位和成员数据。
+            请返回工作台后重新进入管理后台，系统会按当前租户加载组织、角色和成员数据。
           </p>
         </div>
       );
@@ -833,35 +615,13 @@ const FrontisAdminPage = (): JSX.Element => {
       return (
         <AgentStoreView
           currentUserName={currentUser?.name}
-          deploymentByEmployeeId={deploymentByEmployeeId}
-          deviceOwners={deviceOwners}
           employees={employees}
           organizationDepartments={departments}
-          onAttachEmployeeToDevice={handleAttachEmployeeToDevice}
-          onDetachEmployeeFromDevice={handleDetachEmployeeFromDevice}
-          onNavigateToTab={handleSelectTab}
-          onUpdateEmployeeDeviceAccess={handleUpdateEmployeeDeviceAccess}
+          onUpdateEmployeeAccess={handleUpdateEmployeeAccess}
           onUpdateEmployeeLaborCosts={handleUpdateEmployeeLaborCosts}
           onUpdateEmployeeModel={handleUpdateEmployeeModel}
           tenantSnapshot={tenantSnapshot}
           users={effectiveUsers}
-          workspaces={workspaces}
-        />
-      );
-    }
-
-    if (activeTabKey === "devices") {
-      return (
-        <DeviceManagementView
-          deploymentByEmployeeId={deploymentByEmployeeId}
-          deviceOwners={deviceOwners}
-          employees={employees}
-          organizationDepartments={departments}
-          onAddWorkspace={handleAddWorkspace}
-          onAssignDeviceOwner={handleAssignDeviceOwner}
-          onRemoveWorkspace={handleRemoveWorkspace}
-          users={effectiveUsers}
-          workspaces={workspaces}
         />
       );
     }
@@ -930,19 +690,13 @@ const FrontisAdminPage = (): JSX.Element => {
     return (
       <AgentStoreView
         currentUserName={currentUser?.name}
-        deploymentByEmployeeId={deploymentByEmployeeId}
-        deviceOwners={deviceOwners}
         employees={employees}
         organizationDepartments={departments}
-        onNavigateToTab={handleSelectTab}
-        onAttachEmployeeToDevice={handleAttachEmployeeToDevice}
-        onDetachEmployeeFromDevice={handleDetachEmployeeFromDevice}
-        onUpdateEmployeeDeviceAccess={handleUpdateEmployeeDeviceAccess}
+        onUpdateEmployeeAccess={handleUpdateEmployeeAccess}
         onUpdateEmployeeLaborCosts={handleUpdateEmployeeLaborCosts}
         onUpdateEmployeeModel={handleUpdateEmployeeModel}
         tenantSnapshot={tenantSnapshot}
         users={effectiveUsers}
-        workspaces={workspaces}
       />
     );
   };

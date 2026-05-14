@@ -5,7 +5,6 @@ import { DEFAULT_TENANT_ROLE_IDS } from "@/constants/tenantRolePermissions";
 import type {
   MockTenantAgentUsageRecordItem,
   MockTenantManagementSnapshot,
-  MockTenantPointsOrderItem,
   MockTenantPointsLedgerItem,
   MockTenantPointsUsageRecordItem,
 } from "@/feature/auth/types";
@@ -178,7 +177,7 @@ const PRESET_TENANT_SNAPSHOTS: MockTenantManagementSnapshot[] = [
     pointsLedger: [
       buildPointsLedgerItem({
         id: "tenant-enterprise-demo-recharge-01",
-        title: "购买标准积分包",
+        title: "初始化额度",
         description: "补充模型与第三方接口运行额度。",
         points: 120000,
         direction: "income",
@@ -266,7 +265,6 @@ const PRESET_TENANT_SNAPSHOTS: MockTenantManagementSnapshot[] = [
         description: "调用外部提醒接口并写回跟进建议。",
       }),
     ],
-    pointsOrders: [],
     referralRecords: [],
   },
   {
@@ -319,8 +317,8 @@ const PRESET_TENANT_SNAPSHOTS: MockTenantManagementSnapshot[] = [
     pointsLedger: [
       buildPointsLedgerItem({
         id: "tenant-enterprise-hq-income-01",
-        title: "购买标准积分包",
-        description: "FrontisAI 为租户配置积分额度。",
+        title: "初始化额度",
+        description: "FrontisAI 为租户配置初始额度。",
         points: 200000,
         direction: "income",
         createdAt: "本月 1 日",
@@ -376,7 +374,6 @@ const PRESET_TENANT_SNAPSHOTS: MockTenantManagementSnapshot[] = [
         description: "活动海报文案与详情素材生成。",
       }),
     ],
-    pointsOrders: [],
     referralRecords: [
       {
         id: "tenant-enterprise-hq-referral-01",
@@ -436,7 +433,7 @@ const PRESET_TENANT_SNAPSHOTS: MockTenantManagementSnapshot[] = [
     pointsLedger: [
       buildPointsLedgerItem({
         id: "tenant-enterprise-east-ops-income-01",
-        title: "购买标准积分包",
+        title: "初始化额度",
         description: "租户试点开通奖励。",
         points: 12000,
         direction: "income",
@@ -465,7 +462,6 @@ const PRESET_TENANT_SNAPSHOTS: MockTenantManagementSnapshot[] = [
         description: "生成门店日报与异常经营提示。",
       }),
     ],
-    pointsOrders: [],
     referralRecords: [
       {
         id: "tenant-enterprise-east-ops-referral-01",
@@ -510,8 +506,8 @@ const PRESET_TENANT_SNAPSHOTS: MockTenantManagementSnapshot[] = [
     pointsLedger: [
       buildPointsLedgerItem({
         id: "tenant-personal-studio-demo-income-01",
-        title: "注册送积分",
-        description: "新租户开通奖励积分。",
+        title: "注册送额度",
+        description: "新租户开通奖励额度。",
         points: 6000,
         direction: "income",
         createdAt: "今天 09:00",
@@ -587,7 +583,6 @@ const PRESET_TENANT_SNAPSHOTS: MockTenantManagementSnapshot[] = [
         description: "批量标记表格中的异常字段和待复核记录。",
       }),
     ],
-    pointsOrders: [],
     referralRecords: [
       {
         id: "tenant-personal-studio-demo-referral-01",
@@ -639,8 +634,8 @@ const PRESET_TENANT_SNAPSHOTS: MockTenantManagementSnapshot[] = [
     pointsLedger: [
       buildPointsLedgerItem({
         id: "tenant-new-user-onboarding-demo-income-01",
-        title: "注册送积分",
-        description: "新租户开通奖励积分。",
+        title: "注册送额度",
+        description: "新租户开通奖励额度。",
         points: 6000,
         direction: "income",
         createdAt: "刚刚",
@@ -648,7 +643,6 @@ const PRESET_TENANT_SNAPSHOTS: MockTenantManagementSnapshot[] = [
       }),
     ],
     pointsUsageRecords: [],
-    pointsOrders: [],
     referralRecords: [],
   },
 ];
@@ -682,10 +676,6 @@ const mergeSnapshotWithPreset = (
     pointsUsageRecords: mergeStoredItemsWithPreset(
       presetSnapshot.pointsUsageRecords,
       storedSnapshot.pointsUsageRecords,
-    ),
-    pointsOrders: mergeStoredItemsWithPreset(
-      presetSnapshot.pointsOrders,
-      storedSnapshot.pointsOrders,
     ),
     referralRecords: mergeStoredItemsWithPreset(
       presetSnapshot.referralRecords,
@@ -756,7 +746,6 @@ const cloneSnapshot = (snapshot: MockTenantManagementSnapshot): MockTenantManage
   agentUsageRecords: (snapshot.agentUsageRecords ?? []).map(item => ({ ...item })),
   pointsLedger: snapshot.pointsLedger.map(item => ({ ...item })),
   pointsUsageRecords: snapshot.pointsUsageRecords.map(item => ({ ...item })),
-  pointsOrders: [],
   referralRecords: [],
 });
 
@@ -783,7 +772,6 @@ const readStoredTenantSnapshots = (): MockTenantManagementSnapshot[] => {
         ...normalizeTenantSnapshot(item),
         agentUsageRecords: Array.isArray(item.agentUsageRecords) ? item.agentUsageRecords : [],
         pointsUsageRecords: Array.isArray(item.pointsUsageRecords) ? item.pointsUsageRecords : [],
-        pointsOrders: Array.isArray(item.pointsOrders) ? item.pointsOrders : [],
         referralRecords: Array.isArray(item.referralRecords) ? item.referralRecords : [],
       }),
     );
@@ -853,38 +841,6 @@ export const getMockTenantUsers = (tenantId: string | undefined): FrontisWebUser
 
   return matchedSnapshot ? matchedSnapshot.users.map(user => ({ ...user })) : null;
 };
-
-/**
- * 按租户读取积分购买订单。
- */
-export const getMockTenantPointsOrders = (
-  tenantId: string | undefined,
-): MockTenantPointsOrderItem[] => {
-  const matchedSnapshot = getMockTenantManagementSnapshot(tenantId);
-
-  return matchedSnapshot ? matchedSnapshot.pointsOrders.map(item => ({ ...item })) : [];
-};
-
-/**
- * 读取全部租户积分购买订单，并附带租户信息。
- */
-export const getAllMockTenantPointsOrders = (): Array<
-  MockTenantPointsOrderItem & {
-    tenantId: string;
-    tenantName: string;
-    tenantCode: string;
-  }
-> =>
-  getMockTenantManagementSnapshots()
-    .flatMap(snapshot =>
-      snapshot.pointsOrders.map(item => ({
-        ...item,
-        tenantId: snapshot.tenantId,
-        tenantName: snapshot.tenantName,
-        tenantCode: snapshot.tenantCode,
-      })),
-    )
-    .sort((leftItem, rightItem) => rightItem.createdAt.localeCompare(leftItem.createdAt));
 
 /**
  * 写入单个租户管理快照。

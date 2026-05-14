@@ -1,14 +1,10 @@
-import backlogDocumentContent from "../../../Frontis AI · Product Backlog.md?raw";
-import fdeDeliveryPrdDocumentContent from "../../../Frontis AI · FDE配置交付 PRD.md?raw";
-import adminPrdDocumentContent from "../../../Frontis AI · 企业管理后台 PRD.md?raw";
 import v06PrdDocumentContent from "../../../Frontis AI · V0.6 PRD.md?raw";
-import prdDocumentContent from "../../../Frontis AI · 正式 PRD.md?raw";
-import workspacePrdDocumentContent from "../../../Frontis AI · 工作台 PRD.md?raw";
+import productFeatureListDocumentContent from "../../../Frontis AI · 产品功能列表.md?raw";
 
 /**
  * 产品经理专家引用的真实 PRD 文件名。
  */
-export const PRODUCT_MANAGER_PRD_DOCUMENT_NAME = "Frontis AI · 正式 PRD.md";
+export const PRODUCT_MANAGER_PRD_DOCUMENT_NAME = "Frontis AI · 产品功能列表.md";
 
 /**
  * 产品经理专家引用的真实 Backlog 文件名。
@@ -26,9 +22,9 @@ export const PRODUCT_MANAGER_WORKSPACE_PRD_DOCUMENT_NAME = "Frontis AI · 工作
 export const PRODUCT_MANAGER_ADMIN_PRD_DOCUMENT_NAME = "Frontis AI · 企业管理后台 PRD.md";
 
 /**
- * 产品经理专家引用的 FDE 配置交付 PRD 文件名。
+ * 产品经理专家引用的运营管理后台 PRD 文件名。
  */
-export const PRODUCT_MANAGER_FDE_DELIVERY_PRD_DOCUMENT_NAME = "Frontis AI · FDE配置交付 PRD.md";
+export const PRODUCT_MANAGER_OPERATIONS_PRD_DOCUMENT_NAME = "Frontis AI · 运营平台 PRD.md";
 
 /**
  * V0.6 当前版本 PRD 文件名。
@@ -38,27 +34,98 @@ export const FRONTIS_COMPLETE_PRD_V430_DOCUMENT_NAME = "Frontis AI · V0.6 PRD.m
 /**
  * 产品经理专家引用的真实 PRD 文档内容。
  */
-export const PRODUCT_MANAGER_PRD_DOCUMENT_CONTENT = prdDocumentContent;
+export const PRODUCT_MANAGER_PRD_DOCUMENT_CONTENT = productFeatureListDocumentContent;
 
 /**
  * 产品经理专家引用的真实 Backlog 文档内容。
  */
-export const PRODUCT_MANAGER_BACKLOG_DOCUMENT_CONTENT = backlogDocumentContent;
+export const PRODUCT_MANAGER_BACKLOG_DOCUMENT_CONTENT = `# Frontis AI · Product Backlog
+
+> 当前版本范围仅包含三个应用：工作台、企业管理后台、运营管理后台。
+
+| Epic | Feature | User Story | 优先级 | 验收口径 |
+|---|---|---|---|---|
+| 工作台 | 对话协作 | 作为工作台用户，我希望按 AI 专家隔离会话、预置问题和历史记录，以便不同任务上下文互不干扰。 | P0 | 可新建、切换、重命名、删除会话，并在专家上下文中保留消息历史。 |
+| 工作台 | 专家广场 | 作为工作台用户，我希望浏览并获取当前租户可见的 AI 专家，以便快速开始使用合适能力。 | P0 | 可筛选专家、查看详情，并按权限执行添加、试用或联系客服。 |
+| 工作台 | 技能中心 | 作为工作台用户，我希望管理 Skill 和 MCP 能力资产，以便复用到专家开发和工作流程中。 | P1 | 可浏览公共 Skill、管理我的 Skill、浏览 MCP，并发布自定义 MCP。 |
+| 工作台 | 进化实验室 | 作为 AI 专家开发者，我希望在工作台内完成专家开发、测试、进化和发布，以便把专家能力持续迭代并申请上架。 | P0 | 可管理工作区、执行测试评估、查看进化趋势、配置发布范围并提交上架或商品申请。 |
+| 企业管理后台 | AI 专家管理 | 作为企业管理员，我希望管理租户内开发并发布的 AI 专家，以便控制员工能使用哪些能力。 | P0 | 可查看专家列表与详情、配置可用范围、选择模型并查看版本记录。 |
+| 企业管理后台 | 组织与角色 | 作为企业管理员，我希望维护部门、成员、角色和权限，以便后台操作范围和工作台专家可见性一致。 | P0 | 可维护组织树、成员账号、自定义角色、权限项和成员绑定关系。 |
+| 运营管理后台 | 租户管理 | 作为平台运营，我希望维护租户资料、管理员、版本、席位和状态，以便支撑平台侧客户管理。 | P0 | 可搜索、筛选、创建、编辑、启停租户并查看详情。 |
+| 运营管理后台 | 商品中心 | 作为平台运营，我希望维护可售 AI 专家商品和分类客服配置，以便工作台专家广场有可运营的商品来源。 | P0 | 可创建、编辑、定价、上下架 AI 专家商品，并维护分类和客服入口。 |
+| 运营管理后台 | 上架审批 | 作为平台运营，我希望审核工作台提交的 AI 专家公开申请，以便控制平台专家质量。 | P0 | 可查看申请详情并执行通过或驳回，驳回时记录原因。 |
+| 运营管理后台 | 运营配置 | 作为平台运营，我希望配置用户交流群和新用户注册策略，以便控制注册入口和初始化权限。 | P1 | 可配置交流群开关、二维码、注册开放策略和新用户初始权限模板。 |
+`;
 
 /**
  * 产品经理专家引用的工作台 PRD 文档内容。
  */
-export const PRODUCT_MANAGER_WORKSPACE_PRD_DOCUMENT_CONTENT = workspacePrdDocumentContent;
+export const PRODUCT_MANAGER_WORKSPACE_PRD_DOCUMENT_CONTENT = `# Frontis AI · 工作台 PRD
+
+## 产品定位
+
+工作台是用户日常使用 AI 专家、管理 Skill/MCP 能力、进入专家开发进化流程的主应用。
+
+## 核心功能
+
+| 一级功能 | 二级功能 | 功能说明 |
+|---|---|---|
+| 工作台导航 | ME | 默认协同入口，承接持续工作线程和 AI 协同任务。 |
+| 工作台导航 | 专家列表 | 按专家隔离会话、Skill、预置问题和历史记录。 |
+| 工作台导航 | 专家广场 | 浏览、查看、试用、添加或联系客服获取 AI 专家。 |
+| 工作台导航 | 技能中心 | 管理公共 Skill、我的 Skill、MCP 和自定义 MCP。 |
+| 工作台导航 | 进化实验室 | 在工作台内完成 AI 专家开发、测试、进化、发布和商品申请。 |
+| 对话协作 | 会话管理 | 新建、切换、重命名、删除多条专家会话。 |
+| 对话协作 | 消息输入与生成控制 | 支持文本、附件、Skill 发起任务，并控制发送、停止和继续追问。 |
+| 产物沉淀 | 成果面板 | 集中承接文档、Markdown、PDF、图片等文件型输出。 |
+`;
 
 /**
  * 产品经理专家引用的企业管理后台 PRD 文档内容。
  */
-export const PRODUCT_MANAGER_ADMIN_PRD_DOCUMENT_CONTENT = adminPrdDocumentContent;
+export const PRODUCT_MANAGER_ADMIN_PRD_DOCUMENT_CONTENT = `# Frontis AI · 企业管理后台 PRD
+
+## 产品定位
+
+企业管理后台面向企业管理员，负责租户内 AI 专家、组织成员和角色权限管理。
+
+## 核心功能
+
+| 一级功能 | 二级功能 | 功能说明 |
+|---|---|---|
+| AI 专家管理 | 专家列表 | 查看当前租户内开发并发布的 AI 专家。 |
+| AI 专家管理 | 专家详情 | 查看单个 AI 专家的基础信息、版本记录、系统提示词和 Skill 配置。 |
+| AI 专家管理 | 专家权限配置 | 基于组织树按全公司、部门、个人或混合范围配置专家可见性。 |
+| AI 专家管理 | 模型配置 | 选择 AI 专家可用模型。 |
+| 组织管理 | 部门管理 | 维护租户组织树，支持新增、编辑和删除部门。 |
+| 组织管理 | 成员管理 | 管理成员账号、角色和组织归属，支持邀请、编辑、启停和删除。 |
+| 角色管理 | 角色维护与权限配置 | 创建、编辑、删除自定义角色，并配置页面和操作权限。 |
+`;
 
 /**
- * 产品经理专家引用的 FDE 配置交付 PRD 文档内容。
+ * 产品经理专家引用的运营管理后台 PRD 文档内容。
  */
-export const PRODUCT_MANAGER_FDE_DELIVERY_PRD_DOCUMENT_CONTENT = fdeDeliveryPrdDocumentContent;
+export const PRODUCT_MANAGER_OPERATIONS_PRD_DOCUMENT_CONTENT = `# Frontis AI · 运营管理后台 PRD
+
+## 产品定位
+
+运营管理后台面向平台运营人员，负责租户、商品、上架审批和运营配置。
+
+## 核心功能
+
+| 一级功能 | 二级功能 | 功能说明 |
+|---|---|---|
+| 租户管理 | 租户列表与详情 | 查看租户基础信息、管理员、状态和创建时间，支持搜索、筛选和详情查看。 |
+| 租户管理 | 租户创建与维护 | 创建业务租户，并维护基础资料、联系人、管理员、版本、席位和启停状态。 |
+| 组织管理 | 平台组织管理 | 维护运营侧组织结构和成员。 |
+| 角色管理 | 平台角色管理 | 管理运营平台账号的角色、权限项、成员关系和数据范围。 |
+| 商品中心 | AI 专家商品管理 | 维护可售 AI 专家商品，支持创建、编辑、定价和上下架。 |
+| 商品中心 | 分类与客服配置 | 维护专家广场分类、技能中心分类和客服入口。 |
+| AI 专家上架审批 | 审核列表与详情 | 查看工作台提交的平台公开申请，核查专家信息、分类、版本和提交信息。 |
+| AI 专家上架审批 | 审核操作 | 对上架申请执行通过或驳回，驳回时记录原因。 |
+| 运营配置 | 用户交流群配置 | 配置用户侧账户弹窗展示的交流群开关、群名称、二维码和描述。 |
+| 运营配置 | 新用户注册策略 | 控制是否开放注册，并配置新用户初始化权限模板。 |
+`;
 
 /**
  * V0.6 当前版本 PRD 文档内容。

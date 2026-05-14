@@ -2,28 +2,13 @@ import {
   buildAccessScopeSummary,
   getOrganizationRootDepartmentName,
   hasUserInAccessScope,
-  resolveUserIdsFromAccessScope,
 } from "@/utils/organizationAccess";
 
 import type {
   EmployeeItem,
-  ExpertSetupMode,
   FrontisWebUserItem,
   OrganizationDepartmentItem,
 } from "../../types";
-import type { ExpertDeploymentState, ExpertDeviceAccessState } from "./types";
-
-/**
- * 获取 AI 专家的配置方式。
- */
-export const getExpertSetupMode = (employee: EmployeeItem): ExpertSetupMode =>
-  employee.expertSetupMode ?? (employee.source === "openclaw" ? "device" : "permission");
-
-/**
- * 判断 AI 专家是否需要绑定设备。
- */
-export const doesExpertRequireDeviceBinding = (employee: EmployeeItem): boolean =>
-  getExpertSetupMode(employee) === "device";
 
 /**
  * 判断 AI 专家是否已完成权限分配。
@@ -32,168 +17,25 @@ export const isPermissionAssignmentConfigured = (employee: EmployeeItem): boolea
   employee.visibility === "all" || employee.accessScopeSubjects.length > 0;
 
 /**
- * 判断单个设备上的权限配置是否已完成。
- */
-export const isDeviceAccessConfigured = (accessState: ExpertDeviceAccessState): boolean =>
-  accessState.visibility === "all" || accessState.accessScopeSubjects.length > 0;
-
-/**
- * 基于当前员工数据，构建 AI 专家的初始设备部署状态。
- * 仅 `device` 模式的专家会进入设备部署映射。
- */
-export const buildInitialExpertDeploymentByEmployeeId = (
-  employees: EmployeeItem[],
-): Record<string, ExpertDeploymentState> =>
-  Object.fromEntries(
-    employees.map(employee => {
-      const requiresDeviceBinding = doesExpertRequireDeviceBinding(employee);
-
-      return [
-        employee.id,
-        {
-          accessByWorkspaceId:
-            requiresDeviceBinding && employee.workspaceId
-              ? {
-                  [employee.workspaceId]: {
-                    accessScopeSubjects: [...employee.accessScopeSubjects],
-                    visibility: employee.visibility,
-                  },
-                }
-              : {},
-          assignedWorkspaceIds:
-            requiresDeviceBinding && employee.workspaceId ? [employee.workspaceId] : [],
-        },
-      ];
-    }),
-  );
-
-/**
- * 获取 AI 专家当前分配到的设备列表。
- * `permission` 模式的专家不返回设备列表。
- */
-export const getAssignedWorkspaceIdsForExpert = (
-  employee: EmployeeItem,
-  deploymentState?: ExpertDeploymentState,
-): string[] => {
-  if (!doesExpertRequireDeviceBinding(employee)) {
-    return [];
-  }
-
-  if (deploymentState) {
-    return deploymentState.assignedWorkspaceIds;
-  }
-
-  return employee.workspaceId ? [employee.workspaceId] : [];
-};
-
-/**
- * 获取 AI 专家在指定设备上的权限配置。
- */
-export const getDeviceAccessStateForExpert = (
-  employee: EmployeeItem,
-  workspaceId: string,
-  deploymentState?: ExpertDeploymentState,
-): ExpertDeviceAccessState =>
-  deploymentState?.accessByWorkspaceId[workspaceId] ?? {
-    accessScopeSubjects: [...employee.accessScopeSubjects],
-    visibility: employee.visibility,
-  };
-
-/**
- * 获取设备型 AI 专家还未完成权限分配的设备列表。
- */
-export const getPendingPermissionWorkspaceIdsForExpert = (
-  employee: EmployeeItem,
-  deploymentState?: ExpertDeploymentState,
-): string[] =>
-  getAssignedWorkspaceIdsForExpert(employee, deploymentState).filter(
-    workspaceId =>
-      !isDeviceAccessConfigured(
-        getDeviceAccessStateForExpert(employee, workspaceId, deploymentState),
-      ),
-  );
-
-/**
  * 判断 AI 专家是否已完成后台可用范围配置。
- * 设备型专家必须先绑定设备，再给每个设备配置权限。
  */
-export const isExpertAccessConfigured = (
-  employee: EmployeeItem,
-  deploymentState?: ExpertDeploymentState,
-): boolean => {
-  if (!doesExpertRequireDeviceBinding(employee)) {
-    return isPermissionAssignmentConfigured(employee);
-  }
-
-  const assignedWorkspaceIds = getAssignedWorkspaceIdsForExpert(employee, deploymentState);
-
-  return (
-    assignedWorkspaceIds.length > 0 &&
-    getPendingPermissionWorkspaceIdsForExpert(employee, deploymentState).length === 0
-  );
-};
-
-/**
- * 计算指定设备上的 AI 专家有效可用成员。
- * 设备拥有者始终默认拥有该设备中的 Agent 权限。
- */
-export const getEffectiveMembersForDeviceAccess = (
-  accessState: ExpertDeviceAccessState,
-  ownerId: string | null | undefined,
-  users: FrontisWebUserItem[],
-  departments: OrganizationDepartmentItem[],
-): string[] => {
-  if (accessState.visibility === "all") {
-    return users.map(user => user.name);
-  }
-
-  const scopedUserIds = resolveUserIdsFromAccessScope(
-    accessState.accessScopeSubjects,
-    users,
-    departments,
-  );
-  const ownerName = ownerId ? users.find(user => user.id === ownerId)?.name ?? null : null;
-  const scopedUserNames = scopedUserIds
-    .map(userId => users.find(user => user.id === userId)?.name ?? null)
-    .filter((name): name is string => Boolean(name));
-
-  return Array.from(new Set([...(ownerName ? [ownerName] : []), ...scopedUserNames]));
-};
+export const isExpertAccessConfigured = (employee: EmployeeItem): boolean =>
+  isPermissionAssignmentConfigured(employee);
 
 /**
  * 判断指定用户是否拥有某个 AI 专家的可用权限。
- * `permission` 模式按成员授权生效；`device` 模式先匹配设备，再按该设备的权限配置生效。
  */
 export const hasUserAccessToExpert = (
   user: FrontisWebUserItem,
   employee: EmployeeItem,
-  deploymentState: ExpertDeploymentState | undefined,
-  deviceOwners: Record<string, string | null>,
   users: FrontisWebUserItem[],
   departments: OrganizationDepartmentItem[],
 ): boolean => {
-  if (!doesExpertRequireDeviceBinding(employee)) {
-    if (employee.visibility === "all") {
-      return true;
-    }
-
-    return hasUserInAccessScope(user, employee.accessScopeSubjects, users, departments);
+  if (employee.visibility === "all") {
+    return true;
   }
 
-  const assignedWorkspaceIds = getAssignedWorkspaceIdsForExpert(employee, deploymentState);
-
-  return assignedWorkspaceIds.some(workspaceId => {
-    const accessState = getDeviceAccessStateForExpert(employee, workspaceId, deploymentState);
-
-    if (accessState.visibility === "all") {
-      return true;
-    }
-
-    return (
-      deviceOwners[workspaceId] === user.id ||
-      hasUserInAccessScope(user, accessState.accessScopeSubjects, users, departments)
-    );
-  });
+  return hasUserInAccessScope(user, employee.accessScopeSubjects, users, departments);
 };
 
 /**

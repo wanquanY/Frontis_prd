@@ -67,7 +67,7 @@ import type {
 import {
   loadEnterpriseCommodityApplications,
   saveEnterpriseCommodityApplications,
-} from "@/feature/fde/enterpriseCommodityApplications";
+} from "@/feature/workbenchLab/commodityApplications";
 import {
   DEFAULT_TENANT_ROLE_IDS,
   normalizeTenantRolePermissionIds,

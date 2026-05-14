@@ -30,8 +30,8 @@ import type {
   MockPasswordSetupParams,
   MockTenantRegistrationParams,
 } from "@/feature/auth/types";
-import { isValidMarketingPhone } from "@/feature/marketingPortal/utils";
 import { useAuthStore } from "@/store/auth";
+import { isValidMainlandPhone } from "@/utils/phone";
 
 interface UseMockAuthResult {
   mockAccounts: MockAuthAccount[];
@@ -92,7 +92,7 @@ export const useMockAuth = (): UseMockAuthResult => {
 
   const sendVerificationCode = useCallback(
     (phone: string, scene: "login" | "register" = "login"): MockAuthActionResult => {
-      if (!isValidMarketingPhone(phone)) {
+      if (!isValidMainlandPhone(phone)) {
         return {
           success: false,
           message: "请输入正确的手机号。",
@@ -174,7 +174,7 @@ export const useMockAuth = (): UseMockAuthResult => {
       redirectPath,
       deploymentMode,
     }: MockLoginParams): MockAuthActionResult => {
-      if (!isValidMarketingPhone(phone)) {
+      if (!isValidMainlandPhone(phone)) {
         return {
           success: false,
           message: "请输入正确的手机号。",
@@ -245,7 +245,7 @@ export const useMockAuth = (): UseMockAuthResult => {
       redirectPath,
       deploymentMode,
     }: MockPasswordLoginParams): MockAuthActionResult => {
-      if (!isValidMarketingPhone(phone)) {
+      if (!isValidMainlandPhone(phone)) {
         return {
           success: false,
           message: "请输入正确的手机号。",
@@ -298,7 +298,7 @@ export const useMockAuth = (): UseMockAuthResult => {
         };
       }
 
-      if (!isValidMarketingPhone(params.phone)) {
+      if (!isValidMainlandPhone(params.phone)) {
         return {
           success: false,
           message: "请输入正确的手机号。",

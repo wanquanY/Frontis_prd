@@ -939,7 +939,7 @@ const PlatformConfigConsole = ({
                     <span className={buildStatusClassName("success")}>初始化阶段</span>
                   </div>
                   <p className={styles.registrationTemplateDescription}>
-                    注册完成时按下方能力生成初始权限；后续购买或升级后由套餐与租户内角色重新决定权限。
+                    注册完成时按下方能力生成初始权限；后续由租户内角色重新决定权限。
                   </p>
                   <div className={styles.registrationAbilityList}>
                     {selectedInitialPermissions.map(permission => (
@@ -967,7 +967,7 @@ const PlatformConfigConsole = ({
                   />
                 </div>
                 <p className={styles.registrationLifecycleNote}>
-                  该模板只用于注册初始化；用户后续购买或升级后，按套餐与租户内角色重新决定权限。
+                  该模板只用于注册初始化；后续权限以租户内角色配置为准。
                 </p>
               </div>
             </div>

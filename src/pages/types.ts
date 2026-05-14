@@ -10,17 +10,10 @@ export type FrontisWebRole = "employee" | "admin";
  * FrontisAI Web 端一级导航标识。
  */
 export type FrontisWebTabKey =
-  | "overview"
-  | "points"
-  | "dashboard"
   | "dialogue"
   | "group"
   | "automation"
   | "store"
-  | "channels"
-  | "devices"
-  | "models"
-  | "access"
   | "organization"
   | "roleManagement"
   | "notifications";
@@ -55,11 +48,6 @@ export type ConnectionMode = "cloud" | "local";
 export type EmployeeSource = "coworker" | "openclaw";
 export type EmployeeVisibility = "all" | "bound";
 export type OrganizationSubjectType = "company" | "department" | "user";
-/**
- * AI 专家的配置方式。
- * `device` 表示先绑定设备，再按设备分配可用权限；`permission` 表示直接分配可用权限。
- */
-export type ExpertSetupMode = "device" | "permission";
 
 /**
  * AI 专家组织范围授权主体。
@@ -155,7 +143,7 @@ export interface EmployeeItem {
   lastAction: string;
   source: EmployeeSource;
   visibility: EmployeeVisibility;
-  /** AI 专家开发者姓名，原型中用于后台资产归属展示。 */
+  /** AI 专家开发者姓名，原型中用于后台开发归属展示。 */
   developerName?: string;
   /** 私有化企业管理员配置的内部人力成本基准。 */
   myLaborCost?: number;
@@ -169,8 +157,6 @@ export interface EmployeeItem {
   welcomeMessage: string;
   systemPrompt: string;
   skills?: string[];
-  /** 管理后台 mock 用的配置要求，不直接对用户展示。 */
-  expertSetupMode?: ExpertSetupMode;
 }
 
 /**

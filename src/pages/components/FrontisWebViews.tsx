@@ -1,11 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 
 import classNames from "classnames";
-import { DesktopOutlined, DownloadOutlined } from "@ant-design/icons";
+import { DownloadOutlined } from "@ant-design/icons";
 import { Button, Empty, Select, Tag } from "antd";
 
 import { MarkdownRenderer } from "@/components/MarkdownRenderer";
-import type { ExpertDeploymentState } from "@/pages/components/agentStore/types";
 import type { ArtifactItem } from "@/types/artifact";
 
 import type {
@@ -13,9 +12,6 @@ import type {
   EmployeeItem,
   FrontisUserRole,
   FrontisUserStatus,
-  FrontisWebUserItem,
-  OrganizationDepartmentItem,
-  WorkspaceItem,
 } from "../types";
 import { downloadArtifact } from "../utils";
 import styles from "./FrontisWebViews.module.less";
@@ -36,17 +32,6 @@ interface ResultManagementViewProps {
   employees: EmployeeItem[];
 }
 
-export interface DeviceManagementViewProps {
-  deploymentByEmployeeId: Record<string, ExpertDeploymentState>;
-  deviceOwners: Record<string, string | null>;
-  employees: EmployeeItem[];
-  organizationDepartments: OrganizationDepartmentItem[];
-  onAddWorkspace: (workspace: WorkspaceItem, ownerId: string | null) => void;
-  onAssignDeviceOwner: (deviceId: string, ownerId: string | null) => void;
-  onRemoveWorkspace: (workspaceId: string) => void;
-  users: FrontisWebUserItem[];
-  workspaces: WorkspaceItem[];
-}
 type ModelProviderCapability =
   | "LLM"
   | "TEXT EMBEDDING"
@@ -55,13 +40,6 @@ type ModelProviderCapability =
   | "MODERATION"
   | "TTS";
 type ModelProviderConnectivityStatus = "idle" | "success" | "failed";
-
-interface DevicePresentation {
-  activatedAt: string;
-  code: string;
-  location: string;
-  workspace: WorkspaceItem;
-}
 
 interface ModelProviderOption {
   capabilities: ModelProviderCapability[];
@@ -173,29 +151,6 @@ export const INITIAL_PROVIDER_CONFIGS: Record<string, ModelProviderConfigState> 
   },
 };
 
-const DEVICE_META_BY_WORKSPACE_ID: Record<string, Omit<DevicePresentation, "workspace">> = {
-  "workspace-cloud": {
-    activatedAt: "2026-03-04 11:20",
-    code: "CLD-2026-0301",
-    location: "上海 · 产品中心",
-  },
-  "workspace-local": {
-    activatedAt: "2026-03-10 09:45",
-    code: "CLD-2026-0302",
-    location: "上海 · 销售中心",
-  },
-  "workspace-local-sh": {
-    activatedAt: "2026-03-18 14:30",
-    code: "BOX-2026-0401",
-    location: "上海 · 门店",
-  },
-  "workspace-local-bj": {
-    activatedAt: "2026-03-20 10:00",
-    code: "BOX-2026-0402",
-    location: "北京 · 总部",
-  },
-};
-
 const decodeDataUrlContent = (url?: string): string => {
   if (!url || !url.startsWith("data:")) {
     return "";
@@ -302,20 +257,6 @@ export const isProviderConnectionAvailable = (config: ModelProviderConfigState):
   );
 };
 
-export const renderDeviceWorkspaceIcon = (): JSX.Element => <DesktopOutlined />;
-
-export const getDeviceDisplayName = (name: string): string => name;
-
-export const getDeviceManagementHint = (workspace: WorkspaceItem): string => {
-  if (workspace.status === "draft" || workspace.status === "paused") {
-    return "设备离线，专家暂停服务";
-  }
-  if (workspace.status === "pending") {
-    return "当前工作站待激活，激活后可分配 Agent 并接入任务。";
-  }
-  return "可在此查看工作站在线状态、归属 Agent 和基础运行信息。";
-};
-
 export const buildResultRecords = (
   artifactsBySession: Record<string, ArtifactItem[]>,
   dialogueSessions: DialogueSessionItem[],
@@ -341,25 +282,6 @@ export const buildResultRecords = (
     })
     .sort((left, right) => right.producedAt.localeCompare(left.producedAt));
 };
-
-export const buildDevicePresentations = (
-  workspaces: WorkspaceItem[],
-  employees: EmployeeItem[],
-): DevicePresentation[] =>
-  workspaces.map(workspace => {
-    const meta = DEVICE_META_BY_WORKSPACE_ID[workspace.id] ?? {
-      activatedAt: "2026-03-01 00:00",
-      code: `BX-${workspace.id.slice(-4).toUpperCase()}`,
-      location: "未填写位置备注",
-    };
-    return {
-      ...meta,
-      workspace: {
-        ...workspace,
-        summary: `${workspace.summary} 当前运行 ${employees.filter(item => item.workspaceId === workspace.id).length} 个 Agent。`,
-      },
-    };
-  });
 
 const renderResultPreview = (artifact: ResultRecord): JSX.Element => {
   if (artifact.previewKind === "markdown") {

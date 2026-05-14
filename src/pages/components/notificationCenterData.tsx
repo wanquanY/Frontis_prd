@@ -19,7 +19,7 @@ export type NotificationCategory = "all" | "system" | "alert" | "todo" | "securi
  */
 export type NotificationActionTab = Extract<
   FrontisWebTabKey,
-  "devices" | "organization" | "store"
+  "organization" | "store"
 >;
 
 /**
@@ -55,15 +55,6 @@ export const NOTIFICATION_ITEMS: NotificationItem[] = [
     pinned: true,
     actionLabel: "立即升级",
     actionTab: "store",
-  },
-  {
-    id: "notice-device-offline",
-    category: "alert",
-    title: "设备离线告警",
-    summary: "检测到 BOX-2026-0402 设备已离线超过 2 小时，请及时检查网络连接和设备状态。",
-    timeLabel: "5小时前",
-    actionLabel: "查看详情",
-    actionTab: "devices",
   },
   {
     id: "notice-todo",
