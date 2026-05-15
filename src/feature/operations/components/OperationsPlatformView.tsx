@@ -4,6 +4,9 @@ import {
   AppstoreOutlined,
   ApartmentOutlined,
   CheckCircleOutlined,
+  CreditCardOutlined,
+  DatabaseOutlined,
+  FileTextOutlined,
   LogoutOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
@@ -14,19 +17,7 @@ import {
   TeamOutlined,
 } from "@ant-design/icons";
 import type { MenuProps } from "antd";
-import {
-  Avatar,
-  Button,
-  Dropdown,
-  Empty,
-  Input,
-  InputNumber,
-  Modal,
-  QRCode,
-  Select,
-  Switch,
-  message,
-} from "antd";
+import { Avatar, Button, Dropdown, Empty, Input, InputNumber, Modal, Select, message } from "antd";
 import classNames from "classnames";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 
@@ -36,11 +27,17 @@ import {
   getSystemEntries,
   getSystemEntryMenuLabel,
 } from "@/feature/auth/mockAccounts";
+import { getMockTenantManagementSnapshot } from "@/feature/auth/mockTenantRegistry";
 import { useMockAuth } from "@/feature/auth/hooks/useMockAuth";
 import { useOperationsAuth } from "@/feature/operations/hooks/useOperationsAuth";
 import { useOperationsPlatform } from "@/feature/operations/hooks/useOperationsPlatform";
-import type { MockAuthSystemEntry } from "@/feature/auth/types";
-import { OPERATIONS_DEFAULT_PATH, OPERATIONS_TAB_OPTIONS } from "@/feature/operations/mockData";
+import type { MockAuthSystemEntry, MockTenantManagementSnapshot } from "@/feature/auth/types";
+import {
+  OPERATIONS_DEFAULT_PATH,
+  OPERATIONS_TAB_OPTIONS,
+  OPERATIONS_TENANT_BILLING_MODE_LABELS,
+  OPERATIONS_TENANT_BILLING_MODE_OPTIONS,
+} from "@/feature/operations/mockData";
 import { hasAnyPermission, hasPermission } from "@/utils/tenantRoleAccess";
 import {
   OPERATIONS_PERMISSION_IDS,
@@ -50,9 +47,7 @@ import {
 import { PRODUCT_LOGO_URL, PRODUCT_NAME, PRODUCT_SLOGAN } from "@/constants/brand";
 import type {
   OperationsAgentSubmission,
-  OperationsCommunityGroupConfig,
   OperationsPlatformTabKey,
-  OperationsRegistrationStrategy,
   OperationsTenant,
   OperationsTenantEdition,
   OperationsTenantForm,
@@ -62,7 +57,11 @@ import shellStyles from "@/pages/FrontisPage.module.less";
 
 import styles from "./OperationsPlatformView.module.less";
 import { OperationsOrganizationConsole } from "./OperationsOrganizationConsole";
+import { OperationsOrderCenterConsole } from "./OperationsOrderCenterConsole";
+import { OperationsPlatformConfigConsole } from "./OperationsPlatformConfigConsole";
+import { OperationsPointsSubscriptionConsole } from "./OperationsPointsSubscriptionConsole";
 import { OperationsProductConsole } from "./OperationsProductConsole";
+import { OperationsResourceMeteringConsole } from "./OperationsResourceMeteringConsole";
 
 interface TenantEditorState {
   open: boolean;
@@ -96,6 +95,7 @@ interface TenantDetailConsoleProps {
   canEdit: boolean;
   canToggleStatus: boolean;
   tenant: OperationsTenant | null;
+  tenantSnapshot: MockTenantManagementSnapshot | null;
   statusLabels: Record<OperationsTenant["status"], string>;
   onBack: () => void;
   onEdit: (tenant: OperationsTenant) => void;
@@ -109,25 +109,14 @@ interface AgentConsoleProps {
   onOpenReview: (submissionId: string) => void;
 }
 
-interface PlatformConfigConsoleProps {
-  communityGroupConfig: OperationsCommunityGroupConfig;
-  registrationStrategy: OperationsRegistrationStrategy;
-  onUpdateCommunityGroupConfig: (
-    config: Pick<
-      OperationsCommunityGroupConfig,
-      "enabled" | "groupName" | "qrCodeValue" | "description"
-    >,
-  ) => void;
-  onUpdateRegistrationStrategy: (
-    config: Pick<OperationsRegistrationStrategy, "enabled" | "initialPermissionIds">,
-  ) => void;
-}
-
 const OPERATIONS_TAB_ICON_MAP: Record<OperationsPlatformTabKey, JSX.Element> = {
   tenants: <ApartmentOutlined />,
   organization: <TeamOutlined />,
   roleManagement: <SafetyCertificateOutlined />,
   products: <ShopOutlined />,
+  resources: <DatabaseOutlined />,
+  points: <CreditCardOutlined />,
+  orders: <FileTextOutlined />,
   agents: <RobotOutlined />,
   platformConfig: <SettingOutlined />,
 };
@@ -138,30 +127,12 @@ const TENANT_FIELD_IDS = {
   industry: "operations-tenant-industry",
   adminName: "operations-tenant-admin-name",
   adminPhone: "operations-tenant-admin-phone",
+  billingMode: "operations-tenant-billing-mode",
   seatCount: "operations-tenant-seat-count",
   effectiveAt: "operations-tenant-effective-at",
   expiresAt: "operations-tenant-expires-at",
   moduleLabels: "operations-tenant-module-labels",
 } as const;
-
-const COMMUNITY_GROUP_FIELD_IDS = {
-  enabled: "operations-community-group-enabled",
-  groupName: "operations-community-group-name",
-  qrCodeValue: "operations-community-group-qrcode",
-  description: "operations-community-group-description",
-} as const;
-
-const REGISTRATION_FIELD_IDS = {
-  enabled: "operations-registration-enabled",
-  template: "operations-registration-template",
-} as const;
-
-type PlatformConfigTabKey = "communityGroup" | "registration";
-
-const PLATFORM_CONFIG_TABS: Array<{ key: PlatformConfigTabKey; label: string }> = [
-  { key: "communityGroup", label: "用户交流群" },
-  { key: "registration", label: "新用户注册" },
-];
 
 const OPERATIONS_TENANT_EDITION_LABELS: Record<OperationsTenantEdition, string> = {
   personal: "个人版",
@@ -178,6 +149,9 @@ const getTabKeyFromPath = (tabPath?: string): OperationsPlatformTabKey | null =>
     tabPath === "organization" ||
     tabPath === "roleManagement" ||
     tabPath === "products" ||
+    tabPath === "resources" ||
+    tabPath === "points" ||
+    tabPath === "orders" ||
     tabPath === "agents" ||
     tabPath === "platformConfig"
   ) {
@@ -209,16 +183,6 @@ const TENANT_PERMISSION_SELECT_OPTIONS = TENANT_ROLE_PERMISSION_GROUPS.map(group
     })),
   ),
 }));
-
-const isValidHttpUrl = (value: string): boolean => {
-  try {
-    const url = new URL(value);
-
-    return url.protocol === "http:" || url.protocol === "https:";
-  } catch {
-    return false;
-  }
-};
 
 const getPermissionLabel = (permissionId: string): string =>
   PERMISSION_LABEL_MAP.get(permissionId) ?? permissionId;
@@ -278,6 +242,7 @@ const TenantConsole = ({
           item.name,
           item.adminName,
           OPERATIONS_TENANT_EDITION_LABELS[item.edition],
+          OPERATIONS_TENANT_BILLING_MODE_LABELS[item.billingMode],
         ]
           .join(" ")
           .toLowerCase();
@@ -324,6 +289,7 @@ const TenantConsole = ({
                   <th>初始管理员</th>
                   <th>管理员权限</th>
                   <th>版本</th>
+                  <th>计费方式</th>
                   <th>状态</th>
                   <th>更新时间</th>
                   <th>操作</th>
@@ -344,6 +310,7 @@ const TenantConsole = ({
                     <td>{tenant.adminName}</td>
                     <td>{tenant.adminPermissionIds.length} 项</td>
                     <td>{OPERATIONS_TENANT_EDITION_LABELS[tenant.edition]}</td>
+                    <td>{OPERATIONS_TENANT_BILLING_MODE_LABELS[tenant.billingMode]}</td>
                     <td>
                       <span className={getTenantStatusClassName(tenant.status)}>
                         {statusLabels[tenant.status]}
@@ -374,11 +341,16 @@ const TenantDetailConsole = ({
   canEdit,
   canToggleStatus,
   tenant,
+  tenantSnapshot,
   statusLabels,
   onBack,
   onEdit,
   onToggleStatus,
 }: TenantDetailConsoleProps): JSX.Element => {
+  const latestPointsLedger = tenantSnapshot?.pointsLedger[0] ?? null;
+  const isPointsBillingTenant =
+    tenant?.billingMode === "points" && tenantSnapshot?.billingMode === "points";
+
   return (
     <div className={adminStyles.consolePage}>
       <header className={adminStyles.consoleHeader}>
@@ -420,6 +392,12 @@ const TenantDetailConsole = ({
                   <span className={adminStyles.consoleInfoLabel}>版本</span>
                   <span className={adminStyles.consoleInfoValue}>
                     {OPERATIONS_TENANT_EDITION_LABELS[tenant.edition]}
+                  </span>
+                </div>
+                <div className={adminStyles.consoleInfoRow}>
+                  <span className={adminStyles.consoleInfoLabel}>计费方式</span>
+                  <span className={adminStyles.consoleInfoValue}>
+                    {OPERATIONS_TENANT_BILLING_MODE_LABELS[tenant.billingMode]}
                   </span>
                 </div>
                 <div className={adminStyles.consoleInfoRow}>
@@ -473,6 +451,58 @@ const TenantDetailConsole = ({
                     {label}
                   </span>
                 ))}
+              </div>
+            </section>
+
+            <section className={adminStyles.detailBlock}>
+              <h3
+                className={classNames(adminStyles.detailBlockTitle, styles.detailBlockTitleReset)}
+              >
+                计费与积分
+              </h3>
+              <div className={adminStyles.consoleRows}>
+                <div className={adminStyles.consoleInfoRow}>
+                  <span className={adminStyles.consoleInfoLabel}>计费方式</span>
+                  <span className={adminStyles.consoleInfoValue}>
+                    {OPERATIONS_TENANT_BILLING_MODE_LABELS[tenant.billingMode]}
+                  </span>
+                </div>
+                <div className={adminStyles.consoleInfoRow}>
+                  <span className={adminStyles.consoleInfoLabel}>当前计划</span>
+                  <span className={adminStyles.consoleInfoValue}>
+                    {tenantSnapshot?.planLabel ?? "-"}
+                  </span>
+                </div>
+                {isPointsBillingTenant ? (
+                  <>
+                    <div className={adminStyles.consoleInfoRow}>
+                      <span className={adminStyles.consoleInfoLabel}>积分余额</span>
+                      <span className={adminStyles.consoleInfoValue}>
+                        {tenantSnapshot.pointsBalance.toLocaleString("zh-CN")}
+                      </span>
+                    </div>
+                    <div className={adminStyles.consoleInfoRow}>
+                      <span className={adminStyles.consoleInfoLabel}>低余额阈值</span>
+                      <span className={adminStyles.consoleInfoValue}>
+                        {tenantSnapshot.lowBalanceThreshold.toLocaleString("zh-CN")}
+                      </span>
+                    </div>
+                    <div className={adminStyles.consoleInfoRow}>
+                      <span className={adminStyles.consoleInfoLabel}>本月消耗</span>
+                      <span className={adminStyles.consoleInfoValue}>
+                        {tenantSnapshot.monthlyUsedPoints.toLocaleString("zh-CN")}
+                      </span>
+                    </div>
+                    <div className={adminStyles.consoleInfoRow}>
+                      <span className={adminStyles.consoleInfoLabel}>最近流水</span>
+                      <span className={adminStyles.consoleInfoValue}>
+                        {latestPointsLedger
+                          ? `${latestPointsLedger.title} · ${latestPointsLedger.points > 0 ? "+" : ""}${latestPointsLedger.points.toLocaleString("zh-CN")}`
+                          : "-"}
+                      </span>
+                    </div>
+                  </>
+                ) : null}
               </div>
             </section>
 
@@ -635,358 +665,6 @@ const AgentConsole = ({
   );
 };
 
-const PlatformConfigConsole = ({
-  communityGroupConfig,
-  registrationStrategy,
-  onUpdateCommunityGroupConfig,
-  onUpdateRegistrationStrategy,
-}: PlatformConfigConsoleProps): JSX.Element => {
-  const [communityDraft, setCommunityDraft] =
-    useState<OperationsCommunityGroupConfig>(communityGroupConfig);
-  const [registrationDraft, setRegistrationDraft] =
-    useState<OperationsRegistrationStrategy>(registrationStrategy);
-  const [activeConfigTab, setActiveConfigTab] = useState<PlatformConfigTabKey>("communityGroup");
-
-  useEffect(() => {
-    setCommunityDraft(communityGroupConfig);
-  }, [communityGroupConfig]);
-
-  useEffect(() => {
-    setRegistrationDraft(registrationStrategy);
-  }, [registrationStrategy]);
-
-  const registrationPermissionOptions = useMemo(
-    () =>
-      TENANT_ROLE_PERMISSION_GROUPS.flatMap(group =>
-        group.menus.flatMap(menu =>
-          menu.items.map(item => ({
-            label: `${group.title} / ${menu.title} / ${item.label}`,
-            value: item.id,
-          })),
-        ),
-      ),
-    [],
-  );
-  const selectedInitialPermissionIds = useMemo(
-    () =>
-      registrationDraft.initialPermissionIds.filter(permissionId =>
-        registrationPermissionOptions.some(option => option.value === permissionId),
-      ),
-    [registrationDraft.initialPermissionIds, registrationPermissionOptions],
-  );
-  const addableRegistrationPermissionOptions = useMemo(
-    () =>
-      registrationPermissionOptions.filter(
-        option => !selectedInitialPermissionIds.includes(option.value),
-      ),
-    [registrationPermissionOptions, selectedInitialPermissionIds],
-  );
-  const selectedInitialPermissions = useMemo(
-    () =>
-      selectedInitialPermissionIds.map(permissionId => ({
-        id: permissionId,
-        label: getPermissionLabel(permissionId),
-      })),
-    [selectedInitialPermissionIds],
-  );
-  const communityLinkStatus =
-    communityDraft.qrCodeValue.trim() && !isValidHttpUrl(communityDraft.qrCodeValue.trim())
-      ? "error"
-      : undefined;
-
-  const handleSaveCommunityGroup = useCallback((): void => {
-    if (!communityDraft.groupName.trim()) {
-      message.warning("请填写交流群名称。");
-      return;
-    }
-
-    if (communityDraft.enabled && !communityDraft.qrCodeValue.trim()) {
-      message.warning("启用交流群入口前，请先填写入群链接。");
-      return;
-    }
-
-    if (communityDraft.enabled && !isValidHttpUrl(communityDraft.qrCodeValue.trim())) {
-      message.warning("请填写以 http:// 或 https:// 开头的入群链接。");
-      return;
-    }
-
-    onUpdateCommunityGroupConfig({
-      enabled: communityDraft.enabled,
-      groupName: communityDraft.groupName,
-      qrCodeValue: communityDraft.qrCodeValue,
-      description: communityDraft.description,
-    });
-    message.success("用户交流群配置已保存。");
-  }, [communityDraft, onUpdateCommunityGroupConfig]);
-
-  const handleSaveRegistrationStrategy = useCallback((): void => {
-    if (registrationDraft.enabled && !selectedInitialPermissionIds.length) {
-      message.warning("请至少保留一个新用户初始化能力。");
-      return;
-    }
-
-    onUpdateRegistrationStrategy({
-      enabled: registrationDraft.enabled,
-      initialPermissionIds: selectedInitialPermissionIds,
-    });
-    message.success("新用户注册配置已保存。");
-  }, [onUpdateRegistrationStrategy, registrationDraft.enabled, selectedInitialPermissionIds]);
-
-  const handleAddInitialPermission = useCallback((permissionId: string): void => {
-    setRegistrationDraft(currentDraft => {
-      if (currentDraft.initialPermissionIds.includes(permissionId)) {
-        return currentDraft;
-      }
-
-      return {
-        ...currentDraft,
-        initialPermissionIds: [...currentDraft.initialPermissionIds, permissionId],
-      };
-    });
-  }, []);
-
-  const handleRemoveInitialPermission = useCallback((permissionId: string): void => {
-    setRegistrationDraft(currentDraft => {
-      return {
-        ...currentDraft,
-        initialPermissionIds: currentDraft.initialPermissionIds.filter(
-          item => item !== permissionId,
-        ),
-      };
-    });
-  }, []);
-
-  return (
-    <div className={adminStyles.consolePage}>
-      <header className={adminStyles.consoleHeader}>
-        <div className={adminStyles.consoleHeaderMain}>
-          <h1 className={adminStyles.consoleTitle}>运营配置</h1>
-        </div>
-      </header>
-
-      <div className={styles.detailTabBar}>
-        {PLATFORM_CONFIG_TABS.map(tab => (
-          <button
-            key={tab.key}
-            type="button"
-            className={classNames(
-              styles.detailTabButton,
-              activeConfigTab === tab.key && styles.detailTabButtonActive,
-            )}
-            onClick={() => setActiveConfigTab(tab.key)}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
-
-      {activeConfigTab === "communityGroup" ? (
-        <section className={adminStyles.consoleSection}>
-          <div className={styles.platformConfigStack}>
-            <div className={styles.platformConfigForm}>
-              <div className={styles.modalField}>
-                <label className={styles.modalLabel} htmlFor={COMMUNITY_GROUP_FIELD_IDS.enabled}>
-                  启用状态
-                </label>
-                <div className={styles.statusSwitchRow}>
-                  <Switch
-                    id={COMMUNITY_GROUP_FIELD_IDS.enabled}
-                    checked={communityDraft.enabled}
-                    onChange={nextValue =>
-                      setCommunityDraft(currentDraft => ({
-                        ...currentDraft,
-                        enabled: nextValue,
-                      }))
-                    }
-                  />
-                  <span className={styles.statusSwitchText}>
-                    {communityDraft.enabled ? "用户账户弹窗展示入口" : "用户账户弹窗隐藏入口"}
-                  </span>
-                </div>
-              </div>
-
-              <div className={styles.modalField}>
-                <label className={styles.modalLabel} htmlFor={COMMUNITY_GROUP_FIELD_IDS.groupName}>
-                  群名称
-                </label>
-                <Input
-                  id={COMMUNITY_GROUP_FIELD_IDS.groupName}
-                  value={communityDraft.groupName}
-                  placeholder="如 FrontisAI 用户交流群"
-                  onChange={event =>
-                    setCommunityDraft(currentDraft => ({
-                      ...currentDraft,
-                      groupName: event.target.value,
-                    }))
-                  }
-                />
-              </div>
-
-              <div className={styles.modalField}>
-                <label
-                  className={styles.modalLabel}
-                  htmlFor={COMMUNITY_GROUP_FIELD_IDS.qrCodeValue}
-                >
-                  入群链接
-                </label>
-                <Input
-                  id={COMMUNITY_GROUP_FIELD_IDS.qrCodeValue}
-                  type="url"
-                  value={communityDraft.qrCodeValue}
-                  status={communityLinkStatus}
-                  placeholder="https://example.com/community/invite"
-                  onChange={event =>
-                    setCommunityDraft(currentDraft => ({
-                      ...currentDraft,
-                      qrCodeValue: event.target.value,
-                    }))
-                  }
-                />
-              </div>
-
-              <div className={classNames(styles.modalField, styles.modalFieldWide)}>
-                <label
-                  className={styles.modalLabel}
-                  htmlFor={COMMUNITY_GROUP_FIELD_IDS.description}
-                >
-                  弹窗说明
-                </label>
-                <Input.TextArea
-                  id={COMMUNITY_GROUP_FIELD_IDS.description}
-                  rows={4}
-                  value={communityDraft.description}
-                  placeholder="说明用户扫码后能获得什么帮助"
-                  onChange={event =>
-                    setCommunityDraft(currentDraft => ({
-                      ...currentDraft,
-                      description: event.target.value,
-                    }))
-                  }
-                />
-              </div>
-            </div>
-
-            <aside
-              className={classNames(styles.serviceContactPreview, styles.platformConfigPreview)}
-            >
-              <div className={styles.serviceContactPreviewHeader}>
-                <span className={styles.serviceContactPreviewTitle}>
-                  {communityDraft.groupName}
-                </span>
-                <span
-                  className={buildStatusClassName(communityDraft.enabled ? "success" : "danger")}
-                >
-                  {communityDraft.enabled ? "已启用" : "已停用"}
-                </span>
-              </div>
-              <div className={styles.serviceContactQrBox}>
-                {communityDraft.qrCodeValue.trim() && isValidHttpUrl(communityDraft.qrCodeValue) ? (
-                  <QRCode value={communityDraft.qrCodeValue.trim()} size={168} bordered={false} />
-                ) : (
-                  <Empty description="暂无入群链接" image={Empty.PRESENTED_IMAGE_SIMPLE} />
-                )}
-              </div>
-              <p className={styles.serviceContactRemark}>
-                {communityDraft.description.trim() || "保存后将在用户侧账户弹窗中展示。"}
-              </p>
-            </aside>
-
-            <div className={styles.configFooterRow}>
-              <Button type="primary" onClick={handleSaveCommunityGroup}>
-                保存配置
-              </Button>
-              <span className={adminStyles.consoleInfoLabel}>
-                上次更新：{communityGroupConfig.updatedAt}
-              </span>
-            </div>
-          </div>
-        </section>
-      ) : null}
-
-      {activeConfigTab === "registration" ? (
-        <section className={adminStyles.consoleSection}>
-          <div className={styles.platformConfigStack}>
-            <div className={styles.platformConfigForm}>
-              <div className={styles.modalField}>
-                <label className={styles.modalLabel} htmlFor={REGISTRATION_FIELD_IDS.enabled}>
-                  注册入口
-                </label>
-                <div className={styles.statusSwitchRow}>
-                  <Switch
-                    id={REGISTRATION_FIELD_IDS.enabled}
-                    checked={registrationDraft.enabled}
-                    onChange={nextValue =>
-                      setRegistrationDraft(currentDraft => ({
-                        ...currentDraft,
-                        enabled: nextValue,
-                      }))
-                    }
-                  />
-                  <span className={styles.statusSwitchText}>
-                    {registrationDraft.enabled ? "允许新用户自注册" : "关闭新用户自注册"}
-                  </span>
-                </div>
-              </div>
-
-              <div className={styles.modalField}>
-                <span className={styles.modalLabel}>新用户初始模板</span>
-                <div
-                  id={REGISTRATION_FIELD_IDS.template}
-                  className={styles.registrationTemplateCard}
-                >
-                  <div className={styles.registrationTemplateHeader}>
-                    <span className={styles.registrationTemplateTitle}>新用户</span>
-                    <span className={buildStatusClassName("success")}>初始化阶段</span>
-                  </div>
-                  <p className={styles.registrationTemplateDescription}>
-                    注册完成时按下方能力生成初始权限；后续由租户内角色重新决定权限。
-                  </p>
-                  <div className={styles.registrationAbilityList}>
-                    {selectedInitialPermissions.map(permission => (
-                      <span key={permission.id} className={styles.registrationAbilityItem}>
-                        <span className={styles.registrationAbilityLabel}>{permission.label}</span>
-                        <button
-                          type="button"
-                          className={styles.registrationAbilityRemove}
-                          aria-label={`移除${permission.label}`}
-                          onClick={() => handleRemoveInitialPermission(permission.id)}
-                        >
-                          删除
-                        </button>
-                      </span>
-                    ))}
-                  </div>
-                  <Select
-                    className={styles.registrationAbilitySelect}
-                    placeholder="添加初始化能力"
-                    options={addableRegistrationPermissionOptions}
-                    value={undefined}
-                    showSearch={true}
-                    optionFilterProp="label"
-                    onChange={handleAddInitialPermission}
-                  />
-                </div>
-                <p className={styles.registrationLifecycleNote}>
-                  该模板只用于注册初始化；后续权限以租户内角色配置为准。
-                </p>
-              </div>
-            </div>
-
-            <div className={styles.configFooterRow}>
-              <Button type="primary" onClick={handleSaveRegistrationStrategy}>
-                保存配置
-              </Button>
-              <span className={adminStyles.consoleInfoLabel}>
-                上次更新：{registrationStrategy.updatedAt}
-              </span>
-            </div>
-          </div>
-        </section>
-      ) : null}
-    </div>
-  );
-};
-
 /**
  * 运营后台主视图，按企业管理后台的骨架和内容标准重构。
  */
@@ -1006,30 +684,51 @@ export const OperationsPlatformView = (): JSX.Element => {
     agentSubmissions,
     approveAgent,
     approvedAgents,
+    applyTenantSubscriptionPlan,
     communityGroupConfig,
     createAgentPlazaCategory,
+    createExternalMeteredService,
+    createMeteringProvider,
+    createModelService,
+    createPointsPackage,
     createProduct,
+    createSalesChannelContractCode,
     createSkillCenterCategory,
+    createSubscriptionPlan,
     createTenant,
     emptyTenantForm,
     emptyProductForm,
+    externalMeteredServices,
+    meteringProviders,
+    modelServices,
     productStatusLabels,
     productTrialUnitLabels,
     productTrialUnitOptions,
+    pointsPackages,
+    pointsUsageRecords,
     products,
     registrationStrategy,
+    referralRecords,
     rejectAgent,
+    salesChannelContractCodes,
     serviceContactConfig,
     skillCenterCategories,
+    subscriptionPlans,
     tenantStatusLabels,
     tenants,
     updateAgentPlazaCategory,
+    updateExternalMeteredService,
+    updateMeteringProvider,
+    updateModelService,
     updateProduct,
     updateProductStatus,
+    updateSalesChannelContractCode,
     updateCommunityGroupConfig,
+    updatePointsPackage,
     updateRegistrationStrategy,
     updateServiceContactConfig,
     updateSkillCenterCategory,
+    updateSubscriptionPlan,
     updateTenant,
     updateTenantStatus,
   } = useOperationsPlatform();
@@ -1081,6 +780,10 @@ export const OperationsPlatformView = (): JSX.Element => {
     OPERATIONS_PERMISSION_IDS.organizationManage,
   );
   const canManageRoles = hasOperationsPermission(OPERATIONS_PERMISSION_IDS.roleManage);
+  const canManageBilling = hasOperationsPermission(OPERATIONS_PERMISSION_IDS.billingManage);
+  const canManageOrders = hasOperationsPermission(OPERATIONS_PERMISSION_IDS.orderManage);
+  const canManagePoints = hasOperationsPermission(OPERATIONS_PERMISSION_IDS.pointsManage);
+  const canManageResources = hasOperationsPermission(OPERATIONS_PERMISSION_IDS.resourceManage);
   const activeTab = useMemo<OperationsPlatformTabKey>(
     () => activeTabFromRoute ?? visibleOperationsTabs[0]?.key ?? "tenants",
     [activeTabFromRoute, visibleOperationsTabs],
@@ -1210,6 +913,7 @@ export const OperationsPlatformView = (): JSX.Element => {
         adminName: tenant.adminName,
         adminPhone: tenant.adminPhone,
         adminPermissionIds: normalizeTenantRolePermissionIds(tenant.adminPermissionIds),
+        billingMode: tenant.billingMode,
         seatCount: tenant.seatCount,
         effectiveAt: tenant.effectiveAt,
         expiresAt: tenant.expiresAt,
@@ -1226,12 +930,13 @@ export const OperationsPlatformView = (): JSX.Element => {
       !tenantEditor.form.name.trim() ||
       !tenantEditor.form.adminName.trim() ||
       !tenantEditor.form.adminPermissionIds.length ||
+      !tenantEditor.form.billingMode ||
       tenantEditor.form.adminPhone.trim().length !== 11 ||
       tenantEditor.form.seatCount < 1 ||
       !tenantEditor.form.effectiveAt.trim() ||
       !tenantEditor.form.expiresAt.trim()
     ) {
-      message.warning("请先补齐租户名称、初始管理员信息、席位数量、生效时间和失效时间。");
+      message.warning("请先补齐租户名称、初始管理员信息、计费方式、席位数量、生效时间和失效时间。");
       return;
     }
 
@@ -1327,6 +1032,10 @@ export const OperationsPlatformView = (): JSX.Element => {
     () => tenants.find(item => item.id === tenantId) ?? null,
     [tenantId, tenants],
   );
+  const activeTenantSnapshot = useMemo<MockTenantManagementSnapshot | null>(
+    () => (activeTenant ? getMockTenantManagementSnapshot(activeTenant.id) : null),
+    [activeTenant],
+  );
   const activeReviewSubmission = useMemo<OperationsAgentSubmission | null>(
     () => agentSubmissions.find(item => item.id === agentReview.submissionId) ?? null,
     [agentReview.submissionId, agentSubmissions],
@@ -1343,6 +1052,7 @@ export const OperationsPlatformView = (): JSX.Element => {
             canEdit={canManageTenants}
             canToggleStatus={canManageTenants}
             tenant={activeTenant}
+            tenantSnapshot={activeTenantSnapshot}
             statusLabels={tenantStatusLabels}
             onBack={handleBackToTenantList}
             onEdit={handleOpenEditTenant}
@@ -1420,6 +1130,62 @@ export const OperationsPlatformView = (): JSX.Element => {
       );
     }
 
+    if (activeTab === "resources") {
+      if (!canManageResources) {
+        return <Empty description="当前角色暂无资源池权限" />;
+      }
+
+      return (
+        <OperationsResourceMeteringConsole
+          externalMeteredServices={externalMeteredServices}
+          meteringProviders={meteringProviders}
+          modelServices={modelServices}
+          onCreateExternalMeteredService={createExternalMeteredService}
+          onCreateMeteringProvider={createMeteringProvider}
+          onCreateModelService={createModelService}
+          onUpdateExternalMeteredService={updateExternalMeteredService}
+          onUpdateMeteringProvider={updateMeteringProvider}
+          onUpdateModelService={updateModelService}
+        />
+      );
+    }
+
+    if (activeTab === "points") {
+      if (!canManagePoints && !canManageBilling) {
+        return <Empty description="当前角色暂无积分和订阅运营权限" />;
+      }
+
+      return (
+        <OperationsPointsSubscriptionConsole
+          canManageBilling={canManageBilling}
+          canManagePoints={canManagePoints}
+          pointsPackages={pointsPackages}
+          pointsUsageRecords={pointsUsageRecords}
+          referralRecords={referralRecords}
+          registrationStrategy={registrationStrategy}
+          salesChannelContractCodes={salesChannelContractCodes}
+          subscriptionPlans={subscriptionPlans}
+          tenants={tenants}
+          onApplyTenantSubscriptionPlan={applyTenantSubscriptionPlan}
+          onCreateSalesChannelContractCode={createSalesChannelContractCode}
+          onCreateSubscriptionPlan={createSubscriptionPlan}
+          onCreatePointsPackage={createPointsPackage}
+          onUpdatePointsPackage={updatePointsPackage}
+          onUpdateSalesChannelContractCode={updateSalesChannelContractCode}
+          onUpdateSubscriptionPlan={updateSubscriptionPlan}
+          onUpdateRegistrationStrategy={updateRegistrationStrategy}
+        />
+      );
+    }
+
+    if (activeTab === "orders") {
+      if (!canManageOrders) {
+        return <Empty description="当前角色暂无订单中心权限" />;
+      }
+
+      return <OperationsOrderCenterConsole tenants={tenants} />;
+    }
+
     if (activeTab === "agents") {
       return (
         <AgentConsole
@@ -1433,7 +1199,7 @@ export const OperationsPlatformView = (): JSX.Element => {
 
     if (activeTab === "platformConfig") {
       return (
-        <PlatformConfigConsole
+        <OperationsPlatformConfigConsole
           communityGroupConfig={communityGroupConfig}
           registrationStrategy={registrationStrategy}
           onUpdateCommunityGroupConfig={updateCommunityGroupConfig}
@@ -1453,20 +1219,33 @@ export const OperationsPlatformView = (): JSX.Element => {
     );
   }, [
     activeTenant,
+    activeTenantSnapshot,
     activeTab,
     agentPlazaCategories,
     agentStatusLabels,
     agentSubmissions,
+    applyTenantSubscriptionPlan,
     approvedAgents,
+    canManageBilling,
+    canManageOrders,
+    canManagePoints,
+    canManageResources,
     canManageTenants,
     canManageOrganization,
     canManageRoles,
     canReviewAgent,
     communityGroupConfig,
     createAgentPlazaCategory,
+    createExternalMeteredService,
+    createMeteringProvider,
+    createModelService,
+    createPointsPackage,
     createProduct,
+    createSalesChannelContractCode,
     createSkillCenterCategory,
+    createSubscriptionPlan,
     emptyProductForm,
+    externalMeteredServices,
     handleBackToProductList,
     handleBackToTenantList,
     handleOpenAgentReview,
@@ -1475,24 +1254,37 @@ export const OperationsPlatformView = (): JSX.Element => {
     handleOpenProductDetail,
     handleOpenTenantDetail,
     handleToggleTenantStatus,
+    meteringProviders,
+    modelServices,
     productId,
     productStatusLabels,
     productTrialUnitLabels,
     productTrialUnitOptions,
+    pointsPackages,
+    pointsUsageRecords,
     products,
     registrationStrategy,
+    referralRecords,
+    salesChannelContractCodes,
     skillCenterCategories,
     serviceContactConfig,
+    subscriptionPlans,
     tenantId,
     tenantStatusLabels,
     tenants,
     updateAgentPlazaCategory,
     updateCommunityGroupConfig,
+    updateExternalMeteredService,
+    updateMeteringProvider,
+    updateModelService,
+    updatePointsPackage,
     updateProduct,
     updateProductStatus,
+    updateSalesChannelContractCode,
     updateRegistrationStrategy,
     updateServiceContactConfig,
     updateSkillCenterCategory,
+    updateSubscriptionPlan,
     visibleOperationsTabs.length,
   ]);
 
@@ -1735,6 +1527,28 @@ export const OperationsPlatformView = (): JSX.Element => {
                   form: {
                     ...currentState.form,
                     adminPermissionIds: normalizeTenantRolePermissionIds(nextPermissionIds),
+                  },
+                }))
+              }
+            />
+          </div>
+
+          <div className={styles.modalField}>
+            <label className={styles.modalLabel} htmlFor={TENANT_FIELD_IDS.billingMode}>
+              计费方式
+            </label>
+            <Select<OperationsTenantForm["billingMode"]>
+              id={TENANT_FIELD_IDS.billingMode}
+              className={styles.fullWidthInput}
+              disabled={tenantEditor.mode === "edit"}
+              value={tenantEditor.form.billingMode}
+              options={OPERATIONS_TENANT_BILLING_MODE_OPTIONS}
+              onChange={nextBillingMode =>
+                setTenantEditor(currentState => ({
+                  ...currentState,
+                  form: {
+                    ...currentState.form,
+                    billingMode: nextBillingMode,
                   },
                 }))
               }

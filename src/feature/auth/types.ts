@@ -115,6 +115,11 @@ export interface MockTenantPointsUsageRecordItem {
 export type MockTenantReferralInviteStatus = "rewarded" | "registered" | "pending";
 
 /**
+ * 租户积分购买订单状态。
+ */
+export type MockTenantPointsOrderStatus = "paid" | "pending" | "expired" | "closed";
+
+/**
  * 租户邀请好友裂变记录。
  */
 export interface MockTenantReferralInviteRecord {
@@ -128,6 +133,54 @@ export interface MockTenantReferralInviteRecord {
 }
 
 /**
+ * 租户积分购买订单。
+ */
+export interface MockTenantPointsOrderItem {
+  id: string;
+  orderNo: string;
+  packageId: string;
+  packageTitle: string;
+  packagePoints: number;
+  amount: number;
+  status: MockTenantPointsOrderStatus;
+  paymentChannelLabel: string;
+  purchaserName: string;
+  createdAt: string;
+  paidAt?: string;
+}
+
+/**
+ * 租户订阅开通订单。
+ */
+export interface MockTenantSubscriptionOrderItem {
+  id: string;
+  orderNo: string;
+  planKey: string;
+  planTitle: string;
+  amount: number;
+  seatCount: number;
+  billingCycleLabel: string;
+  status: MockTenantPointsOrderStatus;
+  orderSourceLabel: string;
+  paymentChannelLabel: string;
+  purchaserName: string;
+  createdAt: string;
+  paidAt?: string;
+  billingCycle?: "monthly" | "yearly";
+  unitPrice?: number;
+  originalAmount?: number;
+  discountAmount?: number;
+  contractCode?: string;
+  customerTier?: "pro" | "enterprise";
+  channelName?: string;
+  ownerName?: string;
+  serviceLabel?: string;
+  expiresAt?: string;
+  prorationLabel?: string;
+  purchaseMode?: "addSeats" | "renew";
+}
+
+/**
  * 租户当前版本。
  */
 export type MockTenantEdition = "personal" | "team";
@@ -136,6 +189,11 @@ export type MockTenantEdition = "personal" | "team";
  * 租户部署形态。
  */
 export type MockTenantDeploymentMode = "publicCloud" | "privateCloud";
+
+/**
+ * 租户计费口径。
+ */
+export type MockTenantBillingMode = "points" | "cost";
 
 /**
  * 团队版 AI 专家用量记录。
@@ -165,6 +223,7 @@ export interface MockTenantManagementSnapshot {
   ownerAccountId: string;
   adminUserId: string;
   deploymentMode: MockTenantDeploymentMode;
+  billingMode: MockTenantBillingMode;
   edition: MockTenantEdition;
   planLabel: string;
   includedSeats: number;
@@ -182,6 +241,8 @@ export interface MockTenantManagementSnapshot {
   agentUsageRecords: MockTenantAgentUsageRecordItem[];
   pointsLedger: MockTenantPointsLedgerItem[];
   pointsUsageRecords: MockTenantPointsUsageRecordItem[];
+  pointsOrders: MockTenantPointsOrderItem[];
+  subscriptionOrders: MockTenantSubscriptionOrderItem[];
   referralRecords: MockTenantReferralInviteRecord[];
 }
 

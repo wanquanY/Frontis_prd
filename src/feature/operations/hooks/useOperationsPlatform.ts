@@ -5,9 +5,27 @@ import {
   saveStoredAgentPlazaCategories,
 } from "@/feature/operations/agentPlazaCategoryStorage";
 import {
+  getMockTenantManagementSnapshot,
+  saveMockTenantManagementSnapshot,
+} from "@/feature/auth/mockTenantRegistry";
+import {
+  createMockPointsPackage,
+  getMockPointsPackages,
+  updateMockPointsPackage,
+} from "@/feature/points/mockPointsCommerce";
+import type { MockPointsPackageOption } from "@/feature/points/types";
+import {
   loadStoredOperationsProducts,
   saveStoredOperationsProducts,
 } from "@/feature/operations/commerceStorage";
+import {
+  loadStoredOperationsExternalMeteredServices,
+  loadStoredOperationsMeteringProviders,
+  loadStoredOperationsModelServices,
+  saveStoredOperationsExternalMeteredServices,
+  saveStoredOperationsMeteringProviders,
+  saveStoredOperationsModelServices,
+} from "@/feature/operations/serviceMeteringStorage";
 import {
   loadOperationsCommunityGroupConfig,
   loadOperationsRegistrationStrategy,
@@ -24,6 +42,8 @@ import {
   OPERATIONS_AGENT_PLAZA_DEFAULT_CATEGORY,
   OPERATIONS_AGENT_STATUS_LABELS,
   OPERATIONS_INITIAL_AGENT_SUBMISSIONS,
+  OPERATIONS_INITIAL_POINTS_USAGE_RECORDS,
+  OPERATIONS_INITIAL_REFERRAL_RECORDS,
   OPERATIONS_INITIAL_TENANTS,
   OPERATIONS_PRODUCT_BILLING_MODE_LABELS,
   OPERATIONS_PRODUCT_BILLING_MODE_OPTIONS,
@@ -50,20 +70,46 @@ import {
   loadStoredOperationsTenants,
   saveStoredOperationsTenants,
 } from "@/feature/operations/tenantStorage";
+import {
+  applyMockSubscriptionPlanToTenant,
+  createMockSalesChannelContractCode,
+  createMockSubscriptionPlanTemplate,
+  getMockSalesChannelContractCodes,
+  getMockSubscriptionPlanTemplates,
+  updateMockSalesChannelContractCode,
+  updateMockSubscriptionPlanTemplate,
+} from "@/feature/subscription/mockSubscriptionPlans";
+import type {
+  MockSalesChannelContractCode,
+  MockSalesChannelContractCodeInput,
+  MockSubscriptionPlanKey,
+  MockSubscriptionPlanPurchaseOption,
+  MockSubscriptionPlanTemplate,
+  MockSubscriptionPlanTemplateInput,
+} from "@/feature/subscription/types";
 import type {
   OperationsAgentPlazaCategoryOption,
   OperationsAgentSubmission,
   OperationsCommunityGroupConfig,
+  OperationsExternalMeteredService,
+  OperationsExternalMeteredServiceForm,
+  OperationsMeteringProvider,
+  OperationsMeteringProviderForm,
+  OperationsModelService,
+  OperationsModelServiceForm,
   OperationsProduct,
   OperationsProductForm,
   OperationsProductSubscriptionPlan,
   OperationsProductSubscriptionPlanStatus,
+  OperationsPointsUsageRecord,
+  OperationsReferralRecord,
   OperationsRegistrationStrategy,
   OperationsServiceContactConfig,
   OperationsSkillCenterCategoryOption,
   OperationsTenant,
   OperationsTenantForm,
 } from "@/feature/operations/types";
+import { calculateOperationsSalePrice } from "@/feature/operations/serviceMeteringUtils";
 import {
   loadEnterpriseCommodityApplications,
   saveEnterpriseCommodityApplications,
@@ -81,6 +127,14 @@ interface UseOperationsPlatformResult {
   approvedAgentSubmissions: OperationsAgentSubmission[];
   approvedAgents: OperationsAgentSubmission[];
   products: OperationsProduct[];
+  meteringProviders: OperationsMeteringProvider[];
+  modelServices: OperationsModelService[];
+  externalMeteredServices: OperationsExternalMeteredService[];
+  pointsPackages: MockPointsPackageOption[];
+  salesChannelContractCodes: MockSalesChannelContractCode[];
+  subscriptionPlans: MockSubscriptionPlanTemplate[];
+  pointsUsageRecords: OperationsPointsUsageRecord[];
+  referralRecords: OperationsReferralRecord[];
   registrationStrategy: OperationsRegistrationStrategy;
   serviceContactConfig: OperationsServiceContactConfig;
   communityGroupConfig: OperationsCommunityGroupConfig;
@@ -110,6 +164,44 @@ interface UseOperationsPlatformResult {
   createProduct: (form: OperationsProductForm) => void;
   updateProduct: (productId: string, form: OperationsProductForm) => void;
   updateProductStatus: (productId: string, status: OperationsProduct["status"]) => void;
+  createMeteringProvider: (form: OperationsMeteringProviderForm) => void;
+  updateMeteringProvider: (providerId: string, form: OperationsMeteringProviderForm) => void;
+  createModelService: (form: OperationsModelServiceForm) => void;
+  updateModelService: (modelId: string, form: OperationsModelServiceForm) => void;
+  createExternalMeteredService: (form: OperationsExternalMeteredServiceForm) => void;
+  updateExternalMeteredService: (
+    serviceId: string,
+    form: OperationsExternalMeteredServiceForm,
+  ) => void;
+  createPointsPackage: (
+    payload: Pick<
+      MockPointsPackageOption,
+      "title" | "description" | "points" | "price" | "tagLabel"
+    >,
+  ) => void;
+  updatePointsPackage: (
+    packageId: string,
+    updates: Partial<
+      Pick<
+        MockPointsPackageOption,
+        "title" | "description" | "points" | "price" | "status" | "sortOrder" | "tagLabel"
+      >
+    >,
+  ) => void;
+  createSalesChannelContractCode: (payload: MockSalesChannelContractCodeInput) => void;
+  updateSalesChannelContractCode: (
+    code: string,
+    updates: Partial<MockSalesChannelContractCodeInput>,
+  ) => void;
+  createSubscriptionPlan: (payload: MockSubscriptionPlanTemplateInput) => void;
+  updateSubscriptionPlan: (
+    planKey: MockSubscriptionPlanKey,
+    updates: Partial<MockSubscriptionPlanTemplateInput>,
+  ) => void;
+  applyTenantSubscriptionPlan: (
+    tenantId: string,
+    purchaseOption: MockSubscriptionPlanPurchaseOption,
+  ) => boolean;
   updateServiceContactConfig: (
     config: Pick<
       OperationsServiceContactConfig,
@@ -123,7 +215,22 @@ interface UseOperationsPlatformResult {
     >,
   ) => void;
   updateRegistrationStrategy: (
-    config: Pick<OperationsRegistrationStrategy, "enabled" | "initialPermissionIds">,
+    config: Partial<
+      Pick<
+        OperationsRegistrationStrategy,
+        | "enabled"
+        | "initialPermissionIds"
+        | "defaultGiftPoints"
+        | "pointsPerCny"
+        | "minimumDeductPoints"
+        | "roundingUnit"
+        | "referralDailyRewardLimit"
+        | "referralEnabled"
+        | "referralInviteeRewardPoints"
+        | "referralInviterRewardPoints"
+        | "referralMonthlyRewardLimit"
+      >
+    >,
   ) => void;
   createAgentPlazaCategory: (
     payload: Pick<OperationsAgentPlazaCategoryOption, "name" | "sortOrder">,
@@ -156,6 +263,9 @@ const buildTenantMemberId = (): string => `ops-tenant-member-${Date.now()}`;
 const buildProductId = (): string => `ops-product-${Date.now()}`;
 const buildAgentPlazaCategoryId = (): string => `ops-agent-plaza-category-${Date.now()}`;
 const buildSkillCenterCategoryId = (): string => `ops-skill-center-category-${Date.now()}`;
+const buildMeteringProviderId = (): string => `ops-metering-provider-${Date.now()}`;
+const buildModelServiceId = (): string => `ops-model-service-${Date.now()}`;
+const buildExternalMeteredServiceId = (): string => `ops-external-service-${Date.now()}`;
 
 const resolveTenantEditionBySeatCount = (seatCount: number): OperationsTenant["edition"] =>
   seatCount <= 1 ? "personal" : "team";
@@ -196,6 +306,22 @@ const syncAdminTenantMember = (
   );
 };
 
+const syncManagementSnapshotBillingMode = (
+  tenantId: string,
+  billingMode: OperationsTenant["billingMode"],
+): void => {
+  const matchedSnapshot = getMockTenantManagementSnapshot(tenantId);
+
+  if (!matchedSnapshot) {
+    return;
+  }
+
+  saveMockTenantManagementSnapshot({
+    ...matchedSnapshot,
+    billingMode,
+  });
+};
+
 const buildTenantFromForm = (form: OperationsTenantForm): OperationsTenant => {
   const createdAt = formatTimestamp();
   const adminPermissionIds = normalizeTenantRolePermissionIds(form.adminPermissionIds);
@@ -211,6 +337,7 @@ const buildTenantFromForm = (form: OperationsTenantForm): OperationsTenant => {
     type: "enterprise",
     deploymentMode: "publicCloud",
     edition: resolveTenantEditionBySeatCount(form.seatCount),
+    billingMode: form.billingMode,
     industry: form.industry.trim(),
     adminName: form.adminName.trim(),
     adminPhone: form.adminPhone.trim(),
@@ -229,6 +356,84 @@ const buildTenantFromForm = (form: OperationsTenantForm): OperationsTenant => {
     updatedAt: createdAt,
   };
 };
+
+const resolveMeteringProviderName = (
+  providers: OperationsMeteringProvider[],
+  providerId: string,
+): string => providers.find(item => item.id === providerId)?.name ?? "未绑定服务商";
+
+const buildMeteringProviderFromForm = (
+  form: OperationsMeteringProviderForm,
+): OperationsMeteringProvider => ({
+  id: buildMeteringProviderId(),
+  name: form.name.trim(),
+  providerKind: form.providerKind,
+  baseUrl: form.baseUrl.trim(),
+  billingCurrency: form.billingCurrency.trim() || "CNY",
+  credentialStatusLabel: form.credentialStatusLabel.trim(),
+  status: form.status,
+  updatedAt: formatTimestamp(),
+});
+
+const buildModelServiceFromForm = (
+  form: OperationsModelServiceForm,
+  providers: OperationsMeteringProvider[],
+): OperationsModelService => ({
+  id: buildModelServiceId(),
+  providerId: form.providerId,
+  providerName: resolveMeteringProviderName(providers, form.providerId),
+  modelCode: form.modelCode.trim(),
+  modelName: form.modelName.trim(),
+  interfaceFormat: form.interfaceFormat,
+  modality: form.modality,
+  reasoningEnabled: form.reasoningEnabled,
+  inputCostPerMillion: form.inputCostPerMillion,
+  outputCostPerMillion: form.outputCostPerMillion,
+  pricingMode: form.pricingMode,
+  markupRate: form.markupRate,
+  grossMarginRate: form.grossMarginRate,
+  inputSalePricePerMillion: calculateOperationsSalePrice(
+    form.inputCostPerMillion,
+    form.pricingMode,
+    form.markupRate,
+    form.grossMarginRate,
+    form.inputSalePricePerMillion,
+  ),
+  outputSalePricePerMillion: calculateOperationsSalePrice(
+    form.outputCostPerMillion,
+    form.pricingMode,
+    form.markupRate,
+    form.grossMarginRate,
+    form.outputSalePricePerMillion,
+  ),
+  status: form.status,
+  updatedAt: formatTimestamp(),
+});
+
+const buildExternalMeteredServiceFromForm = (
+  form: OperationsExternalMeteredServiceForm,
+  providers: OperationsMeteringProvider[],
+): OperationsExternalMeteredService => ({
+  id: buildExternalMeteredServiceId(),
+  providerId: form.providerId,
+  providerName: resolveMeteringProviderName(providers, form.providerId),
+  name: form.name.trim(),
+  serviceTypeLabel: form.serviceTypeLabel.trim(),
+  meteringUnit: form.meteringUnit,
+  costPerUnit: form.costPerUnit,
+  pricingMode: form.pricingMode,
+  markupRate: form.markupRate,
+  grossMarginRate: form.grossMarginRate,
+  salePricePerUnit: calculateOperationsSalePrice(
+    form.costPerUnit,
+    form.pricingMode,
+    form.markupRate,
+    form.grossMarginRate,
+    form.salePricePerUnit,
+  ),
+  status: form.status,
+  updatedAt: formatTimestamp(),
+});
 
 interface SortableOperationsCategory {
   sortOrder: number;
@@ -418,6 +623,30 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
   const [products, setProducts] = useState<OperationsProduct[]>(() =>
     loadStoredOperationsProducts(),
   );
+  const [meteringProviders, setMeteringProviders] = useState<OperationsMeteringProvider[]>(() =>
+    loadStoredOperationsMeteringProviders(),
+  );
+  const [modelServices, setModelServices] = useState<OperationsModelService[]>(() =>
+    loadStoredOperationsModelServices(),
+  );
+  const [externalMeteredServices, setExternalMeteredServices] = useState<
+    OperationsExternalMeteredService[]
+  >(() => loadStoredOperationsExternalMeteredServices());
+  const [pointsUsageRecords] = useState<OperationsPointsUsageRecord[]>(
+    () => OPERATIONS_INITIAL_POINTS_USAGE_RECORDS,
+  );
+  const [referralRecords] = useState<OperationsReferralRecord[]>(
+    () => OPERATIONS_INITIAL_REFERRAL_RECORDS,
+  );
+  const [pointsPackages, setPointsPackages] = useState<MockPointsPackageOption[]>(() =>
+    getMockPointsPackages(),
+  );
+  const [salesChannelContractCodes, setSalesChannelContractCodes] = useState<
+    MockSalesChannelContractCode[]
+  >(() => getMockSalesChannelContractCodes());
+  const [subscriptionPlans, setSubscriptionPlans] = useState<MockSubscriptionPlanTemplate[]>(() =>
+    getMockSubscriptionPlanTemplates(),
+  );
   const [registrationStrategy, setRegistrationStrategy] = useState<OperationsRegistrationStrategy>(
     () => loadOperationsRegistrationStrategy(),
   );
@@ -449,6 +678,18 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
   }, [products]);
 
   useEffect(() => {
+    saveStoredOperationsMeteringProviders(meteringProviders);
+  }, [meteringProviders]);
+
+  useEffect(() => {
+    saveStoredOperationsModelServices(modelServices);
+  }, [modelServices]);
+
+  useEffect(() => {
+    saveStoredOperationsExternalMeteredServices(externalMeteredServices);
+  }, [externalMeteredServices]);
+
+  useEffect(() => {
     saveOperationsRegistrationStrategy(registrationStrategy);
   }, [registrationStrategy]);
 
@@ -466,7 +707,10 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
   );
 
   const createTenant = useCallback((form: OperationsTenantForm): void => {
-    setTenants(currentTenants => [buildTenantFromForm(form), ...currentTenants]);
+    const nextTenant = buildTenantFromForm(form);
+
+    syncManagementSnapshotBillingMode(nextTenant.id, nextTenant.billingMode);
+    setTenants(currentTenants => [nextTenant, ...currentTenants]);
   }, []);
 
   const updateTenant = useCallback((tenantId: string, form: OperationsTenantForm): void => {
@@ -484,6 +728,7 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
               name: form.name.trim(),
               code: form.code.trim().toUpperCase(),
               edition: resolveTenantEditionBySeatCount(form.seatCount),
+              billingMode: item.billingMode,
               industry: form.industry.trim(),
               adminName: form.adminName.trim(),
               adminPhone: form.adminPhone.trim(),
@@ -663,6 +908,192 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
     [],
   );
 
+  const createMeteringProvider = useCallback((form: OperationsMeteringProviderForm): void => {
+    setMeteringProviders(currentProviders => [
+      buildMeteringProviderFromForm(form),
+      ...currentProviders,
+    ]);
+  }, []);
+
+  const updateMeteringProvider = useCallback(
+    (providerId: string, form: OperationsMeteringProviderForm): void => {
+      const nextProviderName = form.name.trim();
+      const nextProvider = buildMeteringProviderFromForm(form);
+
+      setMeteringProviders(currentProviders =>
+        currentProviders.map(item =>
+          item.id === providerId
+            ? {
+                ...nextProvider,
+                id: item.id,
+              }
+            : item,
+        ),
+      );
+
+      setModelServices(currentModels =>
+        currentModels.map(item =>
+          item.providerId === providerId
+            ? {
+                ...item,
+                providerName: nextProviderName,
+                updatedAt: formatTimestamp(),
+              }
+            : item,
+        ),
+      );
+
+      setExternalMeteredServices(currentServices =>
+        currentServices.map(item =>
+          item.providerId === providerId
+            ? {
+                ...item,
+                providerName: nextProviderName,
+                updatedAt: formatTimestamp(),
+              }
+            : item,
+        ),
+      );
+    },
+    [],
+  );
+
+  const createModelService = useCallback(
+    (form: OperationsModelServiceForm): void => {
+      setModelServices(currentModels => [
+        buildModelServiceFromForm(form, meteringProviders),
+        ...currentModels,
+      ]);
+    },
+    [meteringProviders],
+  );
+
+  const updateModelService = useCallback(
+    (modelId: string, form: OperationsModelServiceForm): void => {
+      setModelServices(currentModels =>
+        currentModels.map(item =>
+          item.id === modelId
+            ? {
+                ...buildModelServiceFromForm(form, meteringProviders),
+                id: item.id,
+              }
+            : item,
+        ),
+      );
+    },
+    [meteringProviders],
+  );
+
+  const createExternalMeteredService = useCallback(
+    (form: OperationsExternalMeteredServiceForm): void => {
+      setExternalMeteredServices(currentServices => [
+        buildExternalMeteredServiceFromForm(form, meteringProviders),
+        ...currentServices,
+      ]);
+    },
+    [meteringProviders],
+  );
+
+  const updateExternalMeteredService = useCallback(
+    (serviceId: string, form: OperationsExternalMeteredServiceForm): void => {
+      setExternalMeteredServices(currentServices =>
+        currentServices.map(item =>
+          item.id === serviceId
+            ? {
+                ...buildExternalMeteredServiceFromForm(form, meteringProviders),
+                id: item.id,
+              }
+            : item,
+        ),
+      );
+    },
+    [meteringProviders],
+  );
+
+  const createPointsPackage = useCallback(
+    (
+      payload: Pick<
+        MockPointsPackageOption,
+        "title" | "description" | "points" | "price" | "tagLabel"
+      >,
+    ): void => {
+      setPointsPackages(createMockPointsPackage(payload));
+    },
+    [],
+  );
+
+  const updatePointsPackage = useCallback(
+    (
+      packageId: string,
+      updates: Partial<
+        Pick<
+          MockPointsPackageOption,
+          "title" | "description" | "points" | "price" | "status" | "sortOrder" | "tagLabel"
+        >
+      >,
+    ): void => {
+      setPointsPackages(updateMockPointsPackage(packageId, updates));
+    },
+    [],
+  );
+
+  const createSalesChannelContractCode = useCallback(
+    (payload: MockSalesChannelContractCodeInput): void => {
+      setSalesChannelContractCodes(createMockSalesChannelContractCode(payload));
+    },
+    [],
+  );
+
+  const updateSalesChannelContractCode = useCallback(
+    (code: string, updates: Partial<MockSalesChannelContractCodeInput>): void => {
+      setSalesChannelContractCodes(updateMockSalesChannelContractCode(code, updates));
+    },
+    [],
+  );
+
+  const createSubscriptionPlan = useCallback((payload: MockSubscriptionPlanTemplateInput): void => {
+    setSubscriptionPlans(createMockSubscriptionPlanTemplate(payload));
+  }, []);
+
+  const updateSubscriptionPlan = useCallback(
+    (
+      planKey: MockSubscriptionPlanKey,
+      updates: Partial<MockSubscriptionPlanTemplateInput>,
+    ): void => {
+      setSubscriptionPlans(updateMockSubscriptionPlanTemplate(planKey, updates));
+    },
+    [],
+  );
+
+  const applyTenantSubscriptionPlan = useCallback(
+    (tenantId: string, purchaseOption: MockSubscriptionPlanPurchaseOption): boolean => {
+      const nextSnapshot = applyMockSubscriptionPlanToTenant(tenantId, purchaseOption, {
+        orderSourceLabel: "运营后台开通",
+        paymentChannelLabel: "运营后台确认",
+      });
+
+      if (!nextSnapshot) {
+        return false;
+      }
+
+      setTenants(currentTenants =>
+        currentTenants.map(item =>
+          item.id === tenantId
+            ? {
+                ...item,
+                edition: nextSnapshot.edition,
+                seatCount: nextSnapshot.totalSeats,
+                updatedAt: formatTimestamp(),
+              }
+            : item,
+        ),
+      );
+
+      return true;
+    },
+    [],
+  );
+
   const updateServiceContactConfig = useCallback(
     (
       config: Pick<
@@ -700,11 +1131,30 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
   );
 
   const updateRegistrationStrategy = useCallback(
-    (config: Pick<OperationsRegistrationStrategy, "enabled" | "initialPermissionIds">): void => {
+    (
+      config: Partial<
+        Pick<
+          OperationsRegistrationStrategy,
+          | "enabled"
+          | "initialPermissionIds"
+          | "defaultGiftPoints"
+          | "pointsPerCny"
+          | "minimumDeductPoints"
+          | "roundingUnit"
+          | "referralDailyRewardLimit"
+          | "referralEnabled"
+          | "referralInviteeRewardPoints"
+          | "referralInviterRewardPoints"
+          | "referralMonthlyRewardLimit"
+        >
+      >,
+    ): void => {
       setRegistrationStrategy(currentStrategy => ({
         ...currentStrategy,
-        enabled: config.enabled,
-        initialPermissionIds: [...config.initialPermissionIds],
+        ...config,
+        initialPermissionIds: config.initialPermissionIds
+          ? [...config.initialPermissionIds]
+          : currentStrategy.initialPermissionIds,
         updatedAt: formatTimestamp(),
       }));
     },
@@ -867,6 +1317,14 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
     approvedAgentSubmissions,
     approvedAgents: approvedAgentSubmissions,
     products,
+    meteringProviders,
+    modelServices,
+    externalMeteredServices,
+    pointsPackages,
+    salesChannelContractCodes,
+    subscriptionPlans,
+    pointsUsageRecords,
+    referralRecords,
     registrationStrategy,
     serviceContactConfig,
     communityGroupConfig,
@@ -896,6 +1354,19 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
     createProduct,
     updateProduct,
     updateProductStatus,
+    createMeteringProvider,
+    updateMeteringProvider,
+    createModelService,
+    updateModelService,
+    createExternalMeteredService,
+    updateExternalMeteredService,
+    createPointsPackage,
+    updatePointsPackage,
+    createSalesChannelContractCode,
+    updateSalesChannelContractCode,
+    createSubscriptionPlan,
+    updateSubscriptionPlan,
+    applyTenantSubscriptionPlan,
     updateServiceContactConfig,
     updateCommunityGroupConfig,
     updateRegistrationStrategy,

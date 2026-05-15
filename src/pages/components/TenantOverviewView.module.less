@@ -1,0 +1,357 @@
+.rangeBar {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px;
+  border: 1px solid color-mix(in srgb, var(--text) 10%, var(--border));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--text) 3%, var(--surface));
+}
+
+.rangeButton {
+  min-height: 30px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 20px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.rangeButtonActive {
+  background: var(--surface);
+  color: var(--primary);
+  box-shadow: var(--shadow-sm);
+}
+
+.detailHeaderMain {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.detailBackButton {
+  flex: 0 0 auto;
+  min-width: 104px;
+  height: 34px;
+  border-radius: 8px;
+  font-weight: 700;
+}
+
+.dashboardGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 28px 32px;
+}
+
+.dashboardPane {
+  min-width: 0;
+  min-height: 292px;
+  padding: 16px 0 0;
+  border-top: 1px solid color-mix(in srgb, var(--text) 8%, var(--border));
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.dashboardPaneHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+
+  > div {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  h3 {
+    margin: 0;
+    color: var(--text);
+    font-size: 15px;
+    line-height: 22px;
+    font-weight: 700;
+  }
+
+  span {
+    color: var(--text-muted);
+    font-size: 12px;
+    line-height: 18px;
+  }
+}
+
+.usageBars {
+  min-height: 214px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  justify-content: center;
+}
+
+.usageBarRow {
+  display: grid;
+  grid-template-columns: minmax(92px, 136px) minmax(120px, 1fr) 72px;
+  gap: 12px;
+  align-items: center;
+}
+
+.usageBarLabel {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+
+  span,
+  small {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  span {
+    color: var(--text);
+    font-size: 13px;
+    line-height: 20px;
+    font-weight: 700;
+  }
+}
+
+.usageBarTrack {
+  height: 10px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--text) 6%, var(--surface));
+}
+
+.usageBarFill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--primary);
+}
+
+.usageBarRow strong {
+  color: var(--text);
+  font-size: 13px;
+  line-height: 20px;
+  text-align: right;
+}
+
+.columnChart {
+  min-height: 214px;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 14px;
+  align-items: end;
+}
+
+.columnItem {
+  min-width: 0;
+  display: grid;
+  grid-template-rows: 20px 142px 36px;
+  gap: 8px;
+  align-items: end;
+}
+
+.columnValue,
+.columnLabel {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: center;
+}
+
+.columnValue {
+  color: var(--text);
+  font-size: 12px;
+  line-height: 18px;
+  font-weight: 700;
+}
+
+.columnTrack {
+  width: 100%;
+  height: 142px;
+  border-radius: 8px 8px 4px 4px;
+  background: color-mix(in srgb, var(--text) 5%, var(--surface));
+  display: flex;
+  align-items: flex-end;
+  overflow: hidden;
+}
+
+.columnFill {
+  width: 100%;
+  border-radius: inherit;
+  background: color-mix(in srgb, var(--primary) 74%, var(--text) 8%);
+}
+
+.columnLabel {
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.trendChart {
+  width: 100%;
+  min-height: 214px;
+  overflow: hidden;
+
+  svg {
+    width: 100%;
+    height: 214px;
+    display: block;
+  }
+}
+
+.trendArea {
+  fill: color-mix(in srgb, var(--primary) 16%, transparent);
+}
+
+.trendLine {
+  fill: none;
+  stroke: var(--primary);
+  stroke-width: 4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.trendPoint {
+  fill: var(--surface);
+  stroke: var(--primary);
+  stroke-width: 3;
+}
+
+.trendValue {
+  fill: var(--text);
+  font-size: 12px;
+  font-weight: 700;
+  text-anchor: middle;
+}
+
+.trendLabel {
+  fill: var(--text-secondary);
+  font-size: 12px;
+  text-anchor: middle;
+}
+
+.developerChart {
+  min-height: 214px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  justify-content: center;
+}
+
+.developerChartRow {
+  display: grid;
+  grid-template-columns: minmax(92px, 136px) minmax(120px, 1fr) 40px;
+  gap: 12px;
+  align-items: center;
+}
+
+.developerTrack {
+  height: 12px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--text) 6%, var(--surface));
+}
+
+.developerFill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: color-mix(in srgb, var(--primary) 56%, var(--text) 12%);
+}
+
+.developerName {
+  max-width: 100%;
+  color: var(--text);
+  font-size: 13px;
+  line-height: 20px;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.developerChartRow strong {
+  color: var(--text);
+  font-size: 13px;
+  line-height: 20px;
+  text-align: right;
+}
+
+.agentTagGroup,
+.agentPopover {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.agentTagGroup {
+  max-width: 360px;
+}
+
+.agentPopover {
+  max-width: 360px;
+}
+
+.agentTag {
+  min-height: 24px;
+  max-width: 132px;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--primary) 8%, var(--surface));
+  color: var(--text);
+  display: inline-flex;
+  align-items: center;
+  font-size: 12px;
+  line-height: 18px;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.agentMoreTag {
+  max-width: none;
+  background: color-mix(in srgb, var(--text) 7%, var(--surface));
+  color: var(--text-secondary);
+}
+
+.emptyCell {
+  padding: 40px 0;
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 20px;
+  text-align: center;
+}
+
+@media (max-width: 1120px) {
+  .dashboardGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .dashboardPane {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 720px) {
+  .usageBarRow,
+  .developerChartRow {
+    grid-template-columns: 1fr;
+  }
+
+  .usageBarRow strong,
+  .developerChartRow strong {
+    text-align: left;
+  }
+}

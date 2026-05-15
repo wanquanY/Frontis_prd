@@ -14,6 +14,7 @@ import type {
   OperationsModelService,
   OperationsModelServiceForm,
   OperationsPlatformTabKey,
+  OperationsPointsUsageRecord,
   OperationsReferralRecord,
   OperationsRegistrationStrategy,
   OperationsAgentPlazaCategory,
@@ -37,12 +38,14 @@ import type {
   OperationsResourcePoolType,
   OperationsServiceContactConfig,
   OperationsTenant,
+  OperationsTenantBillingMode,
   OperationsTenantForm,
   OperationsTenantMemberForm,
 } from "@/feature/operations/types";
 import {
   DEPARTMENT_LEAD_PERMISSION_IDS,
   DEFAULT_TENANT_ROLE_IDS,
+  MANAGEMENT_PERMISSION_IDS,
   OPERATIONS_PERMISSION_IDS,
   OPERATIONS_SUPER_ADMIN_PERMISSION_IDS,
   SYSTEM_ACCESS_DERIVED_PERMISSION_IDS,
@@ -60,6 +63,9 @@ export const NEW_USER_INITIAL_PERMISSION_IDS: string[] = [
   TENANT_PERMISSION_IDS.expertPlazaView,
   TENANT_PERMISSION_IDS.skillCenterView,
   TENANT_PERMISSION_IDS.evolutionLabView,
+  MANAGEMENT_PERMISSION_IDS.channelManage,
+  MANAGEMENT_PERMISSION_IDS.pointsManage,
+  MANAGEMENT_PERMISSION_IDS.agentManage,
 ];
 
 export interface OperationsTenantInitialAdminRoleOption {
@@ -202,6 +208,27 @@ export const OPERATIONS_TAB_OPTIONS: Array<{
     permissionIds: [OPERATIONS_PERMISSION_IDS.productManage],
   },
   {
+    key: "resources",
+    label: "资源池",
+    description: "维护大模型和第三方接口资源成本与售价。",
+    permissionIds: [OPERATIONS_PERMISSION_IDS.resourceManage],
+  },
+  {
+    key: "points",
+    label: "积分和订阅运营",
+    description: "积分规则、积分包、消耗对账、团队扩充策略和租户订阅。",
+    permissionIds: [
+      OPERATIONS_PERMISSION_IDS.pointsManage,
+      OPERATIONS_PERMISSION_IDS.billingManage,
+    ],
+  },
+  {
+    key: "orders",
+    label: "订单中心",
+    description: "统一查看积分购买订单和团队席位订阅订单。",
+    permissionIds: [OPERATIONS_PERMISSION_IDS.orderManage],
+  },
+  {
     key: "agents",
     label: "AI专家上架审批",
     description: "审核具备专家广场平台公开申请权限的租户成员提交的 AI 专家平台公开申请。",
@@ -210,7 +237,7 @@ export const OPERATIONS_TAB_OPTIONS: Array<{
   {
     key: "platformConfig",
     label: "运营配置",
-    description: "维护用户侧账户弹窗的交流群二维码等平台运营信息。",
+    description: "用户交流群和新用户注册配置。",
     permissionIds: [OPERATIONS_PERMISSION_IDS.platformConfig],
   },
 ];
@@ -259,6 +286,7 @@ export const OPERATIONS_INITIAL_TENANTS: OperationsTenant[] = [
     type: "enterprise",
     deploymentMode: "privateCloud",
     edition: "team",
+    billingMode: "cost",
     industry: "零售服饰",
     adminName: "杨万泉",
     adminPhone: "13800008883",
@@ -306,6 +334,7 @@ export const OPERATIONS_INITIAL_TENANTS: OperationsTenant[] = [
     type: "enterprise",
     deploymentMode: "publicCloud",
     edition: "team",
+    billingMode: "points",
     industry: "连锁零售",
     adminName: "周倩",
     adminPhone: "13800002222",
@@ -339,6 +368,7 @@ export const OPERATIONS_INITIAL_TENANTS: OperationsTenant[] = [
     type: "enterprise",
     deploymentMode: "publicCloud",
     edition: "personal",
+    billingMode: "points",
     industry: "个人工作室",
     adminName: "李想",
     adminPhone: "13800005555",
@@ -372,6 +402,7 @@ export const OPERATIONS_INITIAL_TENANTS: OperationsTenant[] = [
     type: "enterprise",
     deploymentMode: "publicCloud",
     edition: "team",
+    billingMode: "points",
     industry: "品牌零售",
     adminName: "杨万泉",
     adminPhone: "13800009999",
@@ -405,6 +436,7 @@ export const OPERATIONS_INITIAL_TENANTS: OperationsTenant[] = [
     type: "internal",
     deploymentMode: "publicCloud",
     edition: "team",
+    billingMode: "cost",
     industry: "平台运营",
     adminName: "周明越",
     adminPhone: "13800008881",
@@ -611,6 +643,55 @@ export const OPERATIONS_INITIAL_REFERRAL_RECORDS: OperationsReferralRecord[] = [
     rewardPoints: 0,
     registeredAt: "2026-04-22 20:42",
     sourceLabel: "邀请链接",
+  },
+];
+
+export const OPERATIONS_INITIAL_POINTS_USAGE_RECORDS: OperationsPointsUsageRecord[] = [
+  {
+    id: "ops-points-usage-001",
+    tenantName: "星澜服饰租户",
+    userName: "林子航",
+    sourceType: "largeModel",
+    sourceName: "客户对账体验助手",
+    providerName: "OpenAI",
+    modelName: "GPT-4.1",
+    inputTokens: 118000,
+    outputTokens: 32000,
+    costAmount: 1.07,
+    saleAmount: 1.5,
+    points: 150,
+    marginAmount: 0.43,
+    occurredAt: "2026-04-24 10:32",
+  },
+  {
+    id: "ops-points-usage-002",
+    tenantName: "北辰科技个人租户",
+    userName: "周明越",
+    sourceType: "thirdPartyApi",
+    sourceName: "企业工商信息查询",
+    providerName: "企业信息接口服务",
+    unitCount: 18,
+    unitLabel: "次调用",
+    costAmount: 1.44,
+    saleAmount: 2.16,
+    points: 216,
+    marginAmount: 0.72,
+    occurredAt: "2026-04-24 09:48",
+  },
+  {
+    id: "ops-points-usage-003",
+    tenantName: "星澜服饰集团租户",
+    userName: "许念",
+    sourceType: "skill",
+    sourceName: "票据 OCR 识别",
+    providerName: "阿里云百炼",
+    unitCount: 42,
+    unitLabel: "张图片",
+    costAmount: 1.26,
+    saleAmount: 1.76,
+    points: 176,
+    marginAmount: 0.5,
+    occurredAt: "2026-04-23 18:12",
   },
 ];
 
@@ -1163,6 +1244,19 @@ export const OPERATIONS_PRODUCT_BILLING_SCOPE_LABELS: Record<
   cost: "成本计费",
 };
 
+export const OPERATIONS_TENANT_BILLING_MODE_LABELS: Record<OperationsTenantBillingMode, string> = {
+  points: "积分计费",
+  cost: "成本计费",
+};
+
+export const OPERATIONS_TENANT_BILLING_MODE_OPTIONS: Array<{
+  value: OperationsTenantBillingMode;
+  label: string;
+}> = [
+  { value: "points", label: OPERATIONS_TENANT_BILLING_MODE_LABELS.points },
+  { value: "cost", label: OPERATIONS_TENANT_BILLING_MODE_LABELS.cost },
+];
+
 export const OPERATIONS_PRODUCT_BILLING_SCOPE_OPTIONS: Array<{
   value: OperationsProductBillingScope;
   label: string;
@@ -1553,6 +1647,7 @@ export const createEmptyOperationsTenantForm = (): OperationsTenantForm => ({
   adminName: "",
   adminPhone: "",
   adminPermissionIds: TENANT_ADMIN_PERMISSION_IDS,
+  billingMode: "points",
   seatCount: 0,
   effectiveAt: "",
   expiresAt: "",

@@ -295,7 +295,7 @@ export const OperationsOrganizationConsole = ({
       }
 
       if (tenantSnapshot.edition !== "team") {
-        message.warning("当前租户仍是个人版，请先开通团队版。");
+        message.warning("当前租户仍是个人版，请先通过团队扩充购买席位。");
         return false;
       }
 

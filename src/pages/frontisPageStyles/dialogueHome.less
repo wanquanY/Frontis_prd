@@ -40,6 +40,25 @@
   color: var(--text);
 }
 
+.feishuConnectButton {
+  background: color-mix(in srgb, var(--primary) 10%, var(--surface));
+  color: var(--primary);
+}
+
+.feishuConnectButton:hover {
+  background: color-mix(in srgb, var(--primary) 14%, var(--surface));
+  color: var(--primary);
+}
+
+.feishuConnectButtonConnected,
+.feishuConnectButtonConnected:hover,
+.feishuConnectButtonConnected:disabled:hover {
+  background: color-mix(in srgb, var(--primary) 8%, var(--surface));
+  color: var(--primary);
+  cursor: default;
+  opacity: 1;
+}
+
 .dialogueViewPanelButton {
   width: 34px;
   min-width: 34px;
@@ -94,6 +113,23 @@
 .dialogueViewPanelIconCollapsed::before {
   right: 4px;
   left: auto;
+}
+
+.feishuQrModal :global(.ant-modal-content) {
+  border-radius: 14px;
+}
+
+.feishuQrCard {
+  width: 100%;
+  padding: 18px 0 6px;
+  border: 0;
+  background: transparent;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  color: var(--text-secondary);
+  cursor: pointer;
 }
 
 .outputPanel {

@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState } from "react";
 
+import { isCostBillingTenant } from "@/feature/auth/tenantBilling";
 import { getAvatarUrl } from "@/pages/utils";
 import type { EmployeeItem } from "../../types";
 import { AgentStoreTeamDetail, EXPERT_VERSION_INFO } from "./AgentStoreTeamDetail";
@@ -81,7 +82,7 @@ export const AgentStoreView = ({
   users,
 }: AgentStoreViewProps): JSX.Element => {
   const isPersonalEdition = tenantSnapshot.edition === "personal";
-  const isPrivateCloud = tenantSnapshot.deploymentMode === "privateCloud";
+  const isCostBilling = isCostBillingTenant(tenantSnapshot);
   const filterOptions = isPersonalEdition ? PERSONAL_FILTER_OPTIONS : TEAM_FILTER_OPTIONS;
   const [activeFilter, setActiveFilter] = useState<AgentFilterKey>("all");
   const [selectedEntryId, setSelectedEntryId] = useState<string | null>(null);
@@ -152,7 +153,7 @@ export const AgentStoreView = ({
       <AgentStoreTeamDetail
         platformModelOnly={isPersonalEdition}
         allowPermissionManagement={!isPersonalEdition}
-        allowLaborCostConfiguration={isPrivateCloud}
+        allowLaborCostConfiguration={isCostBilling}
         detailTitle={selectedCard.name}
         employees={[selectedCard.employee]}
         organizationDepartments={organizationDepartments}
@@ -172,7 +173,7 @@ export const AgentStoreView = ({
           <h1 className={adminStyles.consoleTitle}>AI专家管理</h1>
           <p className={adminStyles.consoleSubtitle}>
             {isPersonalEdition
-              ? "个人版仅展示你自己开发的 AI 专家。"
+              ? "当前仅展示你自己开发的 AI 专家。"
               : "当前仅管理租户内开发并发布的 AI 专家。"}
           </p>
         </div>
@@ -204,9 +205,7 @@ export const AgentStoreView = ({
                 className={styles.expertPreviewButton}
                 onClick={() => handleSelectEntry(card.id)}
               >
-                <div
-                  className={`${styles.expertVisualPanel} ${styles.expertVisualPanelDeveloped}`}
-                >
+                <div className={`${styles.expertVisualPanel} ${styles.expertVisualPanelDeveloped}`}>
                   <span className={styles.expertVisibilityBadge}>{card.acquireLabel}</span>
                   <div className={styles.expertVisualGlow} />
                   <img alt={card.name} className={styles.expertPortrait} src={card.avatarUrl} />
@@ -246,9 +245,7 @@ export const AgentStoreView = ({
         </div>
         {!filteredCards.length ? (
           <div className={styles.expertEmptyState}>
-            {isPersonalEdition
-              ? "当前还没有自己开发的 AI 专家。"
-              : "当前筛选条件下暂无 AI 专家。"}
+            {isPersonalEdition ? "当前还没有自己开发的 AI 专家。" : "当前筛选条件下暂无 AI 专家。"}
           </div>
         ) : null}
       </section>

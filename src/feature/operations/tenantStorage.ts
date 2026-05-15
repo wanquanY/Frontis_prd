@@ -25,6 +25,7 @@ interface StoredOperationsTenant extends Omit<
   | "effectiveAt"
   | "deploymentMode"
   | "edition"
+  | "billingMode"
 > {
   hasAgentListingAccess?: boolean;
   hasOperationsConsoleAccess?: boolean;
@@ -34,6 +35,7 @@ interface StoredOperationsTenant extends Omit<
   hasAgentDevAccess?: boolean;
   deploymentMode?: OperationsTenant["deploymentMode"];
   edition?: OperationsTenant["edition"];
+  billingMode?: OperationsTenant["billingMode"];
   effectiveAt?: string;
 }
 
@@ -41,6 +43,7 @@ const normalizeStoredTenant = (tenant: StoredOperationsTenant): OperationsTenant
   const {
     deploymentMode,
     edition,
+    billingMode,
     adminPermissionIds,
     adminRoleId,
     hasOperationsConsoleAccess,
@@ -77,6 +80,14 @@ const normalizeStoredTenant = (tenant: StoredOperationsTenant): OperationsTenant
             ? "privateCloud"
             : "publicCloud",
     edition: edition === "personal" || restTenant.seatCount === 1 ? "personal" : "team",
+    billingMode:
+      billingMode === "cost"
+        ? "cost"
+        : billingMode === "points"
+          ? "points"
+          : deploymentMode === "privateCloud" || restTenant.id === "tenant-enterprise-demo"
+            ? "cost"
+            : "points",
     hasAgentListingAccess:
       resolveOperationsTenantAgentListingAccessByPermissions(normalizedPermissionIds),
     hasOperationsConsoleAccess: normalizedOperationsAccess,

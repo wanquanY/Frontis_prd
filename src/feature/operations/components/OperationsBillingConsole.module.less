@@ -1,0 +1,157 @@
+.embeddedRoot {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.planCard {
+  min-width: 0;
+  padding: 16px;
+  border: 1px solid var(--consoleBorder);
+  background: var(--surface);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.policyGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.planCardHeader,
+.rowActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.planCardHeader {
+  justify-content: space-between;
+}
+
+.planTitle {
+  margin: 0;
+  color: var(--consoleText);
+  font-size: 20px;
+  line-height: 28px;
+  font-weight: 800;
+}
+
+.planPrice {
+  color: var(--consoleText);
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 700;
+}
+
+.planAudience,
+.planCardFooter {
+  color: var(--consoleTextSecondary);
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.planCardFooter {
+  padding-top: 10px;
+  border-top: 1px solid var(--consoleBorder);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.subscriptionEffectList {
+  min-height: 88px;
+  display: flex;
+  flex-wrap: wrap;
+  align-content: flex-start;
+  gap: 8px;
+}
+
+.subscriptionEffectList span {
+  min-height: 24px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--primary) 8%, transparent);
+  color: var(--primary);
+  font-size: 12px;
+  line-height: 22px;
+  font-weight: 700;
+}
+
+.formGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.modalField,
+.modalStack {
+  display: flex;
+  flex-direction: column;
+}
+
+.modalField {
+  gap: 8px;
+  color: var(--consoleText);
+  font-size: 13px;
+  line-height: 20px;
+  font-weight: 700;
+}
+
+.modalStack {
+  gap: 16px;
+}
+
+.fullWidthInput {
+  width: 100%;
+}
+
+.previewPanel {
+  padding: 14px;
+  border: 1px solid var(--consoleBorder);
+  background: color-mix(in srgb, var(--primary) 5%, var(--surface));
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.previewRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  color: var(--consoleTextSecondary);
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.previewRow strong {
+  color: var(--consoleText);
+  font-weight: 800;
+  text-align: right;
+}
+
+.previewHint {
+  padding-top: 8px;
+  border-top: 1px solid var(--consoleBorder);
+  color: var(--consoleTextSecondary);
+  font-size: 12px;
+  line-height: 20px;
+}
+
+@media (max-width: 1180px) {
+  .policyGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .policyGrid,
+  .formGrid {
+    grid-template-columns: 1fr;
+  }
+}

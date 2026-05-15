@@ -11,6 +11,12 @@ import {
   MA_WORKBENCH_LABEL,
 } from "@/constants/brand";
 import {
+  DEFAULT_FEISHU_QR_CODE,
+  FEISHU_QR_CODE_STORAGE_KEY,
+  FEISHU_QR_CONFIGURED_STORAGE_KEY,
+  FEISHU_QR_UPDATED_EVENT,
+} from "@/constants/feishuChannel";
+import {
   getLoginPath,
   getSystemEntries,
   getSystemEntryMenuLabel,
@@ -822,6 +828,18 @@ const sortConversationEmployees = (employees: EmployeeItem[]): EmployeeItem[] =>
 const getInitialActiveEmployeeId = (workspaceMode: "metaAgent" | "expertStudio"): string =>
   workspaceMode === "metaAgent" ? DEFAULT_CONVERSATION_EMPLOYEE_ID : "";
 
+const getInitialFeishuQrCode = (): string => {
+  const storedQrCode = localStorage.getItem(FEISHU_QR_CODE_STORAGE_KEY);
+
+  if (storedQrCode) {
+    return storedQrCode;
+  }
+
+  return localStorage.getItem(FEISHU_QR_CONFIGURED_STORAGE_KEY) === "true"
+    ? DEFAULT_FEISHU_QR_CODE
+    : "";
+};
+
 /**
  * FrontisAI Web 原型主页面
  *
@@ -868,6 +886,11 @@ const FrontisPage = ({
   const [removedExpertStudioAgentIds, setRemovedExpertStudioAgentIds] = useState<string[]>([]);
   const [onboardingSchedulableAgentIds, setOnboardingSchedulableAgentIds] = useState<string[]>([]);
   const [isMeExpertPickerOpen, setIsMeExpertPickerOpen] = useState<boolean>(false);
+  const [isFeishuQrConfigured, setIsFeishuQrConfigured] = useState<boolean>(
+    () => localStorage.getItem(FEISHU_QR_CONFIGURED_STORAGE_KEY) === "true",
+  );
+  const [feishuQrCode, setFeishuQrCode] = useState<string>(() => getInitialFeishuQrCode());
+  const [isFeishuWorkspaceConnected, setIsFeishuWorkspaceConnected] = useState<boolean>(false);
   const dialogueTimerRefs = useRef<number[]>([]);
   const latestDialogueAttachmentsRef = useRef<WorkspaceComposerAttachmentItem[]>([]);
   const activeTenantId = activeIdentity?.tenantId ?? NEW_USER_ONBOARDING_TENANT_ID;
@@ -892,7 +915,33 @@ const FrontisPage = ({
     setRemovedExpertStudioAgentIds([]);
     setOnboardingSchedulableAgentIds([]);
     setIsMeExpertPickerOpen(false);
+    setIsFeishuWorkspaceConnected(false);
   }, [activeIdentity?.tenantId, viewRole, workspaceMode]);
+
+  useEffect(() => {
+    const handleFeishuQrUpdated = (event: Event): void => {
+      const configured =
+        event instanceof CustomEvent
+          ? Boolean(event.detail?.configured)
+          : localStorage.getItem(FEISHU_QR_CONFIGURED_STORAGE_KEY) === "true";
+      const nextQrCode =
+        event instanceof CustomEvent && typeof event.detail?.qrCode === "string"
+          ? event.detail.qrCode
+          : getInitialFeishuQrCode();
+
+      setIsFeishuQrConfigured(configured);
+      setFeishuQrCode(nextQrCode || (configured ? DEFAULT_FEISHU_QR_CODE : ""));
+      if (!configured) {
+        setIsFeishuWorkspaceConnected(false);
+      }
+    };
+
+    window.addEventListener(FEISHU_QR_UPDATED_EVENT, handleFeishuQrUpdated);
+
+    return () => {
+      window.removeEventListener(FEISHU_QR_UPDATED_EVENT, handleFeishuQrUpdated);
+    };
+  }, []);
 
   useEffect(() => {
     setAgentStoreProducts(loadStoredOperationsProducts());
@@ -1097,6 +1146,7 @@ const FrontisPage = ({
     [activeEmployee, conversationEmployeeDirectory],
   );
   const isMetaAgentDialogue = useMemo(() => isMetaAgentEmployee(activeEmployee), [activeEmployee]);
+  const shouldShowFeishuConnectAction = workspaceMode === "metaAgent" && isFeishuQrConfigured;
 
   const employeeDialogueSessions = useMemo(
     () =>
@@ -1847,6 +1897,15 @@ const FrontisPage = ({
     setActiveMetaAgentTrajectoryAnchorBlockId(null);
   }, []);
 
+  const handleConnectFeishu = useCallback((): void => {
+    if (!isFeishuQrConfigured) {
+      return;
+    }
+
+    setIsFeishuWorkspaceConnected(true);
+    message.success("飞书已连接。");
+  }, [isFeishuQrConfigured]);
+
   const handleOpenHomeCase = useCallback(
     (item: AiCeoHomeCaseItem): void => {
       if (!activeEmployee) {
@@ -2101,6 +2160,10 @@ const FrontisPage = ({
           activeMetaAgentTrajectory={activeMetaAgentTrajectory}
           onSelectMetaAgentTrajectory={handleSelectMetaAgentTrajectory}
           onClearMetaAgentTrajectory={handleClearMetaAgentTrajectory}
+          onFeishuConnect={handleConnectFeishu}
+          isFeishuConnected={isFeishuWorkspaceConnected}
+          feishuQrCode={feishuQrCode}
+          showFeishuConnectAction={shouldShowFeishuConnectAction}
           showAccountEntry={!embedded}
           viewerName={currentUser?.name ?? "你"}
         />

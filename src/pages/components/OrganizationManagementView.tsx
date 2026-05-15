@@ -1,10 +1,11 @@
 import { useCallback, useMemo, useState } from "react";
 
 import classNames from "classnames";
-import { DeleteOutlined, EditOutlined, PlusOutlined } from "@ant-design/icons";
+import { CreditCardOutlined, DeleteOutlined, EditOutlined, PlusOutlined } from "@ant-design/icons";
 import { Button, Input, Modal, Popconfirm, Select, message } from "antd";
 
 import { DEFAULT_TENANT_ROLE_IDS, type TenantRoleItem } from "@/constants/tenantRolePermissions";
+import type { MockSubscriptionPurchaseMode } from "@/feature/subscription/types";
 import type {
   MockTenantInviteMemberParams,
   MockTenantManagementSnapshot,
@@ -29,6 +30,7 @@ export interface OrganizationManagementViewProps {
   departments: OrganizationDepartmentItem[];
   onAddDepartment: (dept: OrganizationDepartmentItem) => void;
   onInviteTenantMember?: (params: MockTenantInviteMemberParams) => boolean;
+  onOpenSubscriptionManage?: (purchaseMode: MockSubscriptionPurchaseMode) => void;
   onRemoveDepartment: (deptId: string) => void;
   onRemoveUser: (userId: string) => void;
   onSetDepartmentLeader: (deptId: string, userId: string | undefined) => void;
@@ -156,6 +158,7 @@ export const OrganizationManagementView = ({
   canRemoveMembers = true,
   onAddDepartment,
   onInviteTenantMember,
+  onOpenSubscriptionManage,
   onRemoveDepartment,
   onRemoveUser,
   onSetDepartmentLeader,
@@ -221,6 +224,8 @@ export const OrganizationManagementView = ({
     [selectedDept, users],
   );
   const isRootDept = selectedDept?.parentId === null;
+  const canManageTeamSeats =
+    tenantSnapshot?.edition === "team" && typeof onOpenSubscriptionManage === "function";
 
   const deptOptions = useMemo(
     () =>
@@ -689,6 +694,22 @@ export const OrganizationManagementView = ({
               <span className={adminStyles.consoleMetaTag}>
                 成员 {tenantSnapshot.usedSeats}/{tenantSnapshot.totalSeats}
               </span>
+            ) : null}
+            {canManageTeamSeats ? (
+              <>
+                <Button
+                  icon={<CreditCardOutlined />}
+                  onClick={() => onOpenSubscriptionManage?.("renew")}
+                >
+                  续约
+                </Button>
+                <Button
+                  icon={<PlusOutlined />}
+                  onClick={() => onOpenSubscriptionManage?.("addSeats")}
+                >
+                  增加席位
+                </Button>
+              </>
             ) : null}
             {onInviteTenantMember && canInviteMembers ? (
               <Button type="primary" icon={<PlusOutlined />} onClick={handleOpenUserCreate}>

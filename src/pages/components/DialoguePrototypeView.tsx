@@ -32,7 +32,7 @@ import {
   type MouseEvent as ReactMouseEvent,
 } from "react";
 import type { InputRef, MenuProps } from "antd";
-import { Avatar, DatePicker, Dropdown, Input, Popover } from "antd";
+import { Avatar, DatePicker, Dropdown, Input, Modal, Popover, QRCode } from "antd";
 import type { Block } from "@/types/block";
 import { resolveFileLogo } from "@/utils/fileLogo";
 
@@ -112,6 +112,7 @@ interface DialoguePrototypeViewProps {
   onQuickPromptSend: (question: string) => void;
   onSelectMetaAgentTrajectory: (trajectoryId: string, anchorBlockId?: string) => void;
   onClearMetaAgentTrajectory: () => void;
+  onFeishuConnect?: () => void;
   onRemoveEmployee?: (employeeId: string) => void;
   onRemoveDialogueSession: (sessionId: string) => void;
   onRenameDialogueSession: (sessionId: string, title: string) => void;
@@ -124,6 +125,9 @@ interface DialoguePrototypeViewProps {
   hideAgentSidebar?: boolean;
   metaAgentTrajectoryItems: MetaAgentWorkTrajectoryItem[];
   showAccountEntry?: boolean;
+  showFeishuConnectAction?: boolean;
+  isFeishuConnected?: boolean;
+  feishuQrCode?: string;
   viewerName: string;
 }
 
@@ -410,6 +414,7 @@ export const DialoguePrototypeView = ({
   onQuickPromptSend,
   onSelectMetaAgentTrajectory,
   onClearMetaAgentTrajectory,
+  onFeishuConnect,
   onRemoveEmployee,
   onRemoveDialogueSession,
   onRenameDialogueSession,
@@ -422,6 +427,9 @@ export const DialoguePrototypeView = ({
   hideAgentSidebar = false,
   metaAgentTrajectoryItems,
   showAccountEntry = true,
+  showFeishuConnectAction = false,
+  isFeishuConnected = false,
+  feishuQrCode = "",
   viewerName,
 }: DialoguePrototypeViewProps): JSX.Element => {
   const attachmentInputRef = useRef<HTMLInputElement | null>(null);
@@ -443,6 +451,7 @@ export const DialoguePrototypeView = ({
   const [historyFocusBlockId, setHistoryFocusBlockId] = useState<string>("");
   const [historyFocusRequestKey, setHistoryFocusRequestKey] = useState<string>("");
   const [isMetaAgentTrajectoryOpen, setIsMetaAgentTrajectoryOpen] = useState<boolean>(false);
+  const [isFeishuQrModalOpen, setIsFeishuQrModalOpen] = useState<boolean>(false);
   const [metaAgentTrajectorySearchValue, setMetaAgentTrajectorySearchValue] = useState<string>("");
   const [isMetaAgentTrajectoryTimeFilterOpen, setIsMetaAgentTrajectoryTimeFilterOpen] =
     useState<boolean>(false);
@@ -499,6 +508,17 @@ export const DialoguePrototypeView = ({
   const isSidePanelVisible = isArtifactPanelVisible || isResultPanelVisible;
   const isMetaAgentWorkspace =
     hideAgentSidebar && isMetaCoordinatorEmployee(activeEmployee, defaultAgentIds);
+  const handleOpenFeishuQrModal = useCallback((): void => {
+    if (isFeishuConnected) {
+      return;
+    }
+
+    setIsFeishuQrModalOpen(true);
+  }, [isFeishuConnected]);
+  const handleConfirmFeishuConnection = useCallback((): void => {
+    onFeishuConnect?.();
+    setIsFeishuQrModalOpen(false);
+  }, [onFeishuConnect]);
   const resolvedFocusBlockId = focusBlockId?.trim() || historyFocusBlockId;
   const resolvedFocusRequestKey = focusBlockId?.trim()
     ? `external:${focusBlockId.trim()}`
@@ -2565,42 +2585,78 @@ export const DialoguePrototypeView = ({
         )}
       </section>
 
-      {!isHomeVisible ? (
+      {showFeishuConnectAction || !isHomeVisible ? (
         <div className={styles.dialogueTopRightActions}>
-          {shouldShowWorkRecordEntry ? (
+          {showFeishuConnectAction ? (
             <button
               type="button"
-              className={classNames(styles.dialogueViewButton, styles.dialogueViewPanelButton, {
-                [styles.dialogueViewButtonActive]: isDialogueHistoryOpen,
+              className={classNames(styles.dialogueViewButton, styles.feishuConnectButton, {
+                [styles.feishuConnectButtonConnected]: isFeishuConnected,
               })}
-              aria-label={isDialogueHistoryOpen ? "关闭工作记录" : "打开工作记录"}
-              aria-pressed={isDialogueHistoryOpen}
-              title={isDialogueHistoryOpen ? "关闭工作记录" : "工作记录"}
-              onClick={() => setIsDialogueHistoryOpen(current => !current)}
+              disabled={isFeishuConnected}
+              onClick={handleOpenFeishuQrModal}
             >
-              <HistoryOutlined className={styles.dialogueViewHistoryIcon} />
+              {isFeishuConnected ? <CheckCircleOutlined /> : <MessageOutlined />}
+              <span>{isFeishuConnected ? "已连接" : "扫码连接飞书"}</span>
             </button>
           ) : null}
-          <button
-            type="button"
-            className={classNames(styles.dialogueViewButton, styles.dialogueViewPanelButton, {
-              [styles.dialogueViewButtonActive]: isArtifactPanelVisible,
-            })}
-            aria-label={isArtifactPanelVisible ? "收起成果列表" : "展开成果列表"}
-            aria-pressed={isArtifactPanelVisible}
-            title={isArtifactPanelVisible ? "收起成果列表" : "展开成果列表"}
-            onClick={handleToggleArtifactsPanel}
-            disabled={!hasArtifactPanel}
-          >
-            <span
-              className={classNames(styles.dialogueViewPanelIcon, {
-                [styles.dialogueViewPanelIconCollapsed]: isArtifactPanelVisible,
-              })}
-              aria-hidden={true}
-            />
-          </button>
+          {!isHomeVisible ? (
+            <>
+              {shouldShowWorkRecordEntry ? (
+                <button
+                  type="button"
+                  className={classNames(styles.dialogueViewButton, styles.dialogueViewPanelButton, {
+                    [styles.dialogueViewButtonActive]: isDialogueHistoryOpen,
+                  })}
+                  aria-label={isDialogueHistoryOpen ? "关闭工作记录" : "打开工作记录"}
+                  aria-pressed={isDialogueHistoryOpen}
+                  title={isDialogueHistoryOpen ? "关闭工作记录" : "工作记录"}
+                  onClick={() => setIsDialogueHistoryOpen(current => !current)}
+                >
+                  <HistoryOutlined className={styles.dialogueViewHistoryIcon} />
+                </button>
+              ) : null}
+              <button
+                type="button"
+                className={classNames(styles.dialogueViewButton, styles.dialogueViewPanelButton, {
+                  [styles.dialogueViewButtonActive]: isArtifactPanelVisible,
+                })}
+                aria-label={isArtifactPanelVisible ? "收起成果列表" : "展开成果列表"}
+                aria-pressed={isArtifactPanelVisible}
+                title={isArtifactPanelVisible ? "收起成果列表" : "展开成果列表"}
+                onClick={handleToggleArtifactsPanel}
+                disabled={!hasArtifactPanel}
+              >
+                <span
+                  className={classNames(styles.dialogueViewPanelIcon, {
+                    [styles.dialogueViewPanelIconCollapsed]: isArtifactPanelVisible,
+                  })}
+                  aria-hidden={true}
+                />
+              </button>
+            </>
+          ) : null}
         </div>
       ) : null}
+
+      <Modal
+        className={styles.feishuQrModal}
+        width={420}
+        centered
+        title="扫码连接飞书"
+        open={isFeishuQrModalOpen}
+        footer={null}
+        onCancel={() => setIsFeishuQrModalOpen(false)}
+      >
+        <button
+          type="button"
+          className={styles.feishuQrCard}
+          onClick={handleConfirmFeishuConnection}
+        >
+          <QRCode value={feishuQrCode || "https://applink.feishu.cn/client/bot/open"} size={220} />
+          <span>点击二维码模拟扫码连接</span>
+        </button>
+      </Modal>
 
       {shouldShowWorkRecordEntry && isDialogueHistoryOpen ? (
         <DialogueHistoryPanel

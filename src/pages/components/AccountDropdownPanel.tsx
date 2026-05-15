@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import type { ReactNode } from "react";
 
-import { QrcodeOutlined } from "@ant-design/icons";
+import { CreditCardOutlined, GiftOutlined, QrcodeOutlined } from "@ant-design/icons";
 import { QRCode } from "antd";
 
 import { loadOperationsCommunityGroupConfig } from "@/feature/operations/platformConfigStorage";
@@ -10,7 +10,12 @@ import styles from "./AccountDropdownPanel.module.less";
 
 interface AccountDropdownPanelProps {
   accountName: string;
+  currentPlanLabel?: string;
   menu: ReactNode;
+  onOpenInvite?: () => void;
+  onOpenRecharge?: () => void;
+  onOpenSubscription?: () => void;
+  pointsBalance?: number;
 }
 
 /**
@@ -18,7 +23,12 @@ interface AccountDropdownPanelProps {
  */
 export const AccountDropdownPanel = ({
   accountName,
+  currentPlanLabel,
   menu,
+  onOpenInvite,
+  onOpenRecharge,
+  onOpenSubscription,
+  pointsBalance,
 }: AccountDropdownPanelProps): JSX.Element => {
   const communityGroupConfig = useMemo(() => loadOperationsCommunityGroupConfig(), []);
   const shouldShowCommunityEntry =
@@ -28,7 +38,38 @@ export const AccountDropdownPanel = ({
     <div className={styles.panel}>
       <div className={styles.header}>
         <span className={styles.name}>{accountName}</span>
+        {currentPlanLabel ? (
+          <span className={styles.planBadge}>当前版本：{currentPlanLabel}</span>
+        ) : null}
       </div>
+
+      {typeof pointsBalance === "number" ? (
+        <div className={styles.pointsCard}>
+          <span className={styles.pointsMain}>
+            <span className={styles.pointsLabel}>积分余额</span>
+            <span className={styles.pointsValue}>{pointsBalance.toLocaleString("zh-CN")}</span>
+          </span>
+          {onOpenRecharge ? (
+            <button type="button" className={styles.pointsActionButton} onClick={onOpenRecharge}>
+              购买
+            </button>
+          ) : null}
+        </div>
+      ) : null}
+
+      {onOpenInvite ? (
+        <button type="button" className={styles.inviteButton} onClick={onOpenInvite}>
+          <GiftOutlined className={styles.inviteButtonIcon} />
+          <span>邀请好友得积分</span>
+        </button>
+      ) : null}
+
+      {onOpenSubscription ? (
+        <button type="button" className={styles.subscriptionButton} onClick={onOpenSubscription}>
+          <CreditCardOutlined className={styles.subscriptionButtonIcon} />
+          <span>团队扩充</span>
+        </button>
+      ) : null}
 
       {shouldShowCommunityEntry ? (
         <div className={styles.communityEntry}>

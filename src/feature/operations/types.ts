@@ -11,6 +11,9 @@ export type OperationsPlatformTabKey =
   | "organization"
   | "roleManagement"
   | "products"
+  | "resources"
+  | "points"
+  | "orders"
   | "agents"
   | "platformConfig";
 
@@ -33,6 +36,11 @@ export type OperationsTenantDeploymentMode = "publicCloud" | "privateCloud";
  * 运营后台租户版本。
  */
 export type OperationsTenantEdition = "personal" | "team";
+
+/**
+ * 运营后台租户计费方式。
+ */
+export type OperationsTenantBillingMode = "points" | "cost";
 
 /**
  * Agent 提审状态。
@@ -267,6 +275,7 @@ export interface OperationsTenant {
   type: OperationsTenantType;
   deploymentMode: OperationsTenantDeploymentMode;
   edition: OperationsTenantEdition;
+  billingMode: OperationsTenantBillingMode;
   industry: string;
   adminName: string;
   adminPhone: string;
@@ -295,6 +304,7 @@ export interface OperationsTenantForm {
   adminName: string;
   adminPhone: string;
   adminPermissionIds: string[];
+  billingMode: OperationsTenantBillingMode;
   seatCount: number;
   effectiveAt: string;
   expiresAt: string;
@@ -418,6 +428,11 @@ export type OperationsExternalServiceMeteringUnit =
   | "thousandCharacters";
 
 /**
+ * 积分消耗来源类型。
+ */
+export type OperationsPointsUsageSourceType = "largeModel" | "skill" | "thirdPartyApi";
+
+/**
  * 平台服务商。
  */
 export interface OperationsMeteringProvider {
@@ -519,6 +534,28 @@ export interface OperationsExternalMeteredServiceForm {
   grossMarginRate: number;
   salePricePerUnit: number;
   status: OperationsMeteringStatus;
+}
+
+/**
+ * 积分消耗对账记录。
+ */
+export interface OperationsPointsUsageRecord {
+  id: string;
+  tenantName: string;
+  userName: string;
+  sourceType: OperationsPointsUsageSourceType;
+  sourceName: string;
+  providerName: string;
+  modelName?: string;
+  inputTokens?: number;
+  outputTokens?: number;
+  unitCount?: number;
+  unitLabel?: string;
+  costAmount: number;
+  saleAmount: number;
+  points: number;
+  marginAmount: number;
+  occurredAt: string;
 }
 
 /**

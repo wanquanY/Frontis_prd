@@ -11,11 +11,14 @@ import {
   OPERATIONS_SUPER_ADMIN_PERMISSION_IDS,
   TENANT_ADMIN_PERMISSION_IDS,
   TENANT_MEMBER_PERMISSION_IDS,
+  normalizeTenantRolePermissionIds,
 } from "@/constants/tenantRolePermissions";
 import {
   getMockTenantManagementSnapshot,
   saveMockTenantManagementSnapshot,
 } from "@/feature/auth/mockTenantRegistry";
+import { applyMockSubscriptionPlanToTenant } from "@/feature/subscription/mockSubscriptionPlans";
+import type { MockSubscriptionPlanPurchaseOption } from "@/feature/subscription/types";
 import {
   NEW_USER_INITIAL_PERMISSION_IDS,
   OPERATIONS_ACCOUNT_OPTIONS,
@@ -33,6 +36,7 @@ import type {
   MockTenantInviteMemberParams,
   MockTenantDeploymentMode,
   MockTenantManagementSnapshot,
+  MockTenantPointsOrderItem,
   MockTenantRegistrationParams,
 } from "@/feature/auth/types";
 
@@ -194,10 +198,13 @@ const getPermissionIdsByUserRole = (role: FrontisUserRole): string[] => {
   return TENANT_MEMBER_PERMISSION_IDS;
 };
 
-const hasAdminConsolePermission = (permissionIds: string[]): boolean =>
-  Object.values(MANAGEMENT_PERMISSION_IDS).some(permissionId =>
-    permissionIds.includes(permissionId),
+const hasAdminConsolePermission = (permissionIds: string[]): boolean => {
+  const normalizedPermissionIds = normalizeTenantRolePermissionIds(permissionIds);
+
+  return Object.values(MANAGEMENT_PERMISSION_IDS).some(permissionId =>
+    normalizedPermissionIds.includes(permissionId),
   );
+};
 
 const getOperationsPermissionIds = (operationsAccountId: string): string[] => {
   const matchedAccount = OPERATIONS_ACCOUNT_OPTIONS.find(
@@ -347,6 +354,31 @@ const buildTenantAccount = (
     verificationCode,
     identities,
     quickLoginIdentityId: options.quickLoginIdentityId ?? identities[0]?.id,
+  };
+};
+
+const applyInitialPermissionTemplateToTenantAccount = (
+  account: MockAuthAccount,
+  initialPermissionIds: string[],
+  roleLabel?: string,
+): MockAuthAccount => {
+  const normalizedPermissionIds = normalizeTenantRolePermissionIds(initialPermissionIds);
+  const hasAdminAccess = hasAdminConsolePermission(normalizedPermissionIds);
+
+  return {
+    ...account,
+    identities: account.identities.map(identity => {
+      if (identity.platform !== "enterpriseWorkspace") {
+        return identity;
+      }
+
+      return {
+        ...identity,
+        permissionIds: [...normalizedPermissionIds],
+        roleLabel: roleLabel ?? identity.roleLabel,
+        entryPath: hasAdminAccess ? "/web/admin/workspace" : "/web/employee",
+      };
+    }),
   };
 };
 
@@ -560,25 +592,29 @@ export const PRIVATE_ENTERPRISE_ADMIN_MOCK_ACCOUNT: MockAuthAccount = buildTenan
   },
 );
 
-export const PERSONAL_REGISTERED_MOCK_ACCOUNT: MockAuthAccount = buildTenantAccount(
-  "user-self-admin-001",
-  "李想",
-  "13800005555",
-  "enterpriseAdmin",
-  DEFAULT_MOCK_VERIFICATION_CODE,
-  {
-    accountId: "mock-account-personal-admin",
-    description: "自注册租户管理员账号，默认是 1 席个人版，可在管理后台开通团队版。",
-    tenant: PERSONAL_REGISTERED_TENANT,
-  },
-);
+export const PERSONAL_REGISTERED_MOCK_ACCOUNT: MockAuthAccount =
+  applyInitialPermissionTemplateToTenantAccount(
+    buildTenantAccount(
+      "user-self-admin-001",
+      "李想",
+      "13800005555",
+      "enterpriseAdmin",
+      DEFAULT_MOCK_VERIFICATION_CODE,
+      {
+        accountId: "mock-account-personal-admin",
+        description: "自注册租户管理员账号，默认是 1 席个人版，可在团队扩充中购买席位。",
+        tenant: PERSONAL_REGISTERED_TENANT,
+      },
+    ),
+    NEW_USER_INITIAL_PERMISSION_IDS,
+  );
 
 const buildNewUserOnboardingMockAccount = (): MockAuthAccount => {
   const account = buildTenantAccount(
     "user-new-admin-001",
     "沈一新",
     "13800007777",
-    "employee",
+    "enterpriseAdmin",
     DEFAULT_MOCK_VERIFICATION_CODE,
     {
       accountId: "mock-account-new-user-onboarding",
@@ -587,6 +623,9 @@ const buildNewUserOnboardingMockAccount = (): MockAuthAccount => {
     },
   );
 
+  const initialPermissionIds = normalizeTenantRolePermissionIds(NEW_USER_INITIAL_PERMISSION_IDS);
+  const hasAdminAccess = hasAdminConsolePermission(initialPermissionIds);
+
   return {
     ...account,
     password: undefined,
@@ -594,8 +633,9 @@ const buildNewUserOnboardingMockAccount = (): MockAuthAccount => {
     roleLabel: NEW_USER_ACCOUNT_ROLE_LABEL,
     identities: account.identities.map(identity => ({
       ...identity,
-      permissionIds: [...NEW_USER_INITIAL_PERMISSION_IDS],
+      permissionIds: [...initialPermissionIds],
       roleLabel: NEW_USER_ACCOUNT_ROLE_LABEL,
+      entryPath: hasAdminAccess ? "/web/admin/workspace" : "/web/employee",
     })),
   };
 };
@@ -795,15 +835,17 @@ export const registerMockTenantAdminAccount = (
     code: tenantCode,
   };
   const registrationStrategy = loadOperationsRegistrationStrategy();
-  const initialPermissionIds = registrationStrategy.initialPermissionIds.length
-    ? registrationStrategy.initialPermissionIds
-    : NEW_USER_INITIAL_PERMISSION_IDS;
+  const initialPermissionIds = normalizeTenantRolePermissionIds(
+    registrationStrategy.initialPermissionIds.length
+      ? registrationStrategy.initialPermissionIds
+      : NEW_USER_INITIAL_PERMISSION_IDS,
+  );
   const hasAdminAccess = hasAdminConsolePermission(initialPermissionIds);
   const account = buildTenantAccount(
     userId,
     params.name.trim(),
     normalizedPhone,
-    "employee",
+    "enterpriseAdmin",
     DEFAULT_MOCK_VERIFICATION_CODE,
     {
       accountId,
@@ -831,6 +873,7 @@ export const registerMockTenantAdminAccount = (
     ownerAccountId: accountId,
     adminUserId: userId,
     deploymentMode: "publicCloud",
+    billingMode: "points",
     edition: "personal",
     planLabel: "个人版",
     includedSeats: 1,
@@ -849,10 +892,9 @@ export const registerMockTenantAdminAccount = (
         userId,
         params.name.trim(),
         normalizedPhone,
-        "employee",
+        "enterpriseAdmin",
         "dept-default",
-        [DEFAULT_TENANT_ROLE_IDS.employee],
-        [],
+        [DEFAULT_TENANT_ROLE_IDS.enterpriseAdmin],
       ),
     ],
     agentUsageRecords: [],
@@ -868,6 +910,8 @@ export const registerMockTenantAdminAccount = (
       },
     ],
     pointsUsageRecords: [],
+    pointsOrders: [],
+    subscriptionOrders: [],
     referralRecords: [],
   });
 
@@ -877,6 +921,82 @@ export const registerMockTenantAdminAccount = (
     account: accountWithRegistrationRole,
     snapshot,
   };
+};
+
+/**
+ * 支付成功后为当前租户完成团队扩充。
+ */
+export const activateMockTenantSubscriptionPlan = (
+  tenantId: string,
+  purchaseOption: MockSubscriptionPlanPurchaseOption,
+): MockTenantManagementSnapshot | null => {
+  return applyMockSubscriptionPlanToTenant(tenantId, purchaseOption, {
+    orderSourceLabel: "用户自助购买",
+    paymentChannelLabel: "统一扫码支付",
+  });
+};
+
+/**
+ * 支付成功后为积分计费租户补充积分，并同步余额、流水和积分订单。
+ */
+export const rechargeMockTenantPoints = (
+  tenantId: string,
+  points: number,
+  actorName: string,
+  options?: {
+    title?: string;
+    description?: string;
+    packageId?: string;
+    packageTitle?: string;
+    price?: number;
+    paymentChannelLabel?: string;
+  },
+): MockTenantManagementSnapshot | null => {
+  const matchedSnapshot = getMockTenantManagementSnapshot(tenantId);
+
+  if (!matchedSnapshot || matchedSnapshot.billingMode !== "points" || points <= 0) {
+    return null;
+  }
+
+  const timestamp = Date.now();
+  const packageTitle = options?.packageTitle?.trim();
+  const packageId = options?.packageId?.trim();
+  const pointsOrder: MockTenantPointsOrderItem | null =
+    packageId && packageTitle && typeof options?.price === "number"
+      ? {
+          id: `${tenantId}-points-order-${timestamp}`,
+          orderNo: `PT-${timestamp.toString().slice(-10)}`,
+          packageId,
+          packageTitle,
+          packagePoints: points,
+          amount: options.price,
+          status: "paid",
+          paymentChannelLabel: options.paymentChannelLabel ?? "统一扫码支付",
+          purchaserName: actorName,
+          createdAt: "刚刚",
+          paidAt: "刚刚",
+        }
+      : null;
+
+  return saveMockTenantManagementSnapshot({
+    ...matchedSnapshot,
+    pointsBalance: matchedSnapshot.pointsBalance + points,
+    pointsLedger: [
+      {
+        id: `${tenantId}-recharge-${timestamp}`,
+        title: options?.title ?? "管理员充值",
+        description: options?.description ?? "补充租户积分，用于继续运行模型与第三方接口。",
+        points,
+        direction: "income",
+        createdAt: "刚刚",
+        actorName: options?.title === "购买标准积分包" ? "FrontisAI" : actorName,
+      },
+      ...matchedSnapshot.pointsLedger,
+    ],
+    pointsOrders: pointsOrder
+      ? [pointsOrder, ...matchedSnapshot.pointsOrders]
+      : matchedSnapshot.pointsOrders,
+  });
 };
 
 /**
@@ -1008,6 +1128,20 @@ export const hasAccountDeploymentMode = (
   deploymentMode: MockTenantDeploymentMode,
 ): boolean => getIdentitiesForDeployment(account.identities, deploymentMode).length > 0;
 
+const areStringListsSame = (
+  leftValues: string[] | undefined,
+  rightValues: string[] | undefined,
+): boolean => {
+  const safeLeftValues = leftValues ?? [];
+  const safeRightValues = rightValues ?? [];
+
+  if (safeLeftValues.length !== safeRightValues.length) {
+    return false;
+  }
+
+  return safeLeftValues.every((value, index) => value === safeRightValues[index]);
+};
+
 const areIdentityListsSame = (
   leftIdentities: MockAuthIdentity[] | undefined,
   rightIdentities: MockAuthIdentity[],
@@ -1016,7 +1150,21 @@ const areIdentityListsSame = (
     return false;
   }
 
-  return leftIdentities.every((identity, index) => identity.id === rightIdentities[index]?.id);
+  return leftIdentities.every((identity, index) => {
+    const rightIdentity = rightIdentities[index];
+
+    if (!rightIdentity) {
+      return false;
+    }
+
+    return (
+      identity.id === rightIdentity.id &&
+      identity.entryPath === rightIdentity.entryPath &&
+      identity.role === rightIdentity.role &&
+      identity.roleLabel === rightIdentity.roleLabel &&
+      areStringListsSame(identity.permissionIds, rightIdentity.permissionIds)
+    );
+  });
 };
 
 /**

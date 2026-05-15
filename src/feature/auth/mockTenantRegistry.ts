@@ -6,7 +6,9 @@ import type {
   MockTenantAgentUsageRecordItem,
   MockTenantManagementSnapshot,
   MockTenantPointsLedgerItem,
+  MockTenantPointsOrderItem,
   MockTenantPointsUsageRecordItem,
+  MockTenantSubscriptionOrderItem,
 } from "@/feature/auth/types";
 
 const MOCK_TENANT_MANAGEMENT_STORAGE_KEY = "frontis.mock.tenant-management";
@@ -27,6 +29,12 @@ const buildPointsLedgerItem = (item: MockTenantPointsLedgerItem): MockTenantPoin
 const buildPointsUsageRecordItem = (
   item: MockTenantPointsUsageRecordItem,
 ): MockTenantPointsUsageRecordItem => item;
+
+const buildPointsOrderItem = (item: MockTenantPointsOrderItem): MockTenantPointsOrderItem => item;
+
+const buildSubscriptionOrderItem = (
+  item: MockTenantSubscriptionOrderItem,
+): MockTenantSubscriptionOrderItem => item;
 
 const buildAgentUsageRecordItem = (
   item: MockTenantAgentUsageRecordItem,
@@ -80,6 +88,7 @@ const PRESET_TENANT_SNAPSHOTS: MockTenantManagementSnapshot[] = [
     ownerAccountId: "mock-account-private-admin",
     adminUserId: "user-admin-001",
     deploymentMode: "privateCloud",
+    billingMode: "cost",
     edition: "team",
     planLabel: "团队 20 席版",
     includedSeats: 20,
@@ -265,6 +274,31 @@ const PRESET_TENANT_SNAPSHOTS: MockTenantManagementSnapshot[] = [
         description: "调用外部提醒接口并写回跟进建议。",
       }),
     ],
+    pointsOrders: [],
+    subscriptionOrders: [
+      buildSubscriptionOrderItem({
+        id: "tenant-enterprise-demo-subscription-order-01",
+        orderNo: "SUB-20260422-001",
+        planKey: "team-20-yearly",
+        planTitle: "Pro 团队版年付",
+        amount: 9576,
+        seatCount: 24,
+        billingCycleLabel: "年付",
+        status: "paid",
+        orderSourceLabel: "运营后台开通",
+        paymentChannelLabel: "统一扫码支付",
+        purchaserName: "杨万泉",
+        createdAt: "2026-04-22 10:18",
+        paidAt: "2026-04-22 10:20",
+        billingCycle: "yearly",
+        unitPrice: 399,
+        originalAmount: 9576,
+        discountAmount: 0,
+        customerTier: "pro",
+        expiresAt: "2027-04-22",
+        purchaseMode: "renew",
+      }),
+    ],
     referralRecords: [],
   },
   {
@@ -274,6 +308,7 @@ const PRESET_TENANT_SNAPSHOTS: MockTenantManagementSnapshot[] = [
     ownerAccountId: "mock-account-enterprise-admin",
     adminUserId: "user-admin-001",
     deploymentMode: "publicCloud",
+    billingMode: "points",
     edition: "team",
     planLabel: "团队 20 席版",
     includedSeats: 20,
@@ -374,6 +409,49 @@ const PRESET_TENANT_SNAPSHOTS: MockTenantManagementSnapshot[] = [
         description: "活动海报文案与详情素材生成。",
       }),
     ],
+    pointsOrders: [
+      buildPointsOrderItem({
+        id: "tenant-enterprise-hq-points-order-01",
+        orderNo: "PT-20260401-001",
+        packageId: "growth",
+        packageTitle: "增长积分包",
+        packagePoints: 60000,
+        amount: 249,
+        status: "paid",
+        paymentChannelLabel: "统一扫码支付",
+        purchaserName: "杨万泉",
+        createdAt: "本月 1 日",
+        paidAt: "本月 1 日",
+      }),
+    ],
+    subscriptionOrders: [
+      buildSubscriptionOrderItem({
+        id: "tenant-enterprise-hq-subscription-order-01",
+        orderNo: "SUB-20260312-001",
+        planKey: "enterprise-contract-yearly",
+        planTitle: "企业版签约年付",
+        amount: 5980,
+        seatCount: 20,
+        billingCycleLabel: "年付",
+        status: "paid",
+        orderSourceLabel: "工作台团队扩充",
+        paymentChannelLabel: "统一扫码支付",
+        purchaserName: "杨万泉",
+        createdAt: "2026-03-12 09:32",
+        paidAt: "2026-03-12 09:35",
+        billingCycle: "yearly",
+        unitPrice: 299,
+        originalAmount: 7980,
+        discountAmount: 2000,
+        contractCode: "SALES299",
+        customerTier: "enterprise",
+        channelName: "直营销售",
+        ownerName: "王晨",
+        serviceLabel: "专属销售跟进、Agent 定制化需求对接",
+        expiresAt: "2027-03-12",
+        purchaseMode: "addSeats",
+      }),
+    ],
     referralRecords: [
       {
         id: "tenant-enterprise-hq-referral-01",
@@ -393,6 +471,7 @@ const PRESET_TENANT_SNAPSHOTS: MockTenantManagementSnapshot[] = [
     ownerAccountId: "mock-account-multi-tenant",
     adminUserId: "user-member-001",
     deploymentMode: "publicCloud",
+    billingMode: "points",
     edition: "team",
     planLabel: "团队 5 席版",
     includedSeats: 5,
@@ -462,6 +541,44 @@ const PRESET_TENANT_SNAPSHOTS: MockTenantManagementSnapshot[] = [
         description: "生成门店日报与异常经营提示。",
       }),
     ],
+    pointsOrders: [
+      buildPointsOrderItem({
+        id: "tenant-enterprise-east-ops-points-order-01",
+        orderNo: "PT-20260401-002",
+        packageId: "standard",
+        packageTitle: "标准积分包",
+        packagePoints: 20000,
+        amount: 99,
+        status: "paid",
+        paymentChannelLabel: "统一扫码支付",
+        purchaserName: "王晨",
+        createdAt: "4月 1 日",
+        paidAt: "4月 1 日",
+      }),
+    ],
+    subscriptionOrders: [
+      buildSubscriptionOrderItem({
+        id: "tenant-enterprise-east-ops-subscription-order-01",
+        orderNo: "SUB-20260515-001",
+        planKey: "team-5-monthly",
+        planTitle: "Pro 团队版月付",
+        amount: 195,
+        seatCount: 5,
+        billingCycleLabel: "月付",
+        status: "pending",
+        orderSourceLabel: "工作台团队扩充",
+        paymentChannelLabel: "统一扫码支付",
+        purchaserName: "王晨",
+        createdAt: "2026-05-15 10:42",
+        billingCycle: "monthly",
+        unitPrice: 39,
+        originalAmount: 195,
+        discountAmount: 0,
+        customerTier: "pro",
+        expiresAt: "2026-06-15",
+        purchaseMode: "addSeats",
+      }),
+    ],
     referralRecords: [
       {
         id: "tenant-enterprise-east-ops-referral-01",
@@ -480,6 +597,7 @@ const PRESET_TENANT_SNAPSHOTS: MockTenantManagementSnapshot[] = [
     ownerAccountId: "mock-account-personal-admin",
     adminUserId: "user-self-admin-001",
     deploymentMode: "publicCloud",
+    billingMode: "points",
     edition: "personal",
     planLabel: "个人版",
     includedSeats: 1,
@@ -583,6 +701,44 @@ const PRESET_TENANT_SNAPSHOTS: MockTenantManagementSnapshot[] = [
         description: "批量标记表格中的异常字段和待复核记录。",
       }),
     ],
+    pointsOrders: [
+      buildPointsOrderItem({
+        id: "tenant-personal-studio-demo-points-order-01",
+        orderNo: "PT-20260422-001",
+        packageId: "starter",
+        packageTitle: "基础积分包",
+        packagePoints: 5000,
+        amount: 29,
+        status: "paid",
+        paymentChannelLabel: "统一扫码支付",
+        purchaserName: "李想",
+        createdAt: "2026-04-22 11:09",
+        paidAt: "2026-04-22 11:09",
+      }),
+    ],
+    subscriptionOrders: [
+      buildSubscriptionOrderItem({
+        id: "tenant-personal-studio-demo-subscription-order-01",
+        orderNo: "SUB-20260421-001",
+        planKey: "team-1-yearly",
+        planTitle: "Pro 团队版年付",
+        amount: 399,
+        seatCount: 1,
+        billingCycleLabel: "年付",
+        status: "expired",
+        orderSourceLabel: "工作台团队扩充",
+        paymentChannelLabel: "统一扫码支付",
+        purchaserName: "李想",
+        createdAt: "2026-04-21 09:12",
+        billingCycle: "yearly",
+        unitPrice: 399,
+        originalAmount: 399,
+        discountAmount: 0,
+        customerTier: "pro",
+        expiresAt: "2027-04-21",
+        purchaseMode: "addSeats",
+      }),
+    ],
     referralRecords: [
       {
         id: "tenant-personal-studio-demo-referral-01",
@@ -610,6 +766,7 @@ const PRESET_TENANT_SNAPSHOTS: MockTenantManagementSnapshot[] = [
     ownerAccountId: "mock-account-new-user-onboarding",
     adminUserId: "user-new-admin-001",
     deploymentMode: "publicCloud",
+    billingMode: "points",
     edition: "personal",
     planLabel: "个人版",
     includedSeats: 1,
@@ -626,7 +783,7 @@ const PRESET_TENANT_SNAPSHOTS: MockTenantManagementSnapshot[] = [
         id: "user-new-admin-001",
         name: "沈一新",
         phone: "13800007777",
-        role: "employee",
+        role: "enterpriseAdmin",
         assignedAgentIds: [],
       }),
     ],
@@ -643,6 +800,30 @@ const PRESET_TENANT_SNAPSHOTS: MockTenantManagementSnapshot[] = [
       }),
     ],
     pointsUsageRecords: [],
+    pointsOrders: [],
+    subscriptionOrders: [
+      buildSubscriptionOrderItem({
+        id: "tenant-new-user-onboarding-demo-subscription-order-01",
+        orderNo: "SUB-20260515-002",
+        planKey: "team-1-monthly",
+        planTitle: "Pro 团队版月付",
+        amount: 39,
+        seatCount: 1,
+        billingCycleLabel: "月付",
+        status: "closed",
+        orderSourceLabel: "工作台团队扩充",
+        paymentChannelLabel: "统一扫码支付",
+        purchaserName: "沈一新",
+        createdAt: "2026-05-15 09:20",
+        billingCycle: "monthly",
+        unitPrice: 39,
+        originalAmount: 39,
+        discountAmount: 0,
+        customerTier: "pro",
+        expiresAt: "2026-06-15",
+        purchaseMode: "addSeats",
+      }),
+    ],
     referralRecords: [],
   },
 ];
@@ -659,6 +840,7 @@ const mergeSnapshotWithPreset = (
     ownerAccountId: presetSnapshot.ownerAccountId,
     adminUserId: presetSnapshot.adminUserId,
     deploymentMode: presetSnapshot.deploymentMode,
+    billingMode: presetSnapshot.billingMode,
     users:
       presetSnapshot.tenantId === NEW_USER_ONBOARDING_TENANT_ID
         ? presetSnapshot.users
@@ -671,11 +853,19 @@ const mergeSnapshotWithPreset = (
     ),
     pointsLedger: mergeStoredItemsWithPreset(
       presetSnapshot.pointsLedger,
-      storedSnapshot.pointsLedger,
+      storedSnapshot.pointsLedger ?? [],
     ),
     pointsUsageRecords: mergeStoredItemsWithPreset(
       presetSnapshot.pointsUsageRecords,
-      storedSnapshot.pointsUsageRecords,
+      storedSnapshot.pointsUsageRecords ?? [],
+    ),
+    pointsOrders: mergeStoredItemsWithPreset(
+      presetSnapshot.pointsOrders,
+      storedSnapshot.pointsOrders ?? [],
+    ),
+    subscriptionOrders: mergeStoredItemsWithPreset(
+      presetSnapshot.subscriptionOrders,
+      storedSnapshot.subscriptionOrders ?? [],
     ),
     referralRecords: mergeStoredItemsWithPreset(
       presetSnapshot.referralRecords,
@@ -719,10 +909,25 @@ const normalizeTenantSnapshot = (
       : typeof snapshot.extraSeatCount === "number"
         ? snapshot.extraSeatCount
         : Math.max(snapshot.totalSeats - nextIncludedSeats, 0);
+  const normalizedUsers =
+    nextEdition === "personal"
+      ? snapshot.users.map(user =>
+          user.id === snapshot.adminUserId
+            ? {
+                ...user,
+                role: "enterpriseAdmin" as const,
+                roleIds: [DEFAULT_TENANT_ROLE_IDS.enterpriseAdmin],
+              }
+            : user,
+        )
+      : snapshot.users;
 
   return {
     ...snapshot,
+    users: normalizedUsers,
     deploymentMode: snapshot.deploymentMode ?? "publicCloud",
+    billingMode:
+      snapshot.billingMode ?? (snapshot.deploymentMode === "privateCloud" ? "cost" : "points"),
     edition: nextEdition,
     includedSeats: nextIncludedSeats,
     extraSeatCount: nextExtraSeatCount,
@@ -737,17 +942,25 @@ const normalizeTenantSnapshot = (
           ? "team-5"
           : undefined),
     planExpiresAt: snapshot.planExpiresAt ?? (nextEdition === "team" ? "2027-04-23" : undefined),
+    pointsOrders: snapshot.pointsOrders ?? [],
+    subscriptionOrders: snapshot.subscriptionOrders ?? [],
   };
 };
 
-const cloneSnapshot = (snapshot: MockTenantManagementSnapshot): MockTenantManagementSnapshot => ({
-  ...normalizeTenantSnapshot(snapshot),
-  users: snapshot.users.map(user => ({ ...user })),
-  agentUsageRecords: (snapshot.agentUsageRecords ?? []).map(item => ({ ...item })),
-  pointsLedger: snapshot.pointsLedger.map(item => ({ ...item })),
-  pointsUsageRecords: snapshot.pointsUsageRecords.map(item => ({ ...item })),
-  referralRecords: [],
-});
+const cloneSnapshot = (snapshot: MockTenantManagementSnapshot): MockTenantManagementSnapshot => {
+  const normalizedSnapshot = normalizeTenantSnapshot(snapshot);
+
+  return {
+    ...normalizedSnapshot,
+    users: normalizedSnapshot.users.map(user => ({ ...user })),
+    agentUsageRecords: (normalizedSnapshot.agentUsageRecords ?? []).map(item => ({ ...item })),
+    pointsLedger: (normalizedSnapshot.pointsLedger ?? []).map(item => ({ ...item })),
+    pointsUsageRecords: (normalizedSnapshot.pointsUsageRecords ?? []).map(item => ({ ...item })),
+    pointsOrders: (normalizedSnapshot.pointsOrders ?? []).map(item => ({ ...item })),
+    subscriptionOrders: (normalizedSnapshot.subscriptionOrders ?? []).map(item => ({ ...item })),
+    referralRecords: (normalizedSnapshot.referralRecords ?? []).map(item => ({ ...item })),
+  };
+};
 
 const readStoredTenantSnapshots = (): MockTenantManagementSnapshot[] => {
   if (typeof window === "undefined") {
@@ -772,6 +985,8 @@ const readStoredTenantSnapshots = (): MockTenantManagementSnapshot[] => {
         ...normalizeTenantSnapshot(item),
         agentUsageRecords: Array.isArray(item.agentUsageRecords) ? item.agentUsageRecords : [],
         pointsUsageRecords: Array.isArray(item.pointsUsageRecords) ? item.pointsUsageRecords : [],
+        pointsOrders: Array.isArray(item.pointsOrders) ? item.pointsOrders : [],
+        subscriptionOrders: Array.isArray(item.subscriptionOrders) ? item.subscriptionOrders : [],
         referralRecords: Array.isArray(item.referralRecords) ? item.referralRecords : [],
       }),
     );

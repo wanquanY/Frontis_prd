@@ -204,13 +204,6 @@ export const OperationsLoginView = (): JSX.Element => {
                   进入运营后台
                 </Button>
               </form>
-
-              <div className={styles.noticePanel}>
-                <p className={styles.noticeTitle}>当前阶段范围</p>
-                <p className={styles.noticeText}>
-                  当前原型仅保留租户管理能力，用于创建租户和录入初始管理员。
-                </p>
-              </div>
             </div>
 
             <aside className={styles.quickLoginPanel}>

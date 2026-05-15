@@ -3,6 +3,9 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import classNames from "classnames";
 import {
   ArrowLeftOutlined,
+  ControlOutlined,
+  DashboardOutlined,
+  LinkOutlined,
   LogoutOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
@@ -16,40 +19,60 @@ import { Avatar, Dropdown, message } from "antd";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 
 import {
+  activateMockTenantSubscriptionPlan,
   getLoginPath,
   getSystemEntries,
   getSystemEntryMenuLabel,
   getTenantEntries,
+  rechargeMockTenantPoints,
 } from "@/feature/auth/mockAccounts";
 import { inviteMockTenantMemberAccount, updateMockTenantUsers } from "@/feature/auth/mockAccounts";
 import { useMockAuth } from "@/feature/auth/hooks/useMockAuth";
 import { getMockTenantManagementSnapshot } from "@/feature/auth/mockTenantRegistry";
 import type {
+  MockAuthIdentity,
   MockAuthSystemEntry,
   MockTenantInviteMemberParams,
   MockTenantManagementSnapshot,
 } from "@/feature/auth/types";
+import { resolveTenantBillingMode } from "@/feature/auth/tenantBilling";
 import { useOperationsAuth } from "@/feature/operations/hooks/useOperationsAuth";
+import { loadOperationsRegistrationStrategy } from "@/feature/operations/platformConfigStorage";
+import type { MockPointsPackageOption } from "@/feature/points/types";
+import type { MockSubscriptionPurchaseMode } from "@/feature/subscription/types";
 import { PRODUCT_LOGO_URL, PRODUCT_NAME, PRODUCT_SLOGAN } from "@/constants/brand";
 import {
   createDefaultTenantRoles,
   DEFAULT_TENANT_ROLE_IDS,
   MANAGEMENT_PERMISSION_IDS,
   SYSTEM_ACCESS_PERMISSION_IDS,
+  normalizeTenantRolePermissionIds,
   syncTenantRoleMembers,
   type TenantRoleItem,
 } from "@/constants/tenantRolePermissions";
-import {
-  INITIAL_EMPLOYEES,
-  INITIAL_ORGANIZATION_DEPARTMENTS,
-} from "@/mocks/mockData";
+import { INITIAL_EMPLOYEES, INITIAL_ORGANIZATION_DEPARTMENTS } from "@/mocks/mockData";
 import { getUserPermissionIds, hasAnyPermission, hasPermission } from "@/utils/tenantRoleAccess";
 
 import { AccountDropdownPanel } from "./components/AccountDropdownPanel";
 import { AgentStoreView } from "./components/agentStore/AgentStoreView";
 import { hasUserAccessToExpert } from "./components/agentStore/utils";
+import { ChannelManagementView } from "./components/ChannelManagementView";
 import { OrganizationManagementView } from "./components/OrganizationManagementView";
 import { RoleManagementView } from "./components/RoleManagementView";
+import {
+  resolveSubscriptionPlanKey,
+  resolveSubscriptionPlanLabel,
+  SUBSCRIPTION_PLAN_LABELS,
+  getMockSubscriptionPlanPurchaseOption,
+  SubscriptionPlanModal,
+  type SubscriptionPlanKey,
+  type SubscriptionPlanPurchaseOption,
+} from "./components/SubscriptionPlanModal";
+import { SubscriptionPlanPaymentModal } from "./components/SubscriptionPlanPaymentModal";
+import { TenantOverviewView } from "./components/TenantOverviewView";
+import { TenantPointsRechargeModal } from "./components/TenantPointsRechargeModal";
+import { TenantPointsView } from "./components/TenantPointsView";
+import { TenantReferralInviteModal } from "./components/TenantReferralInviteModal";
 import type {
   AccessScopeSubject,
   EmployeeItem,
@@ -95,6 +118,27 @@ const syncRootDepartmentName = (
 
 const FRONTIS_ADMIN_TABS: FrontisWebTabItem[] = [
   {
+    key: "overview",
+    label: "驾驶舱",
+    icon: <DashboardOutlined />,
+    permissionIds: [MANAGEMENT_PERMISSION_IDS.dashboardView],
+    roles: ["admin"],
+  },
+  {
+    key: "channels",
+    label: "ME 管理",
+    icon: <LinkOutlined />,
+    permissionIds: [MANAGEMENT_PERMISSION_IDS.channelManage],
+    roles: ["admin"],
+  },
+  {
+    key: "points",
+    label: "订单记录",
+    icon: <ControlOutlined />,
+    permissionIds: [MANAGEMENT_PERMISSION_IDS.pointsManage],
+    roles: ["admin"],
+  },
+  {
     key: "store",
     label: "AI专家管理",
     icon: <RobotOutlined />,
@@ -118,19 +162,10 @@ const FRONTIS_ADMIN_TABS: FrontisWebTabItem[] = [
 ];
 
 const FRONTIS_ADMIN_TAB_KEYS = new Set<FrontisWebTabKey>(FRONTIS_ADMIN_TABS.map(item => item.key));
-const PERSONAL_HIDDEN_ADMIN_TAB_KEYS = new Set<FrontisWebTabKey>([
-  "organization",
-  "roleManagement",
-]);
 
-const getDefaultAdminTabKey = (): FrontisWebTabKey => {
-  return "store";
-};
+const getDefaultAdminTabKey = (): FrontisWebTabKey => "overview";
 
-const resolveFrontisAdminTabKey = (
-  tabKey: string | null,
-  edition?: MockTenantManagementSnapshot["edition"],
-): FrontisWebTabKey => {
+const resolveFrontisAdminTabKey = (tabKey: string | null): FrontisWebTabKey => {
   const normalizedTabKey = tabKey === "access" ? "organization" : tabKey;
   const defaultTabKey = getDefaultAdminTabKey();
 
@@ -138,13 +173,44 @@ const resolveFrontisAdminTabKey = (
     return defaultTabKey;
   }
 
-  const nextTabKey = normalizedTabKey as FrontisWebTabKey;
+  return normalizedTabKey as FrontisWebTabKey;
+};
 
-  if (edition === "personal" && PERSONAL_HIDDEN_ADMIN_TAB_KEYS.has(nextTabKey)) {
-    return defaultTabKey;
+const getUserFallbackRoleIds = (user: FrontisWebUserItem): string[] => {
+  if (user.roleIds?.length) {
+    return user.roleIds;
   }
 
-  return nextTabKey;
+  return [DEFAULT_TENANT_ROLE_IDS[user.role]];
+};
+
+const createTenantRolesWithIdentityPermissions = (
+  users: FrontisWebUserItem[],
+  identity?: MockAuthIdentity | null,
+): TenantRoleItem[] => {
+  const roles = createDefaultTenantRoles(users);
+
+  if (!identity?.permissionIds?.length) {
+    return roles;
+  }
+
+  const matchedUser = users.find(user => user.id === identity.subjectId);
+
+  if (!matchedUser) {
+    return roles;
+  }
+
+  const identityRoleIds = new Set(getUserFallbackRoleIds(matchedUser));
+  const normalizedPermissionIds = normalizeTenantRolePermissionIds(identity.permissionIds);
+
+  return roles.map(role =>
+    identityRoleIds.has(role.id)
+      ? {
+          ...role,
+          permissionIds: normalizedPermissionIds,
+        }
+      : role,
+  );
 };
 
 /**
@@ -161,17 +227,26 @@ const FrontisAdminPage = (): JSX.Element => {
     [activeIdentity?.tenantId],
   );
   const [activeTabKey, setActiveTabKey] = useState<FrontisWebTabKey>(() =>
-    resolveFrontisAdminTabKey(searchParams.get("tab"), initialTenantSnapshot?.edition),
+    resolveFrontisAdminTabKey(searchParams.get("tab")),
   );
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(false);
   const [isAccountMenuOpen, setIsAccountMenuOpen] = useState<boolean>(false);
+  const [isReferralInviteModalOpen, setIsReferralInviteModalOpen] = useState<boolean>(false);
+  const [isPointsRechargeModalOpen, setIsPointsRechargeModalOpen] = useState<boolean>(false);
+  const [isSubscriptionPlanModalOpen, setIsSubscriptionPlanModalOpen] = useState<boolean>(false);
+  const [subscriptionPurchaseMode, setSubscriptionPurchaseMode] =
+    useState<MockSubscriptionPurchaseMode>("addSeats");
+  const [pendingSubscriptionPurchase, setPendingSubscriptionPurchase] =
+    useState<SubscriptionPlanPurchaseOption | null>(null);
+  const [subscriptionPlanOverrideKey, setSubscriptionPlanOverrideKey] =
+    useState<SubscriptionPlanKey | null>(null);
   const [employees, setEmployees] = useState<EmployeeItem[]>(INITIAL_EMPLOYEES);
   const [tenantSnapshot, setTenantSnapshot] = useState<MockTenantManagementSnapshot | null>(
     initialTenantSnapshot,
   );
   const [users, setUsers] = useState<FrontisWebUserItem[]>(initialTenantSnapshot?.users ?? []);
   const [tenantRoles, setTenantRoles] = useState<TenantRoleItem[]>(() =>
-    createDefaultTenantRoles(initialTenantSnapshot?.users ?? []),
+    createTenantRolesWithIdentityPermissions(initialTenantSnapshot?.users ?? [], activeIdentity),
   );
   const [selectedTenantRoleId, setSelectedTenantRoleId] = useState<string>(
     DEFAULT_TENANT_ROLE_IDS.enterpriseAdmin,
@@ -179,11 +254,44 @@ const FrontisAdminPage = (): JSX.Element => {
   const [departments, setDepartments] = useState<OrganizationDepartmentItem[]>(() =>
     syncRootDepartmentName(INITIAL_ORGANIZATION_DEPARTMENTS, activeIdentity?.tenantName),
   );
+  const registrationStrategy = useMemo(() => loadOperationsRegistrationStrategy(), []);
+  const currentSubscriptionPlanKey = useMemo(
+    () => subscriptionPlanOverrideKey ?? resolveSubscriptionPlanKey(tenantSnapshot),
+    [subscriptionPlanOverrideKey, tenantSnapshot],
+  );
+  const tenantBillingMode = resolveTenantBillingMode(tenantSnapshot);
+  const isTenantPointsBilling = Boolean(tenantSnapshot) && tenantBillingMode === "points";
+  const shouldShowSelfServeSubscription = isTenantPointsBilling;
+  const accountPlanLabel = isTenantPointsBilling
+    ? resolveSubscriptionPlanLabel(tenantSnapshot, currentSubscriptionPlanKey)
+    : undefined;
+  const pendingSubscriptionPlan = pendingSubscriptionPurchase;
   useEffect(() => {
     setDepartments(currentDepartments =>
       syncRootDepartmentName(currentDepartments, activeIdentity?.tenantName),
     );
   }, [activeIdentity?.tenantName]);
+
+  useEffect(() => {
+    setSubscriptionPlanOverrideKey(null);
+  }, [activeIdentity?.tenantId]);
+
+  useEffect(() => {
+    if (shouldShowSelfServeSubscription) {
+      return;
+    }
+
+    setIsSubscriptionPlanModalOpen(false);
+    setPendingSubscriptionPurchase(null);
+  }, [shouldShowSelfServeSubscription]);
+
+  useEffect(() => {
+    if (isTenantPointsBilling) {
+      return;
+    }
+
+    setIsPointsRechargeModalOpen(false);
+  }, [isTenantPointsBilling]);
 
   useEffect(() => {
     const nextSnapshot = getMockTenantManagementSnapshot(activeIdentity?.tenantId);
@@ -194,9 +302,9 @@ const FrontisAdminPage = (): JSX.Element => {
 
     setTenantSnapshot(nextSnapshot);
     setUsers(nextSnapshot.users);
-    setTenantRoles(createDefaultTenantRoles(nextSnapshot.users));
+    setTenantRoles(createTenantRolesWithIdentityPermissions(nextSnapshot.users, activeIdentity));
     setSelectedTenantRoleId(DEFAULT_TENANT_ROLE_IDS.enterpriseAdmin);
-  }, [activeIdentity?.tenantId]);
+  }, [activeIdentity]);
 
   useEffect(() => {
     setTenantRoles(currentRoles => syncTenantRoleMembers(currentRoles, users));
@@ -247,10 +355,7 @@ const FrontisAdminPage = (): JSX.Element => {
   const visibleAdminTabs = useMemo<FrontisWebTabItem[]>(
     () =>
       FRONTIS_ADMIN_TABS.filter(item => {
-        if (
-          tenantSnapshot?.edition === "personal" &&
-          PERSONAL_HIDDEN_ADMIN_TAB_KEYS.has(item.key)
-        ) {
+        if (item.key === "points" && !isTenantPointsBilling) {
           return false;
         }
 
@@ -258,15 +363,18 @@ const FrontisAdminPage = (): JSX.Element => {
           ? hasAnyPermission(currentUserPermissionIds, item.permissionIds)
           : true;
       }),
-    [currentUserPermissionIds, tenantSnapshot?.edition],
+    [currentUserPermissionIds, isTenantPointsBilling],
   );
   useEffect(() => {
-    const nextTabKey = resolveFrontisAdminTabKey(searchParams.get("tab"), tenantSnapshot?.edition);
+    const requestedTabKey = resolveFrontisAdminTabKey(searchParams.get("tab"));
+    const nextTabKey = visibleAdminTabs.some(item => item.key === requestedTabKey)
+      ? requestedTabKey
+      : (visibleAdminTabs[0]?.key ?? requestedTabKey);
 
     if (nextTabKey !== activeTabKey) {
       setActiveTabKey(nextTabKey);
     }
-  }, [activeTabKey, searchParams, tenantSnapshot?.edition]);
+  }, [activeTabKey, searchParams, visibleAdminTabs]);
 
   useEffect(() => {
     if (!tenantSnapshot) {
@@ -450,7 +558,7 @@ const FrontisAdminPage = (): JSX.Element => {
       }
 
       if (tenantSnapshot.edition !== "team") {
-        message.warning("当前租户仍是个人版，请先开通团队版。");
+        message.warning("当前租户仍是个人版，请先通过团队扩充购买席位。");
         return false;
       }
 
@@ -481,6 +589,123 @@ const FrontisAdminPage = (): JSX.Element => {
     message.success("已退出模拟登录。");
     navigate(getLoginPath(redirectPath), { replace: true });
   }, [location.pathname, location.search, logout, navigate]);
+
+  const handleSelectSubscriptionPlan = useCallback(
+    (purchaseInput: Parameters<typeof getMockSubscriptionPlanPurchaseOption>[0]): void => {
+      if (!isTenantPointsBilling) {
+        message.info("当前租户为成本计费，不需要自助团队扩充。");
+        return;
+      }
+
+      const purchaseOption = getMockSubscriptionPlanPurchaseOption(purchaseInput, tenantSnapshot);
+
+      if (!purchaseOption) {
+        message.info("当前团队席位无需购买。");
+        return;
+      }
+
+      setIsSubscriptionPlanModalOpen(false);
+      setPendingSubscriptionPurchase(purchaseOption);
+    },
+    [isTenantPointsBilling, tenantSnapshot],
+  );
+
+  const handleConfirmSubscriptionPayment = useCallback(
+    (purchaseOption: SubscriptionPlanPurchaseOption): boolean => {
+      if (!isTenantPointsBilling) {
+        message.error("当前租户为成本计费，不支持自助团队扩充。");
+        return false;
+      }
+
+      if (!activeIdentity?.tenantId) {
+        message.error("当前账号未绑定租户，无法购买团队席位。");
+        return false;
+      }
+
+      const nextSnapshot = activateMockTenantSubscriptionPlan(
+        activeIdentity.tenantId,
+        purchaseOption,
+      );
+
+      if (!nextSnapshot) {
+        message.error("团队扩充购买失败，请稍后重试。");
+        return false;
+      }
+
+      setSubscriptionPlanOverrideKey(null);
+      setTenantSnapshot(nextSnapshot);
+      message.success(
+        purchaseOption.purchaseMode === "renew"
+          ? `${nextSnapshot.planLabel} 已续约。`
+          : `${nextSnapshot.planLabel} 已开通。`,
+      );
+      return true;
+    },
+    [activeIdentity?.tenantId, isTenantPointsBilling],
+  );
+
+  const handleOpenPointsRecharge = useCallback((): void => {
+    if (!isTenantPointsBilling) {
+      message.info("当前租户为成本计费，不支持购买积分。");
+      return;
+    }
+
+    setIsAccountMenuOpen(false);
+    setIsPointsRechargeModalOpen(true);
+  }, [isTenantPointsBilling]);
+
+  const handleOpenSubscriptionModal = useCallback(
+    (purchaseMode: MockSubscriptionPurchaseMode): void => {
+      if (!isTenantPointsBilling) {
+        message.info("当前租户为成本计费，不支持自助团队扩充。");
+        return;
+      }
+
+      setSubscriptionPurchaseMode(purchaseMode);
+      setIsAccountMenuOpen(false);
+      setIsSubscriptionPlanModalOpen(true);
+    },
+    [isTenantPointsBilling],
+  );
+
+  const handleConfirmPointsRecharge = useCallback(
+    (selectedPackage: MockPointsPackageOption): boolean => {
+      if (!isTenantPointsBilling) {
+        message.error("当前租户为成本计费，不支持购买积分。");
+        return false;
+      }
+
+      if (!activeIdentity?.tenantId) {
+        message.error("当前账号未绑定租户，无法购买积分。");
+        return false;
+      }
+
+      const purchaserName = currentUser?.name ?? session?.name ?? "当前用户";
+      const nextSnapshot = rechargeMockTenantPoints(
+        activeIdentity.tenantId,
+        selectedPackage.points,
+        purchaserName,
+        {
+          title: "购买标准积分包",
+          description: `购买${selectedPackage.title}，支付 ¥${selectedPackage.price} 后到账。`,
+          packageId: selectedPackage.id,
+          packageTitle: selectedPackage.title,
+          price: selectedPackage.price,
+        },
+      );
+
+      if (!nextSnapshot) {
+        message.error("积分购买失败，请稍后重试。");
+        return false;
+      }
+
+      setTenantSnapshot(nextSnapshot);
+      setUsers(nextSnapshot.users);
+      message.success(`${selectedPackage.points.toLocaleString("zh-CN")} 积分已到账。`);
+      return true;
+    },
+    [activeIdentity?.tenantId, currentUser?.name, isTenantPointsBilling, session?.name],
+  );
 
   const systemEntries = useMemo(
     () =>
@@ -578,13 +803,13 @@ const FrontisAdminPage = (): JSX.Element => {
 
   const handleSelectTab = useCallback(
     (tabKey: FrontisWebTabKey): void => {
-      const nextTabKey = resolveFrontisAdminTabKey(tabKey, tenantSnapshot?.edition);
+      const nextTabKey = resolveFrontisAdminTabKey(tabKey);
       const nextParams = new URLSearchParams(searchParams);
       nextParams.set("tab", nextTabKey);
       setActiveTabKey(nextTabKey);
       setSearchParams(nextParams);
     },
-    [searchParams, setSearchParams, tenantSnapshot?.edition],
+    [searchParams, setSearchParams],
   );
 
   const handleBackToWorkspace = useCallback((): void => {
@@ -608,6 +833,41 @@ const FrontisAdminPage = (): JSX.Element => {
             请返回工作台后重新进入管理后台，系统会按当前租户加载组织、角色和成员数据。
           </p>
         </div>
+      );
+    }
+
+    if (activeTabKey === "overview") {
+      return (
+        <TenantOverviewView
+          billingMode={tenantBillingMode}
+          deploymentMode={tenantSnapshot.deploymentMode}
+          employees={employees}
+          tenantSnapshot={tenantSnapshot}
+        />
+      );
+    }
+
+    if (activeTabKey === "channels") {
+      return <ChannelManagementView tenantSnapshot={tenantSnapshot} />;
+    }
+
+    if (activeTabKey === "points") {
+      if (!isTenantPointsBilling) {
+        return (
+          <div className={styles.emptyPanel}>
+            <h2 className={styles.emptyPanelTitle}>当前租户为成本计费</h2>
+            <p className={styles.emptyPanelDescription}>
+              成本计费租户不展示积分余额、购买积分和订单记录，驾驶舱已直接按成本统计用量。
+            </p>
+          </div>
+        );
+      }
+
+      return (
+        <TenantPointsView
+          onOpenRecharge={handleOpenPointsRecharge}
+          tenantSnapshot={tenantSnapshot}
+        />
       );
     }
 
@@ -659,6 +919,7 @@ const FrontisAdminPage = (): JSX.Element => {
           onRemoveDepartment={handleRemoveDepartment}
           onRemoveUser={handleRemoveUser}
           onSetDepartmentLeader={handleSetDepartmentLeader}
+          onOpenSubscriptionManage={handleOpenSubscriptionModal}
           onUpdateDepartment={handleUpdateDepartment}
           onUpdateUser={handleUpdateUser}
           onUpdateUserDepartment={handleUpdateUserDepartment}
@@ -702,143 +963,209 @@ const FrontisAdminPage = (): JSX.Element => {
   };
 
   return (
-    <div className={styles.adminPage}>
-      <div className={styles.adminBody}>
-        <aside
-          className={classNames(styles.adminSidebar, {
-            [styles.adminSidebarCollapsed]: isSidebarCollapsed,
-          })}
-        >
-          <div className={styles.adminSidebarTop}>
-            <div
-              className={classNames(styles.adminSidebarBrandRow, {
-                [styles.adminSidebarBrandRowCollapsed]: isSidebarCollapsed,
-              })}
-            >
+    <>
+      <div className={styles.adminPage}>
+        <div className={styles.adminBody}>
+          <aside
+            className={classNames(styles.adminSidebar, {
+              [styles.adminSidebarCollapsed]: isSidebarCollapsed,
+            })}
+          >
+            <div className={styles.adminSidebarTop}>
               <div
-                className={classNames(styles.brandCard, {
-                  [styles.brandCardCollapsed]: isSidebarCollapsed,
+                className={classNames(styles.adminSidebarBrandRow, {
+                  [styles.adminSidebarBrandRowCollapsed]: isSidebarCollapsed,
                 })}
               >
-                <img className={styles.brandLogo} src={PRODUCT_LOGO_URL} alt={PRODUCT_NAME} />
-                {isSidebarCollapsed ? null : (
-                  <div className={styles.brandCopy}>
-                    <div className={styles.brandTitle}>{PRODUCT_NAME}</div>
-                    <div className={styles.brandSubtitle}>{PRODUCT_SLOGAN}</div>
+                <div
+                  className={classNames(styles.brandCard, {
+                    [styles.brandCardCollapsed]: isSidebarCollapsed,
+                  })}
+                >
+                  <img className={styles.brandLogo} src={PRODUCT_LOGO_URL} alt={PRODUCT_NAME} />
+                  {isSidebarCollapsed ? null : (
+                    <div className={styles.brandCopy}>
+                      <div className={styles.brandTitle}>{PRODUCT_NAME}</div>
+                      <div className={styles.brandSubtitle}>{PRODUCT_SLOGAN}</div>
+                    </div>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  className={styles.sidebarToggle}
+                  aria-label={isSidebarCollapsed ? "展开左侧菜单" : "收起左侧菜单"}
+                  onClick={() => setIsSidebarCollapsed(current => !current)}
+                >
+                  {isSidebarCollapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
+                </button>
+              </div>
+
+              <button
+                type="button"
+                className={classNames(styles.adminBackButton, {
+                  [styles.adminBackButtonCollapsed]: isSidebarCollapsed,
+                })}
+                onClick={handleBackToWorkspace}
+              >
+                <span className={styles.adminBackIcon}>
+                  <ArrowLeftOutlined />
+                </span>
+                <span className={styles.adminBackLabel}>返回工作台</span>
+              </button>
+            </div>
+
+            <div
+              className={classNames(styles.adminSidebarSection, {
+                [styles.adminSidebarSectionCollapsed]: isSidebarCollapsed,
+              })}
+            >
+              {visibleAdminTabs.map(item => (
+                <button
+                  key={item.key}
+                  type="button"
+                  className={classNames(styles.adminNavButton, {
+                    [styles.adminNavButtonActive]: item.key === activeTabKey,
+                    [styles.adminNavButtonCollapsed]: isSidebarCollapsed,
+                  })}
+                  onClick={() => handleSelectTab(item.key)}
+                >
+                  <span className={styles.tabIcon}>{item.icon}</span>
+                  <span className={styles.tabLabel}>{item.label}</span>
+                </button>
+              ))}
+            </div>
+
+            <div
+              className={classNames(styles.adminSidebarFooter, {
+                [styles.adminSidebarFooterCollapsed]: isSidebarCollapsed,
+              })}
+            >
+              <Dropdown
+                menu={{ items: accountMenuItems }}
+                placement={isSidebarCollapsed ? "topRight" : "topLeft"}
+                trigger={["click"]}
+                open={isAccountMenuOpen}
+                onOpenChange={setIsAccountMenuOpen}
+                dropdownRender={menu => (
+                  <AccountDropdownPanel
+                    accountName={currentUser?.name ?? "未登录"}
+                    currentPlanLabel={accountPlanLabel}
+                    menu={menu}
+                    onOpenInvite={
+                      isTenantPointsBilling &&
+                      tenantSnapshot?.deploymentMode === "publicCloud" &&
+                      registrationStrategy.referralEnabled
+                        ? () => setIsReferralInviteModalOpen(true)
+                        : undefined
+                    }
+                    onOpenRecharge={isTenantPointsBilling ? handleOpenPointsRecharge : undefined}
+                    onOpenSubscription={
+                      shouldShowSelfServeSubscription
+                        ? () => handleOpenSubscriptionModal("addSeats")
+                        : undefined
+                    }
+                    pointsBalance={
+                      isTenantPointsBilling ? tenantSnapshot?.pointsBalance : undefined
+                    }
+                  />
+                )}
+              >
+                <button
+                  type="button"
+                  className={classNames(styles.accountTrigger, {
+                    [styles.accountTriggerExpanded]: !isSidebarCollapsed,
+                  })}
+                  aria-label="打开账户菜单"
+                >
+                  <Avatar className={styles.accountAvatar} size={30}>
+                    {currentUser ? currentUser.name.slice(0, 1) : "U"}
+                  </Avatar>
+                  {isSidebarCollapsed ? null : (
+                    <span className={styles.accountBody}>
+                      <span className={styles.accountName}>{currentUser?.name ?? "未登录"}</span>
+                    </span>
+                  )}
+                </button>
+              </Dropdown>
+            </div>
+          </aside>
+
+          <main className={styles.adminMain}>
+            <div className={classNames(styles.mainPanel, styles.adminMainPanel)}>
+              <div
+                className={classNames(
+                  styles.content,
+                  styles.featureContent,
+                  styles.adminFeatureContent,
+                )}
+              >
+                {hasManagementAccess ? (
+                  renderContent()
+                ) : (
+                  <div className={styles.emptyPanel}>
+                    <h2 className={styles.emptyPanelTitle}>当前账号无管理后台权限</h2>
+                    <p className={styles.emptyPanelDescription}>
+                      当前成员只能使用工作台。请使用租户管理员账号进入管理后台。
+                    </p>
+                    <button
+                      type="button"
+                      className={styles.emptyPanelAction}
+                      onClick={handleBackToEmployeeWorkspace}
+                    >
+                      返回对话工作台
+                    </button>
                   </div>
                 )}
               </div>
-              <button
-                type="button"
-                className={styles.sidebarToggle}
-                aria-label={isSidebarCollapsed ? "展开左侧菜单" : "收起左侧菜单"}
-                onClick={() => setIsSidebarCollapsed(current => !current)}
-              >
-                {isSidebarCollapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
-              </button>
             </div>
-
-            <button
-              type="button"
-              className={classNames(styles.adminBackButton, {
-                [styles.adminBackButtonCollapsed]: isSidebarCollapsed,
-              })}
-              onClick={handleBackToWorkspace}
-            >
-              <span className={styles.adminBackIcon}>
-                <ArrowLeftOutlined />
-              </span>
-              <span className={styles.adminBackLabel}>返回工作台</span>
-            </button>
-          </div>
-
-          <div
-            className={classNames(styles.adminSidebarSection, {
-              [styles.adminSidebarSectionCollapsed]: isSidebarCollapsed,
-            })}
-          >
-            {visibleAdminTabs.map(item => (
-              <button
-                key={item.key}
-                type="button"
-                className={classNames(styles.adminNavButton, {
-                  [styles.adminNavButtonActive]: item.key === activeTabKey,
-                  [styles.adminNavButtonCollapsed]: isSidebarCollapsed,
-                })}
-                onClick={() => handleSelectTab(item.key)}
-              >
-                <span className={styles.tabIcon}>{item.icon}</span>
-                <span className={styles.tabLabel}>{item.label}</span>
-              </button>
-            ))}
-          </div>
-
-          <div
-            className={classNames(styles.adminSidebarFooter, {
-              [styles.adminSidebarFooterCollapsed]: isSidebarCollapsed,
-            })}
-          >
-            <Dropdown
-              menu={{ items: accountMenuItems }}
-              placement={isSidebarCollapsed ? "topRight" : "topLeft"}
-              trigger={["click"]}
-              open={isAccountMenuOpen}
-              onOpenChange={setIsAccountMenuOpen}
-              dropdownRender={menu => (
-                <AccountDropdownPanel accountName={currentUser?.name ?? "未登录"} menu={menu} />
-              )}
-            >
-              <button
-                type="button"
-                className={classNames(styles.accountTrigger, {
-                  [styles.accountTriggerExpanded]: !isSidebarCollapsed,
-                })}
-                aria-label="打开账户菜单"
-              >
-                <Avatar className={styles.accountAvatar} size={30}>
-                  {currentUser ? currentUser.name.slice(0, 1) : "U"}
-                </Avatar>
-                {isSidebarCollapsed ? null : (
-                  <span className={styles.accountBody}>
-                    <span className={styles.accountName}>{currentUser?.name ?? "未登录"}</span>
-                  </span>
-                )}
-              </button>
-            </Dropdown>
-          </div>
-        </aside>
-
-        <main className={styles.adminMain}>
-          <div className={classNames(styles.mainPanel, styles.adminMainPanel)}>
-            <div
-              className={classNames(
-                styles.content,
-                styles.featureContent,
-                styles.adminFeatureContent,
-              )}
-            >
-              {hasManagementAccess ? (
-                renderContent()
-              ) : (
-                <div className={styles.emptyPanel}>
-                  <h2 className={styles.emptyPanelTitle}>当前账号无管理后台权限</h2>
-                  <p className={styles.emptyPanelDescription}>
-                    当前成员只能使用工作台。请使用租户管理员账号进入管理后台。
-                  </p>
-                  <button
-                    type="button"
-                    className={styles.emptyPanelAction}
-                    onClick={handleBackToEmployeeWorkspace}
-                  >
-                    返回对话工作台
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-        </main>
+          </main>
+        </div>
       </div>
-    </div>
+
+      {tenantSnapshot && isTenantPointsBilling && registrationStrategy.referralEnabled ? (
+        <TenantReferralInviteModal
+          accountName={currentUser?.name ?? "未登录"}
+          inviteeRewardPoints={registrationStrategy.referralInviteeRewardPoints}
+          inviterRewardPoints={registrationStrategy.referralInviterRewardPoints}
+          open={isReferralInviteModalOpen}
+          referralRecords={tenantSnapshot.referralRecords}
+          tenantCode={tenantSnapshot.tenantCode}
+          onClose={() => setIsReferralInviteModalOpen(false)}
+        />
+      ) : null}
+
+      {tenantSnapshot && isTenantPointsBilling ? (
+        <TenantPointsRechargeModal
+          open={isPointsRechargeModalOpen}
+          onCancel={() => setIsPointsRechargeModalOpen(false)}
+          onConfirmPurchase={handleConfirmPointsRecharge}
+        />
+      ) : null}
+
+      {shouldShowSelfServeSubscription ? (
+        <SubscriptionPlanModal
+          currentPlanKey={currentSubscriptionPlanKey}
+          open={isSubscriptionPlanModalOpen}
+          purchaseMode={subscriptionPurchaseMode}
+          tenantSnapshot={tenantSnapshot}
+          onClose={() => setIsSubscriptionPlanModalOpen(false)}
+          onSelectPlan={handleSelectSubscriptionPlan}
+        />
+      ) : null}
+
+      {shouldShowSelfServeSubscription ? (
+        <SubscriptionPlanPaymentModal
+          currentPlanLabel={
+            accountPlanLabel ?? SUBSCRIPTION_PLAN_LABELS[currentSubscriptionPlanKey]
+          }
+          open={Boolean(pendingSubscriptionPurchase)}
+          plan={pendingSubscriptionPlan}
+          tenantName={tenantSnapshot?.tenantName}
+          onCancel={() => setPendingSubscriptionPurchase(null)}
+          onConfirmPayment={handleConfirmSubscriptionPayment}
+        />
+      ) : null}
+    </>
   );
 };
 

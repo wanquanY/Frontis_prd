@@ -1,0 +1,830 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Frontis AI · 525 业务流程图</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      min-width: 1440px;
+      background: #eef1f6;
+      color: #0f172a;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    }
+    .pageHeader {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+      padding: 16px 32px;
+      background: linear-gradient(135deg, #0f172a 0%, #164e63 58%, #0f766e 100%);
+      color: #fff;
+      box-shadow: 0 3px 16px rgba(0, 0, 0, 0.32);
+    }
+    .pageHeader h1 {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 20px;
+      line-height: 28px;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+    .logoDot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #5eead4;
+      box-shadow: 0 0 8px #5eead4;
+    }
+    .versionBadge {
+      flex: 0 0 auto;
+      padding: 3px 12px;
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.12);
+      color: #99f6e4;
+      font-size: 11px;
+      line-height: 18px;
+      font-weight: 700;
+    }
+    .mainContent { padding: 16px 20px 28px; }
+    .legendBox {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 18px;
+      margin-bottom: 14px;
+      padding: 12px 18px;
+      border-radius: 10px;
+      background: #fff;
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.07);
+    }
+    .legendItem {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      color: #475569;
+      font-size: 12px;
+      line-height: 18px;
+      white-space: nowrap;
+    }
+    .legendTitle {
+      color: #0f172a;
+      font-size: 11px;
+      line-height: 18px;
+      font-weight: 800;
+    }
+    .legendDot {
+      width: 18px;
+      height: 10px;
+      border-radius: 3px;
+      border: 1px solid currentColor;
+    }
+    .legendDiamond {
+      width: 10px;
+      height: 10px;
+      border-radius: 1px;
+      border: 1px solid currentColor;
+      transform: rotate(45deg);
+    }
+    .scrollWrap {
+      overflow: auto;
+      border-radius: 12px;
+      background: #fff;
+      box-shadow: 0 4px 28px rgba(0, 0, 0, 0.13);
+    }
+    #flowSvg {
+      display: block;
+      background: #fff;
+    }
+    .node {
+      cursor: pointer;
+    }
+    .node:hover .nodeShape {
+      filter: brightness(0.97) saturate(1.08);
+      stroke-width: 2.8;
+    }
+    .popupOverlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 200;
+      background: rgba(15, 23, 42, 0.36);
+      backdrop-filter: blur(2px);
+    }
+    .popupOverlay.show { display: block; }
+    .popupPanel {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      z-index: 210;
+      display: none;
+      flex-direction: column;
+      width: 660px;
+      max-height: 82vh;
+      overflow: hidden;
+      border-radius: 16px;
+      background: #fff;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+      transform: translate(-50%, -50%);
+    }
+    .popupPanel.show { display: flex; }
+    .popupHeader {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 18px;
+      padding: 18px 22px 12px;
+      border-bottom: 1px solid #e2e8f0;
+    }
+    .popupTitle {
+      margin-top: 6px;
+      color: #0f172a;
+      font-size: 18px;
+      line-height: 26px;
+      font-weight: 800;
+    }
+    .popupBody {
+      overflow-y: auto;
+      padding: 18px 22px 22px;
+    }
+    .detailBlock {
+      margin-bottom: 12px;
+      padding: 12px 14px;
+      border-left: 3px solid #0891b2;
+      border-radius: 10px;
+      background: #f8fafc;
+    }
+    .detailBlock h4 {
+      margin-bottom: 6px;
+      color: #0f172a;
+      font-size: 13px;
+      line-height: 20px;
+      font-weight: 800;
+    }
+    .detailBlock ul {
+      padding-left: 18px;
+      color: #475569;
+      font-size: 13px;
+      line-height: 1.75;
+    }
+    .tag {
+      display: inline-block;
+      margin-right: 6px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 11px;
+      line-height: 18px;
+      font-weight: 700;
+    }
+    .tagOps { background: #dbeafe; color: #1d4ed8; }
+    .tagSys { background: #cffafe; color: #155e75; }
+    .tagAdmin { background: #f3e8ff; color: #7e22ce; }
+    .tagUser { background: #ffedd5; color: #9a3412; }
+    .tagStage { background: #f1f5f9; color: #475569; }
+    .closeButton {
+      flex: 0 0 auto;
+      width: 32px;
+      height: 32px;
+      border: 0;
+      border-radius: 50%;
+      background: #f1f5f9;
+      color: #64748b;
+      font-size: 16px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <header class="pageHeader">
+    <h1><span class="logoDot"></span>Frontis AI · 525 业务流程图</h1>
+    <span class="versionBadge">当前版本主流程 · 点击节点查看细节</span>
+  </header>
+
+  <main class="mainContent">
+    <section class="legendBox" aria-label="图例">
+      <span class="legendTitle">泳道</span>
+      <span class="legendItem"><span class="legendDot" style="background:#dbeafe;color:#1d4ed8"></span>运营管理后台</span>
+      <span class="legendItem"><span class="legendDot" style="background:#cffafe;color:#0891b2"></span>系统规则</span>
+      <span class="legendItem"><span class="legendDot" style="background:#f3e8ff;color:#7e22ce"></span>企业管理后台</span>
+      <span class="legendItem"><span class="legendDot" style="background:#ffedd5;color:#ea580c"></span>工作台用户</span>
+      <span class="legendTitle">节点</span>
+      <span class="legendItem"><span class="legendDot" style="background:#f8fafc;color:#64748b"></span>流程动作</span>
+      <span class="legendItem"><span class="legendDiamond" style="background:#fef3c7;color:#d97706"></span>判断规则</span>
+    </section>
+
+    <section class="scrollWrap" aria-label="业务流程图">
+      <svg id="flowSvg" xmlns="http://www.w3.org/2000/svg"></svg>
+    </section>
+  </main>
+
+  <div id="popupOverlay" class="popupOverlay" onclick="closePopup()"></div>
+  <section id="popupPanel" class="popupPanel" aria-label="节点详情">
+    <div class="popupHeader">
+      <div>
+        <div id="popupBadge"></div>
+        <h2 id="popupTitle" class="popupTitle"></h2>
+      </div>
+      <button class="closeButton" type="button" onclick="closePopup()">x</button>
+    </div>
+    <div id="popupBody" class="popupBody"></div>
+  </section>
+
+  <script>
+    const LANES = [
+      { id: "ops", label: "运营管理后台", short: "operations", color: "#1d4ed8", fill: "#dbeafe", tag: "tagOps" },
+      { id: "system", label: "系统规则", short: "rules", color: "#0891b2", fill: "#cffafe", tag: "tagSys" },
+      { id: "admin", label: "企业管理后台", short: "admin", color: "#7e22ce", fill: "#f3e8ff", tag: "tagAdmin" },
+      { id: "user", label: "工作台用户", short: "workspace", color: "#ea580c", fill: "#ffedd5", tag: "tagUser" },
+    ];
+
+    const STAGES = [
+      { id: "s1", title: "01 运营配置", sub: "租户、计费、策略" },
+      { id: "s2", title: "02 注册与权限", sub: "入口与默认能力" },
+      { id: "s3", title: "03 工作台使用", sub: "ME、专家、技能" },
+      { id: "s4", title: "04 交易与权益", sub: "积分、席位、订单" },
+      { id: "s5", title: "05 企业治理", sub: "驾驶舱与管理后台" },
+      { id: "s6", title: "06 运营闭环", sub: "订单、对账、资源运营" },
+    ];
+
+    const NODES = [
+      { id: "O1", stage: "s1", lane: "ops", title: "创建租户", sub: "选择计费方式" },
+      { id: "O2", stage: "s1", lane: "ops", title: "配置运营策略", sub: "模板、积分、席位、签约码" },
+      { id: "S1", stage: "s1", lane: "system", type: "diamond", title: "计费方式", sub: "积分计费 / 成本计费" },
+
+      { id: "U1", stage: "s2", lane: "user", title: "注册或登录", sub: "进入工作台" },
+      { id: "S2", stage: "s2", lane: "system", title: "初始化权限", sub: "按新用户模板生成" },
+      { id: "A1", stage: "s2", lane: "admin", title: "进入管理后台", sub: "菜单按权限展示" },
+
+      { id: "U2", stage: "s3", lane: "user", title: "ME 长会话", sub: "调度专家与任务" },
+      { id: "U3", stage: "s3", lane: "user", title: "使用专家与技能", sub: "专家列表、广场、MCP" },
+      { id: "A2", stage: "s3", lane: "admin", title: "ME 管理", sub: "会话、专家、飞书二维码" },
+
+      { id: "U4", stage: "s4", lane: "user", title: "购买积分", sub: "积分计费租户可见" },
+      { id: "U5", stage: "s4", lane: "user", title: "团队扩充", sub: "买席位或续费" },
+      { id: "S3", stage: "s4", lane: "system", title: "支付成功", sub: "订单与权益生效" },
+      { id: "S4", stage: "s4", lane: "system", title: "更新权益", sub: "余额、席位、权限" },
+
+      { id: "A3", stage: "s5", lane: "admin", title: "驾驶舱", sub: "积分或成本口径" },
+      { id: "A4", stage: "s5", lane: "admin", title: "订单记录", sub: "流水与购买记录" },
+      { id: "A5", stage: "s5", lane: "admin", title: "组织与角色", sub: "Pro 后开放" },
+      { id: "A6", stage: "s5", lane: "admin", title: "AI 专家管理", sub: "企业内专家治理" },
+
+      { id: "O3", stage: "s6", lane: "ops", title: "订单中心", sub: "积分与订阅订单" },
+      { id: "O4", stage: "s6", lane: "ops", title: "租户订阅与对账", sub: "席位、到期、消耗" },
+      { id: "O5", stage: "s6", lane: "ops", title: "资源与上架运营", sub: "资源池、商品、审批" },
+      { id: "S5", stage: "s6", lane: "system", title: "数据回流", sub: "统计、权限、运营配置" },
+    ];
+
+    const EDGES = [
+      ["O1", "O2"],
+      ["O2", "S1"],
+      ["S1", "S2"],
+      ["U1", "S2"],
+      ["S2", "A1"],
+      ["S2", "U2"],
+      ["U2", "U3"],
+      ["A1", "A2"],
+      ["A2", "A3"],
+      ["A3", "A4"],
+      ["A4", "A5"],
+      ["A5", "A6"],
+      ["U3", "U4"],
+      ["U3", "U5"],
+      ["U4", "S3"],
+      ["U5", "S3"],
+      ["S3", "S4"],
+      ["S4", "A4"],
+      ["S4", "A5"],
+      ["S4", "O3"],
+      ["O3", "O4"],
+      ["O4", "S5"],
+      ["A6", "O5"],
+      ["O5", "S5"],
+      ["S5", "O2", { dashed: true, route: "bottom" }],
+    ];
+
+    const DETAIL = {
+      O1: {
+        title: "创建租户",
+        lane: "ops",
+        stage: "01 运营配置",
+        sections: [
+          ["入口", ["运营管理后台 / 租户管理 / 创建租户"]],
+          ["业务规则", ["创建时选择积分计费或成本计费，创建后不可更改。", "计费方式控制工作台、企业后台和运营后台的数据展示。"]],
+          ["结果", ["生成租户、管理员账号、租户状态和计费口径。"]],
+        ],
+      },
+      O2: {
+        title: "配置运营策略",
+        lane: "ops",
+        stage: "01 运营配置",
+        sections: [
+          ["入口", ["运营配置：新用户注册模板。", "积分和订阅运营：积分包、邀请奖励、团队席位包、签约码。"]],
+          ["业务规则", ["团队席位包统一配置月付、年付、签约年付价格、有效期和赠送积分。", "用户侧只选择席位数和付费方式，价格来自运营配置。"]],
+          ["结果", ["配置同步影响用户侧购买入口、权限开通和订单计算。"]],
+        ],
+      },
+      S1: {
+        title: "计费方式",
+        lane: "system",
+        stage: "01 运营配置",
+        sections: [
+          ["积分计费", ["展示工作台积分余额、积分购买、邀请得积分、企业后台订单记录和积分流水。"]],
+          ["成本计费", ["隐藏积分余额、积分购买、订单记录中的积分能力；企业后台驾驶舱按成本统计。"]],
+          ["约束", ["计费方式由运营创建租户时确定，后续不可编辑。"]],
+        ],
+      },
+      U1: {
+        title: "注册或登录",
+        lane: "user",
+        stage: "02 注册与权限",
+        sections: [
+          ["用户动作", ["用户注册或登录后进入工作台。"]],
+          ["系统处理", ["按运营后台的新用户初始化模板生成系统入口和默认菜单权限。"]],
+        ],
+      },
+      S2: {
+        title: "初始化权限",
+        lane: "system",
+        stage: "02 注册与权限",
+        sections: [
+          ["权限来源", ["运营后台的新用户注册初始化模板决定默认应用入口和默认菜单。"]],
+          ["后续扩展", ["Lite 用户购买团队席位后，自动开通企业管理后台组织管理和角色管理。"]],
+          ["展示规则", ["系统先按权限展示菜单，再按计费方式展示或隐藏积分功能。"]],
+        ],
+      },
+      A1: {
+        title: "进入管理后台",
+        lane: "admin",
+        stage: "02 注册与权限",
+        sections: [
+          ["入口", ["拥有企业管理后台任一权限即可进入后台。"]],
+          ["默认能力", ["个人版用户可按初始化模板获得 ME 管理、订单记录、AI 专家管理等权限。"]],
+          ["席位能力", ["购买团队席位后开放组织管理和角色管理。"]],
+        ],
+      },
+      U2: {
+        title: "ME 长会话",
+        lane: "user",
+        stage: "03 工作台使用",
+        sections: [
+          ["定位", ["ME 是用户分身，是工作台中的长期协同入口。"]],
+          ["能力", ["理解用户上下文，调度用户权限内 AI 专家，协作拆解任务并沉淀任务过程。"]],
+          ["飞书", ["企业后台配置飞书二维码后，ME 右上角展示扫码连接飞书；连接成功展示已连接状态。"]],
+        ],
+      },
+      U3: {
+        title: "使用专家与技能",
+        lane: "user",
+        stage: "03 工作台使用",
+        sections: [
+          ["专家", ["专家列表支持切换 AI 专家；专家广场用于发现公开或组织内可用专家。"]],
+          ["技能", ["技能中心展示 Skill 和 MCP，当前用户侧只支持上传 MCP。"]],
+          ["进化实验室", ["当前版本保留工作台一级入口，细节由后续产品补充。"]],
+        ],
+      },
+      A2: {
+        title: "ME 管理",
+        lane: "admin",
+        stage: "03 工作台使用",
+        sections: [
+          ["会话管理", ["维护 ME 会话、绑定对象、启停状态。"]],
+          ["配置文件", ["编辑 user.md 和 soul.md。"]],
+          ["渠道管理", ["配置飞书 App ID、App Secret 和二维码，配置后同步到工作台 ME 连接入口。"]],
+        ],
+      },
+      U4: {
+        title: "购买积分",
+        lane: "user",
+        stage: "04 交易与权益",
+        sections: [
+          ["前置条件", ["仅积分计费租户展示积分余额和购买积分入口。"]],
+          ["用户动作", ["选择运营后台启用的积分包，扫码支付。"]],
+          ["结果", ["支付成功后积分到账，企业后台订单记录新增积分流水，运营后台订单中心新增积分订单。"]],
+        ],
+      },
+      U5: {
+        title: "团队扩充",
+        lane: "user",
+        stage: "04 交易与权益",
+        sections: [
+          ["用户动作", ["填写购买席位数，选择月付或年付。", "年付可填写销售或渠道签约码。"]],
+          ["价格来源", ["月付、年付、签约年付价格、有效期和赠送积分来自运营后台团队席位包。"]],
+          ["结果", ["Lite 用户支付成功后升级为 Pro，自动开通组织管理和角色管理。", "已有付费席位支持续费，也支持继续购买新席位。"]],
+        ],
+      },
+      S3: {
+        title: "支付成功",
+        lane: "system",
+        stage: "04 交易与权益",
+        sections: [
+          ["订单状态", ["扫码支付成功后，订单状态更新为已支付。"]],
+          ["订单类型", ["积分购买生成积分订单；团队扩充、增加席位、续费生成订阅订单。"]],
+        ],
+      },
+      S4: {
+        title: "更新权益",
+        lane: "system",
+        stage: "04 交易与权益",
+        sections: [
+          ["积分", ["更新积分余额和积分流水。"]],
+          ["席位", ["更新租户版本、席位数量、席位到期日和租户订阅状态。"]],
+          ["权限", ["团队席位有效期内开通组织管理、角色管理和成员邀请能力；到期后收回。"]],
+        ],
+      },
+      A3: {
+        title: "驾驶舱",
+        lane: "admin",
+        stage: "05 企业治理",
+        sections: [
+          ["积分计费", ["展示团队积分、调用次数、使用成员、使用 AI 专家、积分消耗趋势。"]],
+          ["成本计费", ["展示总成本、调用次数、使用成员、使用 AI 专家、成本消耗趋势。"]],
+          ["明细", ["排行模块可进入调用明细、成员用量明细和开发分布明细。"]],
+        ],
+      },
+      A4: {
+        title: "订单记录",
+        lane: "admin",
+        stage: "05 企业治理",
+        sections: [
+          ["积分流水", ["展示充值、消耗、注册赠送和邀请奖励。"]],
+          ["购买记录", ["展示当前租户的积分购买订单和团队席位订阅订单。"]],
+          ["展示条件", ["仅积分计费租户展示订单记录。"]],
+        ],
+      },
+      A5: {
+        title: "组织与角色",
+        lane: "admin",
+        stage: "05 企业治理",
+        sections: [
+          ["组织管理", ["购买有效团队席位后，可邀请成员、管理部门和成员状态。"]],
+          ["角色管理", ["购买有效团队席位后，可创建角色、配置角色权限并分配成员。"]],
+          ["席位入口", ["组织管理内提供增加席位和续约入口。"]],
+        ],
+      },
+      A6: {
+        title: "AI 专家管理",
+        lane: "admin",
+        stage: "05 企业治理",
+        sections: [
+          ["管理范围", ["查看和管理租户内 AI 专家。"]],
+          ["治理动作", ["维护专家可用范围、运行状态、模型配置和版本信息。"]],
+          ["与运营联动", ["平台公开上架申请进入运营后台 AI 专家上架审批。"]],
+        ],
+      },
+      O3: {
+        title: "订单中心",
+        lane: "ops",
+        stage: "06 运营闭环",
+        sections: [
+          ["范围", ["统一只读展示积分订单和订阅订单。"]],
+          ["字段", ["订单号、订单类型、租户、订单内容、数量或周期、金额、支付方式、购买人、状态、下单时间、支付时间。"]],
+          ["状态", ["待支付、已支付、已过期、已关闭。"]],
+        ],
+      },
+      O4: {
+        title: "租户订阅与对账",
+        lane: "ops",
+        stage: "06 运营闭环",
+        sections: [
+          ["租户订阅", ["查看租户当前席位数、到期日、订阅状态、订单来源和销售归属。"]],
+          ["消耗对账", ["按租户和时间范围查看消耗积分、成本、毛利、使用人数和最近消耗时间。"]],
+        ],
+      },
+      O5: {
+        title: "资源与上架运营",
+        lane: "ops",
+        stage: "06 运营闭环",
+        sections: [
+          ["资源池", ["维护模型服务商、模型成本、模型售价和第三方接口计量售价。"]],
+          ["商品中心", ["维护 AI 专家商品、分类、客服配置和上架状态。"]],
+          ["审批", ["审核 AI 专家平台公开申请，通过后进入平台公开范围。"]],
+        ],
+      },
+      S5: {
+        title: "数据回流",
+        lane: "system",
+        stage: "06 运营闭环",
+        sections: [
+          ["统计", ["订单、流水、调用、消耗、席位和权限变化进入统计口径。"]],
+          ["回流", ["运营人员根据订单、对账和租户订阅数据调整积分包、席位包、签约码和资源价格。"]],
+        ],
+      },
+    };
+
+    const COLORS = {
+      ops: "#1d4ed8",
+      system: "#0891b2",
+      admin: "#7e22ce",
+      user: "#ea580c",
+      edge: "#64748b",
+    };
+
+    function stageIndex(id) {
+      return STAGES.findIndex(item => item.id === id);
+    }
+    function laneIndex(id) {
+      return LANES.findIndex(item => item.id === id);
+    }
+    function escapeHtml(value) {
+      return String(value)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+    }
+    function nodeById(id) {
+      return NODES.find(item => item.id === id);
+    }
+    function markerId(color) {
+      return `arrow-${color.replace("#", "")}`;
+    }
+    function openPopup(id) {
+      const data = DETAIL[id];
+      if (!data) return;
+      const lane = LANES.find(item => item.id === data.lane);
+      document.getElementById("popupBadge").innerHTML = `<span class="tag ${lane.tag}">${lane.label}</span><span class="tag tagStage">${data.stage}</span>`;
+      document.getElementById("popupTitle").textContent = data.title;
+      document.getElementById("popupBody").innerHTML = data.sections
+        .map(([title, items]) => `<section class="detailBlock"><h4>${escapeHtml(title)}</h4><ul>${items.map(item => `<li>${escapeHtml(item)}</li>`).join("")}</ul></section>`)
+        .join("");
+      document.getElementById("popupOverlay").classList.add("show");
+      document.getElementById("popupPanel").classList.add("show");
+    }
+    function closePopup() {
+      document.getElementById("popupOverlay").classList.remove("show");
+      document.getElementById("popupPanel").classList.remove("show");
+    }
+    function render() {
+      const svg = document.getElementById("flowSvg");
+      const leftW = 136;
+      const topH = 82;
+      const stageW = 296;
+      const laneH = 250;
+      const nodeW = 186;
+      const nodeH = 46;
+      const width = leftW + stageW * STAGES.length;
+      const height = topH + laneH * LANES.length + 76;
+      const nodePositions = {};
+      const routeCounters = {};
+
+      svg.setAttribute("width", width);
+      svg.setAttribute("height", height);
+      svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
+
+      let html = `
+        <defs>
+          <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+            <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#0f172a" flood-opacity="0.12" />
+          </filter>
+          ${["#64748b", "#1d4ed8", "#0891b2", "#7e22ce", "#ea580c"].map(color => `
+            <marker id="${markerId(color)}" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto" markerUnits="strokeWidth">
+              <path d="M0,0 L10,5 L0,10 z" fill="${color}" />
+            </marker>
+          `).join("")}
+        </defs>
+        <rect x="0" y="0" width="${width}" height="${height}" fill="#ffffff" />
+        <rect x="0" y="0" width="${leftW}" height="${topH}" fill="#f8fafc" stroke="#cbd5e1" />
+        <text x="${leftW / 2}" y="40" text-anchor="middle" font-size="12" font-weight="800" fill="#475569">阶段 / 应用</text>
+      `;
+
+      STAGES.forEach((stage, index) => {
+        const x = leftW + index * stageW;
+        html += `
+          <rect x="${x}" y="0" width="${stageW}" height="${topH}" fill="#f8fafc" stroke="#cbd5e1" />
+          <text x="${x + 16}" y="30" font-size="14" font-weight="800" fill="#0f172a">${stage.title}</text>
+          <text x="${x + 16}" y="54" font-size="11" fill="#64748b">${stage.sub}</text>
+        `;
+      });
+
+      LANES.forEach((lane, laneIdx) => {
+        const y = topH + laneIdx * laneH;
+        html += `
+          <rect x="0" y="${y}" width="${leftW}" height="${laneH}" fill="${lane.color}" stroke="#cbd5e1" />
+          <text x="44" y="${y + 24}" writing-mode="tb" glyph-orientation-vertical="0" font-size="13" font-weight="800" fill="#ffffff">${lane.label}</text>
+          <text x="84" y="${y + 24}" writing-mode="tb" glyph-orientation-vertical="0" font-size="9" fill="#ffffff" opacity="0.75">${lane.short}</text>
+        `;
+        STAGES.forEach((stage, stageIdx) => {
+          const x = leftW + stageIdx * stageW;
+          html += `<rect x="${x}" y="${y}" width="${stageW}" height="${laneH}" fill="${stageIdx % 2 === 0 ? "#ffffff" : "#f8fafc"}" stroke="#e2e8f0" />`;
+        });
+      });
+
+      STAGES.forEach(stage => {
+        LANES.forEach(lane => {
+          const nodes = NODES.filter(node => node.stage === stage.id && node.lane === lane.id);
+          nodes.forEach((node, index) => {
+            const x = leftW + stageIndex(stage.id) * stageW + (stageW - nodeW) / 2;
+            const y = topH + laneIndex(lane.id) * laneH + 22 + index * 56;
+            nodePositions[node.id] = {
+              ...node,
+              x,
+              y,
+              w: nodeW,
+              h: nodeH,
+              cx: x + nodeW / 2,
+              cy: y + nodeH / 2,
+            };
+          });
+        });
+      });
+
+      function anchor(pos, side) {
+        if (side === "left") return { x: pos.x, y: pos.cy };
+        if (side === "right") return { x: pos.x + pos.w, y: pos.cy };
+        if (side === "top") return { x: pos.cx, y: pos.y };
+        return { x: pos.cx, y: pos.y + pos.h };
+      }
+      function routeOffset(key) {
+        const count = routeCounters[key] || 0;
+        routeCounters[key] = count + 1;
+        return (count - 1) * 12;
+      }
+      function cleanPoints(points) {
+        return points.filter((point, index) => {
+          const prev = points[index - 1];
+          return !prev || prev.x !== point.x || prev.y !== point.y;
+        });
+      }
+      function roundedPath(points, radius = 10) {
+        const clean = cleanPoints(points);
+        if (clean.length < 2) return "";
+        let d = `M ${clean[0].x} ${clean[0].y}`;
+        for (let i = 1; i < clean.length - 1; i += 1) {
+          const prev = clean[i - 1];
+          const current = clean[i];
+          const next = clean[i + 1];
+          const v1 = { x: current.x - prev.x, y: current.y - prev.y };
+          const v2 = { x: next.x - current.x, y: next.y - current.y };
+          if ((v1.x === 0 && v2.x === 0) || (v1.y === 0 && v2.y === 0)) {
+            d += ` L ${current.x} ${current.y}`;
+            continue;
+          }
+          const len1 = Math.abs(v1.x || v1.y);
+          const len2 = Math.abs(v2.x || v2.y);
+          const r = Math.min(radius, len1 / 2, len2 / 2);
+          const before = {
+            x: current.x - Math.sign(v1.x) * r,
+            y: current.y - Math.sign(v1.y) * r,
+          };
+          const after = {
+            x: current.x + Math.sign(v2.x) * r,
+            y: current.y + Math.sign(v2.y) * r,
+          };
+          d += ` L ${before.x} ${before.y} Q ${current.x} ${current.y} ${after.x} ${after.y}`;
+        }
+        const last = clean[clean.length - 1];
+        d += ` L ${last.x} ${last.y}`;
+        return d;
+      }
+      function laneRail(laneId, side, offset = 0) {
+        const laneTop = topH + laneIndex(laneId) * laneH;
+        return side === "top"
+          ? laneTop + 18 + offset
+          : laneTop + laneH - 18 - offset;
+      }
+      function stageRight(stageId) {
+        return leftW + (stageIndex(stageId) + 1) * stageW;
+      }
+      function routeEdge(from, to, options = {}) {
+        const fromStage = stageIndex(from.stage);
+        const toStage = stageIndex(to.stage);
+        const fromLane = laneIndex(from.lane);
+        const toLane = laneIndex(to.lane);
+
+        if (options.route === "bottom") {
+          const start = anchor(from, "left");
+          const end = anchor(to, "right");
+          const railY = height - 28 - routeOffset("bottom");
+          return [
+            start,
+            { x: start.x - 24, y: start.y },
+            { x: start.x - 24, y: railY },
+            { x: end.x + 24, y: railY },
+            { x: end.x + 24, y: end.y },
+            end,
+          ];
+        }
+
+        if (fromStage === toStage && fromLane === toLane) {
+          const start = anchor(from, "bottom");
+          const end = anchor(to, "top");
+          if (start.y <= end.y) return [start, end];
+          const railX = from.x + from.w + 24 + routeOffset(`${from.stage}-${from.lane}-loop`);
+          return [
+            anchor(from, "right"),
+            { x: railX, y: from.cy },
+            { x: railX, y: to.cy },
+            anchor(to, "right"),
+          ];
+        }
+
+        if (fromStage === toStage) {
+          const movingDown = fromLane < toLane;
+          const side = movingDown ? "right" : "left";
+          const start = anchor(from, side);
+          const end = anchor(to, side);
+          const railX = (movingDown ? from.x + from.w + 24 : from.x - 24) + routeOffset(`${from.stage}-${side}`);
+          return [
+            start,
+            { x: railX, y: start.y },
+            { x: railX, y: end.y },
+            end,
+          ];
+        }
+
+        if (fromStage < toStage) {
+          const start = anchor(from, "right");
+          const end = anchor(to, "left");
+          const span = toStage - fromStage;
+          const railKey = `${from.stage}-${to.stage}-${from.lane}-${to.lane}`;
+          const offset = routeOffset(railKey);
+
+          if (fromLane === toLane) {
+            const railY = laneRail(from.lane, "bottom", Math.max(0, offset));
+            return span === 1
+              ? [start, { x: (start.x + end.x) / 2, y: start.y }, { x: (start.x + end.x) / 2, y: end.y }, end]
+              : [start, { x: start.x + 24, y: start.y }, { x: start.x + 24, y: railY }, { x: end.x - 24, y: railY }, { x: end.x - 24, y: end.y }, end];
+          }
+
+          const railX = Math.min(stageRight(from.stage) - 18 + offset, end.x - 24);
+          return [
+            start,
+            { x: railX, y: start.y },
+            { x: railX, y: end.y },
+            end,
+          ];
+        }
+
+        const start = anchor(from, "left");
+        const end = anchor(to, "right");
+        const railY = laneRail(from.lane, "bottom", Math.max(0, routeOffset(`${from.stage}-${to.stage}-back`)));
+        return [
+          start,
+          { x: start.x - 24, y: start.y },
+          { x: start.x - 24, y: railY },
+          { x: end.x + 24, y: railY },
+          { x: end.x + 24, y: end.y },
+          end,
+        ];
+      }
+      function drawEdge(fromId, toId, options = {}) {
+        const from = nodePositions[fromId];
+        const to = nodePositions[toId];
+        if (!from || !to) return;
+        const color = LANES.find(lane => lane.id === from.lane)?.color || COLORS.edge;
+        const path = roundedPath(routeEdge(from, to, options));
+        const dash = options.dashed ? ` stroke-dasharray="8 8"` : "";
+        html += `<path d="${path}" fill="none" stroke="${color}" stroke-width="2" stroke-opacity="0.78"${dash} marker-end="url(#${markerId(color)})" />`;
+      }
+
+      EDGES.forEach(([from, to, options]) => drawEdge(from, to, options));
+
+      NODES.forEach(node => {
+        const pos = nodePositions[node.id];
+        const lane = LANES.find(item => item.id === node.lane);
+        const stroke = node.type === "diamond" ? "#d97706" : lane.color;
+        const fill = node.type === "diamond" ? "#fef3c7" : lane.fill;
+        const title = escapeHtml(node.title);
+        const sub = escapeHtml(node.sub || "");
+        if (node.type === "diamond") {
+          const cx = pos.cx;
+          const cy = pos.cy;
+          const points = `${cx},${cy - 33} ${cx + nodeW / 2},${cy} ${cx},${cy + 33} ${cx - nodeW / 2},${cy}`;
+          html += `
+            <g class="node" data-node="${node.id}" filter="url(#shadow)">
+              <polygon class="nodeShape" points="${points}" fill="${fill}" stroke="${stroke}" stroke-width="2" />
+              <text x="${cx}" y="${cy - 3}" text-anchor="middle" font-size="13" font-weight="800" fill="#0f172a">${title}</text>
+              <text x="${cx}" y="${cy + 16}" text-anchor="middle" font-size="10" fill="#64748b">${sub}</text>
+            </g>
+          `;
+        } else {
+          html += `
+            <g class="node" data-node="${node.id}" filter="url(#shadow)">
+              <rect class="nodeShape" x="${pos.x}" y="${pos.y}" width="${pos.w}" height="${pos.h}" rx="8" fill="${fill}" stroke="${stroke}" stroke-width="2" />
+              <text x="${pos.x + 14}" y="${pos.y + 20}" font-size="13" font-weight="800" fill="#0f172a">${title}</text>
+              <text x="${pos.x + 14}" y="${pos.y + 36}" font-size="10" fill="#64748b">${sub}</text>
+            </g>
+          `;
+        }
+      });
+
+      svg.innerHTML = html;
+      document.querySelectorAll(".node").forEach(node => {
+        node.addEventListener("click", () => openPopup(node.getAttribute("data-node")));
+      });
+    }
+
+    document.addEventListener("keydown", event => {
+      if (event.key === "Escape") closePopup();
+    });
+    render();
+  </script>
+</body>
+</html>

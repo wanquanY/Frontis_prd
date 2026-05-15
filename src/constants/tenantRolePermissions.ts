@@ -64,12 +64,19 @@ export const OPERATIONS_PERMISSION_IDS = {
   tenantManage: "ops.tenant.manage",
   organizationManage: "ops.organization.manage",
   roleManage: "ops.role.manage",
+  billingManage: "ops.billing.manage",
+  pointsManage: "ops.points.manage",
+  orderManage: "ops.order.manage",
   productManage: "ops.product.manage",
+  resourceManage: "ops.resource.manage",
   agentReview: "ops.agent.review",
   platformConfig: "ops.platform.config",
 } as const;
 
 export const MANAGEMENT_PERMISSION_IDS = {
+  dashboardView: "admin.dashboard.view",
+  channelManage: "admin.channel.manage",
+  pointsManage: "admin.points.manage",
   agentManage: "admin.agent.manage",
   organizationManage: "admin.organization.manage",
   roleManage: "admin.role.manage",
@@ -146,6 +153,21 @@ const WORKSPACE_PERMISSION_MENUS: TenantRolePermissionMenu[] = [
 const MANAGEMENT_PERMISSION_MENUS: TenantRolePermissionMenu[] = [
   {
     displayMode: "leaf",
+    title: "驾驶舱",
+    items: [{ id: MANAGEMENT_PERMISSION_IDS.dashboardView, label: "驾驶舱" }],
+  },
+  {
+    displayMode: "leaf",
+    title: "ME 管理",
+    items: [{ id: MANAGEMENT_PERMISSION_IDS.channelManage, label: "ME 管理" }],
+  },
+  {
+    displayMode: "leaf",
+    title: "订单记录",
+    items: [{ id: MANAGEMENT_PERMISSION_IDS.pointsManage, label: "订单记录" }],
+  },
+  {
+    displayMode: "leaf",
     title: "AI 专家管理",
     items: [{ id: MANAGEMENT_PERMISSION_IDS.agentManage, label: "AI 专家管理" }],
   },
@@ -181,6 +203,24 @@ const OPERATIONS_PERMISSION_MENUS: TenantRolePermissionMenu[] = [
     displayMode: "leaf",
     title: "商品中心",
     items: [{ id: OPERATIONS_PERMISSION_IDS.productManage, label: "商品中心" }],
+  },
+  {
+    displayMode: "leaf",
+    title: "资源池",
+    items: [{ id: OPERATIONS_PERMISSION_IDS.resourceManage, label: "资源池" }],
+  },
+  {
+    displayMode: "group",
+    title: "积分和订阅运营",
+    items: [
+      { id: OPERATIONS_PERMISSION_IDS.pointsManage, label: "积分运营" },
+      { id: OPERATIONS_PERMISSION_IDS.billingManage, label: "订阅运营" },
+    ],
+  },
+  {
+    displayMode: "leaf",
+    title: "订单中心",
+    items: [{ id: OPERATIONS_PERMISSION_IDS.orderManage, label: "订单中心" }],
   },
   {
     displayMode: "leaf",
@@ -238,6 +278,10 @@ const LEGACY_TENANT_PERMISSION_ID_MAPPINGS: Record<string, string> = {
   "role.view": MANAGEMENT_PERMISSION_IDS.roleManage,
   "role.custom.manage": MANAGEMENT_PERMISSION_IDS.roleManage,
   "role.assign": MANAGEMENT_PERMISSION_IDS.roleManage,
+  "tenant.points.view": MANAGEMENT_PERMISSION_IDS.pointsManage,
+  "tenant.points.manage": MANAGEMENT_PERMISSION_IDS.pointsManage,
+  "channel.feishu.manage": MANAGEMENT_PERMISSION_IDS.channelManage,
+  "dashboard.view": MANAGEMENT_PERMISSION_IDS.dashboardView,
   "ops.tenant.view": OPERATIONS_PERMISSION_IDS.tenantManage,
   "ops.tenant.create": OPERATIONS_PERMISSION_IDS.tenantManage,
   "ops.tenant.edit": OPERATIONS_PERMISSION_IDS.tenantManage,
@@ -296,7 +340,11 @@ export const OPERATIONS_SUPER_ADMIN_PERMISSION_IDS: string[] = [
 
 export const OPERATIONS_OPERATOR_PERMISSION_IDS: string[] = [
   OPERATIONS_PERMISSION_IDS.tenantManage,
+  OPERATIONS_PERMISSION_IDS.billingManage,
+  OPERATIONS_PERMISSION_IDS.pointsManage,
+  OPERATIONS_PERMISSION_IDS.orderManage,
   OPERATIONS_PERMISSION_IDS.productManage,
+  OPERATIONS_PERMISSION_IDS.resourceManage,
   OPERATIONS_PERMISSION_IDS.agentReview,
   OPERATIONS_PERMISSION_IDS.platformConfig,
 ];
