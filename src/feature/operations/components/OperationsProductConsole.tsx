@@ -20,11 +20,21 @@ import type {
   OperationsSkillCenterCategoryOption,
   OperationsTenant,
 } from "@/feature/operations/types";
+import type { MockPointsPackageOption } from "@/feature/points/types";
+import type {
+  MockSubscriptionPlanKey,
+  MockSubscriptionPlanTemplate,
+  MockSubscriptionPlanTemplateInput,
+} from "@/feature/subscription/types";
 import adminStyles from "@/pages/components/FrontisAdminViews.module.less";
 
+import {
+  OperationsPointsPackagePanel,
+  OperationsSeatPackagePanel,
+} from "./OperationsProductPackagePanels";
 import styles from "./OperationsPlatformView.module.less";
 
-type ProductConsoleTabKey = "delivery" | "category" | "contact";
+type ProductConsoleTabKey = "delivery" | "pointsPackage" | "seatPackage" | "category" | "contact";
 type ProductAcquisitionMode = "freeAdd" | "trial" | "contactSupport";
 type CategoryManagementScope = "expertPlaza" | "skillCenter";
 
@@ -57,6 +67,7 @@ export interface OperationsProductConsoleProps {
   emptyProductForm: OperationsProductForm;
   productId?: string;
   productStatusLabels: Record<OperationsProduct["status"], string>;
+  pointsPackages: MockPointsPackageOption[];
   productTrialUnitLabels: Record<NonNullable<OperationsProduct["trialUnit"]>, string>;
   productTrialUnitOptions: Array<{
     value: NonNullable<OperationsProduct["trialUnit"]>;
@@ -65,10 +76,17 @@ export interface OperationsProductConsoleProps {
   products: OperationsProduct[];
   serviceContactConfig: OperationsServiceContactConfig;
   skillCategories: OperationsSkillCenterCategoryOption[];
+  subscriptionPlans: MockSubscriptionPlanTemplate[];
   tenants: OperationsTenant[];
   onBackToProductList: () => void;
   onCreateCategory: (
     payload: Pick<OperationsAgentPlazaCategoryOption, "name" | "sortOrder">,
+  ) => void;
+  onCreatePointsPackage: (
+    payload: Pick<
+      MockPointsPackageOption,
+      "title" | "description" | "points" | "price" | "tagLabel"
+    >,
   ) => void;
   onCreateProduct: (form: OperationsProductForm) => void;
   onCreateSkillCategory: (
@@ -90,14 +108,29 @@ export interface OperationsProductConsoleProps {
     categoryId: string,
     updates: Partial<Pick<OperationsSkillCenterCategoryOption, "name" | "sortOrder" | "status">>,
   ) => void;
+  onUpdatePointsPackage: (
+    packageId: string,
+    updates: Partial<
+      Pick<
+        MockPointsPackageOption,
+        "title" | "description" | "points" | "price" | "status" | "sortOrder" | "tagLabel"
+      >
+    >,
+  ) => void;
   onUpdateProduct: (productId: string, form: OperationsProductForm) => void;
+  onUpdateSubscriptionPlan: (
+    planKey: MockSubscriptionPlanKey,
+    updates: Partial<MockSubscriptionPlanTemplateInput>,
+  ) => void;
 }
 
 const PRODUCT_CONSOLE_TAB_OPTIONS: Array<{
   key: ProductConsoleTabKey;
   label: string;
 }> = [
-  { key: "delivery", label: "商品列表" },
+  { key: "delivery", label: "AI专家商品" },
+  { key: "pointsPackage", label: "积分包" },
+  { key: "seatPackage", label: "团队席位包" },
   { key: "category", label: "分类管理" },
   { key: "contact", label: "客服配置" },
 ];
@@ -301,14 +334,17 @@ export const OperationsProductConsole = ({
   emptyProductForm,
   productId,
   productStatusLabels,
+  pointsPackages,
   productTrialUnitLabels,
   productTrialUnitOptions,
   products,
   serviceContactConfig,
   skillCategories,
+  subscriptionPlans,
   tenants,
   onBackToProductList,
   onCreateCategory,
+  onCreatePointsPackage,
   onCreateProduct,
   onCreateSkillCategory,
   onNavigateToProduct,
@@ -316,7 +352,9 @@ export const OperationsProductConsole = ({
   onUpdateServiceContactConfig,
   onUpdateCategory,
   onUpdateSkillCategory,
+  onUpdatePointsPackage,
   onUpdateProduct,
+  onUpdateSubscriptionPlan,
 }: OperationsProductConsoleProps): JSX.Element => {
   const [keyword, setKeyword] = useState<string>("");
   const [activeConsoleTab, setActiveConsoleTab] = useState<ProductConsoleTabKey>("delivery");
@@ -717,6 +755,21 @@ export const OperationsProductConsole = ({
               productStatusLabels={productStatusLabels}
               productTrialUnitLabels={productTrialUnitLabels}
               onNavigateToProduct={onNavigateToProduct}
+            />
+          ) : null}
+
+          {activeConsoleTab === "pointsPackage" ? (
+            <OperationsPointsPackagePanel
+              pointsPackages={pointsPackages}
+              onCreatePointsPackage={onCreatePointsPackage}
+              onUpdatePointsPackage={onUpdatePointsPackage}
+            />
+          ) : null}
+
+          {activeConsoleTab === "seatPackage" ? (
+            <OperationsSeatPackagePanel
+              subscriptionPlans={subscriptionPlans}
+              onUpdateSubscriptionPlan={onUpdateSubscriptionPlan}
             />
           ) : null}
 

@@ -110,27 +110,9 @@ export interface MockTenantPointsUsageRecordItem {
 }
 
 /**
- * 租户邀请好友裂变记录状态。
- */
-export type MockTenantReferralInviteStatus = "rewarded" | "registered" | "pending";
-
-/**
  * 租户积分购买订单状态。
  */
 export type MockTenantPointsOrderStatus = "paid" | "pending" | "expired" | "closed";
-
-/**
- * 租户邀请好友裂变记录。
- */
-export interface MockTenantReferralInviteRecord {
-  id: string;
-  inviteeName: string;
-  inviteeTenantName: string;
-  registeredAt: string;
-  rewardPoints: number;
-  rewardedAt?: string;
-  status: MockTenantReferralInviteStatus;
-}
 
 /**
  * 租户积分购买订单。
@@ -243,14 +225,12 @@ export interface MockTenantManagementSnapshot {
   pointsUsageRecords: MockTenantPointsUsageRecordItem[];
   pointsOrders: MockTenantPointsOrderItem[];
   subscriptionOrders: MockTenantSubscriptionOrderItem[];
-  referralRecords: MockTenantReferralInviteRecord[];
 }
 
 /**
  * 模拟自注册参数。
  */
 export interface MockTenantRegistrationParams {
-  inviteCode?: string;
   name: string;
   phone: string;
   tenantName: string;
@@ -294,7 +274,6 @@ export interface MockTenantInviteMemberParams {
  * 模拟登录提交参数。
  */
 export interface MockLoginParams {
-  inviteCode?: string;
   phone: string;
   verificationCode: string;
   redirectPath?: string;

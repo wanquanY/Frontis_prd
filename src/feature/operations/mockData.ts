@@ -11,7 +11,6 @@ import type {
   OperationsModelServiceForm,
   OperationsPlatformTabKey,
   OperationsPointsUsageRecord,
-  OperationsReferralRecord,
   OperationsRegistrationStrategy,
   OperationsAgentPlazaCategory,
   OperationsAgentPlazaCategoryOption,
@@ -200,7 +199,7 @@ export const OPERATIONS_TAB_OPTIONS: Array<{
   {
     key: "products",
     label: "商品中心",
-    description: "维护 AI专家商品、专家广场分类和技能中心分类。",
+    description: "维护 AI专家商品、积分包、团队席位包、专家广场分类和技能中心分类。",
     permissionIds: [OPERATIONS_PERMISSION_IDS.productManage],
   },
   {
@@ -212,7 +211,7 @@ export const OPERATIONS_TAB_OPTIONS: Array<{
   {
     key: "points",
     label: "积分和订阅运营",
-    description: "积分规则、积分包、消耗对账、团队扩充策略和租户订阅。",
+    description: "维护积分规则、消耗对账、签约码和租户订阅。",
     permissionIds: [
       OPERATIONS_PERMISSION_IDS.pointsManage,
       OPERATIONS_PERMISSION_IDS.billingManage,
@@ -558,11 +557,6 @@ export const OPERATIONS_INITIAL_REGISTRATION_STRATEGY: OperationsRegistrationStr
   initialPermissionIds: NEW_USER_INITIAL_PERMISSION_IDS,
   defaultGiftPoints: 6000,
   enabled: true,
-  referralDailyRewardLimit: 10,
-  referralEnabled: true,
-  referralInviteeRewardPoints: 0,
-  referralInviterRewardPoints: 200,
-  referralMonthlyRewardLimit: 80,
   pointsPerCny: 100,
   minimumDeductPoints: 1,
   roundingUnit: 1,
@@ -584,58 +578,6 @@ export const OPERATIONS_INITIAL_COMMUNITY_GROUP_CONFIG: OperationsCommunityGroup
   description: "扫码加入用户交流群，获取产品更新、使用答疑和优秀案例分享。",
   updatedAt: "2026-05-10 18:30",
 };
-
-export const OPERATIONS_INITIAL_REFERRAL_RECORDS: OperationsReferralRecord[] = [
-  {
-    id: "ops-referral-001",
-    inviterName: "杨万泉",
-    inviterTenantName: "星澜服饰租户",
-    inviteeName: "赵明",
-    inviteePhoneMasked: "138****6621",
-    inviteeTenantName: "赵明的工作室",
-    status: "rewarded",
-    rewardPoints: 200,
-    registeredAt: "2026-04-24 09:36",
-    rewardedAt: "2026-04-24 09:37",
-    sourceLabel: "邀请海报扫码",
-  },
-  {
-    id: "ops-referral-002",
-    inviterName: "李想",
-    inviterTenantName: "李想的工作室",
-    inviteeName: "沈佳",
-    inviteePhoneMasked: "139****2718",
-    inviteeTenantName: "沈佳的工作室",
-    status: "registered",
-    rewardPoints: 200,
-    registeredAt: "2026-04-23 18:20",
-    sourceLabel: "邀请链接",
-  },
-  {
-    id: "ops-referral-003",
-    inviterName: "王晨",
-    inviterTenantName: "凌光零售华东租户",
-    inviteeName: "陈可心",
-    inviteePhoneMasked: "137****5160",
-    inviteeTenantName: "陈可心的工作室",
-    status: "pending",
-    rewardPoints: 200,
-    registeredAt: "2026-04-23 14:12",
-    sourceLabel: "邀请海报扫码",
-  },
-  {
-    id: "ops-referral-004",
-    inviterName: "周明越",
-    inviterTenantName: "北辰科技个人租户",
-    inviteeName: "刘云",
-    inviteePhoneMasked: "136****8935",
-    inviteeTenantName: "刘云的工作室",
-    status: "blocked",
-    rewardPoints: 0,
-    registeredAt: "2026-04-22 20:42",
-    sourceLabel: "邀请链接",
-  },
-];
 
 export const OPERATIONS_INITIAL_POINTS_USAGE_RECORDS: OperationsPointsUsageRecord[] = [
   {

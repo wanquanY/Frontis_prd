@@ -30,7 +30,6 @@ import { getMockTenantManagementSnapshot } from "@/feature/auth/mockTenantRegist
 import { resolveTenantBillingMode } from "@/feature/auth/tenantBilling";
 import type { MockAuthSystemEntry } from "@/feature/auth/types";
 import { useOperationsAuth } from "@/feature/operations/hooks/useOperationsAuth";
-import { loadOperationsRegistrationStrategy } from "@/feature/operations/platformConfigStorage";
 import type { MockPointsPackageOption } from "@/feature/points/types";
 import {
   EVOLUTION_LAB_LABEL,
@@ -55,7 +54,6 @@ import {
 } from "@/pages/components/SubscriptionPlanModal";
 import { SubscriptionPlanPaymentModal } from "@/pages/components/SubscriptionPlanPaymentModal";
 import { TenantPointsRechargeModal } from "@/pages/components/TenantPointsRechargeModal";
-import { TenantReferralInviteModal } from "@/pages/components/TenantReferralInviteModal";
 import type { FrontisWebRole } from "@/pages/types";
 
 import styles from "./UnifiedWorkbenchPage.module.less";
@@ -163,7 +161,6 @@ export const UnifiedWorkbenchPage = ({ viewRole }: UnifiedWorkbenchPageProps): J
   const isAdminIdentity = activeIdentity?.role === "admin" || session?.role === "admin";
   const [isAccountMenuOpen, setIsAccountMenuOpen] = useState<boolean>(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(false);
-  const [isReferralInviteModalOpen, setIsReferralInviteModalOpen] = useState<boolean>(false);
   const [isPointsRechargeModalOpen, setIsPointsRechargeModalOpen] = useState<boolean>(false);
   const [isSubscriptionPlanModalOpen, setIsSubscriptionPlanModalOpen] = useState<boolean>(false);
   const [pendingSubscriptionPurchase, setPendingSubscriptionPurchase] =
@@ -197,7 +194,6 @@ export const UnifiedWorkbenchPage = ({ viewRole }: UnifiedWorkbenchPageProps): J
     ? resolveSubscriptionPlanLabel(tenantSnapshot, currentSubscriptionPlanKey)
     : undefined;
   const pendingSubscriptionPlan = pendingSubscriptionPurchase;
-  const registrationStrategy = useMemo(() => loadOperationsRegistrationStrategy(), []);
 
   useEffect(() => {
     setSubscriptionPlanOverrideKey(null);
@@ -566,13 +562,6 @@ export const UnifiedWorkbenchPage = ({ viewRole }: UnifiedWorkbenchPageProps): J
                   accountName={featureAccountName}
                   currentPlanLabel={accountPlanLabel}
                   menu={menu}
-                  onOpenInvite={
-                    isTenantPointsBilling &&
-                    tenantSnapshot?.deploymentMode === "publicCloud" &&
-                    registrationStrategy.referralEnabled
-                      ? () => setIsReferralInviteModalOpen(true)
-                      : undefined
-                  }
                   onOpenRecharge={isTenantPointsBilling ? handleOpenPointsRecharge : undefined}
                   onOpenSubscription={
                     shouldShowSelfServeSubscription
@@ -624,18 +613,6 @@ export const UnifiedWorkbenchPage = ({ viewRole }: UnifiedWorkbenchPageProps): J
           </div>
         </main>
       </div>
-
-      {tenantSnapshot && isTenantPointsBilling && registrationStrategy.referralEnabled ? (
-        <TenantReferralInviteModal
-          accountName={featureAccountName}
-          inviteCode={tenantSnapshot.tenantCode}
-          inviterRewardPoints={registrationStrategy.referralInviterRewardPoints}
-          newUserGiftPoints={registrationStrategy.defaultGiftPoints}
-          open={isReferralInviteModalOpen}
-          referralRecords={tenantSnapshot.referralRecords}
-          onClose={() => setIsReferralInviteModalOpen(false)}
-        />
-      ) : null}
 
       {tenantSnapshot && isTenantPointsBilling ? (
         <TenantPointsRechargeModal

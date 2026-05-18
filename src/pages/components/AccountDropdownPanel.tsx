@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import type { ReactNode } from "react";
 
-import { CreditCardOutlined, GiftOutlined, QrcodeOutlined } from "@ant-design/icons";
+import { CreditCardOutlined, QrcodeOutlined } from "@ant-design/icons";
 import { QRCode } from "antd";
 
 import { loadOperationsCommunityGroupConfig } from "@/feature/operations/platformConfigStorage";
@@ -12,7 +12,6 @@ interface AccountDropdownPanelProps {
   accountName: string;
   currentPlanLabel?: string;
   menu: ReactNode;
-  onOpenInvite?: () => void;
   onOpenRecharge?: () => void;
   onOpenSubscription?: () => void;
   pointsBalance?: number;
@@ -25,7 +24,6 @@ export const AccountDropdownPanel = ({
   accountName,
   currentPlanLabel,
   menu,
-  onOpenInvite,
   onOpenRecharge,
   onOpenSubscription,
   pointsBalance,
@@ -55,13 +53,6 @@ export const AccountDropdownPanel = ({
             </button>
           ) : null}
         </div>
-      ) : null}
-
-      {onOpenInvite ? (
-        <button type="button" className={styles.inviteButton} onClick={onOpenInvite}>
-          <GiftOutlined className={styles.inviteButtonIcon} />
-          <span>邀请好友得积分</span>
-        </button>
       ) : null}
 
       {onOpenSubscription ? (

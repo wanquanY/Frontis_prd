@@ -1,5 +1,5 @@
 import { INITIAL_FRONTIS_WEB_USERS } from "@/mocks/mockData";
-import type { FrontisWebUserItem } from "@/pages/types";
+import type { FrontisUserRole, FrontisWebUserItem } from "@/pages/types";
 
 import { DEFAULT_TENANT_ROLE_IDS } from "@/constants/tenantRolePermissions";
 import type {
@@ -52,6 +52,46 @@ const mergeStoredItemsWithPreset = <TItem extends { id: string }>(
   return [
     ...presetItems.map(item => storedItemMap.get(item.id) ?? item),
     ...storedItems.filter(item => !presetItemIds.has(item.id)),
+  ];
+};
+
+const isFrontisUserRole = (role: unknown): role is FrontisUserRole =>
+  role === "enterpriseAdmin" || role === "departmentLead" || role === "employee";
+
+const normalizeTenantUser = (
+  user: FrontisWebUserItem,
+  adminUserId: string,
+): FrontisWebUserItem => {
+  const fallbackRole: FrontisUserRole = user.id === adminUserId ? "enterpriseAdmin" : "employee";
+  const role = isFrontisUserRole(user.role) ? user.role : fallbackRole;
+  const roleIds =
+    user.id === adminUserId
+      ? [DEFAULT_TENANT_ROLE_IDS.enterpriseAdmin]
+      : user.roleIds?.length
+        ? user.roleIds
+        : [DEFAULT_TENANT_ROLE_IDS[role]];
+
+  return {
+    ...user,
+    role: user.id === adminUserId ? "enterpriseAdmin" : role,
+    roleIds,
+  };
+};
+
+const mergeTenantUsersWithPreset = (
+  presetUsers: FrontisWebUserItem[],
+  storedUsers: FrontisWebUserItem[],
+): FrontisWebUserItem[] => {
+  const storedUserMap = new Map(storedUsers.map(user => [user.id, user]));
+  const presetUserIds = new Set(presetUsers.map(user => user.id));
+
+  return [
+    ...presetUsers.map(user => ({
+      ...user,
+      ...(storedUserMap.get(user.id) ?? {}),
+      id: user.id,
+    })),
+    ...storedUsers.filter(user => !presetUserIds.has(user.id)),
   ];
 };
 
@@ -299,7 +339,6 @@ const PRESET_TENANT_SNAPSHOTS: MockTenantManagementSnapshot[] = [
         purchaseMode: "renew",
       }),
     ],
-    referralRecords: [],
   },
   {
     tenantId: "tenant-enterprise-hq",
@@ -357,15 +396,6 @@ const PRESET_TENANT_SNAPSHOTS: MockTenantManagementSnapshot[] = [
         points: 200000,
         direction: "income",
         createdAt: "本月 1 日",
-        actorName: "FrontisAI",
-      }),
-      buildPointsLedgerItem({
-        id: "tenant-enterprise-hq-income-02",
-        title: "邀请奖励",
-        description: "邀请陈可心完成注册后发放奖励。",
-        points: 200,
-        direction: "income",
-        createdAt: "4月 23日",
         actorName: "FrontisAI",
       }),
       buildPointsLedgerItem({
@@ -451,17 +481,6 @@ const PRESET_TENANT_SNAPSHOTS: MockTenantManagementSnapshot[] = [
         expiresAt: "2027-03-12",
         purchaseMode: "addSeats",
       }),
-    ],
-    referralRecords: [
-      {
-        id: "tenant-enterprise-hq-referral-01",
-        inviteeName: "陈可心",
-        inviteeTenantName: "陈可心的工作室",
-        registeredAt: "2026-04-22 15:10",
-        rewardPoints: 200,
-        rewardedAt: "2026-04-22 15:11",
-        status: "rewarded",
-      },
     ],
   },
   {
@@ -579,16 +598,6 @@ const PRESET_TENANT_SNAPSHOTS: MockTenantManagementSnapshot[] = [
         purchaseMode: "addSeats",
       }),
     ],
-    referralRecords: [
-      {
-        id: "tenant-enterprise-east-ops-referral-01",
-        inviteeName: "林若岚",
-        inviteeTenantName: "林若岚的工作室",
-        registeredAt: "2026-04-23 14:12",
-        rewardPoints: 200,
-        status: "registered",
-      },
-    ],
   },
   {
     tenantId: "tenant-personal-studio-demo",
@@ -629,15 +638,6 @@ const PRESET_TENANT_SNAPSHOTS: MockTenantManagementSnapshot[] = [
         points: 6000,
         direction: "income",
         createdAt: "今天 09:00",
-        actorName: "FrontisAI",
-      }),
-      buildPointsLedgerItem({
-        id: "tenant-personal-studio-demo-income-02",
-        title: "邀请奖励",
-        description: "邀请顾南完成注册后发放奖励。",
-        points: 200,
-        direction: "income",
-        createdAt: "2026-04-22 11:09",
         actorName: "FrontisAI",
       }),
       buildPointsLedgerItem({
@@ -739,25 +739,6 @@ const PRESET_TENANT_SNAPSHOTS: MockTenantManagementSnapshot[] = [
         purchaseMode: "addSeats",
       }),
     ],
-    referralRecords: [
-      {
-        id: "tenant-personal-studio-demo-referral-01",
-        inviteeName: "沈佳",
-        inviteeTenantName: "沈佳的工作室",
-        registeredAt: "2026-04-23 18:20",
-        rewardPoints: 200,
-        status: "registered",
-      },
-      {
-        id: "tenant-personal-studio-demo-referral-02",
-        inviteeName: "顾南",
-        inviteeTenantName: "顾南的工作室",
-        registeredAt: "2026-04-22 11:08",
-        rewardPoints: 200,
-        rewardedAt: "2026-04-22 11:09",
-        status: "rewarded",
-      },
-    ],
   },
   {
     tenantId: "tenant-new-user-onboarding-demo",
@@ -824,7 +805,6 @@ const PRESET_TENANT_SNAPSHOTS: MockTenantManagementSnapshot[] = [
         purchaseMode: "addSeats",
       }),
     ],
-    referralRecords: [],
   },
 ];
 
@@ -844,9 +824,7 @@ const mergeSnapshotWithPreset = (
     users:
       presetSnapshot.tenantId === NEW_USER_ONBOARDING_TENANT_ID
         ? presetSnapshot.users
-        : storedSnapshot.users.length
-          ? storedSnapshot.users
-          : presetSnapshot.users,
+        : mergeTenantUsersWithPreset(presetSnapshot.users, storedSnapshot.users ?? []),
     agentUsageRecords: mergeStoredItemsWithPreset(
       presetSnapshot.agentUsageRecords,
       storedSnapshot.agentUsageRecords ?? [],
@@ -866,10 +844,6 @@ const mergeSnapshotWithPreset = (
     subscriptionOrders: mergeStoredItemsWithPreset(
       presetSnapshot.subscriptionOrders,
       storedSnapshot.subscriptionOrders ?? [],
-    ),
-    referralRecords: mergeStoredItemsWithPreset(
-      presetSnapshot.referralRecords,
-      storedSnapshot.referralRecords ?? [],
     ),
   });
 
@@ -909,18 +883,9 @@ const normalizeTenantSnapshot = (
       : typeof snapshot.extraSeatCount === "number"
         ? snapshot.extraSeatCount
         : Math.max(snapshot.totalSeats - nextIncludedSeats, 0);
-  const normalizedUsers =
-    nextEdition === "personal"
-      ? snapshot.users.map(user =>
-          user.id === snapshot.adminUserId
-            ? {
-                ...user,
-                role: "enterpriseAdmin" as const,
-                roleIds: [DEFAULT_TENANT_ROLE_IDS.enterpriseAdmin],
-              }
-            : user,
-        )
-      : snapshot.users;
+  const normalizedUsers = snapshot.users.map(user =>
+    normalizeTenantUser(user, snapshot.adminUserId),
+  );
 
   return {
     ...snapshot,
@@ -958,7 +923,6 @@ const cloneSnapshot = (snapshot: MockTenantManagementSnapshot): MockTenantManage
     pointsUsageRecords: (normalizedSnapshot.pointsUsageRecords ?? []).map(item => ({ ...item })),
     pointsOrders: (normalizedSnapshot.pointsOrders ?? []).map(item => ({ ...item })),
     subscriptionOrders: (normalizedSnapshot.subscriptionOrders ?? []).map(item => ({ ...item })),
-    referralRecords: (normalizedSnapshot.referralRecords ?? []).map(item => ({ ...item })),
   };
 };
 
@@ -987,7 +951,6 @@ const readStoredTenantSnapshots = (): MockTenantManagementSnapshot[] => {
         pointsUsageRecords: Array.isArray(item.pointsUsageRecords) ? item.pointsUsageRecords : [],
         pointsOrders: Array.isArray(item.pointsOrders) ? item.pointsOrders : [],
         subscriptionOrders: Array.isArray(item.subscriptionOrders) ? item.subscriptionOrders : [],
-        referralRecords: Array.isArray(item.referralRecords) ? item.referralRecords : [],
       }),
     );
   } catch {

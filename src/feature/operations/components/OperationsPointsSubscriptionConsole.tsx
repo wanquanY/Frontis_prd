@@ -5,18 +5,13 @@ import classNames from "classnames";
 
 import type {
   OperationsPointsUsageRecord,
-  OperationsReferralRecord,
   OperationsRegistrationStrategy,
   OperationsTenant,
 } from "@/feature/operations/types";
-import type { MockPointsPackageOption } from "@/feature/points/types";
 import type {
   MockSalesChannelContractCode,
   MockSalesChannelContractCodeInput,
-  MockSubscriptionPlanKey,
   MockSubscriptionPlanPurchaseOption,
-  MockSubscriptionPlanTemplate,
-  MockSubscriptionPlanTemplateInput,
 } from "@/feature/subscription/types";
 import adminStyles from "@/pages/components/FrontisAdminViews.module.less";
 
@@ -33,40 +28,18 @@ interface PointsSubscriptionTabOption {
 interface OperationsPointsSubscriptionConsoleProps {
   canManageBilling: boolean;
   canManagePoints: boolean;
-  pointsPackages: MockPointsPackageOption[];
   pointsUsageRecords: OperationsPointsUsageRecord[];
-  referralRecords: OperationsReferralRecord[];
   registrationStrategy: OperationsRegistrationStrategy;
   salesChannelContractCodes: MockSalesChannelContractCode[];
-  subscriptionPlans: MockSubscriptionPlanTemplate[];
   tenants: OperationsTenant[];
   onApplyTenantSubscriptionPlan: (
     tenantId: string,
     purchaseOption: MockSubscriptionPlanPurchaseOption,
   ) => boolean;
   onCreateSalesChannelContractCode: (payload: MockSalesChannelContractCodeInput) => void;
-  onCreatePointsPackage: (
-    payload: Pick<
-      MockPointsPackageOption,
-      "title" | "description" | "points" | "price" | "tagLabel"
-    >,
-  ) => void;
-  onUpdatePointsPackage: (
-    packageId: string,
-    updates: Partial<
-      Pick<
-        MockPointsPackageOption,
-        "title" | "description" | "points" | "price" | "status" | "sortOrder" | "tagLabel"
-      >
-    >,
-  ) => void;
   onUpdateSalesChannelContractCode: (
     code: string,
     updates: Partial<MockSalesChannelContractCodeInput>,
-  ) => void;
-  onUpdateSubscriptionPlan: (
-    planKey: MockSubscriptionPlanKey,
-    updates: Partial<MockSubscriptionPlanTemplateInput>,
   ) => void;
   onUpdateRegistrationStrategy: (
     patch: Partial<
@@ -76,10 +49,6 @@ interface OperationsPointsSubscriptionConsoleProps {
         | "pointsPerCny"
         | "minimumDeductPoints"
         | "roundingUnit"
-        | "referralDailyRewardLimit"
-        | "referralEnabled"
-        | "referralInviterRewardPoints"
-        | "referralMonthlyRewardLimit"
       >
     >,
   ) => void;
@@ -91,19 +60,13 @@ interface OperationsPointsSubscriptionConsoleProps {
 export const OperationsPointsSubscriptionConsole = ({
   canManageBilling,
   canManagePoints,
-  pointsPackages,
   pointsUsageRecords,
-  referralRecords,
   registrationStrategy,
   salesChannelContractCodes,
-  subscriptionPlans,
   tenants,
   onApplyTenantSubscriptionPlan,
   onCreateSalesChannelContractCode,
-  onCreatePointsPackage,
-  onUpdatePointsPackage,
   onUpdateSalesChannelContractCode,
-  onUpdateSubscriptionPlan,
   onUpdateRegistrationStrategy,
 }: OperationsPointsSubscriptionConsoleProps): JSX.Element => {
   const availableTabs = useMemo<PointsSubscriptionTabOption[]>(
@@ -154,25 +117,19 @@ export const OperationsPointsSubscriptionConsole = ({
       {activeTab === "points" ? (
         <OperationsPointsConsole
           embedded={true}
-          pointsPackages={pointsPackages}
           pointsUsageRecords={pointsUsageRecords}
-          referralRecords={referralRecords}
           registrationStrategy={registrationStrategy}
           tenants={tenants}
-          onCreatePointsPackage={onCreatePointsPackage}
-          onUpdatePointsPackage={onUpdatePointsPackage}
           onUpdateRegistrationStrategy={onUpdateRegistrationStrategy}
         />
       ) : (
         <OperationsBillingConsole
           embedded={true}
           salesChannelContractCodes={salesChannelContractCodes}
-          subscriptionPlans={subscriptionPlans}
           tenants={tenants}
           onApplyTenantSubscriptionPlan={onApplyTenantSubscriptionPlan}
           onCreateSalesChannelContractCode={onCreateSalesChannelContractCode}
           onUpdateSalesChannelContractCode={onUpdateSalesChannelContractCode}
-          onUpdateSubscriptionPlan={onUpdateSubscriptionPlan}
         />
       )}
     </div>

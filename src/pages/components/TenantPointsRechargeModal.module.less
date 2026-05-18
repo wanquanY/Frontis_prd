@@ -117,23 +117,47 @@
   justify-content: flex-end;
 }
 
-.payHeader {
+.paymentContent {
+  display: grid;
+  grid-template-columns: 280px minmax(0, 1fr);
+  gap: 28px;
+  align-items: start;
+}
+
+.qrColumn {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
+  gap: 12px;
 }
 
-.payTitle {
+.paymentInstruction {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.paymentTitle {
+  margin: 4px 0 0;
+  padding-bottom: 16px;
+  border-bottom: 1px solid color-mix(in srgb, var(--text) 10%, transparent);
   color: var(--text);
   font-size: 24px;
   line-height: 32px;
   font-weight: 700;
 }
 
-.qrWrap {
-  display: flex;
-  justify-content: center;
+.paymentNoticeList {
+  margin: 0;
+  padding-left: 18px;
+  color: var(--text-secondary);
+  font-size: 14px;
+  line-height: 24px;
+}
+
+.paymentNoticeList li + li {
+  margin-top: 8px;
 }
 
 .qrCard {
@@ -168,32 +192,11 @@
   display: block;
 }
 
-.payFooter {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-}
-
-.payMethodList {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.payMethodItem {
-  min-width: 56px;
-  height: 28px;
-  padding: 0 10px;
-  border-radius: 999px;
-  background: var(--text);
-  color: var(--surface);
-  font-size: 12px;
-  line-height: 18px;
+.qrCountdown {
+  color: var(--text-secondary);
+  font-size: 14px;
+  line-height: 22px;
   font-weight: 600;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
 }
 
 .successState {
@@ -222,4 +225,15 @@
   font-size: 24px;
   line-height: 32px;
   font-weight: 700;
+}
+
+@media (max-width: 720px) {
+  .paymentContent {
+    grid-template-columns: 1fr;
+  }
+
+  .paymentTitle {
+    font-size: 20px;
+    line-height: 28px;
+  }
 }

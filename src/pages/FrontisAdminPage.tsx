@@ -37,7 +37,6 @@ import type {
 } from "@/feature/auth/types";
 import { resolveTenantBillingMode } from "@/feature/auth/tenantBilling";
 import { useOperationsAuth } from "@/feature/operations/hooks/useOperationsAuth";
-import { loadOperationsRegistrationStrategy } from "@/feature/operations/platformConfigStorage";
 import type { MockPointsPackageOption } from "@/feature/points/types";
 import type { MockSubscriptionPurchaseMode } from "@/feature/subscription/types";
 import { PRODUCT_LOGO_URL, PRODUCT_NAME, PRODUCT_SLOGAN } from "@/constants/brand";
@@ -72,7 +71,6 @@ import { SubscriptionPlanPaymentModal } from "./components/SubscriptionPlanPayme
 import { TenantOverviewView } from "./components/TenantOverviewView";
 import { TenantPointsRechargeModal } from "./components/TenantPointsRechargeModal";
 import { TenantPointsView } from "./components/TenantPointsView";
-import { TenantReferralInviteModal } from "./components/TenantReferralInviteModal";
 import type {
   AccessScopeSubject,
   EmployeeItem,
@@ -231,7 +229,6 @@ const FrontisAdminPage = (): JSX.Element => {
   );
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(false);
   const [isAccountMenuOpen, setIsAccountMenuOpen] = useState<boolean>(false);
-  const [isReferralInviteModalOpen, setIsReferralInviteModalOpen] = useState<boolean>(false);
   const [isPointsRechargeModalOpen, setIsPointsRechargeModalOpen] = useState<boolean>(false);
   const [isSubscriptionPlanModalOpen, setIsSubscriptionPlanModalOpen] = useState<boolean>(false);
   const [subscriptionPurchaseMode, setSubscriptionPurchaseMode] =
@@ -254,7 +251,6 @@ const FrontisAdminPage = (): JSX.Element => {
   const [departments, setDepartments] = useState<OrganizationDepartmentItem[]>(() =>
     syncRootDepartmentName(INITIAL_ORGANIZATION_DEPARTMENTS, activeIdentity?.tenantName),
   );
-  const registrationStrategy = useMemo(() => loadOperationsRegistrationStrategy(), []);
   const currentSubscriptionPlanKey = useMemo(
     () => subscriptionPlanOverrideKey ?? resolveSubscriptionPlanKey(tenantSnapshot),
     [subscriptionPlanOverrideKey, tenantSnapshot],
@@ -1051,13 +1047,6 @@ const FrontisAdminPage = (): JSX.Element => {
                     accountName={currentUser?.name ?? "未登录"}
                     currentPlanLabel={accountPlanLabel}
                     menu={menu}
-                    onOpenInvite={
-                      isTenantPointsBilling &&
-                      tenantSnapshot?.deploymentMode === "publicCloud" &&
-                      registrationStrategy.referralEnabled
-                        ? () => setIsReferralInviteModalOpen(true)
-                        : undefined
-                    }
                     onOpenRecharge={isTenantPointsBilling ? handleOpenPointsRecharge : undefined}
                     onOpenSubscription={
                       shouldShowSelfServeSubscription
@@ -1121,18 +1110,6 @@ const FrontisAdminPage = (): JSX.Element => {
           </main>
         </div>
       </div>
-
-      {tenantSnapshot && isTenantPointsBilling && registrationStrategy.referralEnabled ? (
-        <TenantReferralInviteModal
-          accountName={currentUser?.name ?? "未登录"}
-          inviteCode={tenantSnapshot.tenantCode}
-          inviterRewardPoints={registrationStrategy.referralInviterRewardPoints}
-          newUserGiftPoints={registrationStrategy.defaultGiftPoints}
-          open={isReferralInviteModalOpen}
-          referralRecords={tenantSnapshot.referralRecords}
-          onClose={() => setIsReferralInviteModalOpen(false)}
-        />
-      ) : null}
 
       {tenantSnapshot && isTenantPointsBilling ? (
         <TenantPointsRechargeModal

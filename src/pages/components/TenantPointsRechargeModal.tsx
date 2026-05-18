@@ -3,7 +3,12 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { CheckCircleOutlined } from "@ant-design/icons";
 import { Button, Empty, Modal } from "antd";
 
-import { buildMockPaymentOrderId, buildMockPaymentQr } from "@/feature/commerce/mockPayment";
+import {
+  buildMockPaymentOrderId,
+  buildMockPaymentQr,
+  formatMockPaymentCountdown,
+  MOCK_PAYMENT_QR_COUNTDOWN_SECONDS,
+} from "@/feature/commerce/mockPayment";
 import { getActiveMockPointsPackages } from "@/feature/points/mockPointsCommerce";
 import type { MockPointsPackageOption } from "@/feature/points/types";
 
@@ -26,6 +31,9 @@ export const TenantPointsRechargeModal = ({
   open,
 }: TenantPointsRechargeModalProps): JSX.Element => {
   const [currentStep, setCurrentStep] = useState<TenantPointsRechargeStep>("select");
+  const [countdownSeconds, setCountdownSeconds] = useState<number>(
+    MOCK_PAYMENT_QR_COUNTDOWN_SECONDS,
+  );
   const [isProcessingPayment, setIsProcessingPayment] = useState<boolean>(false);
   const [orderId, setOrderId] = useState<string>("");
   const [selectedPackageId, setSelectedPackageId] = useState<string>("");
@@ -34,16 +42,21 @@ export const TenantPointsRechargeModal = ({
   );
 
   const selectedPackage = useMemo<MockPointsPackageOption | null>(
-    () => packageOptions.find(option => option.id === selectedPackageId) ?? packageOptions[0] ?? null,
+    () =>
+      packageOptions.find(option => option.id === selectedPackageId) ?? packageOptions[0] ?? null,
     [packageOptions, selectedPackageId],
   );
   const qrImage = useMemo<string>(
     () =>
       buildMockPaymentQr(
         `${selectedPackage?.id ?? "none"}-${selectedPackage?.price ?? 0}-${orderId}`,
-    ),
+      ),
     [orderId, selectedPackage?.id, selectedPackage?.price],
   );
+  const isQrExpired = countdownSeconds <= 0;
+  const qrCountdownLabel = isQrExpired
+    ? "二维码已失效"
+    : `${formatMockPaymentCountdown(countdownSeconds)} 后二维码失效`;
 
   useEffect(() => {
     if (!open) {
@@ -54,6 +67,7 @@ export const TenantPointsRechargeModal = ({
 
     setPackageOptions(nextPackageOptions);
     setCurrentStep("select");
+    setCountdownSeconds(MOCK_PAYMENT_QR_COUNTDOWN_SECONDS);
     setIsProcessingPayment(false);
     setOrderId("");
     setSelectedPackageId(
@@ -62,6 +76,25 @@ export const TenantPointsRechargeModal = ({
         "",
     );
   }, [open]);
+
+  useEffect(() => {
+    if (!open || currentStep !== "pay") {
+      return;
+    }
+
+    const timer = window.setInterval(() => {
+      setCountdownSeconds(currentSeconds => {
+        if (currentSeconds <= 1) {
+          window.clearInterval(timer);
+          return 0;
+        }
+
+        return currentSeconds - 1;
+      });
+    }, 1000);
+
+    return () => window.clearInterval(timer);
+  }, [currentStep, open]);
 
   useEffect(() => {
     if (!open || currentStep !== "success") {
@@ -81,11 +114,23 @@ export const TenantPointsRechargeModal = ({
     }
 
     setOrderId(buildMockPaymentOrderId(`FI-${selectedPackage.id}`));
+    setCountdownSeconds(MOCK_PAYMENT_QR_COUNTDOWN_SECONDS);
+    setIsProcessingPayment(false);
     setCurrentStep("pay");
   }, [selectedPackage]);
 
+  const handleRestartQr = useCallback((): void => {
+    if (!selectedPackage) {
+      return;
+    }
+
+    setOrderId(buildMockPaymentOrderId(`FI-${selectedPackage.id}`));
+    setCountdownSeconds(MOCK_PAYMENT_QR_COUNTDOWN_SECONDS);
+    setIsProcessingPayment(false);
+  }, [selectedPackage]);
+
   const handlePayByQr = useCallback((): void => {
-    if (isProcessingPayment || !selectedPackage) {
+    if (isProcessingPayment || !selectedPackage || isQrExpired) {
       return;
     }
 
@@ -102,7 +147,7 @@ export const TenantPointsRechargeModal = ({
       setCurrentStep("success");
       setIsProcessingPayment(false);
     }, 700);
-  }, [isProcessingPayment, onConfirmPurchase, selectedPackage]);
+  }, [isProcessingPayment, isQrExpired, onConfirmPurchase, selectedPackage]);
 
   return (
     <Modal
@@ -112,7 +157,7 @@ export const TenantPointsRechargeModal = ({
       onCancel={onCancel}
       open={open}
       title="购买积分"
-      width={640}
+      width={760}
     >
       <div className={styles.body}>
         {currentStep === "select" ? (
@@ -169,29 +214,44 @@ export const TenantPointsRechargeModal = ({
 
         {currentStep === "pay" && selectedPackage ? (
           <>
-            <div className={styles.payHeader}>
-              <div className={styles.payTitle}>扫码支付 ¥{selectedPackage.price}</div>
-            </div>
-
-            <div className={styles.qrWrap}>
-              <button
-                type="button"
-                className={`${styles.qrCard} ${styles.qrButton}`}
-                disabled={isProcessingPayment}
-                onClick={handlePayByQr}
-              >
-                <img className={styles.qrImage} src={qrImage} alt="积分购买支付二维码" />
-              </button>
-            </div>
-
-            <div className={styles.payFooter}>
-              <div className={styles.payHint}>
-                {isProcessingPayment ? "支付处理中..." : "点击二维码模拟扫码支付"}
+            <div className={styles.paymentContent}>
+              <div className={styles.qrColumn}>
+                <button
+                  type="button"
+                  className={`${styles.qrCard} ${styles.qrButton}`}
+                  disabled={isProcessingPayment || isQrExpired}
+                  onClick={handlePayByQr}
+                >
+                  <img className={styles.qrImage} src={qrImage} alt="积分购买支付二维码" />
+                </button>
+                <div className={styles.qrCountdown}>{qrCountdownLabel}</div>
               </div>
-              <div className={styles.payMethodList}>
-                <span className={styles.payMethodItem}>微信</span>
-                <span className={styles.payMethodItem}>支付宝</span>
-                <span className={styles.payMethodItem}>抖音</span>
+
+              <div className={styles.paymentInstruction}>
+                <h2 className={styles.paymentTitle}>
+                  支付宝 / 微信扫码支付 ¥{selectedPackage.price}
+                </h2>
+                <ul className={styles.paymentNoticeList}>
+                  <li>
+                    购买{selectedPackage.title}后，
+                    {selectedPackage.points.toLocaleString("zh-CN")} 积分将在支付成功后到账。
+                  </li>
+                  <li>积分用于平台内大模型调用消耗。</li>
+                  <li>积分属于虚拟商品，一经支付无法退款，请确认后购买。</li>
+                  <li>未成年用户请在监护人陪同下理性充值。</li>
+                </ul>
+                <div className={styles.payHint}>
+                  {isProcessingPayment
+                    ? "支付处理中..."
+                    : isQrExpired
+                      ? "二维码已失效，请重新生成后支付。"
+                      : "请使用支付宝或微信扫码完成支付。"}
+                </div>
+                {isQrExpired ? (
+                  <Button type="primary" onClick={handleRestartQr}>
+                    重新生成二维码
+                  </Button>
+                ) : null}
               </div>
             </div>
           </>

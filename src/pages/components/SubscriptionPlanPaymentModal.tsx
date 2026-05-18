@@ -47,6 +47,9 @@ export const SubscriptionPlanPaymentModal = ({
   );
   const isQrExpired = countdownSeconds <= 0;
   const isRenewMode = plan?.purchaseMode === "renew";
+  const qrCountdownLabel = isQrExpired
+    ? "二维码已失效"
+    : `${formatMockPaymentCountdown(countdownSeconds)} 后二维码失效`;
 
   useEffect(() => {
     if (!open || !plan) {
@@ -116,7 +119,7 @@ export const SubscriptionPlanPaymentModal = ({
       onCancel={onCancel}
       open={open}
       title={plan ? (isRenewMode ? "续约团队席位" : "购买团队席位") : "团队扩充支付"}
-      width={620}
+      width={720}
     >
       {plan ? (
         <div className={styles.body}>
@@ -197,12 +200,10 @@ export const SubscriptionPlanPaymentModal = ({
               <section className={styles.paymentPanel}>
                 <div className={styles.paymentHeader}>
                   <div>
-                    <h3>扫码支付</h3>
+                    <h3>支付宝 / 微信扫码支付 ¥{plan.amount.toLocaleString("zh-CN")}</h3>
                     <span>订单号 {orderId}</span>
                   </div>
-                  <strong>
-                    {isQrExpired ? "二维码已过期" : formatMockPaymentCountdown(countdownSeconds)}
-                  </strong>
+                  <strong>{qrCountdownLabel}</strong>
                 </div>
                 <button
                   type="button"
@@ -219,13 +220,29 @@ export const SubscriptionPlanPaymentModal = ({
                 <div className={styles.paymentHint}>
                   {isProcessingPayment
                     ? `支付处理中，团队席位将在支付成功后${isRenewMode ? "续约" : "生效"}。`
-                    : "点击二维码即可模拟扫码支付。"}
+                    : isQrExpired
+                      ? "二维码已失效，请重新生成后支付。"
+                      : "请使用支付宝或微信扫码完成支付。"}
                 </div>
-                <div className={styles.paymentMethods}>
-                  <span>微信</span>
-                  <span>支付宝</span>
-                  <span>抖音支付</span>
-                </div>
+                <ul className={styles.paymentNoticeList}>
+                  <li>
+                    {isRenewMode ? "续约" : "购买"}完成后席位权益立即生效，统一到期日为{" "}
+                    {plan.expiresAt}。
+                  </li>
+                  <li>
+                    {isRenewMode
+                      ? "续费会按当前团队席位统一延长有效期。"
+                      : "新增席位有效期会与当前团队已开通席位的最终有效截止时间保持一致。"}
+                  </li>
+                  {plan.giftPoints > 0 ? (
+                    <li>
+                      赠送 {plan.giftPoints.toLocaleString("zh-CN")}{" "}
+                      积分将在支付成功后到账，积分永久有效。
+                    </li>
+                  ) : null}
+                  <li>团队席位属于虚拟商品，一经支付无法退款，请确认后购买。</li>
+                  <li>未成年用户请在监护人陪同下理性消费。</li>
+                </ul>
               </section>
 
               <div className={styles.actions}>

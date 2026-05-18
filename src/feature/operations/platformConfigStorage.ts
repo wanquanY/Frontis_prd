@@ -70,26 +70,6 @@ const cloneRegistrationStrategy = (
     typeof strategy.enabled === "boolean"
       ? strategy.enabled
       : OPERATIONS_INITIAL_REGISTRATION_STRATEGY.enabled,
-  referralDailyRewardLimit: getPositiveNumber(
-    strategy.referralDailyRewardLimit,
-    OPERATIONS_INITIAL_REGISTRATION_STRATEGY.referralDailyRewardLimit,
-  ),
-  referralEnabled:
-    typeof strategy.referralEnabled === "boolean"
-      ? strategy.referralEnabled
-      : OPERATIONS_INITIAL_REGISTRATION_STRATEGY.referralEnabled,
-  referralInviteeRewardPoints: getNonNegativeNumber(
-    strategy.referralInviteeRewardPoints,
-    OPERATIONS_INITIAL_REGISTRATION_STRATEGY.referralInviteeRewardPoints,
-  ),
-  referralInviterRewardPoints: getNonNegativeNumber(
-    strategy.referralInviterRewardPoints,
-    OPERATIONS_INITIAL_REGISTRATION_STRATEGY.referralInviterRewardPoints,
-  ),
-  referralMonthlyRewardLimit: getPositiveNumber(
-    strategy.referralMonthlyRewardLimit,
-    OPERATIONS_INITIAL_REGISTRATION_STRATEGY.referralMonthlyRewardLimit,
-  ),
   pointsPerCny: getPositiveNumber(
     strategy.pointsPerCny,
     OPERATIONS_INITIAL_REGISTRATION_STRATEGY.pointsPerCny,

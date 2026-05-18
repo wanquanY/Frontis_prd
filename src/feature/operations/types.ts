@@ -332,11 +332,6 @@ export interface OperationsRegistrationStrategy {
   initialPermissionIds: string[];
   defaultGiftPoints: number;
   enabled: boolean;
-  referralDailyRewardLimit: number;
-  referralEnabled: boolean;
-  referralInviteeRewardPoints: number;
-  referralInviterRewardPoints: number;
-  referralMonthlyRewardLimit: number;
   pointsPerCny: number;
   minimumDeductPoints: number;
   roundingUnit: number;
@@ -363,28 +358,6 @@ export interface OperationsCommunityGroupConfig {
   qrCodeValue: string;
   description: string;
   updatedAt: string;
-}
-
-/**
- * 邀请裂变奖励状态。
- */
-export type OperationsReferralStatus = "rewarded" | "registered" | "pending" | "blocked";
-
-/**
- * 邀请裂变运营记录。
- */
-export interface OperationsReferralRecord {
-  id: string;
-  inviterName: string;
-  inviterTenantName: string;
-  inviteeName: string;
-  inviteePhoneMasked: string;
-  inviteeTenantName: string;
-  status: OperationsReferralStatus;
-  rewardPoints: number;
-  registeredAt: string;
-  rewardedAt?: string;
-  sourceLabel: string;
 }
 
 /**

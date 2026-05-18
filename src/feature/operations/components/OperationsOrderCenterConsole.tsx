@@ -25,7 +25,6 @@ interface UnifiedOperationsOrder {
   id: string;
   orderNo: string;
   paidAt?: string;
-  paymentChannelLabel: string;
   purchaserName: string;
   status: UnifiedOrderStatus;
   subjectLabel: string;
@@ -64,7 +63,6 @@ const buildPointsOrder = (
   id: `points-${order.id}`,
   orderNo: order.orderNo,
   paidAt: order.paidAt,
-  paymentChannelLabel: order.paymentChannelLabel,
   purchaserName: order.purchaserName,
   status: order.status,
   subjectLabel: order.packageTitle,
@@ -83,7 +81,6 @@ const buildSubscriptionOrder = (
   id: `subscription-${order.id}`,
   orderNo: order.orderNo,
   paidAt: order.paidAt,
-  paymentChannelLabel: order.paymentChannelLabel,
   purchaserName: order.purchaserName,
   status: order.status,
   subjectLabel: order.planTitle,
@@ -145,7 +142,6 @@ export const OperationsOrderCenterConsole = ({
                   <th>订单内容</th>
                   <th>数量 / 周期</th>
                   <th>支付金额</th>
-                  <th>支付方式</th>
                   <th>购买人</th>
                   <th>状态</th>
                   <th>下单时间</th>
@@ -163,7 +159,6 @@ export const OperationsOrderCenterConsole = ({
                     <td>{order.subjectLabel}</td>
                     <td>{order.detailLabel}</td>
                     <td>{formatOperationsCurrency(order.amount)}</td>
-                    <td>{order.paymentChannelLabel}</td>
                     <td>{order.purchaserName}</td>
                     <td>
                       <span className={buildStatusClassName(order.status)}>

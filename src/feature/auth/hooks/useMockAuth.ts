@@ -173,7 +173,6 @@ export const useMockAuth = (): UseMockAuthResult => {
       verificationCode,
       redirectPath,
       deploymentMode,
-      inviteCode,
     }: MockLoginParams): MockAuthActionResult => {
       if (!isValidMainlandPhone(phone)) {
         return {
@@ -201,7 +200,6 @@ export const useMockAuth = (): UseMockAuthResult => {
 
         const newUserName = buildNewUserName(phone);
         const payload = registerMockTenantAdminAccount({
-          inviteCode,
           name: newUserName,
           phone,
           tenantName: buildNewUserWorkspaceName(newUserName),

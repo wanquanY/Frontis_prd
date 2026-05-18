@@ -41,7 +41,6 @@ import {
   OPERATIONS_AGENT_STATUS_LABELS,
   OPERATIONS_INITIAL_AGENT_SUBMISSIONS,
   OPERATIONS_INITIAL_POINTS_USAGE_RECORDS,
-  OPERATIONS_INITIAL_REFERRAL_RECORDS,
   OPERATIONS_INITIAL_TENANTS,
   OPERATIONS_PRODUCT_BILLING_MODE_LABELS,
   OPERATIONS_PRODUCT_BILLING_MODE_OPTIONS,
@@ -97,7 +96,6 @@ import type {
   OperationsProductSubscriptionPlan,
   OperationsProductSubscriptionPlanStatus,
   OperationsPointsUsageRecord,
-  OperationsReferralRecord,
   OperationsRegistrationStrategy,
   OperationsServiceContactConfig,
   OperationsSkillCenterCategoryOption,
@@ -128,7 +126,6 @@ interface UseOperationsPlatformResult {
   salesChannelContractCodes: MockSalesChannelContractCode[];
   subscriptionPlans: MockSubscriptionPlanTemplate[];
   pointsUsageRecords: OperationsPointsUsageRecord[];
-  referralRecords: OperationsReferralRecord[];
   registrationStrategy: OperationsRegistrationStrategy;
   serviceContactConfig: OperationsServiceContactConfig;
   communityGroupConfig: OperationsCommunityGroupConfig;
@@ -212,11 +209,6 @@ interface UseOperationsPlatformResult {
         | "pointsPerCny"
         | "minimumDeductPoints"
         | "roundingUnit"
-        | "referralDailyRewardLimit"
-        | "referralEnabled"
-        | "referralInviteeRewardPoints"
-        | "referralInviterRewardPoints"
-        | "referralMonthlyRewardLimit"
       >
     >,
   ) => void;
@@ -610,9 +602,6 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
   );
   const [pointsUsageRecords] = useState<OperationsPointsUsageRecord[]>(
     () => OPERATIONS_INITIAL_POINTS_USAGE_RECORDS,
-  );
-  const [referralRecords] = useState<OperationsReferralRecord[]>(
-    () => OPERATIONS_INITIAL_REFERRAL_RECORDS,
   );
   const [pointsPackages, setPointsPackages] = useState<MockPointsPackageOption[]>(() =>
     getMockPointsPackages(),
@@ -1072,11 +1061,6 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
           | "pointsPerCny"
           | "minimumDeductPoints"
           | "roundingUnit"
-          | "referralDailyRewardLimit"
-          | "referralEnabled"
-          | "referralInviteeRewardPoints"
-          | "referralInviterRewardPoints"
-          | "referralMonthlyRewardLimit"
         >
       >,
     ): void => {
@@ -1254,7 +1238,6 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
     salesChannelContractCodes,
     subscriptionPlans,
     pointsUsageRecords,
-    referralRecords,
     registrationStrategy,
     serviceContactConfig,
     communityGroupConfig,

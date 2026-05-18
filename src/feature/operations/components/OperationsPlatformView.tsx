@@ -699,7 +699,6 @@ export const OperationsPlatformView = (): JSX.Element => {
     pointsUsageRecords,
     products,
     registrationStrategy,
-    referralRecords,
     rejectAgent,
     salesChannelContractCodes,
     serviceContactConfig,
@@ -1100,14 +1099,17 @@ export const OperationsPlatformView = (): JSX.Element => {
           emptyProductForm={emptyProductForm}
           productId={productId}
           productStatusLabels={productStatusLabels}
+          pointsPackages={pointsPackages}
           productTrialUnitLabels={productTrialUnitLabels}
           productTrialUnitOptions={productTrialUnitOptions}
           products={products}
           serviceContactConfig={serviceContactConfig}
           skillCategories={skillCenterCategories}
+          subscriptionPlans={subscriptionPlans}
           tenants={tenants}
           onBackToProductList={handleBackToProductList}
           onCreateCategory={createAgentPlazaCategory}
+          onCreatePointsPackage={createPointsPackage}
           onCreateProduct={createProduct}
           onCreateSkillCategory={createSkillCenterCategory}
           onNavigateToProduct={handleOpenProductDetail}
@@ -1115,7 +1117,9 @@ export const OperationsPlatformView = (): JSX.Element => {
           onUpdateServiceContactConfig={updateServiceContactConfig}
           onUpdateCategory={updateAgentPlazaCategory}
           onUpdateSkillCategory={updateSkillCenterCategory}
+          onUpdatePointsPackage={updatePointsPackage}
           onUpdateProduct={updateProduct}
+          onUpdateSubscriptionPlan={updateSubscriptionPlan}
         />
       );
     }
@@ -1146,19 +1150,13 @@ export const OperationsPlatformView = (): JSX.Element => {
         <OperationsPointsSubscriptionConsole
           canManageBilling={canManageBilling}
           canManagePoints={canManagePoints}
-          pointsPackages={pointsPackages}
           pointsUsageRecords={pointsUsageRecords}
-          referralRecords={referralRecords}
           registrationStrategy={registrationStrategy}
           salesChannelContractCodes={salesChannelContractCodes}
-          subscriptionPlans={subscriptionPlans}
           tenants={tenants}
           onApplyTenantSubscriptionPlan={applyTenantSubscriptionPlan}
           onCreateSalesChannelContractCode={createSalesChannelContractCode}
-          onCreatePointsPackage={createPointsPackage}
-          onUpdatePointsPackage={updatePointsPackage}
           onUpdateSalesChannelContractCode={updateSalesChannelContractCode}
-          onUpdateSubscriptionPlan={updateSubscriptionPlan}
           onUpdateRegistrationStrategy={updateRegistrationStrategy}
         />
       );
@@ -1247,7 +1245,6 @@ export const OperationsPlatformView = (): JSX.Element => {
     pointsUsageRecords,
     products,
     registrationStrategy,
-    referralRecords,
     salesChannelContractCodes,
     skillCenterCategories,
     serviceContactConfig,

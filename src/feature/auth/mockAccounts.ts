@@ -14,7 +14,6 @@ import {
   normalizeTenantRolePermissionIds,
 } from "@/constants/tenantRolePermissions";
 import {
-  getMockTenantManagementSnapshots,
   getMockTenantManagementSnapshot,
   saveMockTenantManagementSnapshot,
 } from "@/feature/auth/mockTenantRegistry";
@@ -128,24 +127,6 @@ const NEW_USER_ONBOARDING_TENANT: MockTenantInfo = {
 };
 
 const normalizePhone = (phone: string): string => phone.replace(/\s+/g, "").trim();
-
-const normalizeInviteCode = (inviteCode?: string): string => inviteCode?.trim().toUpperCase() ?? "";
-
-const findInviterSnapshotByInviteCode = (
-  inviteCode?: string,
-): MockTenantManagementSnapshot | null => {
-  const normalizedInviteCode = normalizeInviteCode(inviteCode);
-
-  if (!normalizedInviteCode) {
-    return null;
-  }
-
-  return (
-    getMockTenantManagementSnapshots().find(
-      snapshot => snapshot.tenantCode.toUpperCase() === normalizedInviteCode,
-    ) ?? null
-  );
-};
 
 const normalizeRedirectPath = (redirectPath?: string): string | undefined => {
   const normalizedRedirectPath = redirectPath?.trim();
@@ -854,7 +835,6 @@ export const registerMockTenantAdminAccount = (
     code: tenantCode,
   };
   const registrationStrategy = loadOperationsRegistrationStrategy();
-  const inviterSnapshot = findInviterSnapshotByInviteCode(params.inviteCode);
   const initialPermissionIds = normalizeTenantRolePermissionIds(
     registrationStrategy.initialPermissionIds.length
       ? registrationStrategy.initialPermissionIds
@@ -932,48 +912,7 @@ export const registerMockTenantAdminAccount = (
     pointsUsageRecords: [],
     pointsOrders: [],
     subscriptionOrders: [],
-    referralRecords: [],
   });
-
-  if (
-    inviterSnapshot &&
-    registrationStrategy.referralEnabled &&
-    registrationStrategy.referralInviterRewardPoints > 0 &&
-    inviterSnapshot.billingMode === "points" &&
-    inviterSnapshot.tenantId !== tenantId &&
-    !inviterSnapshot.users.some(user => normalizePhone(user.phone) === normalizedPhone)
-  ) {
-    const rewardPoints = registrationStrategy.referralInviterRewardPoints;
-
-    saveMockTenantManagementSnapshot({
-      ...inviterSnapshot,
-      pointsBalance: inviterSnapshot.pointsBalance + rewardPoints,
-      pointsLedger: [
-        {
-          id: `${inviterSnapshot.tenantId}-referral-${timestamp}`,
-          title: "邀请奖励",
-          description: `${params.name.trim()} 通过邀请链接完成注册后发放。`,
-          points: rewardPoints,
-          direction: "income",
-          createdAt: "刚刚",
-          actorName: "FrontisAI",
-        },
-        ...inviterSnapshot.pointsLedger,
-      ],
-      referralRecords: [
-        {
-          id: `${inviterSnapshot.tenantId}-referral-record-${timestamp}`,
-          inviteeName: params.name.trim(),
-          inviteeTenantName: tenant.name,
-          registeredAt: "刚刚",
-          rewardPoints,
-          rewardedAt: "刚刚",
-          status: "rewarded",
-        },
-        ...inviterSnapshot.referralRecords,
-      ],
-    });
-  }
 
   saveStoredMockAccount(accountWithRegistrationRole);
 

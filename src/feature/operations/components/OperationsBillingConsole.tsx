@@ -10,8 +10,6 @@ import type {
 } from "@/feature/auth/types";
 import type { OperationsTenant } from "@/feature/operations/types";
 import {
-  buildMockSubscriptionPlanBenefitTexts,
-  formatMockSubscriptionValidity,
   getMockSubscriptionPlanPurchaseOption,
   getMockTenantActiveSubscriptionBillingCycle,
   getMockTenantActiveSubscriptionContractCode,
@@ -21,17 +19,13 @@ import type {
   MockSalesChannelContractCodeInput,
   MockSalesChannelContractSubCode,
   MockSubscriptionBillingCycle,
-  MockSubscriptionPlanKey,
   MockSubscriptionPlanPurchaseOption,
-  MockSubscriptionPlanStatus,
-  MockSubscriptionPlanTemplate,
-  MockSubscriptionPlanTemplateInput,
 } from "@/feature/subscription/types";
 import adminStyles from "@/pages/components/FrontisAdminViews.module.less";
 
 import styles from "./OperationsBillingConsole.module.less";
 
-type BillingTabKey = "subscriptionPolicy" | "contractCodes" | "tenantSubscriptions";
+type BillingTabKey = "contractCodes" | "tenantSubscriptions";
 
 interface TenantPlanEditorState {
   billingCycle: MockSubscriptionBillingCycle;
@@ -39,26 +33,6 @@ interface TenantPlanEditorState {
   open: boolean;
   seatCount: number;
   tenantId?: string;
-}
-
-interface SubscriptionPlanFormState {
-  contractYearlyPriceAmount: number;
-  monthlyGiftPoints: number;
-  monthlyPriceAmount: number;
-  monthlyValidityCount: number;
-  seatCount: number;
-  status: MockSubscriptionPlanStatus;
-  title: string;
-  yearlyGiftPoints: number;
-  yearlyPriceAmount: number;
-  yearlyValidityCount: number;
-}
-
-interface SubscriptionPlanEditorState {
-  form: SubscriptionPlanFormState;
-  mode: "edit";
-  open: boolean;
-  planKey?: MockSubscriptionPlanKey;
 }
 
 interface ContractCodeFormState {
@@ -88,7 +62,6 @@ interface ContractSubCodeEditorState {
 interface OperationsBillingConsoleProps {
   embedded?: boolean;
   salesChannelContractCodes: MockSalesChannelContractCode[];
-  subscriptionPlans: MockSubscriptionPlanTemplate[];
   tenants: OperationsTenant[];
   onApplyTenantSubscriptionPlan: (
     tenantId: string,
@@ -99,10 +72,6 @@ interface OperationsBillingConsoleProps {
     code: string,
     updates: Partial<MockSalesChannelContractCodeInput>,
   ) => void;
-  onUpdateSubscriptionPlan: (
-    planKey: MockSubscriptionPlanKey,
-    updates: Partial<MockSubscriptionPlanTemplateInput>,
-  ) => void;
 }
 
 interface TenantBillingRecord {
@@ -111,7 +80,6 @@ interface TenantBillingRecord {
 }
 
 const BILLING_TABS: Array<{ key: BillingTabKey; label: string }> = [
-  { key: "subscriptionPolicy", label: "订阅策略" },
   { key: "contractCodes", label: "签约码" },
   { key: "tenantSubscriptions", label: "租户订阅" },
 ];
@@ -154,25 +122,6 @@ const createTenantPlanEditor = (tenantId?: string): TenantPlanEditorState => ({
   tenantId,
 });
 
-const createEmptySubscriptionPlanForm = (): SubscriptionPlanFormState => ({
-  contractYearlyPriceAmount: 299,
-  monthlyGiftPoints: 1000,
-  monthlyPriceAmount: 39,
-  monthlyValidityCount: 1,
-  seatCount: 1,
-  status: "active",
-  title: "团队席位包",
-  yearlyGiftPoints: 12000,
-  yearlyPriceAmount: 399,
-  yearlyValidityCount: 1,
-});
-
-const createSubscriptionPlanEditor = (): SubscriptionPlanEditorState => ({
-  form: createEmptySubscriptionPlanForm(),
-  mode: "edit",
-  open: false,
-});
-
 const createEmptyContractCodeForm = (): ContractCodeFormState => ({
   channelName: "",
   code: "",
@@ -186,21 +135,6 @@ const createContractCodeEditor = (): ContractCodeEditorState => ({
   form: createEmptyContractCodeForm(),
   mode: "create",
   open: false,
-});
-
-const createSubscriptionPlanFormFromTemplate = (
-  plan: MockSubscriptionPlanTemplate,
-): SubscriptionPlanFormState => ({
-  contractYearlyPriceAmount: plan.contractYearlyPriceAmount,
-  monthlyGiftPoints: plan.monthlyGiftPoints,
-  monthlyPriceAmount: plan.monthlyPriceAmount,
-  monthlyValidityCount: plan.monthlyValidityCount,
-  seatCount: plan.seatCount,
-  status: plan.status,
-  title: plan.title,
-  yearlyGiftPoints: plan.yearlyGiftPoints,
-  yearlyPriceAmount: plan.yearlyPriceAmount,
-  yearlyValidityCount: plan.yearlyValidityCount,
 });
 
 const createContractCodeFormFromCode = (
@@ -225,21 +159,6 @@ const createContractSubCodeEditor = (): ContractSubCodeEditorState => ({
   form: createEmptyContractSubCode(),
   mode: "create",
   open: false,
-});
-
-const normalizeSubscriptionPlanForm = (
-  form: SubscriptionPlanFormState,
-): MockSubscriptionPlanTemplateInput => ({
-  contractYearlyPriceAmount: Math.max(form.contractYearlyPriceAmount, 0),
-  monthlyGiftPoints: Math.max(Math.floor(form.monthlyGiftPoints), 0),
-  monthlyPriceAmount: Math.max(form.monthlyPriceAmount, 0),
-  monthlyValidityCount: Math.max(Math.floor(form.monthlyValidityCount), 1),
-  seatCount: Math.max(Math.floor(form.seatCount), 1),
-  status: form.status,
-  title: form.title.trim(),
-  yearlyGiftPoints: Math.max(Math.floor(form.yearlyGiftPoints), 0),
-  yearlyPriceAmount: Math.max(form.yearlyPriceAmount, 0),
-  yearlyValidityCount: Math.max(Math.floor(form.yearlyValidityCount), 1),
 });
 
 const normalizeContractCodeForm = (
@@ -275,24 +194,20 @@ const normalizeContractSubCodeForm = (
 export const OperationsBillingConsole = ({
   embedded = false,
   salesChannelContractCodes,
-  subscriptionPlans,
   tenants,
   onApplyTenantSubscriptionPlan,
   onCreateSalesChannelContractCode,
   onUpdateSalesChannelContractCode,
-  onUpdateSubscriptionPlan,
 }: OperationsBillingConsoleProps): JSX.Element => {
-  const [activeTab, setActiveTab] = useState<BillingTabKey>("subscriptionPolicy");
+  const [activeTab, setActiveTab] = useState<BillingTabKey>("contractCodes");
   const [tenantPlanEditor, setTenantPlanEditor] =
     useState<TenantPlanEditorState>(createTenantPlanEditor());
-  const [subscriptionPlanEditor, setSubscriptionPlanEditor] = useState<SubscriptionPlanEditorState>(
-    createSubscriptionPlanEditor(),
-  );
   const [contractCodeEditor, setContractCodeEditor] = useState<ContractCodeEditorState>(
     createContractCodeEditor(),
   );
-  const [contractSubCodeEditor, setContractSubCodeEditor] =
-    useState<ContractSubCodeEditorState>(createContractSubCodeEditor());
+  const [contractSubCodeEditor, setContractSubCodeEditor] = useState<ContractSubCodeEditorState>(
+    createContractSubCodeEditor(),
+  );
   const [expandedContractCode, setExpandedContractCode] = useState<string>("");
   const tenantBillingRecords = useMemo<TenantBillingRecord[]>(
     () =>
@@ -321,8 +236,6 @@ export const OperationsBillingConsole = ({
         selectedTenantRecord?.snapshot,
       )
     : null;
-  const subscriptionPlanForm = subscriptionPlanEditor.form;
-  const subscriptionPlan = subscriptionPlans[0] ?? null;
   const contractCodeForm = contractCodeEditor.form;
   const contractSubCodeForm = contractSubCodeEditor.form;
 
@@ -358,44 +271,6 @@ export const OperationsBillingConsole = ({
 
     message.success("订阅已开通。");
     setTenantPlanEditor(createTenantPlanEditor());
-  };
-
-  const handleOpenEditSubscriptionPlan = (plan: MockSubscriptionPlanTemplate): void => {
-    setSubscriptionPlanEditor({
-      form: createSubscriptionPlanFormFromTemplate(plan),
-      mode: "edit",
-      open: true,
-      planKey: plan.key,
-    });
-  };
-
-  const handleUpdateSubscriptionPlanForm = (patch: Partial<SubscriptionPlanFormState>): void => {
-    setSubscriptionPlanEditor(current => ({
-      ...current,
-      form: {
-        ...current.form,
-        ...patch,
-      },
-    }));
-  };
-
-  const handleSubmitSubscriptionPlan = (): void => {
-    const payload = normalizeSubscriptionPlanForm(subscriptionPlanEditor.form);
-
-    if (!payload.title) {
-      message.warning("请填写席位包名称。");
-      return;
-    }
-
-    if (!subscriptionPlanEditor.planKey) {
-      message.warning("请选择要编辑的席位包。");
-      return;
-    }
-
-    onUpdateSubscriptionPlan(subscriptionPlanEditor.planKey, payload);
-    message.success("席位包已更新。");
-
-    setSubscriptionPlanEditor(createSubscriptionPlanEditor());
   };
 
   const handleOpenCreateContractCode = (): void => {
@@ -575,53 +450,6 @@ export const OperationsBillingConsole = ({
 
     setContractCodeEditor(createContractCodeEditor());
   };
-
-  const renderSubscriptionPolicy = (): JSX.Element => (
-    <section className={adminStyles.consoleSection}>
-      <div className={adminStyles.consoleSectionHeader}>
-        <h2 className={adminStyles.consoleSectionTitle}>团队席位包</h2>
-      </div>
-      {subscriptionPlan ? (
-        <div className={styles.policyGrid}>
-          <section className={styles.planCard} key={subscriptionPlan.key}>
-            <div className={styles.planCardHeader}>
-              <span className={adminStyles.consolePill}>{subscriptionPlan.sequence}</span>
-              <span
-                className={buildStatusClassName(
-                  subscriptionPlan.status === "active" ? "success" : "danger",
-                )}
-              >
-                {subscriptionPlan.status === "active" ? "启用" : "停用"}
-              </span>
-            </div>
-            <h3 className={styles.planTitle}>{subscriptionPlan.title}</h3>
-            <div className={styles.planPrice}>
-              月付 {formatAmount(subscriptionPlan.monthlyPriceAmount)} / 席 / 月
-            </div>
-            <div className={styles.planPrice}>
-              年付 {formatAmount(subscriptionPlan.yearlyPriceAmount)} / 席 / 年
-            </div>
-            <div className={styles.planPrice}>
-              签约年付 {formatAmount(subscriptionPlan.contractYearlyPriceAmount)} / 席 / 年
-            </div>
-            <div className={styles.subscriptionEffectList}>
-              {buildMockSubscriptionPlanBenefitTexts(subscriptionPlan).map(item => (
-                <span key={item}>{item}</span>
-              ))}
-            </div>
-            <div className={styles.planCardFooter}>
-              <span>更新：{subscriptionPlan.updatedAt}</span>
-              <Button size="small" onClick={() => handleOpenEditSubscriptionPlan(subscriptionPlan)}>
-                编辑
-              </Button>
-            </div>
-          </section>
-        </div>
-      ) : (
-        <Empty description="暂无团队席位包配置。" />
-      )}
-    </section>
-  );
 
   const renderContractSubCodePanel = (contractCode: MockSalesChannelContractCode): JSX.Element => (
     <tr className={styles.subCodePanelRow}>
@@ -825,15 +653,9 @@ export const OperationsBillingConsole = ({
                   <td>{latestOrder?.billingCycleLabel ?? "-"}</td>
                   <td>
                     {latestOrder ? (
-                      <>
-                        <span className={adminStyles.consoleHtmlTableStrong}>
-                          {latestOrder.orderNo}
-                        </span>
-                        <br />
-                        <span className={adminStyles.consoleSidebarItemMeta}>
-                          {latestOrder.planTitle}
-                        </span>
-                      </>
+                      <span className={adminStyles.consoleHtmlTableStrong}>
+                        {latestOrder.orderNo}
+                      </span>
                     ) : (
                       "-"
                     )}
@@ -869,7 +691,6 @@ export const OperationsBillingConsole = ({
   );
 
   const renderActiveContent = (): JSX.Element => {
-    if (activeTab === "subscriptionPolicy") return renderSubscriptionPolicy();
     if (activeTab === "contractCodes") return renderContractCodes();
 
     return renderTenantSubscriptions();
@@ -901,163 +722,6 @@ export const OperationsBillingConsole = ({
       </div>
 
       {renderActiveContent()}
-
-      <Modal
-        open={subscriptionPlanEditor.open}
-        title="编辑团队席位包"
-        width={680}
-        onCancel={() => setSubscriptionPlanEditor(createSubscriptionPlanEditor())}
-        onOk={handleSubmitSubscriptionPlan}
-        destroyOnHidden
-      >
-        <div className={styles.modalStack}>
-          <div className={styles.formGrid}>
-            <div className={styles.modalField}>
-              <span>席位包名称</span>
-              <Input
-                value={subscriptionPlanForm.title}
-                onChange={event => handleUpdateSubscriptionPlanForm({ title: event.target.value })}
-              />
-            </div>
-            <div className={styles.modalField}>
-              <span>席位单位</span>
-              <InputNumber
-                className={styles.fullWidthInput}
-                min={1}
-                precision={0}
-                value={subscriptionPlanForm.seatCount}
-                onChange={value => handleUpdateSubscriptionPlanForm({ seatCount: value ?? 1 })}
-              />
-            </div>
-            <div className={styles.modalField}>
-              <span>月付价格</span>
-              <InputNumber
-                className={styles.fullWidthInput}
-                min={0}
-                precision={0}
-                value={subscriptionPlanForm.monthlyPriceAmount}
-                onChange={value =>
-                  handleUpdateSubscriptionPlanForm({ monthlyPriceAmount: value ?? 0 })
-                }
-              />
-            </div>
-            <div className={styles.modalField}>
-              <span>年付价格</span>
-              <InputNumber
-                className={styles.fullWidthInput}
-                min={0}
-                precision={0}
-                value={subscriptionPlanForm.yearlyPriceAmount}
-                onChange={value =>
-                  handleUpdateSubscriptionPlanForm({ yearlyPriceAmount: value ?? 0 })
-                }
-              />
-            </div>
-            <div className={styles.modalField}>
-              <span>签约年付价格</span>
-              <InputNumber
-                className={styles.fullWidthInput}
-                min={0}
-                precision={0}
-                value={subscriptionPlanForm.contractYearlyPriceAmount}
-                onChange={value =>
-                  handleUpdateSubscriptionPlanForm({ contractYearlyPriceAmount: value ?? 0 })
-                }
-              />
-            </div>
-            <div className={styles.modalField}>
-              <span>月付有效期（月）</span>
-              <InputNumber
-                className={styles.fullWidthInput}
-                min={1}
-                precision={0}
-                value={subscriptionPlanForm.monthlyValidityCount}
-                onChange={value =>
-                  handleUpdateSubscriptionPlanForm({ monthlyValidityCount: value ?? 1 })
-                }
-              />
-            </div>
-            <div className={styles.modalField}>
-              <span>年付有效期（年）</span>
-              <InputNumber
-                className={styles.fullWidthInput}
-                min={1}
-                precision={0}
-                value={subscriptionPlanForm.yearlyValidityCount}
-                onChange={value =>
-                  handleUpdateSubscriptionPlanForm({ yearlyValidityCount: value ?? 1 })
-                }
-              />
-            </div>
-            <div className={styles.modalField}>
-              <span>月付赠送积分</span>
-              <InputNumber
-                className={styles.fullWidthInput}
-                min={0}
-                precision={0}
-                value={subscriptionPlanForm.monthlyGiftPoints}
-                onChange={value =>
-                  handleUpdateSubscriptionPlanForm({ monthlyGiftPoints: value ?? 0 })
-                }
-              />
-            </div>
-            <div className={styles.modalField}>
-              <span>年付赠送积分</span>
-              <InputNumber
-                className={styles.fullWidthInput}
-                min={0}
-                precision={0}
-                value={subscriptionPlanForm.yearlyGiftPoints}
-                onChange={value =>
-                  handleUpdateSubscriptionPlanForm({ yearlyGiftPoints: value ?? 0 })
-                }
-              />
-            </div>
-            <div className={styles.modalField}>
-              <span>状态</span>
-              <Select<MockSubscriptionPlanStatus>
-                value={subscriptionPlanForm.status}
-                options={[
-                  { value: "active", label: "启用" },
-                  { value: "inactive", label: "停用" },
-                ]}
-                onChange={status => handleUpdateSubscriptionPlanForm({ status })}
-              />
-            </div>
-          </div>
-          <div className={styles.previewPanel}>
-            <div className={styles.previewRow}>
-              <span>月付</span>
-              <strong>
-                {formatAmount(Math.max(subscriptionPlanForm.monthlyPriceAmount, 0))} / 席 / 月，
-                有效期{" "}
-                {formatMockSubscriptionValidity(
-                  Math.max(Math.floor(subscriptionPlanForm.monthlyValidityCount), 1),
-                  "month",
-                )}
-              </strong>
-            </div>
-            <div className={styles.previewRow}>
-              <span>年付</span>
-              <strong>
-                {formatAmount(Math.max(subscriptionPlanForm.yearlyPriceAmount, 0))} / 席 / 年，
-                有效期{" "}
-                {formatMockSubscriptionValidity(
-                  Math.max(Math.floor(subscriptionPlanForm.yearlyValidityCount), 1),
-                  "year",
-                )}
-              </strong>
-            </div>
-            <div className={styles.previewRow}>
-              <span>签约年付</span>
-              <strong>
-                {formatAmount(Math.max(subscriptionPlanForm.contractYearlyPriceAmount, 0))} / 席 /
-                年
-              </strong>
-            </div>
-          </div>
-        </div>
-      </Modal>
 
       <Modal
         open={contractCodeEditor.open}
