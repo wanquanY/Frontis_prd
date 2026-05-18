@@ -233,7 +233,9 @@ const buildSubscriptionOrder = (order: MockTenantSubscriptionOrderItem): TenantO
   return {
     amount: order.amount,
     createdAt: order.createdAt,
-    detailLabel: `${purchaseModeLabel} ${order.seatCount} 席 · ${order.billingCycleLabel}`,
+    detailLabel: `${purchaseModeLabel} ${order.seatCount} 席 · ${
+      order.prorationLabel ?? order.billingCycleLabel
+    }`,
     id: `subscription-${order.id}`,
     orderNo: order.orderNo,
     paidAt: order.paidAt,

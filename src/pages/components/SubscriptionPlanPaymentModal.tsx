@@ -161,18 +161,22 @@ export const SubscriptionPlanPaymentModal = ({
                   <span>统一到期日</span>
                   <strong>{plan.expiresAt}</strong>
                 </div>
+                {plan.prorationLabel ? (
+                  <div className={styles.summaryRow}>
+                    <span>计费周期</span>
+                    <strong>{plan.prorationLabel}</strong>
+                  </div>
+                ) : null}
                 {plan.contractCode ? (
                   <div className={styles.summaryRow}>
                     <span>签约码</span>
                     <strong>{plan.contractCodeStatusLabel ?? plan.contractCode}</strong>
                   </div>
                 ) : null}
-                {plan.channelName ? (
+                {plan.ownerName ? (
                   <div className={styles.summaryRow}>
-                    <span>销售归属</span>
-                    <strong>
-                      {plan.channelName} · {plan.ownerName}
-                    </strong>
+                    <span>签约负责人</span>
+                    <strong>{plan.ownerName}</strong>
                   </div>
                 ) : null}
                 {plan.discountAmount > 0 ? (

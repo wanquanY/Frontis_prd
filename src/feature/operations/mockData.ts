@@ -3,12 +3,8 @@ import type {
   OperationsAgentSubmission,
   OperationsCommunityGroupConfig,
   OperationsFulfillment,
-  OperationsExternalMeteredService,
-  OperationsExternalMeteredServiceForm,
-  OperationsExternalServiceMeteringUnit,
   OperationsMeteringProvider,
   OperationsMeteringProviderForm,
-  OperationsMeteringProviderKind,
   OperationsModelInterfaceFormat,
   OperationsModelModality,
   OperationsModelService,
@@ -210,7 +206,7 @@ export const OPERATIONS_TAB_OPTIONS: Array<{
   {
     key: "resources",
     label: "资源池",
-    description: "维护大模型和第三方接口资源成本与售价。",
+    description: "维护大模型资源成本与售价。",
     permissionIds: [OPERATIONS_PERMISSION_IDS.resourceManage],
   },
   {
@@ -480,7 +476,6 @@ export const OPERATIONS_INITIAL_AGENT_SUBMISSIONS: OperationsAgentSubmission[] =
     submitter: "张三",
     submittedAt: "2026-04-16 13:20",
     status: "pending",
-    submissionType: "squarePublish",
     currentScopeLabel: "已发布到专家广场",
     submitReason: "该 AI 专家已在租户内稳定使用，申请进入专家广场供更多租户直接使用。",
     targetCustomers: "零售连锁、门店经营分析团队",
@@ -493,7 +488,6 @@ export const OPERATIONS_INITIAL_AGENT_SUBMISSIONS: OperationsAgentSubmission[] =
     submitter: "王晨",
     submittedAt: "2026-04-15 19:05",
     status: "approved",
-    submissionType: "squarePublish",
     currentScopeLabel: "已发布到专家广场",
     submitReason: "租户内部验证完成，希望进入专家广场，供更多财务场景租户复用。",
     targetCustomers: "财务共享中心、对账运营团队",
@@ -513,7 +507,6 @@ export const OPERATIONS_INITIAL_AGENT_SUBMISSIONS: OperationsAgentSubmission[] =
     submitter: "李雪",
     submittedAt: "2026-04-14 17:40",
     status: "rejected",
-    submissionType: "squarePublish",
     currentScopeLabel: "已发布到专家广场",
     submitReason: "希望进入专家广场，对外提供巡检与告警能力。",
     targetCustomers: "设备运维、巡检团队",
@@ -528,7 +521,6 @@ export const OPERATIONS_INITIAL_AGENT_SUBMISSIONS: OperationsAgentSubmission[] =
     submitter: "林若岚",
     submittedAt: "2026-04-13 16:25",
     status: "approved",
-    submissionType: "squarePublish",
     currentScopeLabel: "已发布到专家广场",
     submitReason: "申请进入专家广场，面向电商运营租户统一开放使用。",
     targetCustomers: "电商运营、内容团队",
@@ -548,7 +540,6 @@ export const OPERATIONS_INITIAL_AGENT_SUBMISSIONS: OperationsAgentSubmission[] =
     submitter: "陈可心",
     submittedAt: "2026-04-12 11:10",
     status: "approved",
-    submissionType: "squarePublish",
     currentScopeLabel: "已发布到专家广场",
     submitReason: "适合作为平台通用 AI专家 上架给全部租户体验。",
     targetCustomers: "行政、HR、运营支持团队",
@@ -716,16 +707,6 @@ export const OPERATIONS_INITIAL_METERING_PROVIDERS: OperationsMeteringProvider[]
     status: "active",
     updatedAt: "2026-04-22 16:40",
   },
-  {
-    id: "ops-metering-provider-tianyancha",
-    name: "企业信息接口服务",
-    providerKind: "thirdPartyApi",
-    baseUrl: "https://api.company-data.example.com",
-    billingCurrency: "CNY",
-    credentialStatusLabel: "ak-****-company",
-    status: "active",
-    updatedAt: "2026-04-21 14:15",
-  },
 ];
 
 export const OPERATIONS_INITIAL_MODEL_SERVICES: OperationsModelService[] = [
@@ -785,39 +766,6 @@ export const OPERATIONS_INITIAL_MODEL_SERVICES: OperationsModelService[] = [
     outputSalePricePerMillion: 0,
     status: "active",
     updatedAt: "2026-04-21 18:30",
-  },
-];
-
-export const OPERATIONS_INITIAL_EXTERNAL_METERED_SERVICES: OperationsExternalMeteredService[] = [
-  {
-    id: "ops-external-service-company-search",
-    providerId: "ops-metering-provider-tianyancha",
-    providerName: "企业信息接口服务",
-    name: "企业工商信息查询",
-    serviceTypeLabel: "第三方 API",
-    meteringUnit: "call",
-    costPerUnit: 0.08,
-    pricingMode: "markup",
-    markupRate: 1.5,
-    grossMarginRate: 30,
-    salePricePerUnit: 0.12,
-    status: "active",
-    updatedAt: "2026-04-21 15:05",
-  },
-  {
-    id: "ops-external-service-ocr",
-    providerId: "ops-metering-provider-bailian",
-    providerName: "阿里云百炼",
-    name: "票据 OCR 识别",
-    serviceTypeLabel: "Skill 外部能力",
-    meteringUnit: "image",
-    costPerUnit: 0.03,
-    pricingMode: "markup",
-    markupRate: 1.4,
-    grossMarginRate: 30,
-    salePricePerUnit: 0.042,
-    status: "active",
-    updatedAt: "2026-04-20 10:50",
   },
 ];
 
@@ -1548,15 +1496,6 @@ export const OPERATIONS_RESOURCE_POOL_CAPACITY_UNIT_OPTIONS: Array<{
   },
 ];
 
-export const OPERATIONS_METERING_PROVIDER_KIND_LABELS: Record<
-  OperationsMeteringProviderKind,
-  string
-> = {
-  largeModel: "大模型服务商",
-  thirdPartyApi: "第三方接口服务商",
-  skillService: "Skill 能力服务商",
-};
-
 export const OPERATIONS_METERING_STATUS_LABELS: Record<"active" | "inactive", string> = {
   active: "启用",
   inactive: "停用",
@@ -1587,26 +1526,6 @@ export const OPERATIONS_SERVICE_PRICING_MODE_LABELS: Record<
   manual: "手动售价",
 };
 
-export const OPERATIONS_EXTERNAL_SERVICE_METERING_UNIT_LABELS: Record<
-  OperationsExternalServiceMeteringUnit,
-  string
-> = {
-  call: "次调用",
-  request: "次请求",
-  minute: "分钟",
-  image: "张图片",
-  thousandCharacters: "千字符",
-};
-
-export const OPERATIONS_METERING_PROVIDER_KIND_OPTIONS: Array<{
-  value: OperationsMeteringProviderKind;
-  label: string;
-}> = [
-  { value: "largeModel", label: OPERATIONS_METERING_PROVIDER_KIND_LABELS.largeModel },
-  { value: "thirdPartyApi", label: OPERATIONS_METERING_PROVIDER_KIND_LABELS.thirdPartyApi },
-  { value: "skillService", label: OPERATIONS_METERING_PROVIDER_KIND_LABELS.skillService },
-];
-
 export const OPERATIONS_MODEL_MODALITY_OPTIONS: Array<{
   value: OperationsModelModality;
   label: string;
@@ -1624,20 +1543,6 @@ export const OPERATIONS_MODEL_INTERFACE_FORMAT_OPTIONS: Array<{
   { value: "openai", label: OPERATIONS_MODEL_INTERFACE_FORMAT_LABELS.openai },
   { value: "anthropic", label: OPERATIONS_MODEL_INTERFACE_FORMAT_LABELS.anthropic },
   { value: "gemini", label: OPERATIONS_MODEL_INTERFACE_FORMAT_LABELS.gemini },
-];
-
-export const OPERATIONS_EXTERNAL_SERVICE_METERING_UNIT_OPTIONS: Array<{
-  value: OperationsExternalServiceMeteringUnit;
-  label: string;
-}> = [
-  { value: "call", label: OPERATIONS_EXTERNAL_SERVICE_METERING_UNIT_LABELS.call },
-  { value: "request", label: OPERATIONS_EXTERNAL_SERVICE_METERING_UNIT_LABELS.request },
-  { value: "minute", label: OPERATIONS_EXTERNAL_SERVICE_METERING_UNIT_LABELS.minute },
-  { value: "image", label: OPERATIONS_EXTERNAL_SERVICE_METERING_UNIT_LABELS.image },
-  {
-    value: "thousandCharacters",
-    label: OPERATIONS_EXTERNAL_SERVICE_METERING_UNIT_LABELS.thousandCharacters,
-  },
 ];
 
 export const createEmptyOperationsTenantForm = (): OperationsTenantForm => ({
@@ -1756,17 +1661,3 @@ export const createEmptyOperationsModelServiceForm = (): OperationsModelServiceF
   outputSalePricePerMillion: 0,
   status: "active",
 });
-
-export const createEmptyOperationsExternalMeteredServiceForm =
-  (): OperationsExternalMeteredServiceForm => ({
-    providerId: "",
-    name: "",
-    serviceTypeLabel: "第三方 API",
-    meteringUnit: "call",
-    costPerUnit: 0,
-    pricingMode: "markup",
-    markupRate: 1.3,
-    grossMarginRate: 30,
-    salePricePerUnit: 0,
-    status: "active",
-  });

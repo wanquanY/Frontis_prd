@@ -53,11 +53,6 @@ export type OperationsAgentApprovalStatus = "pending" | "approved" | "rejected";
 export type OperationsAgentPlazaStatus = "online" | "offline";
 
 /**
- * Agent 提审类型。
- */
-export type OperationsAgentSubmissionType = "squarePublish" | "commodityApplication";
-
-/**
  * 商品分类名称，由运营后台维护。
  */
 export type OperationsAgentPlazaCategory = string;
@@ -400,7 +395,7 @@ export type OperationsMeteringStatus = "active" | "inactive";
 /**
  * 平台服务商类型。
  */
-export type OperationsMeteringProviderKind = "largeModel" | "thirdPartyApi" | "skillService";
+export type OperationsMeteringProviderKind = "largeModel";
 
 /**
  * 模型能力类型。
@@ -416,16 +411,6 @@ export type OperationsModelInterfaceFormat = "anthropic" | "gemini" | "openai";
  * 服务定价模式。
  */
 export type OperationsServicePricingMode = "markup" | "grossMargin" | "manual";
-
-/**
- * 第三方接口计量单位。
- */
-export type OperationsExternalServiceMeteringUnit =
-  | "call"
-  | "request"
-  | "minute"
-  | "image"
-  | "thousandCharacters";
 
 /**
  * 积分消耗来源类型。
@@ -502,41 +487,6 @@ export interface OperationsModelServiceForm {
 }
 
 /**
- * 第三方接口或 Skill 计费配置。
- */
-export interface OperationsExternalMeteredService {
-  id: string;
-  providerId: string;
-  providerName: string;
-  name: string;
-  serviceTypeLabel: string;
-  meteringUnit: OperationsExternalServiceMeteringUnit;
-  costPerUnit: number;
-  pricingMode: OperationsServicePricingMode;
-  markupRate: number;
-  grossMarginRate: number;
-  salePricePerUnit: number;
-  status: OperationsMeteringStatus;
-  updatedAt: string;
-}
-
-/**
- * 第三方接口或 Skill 计费配置表单。
- */
-export interface OperationsExternalMeteredServiceForm {
-  providerId: string;
-  name: string;
-  serviceTypeLabel: string;
-  meteringUnit: OperationsExternalServiceMeteringUnit;
-  costPerUnit: number;
-  pricingMode: OperationsServicePricingMode;
-  markupRate: number;
-  grossMarginRate: number;
-  salePricePerUnit: number;
-  status: OperationsMeteringStatus;
-}
-
-/**
  * 积分消耗对账记录。
  */
 export interface OperationsPointsUsageRecord {
@@ -569,7 +519,6 @@ export interface OperationsAgentSubmission {
   submittedAt: string;
   status: OperationsAgentApprovalStatus;
   description: string;
-  submissionType?: OperationsAgentSubmissionType;
   proposedProductName?: string;
   submitReason?: string;
   targetCustomers?: string;

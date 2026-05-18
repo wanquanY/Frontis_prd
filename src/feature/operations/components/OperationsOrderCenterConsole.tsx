@@ -79,7 +79,7 @@ const buildSubscriptionOrder = (
 ): UnifiedOperationsOrder => ({
   amount: order.amount,
   createdAt: order.createdAt,
-  detailLabel: `${order.seatCount} 席 · ${order.billingCycleLabel}`,
+  detailLabel: `${order.seatCount} 席 · ${order.prorationLabel ?? order.billingCycleLabel}`,
   id: `subscription-${order.id}`,
   orderNo: order.orderNo,
   paidAt: order.paidAt,

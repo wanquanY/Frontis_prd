@@ -19,10 +19,8 @@ import {
   saveStoredOperationsProducts,
 } from "@/feature/operations/commerceStorage";
 import {
-  loadStoredOperationsExternalMeteredServices,
   loadStoredOperationsMeteringProviders,
   loadStoredOperationsModelServices,
-  saveStoredOperationsExternalMeteredServices,
   saveStoredOperationsMeteringProviders,
   saveStoredOperationsModelServices,
 } from "@/feature/operations/serviceMeteringStorage";
@@ -91,8 +89,6 @@ import type {
   OperationsAgentPlazaCategoryOption,
   OperationsAgentSubmission,
   OperationsCommunityGroupConfig,
-  OperationsExternalMeteredService,
-  OperationsExternalMeteredServiceForm,
   OperationsMeteringProvider,
   OperationsMeteringProviderForm,
   OperationsModelService,
@@ -129,7 +125,6 @@ interface UseOperationsPlatformResult {
   products: OperationsProduct[];
   meteringProviders: OperationsMeteringProvider[];
   modelServices: OperationsModelService[];
-  externalMeteredServices: OperationsExternalMeteredService[];
   pointsPackages: MockPointsPackageOption[];
   salesChannelContractCodes: MockSalesChannelContractCode[];
   subscriptionPlans: MockSubscriptionPlanTemplate[];
@@ -168,11 +163,6 @@ interface UseOperationsPlatformResult {
   updateMeteringProvider: (providerId: string, form: OperationsMeteringProviderForm) => void;
   createModelService: (form: OperationsModelServiceForm) => void;
   updateModelService: (modelId: string, form: OperationsModelServiceForm) => void;
-  createExternalMeteredService: (form: OperationsExternalMeteredServiceForm) => void;
-  updateExternalMeteredService: (
-    serviceId: string,
-    form: OperationsExternalMeteredServiceForm,
-  ) => void;
   createPointsPackage: (
     payload: Pick<
       MockPointsPackageOption,
@@ -265,7 +255,6 @@ const buildAgentPlazaCategoryId = (): string => `ops-agent-plaza-category-${Date
 const buildSkillCenterCategoryId = (): string => `ops-skill-center-category-${Date.now()}`;
 const buildMeteringProviderId = (): string => `ops-metering-provider-${Date.now()}`;
 const buildModelServiceId = (): string => `ops-model-service-${Date.now()}`;
-const buildExternalMeteredServiceId = (): string => `ops-external-service-${Date.now()}`;
 
 const resolveTenantEditionBySeatCount = (seatCount: number): OperationsTenant["edition"] =>
   seatCount <= 1 ? "personal" : "team";
@@ -405,31 +394,6 @@ const buildModelServiceFromForm = (
     form.markupRate,
     form.grossMarginRate,
     form.outputSalePricePerMillion,
-  ),
-  status: form.status,
-  updatedAt: formatTimestamp(),
-});
-
-const buildExternalMeteredServiceFromForm = (
-  form: OperationsExternalMeteredServiceForm,
-  providers: OperationsMeteringProvider[],
-): OperationsExternalMeteredService => ({
-  id: buildExternalMeteredServiceId(),
-  providerId: form.providerId,
-  providerName: resolveMeteringProviderName(providers, form.providerId),
-  name: form.name.trim(),
-  serviceTypeLabel: form.serviceTypeLabel.trim(),
-  meteringUnit: form.meteringUnit,
-  costPerUnit: form.costPerUnit,
-  pricingMode: form.pricingMode,
-  markupRate: form.markupRate,
-  grossMarginRate: form.grossMarginRate,
-  salePricePerUnit: calculateOperationsSalePrice(
-    form.costPerUnit,
-    form.pricingMode,
-    form.markupRate,
-    form.grossMarginRate,
-    form.salePricePerUnit,
   ),
   status: form.status,
   updatedAt: formatTimestamp(),
@@ -580,8 +544,25 @@ const normalizeSubmissionSubmitter = (submitter: string): string =>
 const normalizeAgentSubmission = (
   submission: OperationsAgentSubmission,
 ): OperationsAgentSubmission => ({
-  ...submission,
+  id: submission.id,
+  name: submission.name,
+  version: submission.version,
   submitter: normalizeSubmissionSubmitter(submission.submitter),
+  submittedAt: submission.submittedAt,
+  status: submission.status,
+  description: submission.description,
+  proposedProductName: submission.proposedProductName,
+  submitReason: submission.submitReason,
+  targetCustomers: submission.targetCustomers,
+  currentScopeLabel: submission.currentScopeLabel,
+  rejectReason: submission.rejectReason,
+  lastReviewedAt: submission.lastReviewedAt,
+  plazaCategory: submission.plazaCategory,
+  plazaVisibility: submission.plazaVisibility,
+  visibleTenantIds: submission.visibleTenantIds,
+  visibleTenantNames: submission.visibleTenantNames,
+  plazaStatus: submission.plazaStatus,
+  plazaUpdatedAt: submission.plazaUpdatedAt,
 });
 
 const buildInitialAgentSubmissions = (): OperationsAgentSubmission[] => {
@@ -629,9 +610,6 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
   const [modelServices, setModelServices] = useState<OperationsModelService[]>(() =>
     loadStoredOperationsModelServices(),
   );
-  const [externalMeteredServices, setExternalMeteredServices] = useState<
-    OperationsExternalMeteredService[]
-  >(() => loadStoredOperationsExternalMeteredServices());
   const [pointsUsageRecords] = useState<OperationsPointsUsageRecord[]>(
     () => OPERATIONS_INITIAL_POINTS_USAGE_RECORDS,
   );
@@ -684,10 +662,6 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
   useEffect(() => {
     saveStoredOperationsModelServices(modelServices);
   }, [modelServices]);
-
-  useEffect(() => {
-    saveStoredOperationsExternalMeteredServices(externalMeteredServices);
-  }, [externalMeteredServices]);
 
   useEffect(() => {
     saveOperationsRegistrationStrategy(registrationStrategy);
@@ -943,17 +917,6 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
         ),
       );
 
-      setExternalMeteredServices(currentServices =>
-        currentServices.map(item =>
-          item.providerId === providerId
-            ? {
-                ...item,
-                providerName: nextProviderName,
-                updatedAt: formatTimestamp(),
-              }
-            : item,
-        ),
-      );
     },
     [],
   );
@@ -975,32 +938,6 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
           item.id === modelId
             ? {
                 ...buildModelServiceFromForm(form, meteringProviders),
-                id: item.id,
-              }
-            : item,
-        ),
-      );
-    },
-    [meteringProviders],
-  );
-
-  const createExternalMeteredService = useCallback(
-    (form: OperationsExternalMeteredServiceForm): void => {
-      setExternalMeteredServices(currentServices => [
-        buildExternalMeteredServiceFromForm(form, meteringProviders),
-        ...currentServices,
-      ]);
-    },
-    [meteringProviders],
-  );
-
-  const updateExternalMeteredService = useCallback(
-    (serviceId: string, form: OperationsExternalMeteredServiceForm): void => {
-      setExternalMeteredServices(currentServices =>
-        currentServices.map(item =>
-          item.id === serviceId
-            ? {
-                ...buildExternalMeteredServiceFromForm(form, meteringProviders),
                 id: item.id,
               }
             : item,
@@ -1319,7 +1256,6 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
     products,
     meteringProviders,
     modelServices,
-    externalMeteredServices,
     pointsPackages,
     salesChannelContractCodes,
     subscriptionPlans,
@@ -1358,8 +1294,6 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
     updateMeteringProvider,
     createModelService,
     updateModelService,
-    createExternalMeteredService,
-    updateExternalMeteredService,
     createPointsPackage,
     updatePointsPackage,
     createSalesChannelContractCode,

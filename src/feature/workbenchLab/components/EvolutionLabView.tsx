@@ -1646,7 +1646,6 @@ export const EvolutionLabView = ({ onNavigate }: EvolutionLabViewProps = {}): JS
       submitter: `${currentUserName} - ${currentTenantName}`,
       submittedAt: formatCurrentTimestamp(),
       status: "pending" as const,
-      submissionType: "commodityApplication" as const,
       proposedProductName,
       submitReason,
       targetCustomers: commodityApplicationForm.targetCustomers.trim() || undefined,

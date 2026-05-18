@@ -596,7 +596,6 @@ const AgentConsole = ({
               <thead>
                 <tr>
                   <th>AI专家</th>
-                  <th>申请类型</th>
                   <th>版本</th>
                   <th>提审人</th>
                   <th>状态</th>
@@ -616,11 +615,6 @@ const AgentConsole = ({
                       >
                         <span className={styles.recordEntryTitle}>{submission.name}</span>
                       </button>
-                    </td>
-                    <td>
-                      {submission.submissionType === "commodityApplication"
-                        ? "AI专家上架"
-                        : "广场发布"}
                     </td>
                     <td>{submission.version}</td>
                     <td>{submission.submitter}</td>
@@ -687,7 +681,6 @@ export const OperationsPlatformView = (): JSX.Element => {
     applyTenantSubscriptionPlan,
     communityGroupConfig,
     createAgentPlazaCategory,
-    createExternalMeteredService,
     createMeteringProvider,
     createModelService,
     createPointsPackage,
@@ -698,7 +691,6 @@ export const OperationsPlatformView = (): JSX.Element => {
     createTenant,
     emptyTenantForm,
     emptyProductForm,
-    externalMeteredServices,
     meteringProviders,
     modelServices,
     productStatusLabels,
@@ -717,7 +709,6 @@ export const OperationsPlatformView = (): JSX.Element => {
     tenantStatusLabels,
     tenants,
     updateAgentPlazaCategory,
-    updateExternalMeteredService,
     updateMeteringProvider,
     updateModelService,
     updateProduct,
@@ -1137,13 +1128,10 @@ export const OperationsPlatformView = (): JSX.Element => {
 
       return (
         <OperationsResourceMeteringConsole
-          externalMeteredServices={externalMeteredServices}
           meteringProviders={meteringProviders}
           modelServices={modelServices}
-          onCreateExternalMeteredService={createExternalMeteredService}
           onCreateMeteringProvider={createMeteringProvider}
           onCreateModelService={createModelService}
-          onUpdateExternalMeteredService={updateExternalMeteredService}
           onUpdateMeteringProvider={updateMeteringProvider}
           onUpdateModelService={updateModelService}
         />
@@ -1236,7 +1224,6 @@ export const OperationsPlatformView = (): JSX.Element => {
     canReviewAgent,
     communityGroupConfig,
     createAgentPlazaCategory,
-    createExternalMeteredService,
     createMeteringProvider,
     createModelService,
     createPointsPackage,
@@ -1245,7 +1232,6 @@ export const OperationsPlatformView = (): JSX.Element => {
     createSkillCenterCategory,
     createSubscriptionPlan,
     emptyProductForm,
-    externalMeteredServices,
     handleBackToProductList,
     handleBackToTenantList,
     handleOpenAgentReview,
@@ -1274,7 +1260,6 @@ export const OperationsPlatformView = (): JSX.Element => {
     tenants,
     updateAgentPlazaCategory,
     updateCommunityGroupConfig,
-    updateExternalMeteredService,
     updateMeteringProvider,
     updateModelService,
     updatePointsPackage,
@@ -1672,14 +1657,6 @@ export const OperationsPlatformView = (): JSX.Element => {
             <section className={adminStyles.detailBlock}>
               <h3 className={adminStyles.detailBlockTitle}>审核信息</h3>
               <div className={adminStyles.consoleRows}>
-                <div className={adminStyles.consoleInfoRow}>
-                  <span className={adminStyles.consoleInfoLabel}>申请类型</span>
-                  <span className={adminStyles.consoleInfoValue}>
-                    {activeReviewSubmission.submissionType === "commodityApplication"
-                      ? "申请上架 AI专家"
-                      : "广场发布"}
-                  </span>
-                </div>
                 <div className={adminStyles.consoleInfoRow}>
                   <span className={adminStyles.consoleInfoLabel}>提审人</span>
                   <span className={adminStyles.consoleInfoValue}>

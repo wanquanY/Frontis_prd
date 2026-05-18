@@ -72,7 +72,17 @@ export type MockSubscriptionPlanTemplateInput = Pick<
 >;
 
 /**
- * 销售或渠道签约码。
+ * 签约子码。
+ */
+export interface MockSalesChannelContractSubCode {
+  code: string;
+  ownerName?: string;
+  status: "active" | "inactive";
+  serviceLabel?: string;
+}
+
+/**
+ * 签约码。
  */
 export interface MockSalesChannelContractCode {
   code: string;
@@ -80,10 +90,11 @@ export interface MockSalesChannelContractCode {
   ownerName: string;
   status: "active" | "inactive";
   serviceLabel: string;
+  subCodes: MockSalesChannelContractSubCode[];
 }
 
 /**
- * 运营后台维护销售或渠道签约码时提交的配置。
+ * 运营后台维护签约码时提交的配置。
  */
 export type MockSalesChannelContractCodeInput = MockSalesChannelContractCode;
 

@@ -4,16 +4,12 @@ import { Button, Empty, Input, InputNumber, Modal, Select, Switch, message } fro
 import classNames from "classnames";
 
 import {
-  OPERATIONS_EXTERNAL_SERVICE_METERING_UNIT_LABELS,
-  OPERATIONS_EXTERNAL_SERVICE_METERING_UNIT_OPTIONS,
-  OPERATIONS_METERING_PROVIDER_KIND_LABELS,
   OPERATIONS_METERING_STATUS_LABELS,
   OPERATIONS_MODEL_INTERFACE_FORMAT_LABELS,
   OPERATIONS_MODEL_INTERFACE_FORMAT_OPTIONS,
   OPERATIONS_MODEL_MODALITY_LABELS,
   OPERATIONS_MODEL_MODALITY_OPTIONS,
   OPERATIONS_SERVICE_PRICING_MODE_LABELS,
-  createEmptyOperationsExternalMeteredServiceForm,
   createEmptyOperationsMeteringProviderForm,
   createEmptyOperationsModelServiceForm,
 } from "@/feature/operations/mockData";
@@ -22,12 +18,8 @@ import {
   formatOperationsCurrency,
 } from "@/feature/operations/serviceMeteringUtils";
 import type {
-  OperationsExternalMeteredService,
-  OperationsExternalMeteredServiceForm,
-  OperationsExternalServiceMeteringUnit,
   OperationsMeteringProvider,
   OperationsMeteringProviderForm,
-  OperationsMeteringProviderKind,
   OperationsMeteringStatus,
   OperationsModelInterfaceFormat,
   OperationsModelModality,
@@ -39,19 +31,11 @@ import adminStyles from "@/pages/components/FrontisAdminViews.module.less";
 
 import styles from "./OperationsPlatformView.module.less";
 
-type ResourceMeteringTabKey = "models" | "interfaces";
-
 interface OperationsResourceMeteringConsoleProps {
-  externalMeteredServices: OperationsExternalMeteredService[];
   meteringProviders: OperationsMeteringProvider[];
   modelServices: OperationsModelService[];
-  onCreateExternalMeteredService: (form: OperationsExternalMeteredServiceForm) => void;
   onCreateMeteringProvider: (form: OperationsMeteringProviderForm) => void;
   onCreateModelService: (form: OperationsModelServiceForm) => void;
-  onUpdateExternalMeteredService: (
-    serviceId: string,
-    form: OperationsExternalMeteredServiceForm,
-  ) => void;
   onUpdateMeteringProvider: (providerId: string, form: OperationsMeteringProviderForm) => void;
   onUpdateModelService: (modelId: string, form: OperationsModelServiceForm) => void;
 }
@@ -70,18 +54,6 @@ interface ModelEditorState {
   open: boolean;
 }
 
-interface ExternalServiceEditorState {
-  form: OperationsExternalMeteredServiceForm;
-  mode: "create" | "edit";
-  open: boolean;
-  serviceId?: string;
-}
-
-const RESOURCE_TABS: Array<{ key: ResourceMeteringTabKey; label: string }> = [
-  { key: "models", label: "大模型资源" },
-  { key: "interfaces", label: "接口资源" },
-];
-
 const METERING_STATUS_OPTIONS: Array<{ value: OperationsMeteringStatus; label: string }> = [
   { value: "active", label: OPERATIONS_METERING_STATUS_LABELS.active },
   { value: "inactive", label: OPERATIONS_METERING_STATUS_LABELS.inactive },
@@ -99,11 +71,9 @@ const buildStatusClassName = (status: OperationsMeteringStatus): string =>
     [adminStyles.consoleStatusTagWarning]: status === "inactive",
   });
 
-const createProviderForm = (
-  providerKind: OperationsMeteringProviderKind,
-): OperationsMeteringProviderForm => ({
+const createProviderForm = (): OperationsMeteringProviderForm => ({
   ...createEmptyOperationsMeteringProviderForm(),
-  providerKind,
+  providerKind: "largeModel",
 });
 
 const providerToForm = (provider: OperationsMeteringProvider): OperationsMeteringProviderForm => ({
@@ -132,50 +102,26 @@ const modelToForm = (model: OperationsModelService): OperationsModelServiceForm 
   status: model.status,
 });
 
-const externalServiceToForm = (
-  service: OperationsExternalMeteredService,
-): OperationsExternalMeteredServiceForm => ({
-  providerId: service.providerId,
-  name: service.name,
-  serviceTypeLabel: service.serviceTypeLabel,
-  meteringUnit: service.meteringUnit,
-  costPerUnit: service.costPerUnit,
-  pricingMode: service.pricingMode,
-  markupRate: service.markupRate,
-  grossMarginRate: service.grossMarginRate,
-  salePricePerUnit: service.salePricePerUnit,
-  status: service.status,
-});
-
 const createModelForm = (providerId: string): OperationsModelServiceForm => ({
   ...createEmptyOperationsModelServiceForm(),
   providerId,
 });
 
-const createExternalServiceForm = (providerId: string): OperationsExternalMeteredServiceForm => ({
-  ...createEmptyOperationsExternalMeteredServiceForm(),
-  providerId,
-});
-
 /**
- * 运营后台资源池控制台，维护模型资源、第三方接口资源和对应成本售价。
+ * 运营后台资源池控制台，维护模型资源和对应成本售价。
  */
 export const OperationsResourceMeteringConsole = ({
-  externalMeteredServices,
   meteringProviders,
   modelServices,
-  onCreateExternalMeteredService,
   onCreateMeteringProvider,
   onCreateModelService,
-  onUpdateExternalMeteredService,
   onUpdateMeteringProvider,
   onUpdateModelService,
 }: OperationsResourceMeteringConsoleProps): JSX.Element => {
-  const [activeTab, setActiveTab] = useState<ResourceMeteringTabKey>("models");
   const [keyword, setKeyword] = useState<string>("");
   const [managedProviderId, setManagedProviderId] = useState<string>("");
   const [providerEditor, setProviderEditor] = useState<ProviderEditorState>({
-    form: createProviderForm("largeModel"),
+    form: createProviderForm(),
     mode: "create",
     open: false,
   });
@@ -184,25 +130,12 @@ export const OperationsResourceMeteringConsole = ({
     mode: "create",
     open: false,
   });
-  const [externalServiceEditor, setExternalServiceEditor] = useState<ExternalServiceEditorState>({
-    form: createExternalServiceForm(""),
-    mode: "create",
-    open: false,
-  });
 
   const largeModelProviders = useMemo(
     () => meteringProviders.filter(provider => provider.providerKind === "largeModel"),
     [meteringProviders],
   );
-  const interfaceProviders = useMemo(
-    () => meteringProviders.filter(provider => provider.providerKind !== "largeModel"),
-    [meteringProviders],
-  );
   const providerOptions = largeModelProviders.map(provider => ({
-    value: provider.id,
-    label: provider.name,
-  }));
-  const interfaceProviderOptions = interfaceProviders.map(provider => ({
     value: provider.id,
     label: provider.name,
   }));
@@ -250,21 +183,9 @@ export const OperationsResourceMeteringConsole = ({
     }),
     [modelEditor.form],
   );
-  const externalPricePreview = useMemo(
-    () =>
-      calculateOperationsSalePrice(
-        externalServiceEditor.form.costPerUnit,
-        externalServiceEditor.form.pricingMode,
-        externalServiceEditor.form.markupRate,
-        externalServiceEditor.form.grossMarginRate,
-        externalServiceEditor.form.salePricePerUnit,
-      ),
-    [externalServiceEditor.form],
-  );
-
-  const handleOpenCreateProvider = (providerKind: OperationsMeteringProviderKind): void => {
+  const handleOpenCreateProvider = (): void => {
     setProviderEditor({
-      form: createProviderForm(providerKind),
+      form: createProviderForm(),
       mode: "create",
       open: true,
     });
@@ -281,7 +202,7 @@ export const OperationsResourceMeteringConsole = ({
 
   const handleCloseProviderEditor = (): void => {
     setProviderEditor({
-      form: createProviderForm("largeModel"),
+      form: createProviderForm(),
       mode: "create",
       open: false,
     });
@@ -351,58 +272,6 @@ export const OperationsResourceMeteringConsole = ({
     handleCloseModelEditor();
   };
 
-  const handleOpenCreateExternalService = (): void => {
-    if (!interfaceProviders.length) {
-      message.warning("请先添加接口服务商。");
-      return;
-    }
-
-    setExternalServiceEditor({
-      form: createExternalServiceForm(interfaceProviders[0]?.id ?? ""),
-      mode: "create",
-      open: true,
-    });
-  };
-
-  const handleOpenEditExternalService = (service: OperationsExternalMeteredService): void => {
-    setExternalServiceEditor({
-      form: externalServiceToForm(service),
-      mode: "edit",
-      open: true,
-      serviceId: service.id,
-    });
-  };
-
-  const handleCloseExternalServiceEditor = (): void => {
-    setExternalServiceEditor({
-      form: createExternalServiceForm(""),
-      mode: "create",
-      open: false,
-    });
-  };
-
-  const handleConfirmExternalService = (): void => {
-    if (!externalServiceEditor.form.providerId) {
-      message.warning("请选择接口服务商。");
-      return;
-    }
-
-    if (!externalServiceEditor.form.name.trim()) {
-      message.warning("请填写接口资源名称。");
-      return;
-    }
-
-    if (externalServiceEditor.mode === "edit" && externalServiceEditor.serviceId) {
-      onUpdateExternalMeteredService(externalServiceEditor.serviceId, externalServiceEditor.form);
-      message.success("接口资源已更新。");
-    } else {
-      onCreateExternalMeteredService(externalServiceEditor.form);
-      message.success("接口资源已添加。");
-    }
-
-    handleCloseExternalServiceEditor();
-  };
-
   const renderModelProviders = (): JSX.Element => (
     <section className={adminStyles.consoleSection}>
       <div className={adminStyles.consoleSectionHeader}>
@@ -417,7 +286,7 @@ export const OperationsResourceMeteringConsole = ({
             value={keyword}
             onChange={event => setKeyword(event.target.value)}
           />
-          <Button type="primary" onClick={() => handleOpenCreateProvider("largeModel")}>
+          <Button type="primary" onClick={handleOpenCreateProvider}>
             添加模型服务商
           </Button>
         </div>
@@ -480,73 +349,6 @@ export const OperationsResourceMeteringConsole = ({
     </section>
   );
 
-  const renderExternalServices = (): JSX.Element => (
-    <section className={adminStyles.consoleSection}>
-      <div className={adminStyles.consoleSectionHeader}>
-        <div className={adminStyles.consoleSectionHeaderMain}>
-          <h2 className={adminStyles.consoleSectionTitle}>接口资源</h2>
-        </div>
-        <div className={adminStyles.consoleActions}>
-          <Button onClick={() => handleOpenCreateProvider("thirdPartyApi")}>添加接口服务商</Button>
-          <Button type="primary" onClick={handleOpenCreateExternalService}>
-            新增接口资源
-          </Button>
-        </div>
-      </div>
-
-      {externalMeteredServices.length ? (
-        <div className={adminStyles.consoleHtmlTableWrap}>
-          <table className={adminStyles.consoleHtmlTable}>
-            <thead>
-              <tr>
-                <th>资源名称</th>
-                <th>服务商</th>
-                <th>计量单位</th>
-                <th>成本价</th>
-                <th>售价策略</th>
-                <th>计量单价</th>
-                <th>状态</th>
-                <th>操作</th>
-              </tr>
-            </thead>
-            <tbody>
-              {externalMeteredServices.map(service => (
-                <tr key={service.id}>
-                  <td>
-                    <span className={adminStyles.consoleHtmlTableStrong}>{service.name}</span>
-                    <br />
-                    {service.serviceTypeLabel}
-                  </td>
-                  <td>{service.providerName}</td>
-                  <td>{OPERATIONS_EXTERNAL_SERVICE_METERING_UNIT_LABELS[service.meteringUnit]}</td>
-                  <td>{formatOperationsCurrency(service.costPerUnit)}</td>
-                  <td>{OPERATIONS_SERVICE_PRICING_MODE_LABELS[service.pricingMode]}</td>
-                  <td>{formatOperationsCurrency(service.salePricePerUnit)}</td>
-                  <td>
-                    <span className={buildStatusClassName(service.status)}>
-                      {OPERATIONS_METERING_STATUS_LABELS[service.status]}
-                    </span>
-                  </td>
-                  <td>
-                    <Button
-                      size="small"
-                      type="link"
-                      onClick={() => handleOpenEditExternalService(service)}
-                    >
-                      编辑
-                    </Button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      ) : (
-        <Empty description="暂无接口资源。" />
-      )}
-    </section>
-  );
-
   return (
     <div className={adminStyles.consolePage}>
       <header className={adminStyles.consoleHeader}>
@@ -555,22 +357,7 @@ export const OperationsResourceMeteringConsole = ({
         </div>
       </header>
 
-      <div className={adminStyles.consoleTabs}>
-        {RESOURCE_TABS.map(tab => (
-          <button
-            key={tab.key}
-            type="button"
-            className={classNames(adminStyles.consoleTabButton, {
-              [adminStyles.consoleTabButtonActive]: activeTab === tab.key,
-            })}
-            onClick={() => setActiveTab(tab.key)}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
-
-      {activeTab === "models" ? renderModelProviders() : renderExternalServices()}
+      {renderModelProviders()}
 
       <Modal
         destroyOnHidden
@@ -589,24 +376,6 @@ export const OperationsResourceMeteringConsole = ({
                 setProviderEditor(current => ({
                   ...current,
                   form: { ...current.form, name: event.target.value },
-                }))
-              }
-            />
-          </div>
-          <div className={styles.modalField}>
-            <span className={styles.modalLabel}>服务商类型</span>
-            <Select<OperationsMeteringProviderKind>
-              value={providerEditor.form.providerKind}
-              options={Object.entries(OPERATIONS_METERING_PROVIDER_KIND_LABELS).map(
-                ([value, label]) => ({
-                  value: value as OperationsMeteringProviderKind,
-                  label,
-                }),
-              )}
-              onChange={value =>
-                setProviderEditor(current => ({
-                  ...current,
-                  form: { ...current.form, providerKind: value },
                 }))
               }
             />
@@ -934,157 +703,6 @@ export const OperationsResourceMeteringConsole = ({
         </div>
       </Modal>
 
-      <Modal
-        destroyOnHidden
-        open={externalServiceEditor.open}
-        title={externalServiceEditor.mode === "edit" ? "编辑接口资源" : "新增接口资源"}
-        width={920}
-        onCancel={handleCloseExternalServiceEditor}
-        onOk={handleConfirmExternalService}
-      >
-        <div className={styles.formGrid}>
-          <div className={styles.modalField}>
-            <span className={styles.modalLabel}>接口服务商</span>
-            <Select<string>
-              value={externalServiceEditor.form.providerId}
-              options={interfaceProviderOptions}
-              onChange={value =>
-                setExternalServiceEditor(current => ({
-                  ...current,
-                  form: { ...current.form, providerId: value },
-                }))
-              }
-            />
-          </div>
-          <div className={styles.modalField}>
-            <span className={styles.modalLabel}>资源名称</span>
-            <Input
-              value={externalServiceEditor.form.name}
-              onChange={event =>
-                setExternalServiceEditor(current => ({
-                  ...current,
-                  form: { ...current.form, name: event.target.value },
-                }))
-              }
-            />
-          </div>
-          <div className={styles.modalField}>
-            <span className={styles.modalLabel}>服务类型</span>
-            <Input
-              value={externalServiceEditor.form.serviceTypeLabel}
-              onChange={event =>
-                setExternalServiceEditor(current => ({
-                  ...current,
-                  form: { ...current.form, serviceTypeLabel: event.target.value },
-                }))
-              }
-            />
-          </div>
-          <div className={styles.modalField}>
-            <span className={styles.modalLabel}>计量单位</span>
-            <Select<OperationsExternalServiceMeteringUnit>
-              value={externalServiceEditor.form.meteringUnit}
-              options={OPERATIONS_EXTERNAL_SERVICE_METERING_UNIT_OPTIONS}
-              onChange={value =>
-                setExternalServiceEditor(current => ({
-                  ...current,
-                  form: { ...current.form, meteringUnit: value },
-                }))
-              }
-            />
-          </div>
-          <div className={styles.modalField}>
-            <span className={styles.modalLabel}>单位成本</span>
-            <InputNumber
-              className={styles.fullWidthInput}
-              min={0}
-              value={externalServiceEditor.form.costPerUnit}
-              onChange={value =>
-                setExternalServiceEditor(current => ({
-                  ...current,
-                  form: { ...current.form, costPerUnit: Number(value ?? 0) },
-                }))
-              }
-            />
-          </div>
-          <div className={styles.modalField}>
-            <span className={styles.modalLabel}>售价策略</span>
-            <Select<OperationsServicePricingMode>
-              value={externalServiceEditor.form.pricingMode}
-              options={PRICING_MODE_OPTIONS}
-              onChange={value =>
-                setExternalServiceEditor(current => ({
-                  ...current,
-                  form: { ...current.form, pricingMode: value },
-                }))
-              }
-            />
-          </div>
-          <div className={styles.modalField}>
-            <span className={styles.modalLabel}>
-              {externalServiceEditor.form.pricingMode === "grossMargin"
-                ? "目标毛利率（%）"
-                : "成本倍率（x）"}
-            </span>
-            <InputNumber
-              className={styles.fullWidthInput}
-              max={externalServiceEditor.form.pricingMode === "grossMargin" ? 95 : undefined}
-              min={externalServiceEditor.form.pricingMode === "grossMargin" ? 0 : 1}
-              value={
-                externalServiceEditor.form.pricingMode === "grossMargin"
-                  ? externalServiceEditor.form.grossMarginRate
-                  : externalServiceEditor.form.markupRate
-              }
-              onChange={value =>
-                setExternalServiceEditor(current => ({
-                  ...current,
-                  form:
-                    current.form.pricingMode === "grossMargin"
-                      ? { ...current.form, grossMarginRate: Number(value ?? 0) }
-                      : { ...current.form, markupRate: Number(value ?? 1) },
-                }))
-              }
-            />
-          </div>
-          {externalServiceEditor.form.pricingMode === "manual" ? (
-            <div className={styles.modalField}>
-              <span className={styles.modalLabel}>计量单价</span>
-              <InputNumber
-                className={styles.fullWidthInput}
-                min={0}
-                value={externalServiceEditor.form.salePricePerUnit}
-                onChange={value =>
-                  setExternalServiceEditor(current => ({
-                    ...current,
-                    form: { ...current.form, salePricePerUnit: Number(value ?? 0) },
-                  }))
-                }
-              />
-            </div>
-          ) : null}
-          <div className={styles.modalField}>
-            <span className={styles.modalLabel}>状态</span>
-            <Select<OperationsMeteringStatus>
-              value={externalServiceEditor.form.status}
-              options={METERING_STATUS_OPTIONS}
-              onChange={value =>
-                setExternalServiceEditor(current => ({
-                  ...current,
-                  form: { ...current.form, status: value },
-                }))
-              }
-            />
-          </div>
-          <div className={classNames(styles.modalField, styles.modalFieldWide)}>
-            <span className={styles.modalLabel}>售价预览</span>
-            <div className={adminStyles.consolePillRow}>
-              <span className={adminStyles.consolePill}>
-                计量单价 {formatOperationsCurrency(externalPricePreview)}
-              </span>
-            </div>
-          </div>
-        </div>
-      </Modal>
     </div>
   );
 };

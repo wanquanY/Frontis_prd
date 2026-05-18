@@ -8,6 +8,8 @@ import {
   getActiveMockSubscriptionPlanTemplates,
   getMockSubscriptionPlanTemplate,
   getMockSubscriptionPlanPurchaseOption,
+  getMockTenantActiveSubscriptionBillingCycle,
+  getMockTenantActiveSubscriptionContractCode,
   getMockSubscriptionPricingPolicy,
 } from "@/feature/subscription/mockSubscriptionPlans";
 import type {
@@ -95,6 +97,13 @@ export const SubscriptionPlanModal = ({
   const [billingCycle, setBillingCycle] = useState<MockSubscriptionBillingCycle>("monthly");
   const [seatCount, setSeatCount] = useState<number>(1);
   const [contractCode, setContractCode] = useState<string>("");
+  const isRenewMode = purchaseMode === "renew";
+  const lockedAddSeatBillingCycle = isRenewMode
+    ? null
+    : getMockTenantActiveSubscriptionBillingCycle(tenantSnapshot);
+  const lockedAddSeatContractCode = isRenewMode
+    ? ""
+    : getMockTenantActiveSubscriptionContractCode(tenantSnapshot);
   const purchasePreview = getMockSubscriptionPlanPurchaseOption(
     {
       billingCycle,
@@ -105,7 +114,6 @@ export const SubscriptionPlanModal = ({
     tenantSnapshot,
   );
   const isCurrentLite = currentPlanKey === "lite";
-  const isRenewMode = purchaseMode === "renew";
   const defaultSeatCount = isRenewMode ? Math.max(tenantSnapshot?.totalSeats ?? 1, 1) : 1;
   const seatFieldLabel = isRenewMode ? "续约席位" : "新增席位";
   const teamSeatPackage =
@@ -119,12 +127,16 @@ export const SubscriptionPlanModal = ({
       return;
     }
 
-    setBillingCycle("monthly");
+    setBillingCycle(lockedAddSeatBillingCycle ?? "monthly");
     setSeatCount(defaultSeatCount);
-    setContractCode("");
-  }, [defaultSeatCount, open]);
+    setContractCode(lockedAddSeatContractCode);
+  }, [defaultSeatCount, lockedAddSeatBillingCycle, lockedAddSeatContractCode, open]);
 
   const handleSelectBillingCycle = (nextBillingCycle: MockSubscriptionBillingCycle): void => {
+    if (lockedAddSeatBillingCycle) {
+      return;
+    }
+
     setBillingCycle(nextBillingCycle);
 
     if (nextBillingCycle === "monthly") {
@@ -227,6 +239,7 @@ export const SubscriptionPlanModal = ({
                     styles.cycleButton,
                     billingCycle === "monthly" && styles.cycleButtonActive,
                   )}
+                  disabled={Boolean(lockedAddSeatBillingCycle)}
                   onClick={() => handleSelectBillingCycle("monthly")}
                 >
                   按月支付
@@ -237,6 +250,7 @@ export const SubscriptionPlanModal = ({
                     styles.cycleButton,
                     billingCycle === "yearly" && styles.cycleButtonActive,
                   )}
+                  disabled={Boolean(lockedAddSeatBillingCycle)}
                   onClick={() => handleSelectBillingCycle("yearly")}
                 >
                   按年支付
@@ -245,7 +259,7 @@ export const SubscriptionPlanModal = ({
             </div>
             {billingCycle === "yearly" ? (
               <div className={styles.formField}>
-                <span className={styles.fieldLabel}>销售/渠道签约码</span>
+                <span className={styles.fieldLabel}>签约码</span>
                 <Input
                   value={contractCode}
                   placeholder="填写有效签约码可自动判定企业版"
@@ -277,6 +291,12 @@ export const SubscriptionPlanModal = ({
                 <span>到期时间</span>
                 <strong>{purchasePreview.expiresAt}</strong>
               </div>
+              {purchasePreview.prorationLabel ? (
+                <div className={styles.previewRow}>
+                  <span>计费周期</span>
+                  <strong>{purchasePreview.prorationLabel}</strong>
+                </div>
+              ) : null}
               <div className={styles.previewRow}>
                 <span>计费单价</span>
                 <strong>{purchasePreview.priceLabel}</strong>
@@ -287,12 +307,10 @@ export const SubscriptionPlanModal = ({
                   <strong>{purchasePreview.contractCodeStatusLabel}</strong>
                 </div>
               ) : null}
-              {purchasePreview.channelName ? (
+              {purchasePreview.ownerName ? (
                 <div className={styles.previewRow}>
-                  <span>销售归属</span>
-                  <strong>
-                    {purchasePreview.channelName} · {purchasePreview.ownerName}
-                  </strong>
+                  <span>签约负责人</span>
+                  <strong>{purchasePreview.ownerName}</strong>
                 </div>
               ) : null}
               {purchasePreview.ruleMessage ? (

@@ -1,11 +1,8 @@
 import {
-  OPERATIONS_INITIAL_EXTERNAL_METERED_SERVICES,
   OPERATIONS_INITIAL_METERING_PROVIDERS,
   OPERATIONS_INITIAL_MODEL_SERVICES,
 } from "@/feature/operations/mockData";
 import type {
-  OperationsExternalMeteredService,
-  OperationsExternalServiceMeteringUnit,
   OperationsMeteringProvider,
   OperationsMeteringProviderKind,
   OperationsMeteringStatus,
@@ -17,7 +14,6 @@ import type {
 
 const OPERATIONS_METERING_PROVIDERS_STORAGE_KEY = "frontis.operations.metering-providers";
 const OPERATIONS_MODEL_SERVICES_STORAGE_KEY = "frontis.operations.model-services";
-const OPERATIONS_EXTERNAL_SERVICES_STORAGE_KEY = "frontis.operations.external-metered-services";
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null;
@@ -31,7 +27,7 @@ const isMeteringStatus = (value: unknown): value is OperationsMeteringStatus =>
   value === "active" || value === "inactive";
 
 const isProviderKind = (value: unknown): value is OperationsMeteringProviderKind =>
-  value === "largeModel" || value === "thirdPartyApi" || value === "skillService";
+  value === "largeModel";
 
 const isModelModality = (value: unknown): value is OperationsModelModality =>
   value === "text" || value === "multimodal" || value === "embedding" || value === "image";
@@ -41,13 +37,6 @@ const isModelInterfaceFormat = (value: unknown): value is OperationsModelInterfa
 
 const isPricingMode = (value: unknown): value is OperationsServicePricingMode =>
   value === "markup" || value === "grossMargin" || value === "manual";
-
-const isExternalMeteringUnit = (value: unknown): value is OperationsExternalServiceMeteringUnit =>
-  value === "call" ||
-  value === "request" ||
-  value === "minute" ||
-  value === "image" ||
-  value === "thousandCharacters";
 
 const isValidProvider = (value: unknown): value is OperationsMeteringProvider => {
   if (!isRecord(value)) {
@@ -87,28 +76,6 @@ const isValidModelService = (value: unknown): value is OperationsModelService =>
     isNumber(value.grossMarginRate) &&
     isNumber(value.inputSalePricePerMillion) &&
     isNumber(value.outputSalePricePerMillion) &&
-    isMeteringStatus(value.status) &&
-    isString(value.updatedAt)
-  );
-};
-
-const isValidExternalService = (value: unknown): value is OperationsExternalMeteredService => {
-  if (!isRecord(value)) {
-    return false;
-  }
-
-  return (
-    isString(value.id) &&
-    isString(value.providerId) &&
-    isString(value.providerName) &&
-    isString(value.name) &&
-    isString(value.serviceTypeLabel) &&
-    isExternalMeteringUnit(value.meteringUnit) &&
-    isNumber(value.costPerUnit) &&
-    isPricingMode(value.pricingMode) &&
-    isNumber(value.markupRate) &&
-    isNumber(value.grossMarginRate) &&
-    isNumber(value.salePricePerUnit) &&
     isMeteringStatus(value.status) &&
     isString(value.updatedAt)
   );
@@ -170,12 +137,6 @@ const cloneModelService = (item: OperationsModelService): OperationsModelService
   ...item,
 });
 
-const cloneExternalService = (
-  item: OperationsExternalMeteredService,
-): OperationsExternalMeteredService => ({
-  ...item,
-});
-
 /**
  * 读取运营后台资源供应商。
  */
@@ -183,7 +144,9 @@ export const loadStoredOperationsMeteringProviders = (): OperationsMeteringProvi
   mergeStoredWithPreset(
     loadStoredList(OPERATIONS_METERING_PROVIDERS_STORAGE_KEY, isValidProvider) ?? [],
     OPERATIONS_INITIAL_METERING_PROVIDERS,
-  ).map(cloneProvider);
+  )
+    .filter(item => item.providerKind === "largeModel")
+    .map(cloneProvider);
 
 /**
  * 保存运营后台资源供应商。
@@ -208,22 +171,4 @@ export const loadStoredOperationsModelServices = (): OperationsModelService[] =>
  */
 export const saveStoredOperationsModelServices = (models: OperationsModelService[]): void => {
   saveStoredList(OPERATIONS_MODEL_SERVICES_STORAGE_KEY, models.map(cloneModelService));
-};
-
-/**
- * 读取运营后台第三方接口资源。
- */
-export const loadStoredOperationsExternalMeteredServices = (): OperationsExternalMeteredService[] =>
-  mergeStoredWithPreset(
-    loadStoredList(OPERATIONS_EXTERNAL_SERVICES_STORAGE_KEY, isValidExternalService) ?? [],
-    OPERATIONS_INITIAL_EXTERNAL_METERED_SERVICES,
-  ).map(cloneExternalService);
-
-/**
- * 保存运营后台第三方接口资源。
- */
-export const saveStoredOperationsExternalMeteredServices = (
-  services: OperationsExternalMeteredService[],
-): void => {
-  saveStoredList(OPERATIONS_EXTERNAL_SERVICES_STORAGE_KEY, services.map(cloneExternalService));
 };

@@ -7,6 +7,7 @@ import {
 import type {
   MockSalesChannelContractCode,
   MockSalesChannelContractCodeInput,
+  MockSalesChannelContractSubCode,
   MockSelfServeSubscriptionPlanKey,
   MockSubscriptionBillingCycle,
   MockSubscriptionCustomerTier,
@@ -57,6 +58,20 @@ const PRESET_CONTRACT_CODES: MockSalesChannelContractCode[] = [
     ownerName: "王晨",
     status: "active",
     serviceLabel: "专属销售跟进、Agent 定制化需求对接",
+    subCodes: [
+      {
+        code: "SALES299-A",
+        ownerName: "王晨",
+        status: "active",
+        serviceLabel: "直营销售 A 组客户签约",
+      },
+      {
+        code: "SALES299-B",
+        ownerName: "林若岚",
+        status: "active",
+        serviceLabel: "直营销售 B 组客户签约",
+      },
+    ],
   },
   {
     code: "CHANNEL299",
@@ -64,6 +79,14 @@ const PRESET_CONTRACT_CODES: MockSalesChannelContractCode[] = [
     ownerName: "李婷",
     status: "active",
     serviceLabel: "渠道专属售后、Agent 定制化需求对接",
+    subCodes: [
+      {
+        code: "CHANNEL299-SH",
+        ownerName: "李婷",
+        status: "active",
+        serviceLabel: "华东渠道上海客户签约",
+      },
+    ],
   },
   {
     code: "EXPIRED299",
@@ -71,6 +94,7 @@ const PRESET_CONTRACT_CODES: MockSalesChannelContractCode[] = [
     ownerName: "赵立",
     status: "inactive",
     serviceLabel: "已停用签约码",
+    subCodes: [],
   },
 ];
 
@@ -179,10 +203,52 @@ const readValidityUnit = (
 
 const normalizeContractCode = (code: string): string => code.trim().toUpperCase();
 
+const normalizeContractSubCode = (value: unknown): MockSalesChannelContractSubCode | null => {
+  const subCode = readRecord(value);
+
+  if (!subCode || typeof subCode.code !== "string") {
+    return null;
+  }
+
+  const normalizedCode = normalizeContractCode(subCode.code);
+
+  if (!normalizedCode) {
+    return null;
+  }
+
+  return {
+    code: normalizedCode,
+    ownerName: readString(subCode.ownerName, "").trim() || undefined,
+    status: readContractCodeStatus(subCode.status, "active"),
+    serviceLabel: readString(subCode.serviceLabel, "").trim() || undefined,
+  };
+};
+
+const normalizeContractSubCodes = (value: unknown): MockSalesChannelContractSubCode[] => {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  const dedupedSubCodes = new Map<string, MockSalesChannelContractSubCode>();
+
+  value.forEach(item => {
+    const normalizedSubCode = normalizeContractSubCode(item);
+
+    if (normalizedSubCode) {
+      dedupedSubCodes.set(normalizedSubCode.code, normalizedSubCode);
+    }
+  });
+
+  return [...dedupedSubCodes.values()].sort((leftItem, rightItem) =>
+    leftItem.code.localeCompare(rightItem.code),
+  );
+};
+
 const cloneContractCode = (
   contractCode: MockSalesChannelContractCode,
 ): MockSalesChannelContractCode => ({
   ...contractCode,
+  subCodes: contractCode.subCodes.map(item => ({ ...item })),
 });
 
 const normalizeStoredContractCode = (
@@ -201,6 +267,7 @@ const normalizeStoredContractCode = (
     ownerName: readString(contractCode.ownerName, fallbackCode.ownerName).trim(),
     status: readContractCodeStatus(contractCode.status, fallbackCode.status),
     serviceLabel: readString(contractCode.serviceLabel, fallbackCode.serviceLabel).trim(),
+    subCodes: normalizeContractSubCodes(contractCode.subCodes ?? fallbackCode.subCodes),
   };
 };
 
@@ -217,6 +284,7 @@ const createCustomFallbackContractCode = (value: unknown): MockSalesChannelContr
     ownerName: "",
     status: "active",
     serviceLabel: "",
+    subCodes: [],
   });
 };
 
@@ -437,6 +505,29 @@ const getDaysBetween = (startDateValue: string, endDateValue: string): number =>
 const isDateAfter = (leftDateValue: string | undefined, rightDateValue: string): boolean =>
   Boolean(leftDateValue) && getDaysBetween(rightDateValue, leftDateValue ?? rightDateValue) > 0;
 
+const getLatestPaidSubscriptionOrder = (tenantSnapshot?: MockTenantManagementSnapshot | null) =>
+  tenantSnapshot?.subscriptionOrders.find(order => order.status === "paid") ?? null;
+
+export const getMockTenantActiveSubscriptionBillingCycle = (
+  tenantSnapshot?: MockTenantManagementSnapshot | null,
+): MockSubscriptionBillingCycle | null => {
+  if (!isDateAfter(tenantSnapshot?.planExpiresAt, MOCK_SUBSCRIPTION_TODAY)) {
+    return null;
+  }
+
+  return getLatestPaidSubscriptionOrder(tenantSnapshot)?.billingCycle ?? null;
+};
+
+export const getMockTenantActiveSubscriptionContractCode = (
+  tenantSnapshot?: MockTenantManagementSnapshot | null,
+): string => {
+  if (!isDateAfter(tenantSnapshot?.planExpiresAt, MOCK_SUBSCRIPTION_TODAY)) {
+    return "";
+  }
+
+  return getLatestPaidSubscriptionOrder(tenantSnapshot)?.contractCode ?? "";
+};
+
 const findContractCode = (contractCode?: string): MockSalesChannelContractCode | null => {
   const normalizedCode = contractCode?.trim().toUpperCase();
 
@@ -444,7 +535,25 @@ const findContractCode = (contractCode?: string): MockSalesChannelContractCode |
     return null;
   }
 
-  return getMockSalesChannelContractCodes().find(item => item.code === normalizedCode) ?? null;
+  for (const item of getMockSalesChannelContractCodes()) {
+    if (item.code === normalizedCode) {
+      return item;
+    }
+
+    const matchedSubCode = item.subCodes.find(subCode => subCode.code === normalizedCode);
+
+    if (matchedSubCode) {
+      return {
+        ...item,
+        code: matchedSubCode.code,
+        ownerName: matchedSubCode.ownerName ?? item.ownerName,
+        status: item.status === "active" ? matchedSubCode.status : "inactive",
+        serviceLabel: matchedSubCode.serviceLabel ?? item.serviceLabel,
+      };
+    }
+  }
+
+  return null;
 };
 
 const getPromotionIsActive = (): boolean =>
@@ -507,6 +616,7 @@ const getAlignedExpiryInfo = (
 ): {
   expiresAt: string;
   prorationRate: number;
+  prorationLabel?: string;
 } => {
   const currentExpiry = tenantSnapshot?.planExpiresAt;
 
@@ -530,10 +640,12 @@ const getAlignedExpiryInfo = (
 
   const remainingDays = getDaysBetween(MOCK_SUBSCRIPTION_TODAY, currentExpiry ?? "");
   const cycleDays = getPlanCycleDays(plan);
+  const prorationRate = remainingDays / cycleDays;
 
   return {
     expiresAt: currentExpiry ?? getDefaultExpiresAt(plan),
-    prorationRate: Math.min(1, remainingDays / cycleDays),
+    prorationRate,
+    prorationLabel: `新增席位按剩余 ${remainingDays} 天折算`,
   };
 };
 
@@ -608,7 +720,7 @@ const resolveEnterpriseQualification = (
 };
 
 /**
- * 读取当前销售或渠道签约码。
+ * 读取当前签约码。
  */
 export const getMockSalesChannelContractCodes = (): MockSalesChannelContractCode[] => {
   const storedCodes = readStoredContractCodes();
@@ -639,7 +751,7 @@ export const getMockSalesChannelContractCodes = (): MockSalesChannelContractCode
 };
 
 /**
- * 新建销售或渠道签约码。
+ * 新建签约码。
  */
 export const createMockSalesChannelContractCode = (
   payload: CreateMockSalesChannelContractCodePayload,
@@ -657,7 +769,7 @@ export const createMockSalesChannelContractCode = (
 };
 
 /**
- * 更新销售或渠道签约码。
+ * 更新签约码。
  */
 export const updateMockSalesChannelContractCode = (
   code: string,
@@ -829,13 +941,21 @@ export const getMockSubscriptionPlanPurchaseOption = (
   tenantSnapshot?: MockTenantManagementSnapshot | null,
 ): MockSubscriptionPlanPurchaseOption | null => {
   const purchaseMode = input.purchaseMode ?? "addSeats";
+  const activeBillingCycle =
+    purchaseMode === "addSeats" ? getMockTenantActiveSubscriptionBillingCycle(tenantSnapshot) : null;
+  const effectiveBillingCycle = activeBillingCycle ?? input.billingCycle;
+  const activeContractCode =
+    effectiveBillingCycle === "yearly" && purchaseMode === "addSeats"
+      ? getMockTenantActiveSubscriptionContractCode(tenantSnapshot)
+      : "";
+  const effectiveContractCode = input.contractCode?.trim().toUpperCase() || activeContractCode;
   const seatCount =
     purchaseMode === "renew"
       ? Math.max(Math.floor(tenantSnapshot?.totalSeats ?? input.seatCount), 1)
       : Math.max(Math.floor(input.seatCount), 1);
   const normalizedInput: MockSubscriptionPlanPurchaseInput = {
-    billingCycle: input.billingCycle,
-    contractCode: input.billingCycle === "yearly" ? input.contractCode?.trim().toUpperCase() : "",
+    billingCycle: effectiveBillingCycle,
+    contractCode: effectiveBillingCycle === "yearly" ? effectiveContractCode : "",
     purchaseMode,
     seatCount,
   };
@@ -884,7 +1004,7 @@ export const getMockSubscriptionPlanPurchaseOption = (
     giftPoints: cycleConfig.giftPoints,
     channelName: qualification.enterpriseQualified ? matchedCode?.channelName : undefined,
     amount,
-    prorationLabel: undefined,
+    prorationLabel: expiryInfo.prorationLabel,
     ruleMessage: qualification.ruleMessage,
   };
 };
@@ -959,7 +1079,9 @@ export const applyMockSubscriptionPlanToTenant = (
   const invitePolicyLabel =
     purchaseOption.purchaseMode === "renew"
       ? `${purchaseOption.planLabel}已续约，当前 ${nextTotalSeats} 个席位，到期时间 ${purchaseOption.expiresAt}。`
-      : `${purchaseOption.planLabel}已开通，新增订阅席位 ${purchaseOption.seatCount} 个，到期时间 ${purchaseOption.expiresAt}。`;
+      : `${purchaseOption.planLabel}已开通，新增订阅席位 ${purchaseOption.seatCount} 个，到期时间 ${purchaseOption.expiresAt}${
+          purchaseOption.prorationLabel ? `，${purchaseOption.prorationLabel}` : ""
+        }。`;
 
   return saveMockTenantManagementSnapshot({
     ...matchedSnapshot,

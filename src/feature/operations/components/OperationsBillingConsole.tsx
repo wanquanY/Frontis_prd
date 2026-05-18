@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 
 import { Button, Empty, Input, InputNumber, Modal, Select, message } from "antd";
 import classNames from "classnames";
@@ -10,10 +10,13 @@ import {
   buildMockSubscriptionPlanBenefitTexts,
   formatMockSubscriptionValidity,
   getMockSubscriptionPlanPurchaseOption,
+  getMockTenantActiveSubscriptionBillingCycle,
+  getMockTenantActiveSubscriptionContractCode,
 } from "@/feature/subscription/mockSubscriptionPlans";
 import type {
   MockSalesChannelContractCode,
   MockSalesChannelContractCodeInput,
+  MockSalesChannelContractSubCode,
   MockSubscriptionBillingCycle,
   MockSubscriptionPlanKey,
   MockSubscriptionPlanPurchaseOption,
@@ -61,6 +64,7 @@ interface ContractCodeFormState {
   ownerName: string;
   serviceLabel: string;
   status: MockSalesChannelContractCode["status"];
+  subCodes: MockSalesChannelContractSubCode[];
 }
 
 interface ContractCodeEditorState {
@@ -68,6 +72,14 @@ interface ContractCodeEditorState {
   mode: "create" | "edit";
   open: boolean;
   originalCode?: string;
+}
+
+interface ContractSubCodeEditorState {
+  form: MockSalesChannelContractSubCode;
+  mode: "create" | "edit";
+  open: boolean;
+  originalCode?: string;
+  parentCode?: string;
 }
 
 interface OperationsBillingConsoleProps {
@@ -145,6 +157,7 @@ const createEmptyContractCodeForm = (): ContractCodeFormState => ({
   ownerName: "",
   serviceLabel: "",
   status: "active",
+  subCodes: [],
 });
 
 const createContractCodeEditor = (): ContractCodeEditorState => ({
@@ -176,6 +189,20 @@ const createContractCodeFormFromCode = (
   ownerName: contractCode.ownerName,
   serviceLabel: contractCode.serviceLabel,
   status: contractCode.status,
+  subCodes: contractCode.subCodes.map(item => ({ ...item })),
+});
+
+const createEmptyContractSubCode = (): MockSalesChannelContractSubCode => ({
+  code: "",
+  ownerName: "",
+  serviceLabel: "",
+  status: "active",
+});
+
+const createContractSubCodeEditor = (): ContractSubCodeEditorState => ({
+  form: createEmptyContractSubCode(),
+  mode: "create",
+  open: false,
 });
 
 const normalizeSubscriptionPlanForm = (
@@ -200,6 +227,23 @@ const normalizeContractCodeForm = (
   code: form.code.trim().toUpperCase(),
   ownerName: form.ownerName.trim(),
   serviceLabel: form.serviceLabel.trim(),
+  status: form.status,
+  subCodes: form.subCodes
+    .map(item => ({
+      code: item.code.trim().toUpperCase(),
+      ownerName: item.ownerName?.trim() || undefined,
+      serviceLabel: item.serviceLabel?.trim() || undefined,
+      status: item.status,
+    }))
+    .filter(item => Boolean(item.code)),
+});
+
+const normalizeContractSubCodeForm = (
+  form: MockSalesChannelContractSubCode,
+): MockSalesChannelContractSubCode => ({
+  code: form.code.trim().toUpperCase(),
+  ownerName: form.ownerName?.trim() || undefined,
+  serviceLabel: form.serviceLabel?.trim() || undefined,
   status: form.status,
 });
 
@@ -226,6 +270,9 @@ export const OperationsBillingConsole = ({
   const [contractCodeEditor, setContractCodeEditor] = useState<ContractCodeEditorState>(
     createContractCodeEditor(),
   );
+  const [contractSubCodeEditor, setContractSubCodeEditor] =
+    useState<ContractSubCodeEditorState>(createContractSubCodeEditor());
+  const [expandedContractCode, setExpandedContractCode] = useState<string>("");
   const tenantBillingRecords = useMemo<TenantBillingRecord[]>(
     () =>
       tenants.map(tenant => ({
@@ -236,6 +283,12 @@ export const OperationsBillingConsole = ({
   );
   const selectedTenantRecord = tenantBillingRecords.find(
     item => item.tenant.id === tenantPlanEditor.tenantId,
+  );
+  const lockedTenantBillingCycle = getMockTenantActiveSubscriptionBillingCycle(
+    selectedTenantRecord?.snapshot,
+  );
+  const lockedTenantContractCode = getMockTenantActiveSubscriptionContractCode(
+    selectedTenantRecord?.snapshot,
   );
   const purchasePreview = tenantPlanEditor.tenantId
     ? getMockSubscriptionPlanPurchaseOption(
@@ -249,6 +302,24 @@ export const OperationsBillingConsole = ({
     : null;
   const subscriptionPlanForm = subscriptionPlanEditor.form;
   const contractCodeForm = contractCodeEditor.form;
+  const contractSubCodeForm = contractSubCodeEditor.form;
+
+  useEffect(() => {
+    if (!tenantPlanEditor.open || !lockedTenantBillingCycle) {
+      return;
+    }
+
+    setTenantPlanEditor(current => ({
+      ...current,
+      billingCycle: lockedTenantBillingCycle,
+      contractCode: lockedTenantContractCode,
+    }));
+  }, [
+    lockedTenantBillingCycle,
+    lockedTenantContractCode,
+    tenantPlanEditor.open,
+    tenantPlanEditor.tenantId,
+  ]);
 
   const handleSubmitTenantPlan = (): void => {
     if (!tenantPlanEditor.tenantId || !purchasePreview) {
@@ -322,6 +393,30 @@ export const OperationsBillingConsole = ({
     });
   };
 
+  const handleOpenAddContractSubCode = (contractCode: MockSalesChannelContractCode): void => {
+    setExpandedContractCode(contractCode.code);
+    setContractSubCodeEditor({
+      form: createEmptyContractSubCode(),
+      mode: "create",
+      open: true,
+      parentCode: contractCode.code,
+    });
+  };
+
+  const handleOpenEditContractSubCode = (
+    contractCode: MockSalesChannelContractCode,
+    subCode: MockSalesChannelContractSubCode,
+  ): void => {
+    setExpandedContractCode(contractCode.code);
+    setContractSubCodeEditor({
+      form: { ...subCode },
+      mode: "edit",
+      open: true,
+      originalCode: subCode.code,
+      parentCode: contractCode.code,
+    });
+  };
+
   const handleUpdateContractCodeForm = (patch: Partial<ContractCodeFormState>): void => {
     setContractCodeEditor(current => ({
       ...current,
@@ -332,19 +427,116 @@ export const OperationsBillingConsole = ({
     }));
   };
 
-  const handleSubmitContractCode = (): void => {
-    const payload = normalizeContractCodeForm(contractCodeEditor.form);
+  const handleUpdateContractSubCodeForm = (
+    patch: Partial<MockSalesChannelContractSubCode>,
+  ): void => {
+    setContractSubCodeEditor(current => ({
+      ...current,
+      form: {
+        ...current.form,
+        ...patch,
+      },
+    }));
+  };
 
-    if (!payload.code || !payload.channelName || !payload.ownerName) {
-      message.warning("请填写签约码、销售/渠道和负责人。");
+  const handleSubmitContractSubCode = (): void => {
+    const parentCode = contractSubCodeEditor.parentCode;
+    const parent = salesChannelContractCodes.find(item => item.code === parentCode);
+    const payload = normalizeContractSubCodeForm(contractSubCodeEditor.form);
+
+    if (!parentCode || !parent) {
+      message.error("主签约码不存在。");
       return;
     }
 
-    const isDuplicateCode = salesChannelContractCodes.some(
-      item =>
-        item.code === payload.code &&
-        (contractCodeEditor.mode === "create" || item.code !== contractCodeEditor.originalCode),
+    if (!payload.code) {
+      message.warning("请填写子码。");
+      return;
+    }
+
+    const existingCodes = new Set(
+      salesChannelContractCodes.flatMap(item => [
+        item.code,
+        ...item.subCodes
+          .filter(
+            subCode =>
+              !(
+                contractSubCodeEditor.mode === "edit" &&
+                item.code === parentCode &&
+                subCode.code === contractSubCodeEditor.originalCode
+              ),
+          )
+          .map(subCode => subCode.code),
+      ]),
     );
+
+    if (existingCodes.has(payload.code)) {
+      message.warning("签约码已存在。");
+      return;
+    }
+
+    const nextSubCodes =
+      contractSubCodeEditor.mode === "edit"
+        ? parent.subCodes.map(subCode =>
+            subCode.code === contractSubCodeEditor.originalCode ? payload : subCode,
+          )
+        : [...parent.subCodes, payload];
+
+    onUpdateSalesChannelContractCode(parent.code, {
+      ...parent,
+      subCodes: nextSubCodes,
+    });
+    setExpandedContractCode(parent.code);
+    setContractSubCodeEditor(createContractSubCodeEditor());
+    message.success(contractSubCodeEditor.mode === "edit" ? "子码已更新。" : "子码已创建。");
+  };
+
+  const handleRemoveContractSubCode = (
+    contractCode: MockSalesChannelContractCode,
+    subCode: MockSalesChannelContractSubCode,
+  ): void => {
+    Modal.confirm({
+      title: "删除子码",
+      content: subCode.code,
+      okButtonProps: { danger: true },
+      okText: "删除",
+      onOk: () => {
+        onUpdateSalesChannelContractCode(contractCode.code, {
+          ...contractCode,
+          subCodes: contractCode.subCodes.filter(item => item.code !== subCode.code),
+        });
+        message.success("子码已删除。");
+      },
+    });
+  };
+
+  const handleSubmitContractCode = (): void => {
+    const payload = normalizeContractCodeForm(contractCodeEditor.form);
+
+    if (!payload.code || !payload.ownerName) {
+      message.warning("请填写签约码和负责人。");
+      return;
+    }
+
+    const currentCodeValues = [payload.code, ...payload.subCodes.map(item => item.code)];
+    const hasDuplicateInsidePayload = currentCodeValues.some(
+      (code, index) => currentCodeValues.indexOf(code) !== index,
+    );
+
+    if (hasDuplicateInsidePayload) {
+      message.warning("主码和子码不能重复。");
+      return;
+    }
+
+    const existingCodes = new Set(
+      salesChannelContractCodes
+        .filter(
+          item =>
+            contractCodeEditor.mode === "create" || item.code !== contractCodeEditor.originalCode,
+        )
+        .flatMap(item => [item.code, ...item.subCodes.map(subCode => subCode.code)]),
+    );
+    const isDuplicateCode = currentCodeValues.some(code => existingCodes.has(code));
 
     if (isDuplicateCode) {
       message.warning("签约码已存在。");
@@ -409,10 +601,79 @@ export const OperationsBillingConsole = ({
     </section>
   );
 
+  const renderContractSubCodePanel = (contractCode: MockSalesChannelContractCode): JSX.Element => (
+    <tr className={styles.subCodePanelRow}>
+      <td colSpan={6}>
+        <div className={styles.subCodePanel}>
+          <div className={styles.subCodePanelHeader}>
+            <h3 className={styles.subCodePanelTitle}>{contractCode.code} 子码</h3>
+            <Button size="small" onClick={() => handleOpenAddContractSubCode(contractCode)}>
+              新建子码
+            </Button>
+          </div>
+          {contractCode.subCodes.length ? (
+            <div className={styles.subCodeTableWrap}>
+              <table className={styles.subCodeTable}>
+                <thead>
+                  <tr>
+                    <th>子码</th>
+                    <th>负责人</th>
+                    <th>使用介绍</th>
+                    <th>状态</th>
+                    <th>操作</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {contractCode.subCodes.map(subCode => (
+                    <tr key={subCode.code}>
+                      <td className={adminStyles.consoleHtmlTableStrong}>{subCode.code}</td>
+                      <td>{subCode.ownerName || contractCode.ownerName}</td>
+                      <td>{subCode.serviceLabel || contractCode.serviceLabel}</td>
+                      <td>
+                        <span
+                          className={buildStatusClassName(
+                            subCode.status === "active" ? "success" : "danger",
+                          )}
+                        >
+                          {subCode.status === "active" ? "启用" : "停用"}
+                        </span>
+                      </td>
+                      <td>
+                        <div className={adminStyles.consoleActions}>
+                          <Button
+                            size="small"
+                            onClick={() => handleOpenEditContractSubCode(contractCode, subCode)}
+                          >
+                            编辑
+                          </Button>
+                          <Button
+                            danger
+                            size="small"
+                            onClick={() => handleRemoveContractSubCode(contractCode, subCode)}
+                          >
+                            删除
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className={styles.subCodeEmpty}>
+              <Empty description="暂无子码" image={Empty.PRESENTED_IMAGE_SIMPLE} />
+            </div>
+          )}
+        </div>
+      </td>
+    </tr>
+  );
+
   const renderContractCodes = (): JSX.Element => (
     <section className={adminStyles.consoleSection}>
       <div className={adminStyles.consoleSectionHeader}>
-        <h2 className={adminStyles.consoleSectionTitle}>销售 / 渠道签约码</h2>
+        <h2 className={adminStyles.consoleSectionTitle}>签约码列表</h2>
         <Button type="primary" onClick={handleOpenCreateContractCode}>
           新建签约码
         </Button>
@@ -421,36 +682,79 @@ export const OperationsBillingConsole = ({
         <table className={adminStyles.consoleHtmlTable}>
           <thead>
             <tr>
-              <th>签约码</th>
-              <th>销售/渠道</th>
+              <th>主签约码</th>
+              <th>子码</th>
               <th>负责人</th>
-              <th>企业服务</th>
+              <th>使用介绍</th>
               <th>状态</th>
               <th>操作</th>
             </tr>
           </thead>
           <tbody>
             {salesChannelContractCodes.map(item => (
-              <tr key={item.code}>
-                <td className={adminStyles.consoleHtmlTableStrong}>{item.code}</td>
-                <td>{item.channelName}</td>
-                <td>{item.ownerName}</td>
-                <td>{item.serviceLabel}</td>
-                <td>
-                  <span
-                    className={buildStatusClassName(
-                      item.status === "active" ? "success" : "danger",
+              <Fragment key={item.code}>
+                <tr>
+                  <td className={adminStyles.consoleHtmlTableStrong}>{item.code}</td>
+                  <td>
+                    {item.subCodes.length ? (
+                      <div className={styles.subCodePillList}>
+                        {item.subCodes.map(subCode => (
+                          <button
+                            key={subCode.code}
+                            type="button"
+                            className={classNames(
+                              adminStyles.consolePill,
+                              styles.subCodePillButton,
+                              subCode.status === "inactive" && styles.inactiveSubCodePill,
+                            )}
+                            onClick={() =>
+                              setExpandedContractCode(current =>
+                                current === item.code ? "" : item.code,
+                              )
+                            }
+                          >
+                            {subCode.code}
+                          </button>
+                        ))}
+                      </div>
+                    ) : (
+                      "-"
                     )}
-                  >
-                    {item.status === "active" ? "启用" : "停用"}
-                  </span>
-                </td>
-                <td>
-                  <Button size="small" type="link" onClick={() => handleOpenEditContractCode(item)}>
-                    编辑
-                  </Button>
-                </td>
-              </tr>
+                  </td>
+                  <td>{item.ownerName}</td>
+                  <td>{item.serviceLabel}</td>
+                  <td>
+                    <span
+                      className={buildStatusClassName(
+                        item.status === "active" ? "success" : "danger",
+                      )}
+                    >
+                      {item.status === "active" ? "启用" : "停用"}
+                    </span>
+                  </td>
+                  <td>
+                    <div className={adminStyles.consoleActions}>
+                      <Button
+                        size="small"
+                        onClick={() =>
+                          setExpandedContractCode(current =>
+                            current === item.code ? "" : item.code,
+                          )
+                        }
+                      >
+                        {expandedContractCode === item.code ? "收起子码" : "子码列表"}
+                      </Button>
+                      <Button size="small" onClick={() => handleOpenAddContractSubCode(item)}>
+                        添加子码
+                      </Button>
+                      <Button size="small" onClick={() => handleOpenEditContractCode(item)}>
+                        编辑
+                      </Button>
+                    </div>
+                  </td>
+                </tr>
+                {expandedContractCode === item.code ? renderContractSubCodePanel(item) : null}
+              </Fragment>
             ))}
           </tbody>
         </table>
@@ -715,15 +1019,6 @@ export const OperationsBillingConsole = ({
               />
             </div>
             <div className={styles.modalField}>
-              <span>销售/渠道</span>
-              <Input
-                value={contractCodeForm.channelName}
-                onChange={event =>
-                  handleUpdateContractCodeForm({ channelName: event.target.value })
-                }
-              />
-            </div>
-            <div className={styles.modalField}>
               <span>负责人</span>
               <Input
                 value={contractCodeForm.ownerName}
@@ -743,11 +1038,66 @@ export const OperationsBillingConsole = ({
             </div>
           </div>
           <div className={styles.modalField}>
-            <span>企业服务</span>
+            <span>使用介绍</span>
             <Input.TextArea
               autoSize={{ minRows: 3, maxRows: 5 }}
               value={contractCodeForm.serviceLabel}
               onChange={event => handleUpdateContractCodeForm({ serviceLabel: event.target.value })}
+            />
+          </div>
+        </div>
+      </Modal>
+
+      <Modal
+        open={contractSubCodeEditor.open}
+        title={contractSubCodeEditor.mode === "edit" ? "编辑子码" : "新建子码"}
+        width={560}
+        onCancel={() => setContractSubCodeEditor(createContractSubCodeEditor())}
+        onOk={handleSubmitContractSubCode}
+        destroyOnHidden
+      >
+        <div className={styles.modalStack}>
+          <div className={styles.formGrid}>
+            <div className={styles.modalField}>
+              <span>主签约码</span>
+              <Input disabled value={contractSubCodeEditor.parentCode ?? ""} />
+            </div>
+            <div className={styles.modalField}>
+              <span>子码</span>
+              <Input
+                value={contractSubCodeForm.code}
+                onChange={event => handleUpdateContractSubCodeForm({ code: event.target.value })}
+              />
+            </div>
+            <div className={styles.modalField}>
+              <span>负责人</span>
+              <Input
+                value={contractSubCodeForm.ownerName}
+                onChange={event =>
+                  handleUpdateContractSubCodeForm({ ownerName: event.target.value })
+                }
+              />
+            </div>
+            <div className={styles.modalField}>
+              <span>状态</span>
+              <Select<MockSalesChannelContractSubCode["status"]>
+                value={contractSubCodeForm.status}
+                options={[
+                  { value: "active", label: "启用" },
+                  { value: "inactive", label: "停用" },
+                ]}
+                onChange={status => handleUpdateContractSubCodeForm({ status })}
+              />
+            </div>
+          </div>
+          <div className={styles.modalField}>
+            <span>使用介绍</span>
+            <Input.TextArea
+              autoSize={{ minRows: 3, maxRows: 5 }}
+              value={contractSubCodeForm.serviceLabel}
+              onChange={event =>
+                handleUpdateContractSubCodeForm({ serviceLabel: event.target.value })
+              }
             />
           </div>
         </div>
@@ -770,12 +1120,22 @@ export const OperationsBillingConsole = ({
                 value: item.tenant.id,
                 label: item.tenant.name,
               }))}
-              onChange={tenantId =>
+              onChange={tenantId => {
+                const nextRecord = tenantBillingRecords.find(item => item.tenant.id === tenantId);
+                const nextBillingCycle = getMockTenantActiveSubscriptionBillingCycle(
+                  nextRecord?.snapshot,
+                );
+                const nextContractCode = getMockTenantActiveSubscriptionContractCode(
+                  nextRecord?.snapshot,
+                );
+
                 setTenantPlanEditor(current => ({
                   ...current,
                   tenantId,
-                }))
-              }
+                  billingCycle: nextBillingCycle ?? current.billingCycle,
+                  contractCode: nextContractCode,
+                }));
+              }}
             />
           </div>
           <div className={styles.formGrid}>
@@ -798,6 +1158,7 @@ export const OperationsBillingConsole = ({
               <span>付费方式</span>
               <Select<MockSubscriptionBillingCycle>
                 value={tenantPlanEditor.billingCycle}
+                disabled={Boolean(lockedTenantBillingCycle)}
                 options={[
                   { value: "monthly", label: "按月支付" },
                   { value: "yearly", label: "按年支付" },
@@ -813,7 +1174,7 @@ export const OperationsBillingConsole = ({
             </div>
             {tenantPlanEditor.billingCycle === "yearly" ? (
               <div className={styles.modalField}>
-                <span>销售/渠道签约码</span>
+                <span>签约码</span>
                 <Input
                   value={tenantPlanEditor.contractCode}
                   onChange={event =>
@@ -840,12 +1201,16 @@ export const OperationsBillingConsole = ({
                 <span>统一到期日</span>
                 <strong>{purchasePreview.expiresAt}</strong>
               </div>
-              {purchasePreview.channelName ? (
+              {purchasePreview.prorationLabel ? (
                 <div className={styles.previewRow}>
-                  <span>销售归属</span>
-                  <strong>
-                    {purchasePreview.channelName} · {purchasePreview.ownerName}
-                  </strong>
+                  <span>计费周期</span>
+                  <strong>{purchasePreview.prorationLabel}</strong>
+                </div>
+              ) : null}
+              {purchasePreview.ownerName ? (
+                <div className={styles.previewRow}>
+                  <span>签约负责人</span>
+                  <strong>{purchasePreview.ownerName}</strong>
                 </div>
               ) : null}
               <div className={styles.previewRow}>
