@@ -250,6 +250,7 @@ export interface MockTenantManagementSnapshot {
  * 模拟自注册参数。
  */
 export interface MockTenantRegistrationParams {
+  inviteCode?: string;
   name: string;
   phone: string;
   tenantName: string;
@@ -293,6 +294,7 @@ export interface MockTenantInviteMemberParams {
  * 模拟登录提交参数。
  */
 export interface MockLoginParams {
+  inviteCode?: string;
   phone: string;
   verificationCode: string;
   redirectPath?: string;

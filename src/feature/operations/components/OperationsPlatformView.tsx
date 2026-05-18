@@ -687,7 +687,6 @@ export const OperationsPlatformView = (): JSX.Element => {
     createProduct,
     createSalesChannelContractCode,
     createSkillCenterCategory,
-    createSubscriptionPlan,
     createTenant,
     emptyTenantForm,
     emptyProductForm,
@@ -1156,7 +1155,6 @@ export const OperationsPlatformView = (): JSX.Element => {
           tenants={tenants}
           onApplyTenantSubscriptionPlan={applyTenantSubscriptionPlan}
           onCreateSalesChannelContractCode={createSalesChannelContractCode}
-          onCreateSubscriptionPlan={createSubscriptionPlan}
           onCreatePointsPackage={createPointsPackage}
           onUpdatePointsPackage={updatePointsPackage}
           onUpdateSalesChannelContractCode={updateSalesChannelContractCode}
@@ -1230,7 +1228,6 @@ export const OperationsPlatformView = (): JSX.Element => {
     createProduct,
     createSalesChannelContractCode,
     createSkillCenterCategory,
-    createSubscriptionPlan,
     emptyProductForm,
     handleBackToProductList,
     handleBackToTenantList,

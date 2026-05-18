@@ -45,7 +45,6 @@ interface OperationsPointsSubscriptionConsoleProps {
     purchaseOption: MockSubscriptionPlanPurchaseOption,
   ) => boolean;
   onCreateSalesChannelContractCode: (payload: MockSalesChannelContractCodeInput) => void;
-  onCreateSubscriptionPlan: (payload: MockSubscriptionPlanTemplateInput) => void;
   onCreatePointsPackage: (
     payload: Pick<
       MockPointsPackageOption,
@@ -79,7 +78,6 @@ interface OperationsPointsSubscriptionConsoleProps {
         | "roundingUnit"
         | "referralDailyRewardLimit"
         | "referralEnabled"
-        | "referralInviteeRewardPoints"
         | "referralInviterRewardPoints"
         | "referralMonthlyRewardLimit"
       >
@@ -102,7 +100,6 @@ export const OperationsPointsSubscriptionConsole = ({
   tenants,
   onApplyTenantSubscriptionPlan,
   onCreateSalesChannelContractCode,
-  onCreateSubscriptionPlan,
   onCreatePointsPackage,
   onUpdatePointsPackage,
   onUpdateSalesChannelContractCode,
@@ -174,7 +171,6 @@ export const OperationsPointsSubscriptionConsole = ({
           tenants={tenants}
           onApplyTenantSubscriptionPlan={onApplyTenantSubscriptionPlan}
           onCreateSalesChannelContractCode={onCreateSalesChannelContractCode}
-          onCreateSubscriptionPlan={onCreateSubscriptionPlan}
           onUpdateSalesChannelContractCode={onUpdateSalesChannelContractCode}
           onUpdateSubscriptionPlan={onUpdateSubscriptionPlan}
         />

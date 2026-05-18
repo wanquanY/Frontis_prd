@@ -12,11 +12,11 @@ import styles from "./TenantReferralInviteModal.module.less";
 
 interface TenantReferralInviteModalProps {
   accountName: string;
-  inviteeRewardPoints: number;
+  inviteCode: string;
   inviterRewardPoints: number;
+  newUserGiftPoints: number;
   open: boolean;
   referralRecords: MockTenantReferralInviteRecord[];
-  tenantCode: string;
   onClose: () => void;
 }
 
@@ -26,14 +26,14 @@ interface ReferralRewardSummary {
   rewardedPoints: number;
 }
 
-const getInviteLink = (tenantCode: string): string => {
-  const encodedTenantCode = encodeURIComponent(tenantCode);
+const getInviteLink = (inviteCode: string): string => {
+  const encodedInviteCode = encodeURIComponent(inviteCode);
 
   if (typeof window === "undefined") {
-    return `https://frontis.ai/login?ref=${encodedTenantCode}`;
+    return `https://frontis.ai/login?invite=${encodedInviteCode}`;
   }
 
-  return `${window.location.origin}/login?ref=${encodedTenantCode}`;
+  return `${window.location.origin}/login?invite=${encodedInviteCode}`;
 };
 
 const getReferralRewardSummary = (
@@ -59,16 +59,16 @@ const getReferralRewardSummary = (
  */
 export const TenantReferralInviteModal = ({
   accountName,
-  inviteeRewardPoints,
+  inviteCode,
   inviterRewardPoints,
+  newUserGiftPoints,
   open,
   referralRecords,
-  tenantCode,
   onClose,
 }: TenantReferralInviteModalProps): JSX.Element => {
   const { message: messageApi } = App.useApp();
   const posterRef = useRef<HTMLDivElement>(null);
-  const inviteLink = useMemo(() => getInviteLink(tenantCode), [tenantCode]);
+  const inviteLink = useMemo(() => getInviteLink(inviteCode), [inviteCode]);
   const rewardSummary = useMemo(() => getReferralRewardSummary(referralRecords), [referralRecords]);
 
   const copyTextToClipboard = useCallback(
@@ -105,7 +105,7 @@ export const TenantReferralInviteModal = ({
       pixelRatio: 2,
     });
 
-    saveAs(posterDataUrl, `${PRODUCT_NAME}-邀请海报-${tenantCode}.png`);
+    saveAs(posterDataUrl, `${PRODUCT_NAME}-邀请海报-${inviteCode}.png`);
     messageApi.success("邀请海报已生成。");
   };
 
@@ -161,11 +161,7 @@ export const TenantReferralInviteModal = ({
             </div>
             <div className={styles.rewardItem}>
               <span>好友权益</span>
-              <strong>
-                {inviteeRewardPoints > 0
-                  ? `${inviteeRewardPoints.toLocaleString("zh-CN")} 积分`
-                  : "注册赠送"}
-              </strong>
+              <strong>{newUserGiftPoints.toLocaleString("zh-CN")} 注册积分</strong>
             </div>
           </div>
 

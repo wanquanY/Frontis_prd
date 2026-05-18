@@ -71,7 +71,6 @@ import {
 import {
   applyMockSubscriptionPlanToTenant,
   createMockSalesChannelContractCode,
-  createMockSubscriptionPlanTemplate,
   getMockSalesChannelContractCodes,
   getMockSubscriptionPlanTemplates,
   updateMockSalesChannelContractCode,
@@ -183,7 +182,6 @@ interface UseOperationsPlatformResult {
     code: string,
     updates: Partial<MockSalesChannelContractCodeInput>,
   ) => void;
-  createSubscriptionPlan: (payload: MockSubscriptionPlanTemplateInput) => void;
   updateSubscriptionPlan: (
     planKey: MockSubscriptionPlanKey,
     updates: Partial<MockSubscriptionPlanTemplateInput>,
@@ -988,10 +986,6 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
     [],
   );
 
-  const createSubscriptionPlan = useCallback((payload: MockSubscriptionPlanTemplateInput): void => {
-    setSubscriptionPlans(createMockSubscriptionPlanTemplate(payload));
-  }, []);
-
   const updateSubscriptionPlan = useCallback(
     (
       planKey: MockSubscriptionPlanKey,
@@ -1298,7 +1292,6 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
     updatePointsPackage,
     createSalesChannelContractCode,
     updateSalesChannelContractCode,
-    createSubscriptionPlan,
     updateSubscriptionPlan,
     applyTenantSubscriptionPlan,
     updateServiceContactConfig,

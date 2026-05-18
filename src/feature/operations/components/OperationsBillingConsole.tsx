@@ -4,7 +4,10 @@ import { Button, Empty, Input, InputNumber, Modal, Select, message } from "antd"
 import classNames from "classnames";
 
 import { getMockTenantManagementSnapshot } from "@/feature/auth/mockTenantRegistry";
-import type { MockTenantManagementSnapshot } from "@/feature/auth/types";
+import type {
+  MockTenantManagementSnapshot,
+  MockTenantSubscriptionOrderItem,
+} from "@/feature/auth/types";
 import type { OperationsTenant } from "@/feature/operations/types";
 import {
   buildMockSubscriptionPlanBenefitTexts,
@@ -53,7 +56,7 @@ interface SubscriptionPlanFormState {
 
 interface SubscriptionPlanEditorState {
   form: SubscriptionPlanFormState;
-  mode: "create" | "edit";
+  mode: "edit";
   open: boolean;
   planKey?: MockSubscriptionPlanKey;
 }
@@ -92,7 +95,6 @@ interface OperationsBillingConsoleProps {
     purchaseOption: MockSubscriptionPlanPurchaseOption,
   ) => boolean;
   onCreateSalesChannelContractCode: (payload: MockSalesChannelContractCodeInput) => void;
-  onCreateSubscriptionPlan: (payload: MockSubscriptionPlanTemplateInput) => void;
   onUpdateSalesChannelContractCode: (
     code: string,
     updates: Partial<MockSalesChannelContractCodeInput>,
@@ -115,6 +117,7 @@ const BILLING_TABS: Array<{ key: BillingTabKey; label: string }> = [
 ];
 
 const formatAmount = (value: number): string => `¥${value.toLocaleString("zh-CN")}`;
+const SUBSCRIPTION_TODAY = "2026-05-25";
 
 const buildStatusClassName = (tone?: "success" | "warning" | "danger"): string =>
   classNames(
@@ -123,6 +126,25 @@ const buildStatusClassName = (tone?: "success" | "warning" | "danger"): string =
     tone === "warning" && adminStyles.consoleStatusTagWarning,
     tone === "danger" && adminStyles.consoleStatusTagDanger,
   );
+
+const getLatestSubscriptionOrder = (
+  snapshot: MockTenantManagementSnapshot | null,
+): MockTenantSubscriptionOrderItem | null =>
+  snapshot?.subscriptionOrders.find(order => order.status === "paid") ?? null;
+
+const getTenantSubscriptionStatus = (
+  snapshot: MockTenantManagementSnapshot | null,
+): { label: string; tone?: "success" | "warning" | "danger" } => {
+  if (!snapshot || snapshot.edition === "personal" || !snapshot.subscriptionOrders.length) {
+    return { label: "未开通", tone: "warning" };
+  }
+
+  if (snapshot.planExpiresAt && snapshot.planExpiresAt < SUBSCRIPTION_TODAY) {
+    return { label: "已到期", tone: "danger" };
+  }
+
+  return { label: "有效", tone: "success" };
+};
 
 const createTenantPlanEditor = (tenantId?: string): TenantPlanEditorState => ({
   billingCycle: "monthly",
@@ -147,7 +169,7 @@ const createEmptySubscriptionPlanForm = (): SubscriptionPlanFormState => ({
 
 const createSubscriptionPlanEditor = (): SubscriptionPlanEditorState => ({
   form: createEmptySubscriptionPlanForm(),
-  mode: "create",
+  mode: "edit",
   open: false,
 });
 
@@ -257,7 +279,6 @@ export const OperationsBillingConsole = ({
   tenants,
   onApplyTenantSubscriptionPlan,
   onCreateSalesChannelContractCode,
-  onCreateSubscriptionPlan,
   onUpdateSalesChannelContractCode,
   onUpdateSubscriptionPlan,
 }: OperationsBillingConsoleProps): JSX.Element => {
@@ -301,6 +322,7 @@ export const OperationsBillingConsole = ({
       )
     : null;
   const subscriptionPlanForm = subscriptionPlanEditor.form;
+  const subscriptionPlan = subscriptionPlans[0] ?? null;
   const contractCodeForm = contractCodeEditor.form;
   const contractSubCodeForm = contractSubCodeEditor.form;
 
@@ -365,13 +387,13 @@ export const OperationsBillingConsole = ({
       return;
     }
 
-    if (subscriptionPlanEditor.mode === "edit" && subscriptionPlanEditor.planKey) {
-      onUpdateSubscriptionPlan(subscriptionPlanEditor.planKey, payload);
-      message.success("席位包已更新。");
-    } else {
-      onCreateSubscriptionPlan(payload);
-      message.success("席位包已创建。");
+    if (!subscriptionPlanEditor.planKey) {
+      message.warning("请选择要编辑的席位包。");
+      return;
     }
+
+    onUpdateSubscriptionPlan(subscriptionPlanEditor.planKey, payload);
+    message.success("席位包已更新。");
 
     setSubscriptionPlanEditor(createSubscriptionPlanEditor());
   };
@@ -559,41 +581,41 @@ export const OperationsBillingConsole = ({
       <div className={adminStyles.consoleSectionHeader}>
         <h2 className={adminStyles.consoleSectionTitle}>团队席位包</h2>
       </div>
-      {subscriptionPlans.length ? (
+      {subscriptionPlan ? (
         <div className={styles.policyGrid}>
-          {subscriptionPlans.map(plan => (
-            <section className={styles.planCard} key={plan.key}>
-              <div className={styles.planCardHeader}>
-                <span className={adminStyles.consolePill}>{plan.sequence}</span>
-                <span
-                  className={buildStatusClassName(plan.status === "active" ? "success" : "danger")}
-                >
-                  {plan.status === "active" ? "启用" : "停用"}
-                </span>
-              </div>
-              <h3 className={styles.planTitle}>{plan.title}</h3>
-              <div className={styles.planPrice}>
-                月付 {formatAmount(plan.monthlyPriceAmount)} / 席 / 月
-              </div>
-              <div className={styles.planPrice}>
-                年付 {formatAmount(plan.yearlyPriceAmount)} / 席 / 年
-              </div>
-              <div className={styles.planPrice}>
-                签约年付 {formatAmount(plan.contractYearlyPriceAmount)} / 席 / 年
-              </div>
-              <div className={styles.subscriptionEffectList}>
-                {buildMockSubscriptionPlanBenefitTexts(plan).map(item => (
-                  <span key={item}>{item}</span>
-                ))}
-              </div>
-              <div className={styles.planCardFooter}>
-                <span>更新：{plan.updatedAt}</span>
-                <Button size="small" onClick={() => handleOpenEditSubscriptionPlan(plan)}>
-                  编辑
-                </Button>
-              </div>
-            </section>
-          ))}
+          <section className={styles.planCard} key={subscriptionPlan.key}>
+            <div className={styles.planCardHeader}>
+              <span className={adminStyles.consolePill}>{subscriptionPlan.sequence}</span>
+              <span
+                className={buildStatusClassName(
+                  subscriptionPlan.status === "active" ? "success" : "danger",
+                )}
+              >
+                {subscriptionPlan.status === "active" ? "启用" : "停用"}
+              </span>
+            </div>
+            <h3 className={styles.planTitle}>{subscriptionPlan.title}</h3>
+            <div className={styles.planPrice}>
+              月付 {formatAmount(subscriptionPlan.monthlyPriceAmount)} / 席 / 月
+            </div>
+            <div className={styles.planPrice}>
+              年付 {formatAmount(subscriptionPlan.yearlyPriceAmount)} / 席 / 年
+            </div>
+            <div className={styles.planPrice}>
+              签约年付 {formatAmount(subscriptionPlan.contractYearlyPriceAmount)} / 席 / 年
+            </div>
+            <div className={styles.subscriptionEffectList}>
+              {buildMockSubscriptionPlanBenefitTexts(subscriptionPlan).map(item => (
+                <span key={item}>{item}</span>
+              ))}
+            </div>
+            <div className={styles.planCardFooter}>
+              <span>更新：{subscriptionPlan.updatedAt}</span>
+              <Button size="small" onClick={() => handleOpenEditSubscriptionPlan(subscriptionPlan)}>
+                编辑
+              </Button>
+            </div>
+          </section>
         </div>
       ) : (
         <Empty description="暂无团队席位包配置。" />
@@ -772,38 +794,74 @@ export const OperationsBillingConsole = ({
           <thead>
             <tr>
               <th>租户</th>
-              <th>当前版本</th>
+              <th>当前计划</th>
               <th>席位</th>
-              <th>积分余额</th>
+              <th>付费周期</th>
+              <th>最近订单</th>
+              <th>签约码</th>
+              <th>负责人</th>
               <th>到期时间</th>
+              <th>状态</th>
               <th>操作</th>
             </tr>
           </thead>
           <tbody>
-            {tenantBillingRecords.map(item => (
-              <tr key={item.tenant.id}>
-                <td>
-                  <strong>{item.tenant.name}</strong>
-                  <div className={adminStyles.consoleSectionMeta}>{item.tenant.adminName}</div>
-                </td>
-                <td>{item.snapshot?.planLabel ?? "Lite 个人版"}</td>
-                <td>
-                  {item.snapshot?.usedSeats ?? item.tenant.members.length}/
-                  {item.snapshot?.totalSeats ?? item.tenant.seatCount}
-                </td>
-                <td>{(item.snapshot?.pointsBalance ?? 0).toLocaleString("zh-CN")}</td>
-                <td>{item.snapshot?.planExpiresAt ?? "-"}</td>
-                <td>
-                  <Button
-                    size="small"
-                    type="link"
-                    onClick={() => setTenantPlanEditor(createTenantPlanEditor(item.tenant.id))}
-                  >
-                    购买/追加席位
-                  </Button>
-                </td>
-              </tr>
-            ))}
+            {tenantBillingRecords.map(item => {
+              const latestOrder = getLatestSubscriptionOrder(item.snapshot);
+              const subscriptionStatus = getTenantSubscriptionStatus(item.snapshot);
+              const isPointsBilling = item.snapshot?.billingMode !== "cost";
+
+              return (
+                <tr key={item.tenant.id}>
+                  <td>
+                    <strong>{item.tenant.name}</strong>
+                    <div className={adminStyles.consoleSectionMeta}>{item.tenant.adminName}</div>
+                  </td>
+                  <td>{item.snapshot?.planLabel ?? "个人版"}</td>
+                  <td>
+                    {item.snapshot?.usedSeats ?? item.tenant.members.length}/
+                    {item.snapshot?.totalSeats ?? item.tenant.seatCount}
+                  </td>
+                  <td>{latestOrder?.billingCycleLabel ?? "-"}</td>
+                  <td>
+                    {latestOrder ? (
+                      <>
+                        <span className={adminStyles.consoleHtmlTableStrong}>
+                          {latestOrder.orderNo}
+                        </span>
+                        <br />
+                        <span className={adminStyles.consoleSidebarItemMeta}>
+                          {latestOrder.planTitle}
+                        </span>
+                      </>
+                    ) : (
+                      "-"
+                    )}
+                  </td>
+                  <td>{latestOrder?.contractCode ?? "-"}</td>
+                  <td>{latestOrder?.ownerName ?? "-"}</td>
+                  <td>{item.snapshot?.planExpiresAt ?? "-"}</td>
+                  <td>
+                    <span className={buildStatusClassName(subscriptionStatus.tone)}>
+                      {subscriptionStatus.label}
+                    </span>
+                  </td>
+                  <td>
+                    {isPointsBilling ? (
+                      <Button
+                        size="small"
+                        type="link"
+                        onClick={() => setTenantPlanEditor(createTenantPlanEditor(item.tenant.id))}
+                      >
+                        购买/追加席位
+                      </Button>
+                    ) : (
+                      <span className={adminStyles.consoleSidebarItemMeta}>不支持</span>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
@@ -846,7 +904,7 @@ export const OperationsBillingConsole = ({
 
       <Modal
         open={subscriptionPlanEditor.open}
-        title={subscriptionPlanEditor.mode === "edit" ? "编辑团队席位包" : "新建团队席位包"}
+        title="编辑团队席位包"
         width={680}
         onCancel={() => setSubscriptionPlanEditor(createSubscriptionPlanEditor())}
         onOk={handleSubmitSubscriptionPlan}

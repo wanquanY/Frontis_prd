@@ -117,11 +117,11 @@ const WORKSPACE_PERMISSION_MENUS: TenantRolePermissionMenu[] = [
       { id: TENANT_PERMISSION_IDS.skillCenterView, label: "浏览 Skill 和 MCP" },
       {
         id: TENANT_PERMISSION_IDS.mcpPublishTenant,
-        label: `发布 MCP 到${SKILL_CENTER_LABEL}（组织内）`,
+        label: `发布 skill/MCP 到${SKILL_CENTER_LABEL}（组织内）`,
       },
       {
         id: TENANT_PERMISSION_IDS.mcpPublishPublic,
-        label: `上架 MCP 到${SKILL_CENTER_LABEL}（平台公开）`,
+        label: `上架 skill/MCP 到${SKILL_CENTER_LABEL}（平台公开）`,
       },
     ],
   },

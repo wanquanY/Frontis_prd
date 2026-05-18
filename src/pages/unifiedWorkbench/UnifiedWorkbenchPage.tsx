@@ -628,11 +628,11 @@ export const UnifiedWorkbenchPage = ({ viewRole }: UnifiedWorkbenchPageProps): J
       {tenantSnapshot && isTenantPointsBilling && registrationStrategy.referralEnabled ? (
         <TenantReferralInviteModal
           accountName={featureAccountName}
-          inviteeRewardPoints={registrationStrategy.referralInviteeRewardPoints}
+          inviteCode={tenantSnapshot.tenantCode}
           inviterRewardPoints={registrationStrategy.referralInviterRewardPoints}
+          newUserGiftPoints={registrationStrategy.defaultGiftPoints}
           open={isReferralInviteModalOpen}
           referralRecords={tenantSnapshot.referralRecords}
-          tenantCode={tenantSnapshot.tenantCode}
           onClose={() => setIsReferralInviteModalOpen(false)}
         />
       ) : null}

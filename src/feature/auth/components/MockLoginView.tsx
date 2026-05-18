@@ -78,6 +78,10 @@ export const MockLoginView = (): JSX.Element => {
   const [agreeProtocol, setAgreeProtocol] = useState<boolean>(true);
   const [rememberLogin, setRememberLogin] = useState<boolean>(true);
   const registrationStrategy = useMemo(() => loadOperationsRegistrationStrategy(), []);
+  const inviteCode = useMemo(
+    () => (searchParams.get("invite") ?? searchParams.get("ref") ?? "").trim(),
+    [searchParams],
+  );
 
   const redirectPath = useMemo(() => {
     const targetPath = searchParams.get("redirect")?.trim();
@@ -205,6 +209,7 @@ export const MockLoginView = (): JSX.Element => {
       }
 
       const result = login({
+        inviteCode,
         phone: phoneValue,
         verificationCode: verificationCodeValue,
         redirectPath,
@@ -239,6 +244,7 @@ export const MockLoginView = (): JSX.Element => {
     [
       agreeProtocol,
       login,
+      inviteCode,
       navigate,
       phoneValue,
       redirectPath,

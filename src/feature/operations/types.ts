@@ -194,7 +194,7 @@ export type OperationsFulfillmentStatus =
 /**
  * 资源池类型。
  */
-export type OperationsResourcePoolType = "physicalDevice" | "virtualDevice" | "thirdPartyApi";
+export type OperationsResourcePoolType = "physicalDevice" | "virtualDevice";
 
 /**
  * 资源池分配方式。

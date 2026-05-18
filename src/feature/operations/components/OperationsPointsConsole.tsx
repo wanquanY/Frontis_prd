@@ -56,7 +56,6 @@ interface OperationsPointsConsoleProps {
         | "roundingUnit"
         | "referralDailyRewardLimit"
         | "referralEnabled"
-        | "referralInviteeRewardPoints"
         | "referralInviterRewardPoints"
         | "referralMonthlyRewardLimit"
       >
@@ -568,17 +567,6 @@ export const OperationsPointsConsole = ({
           />
         </div>
         <div className={adminStyles.consoleInfoRow}>
-          <span className={adminStyles.consoleInfoLabel}>被邀请人额外奖励</span>
-          <InputNumber
-            min={0}
-            className={platformStyles.fullWidthInput}
-            value={registrationStrategy.referralInviteeRewardPoints}
-            onChange={value =>
-              onUpdateRegistrationStrategy({ referralInviteeRewardPoints: Number(value ?? 0) })
-            }
-          />
-        </div>
-        <div className={adminStyles.consoleInfoRow}>
           <span className={adminStyles.consoleInfoLabel}>单邀请人每日可奖励人数</span>
           <div className={platformStyles.inlineNumberControl}>
             <InputNumber
@@ -609,7 +597,7 @@ export const OperationsPointsConsole = ({
         <div className={adminStyles.consoleInfoRow}>
           <span className={adminStyles.consoleInfoLabel}>生效条件</span>
           <span className={adminStyles.consoleInfoValue}>
-            被邀请人完成手机号注册并创建 1 席个人版租户后，系统发放邀请人奖励积分。
+            被邀请人通过邀请链接完成手机号注册后，系统发放邀请人奖励积分；被邀请人只获得新用户注册送积分。
           </span>
         </div>
       </div>

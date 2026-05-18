@@ -187,7 +187,7 @@ const PRESET_TENANT_SNAPSHOTS: MockTenantManagementSnapshot[] = [
       buildPointsLedgerItem({
         id: "tenant-enterprise-demo-recharge-01",
         title: "初始化额度",
-        description: "补充模型与第三方接口运行额度。",
+        description: "补充大模型调用额度。",
         points: 120000,
         direction: "income",
         createdAt: "今天 09:20",

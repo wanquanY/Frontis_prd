@@ -1125,11 +1125,11 @@ const FrontisAdminPage = (): JSX.Element => {
       {tenantSnapshot && isTenantPointsBilling && registrationStrategy.referralEnabled ? (
         <TenantReferralInviteModal
           accountName={currentUser?.name ?? "未登录"}
-          inviteeRewardPoints={registrationStrategy.referralInviteeRewardPoints}
+          inviteCode={tenantSnapshot.tenantCode}
           inviterRewardPoints={registrationStrategy.referralInviterRewardPoints}
+          newUserGiftPoints={registrationStrategy.defaultGiftPoints}
           open={isReferralInviteModalOpen}
           referralRecords={tenantSnapshot.referralRecords}
-          tenantCode={tenantSnapshot.tenantCode}
           onClose={() => setIsReferralInviteModalOpen(false)}
         />
       ) : null}
