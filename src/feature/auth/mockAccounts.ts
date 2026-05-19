@@ -943,11 +943,17 @@ export const rechargeMockTenantPoints = (
   points: number,
   actorName: string,
   options?: {
+    basePoints?: number;
     title?: string;
     description?: string;
+    discountAmount?: number;
+    discountFactor?: number;
+    giftPoints?: number;
+    originalPrice?: number;
     packageId?: string;
     packageTitle?: string;
     price?: number;
+    promotionEndsAt?: string;
     paymentChannelLabel?: string;
   },
 ): MockTenantManagementSnapshot | null => {
@@ -960,6 +966,8 @@ export const rechargeMockTenantPoints = (
   const timestamp = Date.now();
   const packageTitle = options?.packageTitle?.trim();
   const packageId = options?.packageId?.trim();
+  const basePoints = Math.max(Math.floor(options?.basePoints ?? points), 0);
+  const giftPoints = Math.max(Math.floor(options?.giftPoints ?? 0), 0);
   const pointsOrder: MockTenantPointsOrderItem | null =
     packageId && packageTitle && typeof options?.price === "number"
       ? {
@@ -967,8 +975,14 @@ export const rechargeMockTenantPoints = (
           orderNo: `PT-${timestamp.toString().slice(-10)}`,
           packageId,
           packageTitle,
-          packagePoints: points,
+          packagePoints: basePoints,
+          giftPoints,
+          totalPoints: points,
           amount: options.price,
+          originalAmount: options.originalPrice,
+          discountAmount: options.discountAmount,
+          discountFactor: options.discountFactor,
+          promotionEndsAt: options.promotionEndsAt,
           status: "paid",
           paymentChannelLabel: options.paymentChannelLabel ?? "统一扫码支付",
           purchaserName: actorName,
@@ -988,7 +1002,7 @@ export const rechargeMockTenantPoints = (
         points,
         direction: "income",
         createdAt: "刚刚",
-        actorName: options?.title === "购买标准积分包" ? "FrontisAI" : actorName,
+        actorName: packageId ? "FrontisAI" : actorName,
       },
       ...matchedSnapshot.pointsLedger,
     ],

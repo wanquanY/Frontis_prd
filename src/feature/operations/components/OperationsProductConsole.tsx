@@ -20,7 +20,11 @@ import type {
   OperationsSkillCenterCategoryOption,
   OperationsTenant,
 } from "@/feature/operations/types";
-import type { MockPointsPackageOption } from "@/feature/points/types";
+import type {
+  MockPointsPackageInput,
+  MockPointsPackageOption,
+  MockPointsPackageUpdate,
+} from "@/feature/points/types";
 import type {
   MockSubscriptionPlanKey,
   MockSubscriptionPlanTemplate,
@@ -82,12 +86,7 @@ export interface OperationsProductConsoleProps {
   onCreateCategory: (
     payload: Pick<OperationsAgentPlazaCategoryOption, "name" | "sortOrder">,
   ) => void;
-  onCreatePointsPackage: (
-    payload: Pick<
-      MockPointsPackageOption,
-      "title" | "description" | "points" | "price" | "tagLabel"
-    >,
-  ) => void;
+  onCreatePointsPackage: (payload: MockPointsPackageInput) => void;
   onCreateProduct: (form: OperationsProductForm) => void;
   onCreateSkillCategory: (
     payload: Pick<OperationsSkillCenterCategoryOption, "name" | "sortOrder">,
@@ -108,15 +107,7 @@ export interface OperationsProductConsoleProps {
     categoryId: string,
     updates: Partial<Pick<OperationsSkillCenterCategoryOption, "name" | "sortOrder" | "status">>,
   ) => void;
-  onUpdatePointsPackage: (
-    packageId: string,
-    updates: Partial<
-      Pick<
-        MockPointsPackageOption,
-        "title" | "description" | "points" | "price" | "status" | "sortOrder" | "tagLabel"
-      >
-    >,
-  ) => void;
+  onUpdatePointsPackage: (packageId: string, updates: MockPointsPackageUpdate) => void;
   onUpdateProduct: (productId: string, form: OperationsProductForm) => void;
   onUpdateSubscriptionPlan: (
     planKey: MockSubscriptionPlanKey,

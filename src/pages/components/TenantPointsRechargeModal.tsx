@@ -9,8 +9,15 @@ import {
   formatMockPaymentCountdown,
   MOCK_PAYMENT_QR_COUNTDOWN_SECONDS,
 } from "@/feature/commerce/mockPayment";
-import { getActiveMockPointsPackages } from "@/feature/points/mockPointsCommerce";
-import type { MockPointsPackageOption } from "@/feature/points/types";
+import {
+  buildMockPointsPackagePurchaseSnapshot,
+  formatMockPointsPackageDiscount,
+  getActiveMockPointsPackages,
+} from "@/feature/points/mockPointsCommerce";
+import type {
+  MockPointsPackageOption,
+  MockPointsPackagePurchaseSnapshot,
+} from "@/feature/points/types";
 
 import styles from "./TenantPointsRechargeModal.module.less";
 
@@ -18,7 +25,7 @@ type TenantPointsRechargeStep = "select" | "pay" | "success";
 
 interface TenantPointsRechargeModalProps {
   onCancel: () => void;
-  onConfirmPurchase: (selectedPackage: MockPointsPackageOption) => boolean;
+  onConfirmPurchase: (purchaseSnapshot: MockPointsPackagePurchaseSnapshot) => boolean;
   open: boolean;
 }
 
@@ -46,12 +53,18 @@ export const TenantPointsRechargeModal = ({
       packageOptions.find(option => option.id === selectedPackageId) ?? packageOptions[0] ?? null,
     [packageOptions, selectedPackageId],
   );
+  const selectedPurchaseSnapshot = useMemo<MockPointsPackagePurchaseSnapshot | null>(
+    () => (selectedPackage ? buildMockPointsPackagePurchaseSnapshot(selectedPackage) : null),
+    [selectedPackage],
+  );
   const qrImage = useMemo<string>(
     () =>
       buildMockPaymentQr(
-        `${selectedPackage?.id ?? "none"}-${selectedPackage?.price ?? 0}-${orderId}`,
+        `${selectedPurchaseSnapshot?.packageId ?? "none"}-${
+          selectedPurchaseSnapshot?.payableAmount ?? 0
+        }-${orderId}`,
       ),
-    [orderId, selectedPackage?.id, selectedPackage?.price],
+    [orderId, selectedPurchaseSnapshot?.packageId, selectedPurchaseSnapshot?.payableAmount],
   );
   const isQrExpired = countdownSeconds <= 0;
   const qrCountdownLabel = isQrExpired
@@ -71,7 +84,9 @@ export const TenantPointsRechargeModal = ({
     setIsProcessingPayment(false);
     setOrderId("");
     setSelectedPackageId(
-      nextPackageOptions.find(option => option.tagLabel === "推荐")?.id ??
+      nextPackageOptions.find(option => buildMockPointsPackagePurchaseSnapshot(option).promotionActive)
+        ?.id ??
+        nextPackageOptions.find(option => option.tagLabel === "推荐")?.id ??
         nextPackageOptions[0]?.id ??
         "",
     );
@@ -130,14 +145,14 @@ export const TenantPointsRechargeModal = ({
   }, [selectedPackage]);
 
   const handlePayByQr = useCallback((): void => {
-    if (isProcessingPayment || !selectedPackage || isQrExpired) {
+    if (isProcessingPayment || !selectedPurchaseSnapshot || isQrExpired) {
       return;
     }
 
     setIsProcessingPayment(true);
 
     window.setTimeout(() => {
-      const purchaseSucceeded = onConfirmPurchase(selectedPackage);
+      const purchaseSucceeded = onConfirmPurchase(selectedPurchaseSnapshot);
 
       if (!purchaseSucceeded) {
         setIsProcessingPayment(false);
@@ -147,7 +162,7 @@ export const TenantPointsRechargeModal = ({
       setCurrentStep("success");
       setIsProcessingPayment(false);
     }, 700);
-  }, [isProcessingPayment, isQrExpired, onConfirmPurchase, selectedPackage]);
+  }, [isProcessingPayment, isQrExpired, onConfirmPurchase, selectedPurchaseSnapshot]);
 
   return (
     <Modal
@@ -168,6 +183,7 @@ export const TenantPointsRechargeModal = ({
                 <div className={styles.packageList}>
                   {packageOptions.map(option => {
                     const isActive = option.id === selectedPackage?.id;
+                    const purchaseSnapshot = buildMockPointsPackagePurchaseSnapshot(option);
 
                     return (
                       <button
@@ -186,12 +202,28 @@ export const TenantPointsRechargeModal = ({
                             ) : null}
                           </span>
                           <span className={styles.packageMeta}>
-                            {option.points.toLocaleString("zh-CN")} 积分
+                            {purchaseSnapshot.basePoints.toLocaleString("zh-CN")} 积分
+                            {purchaseSnapshot.giftPoints > 0
+                              ? ` + 赠送 ${purchaseSnapshot.giftPoints.toLocaleString("zh-CN")}`
+                              : ""}
                           </span>
+                          {purchaseSnapshot.promotionActive ? (
+                            <span className={styles.packagePromotion}>
+                              {formatMockPointsPackageDiscount(purchaseSnapshot.discountFactor)} ·
+                              活动至 {purchaseSnapshot.promotionEndsAt}
+                            </span>
+                          ) : null}
                           <span className={styles.packageDescription}>{option.description}</span>
                         </span>
                         <span className={styles.packageValue}>
-                          <span className={styles.packagePrice}>¥{option.price}</span>
+                          <span className={styles.packagePrice}>
+                            ¥{purchaseSnapshot.payableAmount}
+                          </span>
+                          {purchaseSnapshot.promotionActive ? (
+                            <span className={styles.packageOriginalPrice}>
+                              ¥{purchaseSnapshot.originalPrice}
+                            </span>
+                          ) : null}
                         </span>
                       </button>
                     );
@@ -212,7 +244,7 @@ export const TenantPointsRechargeModal = ({
           </>
         ) : null}
 
-        {currentStep === "pay" && selectedPackage ? (
+        {currentStep === "pay" && selectedPurchaseSnapshot ? (
           <>
             <div className={styles.paymentContent}>
               <div className={styles.qrColumn}>
@@ -229,12 +261,20 @@ export const TenantPointsRechargeModal = ({
 
               <div className={styles.paymentInstruction}>
                 <h2 className={styles.paymentTitle}>
-                  支付宝 / 微信扫码支付 ¥{selectedPackage.price}
+                  支付宝 / 微信扫码支付 ¥{selectedPurchaseSnapshot.payableAmount}
                 </h2>
                 <ul className={styles.paymentNoticeList}>
                   <li>
-                    购买{selectedPackage.title}后，
-                    {selectedPackage.points.toLocaleString("zh-CN")} 积分将在支付成功后到账。
+                    购买{selectedPurchaseSnapshot.packageTitle}后，
+                    {selectedPurchaseSnapshot.totalPoints.toLocaleString("zh-CN")}{" "}
+                    积分将在支付成功后到账。
+                  </li>
+                  <li>
+                    售卖积分 {selectedPurchaseSnapshot.basePoints.toLocaleString("zh-CN")}
+                    {selectedPurchaseSnapshot.giftPoints > 0
+                      ? `，赠送 ${selectedPurchaseSnapshot.giftPoints.toLocaleString("zh-CN")}`
+                      : ""}
+                    。
                   </li>
                   <li>积分用于平台内大模型调用消耗。</li>
                   <li>积分属于虚拟商品，一经支付无法退款，请确认后购买。</li>
@@ -257,7 +297,7 @@ export const TenantPointsRechargeModal = ({
           </>
         ) : null}
 
-        {currentStep === "success" && selectedPackage ? (
+        {currentStep === "success" && selectedPurchaseSnapshot ? (
           <div className={styles.successState}>
             <CheckCircleOutlined className={styles.successIcon} />
             <div className={styles.successTitle}>支付成功</div>

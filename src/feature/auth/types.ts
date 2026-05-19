@@ -123,7 +123,13 @@ export interface MockTenantPointsOrderItem {
   packageId: string;
   packageTitle: string;
   packagePoints: number;
+  giftPoints?: number;
+  totalPoints?: number;
   amount: number;
+  originalAmount?: number;
+  discountAmount?: number;
+  discountFactor?: number;
+  promotionEndsAt?: string;
   status: MockTenantPointsOrderStatus;
   paymentChannelLabel: string;
   purchaserName: string;

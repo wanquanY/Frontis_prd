@@ -1,6 +1,5 @@
 import { useMemo } from "react";
 
-import { Button } from "antd";
 import classNames from "classnames";
 import dayjs from "dayjs";
 import type { Dayjs } from "dayjs";
@@ -10,12 +9,15 @@ import type {
   MockTenantPointsOrderItem,
   MockTenantSubscriptionOrderItem,
 } from "@/feature/auth/types";
+import {
+  formatMockPointsOrderBenefit,
+  formatMockSubscriptionOrderBenefit,
+} from "@/feature/auth/mockOrderDisplay";
 
 import adminStyles from "./FrontisAdminViews.module.less";
 import styles from "./TenantPointsView.module.less";
 
 interface TenantPointsViewProps {
-  onOpenRecharge?: () => void;
   tenantSnapshot: MockTenantManagementSnapshot;
 }
 
@@ -23,8 +25,8 @@ type TenantOrderRecordStatus = MockTenantPointsOrderItem["status"];
 
 interface TenantOrderRecordItem {
   amount: number;
+  benefitLabel: string;
   createdAt: string;
-  detailLabel: string;
   id: string;
   orderNo: string;
   paidAt?: string;
@@ -103,8 +105,8 @@ const getOrderSortTime = (order: Pick<TenantOrderRecordItem, "createdAt" | "paid
 
 const buildPointsOrder = (order: MockTenantPointsOrderItem): TenantOrderRecordItem => ({
   amount: order.amount,
+  benefitLabel: formatMockPointsOrderBenefit(order),
   createdAt: order.createdAt,
-  detailLabel: `${order.packagePoints.toLocaleString("zh-CN")} 积分`,
   id: `points-${order.id}`,
   orderNo: order.orderNo,
   paidAt: order.paidAt,
@@ -115,25 +117,19 @@ const buildPointsOrder = (order: MockTenantPointsOrderItem): TenantOrderRecordIt
   typeLabel: "积分订单",
 });
 
-const buildSubscriptionOrder = (order: MockTenantSubscriptionOrderItem): TenantOrderRecordItem => {
-  const purchaseModeLabel = order.purchaseMode === "renew" ? "续约" : "新增";
-
-  return {
-    amount: order.amount,
-    createdAt: order.createdAt,
-    detailLabel: `${purchaseModeLabel} ${order.seatCount} 席 · ${
-      order.prorationLabel ?? order.billingCycleLabel
-    }`,
-    id: `subscription-${order.id}`,
-    orderNo: order.orderNo,
-    paidAt: order.paidAt,
-    purchaserName: order.purchaserName,
-    sortTime: getOrderSortTime(order),
-    status: order.status,
-    subjectLabel: order.planTitle,
-    typeLabel: "订阅订单",
-  };
-};
+const buildSubscriptionOrder = (order: MockTenantSubscriptionOrderItem): TenantOrderRecordItem => ({
+  amount: order.amount,
+  benefitLabel: formatMockSubscriptionOrderBenefit(order),
+  createdAt: order.createdAt,
+  id: `subscription-${order.id}`,
+  orderNo: order.orderNo,
+  paidAt: order.paidAt,
+  purchaserName: order.purchaserName,
+  sortTime: getOrderSortTime(order),
+  status: order.status,
+  subjectLabel: order.planTitle,
+  typeLabel: "订阅订单",
+});
 
 const sortOrderRecordItems = (orders: TenantOrderRecordItem[]): TenantOrderRecordItem[] =>
   [...orders].sort(
@@ -152,7 +148,6 @@ const renderOrderStatusTag = (status: TenantOrderRecordStatus): JSX.Element => (
  * 租户订单记录视图，展示积分包和团队席位购买订单。
  */
 export const TenantPointsView = ({
-  onOpenRecharge,
   tenantSnapshot,
 }: TenantPointsViewProps): JSX.Element => {
   const orderRecordItems = useMemo(
@@ -170,11 +165,6 @@ export const TenantPointsView = ({
         <div className={adminStyles.consoleHeaderMain}>
           <h1 className={adminStyles.consoleTitle}>订单记录</h1>
         </div>
-        {onOpenRecharge ? (
-          <Button type="primary" onClick={onOpenRecharge}>
-            购买积分
-          </Button>
-        ) : null}
       </header>
 
       <section className={adminStyles.consoleSection}>
@@ -185,7 +175,7 @@ export const TenantPointsView = ({
                 <th>订单号</th>
                 <th>订单类型</th>
                 <th>订单内容</th>
-                <th>数量 / 周期</th>
+                <th>权益明细</th>
                 <th>支付金额</th>
                 <th>状态</th>
                 <th>购买人</th>
@@ -202,7 +192,7 @@ export const TenantPointsView = ({
                       <span className={adminStyles.consolePill}>{order.typeLabel}</span>
                     </td>
                     <td>{order.subjectLabel}</td>
-                    <td>{order.detailLabel}</td>
+                    <td>{order.benefitLabel}</td>
                     <td>{formatCurrency(order.amount)}</td>
                     <td>{renderOrderStatusTag(order.status)}</td>
                     <td>{order.purchaserName}</td>

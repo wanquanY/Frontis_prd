@@ -1,4 +1,9 @@
-import type { MockPointsPackageOption } from "@/feature/points/types";
+import type {
+  MockPointsPackageInput,
+  MockPointsPackageOption,
+  MockPointsPackagePurchaseSnapshot,
+  MockPointsPackageUpdate,
+} from "@/feature/points/types";
 
 const MOCK_POINTS_PACKAGE_STORAGE_KEY = "frontis.mock.points-packages";
 
@@ -17,11 +22,16 @@ const PRESET_POINTS_PACKAGES: MockPointsPackageOption[] = [
     id: "standard",
     title: "标准积分包",
     description: "适合日常高频使用与管理后台租户协作场景。",
-    points: 20000,
-    price: 99,
+    points: 10000,
+    price: 100,
+    promotionEnabled: true,
+    discountFactor: 0.8,
+    promotionStartsAt: "2026-05-01 00:00",
+    promotionEndsAt: "2026-05-31 23:59",
+    giftPoints: 100,
     status: "active",
     sortOrder: 20,
-    tagLabel: "推荐",
+    tagLabel: "限时活动",
     updatedAt: "2026-04-23 10:20",
   },
   {
@@ -48,6 +58,101 @@ const clonePointsPackage = (item: MockPointsPackageOption): MockPointsPackageOpt
   ...item,
 });
 
+const mergePointsPackage = (
+  basePackage: MockPointsPackageOption | undefined,
+  overridePackage: MockPointsPackageOption,
+): MockPointsPackageOption => ({
+  ...basePackage,
+  ...overridePackage,
+  promotionEnabled: overridePackage.promotionEnabled ?? basePackage?.promotionEnabled,
+  discountFactor: overridePackage.discountFactor ?? basePackage?.discountFactor,
+  promotionStartsAt: overridePackage.promotionStartsAt ?? basePackage?.promotionStartsAt,
+  promotionEndsAt: overridePackage.promotionEndsAt ?? basePackage?.promotionEndsAt,
+  giftPoints: overridePackage.giftPoints ?? basePackage?.giftPoints,
+});
+
+const parsePromotionTime = (value?: string): number | null => {
+  const trimmedValue = value?.trim();
+
+  if (!trimmedValue) {
+    return null;
+  }
+
+  const timestamp = new Date(trimmedValue.replace(" ", "T")).getTime();
+
+  return Number.isFinite(timestamp) ? timestamp : null;
+};
+
+const normalizeDiscountFactor = (value?: number): number =>
+  typeof value === "number" && value > 0 && value <= 1 ? value : 1;
+
+const normalizePackageMoney = (value: number): number => Number(Math.max(0, value).toFixed(2));
+
+/**
+ * 判断积分包当前限时活动是否生效。
+ */
+export const isMockPointsPackagePromotionActive = (
+  pointsPackage: MockPointsPackageOption,
+  now = Date.now(),
+): boolean => {
+  if (!pointsPackage.promotionEnabled) {
+    return false;
+  }
+
+  const startsAt = parsePromotionTime(pointsPackage.promotionStartsAt);
+  const endsAt = parsePromotionTime(pointsPackage.promotionEndsAt);
+
+  if (startsAt === null || endsAt === null || endsAt < startsAt) {
+    return false;
+  }
+
+  return now >= startsAt && now <= endsAt;
+};
+
+/**
+ * 生成积分包购买快照，锁定用户下单时的价格和到账权益。
+ */
+export const buildMockPointsPackagePurchaseSnapshot = (
+  pointsPackage: MockPointsPackageOption,
+  now = Date.now(),
+): MockPointsPackagePurchaseSnapshot => {
+  const promotionActive = isMockPointsPackagePromotionActive(pointsPackage, now);
+  const discountFactor = promotionActive ? normalizeDiscountFactor(pointsPackage.discountFactor) : 1;
+  const originalPrice = normalizePackageMoney(pointsPackage.price);
+  const payableAmount = normalizePackageMoney(originalPrice * discountFactor);
+  const basePoints = Math.max(Math.floor(pointsPackage.points), 0);
+  const giftPoints = promotionActive ? Math.max(Math.floor(pointsPackage.giftPoints ?? 0), 0) : 0;
+
+  return {
+    packageId: pointsPackage.id,
+    packageTitle: pointsPackage.title,
+    description: pointsPackage.description,
+    basePoints,
+    giftPoints,
+    totalPoints: basePoints + giftPoints,
+    originalPrice,
+    payableAmount,
+    discountAmount: normalizePackageMoney(originalPrice - payableAmount),
+    discountFactor,
+    promotionActive,
+    promotionStartsAt: pointsPackage.promotionStartsAt,
+    promotionEndsAt: pointsPackage.promotionEndsAt,
+    tagLabel: pointsPackage.tagLabel,
+  };
+};
+
+/**
+ * 格式化积分包折扣系数。
+ */
+export const formatMockPointsPackageDiscount = (discountFactor: number): string => {
+  const normalizedFactor = normalizeDiscountFactor(discountFactor);
+  const discountLabel = Number((normalizedFactor * 10).toFixed(1)).toLocaleString("zh-CN", {
+    maximumFractionDigits: 1,
+  });
+
+  return `${discountLabel} 折`;
+};
+
 const readStoredPointsPackages = (): MockPointsPackageOption[] => {
   if (typeof window === "undefined") {
     return [];
@@ -72,6 +177,16 @@ const readStoredPointsPackages = (): MockPointsPackageOption[] => {
       sortOrder: typeof item.sortOrder === "number" ? item.sortOrder : 0,
       updatedAt: typeof item.updatedAt === "string" ? item.updatedAt : "刚刚",
       description: typeof item.description === "string" ? item.description : "",
+      promotionEnabled:
+        typeof item.promotionEnabled === "boolean" ? item.promotionEnabled : undefined,
+      discountFactor:
+        typeof item.discountFactor === "number"
+          ? normalizeDiscountFactor(item.discountFactor)
+          : undefined,
+      promotionStartsAt:
+        typeof item.promotionStartsAt === "string" ? item.promotionStartsAt : undefined,
+      promotionEndsAt: typeof item.promotionEndsAt === "string" ? item.promotionEndsAt : undefined,
+      giftPoints: typeof item.giftPoints === "number" ? item.giftPoints : undefined,
     }));
   } catch {
     return [];
@@ -97,7 +212,7 @@ const mergePointsPackages = (
   });
 
   storedPackages.forEach(item => {
-    packageMap.set(item.id, clonePointsPackage(item));
+    packageMap.set(item.id, mergePointsPackage(packageMap.get(item.id), clonePointsPackage(item)));
   });
 
   return Array.from(packageMap.values()).sort((leftItem, rightItem) => {
@@ -125,7 +240,7 @@ export const getActiveMockPointsPackages = (): MockPointsPackageOption[] =>
  * 创建积分包商品。
  */
 export const createMockPointsPackage = (
-  payload: Pick<MockPointsPackageOption, "title" | "description" | "points" | "price" | "tagLabel">,
+  payload: MockPointsPackageInput,
 ): MockPointsPackageOption[] => {
   const currentPackages = getMockPointsPackages();
   const nextPackage: MockPointsPackageOption = {
@@ -134,6 +249,11 @@ export const createMockPointsPackage = (
     description: payload.description,
     points: payload.points,
     price: payload.price,
+    promotionEnabled: Boolean(payload.promotionEnabled),
+    discountFactor: normalizeDiscountFactor(payload.discountFactor),
+    promotionStartsAt: payload.promotionStartsAt || undefined,
+    promotionEndsAt: payload.promotionEndsAt || undefined,
+    giftPoints: Math.max(Math.floor(payload.giftPoints ?? 0), 0),
     status: "active",
     sortOrder:
       currentPackages.reduce((maxSortOrder, item) => Math.max(maxSortOrder, item.sortOrder), 0) +
@@ -153,12 +273,7 @@ export const createMockPointsPackage = (
  */
 export const updateMockPointsPackage = (
   packageId: string,
-  updates: Partial<
-    Pick<
-      MockPointsPackageOption,
-      "title" | "description" | "points" | "price" | "status" | "sortOrder" | "tagLabel"
-    >
-  >,
+  updates: MockPointsPackageUpdate,
 ): MockPointsPackageOption[] => {
   const nextPackages = getMockPointsPackages().map(item =>
     item.id === packageId

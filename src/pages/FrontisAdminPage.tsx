@@ -37,7 +37,7 @@ import type {
 } from "@/feature/auth/types";
 import { resolveTenantBillingMode } from "@/feature/auth/tenantBilling";
 import { useOperationsAuth } from "@/feature/operations/hooks/useOperationsAuth";
-import type { MockPointsPackageOption } from "@/feature/points/types";
+import type { MockPointsPackagePurchaseSnapshot } from "@/feature/points/types";
 import type { MockSubscriptionPurchaseMode } from "@/feature/subscription/types";
 import { PRODUCT_LOGO_URL, PRODUCT_NAME, PRODUCT_SLOGAN } from "@/constants/brand";
 import {
@@ -665,7 +665,7 @@ const FrontisAdminPage = (): JSX.Element => {
   );
 
   const handleConfirmPointsRecharge = useCallback(
-    (selectedPackage: MockPointsPackageOption): boolean => {
+    (purchaseSnapshot: MockPointsPackagePurchaseSnapshot): boolean => {
       if (!isTenantPointsBilling) {
         message.error("当前租户为成本计费，不支持购买积分。");
         return false;
@@ -679,14 +679,20 @@ const FrontisAdminPage = (): JSX.Element => {
       const purchaserName = currentUser?.name ?? session?.name ?? "当前用户";
       const nextSnapshot = rechargeMockTenantPoints(
         activeIdentity.tenantId,
-        selectedPackage.points,
+        purchaseSnapshot.totalPoints,
         purchaserName,
         {
-          title: "购买标准积分包",
-          description: `购买${selectedPackage.title}，支付 ¥${selectedPackage.price} 后到账。`,
-          packageId: selectedPackage.id,
-          packageTitle: selectedPackage.title,
-          price: selectedPackage.price,
+          basePoints: purchaseSnapshot.basePoints,
+          discountAmount: purchaseSnapshot.discountAmount,
+          discountFactor: purchaseSnapshot.discountFactor,
+          giftPoints: purchaseSnapshot.giftPoints,
+          originalPrice: purchaseSnapshot.originalPrice,
+          packageId: purchaseSnapshot.packageId,
+          packageTitle: purchaseSnapshot.packageTitle,
+          price: purchaseSnapshot.payableAmount,
+          promotionEndsAt: purchaseSnapshot.promotionEndsAt,
+          title: `购买${purchaseSnapshot.packageTitle}`,
+          description: `购买${purchaseSnapshot.packageTitle}，支付 ¥${purchaseSnapshot.payableAmount} 后到账。`,
         },
       );
 
@@ -697,7 +703,7 @@ const FrontisAdminPage = (): JSX.Element => {
 
       setTenantSnapshot(nextSnapshot);
       setUsers(nextSnapshot.users);
-      message.success(`${selectedPackage.points.toLocaleString("zh-CN")} 积分已到账。`);
+      message.success(`${purchaseSnapshot.totalPoints.toLocaleString("zh-CN")} 积分已到账。`);
       return true;
     },
     [activeIdentity?.tenantId, currentUser?.name, isTenantPointsBilling, session?.name],
@@ -860,10 +866,7 @@ const FrontisAdminPage = (): JSX.Element => {
       }
 
       return (
-        <TenantPointsView
-          onOpenRecharge={handleOpenPointsRecharge}
-          tenantSnapshot={tenantSnapshot}
-        />
+        <TenantPointsView tenantSnapshot={tenantSnapshot} />
       );
     }
 
@@ -1045,7 +1048,6 @@ const FrontisAdminPage = (): JSX.Element => {
                 dropdownRender={menu => (
                   <AccountDropdownPanel
                     accountName={currentUser?.name ?? "未登录"}
-                    currentPlanLabel={accountPlanLabel}
                     menu={menu}
                     onOpenRecharge={isTenantPointsBilling ? handleOpenPointsRecharge : undefined}
                     onOpenSubscription={

@@ -30,7 +30,7 @@ import { getMockTenantManagementSnapshot } from "@/feature/auth/mockTenantRegist
 import { resolveTenantBillingMode } from "@/feature/auth/tenantBilling";
 import type { MockAuthSystemEntry } from "@/feature/auth/types";
 import { useOperationsAuth } from "@/feature/operations/hooks/useOperationsAuth";
-import type { MockPointsPackageOption } from "@/feature/points/types";
+import type { MockPointsPackagePurchaseSnapshot } from "@/feature/points/types";
 import {
   EVOLUTION_LAB_LABEL,
   EXPERT_PLAZA_LABEL,
@@ -292,7 +292,7 @@ export const UnifiedWorkbenchPage = ({ viewRole }: UnifiedWorkbenchPageProps): J
   }, [isTenantPointsBilling]);
 
   const handleConfirmPointsRecharge = useCallback(
-    (selectedPackage: MockPointsPackageOption): boolean => {
+    (purchaseSnapshot: MockPointsPackagePurchaseSnapshot): boolean => {
       if (!isTenantPointsBilling) {
         message.error("当前租户为成本计费，不支持购买积分。");
         return false;
@@ -306,14 +306,20 @@ export const UnifiedWorkbenchPage = ({ viewRole }: UnifiedWorkbenchPageProps): J
       const purchaserName = activeIdentity.subjectName ?? session?.name ?? "当前用户";
       const nextSnapshot = rechargeMockTenantPoints(
         activeIdentity.tenantId,
-        selectedPackage.points,
+        purchaseSnapshot.totalPoints,
         purchaserName,
         {
-          title: "购买标准积分包",
-          description: `购买${selectedPackage.title}，支付 ¥${selectedPackage.price} 后到账。`,
-          packageId: selectedPackage.id,
-          packageTitle: selectedPackage.title,
-          price: selectedPackage.price,
+          basePoints: purchaseSnapshot.basePoints,
+          discountAmount: purchaseSnapshot.discountAmount,
+          discountFactor: purchaseSnapshot.discountFactor,
+          giftPoints: purchaseSnapshot.giftPoints,
+          originalPrice: purchaseSnapshot.originalPrice,
+          packageId: purchaseSnapshot.packageId,
+          packageTitle: purchaseSnapshot.packageTitle,
+          price: purchaseSnapshot.payableAmount,
+          promotionEndsAt: purchaseSnapshot.promotionEndsAt,
+          title: `购买${purchaseSnapshot.packageTitle}`,
+          description: `购买${purchaseSnapshot.packageTitle}，支付 ¥${purchaseSnapshot.payableAmount} 后到账。`,
         },
       );
 
@@ -323,7 +329,7 @@ export const UnifiedWorkbenchPage = ({ viewRole }: UnifiedWorkbenchPageProps): J
       }
 
       setTenantSnapshotRevision(revision => revision + 1);
-      message.success(`${selectedPackage.points.toLocaleString("zh-CN")} 积分已到账。`);
+      message.success(`${purchaseSnapshot.totalPoints.toLocaleString("zh-CN")} 积分已到账。`);
       return true;
     },
     [activeIdentity?.subjectName, activeIdentity?.tenantId, isTenantPointsBilling, session?.name],
@@ -560,7 +566,6 @@ export const UnifiedWorkbenchPage = ({ viewRole }: UnifiedWorkbenchPageProps): J
               dropdownRender={menu => (
                 <AccountDropdownPanel
                   accountName={featureAccountName}
-                  currentPlanLabel={accountPlanLabel}
                   menu={menu}
                   onOpenRecharge={isTenantPointsBilling ? handleOpenPointsRecharge : undefined}
                   onOpenSubscription={

@@ -4,6 +4,10 @@ import { Empty } from "antd";
 import classNames from "classnames";
 
 import { getMockTenantManagementSnapshot } from "@/feature/auth/mockTenantRegistry";
+import {
+  formatMockPointsOrderBenefit,
+  formatMockSubscriptionOrderBenefit,
+} from "@/feature/auth/mockOrderDisplay";
 import type {
   MockTenantPointsOrderItem,
   MockTenantSubscriptionOrderItem,
@@ -21,6 +25,7 @@ type UnifiedOrderType = "points" | "subscription";
 
 interface UnifiedOperationsOrder {
   amount: number;
+  benefitLabel: string;
   createdAt: string;
   id: string;
   orderNo: string;
@@ -31,7 +36,6 @@ interface UnifiedOperationsOrder {
   tenantName: string;
   type: UnifiedOrderType;
   typeLabel: string;
-  detailLabel: string;
 }
 
 const ORDER_STATUS_LABELS: Record<UnifiedOrderStatus, string> = {
@@ -58,8 +62,8 @@ const buildPointsOrder = (
   order: MockTenantPointsOrderItem,
 ): UnifiedOperationsOrder => ({
   amount: order.amount,
+  benefitLabel: formatMockPointsOrderBenefit(order),
   createdAt: order.createdAt,
-  detailLabel: `${order.packagePoints.toLocaleString("zh-CN")} 积分`,
   id: `points-${order.id}`,
   orderNo: order.orderNo,
   paidAt: order.paidAt,
@@ -76,8 +80,8 @@ const buildSubscriptionOrder = (
   order: MockTenantSubscriptionOrderItem,
 ): UnifiedOperationsOrder => ({
   amount: order.amount,
+  benefitLabel: formatMockSubscriptionOrderBenefit(order),
   createdAt: order.createdAt,
-  detailLabel: `${order.seatCount} 席 · ${order.prorationLabel ?? order.billingCycleLabel}`,
   id: `subscription-${order.id}`,
   orderNo: order.orderNo,
   paidAt: order.paidAt,
@@ -140,7 +144,7 @@ export const OperationsOrderCenterConsole = ({
                   <th>订单类型</th>
                   <th>租户</th>
                   <th>订单内容</th>
-                  <th>数量 / 周期</th>
+                  <th>权益明细</th>
                   <th>支付金额</th>
                   <th>购买人</th>
                   <th>状态</th>
@@ -157,7 +161,7 @@ export const OperationsOrderCenterConsole = ({
                     </td>
                     <td>{order.tenantName}</td>
                     <td>{order.subjectLabel}</td>
-                    <td>{order.detailLabel}</td>
+                    <td>{order.benefitLabel}</td>
                     <td>{formatOperationsCurrency(order.amount)}</td>
                     <td>{order.purchaserName}</td>
                     <td>

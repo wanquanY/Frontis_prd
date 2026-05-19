@@ -13,7 +13,11 @@ import {
   getMockPointsPackages,
   updateMockPointsPackage,
 } from "@/feature/points/mockPointsCommerce";
-import type { MockPointsPackageOption } from "@/feature/points/types";
+import type {
+  MockPointsPackageInput,
+  MockPointsPackageOption,
+  MockPointsPackageUpdate,
+} from "@/feature/points/types";
 import {
   loadStoredOperationsProducts,
   saveStoredOperationsProducts,
@@ -159,21 +163,8 @@ interface UseOperationsPlatformResult {
   updateMeteringProvider: (providerId: string, form: OperationsMeteringProviderForm) => void;
   createModelService: (form: OperationsModelServiceForm) => void;
   updateModelService: (modelId: string, form: OperationsModelServiceForm) => void;
-  createPointsPackage: (
-    payload: Pick<
-      MockPointsPackageOption,
-      "title" | "description" | "points" | "price" | "tagLabel"
-    >,
-  ) => void;
-  updatePointsPackage: (
-    packageId: string,
-    updates: Partial<
-      Pick<
-        MockPointsPackageOption,
-        "title" | "description" | "points" | "price" | "status" | "sortOrder" | "tagLabel"
-      >
-    >,
-  ) => void;
+  createPointsPackage: (payload: MockPointsPackageInput) => void;
+  updatePointsPackage: (packageId: string, updates: MockPointsPackageUpdate) => void;
   createSalesChannelContractCode: (payload: MockSalesChannelContractCodeInput) => void;
   updateSalesChannelContractCode: (
     code: string,
@@ -935,27 +926,14 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
   );
 
   const createPointsPackage = useCallback(
-    (
-      payload: Pick<
-        MockPointsPackageOption,
-        "title" | "description" | "points" | "price" | "tagLabel"
-      >,
-    ): void => {
+    (payload: MockPointsPackageInput): void => {
       setPointsPackages(createMockPointsPackage(payload));
     },
     [],
   );
 
   const updatePointsPackage = useCallback(
-    (
-      packageId: string,
-      updates: Partial<
-        Pick<
-          MockPointsPackageOption,
-          "title" | "description" | "points" | "price" | "status" | "sortOrder" | "tagLabel"
-        >
-      >,
-    ): void => {
+    (packageId: string, updates: MockPointsPackageUpdate): void => {
       setPointsPackages(updateMockPointsPackage(packageId, updates));
     },
     [],

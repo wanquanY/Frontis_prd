@@ -10,7 +10,6 @@ import styles from "./AccountDropdownPanel.module.less";
 
 interface AccountDropdownPanelProps {
   accountName: string;
-  currentPlanLabel?: string;
   menu: ReactNode;
   onOpenRecharge?: () => void;
   onOpenSubscription?: () => void;
@@ -22,7 +21,6 @@ interface AccountDropdownPanelProps {
  */
 export const AccountDropdownPanel = ({
   accountName,
-  currentPlanLabel,
   menu,
   onOpenRecharge,
   onOpenSubscription,
@@ -36,9 +34,6 @@ export const AccountDropdownPanel = ({
     <div className={styles.panel}>
       <div className={styles.header}>
         <span className={styles.name}>{accountName}</span>
-        {currentPlanLabel ? (
-          <span className={styles.planBadge}>当前版本：{currentPlanLabel}</span>
-        ) : null}
       </div>
 
       {typeof pointsBalance === "number" ? (
