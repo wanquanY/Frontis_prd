@@ -5,18 +5,33 @@ import type {
 
 const formatNumber = (value: number): string => value.toLocaleString("zh-CN");
 
+const isLegacyStandardPointsOrder = (order: MockTenantPointsOrderItem): boolean =>
+  (order.packageId === "standard" || order.packageTitle === "标准积分包") &&
+  (order.packagePoints !== 10000 || order.giftPoints === undefined || order.totalPoints === undefined);
+
 const getPointsOrderGiftPoints = (order: MockTenantPointsOrderItem): number => {
+  if (isLegacyStandardPointsOrder(order)) {
+    return 100;
+  }
+
   if (typeof order.giftPoints === "number") {
     return order.giftPoints;
   }
 
-  // 兼容旧浏览器 localStorage 中缺少赠送字段的标准积分包订单。
-  return order.packageId === "standard" || order.packageTitle === "标准积分包" ? 100 : 0;
+  return 0;
+};
+
+const getPointsOrderTotalPoints = (order: MockTenantPointsOrderItem, giftPoints: number): number => {
+  if (isLegacyStandardPointsOrder(order)) {
+    return 10100;
+  }
+
+  return order.totalPoints ?? order.packagePoints + giftPoints;
 };
 
 export const formatMockPointsOrderBenefit = (order: MockTenantPointsOrderItem): string => {
   const giftPoints = Math.max(Math.floor(getPointsOrderGiftPoints(order)), 0);
-  const totalPoints = order.totalPoints ?? order.packagePoints + giftPoints;
+  const totalPoints = getPointsOrderTotalPoints(order, giftPoints);
   const giftLabel = giftPoints > 0 ? `，含赠送 ${formatNumber(giftPoints)}` : "";
 
   return `到账 ${formatNumber(totalPoints)} 积分${giftLabel}`;

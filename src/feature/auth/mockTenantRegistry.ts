@@ -32,6 +32,53 @@ const buildPointsUsageRecordItem = (
 
 const buildPointsOrderItem = (item: MockTenantPointsOrderItem): MockTenantPointsOrderItem => item;
 
+const STANDARD_POINTS_ORDER_ACTIVITY_SNAPSHOT = {
+  amount: 80,
+  discountAmount: 20,
+  discountFactor: 0.8,
+  giftPoints: 100,
+  originalAmount: 100,
+  packagePoints: 10000,
+  promotionEndsAt: "2026-05-31 23:59",
+  totalPoints: 10100,
+} satisfies Pick<
+  MockTenantPointsOrderItem,
+  | "amount"
+  | "discountAmount"
+  | "discountFactor"
+  | "giftPoints"
+  | "originalAmount"
+  | "packagePoints"
+  | "promotionEndsAt"
+  | "totalPoints"
+>;
+
+const isStandardPointsPackageOrder = (order: MockTenantPointsOrderItem): boolean =>
+  order.packageId === "standard" || order.packageTitle === "标准积分包";
+
+const shouldNormalizeStandardPointsPackageOrder = (
+  order: MockTenantPointsOrderItem,
+): boolean =>
+  isStandardPointsPackageOrder(order) &&
+  (order.packagePoints !== STANDARD_POINTS_ORDER_ACTIVITY_SNAPSHOT.packagePoints ||
+    order.amount !== STANDARD_POINTS_ORDER_ACTIVITY_SNAPSHOT.amount ||
+    order.giftPoints !== STANDARD_POINTS_ORDER_ACTIVITY_SNAPSHOT.giftPoints ||
+    order.totalPoints !== STANDARD_POINTS_ORDER_ACTIVITY_SNAPSHOT.totalPoints ||
+    order.originalAmount !== STANDARD_POINTS_ORDER_ACTIVITY_SNAPSHOT.originalAmount ||
+    order.discountAmount !== STANDARD_POINTS_ORDER_ACTIVITY_SNAPSHOT.discountAmount ||
+    order.discountFactor !== STANDARD_POINTS_ORDER_ACTIVITY_SNAPSHOT.discountFactor ||
+    order.promotionEndsAt !== STANDARD_POINTS_ORDER_ACTIVITY_SNAPSHOT.promotionEndsAt);
+
+const normalizePointsOrderItem = (
+  order: MockTenantPointsOrderItem,
+): MockTenantPointsOrderItem =>
+  shouldNormalizeStandardPointsPackageOrder(order)
+    ? {
+        ...order,
+        ...STANDARD_POINTS_ORDER_ACTIVITY_SNAPSHOT,
+      }
+    : order;
+
 const buildSubscriptionOrderItem = (
   item: MockTenantSubscriptionOrderItem,
 ): MockTenantSubscriptionOrderItem => item;
@@ -932,7 +979,7 @@ const normalizeTenantSnapshot = (
           ? "team-5"
           : undefined),
     planExpiresAt: snapshot.planExpiresAt ?? (nextEdition === "team" ? "2027-04-23" : undefined),
-    pointsOrders: snapshot.pointsOrders ?? [],
+    pointsOrders: (snapshot.pointsOrders ?? []).map(normalizePointsOrderItem),
     subscriptionOrders: snapshot.subscriptionOrders ?? [],
   };
 };
