@@ -21,9 +21,9 @@ export type MockSubscriptionPlanStatus = "active" | "inactive";
 export type MockSubscriptionValidityUnit = "month" | "year";
 
 /**
- * Pro 席位订阅支付周期。
+ * 席位包规格周期标识。预置规格使用 monthly/yearly，运营可扩展自定义策略。
  */
-export type MockSubscriptionBillingCycle = "monthly" | "yearly";
+export type MockSubscriptionBillingCycle = string;
 
 /**
  * 订阅购买后判定的客户版本。
@@ -36,6 +36,23 @@ export type MockSubscriptionCustomerTier = "pro" | "enterprise";
 export type MockSubscriptionOrderStatus = MockTenantPointsOrderStatus;
 
 /**
+ * 平台团队席位包售卖规格。月付、年付、签约价都只是规格属性，不作为特殊业务分支。
+ */
+export interface MockSubscriptionPlanSpec {
+  key: string;
+  title: string;
+  billingCycle: MockSubscriptionBillingCycle;
+  billingCycleLabel: string;
+  enabled: boolean;
+  priceAmount: number;
+  giftPoints: number;
+  validityCount: number;
+  validityUnit: MockSubscriptionValidityUnit;
+  contractPriceEnabled: boolean;
+  contractPriceAmount: number;
+}
+
+/**
  * 平台团队席位包。席位包售卖后影响席位容量、赠送积分和席位有效期。
  */
 export interface MockSubscriptionPlanTemplate {
@@ -43,6 +60,9 @@ export interface MockSubscriptionPlanTemplate {
   sequence: string;
   title: string;
   seatCount: number;
+  monthlyEnabled: boolean;
+  yearlyEnabled: boolean;
+  contractYearlyEnabled: boolean;
   monthlyPriceAmount: number;
   yearlyPriceAmount: number;
   contractYearlyPriceAmount: number;
@@ -50,6 +70,7 @@ export interface MockSubscriptionPlanTemplate {
   yearlyGiftPoints: number;
   monthlyValidityCount: number;
   yearlyValidityCount: number;
+  specs: MockSubscriptionPlanSpec[];
   status: MockSubscriptionPlanStatus;
   updatedAt: string;
 }
@@ -61,6 +82,9 @@ export type MockSubscriptionPlanTemplateInput = Pick<
   MockSubscriptionPlanTemplate,
   | "title"
   | "seatCount"
+  | "monthlyEnabled"
+  | "yearlyEnabled"
+  | "contractYearlyEnabled"
   | "monthlyPriceAmount"
   | "yearlyPriceAmount"
   | "contractYearlyPriceAmount"
@@ -68,6 +92,7 @@ export type MockSubscriptionPlanTemplateInput = Pick<
   | "yearlyGiftPoints"
   | "monthlyValidityCount"
   | "yearlyValidityCount"
+  | "specs"
   | "status"
 >;
 
@@ -135,6 +160,7 @@ export interface MockSubscriptionPlanPurchaseOption {
   giftPoints: number;
   channelName?: string;
   amount: number;
+  paymentChannelLabel?: string;
   prorationLabel?: string;
   ruleMessage: string;
 }

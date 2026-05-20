@@ -85,6 +85,31 @@
   white-space: nowrap;
 }
 
+.paymentMethodGroup {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.paymentMethodButton {
+  min-height: 40px;
+  border: 1px solid color-mix(in srgb, var(--border) 86%, transparent);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.paymentMethodButtonActive {
+  border-color: color-mix(in srgb, var(--primary) 56%, var(--border));
+  background: color-mix(in srgb, var(--primary) 8%, var(--surface));
+  color: var(--primary);
+}
+
 .qrButton {
   width: 218px;
   height: 218px;

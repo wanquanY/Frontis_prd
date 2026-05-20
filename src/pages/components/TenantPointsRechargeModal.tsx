@@ -11,7 +11,6 @@ import {
 } from "@/feature/commerce/mockPayment";
 import {
   buildMockPointsPackagePurchaseSnapshot,
-  formatMockPointsPackageDiscount,
   getActiveMockPointsPackages,
 } from "@/feature/points/mockPointsCommerce";
 import type {
@@ -22,6 +21,12 @@ import type {
 import styles from "./TenantPointsRechargeModal.module.less";
 
 type TenantPointsRechargeStep = "select" | "pay" | "success";
+type PaymentMethod = "alipay" | "wechat";
+
+const PAYMENT_METHOD_OPTIONS: Array<{ key: PaymentMethod; label: string }> = [
+  { key: "alipay", label: "支付宝" },
+  { key: "wechat", label: "微信支付" },
+];
 
 interface TenantPointsRechargeModalProps {
   onCancel: () => void;
@@ -43,6 +48,7 @@ export const TenantPointsRechargeModal = ({
   );
   const [isProcessingPayment, setIsProcessingPayment] = useState<boolean>(false);
   const [orderId, setOrderId] = useState<string>("");
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("alipay");
   const [selectedPackageId, setSelectedPackageId] = useState<string>("");
   const [packageOptions, setPackageOptions] = useState<MockPointsPackageOption[]>(() =>
     getActiveMockPointsPackages(),
@@ -62,10 +68,17 @@ export const TenantPointsRechargeModal = ({
       buildMockPaymentQr(
         `${selectedPurchaseSnapshot?.packageId ?? "none"}-${
           selectedPurchaseSnapshot?.payableAmount ?? 0
-        }-${orderId}`,
+        }-${paymentMethod}-${orderId}`,
       ),
-    [orderId, selectedPurchaseSnapshot?.packageId, selectedPurchaseSnapshot?.payableAmount],
+    [
+      orderId,
+      paymentMethod,
+      selectedPurchaseSnapshot?.packageId,
+      selectedPurchaseSnapshot?.payableAmount,
+    ],
   );
+  const paymentMethodLabel =
+    PAYMENT_METHOD_OPTIONS.find(item => item.key === paymentMethod)?.label ?? "支付宝";
   const isQrExpired = countdownSeconds <= 0;
   const qrCountdownLabel = isQrExpired
     ? "二维码已失效"
@@ -83,10 +96,9 @@ export const TenantPointsRechargeModal = ({
     setCountdownSeconds(MOCK_PAYMENT_QR_COUNTDOWN_SECONDS);
     setIsProcessingPayment(false);
     setOrderId("");
+    setPaymentMethod("alipay");
     setSelectedPackageId(
-      nextPackageOptions.find(option => buildMockPointsPackagePurchaseSnapshot(option).promotionActive)
-        ?.id ??
-        nextPackageOptions.find(option => option.tagLabel === "推荐")?.id ??
+      nextPackageOptions.find(option => option.tagLabel === "推荐")?.id ??
         nextPackageOptions[0]?.id ??
         "",
     );
@@ -152,7 +164,10 @@ export const TenantPointsRechargeModal = ({
     setIsProcessingPayment(true);
 
     window.setTimeout(() => {
-      const purchaseSucceeded = onConfirmPurchase(selectedPurchaseSnapshot);
+      const purchaseSucceeded = onConfirmPurchase({
+        ...selectedPurchaseSnapshot,
+        paymentChannelLabel: `${paymentMethodLabel}支付`,
+      });
 
       if (!purchaseSucceeded) {
         setIsProcessingPayment(false);
@@ -162,7 +177,13 @@ export const TenantPointsRechargeModal = ({
       setCurrentStep("success");
       setIsProcessingPayment(false);
     }, 700);
-  }, [isProcessingPayment, isQrExpired, onConfirmPurchase, selectedPurchaseSnapshot]);
+  }, [
+    isProcessingPayment,
+    isQrExpired,
+    onConfirmPurchase,
+    paymentMethodLabel,
+    selectedPurchaseSnapshot,
+  ]);
 
   return (
     <Modal
@@ -207,23 +228,12 @@ export const TenantPointsRechargeModal = ({
                               ? ` + 赠送 ${purchaseSnapshot.giftPoints.toLocaleString("zh-CN")}`
                               : ""}
                           </span>
-                          {purchaseSnapshot.promotionActive ? (
-                            <span className={styles.packagePromotion}>
-                              {formatMockPointsPackageDiscount(purchaseSnapshot.discountFactor)} ·
-                              活动至 {purchaseSnapshot.promotionEndsAt}
-                            </span>
-                          ) : null}
                           <span className={styles.packageDescription}>{option.description}</span>
                         </span>
                         <span className={styles.packageValue}>
                           <span className={styles.packagePrice}>
                             ¥{purchaseSnapshot.payableAmount}
                           </span>
-                          {purchaseSnapshot.promotionActive ? (
-                            <span className={styles.packageOriginalPrice}>
-                              ¥{purchaseSnapshot.originalPrice}
-                            </span>
-                          ) : null}
                         </span>
                       </button>
                     );
@@ -261,8 +271,25 @@ export const TenantPointsRechargeModal = ({
 
               <div className={styles.paymentInstruction}>
                 <h2 className={styles.paymentTitle}>
-                  支付宝 / 微信扫码支付 ¥{selectedPurchaseSnapshot.payableAmount}
+                  {paymentMethodLabel} ¥{selectedPurchaseSnapshot.payableAmount}
                 </h2>
+                <div className={styles.paymentMethodGroup}>
+                  {PAYMENT_METHOD_OPTIONS.map(item => (
+                    <button
+                      key={item.key}
+                      type="button"
+                      className={`${styles.paymentMethodButton} ${
+                        item.key === paymentMethod ? styles.paymentMethodButtonActive : ""
+                      }`}
+                      onClick={() => {
+                        setPaymentMethod(item.key);
+                        handleRestartQr();
+                      }}
+                    >
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
                 <ul className={styles.paymentNoticeList}>
                   <li>
                     购买{selectedPurchaseSnapshot.packageTitle}后，
@@ -285,7 +312,7 @@ export const TenantPointsRechargeModal = ({
                     ? "支付处理中..."
                     : isQrExpired
                       ? "二维码已失效，请重新生成后支付。"
-                      : "请使用支付宝或微信扫码完成支付。"}
+                      : `请使用${paymentMethodLabel}扫码完成支付。`}
                 </div>
                 {isQrExpired ? (
                   <Button type="primary" onClick={handleRestartQr}>

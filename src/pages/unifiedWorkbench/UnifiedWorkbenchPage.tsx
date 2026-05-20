@@ -318,6 +318,7 @@ export const UnifiedWorkbenchPage = ({ viewRole }: UnifiedWorkbenchPageProps): J
           packageTitle: purchaseSnapshot.packageTitle,
           price: purchaseSnapshot.payableAmount,
           promotionEndsAt: purchaseSnapshot.promotionEndsAt,
+          paymentChannelLabel: purchaseSnapshot.paymentChannelLabel,
           title: `购买${purchaseSnapshot.packageTitle}`,
           description: `购买${purchaseSnapshot.packageTitle}，支付 ¥${purchaseSnapshot.payableAmount} 后到账。`,
         },

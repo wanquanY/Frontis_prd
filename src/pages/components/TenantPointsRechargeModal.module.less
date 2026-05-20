@@ -103,6 +103,30 @@
   font-weight: 700;
 }
 
+.paymentMethodGroup {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.paymentMethodButton {
+  min-height: 40px;
+  border: 1px solid color-mix(in srgb, var(--text) 12%, transparent);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.paymentMethodButtonActive {
+  border-color: color-mix(in srgb, var(--primary) 56%, transparent);
+  background: color-mix(in srgb, var(--primary) 8%, var(--surface));
+  color: var(--primary);
+}
+
 .packageValue {
   display: flex;
   flex-direction: column;

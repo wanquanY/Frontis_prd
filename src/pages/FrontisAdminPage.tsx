@@ -691,6 +691,7 @@ const FrontisAdminPage = (): JSX.Element => {
           packageTitle: purchaseSnapshot.packageTitle,
           price: purchaseSnapshot.payableAmount,
           promotionEndsAt: purchaseSnapshot.promotionEndsAt,
+          paymentChannelLabel: purchaseSnapshot.paymentChannelLabel,
           title: `购买${purchaseSnapshot.packageTitle}`,
           description: `购买${purchaseSnapshot.packageTitle}，支付 ¥${purchaseSnapshot.payableAmount} 后到账。`,
         },
@@ -865,9 +866,7 @@ const FrontisAdminPage = (): JSX.Element => {
         );
       }
 
-      return (
-        <TenantPointsView tenantSnapshot={tenantSnapshot} />
-      );
+      return <TenantPointsView tenantSnapshot={tenantSnapshot} />;
     }
 
     if (activeTabKey === "store") {

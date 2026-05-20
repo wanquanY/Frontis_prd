@@ -877,7 +877,7 @@ export const OperationsBillingConsole = ({
               />
             </div>
             <div className={styles.modalField}>
-              <span>付费方式</span>
+              <span>计费周期</span>
               <Select<MockSubscriptionBillingCycle>
                 value={tenantPlanEditor.billingCycle}
                 disabled={Boolean(lockedTenantBillingCycle)}
