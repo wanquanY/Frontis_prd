@@ -66,7 +66,10 @@ import {
   saveEnterpriseCommodityApplications,
 } from "@/feature/workbenchLab/commodityApplications";
 import { WORKBENCH_AGENT_WORKSPACES } from "@/feature/workbenchLab/mockData";
-import type { WorkbenchAgentFramework, WorkbenchAgentWorkspace } from "@/feature/workbenchLab/types";
+import type {
+  WorkbenchAgentFramework,
+  WorkbenchAgentWorkspace,
+} from "@/feature/workbenchLab/types";
 import { hasPermission } from "@/utils/tenantRoleAccess";
 
 import styles from "./EvolutionLabView.module.less";
@@ -182,7 +185,7 @@ const SCRIPT_MESSAGES: ChatMessage[] = [
         content: "需要修复 YAML frontmatter 里的冒号问题（description 含冒号需加引号）：",
       },
       { type: "toolOps", count: 2 },
-      { type: "text", content: "打包成功，现在发布到技能中心：" },
+      { type: "text", content: "打包成功，现在发布 Skill：" },
       { type: "toolOps", count: 3 },
       { type: "text", content: "现在来发布 skill，需要先读取打包的 .skill 文件并上传：" },
       { type: "toolOps", count: 16 },
@@ -1602,7 +1605,7 @@ export const EvolutionLabView = ({ onNavigate }: EvolutionLabViewProps = {}): JS
 
   const handleOpenCommodityApplicationPanel = useCallback(() => {
     if (!canSubmitAgentListing) {
-      message.warning("当前角色没有专家广场平台公开申请权限，可继续开发和企业内使用。");
+      message.warning("当前角色没有商店平台公开申请权限，可继续开发和企业内使用。");
       return;
     }
 
@@ -1621,7 +1624,7 @@ export const EvolutionLabView = ({ onNavigate }: EvolutionLabViewProps = {}): JS
 
   const handleSubmitCommodityApplication = useCallback(() => {
     if (!canSubmitAgentListing) {
-      message.warning("当前角色没有专家广场平台公开申请权限，可继续开发和企业内使用。");
+      message.warning("当前角色没有商店平台公开申请权限，可继续开发和企业内使用。");
       return;
     }
 
@@ -1630,7 +1633,7 @@ export const EvolutionLabView = ({ onNavigate }: EvolutionLabViewProps = {}): JS
     const submitReason = commodityApplicationForm.reason.trim();
 
     if (!proposedProductName) {
-      message.warning("请填写专家广场展示名");
+      message.warning("请填写商店展示名");
       return;
     }
 
@@ -1649,10 +1652,10 @@ export const EvolutionLabView = ({ onNavigate }: EvolutionLabViewProps = {}): JS
       proposedProductName,
       submitReason,
       targetCustomers: commodityApplicationForm.targetCustomers.trim() || undefined,
-      currentScopeLabel: "已发布到专家广场",
+      currentScopeLabel: "已发布到商店",
       description:
         commodityApplicationForm.notes.trim() ||
-        "该 AI 专家已发布到专家广场，当前按企业内权限范围可见可用。平台公开申请审核通过后，可进一步扩大到更多租户可见。",
+        "该 AI 专家已发布到商店，当前按企业内权限范围可见可用。平台公开申请审核通过后，可进一步扩大到更多租户可见。",
     };
     const currentApplications = loadEnterpriseCommodityApplications();
 
@@ -2409,7 +2412,7 @@ export const EvolutionLabView = ({ onNavigate }: EvolutionLabViewProps = {}): JS
         <div className={styles.publishSuccessView}>
           <CheckCircleFilled style={{ fontSize: 48, color: "#3cbf7b" }} />
           <h3 className={styles.publishSuccessTitle}>
-            {publishType === "skill" ? "Skill 已发布到技能中心" : "AI 专家已发布到专家广场"}
+            {publishType === "skill" ? "Skill 已发布到团队资产" : "AI 专家已发布到团队资产"}
           </h3>
           <p className={styles.publishSuccessHint}>
             {getPublishSuccessHint(publishType, publishForm)}
@@ -2434,7 +2437,7 @@ export const EvolutionLabView = ({ onNavigate }: EvolutionLabViewProps = {}): JS
             >
               <ThunderboltOutlined className={styles.publishTypeCardIcon} />
               <div className={styles.publishTypeCardCopy}>
-                <span className={styles.publishTypeCardTitle}>发布到技能中心</span>
+                <span className={styles.publishTypeCardTitle}>发布 Skill</span>
                 <span className={styles.publishTypeCardDesc}>选择一个 Skill 并设置发布范围</span>
               </div>
             </button>
@@ -2445,7 +2448,7 @@ export const EvolutionLabView = ({ onNavigate }: EvolutionLabViewProps = {}): JS
             >
               <AppstoreOutlined className={styles.publishTypeCardIcon} />
               <div className={styles.publishTypeCardCopy}>
-                <span className={styles.publishTypeCardTitle}>发布到专家广场</span>
+                <span className={styles.publishTypeCardTitle}>发布到商店</span>
                 <span className={styles.publishTypeCardDesc}>
                   设置 AI 专家发布范围，具备权限时可直接平台公开
                 </span>
@@ -3608,7 +3611,7 @@ export const EvolutionLabView = ({ onNavigate }: EvolutionLabViewProps = {}): JS
               </div>
               <div>
                 <div className={styles.deployStatusTitle}>正在部署应用</div>
-                <div className={styles.deployStatusSubtitle}>请稍候，应用正在部署到专家广场...</div>
+                <div className={styles.deployStatusSubtitle}>请稍候，应用正在部署到商店...</div>
               </div>
             </div>
             <div className={styles.deployProgressBarWrap}>
@@ -3716,7 +3719,7 @@ export const EvolutionLabView = ({ onNavigate }: EvolutionLabViewProps = {}): JS
                   <EditOutlined /> 体验页定制申请
                 </a>
                 <a className={styles.deployStoreLink} onClick={handleOpenAgentPublishPanel}>
-                  <ShopOutlined /> 发布到专家广场
+                  <ShopOutlined /> 发布到商店
                 </a>
                 <a
                   className={styles.deployStoreLink}
@@ -3735,7 +3738,7 @@ export const EvolutionLabView = ({ onNavigate }: EvolutionLabViewProps = {}): JS
                     setIsRightPanelCollapsed(false);
                   }}
                 >
-                  <ThunderboltOutlined /> 发布到技能中心
+                  <ThunderboltOutlined /> 发布 Skill
                 </a>
               </div>
             </div>
@@ -3825,19 +3828,15 @@ export const EvolutionLabView = ({ onNavigate }: EvolutionLabViewProps = {}): JS
   const publishRightPanel = (
     <aside className={styles.rightPanel}>
       <div className={styles.rightHeader}>
-        <button
-          type="button"
-          className={styles.reportBackBtn}
-          onClick={() => setPublishPage(null)}
-        >
+        <button type="button" className={styles.reportBackBtn} onClick={() => setPublishPage(null)}>
           <ArrowLeftOutlined />
         </button>
         <span className={styles.rightTitle}>
           {publishPage === "commodity"
-              ? "申请平台公开"
-              : publishType === "skill"
-                ? "发布到技能中心"
-                : "发布到专家广场"}
+            ? "申请平台公开"
+            : publishType === "skill"
+              ? "发布 Skill"
+              : "发布到商店"}
         </span>
         <button
           type="button"
@@ -3855,7 +3854,7 @@ export const EvolutionLabView = ({ onNavigate }: EvolutionLabViewProps = {}): JS
               <CheckCircleFilled style={{ fontSize: 48, color: "#3cbf7b" }} />
               <h3 className={styles.publishSuccessTitle}>平台公开申请已提交</h3>
               <p className={styles.publishSuccessHint}>
-                平台运营会在审核通过后将该 AI 专家纳入专家广场平台公开，审核前仍仅支持企业内使用。
+                平台运营会在审核通过后将该 AI 专家纳入商店平台公开，审核前仍仅支持企业内使用。
               </p>
             </div>
           ) : (
@@ -3865,8 +3864,8 @@ export const EvolutionLabView = ({ onNavigate }: EvolutionLabViewProps = {}): JS
                   <div className={styles.publishNoticeTitle}>当前发布范围</div>
                   <div className={styles.publishNoticeText}>
                     {canSubmitAgentListing
-                      ? "该 AI 专家发布到专家广场后，将按当前权限范围在本企业内可见可用。只有平台公开申请审核通过后，平台运营才会将其纳入平台公开范围。"
-                      : "当前角色没有专家广场平台公开申请权限，可继续开发、自用和发布到企业内专家广场，暂不能提交平台公开申请。"}
+                      ? "该 AI 专家发布到商店后，将按当前权限范围在本企业内可见可用。只有平台公开申请审核通过后，平台运营才会将其纳入平台公开范围。"
+                      : "当前角色没有商店平台公开申请权限，可继续开发、自用和发布到企业内商店，暂不能提交平台公开申请。"}
                   </div>
                 </div>
               </div>
@@ -3881,12 +3880,12 @@ export const EvolutionLabView = ({ onNavigate }: EvolutionLabViewProps = {}): JS
                 </div>
                 <div className={styles.publishFormRow}>
                   <label className={styles.publishFormLabel}>
-                    专家广场展示名 <span className={styles.publishRequired}>*</span>
+                    商店展示名 <span className={styles.publishRequired}>*</span>
                   </label>
                   <Input
                     value={commodityApplicationForm.proposedProductName}
                     maxLength={200}
-                    placeholder="请输入专家广场展示名"
+                    placeholder="请输入商店展示名"
                     onChange={event =>
                       updateCommodityApplicationForm({
                         proposedProductName: event.target.value,
@@ -3903,7 +3902,7 @@ export const EvolutionLabView = ({ onNavigate }: EvolutionLabViewProps = {}): JS
                     maxLength={1000}
                     rows={4}
                     showCount
-                    placeholder="说明为什么需要进入专家广场平台公开，以及面向其他租户的价值。"
+                    placeholder="说明为什么需要进入商店平台公开，以及面向其他租户的价值。"
                     onChange={event =>
                       updateCommodityApplicationForm({ reason: event.target.value })
                     }
@@ -3942,7 +3941,7 @@ export const EvolutionLabView = ({ onNavigate }: EvolutionLabViewProps = {}): JS
                   type="primary"
                   icon={<ShopOutlined />}
                   disabled={!canSubmitAgentListing}
-                  title={canSubmitAgentListing ? undefined : "当前角色没有专家广场平台公开申请权限"}
+                  title={canSubmitAgentListing ? undefined : "当前角色没有商店平台公开申请权限"}
                   onClick={handleSubmitCommodityApplication}
                 >
                   提交平台公开申请
@@ -3954,7 +3953,7 @@ export const EvolutionLabView = ({ onNavigate }: EvolutionLabViewProps = {}): JS
           <div className={styles.publishSuccessView}>
             <CheckCircleFilled style={{ fontSize: 48, color: "#3cbf7b" }} />
             <h3 className={styles.publishSuccessTitle}>
-              {publishType === "skill" ? "Skill 已发布到技能中心" : "AI 专家已发布到专家广场"}
+              {publishType === "skill" ? "Skill 已发布到团队资产" : "AI 专家已发布到团队资产"}
             </h3>
             <p className={styles.publishSuccessHint}>
               {getPublishSuccessHint(publishType, publishForm)}
@@ -4000,7 +3999,7 @@ export const EvolutionLabView = ({ onNavigate }: EvolutionLabViewProps = {}): JS
               >
                 <ThunderboltOutlined className={styles.publishTypeCardIcon} />
                 <div className={styles.publishTypeCardCopy}>
-                  <span className={styles.publishTypeCardTitle}>发布到技能中心</span>
+                  <span className={styles.publishTypeCardTitle}>发布 Skill</span>
                   <span className={styles.publishTypeCardDesc}>选择一个 Skill 并设置发布范围</span>
                 </div>
               </button>
@@ -4011,7 +4010,7 @@ export const EvolutionLabView = ({ onNavigate }: EvolutionLabViewProps = {}): JS
               >
                 <AppstoreOutlined className={styles.publishTypeCardIcon} />
                 <div className={styles.publishTypeCardCopy}>
-                  <span className={styles.publishTypeCardTitle}>发布到专家广场</span>
+                  <span className={styles.publishTypeCardTitle}>发布到商店</span>
                   <span className={styles.publishTypeCardDesc}>
                     设置 AI 专家发布范围，具备权限时可直接平台公开
                   </span>

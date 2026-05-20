@@ -15,6 +15,9 @@ type SkillType = "workflow" | "skill" | "model" | "tool";
 type SkillTab = "public" | "mine" | "mcp";
 type Visibility = "仅自己可见" | "公开" | "团队";
 type PrimaryCatalogTab = "skill" | "mcp";
+type SkillCenterMode = "store" | "team";
+type TeamSkillScope = "teamShare" | "mine";
+type StoreSkillCategory = "roleZone" | "industryExpert";
 type SkillCategoryFilter = "all" | string;
 type McpPublishScope = "organization" | "platform";
 
@@ -33,6 +36,10 @@ interface Skill {
   visibility?: Visibility;
 }
 
+interface SkillCenterViewProps {
+  mode?: SkillCenterMode;
+}
+
 interface McpPublishFormState {
   name: string;
   version: string;
@@ -47,6 +54,16 @@ const PRIMARY_CATALOG_TABS: Array<{ key: PrimaryCatalogTab; label: string }> = [
   { key: "mcp", label: "MCP" },
 ];
 
+const STORE_SKILL_CATEGORY_TABS: Array<{ key: StoreSkillCategory; label: string }> = [
+  { key: "roleZone", label: "角色专区" },
+  { key: "industryExpert", label: "行业专家" },
+];
+
+const TEAM_SKILL_SCOPE_TABS: Array<{ key: TeamSkillScope; label: string }> = [
+  { key: "teamShare", label: "团队共享" },
+  { key: "mine", label: "我的" },
+];
+
 const DEFAULT_MCP_PUBLISH_FORM: McpPublishFormState = {
   name: "",
   version: "v1.0.0",
@@ -57,23 +74,42 @@ const DEFAULT_MCP_PUBLISH_FORM: McpPublishFormState = {
 };
 
 const getSkillCategory = (skill: Skill): string => {
-  if (skill.type === "workflow") {
-    return "工作流";
+  if (skill.tags.some(tag => ["销售", "营销", "电商"].includes(tag))) {
+    return "销售";
   }
 
-  if (skill.type === "model") {
-    return "模型能力";
+  if (skill.tags.some(tag => ["生产", "调度"].includes(tag))) {
+    return "生产";
   }
 
-  if (skill.type === "tool") {
-    return "工具";
+  if (skill.tags.some(tag => ["供应链", "库存", "物流"].includes(tag))) {
+    return "供应链";
+  }
+
+  if (
+    skill.tags.some(tag =>
+      ["办公协同", "客服", "知识", "法务", "合规", "浏览器", "检索", "数据库"].includes(tag),
+    )
+  ) {
+    return "办公协同";
   }
 
   if (skill.tags.some(tag => tag.includes("数据") || tag.includes("分析"))) {
-    return "数据分析";
+    return "办公协同";
   }
 
   return "通用";
+};
+
+const isPlatformSkill = (skill: Skill): boolean =>
+  skill.publisher === "Frontis 官方" || skill.publisher === "FrontisAI发布";
+
+const getStoreSkillCategory = (skill: Skill): StoreSkillCategory => {
+  if (skill.type === "workflow" || skill.tags.some(tag => ["客服", "营销", "创作"].includes(tag))) {
+    return "roleZone";
+  }
+
+  return "industryExpert";
 };
 
 const canRemoveSkillItem = (skill: Skill): boolean =>
@@ -295,10 +331,9 @@ const SKILLS: Skill[] = [
 ];
 
 /**
- * 技能中心视图。
- * 工作台内的 Skill 与 MCP 管理入口。
+ * Skill 与 MCP 资产视图。
  */
-export const SkillCenterView = (): JSX.Element => {
+export const SkillCenterView = ({ mode = "store" }: SkillCenterViewProps): JSX.Element => {
   const { activeIdentity } = useMockAuth();
   const currentPermissionIds = activeIdentity?.permissionIds ?? [];
   const canPublishMcpOrganization = hasPermission(
@@ -320,6 +355,8 @@ export const SkillCenterView = (): JSX.Element => {
     : "上架 MCP";
   const [searchKeyword, setSearchKeyword] = useState("");
   const [primaryTab, setPrimaryTab] = useState<PrimaryCatalogTab>("skill");
+  const [storeCategory, setStoreCategory] = useState<StoreSkillCategory>("roleZone");
+  const [teamScope, setTeamScope] = useState<TeamSkillScope>("teamShare");
   const [activeCategory, setActiveCategory] = useState<SkillCategoryFilter>("all");
   const [skillItems, setSkillItems] = useState<Skill[]>(SKILLS);
   const [isMcpPublishOpen, setIsMcpPublishOpen] = useState(false);
@@ -365,6 +402,24 @@ export const SkillCenterView = (): JSX.Element => {
       primaryTab === "mcp" ? skill.tab === "mcp" : skill.tab !== "mcp",
     );
 
+    if (mode === "store") {
+      list = list.filter(
+        skill => isPlatformSkill(skill) && getStoreSkillCategory(skill) === storeCategory,
+      );
+    } else {
+      list = list.filter(skill => {
+        if (isPlatformSkill(skill)) {
+          return false;
+        }
+
+        if (teamScope === "mine") {
+          return skill.tab === "mine";
+        }
+
+        return skill.tab !== "mine";
+      });
+    }
+
     if (activeCategory !== "all") {
       list = list.filter(skill => getSkillCategory(skill) === activeCategory);
     }
@@ -379,7 +434,7 @@ export const SkillCenterView = (): JSX.Element => {
       );
     }
     return list;
-  }, [activeCategory, primaryTab, searchKeyword, skillItems]);
+  }, [activeCategory, mode, primaryTab, searchKeyword, skillItems, storeCategory, teamScope]);
 
   const handleOpenMcpPublish = useCallback((): void => {
     if (!canPublishMcp) {
@@ -439,7 +494,7 @@ export const SkillCenterView = (): JSX.Element => {
     setPrimaryTab("mcp");
     setActiveCategory("all");
     message.success(
-      mcpPublishForm.scope === "platform" ? "MCP 已上架为平台公开" : "MCP 已发布到当前组织技能中心",
+      mcpPublishForm.scope === "platform" ? "MCP 已上架到商店" : "MCP 已发布到团队资产",
     );
   }, [activeIdentity?.tenantName, mcpPublishForm]);
 
@@ -450,7 +505,7 @@ export const SkillCenterView = (): JSX.Element => {
 
     setSkillItems(current => current.filter(item => item.id !== skill.id));
     message.success(
-      skill.tab === "mcp" ? "已从技能中心删除该 MCP。" : "已从技能中心删除该 Skill。",
+      skill.tab === "mcp" ? "已从团队资产删除该 MCP。" : "已从团队资产删除该 Skill。",
     );
   }, []);
 
@@ -482,14 +537,46 @@ export const SkillCenterView = (): JSX.Element => {
           />
         </div>
 
-        {primaryTab === "mcp" && canPublishMcp ? (
+        {mode === "team" && primaryTab === "mcp" && canPublishMcp ? (
           <button type="button" className={styles.publishButton} onClick={handleOpenMcpPublish}>
             {mcpPublishButtonLabel}
           </button>
         ) : null}
       </div>
 
-      <div className={styles.categoryTabs} role="tablist" aria-label="技能中心分类">
+      <div className={styles.categoryTabs} role="tablist" aria-label="技能资产归属">
+        {mode === "store"
+          ? STORE_SKILL_CATEGORY_TABS.map(tab => (
+              <button
+                key={tab.key}
+                type="button"
+                role="tab"
+                aria-selected={storeCategory === tab.key}
+                className={`${styles.categoryTab} ${
+                  storeCategory === tab.key ? styles.categoryTabActive : ""
+                }`}
+                onClick={() => setStoreCategory(tab.key)}
+              >
+                {tab.label}
+              </button>
+            ))
+          : TEAM_SKILL_SCOPE_TABS.map(tab => (
+              <button
+                key={tab.key}
+                type="button"
+                role="tab"
+                aria-selected={teamScope === tab.key}
+                className={`${styles.categoryTab} ${
+                  teamScope === tab.key ? styles.categoryTabActive : ""
+                }`}
+                onClick={() => setTeamScope(tab.key)}
+              >
+                {tab.label}
+              </button>
+            ))}
+      </div>
+
+      <div className={styles.categoryTabs} role="tablist" aria-label="技能场景分类">
         {categoryTabs.map(tab => (
           <button
             key={tab.key}
@@ -507,7 +594,7 @@ export const SkillCenterView = (): JSX.Element => {
       </div>
 
       {filteredSkills.length === 0 ? (
-        <div className={styles.empty}>暂无匹配的 Skill / 工具</div>
+        <div className={styles.empty}>暂无匹配的 Skill / MCP</div>
       ) : (
         <div className={styles.skillGrid}>
           {filteredSkills.map(skill => (
@@ -533,8 +620,8 @@ export const SkillCenterView = (): JSX.Element => {
                     title={skill.tab === "mcp" ? "删除 MCP" : "删除 Skill"}
                     description={
                       skill.tab === "mcp"
-                        ? "删除后，该 MCP 将不再显示在技能中心。"
-                        : "删除后，该 Skill 将不再显示在技能中心。"
+                        ? "删除后，该 MCP 将不再显示在团队资产。"
+                        : "删除后，该 Skill 将不再显示在团队资产。"
                     }
                     okText="删除"
                     cancelText="取消"

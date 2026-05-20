@@ -34,14 +34,26 @@ export const MA_WORKBENCH_LABEL = "ME";
 export const EXPERT_STUDIO_LABEL = "专家列表";
 
 /**
- * 一级导航中专家广场文案。
+ * 一级导航中商店文案。
  */
-export const EXPERT_PLAZA_LABEL = "专家广场";
+export const STORE_LABEL = "商店";
+
+/**
+ * 历史变量名保留给既有权限与提示文案复用。
+ */
+export const EXPERT_STORE_LABEL = STORE_LABEL;
+export const EXPERT_PLAZA_LABEL = EXPERT_STORE_LABEL;
+
+/**
+ * 一级导航中团队资产文案。
+ */
+export const TEAM_ASSETS_LABEL = "团队资产";
+export const TEAM_EXPERTS_LABEL = TEAM_ASSETS_LABEL;
 
 /**
  * 一级导航中技能中心文案。
  */
-export const SKILL_CENTER_LABEL = "技能中心";
+export const SKILL_CENTER_LABEL = STORE_LABEL;
 
 /**
  * 一级导航中进化实验室文案。

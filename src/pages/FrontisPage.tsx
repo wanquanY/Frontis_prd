@@ -223,7 +223,7 @@ const mapStoreAgentToEmployee = (agent: StoreAgentItem): EmployeeItem => ({
   connectionMode: "cloud",
   model: agent.model,
   summary: agent.summary,
-  lastAction: "已从 AI专家广场添加，可由 ME 调度。",
+  lastAction: "已从商店添加，可由 ME 调度。",
   source: "coworker",
   visibility: "all",
   developerName: agent.submitterLabel,
@@ -2238,7 +2238,7 @@ const FrontisPage = ({
                         <span
                           className={`${agentStoreStyles.miniBadge} ${agentStoreStyles.sourceBadge}`}
                         >
-                          FrontisAI发布
+                          商店
                         </span>
                         <span
                           className={`${agentStoreStyles.miniBadge} ${agentStoreStyles.domainBadge}`}

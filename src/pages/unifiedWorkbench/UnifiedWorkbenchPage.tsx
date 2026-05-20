@@ -10,7 +10,7 @@ import {
   MenuUnfoldOutlined,
   MessageOutlined,
   RobotOutlined,
-  ThunderboltOutlined,
+  TeamOutlined,
 } from "@ant-design/icons";
 import type { MenuProps } from "antd";
 import { Avatar, Dropdown, message } from "antd";
@@ -40,7 +40,7 @@ import {
   PRODUCT_LOGO_URL,
   PRODUCT_NAME,
   PRODUCT_SLOGAN,
-  SKILL_CENTER_LABEL,
+  TEAM_EXPERTS_LABEL,
 } from "@/constants/brand";
 import { AccountDropdownPanel } from "@/pages/components/AccountDropdownPanel";
 import {
@@ -62,8 +62,8 @@ type UnifiedWorkbenchTabKey =
   | "metaAgent"
   | "expertStudio"
   | "evolutionLab"
-  | "skillMarket"
-  | "agentStore";
+  | "agentStore"
+  | "teamExperts";
 
 interface UnifiedWorkbenchPageProps {
   viewRole: FrontisWebRole;
@@ -83,22 +83,17 @@ const EvolutionLabView = lazy(() =>
     default: module.EvolutionLabView,
   })),
 );
-const SkillCenterView = lazy(() =>
-  import("@/feature/workbenchLab/components/SkillCenterView").then(module => ({
-    default: module.SkillCenterView,
-  })),
-);
-const ExpertPlazaView = lazy(() =>
-  import("@/feature/workbenchLab/components/ExpertPlazaView").then(module => ({
-    default: module.ExpertPlazaView,
+const AssetCatalogView = lazy(() =>
+  import("@/feature/workbenchLab/components/AssetCatalogView").then(module => ({
+    default: module.AssetCatalogView,
   })),
 );
 const TAB_SEGMENTS: Record<UnifiedWorkbenchTabKey, string> = {
   metaAgent: "meta-agent",
   expertStudio: "expert-studio",
   evolutionLab: "evolution-lab",
-  skillMarket: "skill-market",
   agentStore: "agent-store",
+  teamExperts: "team-experts",
 };
 const TAB_ITEMS: UnifiedWorkbenchNavItem[] = [
   {
@@ -116,14 +111,14 @@ const TAB_ITEMS: UnifiedWorkbenchNavItem[] = [
   {
     key: "agentStore",
     label: EXPERT_PLAZA_LABEL,
-    description: "浏览当前租户可见并可添加使用的 AI 专家。",
+    description: "浏览平台预置与运营上架的 AI 专家、Skill 和 MCP。",
     icon: <AppstoreOutlined />,
   },
   {
-    key: "skillMarket",
-    label: SKILL_CENTER_LABEL,
-    description: "查看并管理 Skill 资产。",
-    icon: <ThunderboltOutlined />,
+    key: "teamExperts",
+    label: TEAM_EXPERTS_LABEL,
+    description: "查看团队共享和自己开发的 AI 专家、Skill 和 MCP。",
+    icon: <TeamOutlined />,
   },
   {
     key: "evolutionLab",
@@ -150,7 +145,7 @@ const getUnifiedWorkbenchPath = (
 };
 
 /**
- * 统一用户端页面，聚合 ME、专家列表、专家广场、技能中心与进化实验室。
+ * 统一用户端页面，聚合 ME、专家列表、商店、团队资产与进化实验室。
  */
 export const UnifiedWorkbenchPage = ({ viewRole }: UnifiedWorkbenchPageProps): JSX.Element => {
   const location = useLocation();
@@ -469,12 +464,12 @@ export const UnifiedWorkbenchPage = ({ viewRole }: UnifiedWorkbenchPageProps): J
       return <EvolutionLabView onNavigate={() => handleNavigateTab("agentStore")} />;
     }
 
-    if (activeTab === "skillMarket") {
-      return <SkillCenterView />;
+    if (activeTab === "agentStore") {
+      return <AssetCatalogView mode="store" />;
     }
 
-    if (activeTab === "agentStore") {
-      return <ExpertPlazaView />;
+    if (activeTab === "teamExperts") {
+      return <AssetCatalogView mode="team" />;
     }
 
     return <FrontisPage viewRole={viewRole} embedded={true} />;
@@ -483,8 +478,8 @@ export const UnifiedWorkbenchPage = ({ viewRole }: UnifiedWorkbenchPageProps): J
   const shouldShowFeatureHeader =
     activeTab !== "metaAgent" &&
     activeTab !== "expertStudio" &&
-    activeTab !== "skillMarket" &&
-    activeTab !== "agentStore";
+    activeTab !== "agentStore" &&
+    activeTab !== "teamExperts";
 
   return (
     <>

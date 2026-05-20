@@ -31,10 +31,12 @@ import { getAvatarUrl } from "@/pages/utils";
 
 import styles from "./ExpertPlazaView.module.less";
 
-type AgentShelfFilter = "all" | "mine" | "teamShare" | "frontis";
-type BusinessLineFilter = "all" | BusinessLineKey;
+type TeamExpertFilter = "teamShare" | "mine";
+type StoreSystemCategoryKey = "roleZone" | "industryExpert";
+type SceneCategoryFilter = "all" | BusinessLineKey;
 export type BusinessLineKey = OperationsAgentPlazaCategoryOption["name"];
 type AgentSourceType = "mine" | "teamShare" | "frontis";
+type ExpertPlazaMode = "store" | "team";
 
 interface AgentCapability {
   name: string;
@@ -70,6 +72,7 @@ interface TeamSharedAgentTemplate {
 interface PlatformAgentBlueprint {
   businessLine: BusinessLineKey;
   businessLineLabel: string;
+  storeCategory: StoreSystemCategoryKey;
   summary: string;
   scene: string;
   techShape: string;
@@ -86,6 +89,7 @@ export interface StoreAgentItem {
   versionLabel: string;
   businessLine: BusinessLineKey;
   businessLineLabel: string;
+  storeCategory?: StoreSystemCategoryKey;
   summary: string;
   scene: string;
   techShape: string;
@@ -105,6 +109,10 @@ export interface StoreAgentItem {
   commodityApplication?: OperationsAgentSubmission | null;
 }
 
+interface ExpertPlazaViewProps {
+  mode?: ExpertPlazaMode;
+}
+
 interface ContactModalInfo {
   enabled: boolean;
   contactName: string;
@@ -118,11 +126,14 @@ const ACTIVE_FULFILLMENT_STATUSES = new Set<OperationsFulfillment["status"]>([
   "completed",
 ]);
 
-const SHELF_FILTER_OPTIONS: Array<{ label: string; value: AgentShelfFilter }> = [
-  { label: "全部", value: "all" },
+const TEAM_EXPERT_FILTER_OPTIONS: Array<{ label: string; value: TeamExpertFilter }> = [
+  { label: "团队共享", value: "teamShare" },
   { label: "我的", value: "mine" },
-  { label: "团队分享", value: "teamShare" },
-  { label: "FrontisAI发布", value: "frontis" },
+];
+
+const STORE_SYSTEM_CATEGORY_OPTIONS: Array<{ label: string; value: StoreSystemCategoryKey }> = [
+  { label: "角色专区", value: "roleZone" },
+  { label: "行业专家", value: "industryExpert" },
 ];
 
 const DEFAULT_DOMAIN_TONE = "linear-gradient(180deg, #dff4ff 0%, #eef8ff 100%)";
@@ -312,6 +323,7 @@ const FRONTIS_AGENT_BLUEPRINTS: Record<string, PlatformAgentBlueprint> = {
   商品运营素材助手: {
     businessLine: "销售",
     businessLineLabel: "销售",
+    storeCategory: "roleZone",
     summary: "生成商品卖点、详情页文案和推广素材建议，适合电商运营内容生产。",
     scene: "商品运营",
     techShape: "创作型",
@@ -338,6 +350,7 @@ const FRONTIS_AGENT_BLUEPRINTS: Record<string, PlatformAgentBlueprint> = {
   客户对账核验助手: {
     businessLine: "办公协同",
     businessLineLabel: "办公协同",
+    storeCategory: "industryExpert",
     summary: "针对客户账单与交易记录做自动核验，辅助识别差异与风险项。",
     scene: "财务对账",
     techShape: "核验型",
@@ -364,6 +377,7 @@ const FRONTIS_AGENT_BLUEPRINTS: Record<string, PlatformAgentBlueprint> = {
   制度问答助手: {
     businessLine: "办公协同",
     businessLineLabel: "办公协同",
+    storeCategory: "roleZone",
     summary: "面向企业制度与知识问答场景，可直接基于平台知识库进行检索回答。",
     scene: "制度问答",
     techShape: "问答型",
@@ -390,10 +404,10 @@ const getBusinessLineLabel = (line: BusinessLineKey): string =>
 export const getAgentStoreDomainTone = (line: BusinessLineKey): string =>
   DOMAIN_TONE_MAP[line] ?? DEFAULT_DOMAIN_TONE;
 
-const getBusinessLineOptions = (
+const getSceneCategoryOptions = (
   categories: OperationsAgentPlazaCategoryOption[],
-): Array<{ label: string; value: BusinessLineFilter }> => [
-  { label: "全部业务", value: "all" },
+): Array<{ label: string; value: SceneCategoryFilter }> => [
+  { label: "全部", value: "all" },
   ...[...categories]
     .filter(item => item.status === "active")
     .sort((leftItem, rightItem) => {
@@ -444,10 +458,18 @@ const getVisibilityLabel = (agent: StoreAgentItem): string => {
   }
 
   if (agent.sourceType === "teamShare") {
-    return "团队分享";
+    return "团队共享";
   }
 
-  return "FrontisAI发布";
+  return "商店";
+};
+
+const getCategoryLabel = (agent: StoreAgentItem): string => {
+  const systemCategory = STORE_SYSTEM_CATEGORY_OPTIONS.find(
+    option => option.value === agent.storeCategory,
+  );
+
+  return systemCategory?.label ?? agent.businessLineLabel;
 };
 
 const getAcquisitionLabel = (product: OperationsProduct): string => {
@@ -643,6 +665,7 @@ export const buildFrontisAgents = (
         versionLabel: updatedAt,
         businessLine,
         businessLineLabel,
+        storeCategory: blueprint?.storeCategory ?? "industryExpert",
         summary: blueprint?.summary ?? product.description,
         scene: blueprint?.scene ?? "FrontisAI发布",
         techShape: blueprint?.techShape ?? "商品化服务",
@@ -687,12 +710,15 @@ export const resolveLatestFulfillmentsByProductId = (
     }, new Map<string, OperationsFulfillment>());
 
 /**
- * AI 专家广场原型页，承接团队分享与 FrontisAI发布商品化 AI 专家。
+ * AI 专家入口原型页，按菜单拆分为商店与团队资产。
  */
-export const ExpertPlazaView = (): JSX.Element => {
+export const ExpertPlazaView = ({ mode = "store" }: ExpertPlazaViewProps): JSX.Element => {
   const { activeIdentity, session } = useMockAuth();
-  const [shelfFilter, setShelfFilter] = useState<AgentShelfFilter>("all");
-  const [businessLineFilter, setBusinessLineFilter] = useState<BusinessLineFilter>("all");
+  const [teamExpertFilter, setTeamExpertFilter] = useState<TeamExpertFilter>("teamShare");
+  const [storeSystemCategory, setStoreSystemCategory] =
+    useState<StoreSystemCategoryKey>("roleZone");
+  const [storeSceneFilter, setStoreSceneFilter] = useState<SceneCategoryFilter>("all");
+  const [teamSceneFilter, setTeamSceneFilter] = useState<SceneCategoryFilter>("all");
   const [products, setProducts] = useState<OperationsProduct[]>(() =>
     loadStoredOperationsProducts(),
   );
@@ -733,9 +759,9 @@ export const ExpertPlazaView = (): JSX.Element => {
       currentPermissionIds.includes(TENANT_PERMISSION_IDS.agentPublishMarketplace) ||
       currentPermissionIds.includes(TENANT_PERMISSION_IDS.agentPublishPublic));
 
-  const shelfFilterOptions = useMemo(
+  const teamExpertFilterOptions = useMemo(
     () =>
-      SHELF_FILTER_OPTIONS.filter(item => {
+      TEAM_EXPERT_FILTER_OPTIONS.filter(item => {
         if (item.value === "mine") {
           return canManageOwnPublishedAgents;
         }
@@ -744,13 +770,13 @@ export const ExpertPlazaView = (): JSX.Element => {
           return isTeamEdition;
         }
 
-        return true;
+        return false;
       }),
     [canManageOwnPublishedAgents, isTeamEdition],
   );
 
-  const businessLineOptions = useMemo(
-    () => getBusinessLineOptions(agentPlazaCategories),
+  const sceneCategoryOptions = useMemo(
+    () => getSceneCategoryOptions(agentPlazaCategories),
     [agentPlazaCategories],
   );
 
@@ -767,22 +793,38 @@ export const ExpertPlazaView = (): JSX.Element => {
   }, [refreshStorefrontState]);
 
   useEffect(() => {
-    if (!shelfFilterOptions.some(item => item.value === shelfFilter)) {
-      setShelfFilter("all");
-    }
-  }, [shelfFilter, shelfFilterOptions]);
-
-  useEffect(() => {
-    if (businessLineFilter === "all") {
+    if (!teamExpertFilterOptions.length) {
       return;
     }
 
-    const hasCurrentFilter = businessLineOptions.some(item => item.value === businessLineFilter);
+    if (!teamExpertFilterOptions.some(item => item.value === teamExpertFilter)) {
+      setTeamExpertFilter(teamExpertFilterOptions[0].value);
+    }
+  }, [teamExpertFilter, teamExpertFilterOptions]);
+
+  useEffect(() => {
+    if (storeSceneFilter === "all") {
+      return;
+    }
+
+    const hasCurrentFilter = sceneCategoryOptions.some(item => item.value === storeSceneFilter);
 
     if (!hasCurrentFilter) {
-      setBusinessLineFilter("all");
+      setStoreSceneFilter("all");
     }
-  }, [businessLineFilter, businessLineOptions]);
+  }, [sceneCategoryOptions, storeSceneFilter]);
+
+  useEffect(() => {
+    if (teamSceneFilter === "all") {
+      return;
+    }
+
+    const hasCurrentFilter = sceneCategoryOptions.some(item => item.value === teamSceneFilter);
+
+    if (!hasCurrentFilter) {
+      setTeamSceneFilter("all");
+    }
+  }, [sceneCategoryOptions, teamSceneFilter]);
 
   const commodityApplicationsByAgentId = useMemo(
     () =>
@@ -815,41 +857,45 @@ export const ExpertPlazaView = (): JSX.Element => {
     [currentTenantId, latestFulfillmentsByProductId, products],
   );
 
-  const allAgents = useMemo(
-    () =>
-      isTeamEdition
-        ? [...myAgents, ...teamSharedAgents, ...frontisAgents]
-        : [...myAgents, ...frontisAgents],
-    [frontisAgents, isTeamEdition, myAgents, teamSharedAgents],
-  );
+  const filteredAgents = useMemo(() => {
+    const candidateAgents =
+      mode === "store"
+        ? frontisAgents
+        : isTeamEdition
+          ? [...teamSharedAgents, ...myAgents]
+          : myAgents;
 
-  const filteredAgents = useMemo(
-    () =>
-      allAgents.filter(agent => {
-        if (removedMineAgentIds.has(agent.id)) {
+    return candidateAgents.filter(agent => {
+      if (removedMineAgentIds.has(agent.id)) {
+        return false;
+      }
+
+      if (mode === "team") {
+        if (agent.sourceType !== teamExpertFilter) {
           return false;
         }
 
-        if (shelfFilter === "mine" && agent.sourceType !== "mine") {
-          return false;
-        }
+        return teamSceneFilter === "all" || agent.businessLine === teamSceneFilter;
+      }
 
-        if (shelfFilter === "teamShare" && agent.sourceType !== "teamShare") {
-          return false;
-        }
+      if (agent.storeCategory !== storeSystemCategory) {
+        return false;
+      }
 
-        if (shelfFilter === "frontis" && agent.sourceType !== "frontis") {
-          return false;
-        }
-
-        if (businessLineFilter !== "all" && agent.businessLine !== businessLineFilter) {
-          return false;
-        }
-
-        return true;
-      }),
-    [allAgents, businessLineFilter, removedMineAgentIds, shelfFilter],
-  );
+      return storeSceneFilter === "all" || agent.businessLine === storeSceneFilter;
+    });
+  }, [
+    frontisAgents,
+    isTeamEdition,
+    mode,
+    myAgents,
+    removedMineAgentIds,
+    storeSceneFilter,
+    storeSystemCategory,
+    teamExpertFilter,
+    teamSceneFilter,
+    teamSharedAgents,
+  ]);
 
   const contactModalInfo = useMemo<ContactModalInfo | null>(
     () => (contactAgent ? resolveContactModalInfo(contactAgent, serviceContactConfig) : null),
@@ -866,7 +912,7 @@ export const ExpertPlazaView = (): JSX.Element => {
     }
 
     setRemovedMineAgentIds(current => new Set([...current, agent.id]));
-    message.success("已从专家广场删除该 AI 专家。");
+    message.success("已从团队资产删除该 AI 专家。");
   }, []);
 
   const isInExpertList = useCallback(
@@ -924,7 +970,7 @@ export const ExpertPlazaView = (): JSX.Element => {
         {agent.sourceType === "mine" ? (
           <Popconfirm
             title="删除 AI 专家"
-            description="删除后，该 AI 专家将不再显示在专家广场。"
+            description="删除后，该 AI 专家将不再显示在团队资产。"
             okText="删除"
             cancelText="取消"
             okButtonProps={{ danger: true }}
@@ -950,40 +996,81 @@ export const ExpertPlazaView = (): JSX.Element => {
     <div className={styles.root}>
       <div className={styles.toolbarCard}>
         <div className={styles.filterGroup}>
-          <div className={styles.filterTabRow} role="tablist" aria-label="AI专家来源分类">
-            {shelfFilterOptions.map(option => (
-              <button
-                key={option.value}
-                type="button"
-                role="tab"
-                aria-selected={shelfFilter === option.value}
-                className={classNames(
-                  styles.filterTabButton,
-                  shelfFilter === option.value && styles.filterTabButtonActive,
-                )}
-                onClick={() => setShelfFilter(option.value)}
-              >
-                {option.label}
-              </button>
-            ))}
-          </div>
-          <div className={styles.filterTabRow} role="tablist" aria-label="AI专家业务场景">
-            {businessLineOptions.map(option => (
-              <button
-                key={option.value}
-                type="button"
-                role="tab"
-                aria-selected={businessLineFilter === option.value}
-                className={classNames(
-                  styles.filterTabButton,
-                  businessLineFilter === option.value && styles.filterTabButtonActive,
-                )}
-                onClick={() => setBusinessLineFilter(option.value)}
-              >
-                {option.label}
-              </button>
-            ))}
-          </div>
+          {mode === "team" ? (
+            <>
+              <div className={styles.filterTabRow} role="tablist" aria-label="团队专家分类">
+                {teamExpertFilterOptions.map(option => (
+                  <button
+                    key={option.value}
+                    type="button"
+                    role="tab"
+                    aria-selected={teamExpertFilter === option.value}
+                    className={classNames(
+                      styles.filterTabButton,
+                      teamExpertFilter === option.value && styles.filterTabButtonActive,
+                    )}
+                    onClick={() => setTeamExpertFilter(option.value)}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+              <div className={styles.filterTabRow} role="tablist" aria-label="团队专家场景分类">
+                {sceneCategoryOptions.map(option => (
+                  <button
+                    key={option.value}
+                    type="button"
+                    role="tab"
+                    aria-selected={teamSceneFilter === option.value}
+                    className={classNames(
+                      styles.filterTabButton,
+                      teamSceneFilter === option.value && styles.filterTabButtonActive,
+                    )}
+                    onClick={() => setTeamSceneFilter(option.value)}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+            </>
+          ) : (
+            <>
+              <div className={styles.filterTabRow} role="tablist" aria-label="商店系统分类">
+                {STORE_SYSTEM_CATEGORY_OPTIONS.map(option => (
+                  <button
+                    key={option.value}
+                    type="button"
+                    role="tab"
+                    aria-selected={storeSystemCategory === option.value}
+                    className={classNames(
+                      styles.filterTabButton,
+                      storeSystemCategory === option.value && styles.filterTabButtonActive,
+                    )}
+                    onClick={() => setStoreSystemCategory(option.value)}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+              <div className={styles.filterTabRow} role="tablist" aria-label="商店场景分类">
+                {sceneCategoryOptions.map(option => (
+                  <button
+                    key={option.value}
+                    type="button"
+                    role="tab"
+                    aria-selected={storeSceneFilter === option.value}
+                    className={classNames(
+                      styles.filterTabButton,
+                      storeSceneFilter === option.value && styles.filterTabButtonActive,
+                    )}
+                    onClick={() => setStoreSceneFilter(option.value)}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
         </div>
       </div>
 
@@ -1013,7 +1100,7 @@ export const ExpertPlazaView = (): JSX.Element => {
                     {getVisibilityLabel(agent)}
                   </span>
                   <span className={`${styles.miniBadge} ${styles.domainBadge}`}>
-                    {agent.businessLineLabel}
+                    {mode === "store" ? getCategoryLabel(agent) : agent.businessLineLabel}
                   </span>
                 </div>
 
@@ -1027,7 +1114,9 @@ export const ExpertPlazaView = (): JSX.Element => {
       </div>
 
       {!filteredAgents.length ? (
-        <div className={styles.emptyState}>当前筛选条件下暂无可浏览的 AI 专家。</div>
+        <div className={styles.emptyState}>
+          {mode === "store" ? "当前分类下暂无可添加的 AI 专家。" : "当前分类下暂无团队资产。"}
+        </div>
       ) : null}
 
       <Modal
