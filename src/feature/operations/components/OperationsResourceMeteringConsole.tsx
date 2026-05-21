@@ -398,7 +398,6 @@ export const OperationsResourceMeteringConsole = ({
           <div className={styles.modalField}>
             <span className={styles.modalLabel}>状态</span>
             <Select<OperationsMeteringStatus>
-              disabled
               value={modelEditor.form.status}
               options={METERING_STATUS_OPTIONS}
               onChange={value =>
