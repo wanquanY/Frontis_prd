@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-import { DeleteOutlined, SearchOutlined } from "@ant-design/icons";
-import { Popconfirm, message } from "antd";
+import { DeleteOutlined, FileTextOutlined, ProfileOutlined, SearchOutlined } from "@ant-design/icons";
+import { Modal, Popconfirm, message } from "antd";
 
 import { TENANT_PERMISSION_IDS } from "@/constants/tenantRolePermissions";
 import { useMockAuth } from "@/feature/auth/hooks/useMockAuth";
@@ -17,9 +17,10 @@ type Visibility = "仅自己可见" | "公开" | "团队";
 type PrimaryCatalogTab = "skill" | "mcp";
 type SkillCenterMode = "store" | "team";
 type TeamSkillScope = "teamShare" | "mine";
-type StoreSkillCategory = "roleZone" | "industryExpert";
 type SkillCategoryFilter = "all" | string;
 type McpPublishScope = "organization" | "platform";
+type SkillDetailTab = "overview" | "requirements" | "files" | "versions";
+type SkillCoreFileKey = "skillMarkdown" | "manifestJson" | "examplesMarkdown";
 
 interface Skill {
   id: string;
@@ -49,14 +50,16 @@ interface McpPublishFormState {
   description: string;
 }
 
+interface SkillCoreFile {
+  key: SkillCoreFileKey;
+  name: string;
+  description: string;
+  content: string;
+}
+
 const PRIMARY_CATALOG_TABS: Array<{ key: PrimaryCatalogTab; label: string }> = [
   { key: "skill", label: "Skill" },
   { key: "mcp", label: "MCP" },
-];
-
-const STORE_SKILL_CATEGORY_TABS: Array<{ key: StoreSkillCategory; label: string }> = [
-  { key: "roleZone", label: "角色专区" },
-  { key: "industryExpert", label: "行业专家" },
 ];
 
 const TEAM_SKILL_SCOPE_TABS: Array<{ key: TeamSkillScope; label: string }> = [
@@ -104,16 +107,105 @@ const getSkillCategory = (skill: Skill): string => {
 const isPlatformSkill = (skill: Skill): boolean =>
   skill.publisher === "Frontis 官方" || skill.publisher === "FrontisAI发布";
 
-const getStoreSkillCategory = (skill: Skill): StoreSkillCategory => {
-  if (skill.type === "workflow" || skill.tags.some(tag => ["客服", "营销", "创作"].includes(tag))) {
-    return "roleZone";
-  }
-
-  return "industryExpert";
-};
-
 const canRemoveSkillItem = (skill: Skill): boolean =>
   skill.tab === "mine" || skill.id.startsWith("mcp-custom-");
+
+const getSkillTypeLabel = (skill: Skill): string => {
+  if (skill.tab === "mcp") {
+    return "MCP";
+  }
+
+  if (skill.type === "workflow") {
+    return "Workflow";
+  }
+
+  if (skill.type === "model") {
+    return "模型能力";
+  }
+
+  if (skill.type === "tool") {
+    return "工具";
+  }
+
+  return "Skill";
+};
+
+const getSkillInstallStatus = (skill: Skill, mode: SkillCenterMode): string => {
+  if (mode === "store") {
+    return skill.tab === "mcp" ? "可接入" : "可安装";
+  }
+
+  if (skill.tab === "mine") {
+    return skill.visibility ?? "我的";
+  }
+
+  return "团队可用";
+};
+
+const getSkillCoreFiles = (skill: Skill): SkillCoreFile[] => [
+  {
+    key: "skillMarkdown",
+    name: skill.tab === "mcp" ? "MCP.md" : "SKILL.md",
+    description: "定义技能名称、描述、适用场景、输入输出和执行边界。",
+    content: [
+      `# ${skill.name}`,
+      "",
+      "## 名称",
+      skill.name,
+      "",
+      "## 描述",
+      skill.desc,
+      "",
+      "## 类型",
+      getSkillTypeLabel(skill),
+      "",
+      "## 适用标签",
+      skill.tags.map(tag => `- ${tag}`).join("\n"),
+      "",
+      "## 使用边界",
+      skill.tab === "mcp"
+        ? "- 仅在完成 MCP 服务鉴权并确认服务地址可访问后调用。"
+        : "- 仅在当前租户具备安装权限且运行环境已启用后执行。",
+    ].join("\n"),
+  },
+  {
+    key: "manifestJson",
+    name: "manifest.json",
+    description: "记录技能元信息、版本、发布方和运行入口。",
+    content: JSON.stringify(
+      {
+        id: skill.id,
+        name: skill.name,
+        description: skill.desc,
+        version: skill.version,
+        type: getSkillTypeLabel(skill),
+        publisher: skill.publisher,
+        category: getSkillCategory(skill),
+        tags: skill.tags,
+      },
+      null,
+      2,
+    ),
+  },
+  {
+    key: "examplesMarkdown",
+    name: "examples.md",
+    description: "沉淀示例输入、示例输出和验收要点。",
+    content: [
+      `# ${skill.name} Examples`,
+      "",
+      "## 示例输入",
+      `请基于当前业务资料执行「${skill.name}」。`,
+      "",
+      "## 示例输出",
+      `输出与「${getSkillCategory(skill)}」场景相关的结构化结果，并保留关键判断依据。`,
+      "",
+      "## 验收要点",
+      "- 结果必须对应用户输入，不生成无来源结论。",
+      "- 失败时返回明确原因和下一步处理建议。",
+    ].join("\n"),
+  },
+];
 
 // 模拟数据 - 来自 0405.html
 const SKILLS: Skill[] = [
@@ -355,10 +447,12 @@ export const SkillCenterView = ({ mode = "store" }: SkillCenterViewProps): JSX.E
     : "上架 MCP";
   const [searchKeyword, setSearchKeyword] = useState("");
   const [primaryTab, setPrimaryTab] = useState<PrimaryCatalogTab>("skill");
-  const [storeCategory, setStoreCategory] = useState<StoreSkillCategory>("roleZone");
   const [teamScope, setTeamScope] = useState<TeamSkillScope>("teamShare");
   const [activeCategory, setActiveCategory] = useState<SkillCategoryFilter>("all");
   const [skillItems, setSkillItems] = useState<Skill[]>(SKILLS);
+  const [detailSkill, setDetailSkill] = useState<Skill | null>(null);
+  const [detailTab, setDetailTab] = useState<SkillDetailTab>("overview");
+  const [detailFileKey, setDetailFileKey] = useState<SkillCoreFileKey>("skillMarkdown");
   const [isMcpPublishOpen, setIsMcpPublishOpen] = useState(false);
   const [mcpPublishForm, setMcpPublishForm] =
     useState<McpPublishFormState>(DEFAULT_MCP_PUBLISH_FORM);
@@ -386,6 +480,14 @@ export const SkillCenterView = ({ mode = "store" }: SkillCenterViewProps): JSX.E
     () => Array.from(new Set(["通用", ...skillCategories])),
     [skillCategories],
   );
+  const detailSkillCoreFiles = useMemo(
+    () => (detailSkill ? getSkillCoreFiles(detailSkill) : []),
+    [detailSkill],
+  );
+  const activeSkillCoreFile = useMemo(
+    () => detailSkillCoreFiles.find(file => file.key === detailFileKey) ?? detailSkillCoreFiles[0],
+    [detailFileKey, detailSkillCoreFiles],
+  );
 
   useEffect(() => {
     if (activeCategory === "all") {
@@ -403,9 +505,7 @@ export const SkillCenterView = ({ mode = "store" }: SkillCenterViewProps): JSX.E
     );
 
     if (mode === "store") {
-      list = list.filter(
-        skill => isPlatformSkill(skill) && getStoreSkillCategory(skill) === storeCategory,
-      );
+      list = list.filter(skill => isPlatformSkill(skill));
     } else {
       list = list.filter(skill => {
         if (isPlatformSkill(skill)) {
@@ -434,7 +534,7 @@ export const SkillCenterView = ({ mode = "store" }: SkillCenterViewProps): JSX.E
       );
     }
     return list;
-  }, [activeCategory, mode, primaryTab, searchKeyword, skillItems, storeCategory, teamScope]);
+  }, [activeCategory, mode, primaryTab, searchKeyword, skillItems, teamScope]);
 
   const handleOpenMcpPublish = useCallback((): void => {
     if (!canPublishMcp) {
@@ -509,22 +609,68 @@ export const SkillCenterView = ({ mode = "store" }: SkillCenterViewProps): JSX.E
     );
   }, []);
 
+  const handleOpenSkillDetail = useCallback((skill: Skill): void => {
+    setDetailSkill(skill);
+    setDetailTab("overview");
+    setDetailFileKey("skillMarkdown");
+  }, []);
+
   return (
     <div className={styles.root}>
       <div className={styles.primaryToolbar}>
-        <div className={styles.marketTabs}>
-          {PRIMARY_CATALOG_TABS.map(tab => (
-            <button
-              key={tab.key}
-              type="button"
-              className={`${styles.marketTab} ${
-                primaryTab === tab.key ? styles.marketTabActive : ""
-              }`}
-              onClick={() => setPrimaryTab(tab.key)}
-            >
-              {tab.label}
-            </button>
-          ))}
+        <div className={styles.categoryFilterBar}>
+          <div className={styles.marketTabs} role="tablist" aria-label="技能类型">
+            {PRIMARY_CATALOG_TABS.map(tab => (
+              <button
+                key={tab.key}
+                type="button"
+                role="tab"
+                aria-selected={primaryTab === tab.key}
+                className={`${styles.marketTab} ${
+                  primaryTab === tab.key ? styles.marketTabActive : ""
+                }`}
+                onClick={() => setPrimaryTab(tab.key)}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+
+          {mode === "team" ? (
+            <div className={styles.categoryTabs} role="tablist" aria-label="技能资产归属">
+              {TEAM_SKILL_SCOPE_TABS.map(tab => (
+                <button
+                  key={tab.key}
+                  type="button"
+                  role="tab"
+                  aria-selected={teamScope === tab.key}
+                  className={`${styles.categoryTab} ${
+                    teamScope === tab.key ? styles.categoryTabActive : ""
+                  }`}
+                  onClick={() => setTeamScope(tab.key)}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+          ) : null}
+
+          <div className={styles.categoryTabs} role="tablist" aria-label="技能场景分类">
+            {categoryTabs.map(tab => (
+              <button
+                key={tab.key}
+                type="button"
+                role="tab"
+                aria-selected={activeCategory === tab.key}
+                className={`${styles.categoryTab} ${
+                  activeCategory === tab.key ? styles.categoryTabActive : ""
+                }`}
+                onClick={() => setActiveCategory(tab.key)}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
         </div>
 
         <div className={styles.searchBox}>
@@ -544,74 +690,47 @@ export const SkillCenterView = ({ mode = "store" }: SkillCenterViewProps): JSX.E
         ) : null}
       </div>
 
-      <div className={styles.categoryTabs} role="tablist" aria-label="技能资产归属">
-        {mode === "store"
-          ? STORE_SKILL_CATEGORY_TABS.map(tab => (
-              <button
-                key={tab.key}
-                type="button"
-                role="tab"
-                aria-selected={storeCategory === tab.key}
-                className={`${styles.categoryTab} ${
-                  storeCategory === tab.key ? styles.categoryTabActive : ""
-                }`}
-                onClick={() => setStoreCategory(tab.key)}
-              >
-                {tab.label}
-              </button>
-            ))
-          : TEAM_SKILL_SCOPE_TABS.map(tab => (
-              <button
-                key={tab.key}
-                type="button"
-                role="tab"
-                aria-selected={teamScope === tab.key}
-                className={`${styles.categoryTab} ${
-                  teamScope === tab.key ? styles.categoryTabActive : ""
-                }`}
-                onClick={() => setTeamScope(tab.key)}
-              >
-                {tab.label}
-              </button>
-            ))}
-      </div>
-
-      <div className={styles.categoryTabs} role="tablist" aria-label="技能场景分类">
-        {categoryTabs.map(tab => (
-          <button
-            key={tab.key}
-            type="button"
-            role="tab"
-            aria-selected={activeCategory === tab.key}
-            className={`${styles.categoryTab} ${
-              activeCategory === tab.key ? styles.categoryTabActive : ""
-            }`}
-            onClick={() => setActiveCategory(tab.key)}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
-
       {filteredSkills.length === 0 ? (
         <div className={styles.empty}>暂无匹配的 Skill / MCP</div>
       ) : (
         <div className={styles.skillGrid}>
           {filteredSkills.map(skill => (
-            <article key={skill.id} className={styles.skillCard}>
+            <article
+              key={skill.id}
+              className={styles.skillCard}
+              role="button"
+              tabIndex={0}
+              onClick={() => handleOpenSkillDetail(skill)}
+              onKeyDown={event => {
+                if (event.key === "Enter") {
+                  handleOpenSkillDetail(skill);
+                }
+              }}
+            >
               <div className={styles.cardTop}>
                 <div className={styles.skillIcon} style={{ background: skill.iconColor }}>
                   {skill.iconText}
                 </div>
                 <div className={styles.cardMeta}>
-                  <h3 className={styles.cardTitle}>{skill.name}</h3>
+                  <div className={styles.skillTitleRow}>
+                    <h3 className={styles.cardTitle}>{skill.name}</h3>
+                    <span className={styles.skillStatusBadge}>{getSkillInstallStatus(skill, mode)}</span>
+                  </div>
                   <p className={styles.cardDesc}>{skill.desc}</p>
                 </div>
+              </div>
+
+              <div className={styles.skillTagRow}>
+                <span>{getSkillTypeLabel(skill)}</span>
+                {skill.tags.slice(0, 3).map(tag => (
+                  <span key={`${skill.id}-${tag}`}>{tag}</span>
+                ))}
               </div>
 
               <div className={styles.cardFooter}>
                 <div className={styles.cardFooterMeta}>
                   <span>{skill.publisher}</span>
+                  <span>{skill.version}</span>
                   <span>{getSkillCategory(skill)}</span>
                   <span>{skill.publishTime}</span>
                 </div>
@@ -632,6 +751,7 @@ export const SkillCenterView = ({ mode = "store" }: SkillCenterViewProps): JSX.E
                       type="button"
                       className={styles.deleteButton}
                       aria-label={skill.tab === "mcp" ? "删除 MCP" : "删除 Skill"}
+                      onClick={event => event.stopPropagation()}
                     >
                       <DeleteOutlined />
                       删除
@@ -643,6 +763,158 @@ export const SkillCenterView = ({ mode = "store" }: SkillCenterViewProps): JSX.E
           ))}
         </div>
       )}
+
+      <Modal
+        open={Boolean(detailSkill)}
+        title={null}
+        footer={null}
+        width={960}
+        centered
+        destroyOnHidden
+        className={styles.skillDetailModal}
+        onCancel={() => setDetailSkill(null)}
+      >
+        {detailSkill ? (
+          <div className={styles.skillDetailPanel}>
+            <header className={styles.skillDetailHeader}>
+              <div className={styles.skillDetailIcon} style={{ background: detailSkill.iconColor }}>
+                {detailSkill.iconText}
+              </div>
+              <div>
+                <h2>{detailSkill.name}</h2>
+                <p>{detailSkill.desc}</p>
+              </div>
+            </header>
+
+            <div className={styles.skillDetailBody}>
+              <aside className={styles.skillDetailNav} role="tablist" aria-label="技能详情">
+                {[
+                  { key: "overview", label: "详情" },
+                  { key: "requirements", label: detailSkill.tab === "mcp" ? "接入" : "依赖" },
+                  { key: "files", label: "核心文件" },
+                  { key: "versions", label: "版本" },
+                ].map(item => (
+                  <button
+                    key={item.key}
+                    type="button"
+                    role="tab"
+                    aria-selected={detailTab === item.key}
+                    className={detailTab === item.key ? styles.skillDetailNavActive : ""}
+                    onClick={() => setDetailTab(item.key as SkillDetailTab)}
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </aside>
+
+              <section className={styles.skillDetailContent}>
+                {detailTab === "overview" ? (
+                  <div className={styles.skillDetailGrid}>
+                    <section className={styles.skillDetailBlock}>
+                      <h3>基础信息</h3>
+                      <dl className={styles.skillInfoGrid}>
+                        <div>
+                          <dt>名称</dt>
+                          <dd>{detailSkill.name}</dd>
+                        </div>
+                        <div>
+                          <dt>描述</dt>
+                          <dd>{detailSkill.desc}</dd>
+                        </div>
+                        <div>
+                          <dt>类型</dt>
+                          <dd>{getSkillTypeLabel(detailSkill)}</dd>
+                        </div>
+                        <div>
+                          <dt>状态</dt>
+                          <dd>{getSkillInstallStatus(detailSkill, mode)}</dd>
+                        </div>
+                        <div>
+                          <dt>发布方</dt>
+                          <dd>{detailSkill.publisher}</dd>
+                        </div>
+                        <div>
+                          <dt>场景分类</dt>
+                          <dd>{getSkillCategory(detailSkill)}</dd>
+                        </div>
+                        <div>
+                          <dt>版本</dt>
+                          <dd>{detailSkill.version}</dd>
+                        </div>
+                        <div>
+                          <dt>发布时间</dt>
+                          <dd>{detailSkill.publishTime}</dd>
+                        </div>
+                      </dl>
+                    </section>
+
+                    <section className={styles.skillDetailBlock}>
+                      <h3>标签</h3>
+                      <div className={styles.skillDetailTags}>
+                        {detailSkill.tags.map(tag => (
+                          <span key={`${detailSkill.id}-detail-${tag}`}>{tag}</span>
+                        ))}
+                      </div>
+                    </section>
+                  </div>
+                ) : detailTab === "requirements" ? (
+                  <div className={styles.skillRequirementList}>
+                    {[
+                      detailSkill.tab === "mcp" ? "服务地址可访问" : "当前租户具备安装权限",
+                      detailSkill.tab === "mcp" ? "已完成 MCP Server 鉴权" : "运行环境已启用",
+                      "调用日志进入团队资产记录",
+                    ].map(item => (
+                      <article key={item}>
+                        <span>✓</span>
+                        <strong>{item}</strong>
+                      </article>
+                    ))}
+                  </div>
+                ) : detailTab === "files" ? (
+                  <div className={styles.skillFilesPane}>
+                    <div className={styles.skillFileTabs}>
+                      {detailSkillCoreFiles.map(file => (
+                        <button
+                          key={file.key}
+                          type="button"
+                          className={detailFileKey === file.key ? styles.skillFileTabActive : ""}
+                          onClick={() => setDetailFileKey(file.key)}
+                        >
+                          <FileTextOutlined />
+                          <span>{file.name}</span>
+                        </button>
+                      ))}
+                    </div>
+                    {activeSkillCoreFile ? (
+                      <article className={styles.skillFileViewer}>
+                        <header>
+                          <div>
+                            <h3>{activeSkillCoreFile.name}</h3>
+                            <p>{activeSkillCoreFile.description}</p>
+                          </div>
+                        </header>
+                        <pre>{activeSkillCoreFile.content}</pre>
+                      </article>
+                    ) : null}
+                  </div>
+                ) : (
+                  <div className={styles.skillVersionList}>
+                    {[detailSkill.version, "v1.0.0"].map((version, index) => (
+                      <article key={`${detailSkill.id}-${version}-${index}`}>
+                        <div>
+                          <strong>{version}</strong>
+                          <span>{index === 0 ? detailSkill.desc : "首个可用版本。"}</span>
+                        </div>
+                        <em>{index === 0 ? "当前版本" : "历史版本"}</em>
+                      </article>
+                    ))}
+                  </div>
+                )}
+              </section>
+            </div>
+          </div>
+        ) : null}
+      </Modal>
 
       {isMcpPublishOpen ? (
         <div className={styles.publishModalMask} role="presentation">

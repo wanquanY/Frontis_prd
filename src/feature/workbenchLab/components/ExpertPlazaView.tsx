@@ -1,6 +1,19 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-import { Button, Empty, Modal, Popconfirm, QRCode, message } from "antd";
+import {
+  CheckCircleOutlined,
+  CustomerServiceOutlined,
+  DeleteOutlined,
+  FileTextOutlined,
+  LineChartOutlined,
+  ProfileOutlined,
+  SlidersOutlined,
+  UploadOutlined,
+  UserAddOutlined,
+  UserDeleteOutlined,
+  UserOutlined,
+} from "@ant-design/icons";
+import { Button, Empty, Modal, Popconfirm, QRCode, Tooltip, message } from "antd";
 import classNames from "classnames";
 import dayjs from "dayjs";
 
@@ -28,6 +41,8 @@ import type {
   OperationsServiceContactConfig,
 } from "@/feature/operations/types";
 import { getAvatarUrl } from "@/pages/utils";
+import commerceGrowthExpertAvatar from "@/assets/images/ai-experts/commerce-growth-expert.png";
+import knowledgeGovernanceExpertAvatar from "@/assets/images/ai-experts/knowledge-governance-expert.png";
 
 import styles from "./ExpertPlazaView.module.less";
 
@@ -37,10 +52,11 @@ type SceneCategoryFilter = "all" | BusinessLineKey;
 export type BusinessLineKey = OperationsAgentPlazaCategoryOption["name"];
 type AgentSourceType = "mine" | "teamShare" | "frontis";
 type ExpertPlazaMode = "store" | "team";
+type AgentDetailTab = "identity" | "tools" | "skills" | "growth" | "files";
+type AgentCoreFileKey = "soulMarkdown" | "memoryMarkdown" | "userMarkdown";
 
 interface AgentCapability {
   name: string;
-  typeLabel: string;
   description: string;
 }
 
@@ -49,6 +65,42 @@ interface AgentVersionItem {
   description: string;
   date: string;
   current?: boolean;
+}
+
+interface AgentToolItem {
+  name: string;
+  description: string;
+  enabled: boolean;
+}
+
+interface AgentEvolutionPoint {
+  label: string;
+  value: number;
+}
+
+interface AgentEvolutionPathItem {
+  title: string;
+  description: string;
+  status: "done" | "active" | "locked";
+}
+
+interface AgentEvolutionEvidenceItem {
+  title: string;
+  description: string;
+  source: string;
+}
+
+interface AgentEvolutionRecord {
+  curve: AgentEvolutionPoint[];
+  path: AgentEvolutionPathItem[];
+  evidence: AgentEvolutionEvidenceItem[];
+}
+
+interface AgentCoreFile {
+  key: AgentCoreFileKey;
+  name: string;
+  description: string;
+  content: string;
 }
 
 interface TeamSharedAgentTemplate {
@@ -70,6 +122,10 @@ interface TeamSharedAgentTemplate {
 }
 
 interface PlatformAgentBlueprint {
+  displayName?: string;
+  avatarUrl?: string;
+  expertTitle: string;
+  audienceLabel: string;
   businessLine: BusinessLineKey;
   businessLineLabel: string;
   storeCategory: StoreSystemCategoryKey;
@@ -85,7 +141,10 @@ export interface StoreAgentItem {
   id: string;
   sourceType: AgentSourceType;
   visualSeed: string;
+  avatarUrl?: string;
   name: string;
+  expertTitle: string;
+  audienceLabel: string;
   versionLabel: string;
   businessLine: BusinessLineKey;
   businessLineLabel: string;
@@ -132,8 +191,8 @@ const TEAM_EXPERT_FILTER_OPTIONS: Array<{ label: string; value: TeamExpertFilter
 ];
 
 const STORE_SYSTEM_CATEGORY_OPTIONS: Array<{ label: string; value: StoreSystemCategoryKey }> = [
-  { label: "角色专区", value: "roleZone" },
-  { label: "行业专家", value: "industryExpert" },
+  { label: "角色全区", value: "roleZone" },
+  { label: "行业专区", value: "industryExpert" },
 ];
 
 const DEFAULT_DOMAIN_TONE = "linear-gradient(180deg, #dff4ff 0%, #eef8ff 100%)";
@@ -164,17 +223,14 @@ const TEAM_SHARED_AGENTS: TeamSharedAgentTemplate[] = [
     capabilities: [
       {
         name: "客户意图识别",
-        typeLabel: "分析能力",
         description: "识别客户当前关注点与成交阻力。",
       },
       {
         name: "话术生成",
-        typeLabel: "生成能力",
         description: "根据场景自动生成沟通脚本和回复建议。",
       },
       {
         name: "历史对话召回",
-        typeLabel: "知识能力",
         description: "对照历史沟通记录输出更稳定的跟进话术。",
       },
     ],
@@ -209,12 +265,10 @@ const TEAM_SHARED_AGENTS: TeamSharedAgentTemplate[] = [
     capabilities: [
       {
         name: "商机时效监控",
-        typeLabel: "触发能力",
         description: "监控商机阶段停留时长并生成提醒。",
       },
       {
         name: "跟进动作建议",
-        typeLabel: "生成能力",
         description: "根据商机状态输出下一步跟进建议。",
       },
     ],
@@ -249,17 +303,14 @@ const TEAM_SHARED_AGENTS: TeamSharedAgentTemplate[] = [
     capabilities: [
       {
         name: "进度分析",
-        typeLabel: "分析能力",
         description: "识别延期风险并追踪关键里程碑。",
       },
       {
         name: "周报生成",
-        typeLabel: "生成能力",
         description: "自动汇总项目状态并输出周报。",
       },
       {
         name: "风险预警",
-        typeLabel: "告警能力",
         description: "对交付异常、阻塞项和资源冲突做提醒。",
       },
     ],
@@ -294,12 +345,10 @@ const TEAM_SHARED_AGENTS: TeamSharedAgentTemplate[] = [
     capabilities: [
       {
         name: "条款识别",
-        typeLabel: "分析能力",
         description: "识别付款、违约、责任边界等关键条款。",
       },
       {
         name: "审查建议",
-        typeLabel: "生成能力",
         description: "输出修改建议与风险提示。",
       },
     ],
@@ -321,78 +370,82 @@ const TEAM_SHARED_AGENTS: TeamSharedAgentTemplate[] = [
 
 const FRONTIS_AGENT_BLUEPRINTS: Record<string, PlatformAgentBlueprint> = {
   商品运营素材助手: {
+    displayName: "电商经营增长专家",
+    avatarUrl: commerceGrowthExpertAvatar,
+    expertTitle: "商品增长策略与内容转化顾问",
+    audienceLabel: "适用：品牌电商 / 内容运营 / 投放团队",
     businessLine: "销售",
     businessLineLabel: "销售",
     storeCategory: "roleZone",
-    summary: "生成商品卖点、详情页文案和推广素材建议，适合电商运营内容生产。",
+    summary: "拆解商品定位、转化路径和投放素材，帮助团队把商品策略沉淀为可执行的运营动作。",
     scene: "商品运营",
     techShape: "创作型",
     model: "GPT-4.1",
     runtime: "Frontis 托管Runtime",
     capabilities: [
       {
-        name: "商品卖点拆解",
-        typeLabel: "分析能力",
-        description: "从产品信息中提取核心卖点与场景价值。",
+        name: "商品定位",
+        description: "从商品、竞品和人群场景中提炼可转化卖点。",
       },
       {
-        name: "营销素材生成",
-        typeLabel: "生成能力",
-        description: "输出主图文案、详情页和活动推广素材建议。",
+        name: "转化策略",
+        description: "输出主图、详情页、活动页和短内容脚本结构。",
       },
       {
-        name: "投放建议",
-        typeLabel: "策略能力",
-        description: "根据活动目标生成投放切入点和内容节奏。",
+        name: "投放复盘",
+        description: "基于活动目标拆解投放切入点、素材节奏和复盘指标。",
       },
     ],
   },
   客户对账核验助手: {
+    displayName: "交易对账核验专家",
+    avatarUrl: knowledgeGovernanceExpertAvatar,
+    expertTitle: "财务对账与异常归因顾问",
+    audienceLabel: "适用：财务共享 / 运营结算 / 客户成功",
     businessLine: "办公协同",
     businessLineLabel: "办公协同",
     storeCategory: "industryExpert",
-    summary: "针对客户账单与交易记录做自动核验，辅助识别差异与风险项。",
+    summary: "交叉核验账单、交易流水和结算规则，定位差异原因并形成可追溯的处理结论。",
     scene: "财务对账",
     techShape: "核验型",
     model: "Claude Sonnet 4.6",
     runtime: "Frontis 托管Runtime",
     capabilities: [
       {
-        name: "账单差异识别",
-        typeLabel: "分析能力",
+        name: "差异识别",
         description: "自动比对账单和流水，识别差异项。",
       },
       {
-        name: "核验结论生成",
-        typeLabel: "生成能力",
+        name: "归因结论",
         description: "输出对账异常清单和核验建议。",
       },
       {
-        name: "记录追溯",
-        typeLabel: "追踪能力",
+        name: "证据追溯",
         description: "保留核验过程中的关键证据和异常记录。",
       },
     ],
   },
   制度问答助手: {
+    displayName: "企业知识治理专家",
+    avatarUrl: knowledgeGovernanceExpertAvatar,
+    expertTitle: "制度知识库与组织规范顾问",
+    audienceLabel: "适用：集团制度治理 / HRBP / 运营支持",
     businessLine: "办公协同",
     businessLineLabel: "办公协同",
     storeCategory: "roleZone",
-    summary: "面向企业制度与知识问答场景，可直接基于平台知识库进行检索回答。",
+    summary: "沉淀制度知识、统一问答口径、识别流程冲突，帮助组织把分散制度变成可追溯的知识服务。",
     scene: "制度问答",
     techShape: "问答型",
     model: "Kimi 企业版",
     runtime: "Frontis 托管Runtime",
     capabilities: [
       {
-        name: "制度检索",
-        typeLabel: "知识能力",
-        description: "检索制度、流程和常见规范文档。",
+        name: "制度治理",
+        description: "检索制度、流程和组织规范，识别过期或冲突口径。",
       },
       {
-        name: "标准问答",
-        typeLabel: "问答能力",
-        description: "基于制度内容输出清晰回答。",
+        name: "问答溯源",
+        description: "基于制度来源输出可追溯回答，统一员工咨询口径。",
       },
     ],
   },
@@ -472,6 +525,163 @@ const getCategoryLabel = (agent: StoreAgentItem): string => {
   return systemCategory?.label ?? agent.businessLineLabel;
 };
 
+const getAgentAvatarSrc = (agent: StoreAgentItem): string =>
+  agent.avatarUrl ?? getAvatarUrl(agent.visualSeed);
+
+const getAgentStageLabel = (agent: StoreAgentItem): string => {
+  if (agent.sourceType === "frontis") {
+    return "平台专家";
+  }
+
+  if (agent.sourceType === "teamShare") {
+    return "团队共享";
+  }
+
+  return "我的专家";
+};
+
+const getAgentTools = (agent: StoreAgentItem): AgentToolItem[] => [
+  {
+    name: "知识库检索",
+    description: `按「${agent.scene}」场景读取企业知识库、商品资料和历史任务上下文。`,
+    enabled: true,
+  },
+  {
+    name: "文件处理",
+    description: "支持上传文档解析、字段抽取、结构化摘要和结果回写。",
+    enabled: agent.techShape !== "触发型",
+  },
+  {
+    name: "任务与消息",
+    description: "可把处理结果沉淀为待办、通知或团队协作记录。",
+    enabled: agent.sourceType !== "frontis" || Boolean(agent.product),
+  },
+];
+
+const buildAgentEvolutionRecord = (agent: StoreAgentItem): AgentEvolutionRecord => {
+  const capabilityNames = agent.capabilities.map(capability => capability.name);
+  const primaryCapability = capabilityNames[0] ?? agent.scene;
+  const secondaryCapability = capabilityNames[1] ?? agent.businessLineLabel;
+  const updateLabel = agent.updatedAt || "最近";
+
+  return {
+    curve: [
+      { label: "第1周", value: 18 },
+      { label: "第2周", value: 28 },
+      { label: "第3周", value: 43 },
+      { label: "第4周", value: 61 },
+      { label: "第5周", value: 76 },
+      { label: "第6周", value: 88 },
+    ],
+    path: [
+      {
+        title: "身份稳定",
+        description: `围绕「${agent.scene}」形成稳定角色边界和响应口径。`,
+        status: "done",
+      },
+      {
+        title: "能力沉淀",
+        description: `${primaryCapability} 已形成可复用处理策略，覆盖高频任务。`,
+        status: "done",
+      },
+      {
+        title: "场景泛化",
+        description: `${secondaryCapability} 正在扩展到更多业务样例和异常分支。`,
+        status: "active",
+      },
+      {
+        title: "专家闭环",
+        description: "持续累积证据、复盘结论和团队反馈，形成可追溯进化记录。",
+        status: "locked",
+      },
+    ],
+    evidence: [
+      {
+        title: `${primaryCapability} 任务复盘`,
+        description: `最近一次任务沉淀了「${agent.scene}」场景下的判断规则。`,
+        source: `${updateLabel} · MEMORY.md`,
+      },
+      {
+        title: "使用反馈校准",
+        description: "根据团队反馈收敛输出边界，减少泛化回答。",
+        source: `${updateLabel} · USER.md`,
+      },
+      {
+        title: "核心文件更新",
+        description: "身份描述、能力说明和交付格式已同步到核心文件。",
+        source: `${updateLabel} · SOUL.md`,
+      },
+    ],
+  };
+};
+
+const getAgentEvolutionRecord = (
+  agent: StoreAgentItem,
+  isAddedToExpertList: boolean,
+): AgentEvolutionRecord | null => {
+  if (agent.sourceType === "frontis" && (shouldContactForAgent(agent) || !isAddedToExpertList)) {
+    return null;
+  }
+
+  return buildAgentEvolutionRecord(agent);
+};
+
+const getAgentCoreFiles = (agent: StoreAgentItem): AgentCoreFile[] => [
+  {
+    key: "soulMarkdown",
+    name: "SOUL.md",
+    description: "定义 AI 专家的身份、目标、边界和工作方式。",
+    content: [
+      `# ${agent.name}`,
+      "",
+      `## 名称`,
+      agent.name,
+      "",
+      "## 描述",
+      agent.summary,
+      "",
+      "## 场景",
+      `${agent.scene} / ${agent.businessLineLabel}`,
+      "",
+      "## 工作原则",
+      `- 优先围绕「${agent.scene}」完成分析、生成和交付。`,
+      "- 输出前校验事实依据、权限范围和结果可执行性。",
+    ].join("\n"),
+  },
+  {
+    key: "memoryMarkdown",
+    name: "MEMORY.md",
+    description: "记录专家需要长期保留的业务上下文和使用偏好。",
+    content: [
+      `# ${agent.name} Memory`,
+      "",
+      "## 已知上下文",
+      `- 业务线：${agent.businessLineLabel}`,
+      `- 可见范围：${agent.scopeLabel}`,
+      "",
+      "## 能力沉淀",
+      ...agent.capabilities.map(capability => `- ${capability.name}：${capability.description}`),
+    ].join("\n"),
+  },
+  {
+    key: "userMarkdown",
+    name: "USER.md",
+    description: "描述使用者输入约束、交互偏好和默认响应格式。",
+    content: [
+      `# ${agent.name} User Rules`,
+      "",
+      "## 默认交互",
+      "- 先确认任务对象和输出格式，再开始执行。",
+      "- 当缺少字段、权限或业务数据时，明确说明缺口。",
+      "",
+      "## 交付格式",
+      `- 默认输出适合「${agent.scene}」的可执行结果。`,
+      `- 获取方式：${agent.acquisitionLabel}`,
+      `- 交付方式：${agent.deliveryLabel}`,
+    ].join("\n"),
+  },
+];
+
 const getAcquisitionLabel = (product: OperationsProduct): string => {
   if (product.contactMode && product.contactMode !== "disabled") {
     return "联系我们";
@@ -518,6 +728,8 @@ const buildTeamSharedAgents = (
     id: item.id,
     sourceType: "teamShare",
     visualSeed: item.id,
+    expertTitle: "团队共享专家",
+    audienceLabel: `适用：${item.scene}`,
     name: item.name,
     versionLabel: item.versionLabel,
     businessLine: item.businessLine,
@@ -566,6 +778,8 @@ const buildMyAgents = (
       id: item.id,
       sourceType: "mine",
       visualSeed: item.id,
+      expertTitle: "个人配置专家",
+      audienceLabel: `适用：${item.tags.slice(0, 2).join(" / ") || "个人工作流"}`,
       name: item.name,
       versionLabel: item.version,
       businessLine,
@@ -590,7 +804,6 @@ const buildMyAgents = (
       updatedAt: item.publishTime,
       capabilities: item.skills.map(skill => ({
         name: skill.skillName,
-        typeLabel: "技能能力",
         description: `${skill.skillName} ${skill.version}`,
       })),
       versions: item.versions.map((versionItem, index) => ({
@@ -650,6 +863,7 @@ export const buildFrontisAgents = (
       const displayName = product.name.trim();
       const blueprintName = product.linkedAgentName?.trim() || displayName;
       const blueprint = FRONTIS_AGENT_BLUEPRINTS[blueprintName];
+      const agentName = blueprint?.displayName ?? displayName;
       const businessLine =
         product.plazaCategory?.trim() ||
         blueprint?.businessLine ||
@@ -660,8 +874,11 @@ export const buildFrontisAgents = (
       return {
         id: `frontis-${product.id}`,
         sourceType: "frontis",
-        visualSeed: `frontis-${displayName}`,
-        name: displayName,
+        visualSeed: `frontis-${agentName}`,
+        avatarUrl: blueprint?.avatarUrl,
+        name: agentName,
+        expertTitle: blueprint?.expertTitle ?? "企业级 AI 专家",
+        audienceLabel: blueprint?.audienceLabel ?? "适用：企业业务团队",
         versionLabel: updatedAt,
         businessLine,
         businessLineLabel,
@@ -677,7 +894,6 @@ export const buildFrontisAgents = (
         capabilities: blueprint?.capabilities ?? [
           {
             name: "标准开通",
-            typeLabel: "交付能力",
             description: "添加或试用后自动开通，立即可用。",
           },
         ],
@@ -732,6 +948,9 @@ export const ExpertPlazaView = ({ mode = "store" }: ExpertPlazaViewProps): JSX.E
     () => loadOperationsServiceContactConfig(),
   );
   const [contactAgent, setContactAgent] = useState<StoreAgentItem | null>(null);
+  const [detailAgent, setDetailAgent] = useState<StoreAgentItem | null>(null);
+  const [detailTab, setDetailTab] = useState<AgentDetailTab>("identity");
+  const [detailFileKey, setDetailFileKey] = useState<AgentCoreFileKey>("soulMarkdown");
   const [removedMineAgentIds, setRemovedMineAgentIds] = useState<Set<string>>(() => new Set());
   const [expertListOverrides, setExpertListOverrides] = useState<Record<string, boolean>>({});
   const [agentPlazaCategories, setAgentPlazaCategories] = useState<
@@ -897,13 +1116,44 @@ export const ExpertPlazaView = ({ mode = "store" }: ExpertPlazaViewProps): JSX.E
     teamSharedAgents,
   ]);
 
+  const isInExpertList = useCallback(
+    (agent: StoreAgentItem): boolean => expertListOverrides[agent.id] ?? Boolean(agent.fulfillment),
+    [expertListOverrides],
+  );
+
   const contactModalInfo = useMemo<ContactModalInfo | null>(
     () => (contactAgent ? resolveContactModalInfo(contactAgent, serviceContactConfig) : null),
     [contactAgent, serviceContactConfig],
   );
+  const detailAgentTools = useMemo(
+    () => (detailAgent ? getAgentTools(detailAgent) : []),
+    [detailAgent],
+  );
+  const detailAgentEvolutionRecord = useMemo(
+    () => (detailAgent ? getAgentEvolutionRecord(detailAgent, isInExpertList(detailAgent)) : null),
+    [detailAgent, isInExpertList],
+  );
+  const detailAgentCoreFiles = useMemo(
+    () => (detailAgent ? getAgentCoreFiles(detailAgent) : []),
+    [detailAgent],
+  );
+  const activeAgentCoreFile = useMemo(
+    () => detailAgentCoreFiles.find(file => file.key === detailFileKey) ?? detailAgentCoreFiles[0],
+    [detailAgentCoreFiles, detailFileKey],
+  );
 
   const handleContactAgent = useCallback((agent: StoreAgentItem): void => {
     setContactAgent(agent);
+  }, []);
+
+  const handleOpenAgentDetail = useCallback((agent: StoreAgentItem): void => {
+    setDetailAgent(agent);
+    setDetailTab("identity");
+    setDetailFileKey("soulMarkdown");
+  }, []);
+
+  const handleCloseAgentDetail = useCallback((): void => {
+    setDetailAgent(null);
   }, []);
 
   const handleRemoveMineAgent = useCallback((agent: StoreAgentItem): void => {
@@ -914,11 +1164,6 @@ export const ExpertPlazaView = ({ mode = "store" }: ExpertPlazaViewProps): JSX.E
     setRemovedMineAgentIds(current => new Set([...current, agent.id]));
     message.success("已从团队资产删除该 AI 专家。");
   }, []);
-
-  const isInExpertList = useCallback(
-    (agent: StoreAgentItem): boolean => expertListOverrides[agent.id] ?? Boolean(agent.fulfillment),
-    [expertListOverrides],
-  );
 
   const handleAddToExpertList = useCallback((agent: StoreAgentItem): void => {
     setExpertListOverrides(current => ({ ...current, [agent.id]: true }));
@@ -936,16 +1181,19 @@ export const ExpertPlazaView = ({ mode = "store" }: ExpertPlazaViewProps): JSX.E
 
   const renderExpertListAction = (agent: StoreAgentItem): JSX.Element => {
     const isAddedToExpertList = isInExpertList(agent);
+    const actionLabel = isAddedToExpertList ? "从专家列表移除" : "添加到专家列表";
 
     return (
-      <Button
-        className={`${styles.cardActionButton} ${styles.cardActionButtonPrimary}`}
-        onClick={() =>
-          isAddedToExpertList ? handleRemoveFromExpertList(agent) : handleAddToExpertList(agent)
-        }
-      >
-        {isAddedToExpertList ? "从专家列表移除" : "添加到专家列表"}
-      </Button>
+      <Tooltip title={actionLabel}>
+        <Button
+          aria-label={actionLabel}
+          className={`${styles.cardIconButton} ${styles.cardIconButtonPrimary}`}
+          icon={isAddedToExpertList ? <UserDeleteOutlined /> : <UserAddOutlined />}
+          onClick={() =>
+            isAddedToExpertList ? handleRemoveFromExpertList(agent) : handleAddToExpertList(agent)
+          }
+        />
+      </Tooltip>
     );
   };
 
@@ -954,14 +1202,14 @@ export const ExpertPlazaView = ({ mode = "store" }: ExpertPlazaViewProps): JSX.E
 
     if (shouldContact) {
       return (
-        <>
+        <Tooltip title="联系我们">
           <Button
-            className={`${styles.cardActionButton} ${styles.cardActionButtonPrimary}`}
+            aria-label="联系我们"
+            className={`${styles.cardIconButton} ${styles.cardIconButtonPrimary}`}
+            icon={<CustomerServiceOutlined />}
             onClick={() => handleContactAgent(agent)}
-          >
-            联系我们
-          </Button>
-        </>
+          />
+        </Tooltip>
       );
     }
 
@@ -976,17 +1224,25 @@ export const ExpertPlazaView = ({ mode = "store" }: ExpertPlazaViewProps): JSX.E
             okButtonProps={{ danger: true }}
             onConfirm={() => handleRemoveMineAgent(agent)}
           >
-            <Button className={styles.cardActionButton}>删除</Button>
+            <Tooltip title="删除">
+              <Button
+                aria-label="删除"
+                className={styles.cardIconButton}
+                icon={<DeleteOutlined />}
+              />
+            </Tooltip>
           </Popconfirm>
         ) : null}
         {renderExpertListAction(agent)}
         {agent.sourceType === "mine" && canApplyForMarketplaceListing ? (
-          <Button
-            className={styles.cardActionButton}
-            onClick={() => handleApplyForMarketplaceListing(agent)}
-          >
-            申请上架
-          </Button>
+          <Tooltip title="申请上架">
+            <Button
+              aria-label="申请上架"
+              className={styles.cardIconButton}
+              icon={<UploadOutlined />}
+              onClick={() => handleApplyForMarketplaceListing(agent)}
+            />
+          </Tooltip>
         ) : null}
       </>
     );
@@ -1076,39 +1332,43 @@ export const ExpertPlazaView = ({ mode = "store" }: ExpertPlazaViewProps): JSX.E
 
       <div className={styles.agentGrid}>
         {filteredAgents.map(agent => (
-          <article key={agent.id} className={styles.agentCard}>
-            <div className={styles.cardContent}>
-              <div
-                className={styles.visualPanel}
-                style={{ background: getAgentStoreDomainTone(agent.businessLine) }}
-              >
-                <div className={styles.visualGlow} />
-                <img
-                  alt={agent.name}
-                  className={styles.agentPortrait}
-                  src={getAvatarUrl(agent.visualSeed)}
-                />
+          <article
+            key={agent.id}
+            className={styles.agentCard}
+            role="button"
+            tabIndex={0}
+            onClick={() => handleOpenAgentDetail(agent)}
+            onKeyDown={event => {
+              if (event.key === "Enter") {
+                handleOpenAgentDetail(agent);
+              }
+            }}
+          >
+            <header className={styles.cardHeader}>
+              <div className={styles.agentAvatar}>
+                <img alt={agent.name} src={getAgentAvatarSrc(agent)} />
               </div>
-
-              <div className={styles.cardBody}>
-                <div className={styles.cardTitleRow}>
-                  <h3 className={styles.cardTitle}>{agent.name}</h3>
-                </div>
-
-                <div className={styles.badgeRow}>
-                  <span className={`${styles.miniBadge} ${styles.sourceBadge}`}>
-                    {getVisibilityLabel(agent)}
-                  </span>
-                  <span className={`${styles.miniBadge} ${styles.domainBadge}`}>
-                    {mode === "store" ? getCategoryLabel(agent) : agent.businessLineLabel}
-                  </span>
-                </div>
-
+              <div className={styles.cardTitleBlock}>
+                <h3 className={styles.cardTitle}>{agent.name}</h3>
+                <span className={styles.cardExpertTitle}>{agent.expertTitle}</span>
                 <p className={styles.agentDescription}>{agent.summary}</p>
               </div>
+            </header>
+
+            <div className={styles.agentCapabilityStrip} aria-label="核心技能">
+              <span className={styles.capabilityLabel}>专长</span>
+              {agent.capabilities.slice(0, 3).map(capability => (
+                <span key={`${agent.id}-${capability.name}`}>{capability.name}</span>
+              ))}
             </div>
 
-            <div className={styles.cardFooter}>{renderAgentActions(agent)}</div>
+            <div
+              className={styles.cardFooter}
+              onClick={event => event.stopPropagation()}
+              onKeyDown={event => event.stopPropagation()}
+            >
+              {renderAgentActions(agent)}
+            </div>
           </article>
         ))}
       </div>
@@ -1146,6 +1406,285 @@ export const ExpertPlazaView = ({ mode = "store" }: ExpertPlazaViewProps): JSX.E
             <Empty description="运营后台暂未启用客服二维码" />
           </div>
         )}
+      </Modal>
+
+      <Modal
+        open={Boolean(detailAgent)}
+        title={null}
+        footer={null}
+        width={1120}
+        centered
+        destroyOnHidden
+        className={styles.agentDetailModal}
+        onCancel={handleCloseAgentDetail}
+      >
+        {detailAgent ? (
+          <div className={styles.agentDetailPanel}>
+            <div className={styles.agentDetailBody}>
+              <aside className={styles.agentDetailNav} role="tablist" aria-label="AI专家详情">
+                {[
+                  { key: "identity", label: "身份", icon: <UserOutlined /> },
+                  { key: "tools", label: "工具", icon: <SlidersOutlined /> },
+                  { key: "skills", label: "技能", count: detailAgent.capabilities.length },
+                  { key: "growth", label: "进化", icon: <ProfileOutlined /> },
+                  { key: "files", label: "核心文件", icon: <FileTextOutlined /> },
+                ].map(item => (
+                  <button
+                    key={item.key}
+                    type="button"
+                    role="tab"
+                    aria-selected={detailTab === item.key}
+                    className={detailTab === item.key ? styles.agentDetailNavActive : ""}
+                    onClick={() => setDetailTab(item.key as AgentDetailTab)}
+                  >
+                    {"icon" in item ? item.icon : <ProfileOutlined />}
+                    <span>{item.label}</span>
+                    {item.count ? <em>{item.count}</em> : null}
+                  </button>
+                ))}
+              </aside>
+
+              <section className={styles.agentDetailContent}>
+                {detailTab === "identity" ? (
+                  detailAgent.sourceType === "mine" ? (
+                    <div className={styles.agentIdentityPane}>
+                      <div className={styles.agentIdentityForm}>
+                        <label className={styles.agentDetailField}>
+                          <span>名称 <b>*</b></span>
+                          <div>{detailAgent.name}</div>
+                        </label>
+
+                        <label className={styles.agentDetailField}>
+                          <span>卡片简述 <b>*</b></span>
+                          <p>{detailAgent.summary}</p>
+                        </label>
+
+                        <div className={styles.agentAvatarEditor}>
+                          <div className={styles.agentDetailSectionTitle}>头像</div>
+                          <div className={styles.agentAvatarLine}>
+                            <div className={styles.agentAvatarLarge}>
+                              <img alt={detailAgent.name} src={getAgentAvatarSrc(detailAgent)} />
+                            </div>
+                            <div className={styles.agentAvatarMeta}>
+                              <strong>我的专家</strong>
+                              <span>支持 PNG、JPG、WebP，最大 2MB</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <section className={styles.agentDetailBlock}>
+                          <h3>基础信息</h3>
+                          <dl className={styles.agentInfoGrid}>
+                            <div>
+                              <dt>场景</dt>
+                              <dd>{detailAgent.scene}</dd>
+                            </div>
+                            <div>
+                              <dt>可见范围</dt>
+                              <dd>{detailAgent.scopeLabel}</dd>
+                            </div>
+                            <div>
+                              <dt>业务线</dt>
+                              <dd>{detailAgent.businessLineLabel}</dd>
+                            </div>
+                            <div>
+                              <dt>最近更新</dt>
+                              <dd>{detailAgent.updatedAt}</dd>
+                            </div>
+                          </dl>
+                        </section>
+                      </div>
+
+                      <aside className={styles.agentDetailPreview}>
+                        <div className={styles.agentPreviewCard}>
+                          <div
+                            className={styles.agentPreviewCover}
+                            style={{ background: getAgentStoreDomainTone(detailAgent.businessLine) }}
+                          />
+                          <div className={styles.agentPreviewAvatar}>
+                            <img alt={detailAgent.name} src={getAgentAvatarSrc(detailAgent)} />
+                          </div>
+                          <h3>{detailAgent.name}</h3>
+                          <p>{detailAgent.summary}</p>
+                        </div>
+                      </aside>
+                    </div>
+                  ) : (
+                    <div className={styles.agentReadOnlyProfile}>
+                      <section className={styles.agentReadOnlyHero}>
+                        <div className={styles.agentReadOnlyAvatar}>
+                          <img alt={detailAgent.name} src={getAgentAvatarSrc(detailAgent)} />
+                        </div>
+                        <div>
+                          <h3>{detailAgent.name}</h3>
+                          <strong>{detailAgent.expertTitle}</strong>
+                          <p>{detailAgent.summary}</p>
+                        </div>
+                      </section>
+
+                      <section className={styles.agentReadOnlyBlock}>
+                        <h3>专家能力</h3>
+                        <div className={styles.agentReadOnlyCapabilities}>
+                          {detailAgent.capabilities.map(capability => (
+                            <article key={capability.name}>
+                              <strong>{capability.name}</strong>
+                              <span>{capability.description}</span>
+                            </article>
+                          ))}
+                        </div>
+                      </section>
+
+                      <section className={styles.agentReadOnlyBlock}>
+                        <h3>适用场景</h3>
+                        <p>{detailAgent.audienceLabel.replace(/^适用：/, "")}</p>
+                      </section>
+                    </div>
+                  )
+                ) : detailTab === "tools" ? (
+                  <div className={styles.agentDetailList}>
+                    <div className={styles.agentDetailSectionHead}>
+                      <h3>工具</h3>
+                      <p>当前「{detailAgent.name}」可用工具</p>
+                    </div>
+                    {detailAgentTools.map(tool => (
+                      <article key={tool.name} className={styles.agentToolItem}>
+                        <div className={styles.agentToolIcon}><SlidersOutlined /></div>
+                        <div>
+                          <strong>{tool.name}</strong>
+                          <span>{tool.description}</span>
+                        </div>
+                        <b>{tool.enabled ? "可用" : "不可用"}</b>
+                      </article>
+                    ))}
+                  </div>
+                ) : detailTab === "skills" ? (
+                  <div className={styles.agentDetailList}>
+                    <div className={styles.agentDetailSectionHead}>
+                      <h3>{detailAgent.capabilities.length} skills</h3>
+                      <p>当前「{detailAgent.name}」已安装技能</p>
+                    </div>
+                    {detailAgent.capabilities.map(capability => (
+                      <article key={capability.name} className={styles.agentSkillItem}>
+                        <div className={styles.agentSkillIcon}>{capability.name.slice(0, 1)}</div>
+                        <div>
+                          <strong>{capability.name}</strong>
+                          <span>{capability.description}</span>
+                        </div>
+                      </article>
+                    ))}
+                  </div>
+                ) : detailTab === "growth" ? (
+                  detailAgentEvolutionRecord ? (
+                    <div className={styles.agentEvolutionPane}>
+                      <section className={styles.agentEvolutionCurve}>
+                        <div className={styles.agentDetailSectionHead}>
+                          <h3>进化曲线</h3>
+                          <p>基于任务沉淀、反馈校准和核心文件更新形成的阶段变化</p>
+                        </div>
+                        <div className={styles.evolutionChart} aria-label="进化曲线">
+                          <svg viewBox="0 0 360 140" role="img">
+                            <polyline points="16,102 82,90 148,72 214,51 280,33 344,18" />
+                            {detailAgentEvolutionRecord.curve.map((point, index) => (
+                              <circle
+                                key={point.label}
+                                cx={16 + index * 66}
+                                cy={124 - point.value * 1.2}
+                                r="4"
+                              />
+                            ))}
+                          </svg>
+                        </div>
+                        <div className={styles.evolutionCurveLegend}>
+                          {detailAgentEvolutionRecord.curve.map(point => (
+                            <span key={point.label}>
+                              <b>{point.label}</b>
+                              {point.value}
+                            </span>
+                          ))}
+                        </div>
+                      </section>
+
+                      <section className={styles.agentEvolutionBlock}>
+                        <div className={styles.agentDetailSectionHead}>
+                          <h3>进化路径</h3>
+                          <p>从身份稳定到专家闭环的关键节点</p>
+                        </div>
+                        <div className={styles.evolutionPathList}>
+                          {detailAgentEvolutionRecord.path.map(item => (
+                            <article
+                              key={item.title}
+                              className={classNames(
+                                styles.evolutionPathItem,
+                                item.status === "active" && styles.evolutionPathItemActive,
+                                item.status === "locked" && styles.evolutionPathItemLocked,
+                              )}
+                            >
+                              <CheckCircleOutlined />
+                              <div>
+                                <strong>{item.title}</strong>
+                                <span>{item.description}</span>
+                              </div>
+                            </article>
+                          ))}
+                        </div>
+                      </section>
+
+                      <section className={styles.agentEvolutionBlock}>
+                        <div className={styles.agentDetailSectionHead}>
+                          <h3>进化证据</h3>
+                          <p>来自核心文件、任务复盘和团队反馈的可追溯记录</p>
+                        </div>
+                        <div className={styles.evolutionEvidenceGrid}>
+                          {detailAgentEvolutionRecord.evidence.map(item => (
+                            <article key={item.title} className={styles.evolutionEvidenceItem}>
+                              <LineChartOutlined />
+                              <div>
+                                <strong>{item.title}</strong>
+                                <span>{item.description}</span>
+                                <em>{item.source}</em>
+                              </div>
+                            </article>
+                          ))}
+                        </div>
+                      </section>
+                    </div>
+                  ) : (
+                    <div className={styles.agentEvolutionEmpty}>
+                      <ProfileOutlined />
+                      <strong>暂无进化记录</strong>
+                    </div>
+                  )
+                ) : (
+                  <div className={styles.agentFilesPane}>
+                    <div className={styles.agentFileTabs}>
+                      {detailAgentCoreFiles.map(file => (
+                        <button
+                          key={file.key}
+                          type="button"
+                          className={detailFileKey === file.key ? styles.agentFileTabActive : ""}
+                          onClick={() => setDetailFileKey(file.key)}
+                        >
+                          {file.name}
+                        </button>
+                      ))}
+                    </div>
+                    {activeAgentCoreFile ? (
+                      <article className={styles.agentFileViewer}>
+                        <header>
+                          <div>
+                            <h3>{activeAgentCoreFile.name}</h3>
+                            <p>{activeAgentCoreFile.description}</p>
+                          </div>
+                        </header>
+                        <pre>{activeAgentCoreFile.content}</pre>
+                      </article>
+                    ) : null}
+                  </div>
+                )}
+              </section>
+            </div>
+          </div>
+        ) : null}
       </Modal>
     </div>
   );
