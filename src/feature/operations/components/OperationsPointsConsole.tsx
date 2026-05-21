@@ -5,8 +5,6 @@ import classNames from "classnames";
 import dayjs from "dayjs";
 import type { Dayjs } from "dayjs";
 
-import { getMockTenantManagementSnapshot } from "@/feature/auth/mockTenantRegistry";
-import type { MockTenantManagementSnapshot } from "@/feature/auth/types";
 import type {
   OperationsPointsUsageRecord,
   OperationsRegistrationStrategy,
@@ -40,11 +38,6 @@ interface OperationsPointsConsoleProps {
 
 type OperationsPointsTabKey = "rules" | "reconciliation";
 type OperationsPointsUsageRangeKey = "today" | "week" | "month" | "all";
-
-interface TenantPointsRecord {
-  tenant: OperationsTenant;
-  snapshot: MockTenantManagementSnapshot;
-}
 
 interface OperationsCustomerUsageSummary {
   tenantName: string;
@@ -101,35 +94,6 @@ const isUsageRecordInRange = (
   return !occurredAt.isBefore(MOCK_TODAY.subtract(1, "week")) && !occurredAt.isAfter(MOCK_TODAY);
 };
 
-const summarizeUsageRecords = (
-  records: OperationsPointsUsageRecord[],
-): {
-  costAmount: number;
-  customerCount: number;
-  points: number;
-  recordCount: number;
-  saleAmount: number;
-} => {
-  const customerNames = new Set(records.map(record => record.tenantName));
-
-  return records.reduce(
-    (summary, item) => ({
-      costAmount: summary.costAmount + item.costAmount,
-      customerCount: customerNames.size,
-      points: summary.points + item.points,
-      recordCount: summary.recordCount + 1,
-      saleAmount: summary.saleAmount + item.saleAmount,
-    }),
-    {
-      costAmount: 0,
-      customerCount: customerNames.size,
-      points: 0,
-      recordCount: 0,
-      saleAmount: 0,
-    },
-  );
-};
-
 const buildCustomerUsageSummaries = (
   records: OperationsPointsUsageRecord[],
 ): OperationsCustomerUsageSummary[] => {
@@ -171,26 +135,11 @@ export const OperationsPointsConsole = ({
   embedded = false,
   pointsUsageRecords,
   registrationStrategy,
-  tenants,
   onUpdateRegistrationStrategy,
 }: OperationsPointsConsoleProps): JSX.Element => {
   const [activeTab, setActiveTab] = useState<OperationsPointsTabKey>("rules");
   const [activeUsageRange, setActiveUsageRange] = useState<OperationsPointsUsageRangeKey>("month");
 
-  const tenantPointsRecords = useMemo<TenantPointsRecord[]>(
-    () =>
-      tenants
-        .map(tenant => ({
-          tenant,
-          snapshot: getMockTenantManagementSnapshot(tenant.id),
-        }))
-        .filter((item): item is TenantPointsRecord => item.snapshot?.billingMode === "points"),
-    [tenants],
-  );
-  const usageSummary = useMemo(
-    () => summarizeUsageRecords(pointsUsageRecords),
-    [pointsUsageRecords],
-  );
   const filteredUsageRecords = useMemo(
     () => pointsUsageRecords.filter(record => isUsageRecordInRange(record, activeUsageRange)),
     [activeUsageRange, pointsUsageRecords],
@@ -201,10 +150,6 @@ export const OperationsPointsConsole = ({
   );
   const activeUsageRangeLabel =
     POINTS_USAGE_RANGE_OPTIONS.find(item => item.key === activeUsageRange)?.label ?? "近一月";
-  const lowBalanceTenants = tenantPointsRecords.filter(
-    item => item.snapshot.pointsBalance <= item.snapshot.lowBalanceThreshold,
-  );
-
   const renderRules = (): JSX.Element => (
     <section className={adminStyles.consoleSection}>
       <div className={adminStyles.consoleSectionHeader}>
@@ -341,32 +286,6 @@ export const OperationsPointsConsole = ({
           </div>
         </header>
       )}
-
-      <div className={adminStyles.consoleSummaryStrip}>
-        <div className={adminStyles.consoleSummaryItem}>
-          <span className={adminStyles.consoleSummaryLabel}>积分汇率</span>
-          <span className={adminStyles.consoleSummaryValue}>
-            ¥1 = {registrationStrategy.pointsPerCny.toLocaleString("zh-CN")}
-          </span>
-        </div>
-        <div className={adminStyles.consoleSummaryItem}>
-          <span className={adminStyles.consoleSummaryLabel}>注册送积分</span>
-          <span className={adminStyles.consoleSummaryValue}>
-            {registrationStrategy.defaultGiftPoints.toLocaleString("zh-CN")}
-          </span>
-        </div>
-        <div className={adminStyles.consoleSummaryItem}>
-          <span className={adminStyles.consoleSummaryLabel}>积分计费租户</span>
-          <span className={adminStyles.consoleSummaryValue}>{tenantPointsRecords.length} 个</span>
-        </div>
-        <div className={adminStyles.consoleSummaryItem}>
-          <span className={adminStyles.consoleSummaryLabel}>低余额租户</span>
-          <span className={adminStyles.consoleSummaryValue}>{lowBalanceTenants.length} 个</span>
-          <span className={adminStyles.consoleSummaryHint}>
-            消耗 {usageSummary.points.toLocaleString("zh-CN")} 积分
-          </span>
-        </div>
-      </div>
 
       <div className={platformStyles.detailTabBar}>
         {POINTS_TAB_OPTIONS.map(item => (

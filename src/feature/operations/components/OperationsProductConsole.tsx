@@ -6,15 +6,12 @@ import classNames from "classnames";
 
 import {
   OPERATIONS_AGENT_PLAZA_DEFAULT_CATEGORY,
-  OPERATIONS_PRODUCT_BILLING_SCOPE_LABELS,
-  OPERATIONS_PRODUCT_BILLING_SCOPE_OPTIONS,
 } from "@/feature/operations/mockData";
 import type {
   OperationsAgentPlazaCategoryOption,
   OperationsAgentPlazaVisibility,
   OperationsAgentSubmission,
   OperationsProduct,
-  OperationsProductBillingScope,
   OperationsProductForm,
   OperationsServiceContactConfig,
   OperationsSkillCenterCategoryOption,
@@ -148,7 +145,6 @@ const PRODUCT_FIELD_IDS = {
   category: "operations-product-category",
   visibility: "operations-product-visibility",
   visibleTenants: "operations-product-visible-tenants",
-  billingScopes: "operations-product-billing-scopes",
   status: "operations-product-status",
   acquisitionMode: "operations-product-acquisition-mode",
   linkedAgentId: "operations-product-linked-agent",
@@ -247,14 +243,6 @@ const getProductTrialLabel = (
   }
 
   return `${product.trialValue}${productTrialUnitLabels[product.trialUnit]}`;
-};
-
-const getProductBillingScopeLabel = (product: OperationsProduct): string => {
-  const billingScopes: OperationsProductBillingScope[] = product.billingScopes?.length
-    ? product.billingScopes
-    : ["points"];
-
-  return billingScopes.map(item => OPERATIONS_PRODUCT_BILLING_SCOPE_LABELS[item]).join(" / ");
 };
 
 const getProductVisibilityLabel = (product: OperationsProduct): string => {
@@ -397,7 +385,6 @@ export const OperationsProductConsole = ({
           item.description,
           item.plazaCategory ?? "",
           getProductAcquisitionLabel(item),
-          getProductBillingScopeLabel(item),
           getProductVisibilityLabel(item),
         ]
           .join(" ")
@@ -489,11 +476,6 @@ export const OperationsProductConsole = ({
       return;
     }
 
-    if (!productEditor.form.billingScopes.length) {
-      message.warning("请选择计费方式。");
-      return;
-    }
-
     if (productEditor.form.supportsTrial && productEditor.form.trialValue <= 0) {
       message.warning("请填写有效的试用规则。");
       return;
@@ -523,6 +505,7 @@ export const OperationsProductConsole = ({
       billingSpec: "year",
       resourcePoolId: undefined,
       price: 0,
+      billingScopes: ["points"],
       contactMode: productEditor.form.contactMode,
       contactQrCodeValue:
         productEditor.form.contactMode === "custom"
@@ -707,7 +690,7 @@ export const OperationsProductConsole = ({
                   <Input
                     className={adminStyles.consoleInlineSearch}
                     value={keyword}
-                    placeholder="搜索 AI专家商品、分类、计费方式"
+                    placeholder="搜索 AI专家商品、分类、获取方式"
                     onChange={event => setKeyword(event.target.value)}
                   />
                   <Button type="primary" onClick={handleOpenCreateProduct}>
@@ -947,27 +930,6 @@ export const OperationsProductConsole = ({
           ) : null}
 
           <div className={styles.modalField}>
-            <label className={styles.modalLabel} htmlFor={PRODUCT_FIELD_IDS.billingScopes}>
-              计费方式
-            </label>
-            <Select
-              id={PRODUCT_FIELD_IDS.billingScopes}
-              mode="multiple"
-              value={productEditor.form.billingScopes}
-              options={OPERATIONS_PRODUCT_BILLING_SCOPE_OPTIONS}
-              onChange={nextValue =>
-                setProductEditor(currentState => ({
-                  ...currentState,
-                  form: {
-                    ...currentState.form,
-                    billingScopes: nextValue,
-                  },
-                }))
-              }
-            />
-          </div>
-
-          <div className={styles.modalField}>
             <label className={styles.modalLabel} htmlFor={PRODUCT_FIELD_IDS.status}>
               上架状态
             </label>
@@ -1146,7 +1108,6 @@ const ProductList = ({
             <tr>
               <th>AI专家商品</th>
               <th>分类</th>
-              <th>计费方式</th>
               <th>可见范围</th>
               <th>获取方式</th>
               <th>试用规则</th>
@@ -1168,7 +1129,6 @@ const ProductList = ({
                   </button>
                 </td>
                 <td>{product.plazaCategory ?? OPERATIONS_AGENT_PLAZA_DEFAULT_CATEGORY}</td>
-                <td>{getProductBillingScopeLabel(product)}</td>
                 <td>{getProductVisibilityLabel(product)}</td>
                 <td>{getProductAcquisitionLabel(product)}</td>
                 <td>{getProductTrialLabel(product, productTrialUnitLabels)}</td>
@@ -1473,12 +1433,6 @@ const ProductDetail = ({
                 <span className={adminStyles.consoleInfoLabel}>商品分类</span>
                 <span className={adminStyles.consoleInfoValue}>
                   {product.plazaCategory ?? OPERATIONS_AGENT_PLAZA_DEFAULT_CATEGORY}
-                </span>
-              </div>
-              <div className={adminStyles.consoleInfoRow}>
-                <span className={adminStyles.consoleInfoLabel}>计费方式</span>
-                <span className={adminStyles.consoleInfoValue}>
-                  {getProductBillingScopeLabel(product)}
                 </span>
               </div>
               <div className={adminStyles.consoleInfoRow}>
