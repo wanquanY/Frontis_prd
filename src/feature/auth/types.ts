@@ -154,7 +154,7 @@ export interface MockTenantSubscriptionOrderItem {
   purchaserName: string;
   createdAt: string;
   paidAt?: string;
-  billingCycle?: "monthly" | "yearly";
+  billingCycle?: string;
   unitPrice?: number;
   originalAmount?: number;
   discountAmount?: number;

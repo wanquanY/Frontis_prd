@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import {
+  ArrowRightOutlined,
   CheckCircleOutlined,
   CustomerServiceOutlined,
   DeleteOutlined,
@@ -10,7 +11,6 @@ import {
   SlidersOutlined,
   UploadOutlined,
   UserAddOutlined,
-  UserDeleteOutlined,
   UserOutlined,
 } from "@ant-design/icons";
 import { Button, Empty, Modal, Popconfirm, QRCode, Tooltip, message } from "antd";
@@ -32,6 +32,16 @@ import {
   TENANT_PERMISSION_IDS,
   normalizeTenantRolePermissionIds,
 } from "@/constants/tenantRolePermissions";
+import {
+  loadMeSchedulableAgentRecords,
+  ME_SCHEDULABLE_AGENT_RECORDS_UPDATED_EVENT,
+  upsertMeSchedulableAgentRecord,
+} from "@/feature/workbenchLab/meSchedulableAgentsStorage";
+import {
+  loadWorkbenchAgentRecords,
+  upsertWorkbenchAgentRecord,
+  WORKBENCH_AGENT_RECORDS_UPDATED_EVENT,
+} from "@/feature/workbenchLab/workbenchAgentsStorage";
 import type {
   OperationsAgentPlazaCategoryOption,
   OperationsAgentSubmission,
@@ -46,7 +56,7 @@ import knowledgeGovernanceExpertAvatar from "@/assets/images/ai-experts/knowledg
 
 import styles from "./ExpertPlazaView.module.less";
 
-type TeamExpertFilter = "teamShare" | "mine";
+type TeamExpertFilter = "all" | "purchased" | "mine" | "teamShare";
 type StoreSystemCategoryKey = "roleZone" | "industryExpert";
 type SceneCategoryFilter = "all" | BusinessLineKey;
 export type BusinessLineKey = OperationsAgentPlazaCategoryOption["name"];
@@ -170,6 +180,7 @@ export interface StoreAgentItem {
 
 interface ExpertPlazaViewProps {
   mode?: ExpertPlazaMode;
+  onUseAgent?: (agentId: string) => void;
 }
 
 interface ContactModalInfo {
@@ -186,8 +197,10 @@ const ACTIVE_FULFILLMENT_STATUSES = new Set<OperationsFulfillment["status"]>([
 ]);
 
 const TEAM_EXPERT_FILTER_OPTIONS: Array<{ label: string; value: TeamExpertFilter }> = [
-  { label: "团队共享", value: "teamShare" },
+  { label: "全部", value: "all" },
+  { label: "已购买", value: "purchased" },
   { label: "我的", value: "mine" },
+  { label: "团队共享", value: "teamShare" },
 ];
 
 const STORE_SYSTEM_CATEGORY_OPTIONS: Array<{ label: string; value: StoreSystemCategoryKey }> = [
@@ -449,6 +462,214 @@ const FRONTIS_AGENT_BLUEPRINTS: Record<string, PlatformAgentBlueprint> = {
       },
     ],
   },
+  供应计划协调专家: {
+    expertTitle: "供应计划与产销协同顾问",
+    audienceLabel: "适用：计划部 / 采购协同 / 生产排程",
+    businessLine: "供应链",
+    businessLineLabel: "供应链",
+    storeCategory: "industryExpert",
+    summary: "联动销售预测、库存水位和产能约束，识别缺料风险、排产冲突和补货优先级。",
+    scene: "供应计划",
+    techShape: "协同型",
+    model: "Claude Sonnet 4.6",
+    runtime: "Frontis 托管Runtime",
+    capabilities: [
+      {
+        name: "缺料风险识别",
+        description: "对照库存、采购到货和生产需求，提前识别缺口。",
+      },
+      {
+        name: "产销协同建议",
+        description: "把销售预测和产能约束转成可讨论的排产建议。",
+      },
+      {
+        name: "补货优先级",
+        description: "按订单价值、交期和风险等级生成补货优先级。",
+      },
+    ],
+  },
+  质量异常根因专家: {
+    expertTitle: "质量问题归因与 CAPA 顾问",
+    audienceLabel: "适用：质量管理 / 生产工艺 / 售后服务",
+    businessLine: "生产",
+    businessLineLabel: "生产",
+    storeCategory: "industryExpert",
+    summary: "聚合质检记录、工艺参数和售后反馈，帮助团队定位质量异常根因并形成纠正预防措施。",
+    scene: "质量异常",
+    techShape: "分析型",
+    model: "GPT-4.1",
+    runtime: "Frontis 托管Runtime",
+    capabilities: [
+      {
+        name: "异常聚类",
+        description: "把分散质检和客诉问题聚合为可分析的问题簇。",
+      },
+      {
+        name: "根因推断",
+        description: "结合工艺、批次、供应商和班组信息输出可能根因。",
+      },
+      {
+        name: "CAPA 生成",
+        description: "形成纠正措施、预防措施和责任跟踪建议。",
+      },
+    ],
+  },
+  客户成功续约专家: {
+    expertTitle: "客户健康度与续约策略顾问",
+    audienceLabel: "适用：客户成功 / 大客户销售 / 服务运营",
+    businessLine: "销售",
+    businessLineLabel: "销售",
+    storeCategory: "roleZone",
+    summary: "基于产品使用、服务记录和沟通历史，判断续约风险并生成分层跟进策略。",
+    scene: "续约经营",
+    techShape: "策略型",
+    model: "Claude Sonnet 4.6",
+    runtime: "Frontis 托管Runtime",
+    capabilities: [
+      {
+        name: "健康度诊断",
+        description: "评估活跃、价值实现、服务风险和关键人关系。",
+      },
+      {
+        name: "续约风险预警",
+        description: "识别续约阻力、流失信号和待补齐证据。",
+      },
+      {
+        name: "跟进策略",
+        description: "输出分层触达计划、会议议程和客户价值复盘材料。",
+      },
+    ],
+  },
+  招投标响应专家: {
+    expertTitle: "招标文件解析与响应策略顾问",
+    audienceLabel: "适用：售前团队 / 解决方案 / 标书协作",
+    businessLine: "办公协同",
+    businessLineLabel: "办公协同",
+    storeCategory: "roleZone",
+    summary: "解析招标文件、提炼评分点和响应差距，辅助团队形成投标材料结构和风险清单。",
+    scene: "投标响应",
+    techShape: "文档型",
+    model: "GPT-4.1",
+    runtime: "Frontis 托管Runtime",
+    capabilities: [
+      {
+        name: "评分点提取",
+        description: "识别评分规则、硬性门槛和关键响应要求。",
+      },
+      {
+        name: "差距分析",
+        description: "对照企业能力和历史材料生成响应差距清单。",
+      },
+      {
+        name: "标书结构",
+        description: "形成章节结构、证据材料和风险提示。",
+      },
+    ],
+  },
+  门店营运督导专家: {
+    expertTitle: "门店经营诊断与整改顾问",
+    audienceLabel: "适用：连锁门店 / 区域督导 / 零售运营",
+    businessLine: "销售",
+    businessLineLabel: "销售",
+    storeCategory: "industryExpert",
+    summary: "汇总巡检、销售、客诉和活动数据，输出门店问题清单、整改建议和复盘重点。",
+    scene: "门店营运",
+    techShape: "诊断型",
+    model: "Claude Sonnet 4.6",
+    runtime: "Frontis 托管Runtime",
+    capabilities: [
+      {
+        name: "门店问题归纳",
+        description: "把巡检、销售和客诉记录归并为重点问题。",
+      },
+      {
+        name: "整改建议",
+        description: "按影响程度输出可执行的整改动作和责任分配。",
+      },
+      {
+        name: "复盘报告",
+        description: "生成区域督导视角的复盘摘要和跟踪指标。",
+      },
+    ],
+  },
+  采购谈判策略专家: {
+    expertTitle: "供应商谈判与采购风险顾问",
+    audienceLabel: "适用：采购团队 / 供应商管理 / 法务协同",
+    businessLine: "供应链",
+    businessLineLabel: "供应链",
+    storeCategory: "roleZone",
+    summary: "结合供应商画像、历史价格和合同条款，输出采购谈判策略、让步边界和风险提示。",
+    scene: "采购谈判",
+    techShape: "策略型",
+    model: "GPT-4.1",
+    runtime: "Frontis 托管Runtime",
+    capabilities: [
+      {
+        name: "价格基线分析",
+        description: "对比历史采购价、市场区间和供应商报价结构。",
+      },
+      {
+        name: "谈判脚本",
+        description: "生成谈判目标、底线、备选方案和沟通脚本。",
+      },
+      {
+        name: "条款风险",
+        description: "识别交付、质量、付款和违约条款风险。",
+      },
+    ],
+  },
+  人力编制规划专家: {
+    expertTitle: "组织编制与岗位负荷测算顾问",
+    audienceLabel: "适用：HRBP / 组织发展 / 业务负责人",
+    businessLine: "办公协同",
+    businessLineLabel: "办公协同",
+    storeCategory: "roleZone",
+    summary: "基于组织目标、岗位负荷和预算约束，辅助 HRBP 形成编制测算与调整建议。",
+    scene: "组织编制",
+    techShape: "规划型",
+    model: "Claude Sonnet 4.6",
+    runtime: "Frontis 托管Runtime",
+    capabilities: [
+      {
+        name: "岗位负荷测算",
+        description: "按业务量、岗位职责和协作链路估算人员需求。",
+      },
+      {
+        name: "编制方案",
+        description: "输出增补、调整、冻结和复用的编制建议。",
+      },
+      {
+        name: "预算约束分析",
+        description: "把人力预算和组织目标转成可评审方案。",
+      },
+    ],
+  },
+  经营数据洞察专家: {
+    expertTitle: "经营指标分析与管理洞察顾问",
+    audienceLabel: "适用：经营分析 / 管理层助理 / 业务负责人",
+    businessLine: "通用",
+    businessLineLabel: "通用",
+    storeCategory: "industryExpert",
+    summary: "将经营指标、业务事件和异常波动串联分析，形成管理层可读的洞察结论和追问方向。",
+    scene: "经营分析",
+    techShape: "分析型",
+    model: "GPT-4.1",
+    runtime: "Frontis 托管Runtime",
+    capabilities: [
+      {
+        name: "指标归因",
+        description: "拆解收入、成本、效率和转化指标的变化原因。",
+      },
+      {
+        name: "异常解释",
+        description: "结合业务事件解释异常波动并给出验证路径。",
+      },
+      {
+        name: "管理摘要",
+        description: "生成面向管理层的结论、风险和下一步建议。",
+      },
+    ],
+  },
 };
 
 const getBusinessLineLabel = (line: BusinessLineKey): string =>
@@ -687,7 +908,7 @@ const getAcquisitionLabel = (product: OperationsProduct): string => {
     return "联系我们";
   }
 
-  return "添加到专家列表";
+  return "添加后在新任务中使用";
 };
 
 export const shouldContactForAgent = (agent: StoreAgentItem): boolean =>
@@ -926,11 +1147,14 @@ export const resolveLatestFulfillmentsByProductId = (
     }, new Map<string, OperationsFulfillment>());
 
 /**
- * AI 专家入口原型页，按菜单拆分为商店与团队资产。
+ * AI 专家入口原型页，按菜单拆分为商店与我的专区。
  */
-export const ExpertPlazaView = ({ mode = "store" }: ExpertPlazaViewProps): JSX.Element => {
+export const ExpertPlazaView = ({
+  mode = "store",
+  onUseAgent,
+}: ExpertPlazaViewProps): JSX.Element => {
   const { activeIdentity, session } = useMockAuth();
-  const [teamExpertFilter, setTeamExpertFilter] = useState<TeamExpertFilter>("teamShare");
+  const [teamExpertFilter, setTeamExpertFilter] = useState<TeamExpertFilter>("all");
   const [storeSystemCategory, setStoreSystemCategory] =
     useState<StoreSystemCategoryKey>("roleZone");
   const [storeSceneFilter, setStoreSceneFilter] = useState<SceneCategoryFilter>("all");
@@ -953,6 +1177,12 @@ export const ExpertPlazaView = ({ mode = "store" }: ExpertPlazaViewProps): JSX.E
   const [detailFileKey, setDetailFileKey] = useState<AgentCoreFileKey>("soulMarkdown");
   const [removedMineAgentIds, setRemovedMineAgentIds] = useState<Set<string>>(() => new Set());
   const [expertListOverrides, setExpertListOverrides] = useState<Record<string, boolean>>({});
+  const [meSchedulableAgentIds, setMeSchedulableAgentIds] = useState<Set<string>>(
+    () => new Set(loadMeSchedulableAgentRecords().map(record => record.id)),
+  );
+  const [workbenchAgentIds, setWorkbenchAgentIds] = useState<Set<string>>(
+    () => new Set(loadWorkbenchAgentRecords().map(record => record.id)),
+  );
   const [agentPlazaCategories, setAgentPlazaCategories] = useState<
     OperationsAgentPlazaCategoryOption[]
   >(() => loadStoredAgentPlazaCategories());
@@ -981,6 +1211,14 @@ export const ExpertPlazaView = ({ mode = "store" }: ExpertPlazaViewProps): JSX.E
   const teamExpertFilterOptions = useMemo(
     () =>
       TEAM_EXPERT_FILTER_OPTIONS.filter(item => {
+        if (item.value === "all") {
+          return true;
+        }
+
+        if (item.value === "purchased") {
+          return true;
+        }
+
         if (item.value === "mine") {
           return canManageOwnPublishedAgents;
         }
@@ -1010,6 +1248,39 @@ export const ExpertPlazaView = ({ mode = "store" }: ExpertPlazaViewProps): JSX.E
   useEffect(() => {
     refreshStorefrontState();
   }, [refreshStorefrontState]);
+
+  useEffect(() => {
+    const handleMeSchedulableAgentsUpdated = (): void => {
+      setMeSchedulableAgentIds(new Set(loadMeSchedulableAgentRecords().map(record => record.id)));
+    };
+
+    window.addEventListener(
+      ME_SCHEDULABLE_AGENT_RECORDS_UPDATED_EVENT,
+      handleMeSchedulableAgentsUpdated,
+    );
+
+    return () => {
+      window.removeEventListener(
+        ME_SCHEDULABLE_AGENT_RECORDS_UPDATED_EVENT,
+        handleMeSchedulableAgentsUpdated,
+      );
+    };
+  }, []);
+
+  useEffect(() => {
+    const handleWorkbenchAgentsUpdated = (): void => {
+      setWorkbenchAgentIds(new Set(loadWorkbenchAgentRecords().map(record => record.id)));
+    };
+
+    window.addEventListener(WORKBENCH_AGENT_RECORDS_UPDATED_EVENT, handleWorkbenchAgentsUpdated);
+
+    return () => {
+      window.removeEventListener(
+        WORKBENCH_AGENT_RECORDS_UPDATED_EVENT,
+        handleWorkbenchAgentsUpdated,
+      );
+    };
+  }, []);
 
   useEffect(() => {
     if (!teamExpertFilterOptions.length) {
@@ -1076,13 +1347,27 @@ export const ExpertPlazaView = ({ mode = "store" }: ExpertPlazaViewProps): JSX.E
     [currentTenantId, latestFulfillmentsByProductId, products],
   );
 
+  const isInExpertList = useCallback(
+    (agent: StoreAgentItem): boolean => expertListOverrides[agent.id] ?? Boolean(agent.fulfillment),
+    [expertListOverrides],
+  );
+
+  const purchasedAgents = useMemo(
+    () =>
+      frontisAgents.filter(
+        agent =>
+          agent.sourceType === "frontis" && !shouldContactForAgent(agent) && isInExpertList(agent),
+      ),
+    [frontisAgents, isInExpertList],
+  );
+
   const filteredAgents = useMemo(() => {
     const candidateAgents =
       mode === "store"
         ? frontisAgents
         : isTeamEdition
-          ? [...teamSharedAgents, ...myAgents]
-          : myAgents;
+          ? [...teamSharedAgents, ...purchasedAgents, ...myAgents]
+          : [...purchasedAgents, ...myAgents];
 
     return candidateAgents.filter(agent => {
       if (removedMineAgentIds.has(agent.id)) {
@@ -1090,7 +1375,15 @@ export const ExpertPlazaView = ({ mode = "store" }: ExpertPlazaViewProps): JSX.E
       }
 
       if (mode === "team") {
-        if (agent.sourceType !== teamExpertFilter) {
+        if (teamExpertFilter === "all") {
+          return teamSceneFilter === "all" || agent.businessLine === teamSceneFilter;
+        }
+
+        if (teamExpertFilter === "purchased") {
+          if (agent.sourceType !== "frontis") {
+            return false;
+          }
+        } else if (agent.sourceType !== teamExpertFilter) {
           return false;
         }
 
@@ -1108,6 +1401,7 @@ export const ExpertPlazaView = ({ mode = "store" }: ExpertPlazaViewProps): JSX.E
     isTeamEdition,
     mode,
     myAgents,
+    purchasedAgents,
     removedMineAgentIds,
     storeSceneFilter,
     storeSystemCategory,
@@ -1115,11 +1409,6 @@ export const ExpertPlazaView = ({ mode = "store" }: ExpertPlazaViewProps): JSX.E
     teamSceneFilter,
     teamSharedAgents,
   ]);
-
-  const isInExpertList = useCallback(
-    (agent: StoreAgentItem): boolean => expertListOverrides[agent.id] ?? Boolean(agent.fulfillment),
-    [expertListOverrides],
-  );
 
   const contactModalInfo = useMemo<ContactModalInfo | null>(
     () => (contactAgent ? resolveContactModalInfo(contactAgent, serviceContactConfig) : null),
@@ -1162,38 +1451,89 @@ export const ExpertPlazaView = ({ mode = "store" }: ExpertPlazaViewProps): JSX.E
     }
 
     setRemovedMineAgentIds(current => new Set([...current, agent.id]));
-    message.success("已从团队资产删除该 AI 专家。");
+    message.success("已从我的专区删除该 AI 专家。");
   }, []);
 
-  const handleAddToExpertList = useCallback((agent: StoreAgentItem): void => {
-    setExpertListOverrides(current => ({ ...current, [agent.id]: true }));
-    message.success(`已添加「${agent.name}」到专家列表。`);
+  const handleAddToMe = useCallback((agent: StoreAgentItem): void => {
+    const nextRecords = upsertMeSchedulableAgentRecord({
+      id: agent.id,
+      name: agent.name,
+      avatarUrl: agent.avatarUrl,
+      visualSeed: agent.visualSeed,
+      role: `${agent.scene} · ${agent.techShape}`,
+      model: agent.model,
+      summary: agent.summary,
+      developerName: agent.submitterLabel,
+      agentId: agent.product?.linkedAgentId || agent.id,
+      runtimeAgentId: `rt-${agent.id}`,
+      skills: agent.capabilities.map(item => item.name),
+    });
+
+    setMeSchedulableAgentIds(new Set(nextRecords.map(record => record.id)));
+    message.success(`已添加「${agent.name}」到 ME，可在首页由 ME 调度。`);
   }, []);
 
-  const handleRemoveFromExpertList = useCallback((agent: StoreAgentItem): void => {
-    setExpertListOverrides(current => ({ ...current, [agent.id]: false }));
-    message.success(`已从专家列表移除「${agent.name}」。`);
+  const handleAddToWorkbench = useCallback((agent: StoreAgentItem): void => {
+    const nextRecords = upsertWorkbenchAgentRecord({
+      id: agent.id,
+      name: agent.name,
+      avatarUrl: agent.avatarUrl,
+      visualSeed: agent.visualSeed,
+      role: `${agent.scene} · ${agent.techShape}`,
+      model: agent.model,
+      summary: agent.summary,
+      developerName: agent.submitterLabel,
+      agentId: agent.product?.linkedAgentId || agent.id,
+      runtimeAgentId: `rt-${agent.id}`,
+      skills: agent.capabilities.map(item => item.name),
+    });
+
+    setWorkbenchAgentIds(new Set(nextRecords.map(record => record.id)));
+    if (agent.sourceType === "frontis") {
+      setExpertListOverrides(current => ({ ...current, [agent.id]: true }));
+    }
+    message.success(`已添加「${agent.name}」到工作台，可在新任务中使用。`);
   }, []);
+
+  const handleUseAgent = useCallback(
+    (agent: StoreAgentItem): void => {
+      if (onUseAgent) {
+        onUseAgent(agent.id);
+        return;
+      }
+
+      message.success(`已进入「${agent.name}」使用入口。`);
+    },
+    [onUseAgent],
+  );
 
   const handleApplyForMarketplaceListing = useCallback((agent: StoreAgentItem): void => {
     message.success(`已提交「${agent.name}」上架申请。`);
   }, []);
 
   const renderExpertListAction = (agent: StoreAgentItem): JSX.Element => {
-    const isAddedToExpertList = isInExpertList(agent);
-    const actionLabel = isAddedToExpertList ? "从专家列表移除" : "添加到专家列表";
+    const isInWorkbench = workbenchAgentIds.has(agent.id);
+
+    if (isInWorkbench) {
+      return (
+        <Button
+          className={`${styles.cardActionButton} ${styles.cardActionButtonPrimary}`}
+          icon={<ArrowRightOutlined />}
+          onClick={() => handleUseAgent(agent)}
+        >
+          去使用
+        </Button>
+      );
+    }
 
     return (
-      <Tooltip title={actionLabel}>
-        <Button
-          aria-label={actionLabel}
-          className={`${styles.cardIconButton} ${styles.cardIconButtonPrimary}`}
-          icon={isAddedToExpertList ? <UserDeleteOutlined /> : <UserAddOutlined />}
-          onClick={() =>
-            isAddedToExpertList ? handleRemoveFromExpertList(agent) : handleAddToExpertList(agent)
-          }
-        />
-      </Tooltip>
+      <Button
+        className={styles.cardActionButton}
+        icon={<UserAddOutlined />}
+        onClick={() => handleAddToWorkbench(agent)}
+      >
+        添加到工作台
+      </Button>
     );
   };
 
@@ -1218,7 +1558,7 @@ export const ExpertPlazaView = ({ mode = "store" }: ExpertPlazaViewProps): JSX.E
         {agent.sourceType === "mine" ? (
           <Popconfirm
             title="删除 AI 专家"
-            description="删除后，该 AI 专家将不再显示在团队资产。"
+            description="删除后，该 AI 专家将不再显示在我的专区。"
             okText="删除"
             cancelText="取消"
             okButtonProps={{ danger: true }}
@@ -1232,6 +1572,18 @@ export const ExpertPlazaView = ({ mode = "store" }: ExpertPlazaViewProps): JSX.E
               />
             </Tooltip>
           </Popconfirm>
+        ) : null}
+        {mode === "team" ? (
+          <Button
+            className={styles.cardActionButton}
+            disabled={meSchedulableAgentIds.has(agent.id)}
+            icon={
+              meSchedulableAgentIds.has(agent.id) ? <CheckCircleOutlined /> : <UserAddOutlined />
+            }
+            onClick={() => handleAddToMe(agent)}
+          >
+            {meSchedulableAgentIds.has(agent.id) ? "已添加" : "添加到ME"}
+          </Button>
         ) : null}
         {renderExpertListAction(agent)}
         {agent.sourceType === "mine" && canApplyForMarketplaceListing ? (
@@ -1253,42 +1605,50 @@ export const ExpertPlazaView = ({ mode = "store" }: ExpertPlazaViewProps): JSX.E
       <div className={styles.toolbarCard}>
         <div className={styles.filterGroup}>
           {mode === "team" ? (
-            <>
-              <div className={styles.filterTabRow} role="tablist" aria-label="团队专家分类">
-                {teamExpertFilterOptions.map(option => (
+            <div className={styles.filterTabRow} role="tablist" aria-label="我的专区专家分类">
+              {teamExpertFilterOptions.map(option => (
+                <button
+                  key={option.value}
+                  type="button"
+                  role="tab"
+                  aria-selected={teamExpertFilter === option.value && teamSceneFilter === "all"}
+                  className={classNames(
+                    styles.filterTabButton,
+                    teamExpertFilter === option.value &&
+                      teamSceneFilter === "all" &&
+                      styles.filterTabButtonActive,
+                  )}
+                  onClick={() => {
+                    setTeamExpertFilter(option.value);
+                    setTeamSceneFilter("all");
+                  }}
+                >
+                  {option.label}
+                </button>
+              ))}
+              {sceneCategoryOptions
+                .filter(option => option.value !== "all")
+                .map(option => (
                   <button
                     key={option.value}
                     type="button"
                     role="tab"
-                    aria-selected={teamExpertFilter === option.value}
+                    aria-selected={teamExpertFilter === "all" && teamSceneFilter === option.value}
                     className={classNames(
                       styles.filterTabButton,
-                      teamExpertFilter === option.value && styles.filterTabButtonActive,
+                      teamExpertFilter === "all" &&
+                        teamSceneFilter === option.value &&
+                        styles.filterTabButtonActive,
                     )}
-                    onClick={() => setTeamExpertFilter(option.value)}
+                    onClick={() => {
+                      setTeamExpertFilter("all");
+                      setTeamSceneFilter(option.value);
+                    }}
                   >
                     {option.label}
                   </button>
                 ))}
-              </div>
-              <div className={styles.filterTabRow} role="tablist" aria-label="团队专家场景分类">
-                {sceneCategoryOptions.map(option => (
-                  <button
-                    key={option.value}
-                    type="button"
-                    role="tab"
-                    aria-selected={teamSceneFilter === option.value}
-                    className={classNames(
-                      styles.filterTabButton,
-                      teamSceneFilter === option.value && styles.filterTabButtonActive,
-                    )}
-                    onClick={() => setTeamSceneFilter(option.value)}
-                  >
-                    {option.label}
-                  </button>
-                ))}
-              </div>
-            </>
+            </div>
           ) : (
             <>
               <div className={styles.filterTabRow} role="tablist" aria-label="商店系统分类">
@@ -1375,7 +1735,7 @@ export const ExpertPlazaView = ({ mode = "store" }: ExpertPlazaViewProps): JSX.E
 
       {!filteredAgents.length ? (
         <div className={styles.emptyState}>
-          {mode === "store" ? "当前分类下暂无可添加的 AI 专家。" : "当前分类下暂无团队资产。"}
+          {mode === "store" ? "当前分类下暂无可添加的 AI 专家。" : "当前分类下暂无我的专区。"}
         </div>
       ) : null}
 
@@ -1450,12 +1810,16 @@ export const ExpertPlazaView = ({ mode = "store" }: ExpertPlazaViewProps): JSX.E
                     <div className={styles.agentIdentityPane}>
                       <div className={styles.agentIdentityForm}>
                         <label className={styles.agentDetailField}>
-                          <span>名称 <b>*</b></span>
+                          <span>
+                            名称 <b>*</b>
+                          </span>
                           <div>{detailAgent.name}</div>
                         </label>
 
                         <label className={styles.agentDetailField}>
-                          <span>卡片简述 <b>*</b></span>
+                          <span>
+                            卡片简述 <b>*</b>
+                          </span>
                           <p>{detailAgent.summary}</p>
                         </label>
 
@@ -1499,7 +1863,9 @@ export const ExpertPlazaView = ({ mode = "store" }: ExpertPlazaViewProps): JSX.E
                         <div className={styles.agentPreviewCard}>
                           <div
                             className={styles.agentPreviewCover}
-                            style={{ background: getAgentStoreDomainTone(detailAgent.businessLine) }}
+                            style={{
+                              background: getAgentStoreDomainTone(detailAgent.businessLine),
+                            }}
                           />
                           <div className={styles.agentPreviewAvatar}>
                             <img alt={detailAgent.name} src={getAgentAvatarSrc(detailAgent)} />
@@ -1548,7 +1914,9 @@ export const ExpertPlazaView = ({ mode = "store" }: ExpertPlazaViewProps): JSX.E
                     </div>
                     {detailAgentTools.map(tool => (
                       <article key={tool.name} className={styles.agentToolItem}>
-                        <div className={styles.agentToolIcon}><SlidersOutlined /></div>
+                        <div className={styles.agentToolIcon}>
+                          <SlidersOutlined />
+                        </div>
                         <div>
                           <strong>{tool.name}</strong>
                           <span>{tool.description}</span>

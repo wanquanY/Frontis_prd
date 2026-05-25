@@ -108,7 +108,7 @@ export const createId = (prefix: string): string =>
   `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
 /**
- * 按默认专家与可识别的专家团，为对话工作台中的 AI 专家列表分组。
+ * 按默认专家与可识别的专家团，为对话工作台中的可调度 AI 专家分组。
  */
 export const groupConversationEmployees = (
   employees: EmployeeItem[],

@@ -1133,9 +1133,7 @@ export const OperationsPlatformView = (): JSX.Element => {
         <OperationsResourceMeteringConsole
           meteringProviders={meteringProviders}
           modelServices={modelServices}
-          onCreateMeteringProvider={createMeteringProvider}
           onCreateModelService={createModelService}
-          onUpdateMeteringProvider={updateMeteringProvider}
           onUpdateModelService={updateModelService}
         />
       );

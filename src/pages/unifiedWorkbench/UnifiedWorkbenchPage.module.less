@@ -205,6 +205,229 @@
   text-overflow: ellipsis;
 }
 
+.navConversationPanel {
+  min-height: 0;
+  margin-top: 12px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 12px;
+  overflow: hidden;
+}
+
+.navConversationHeading,
+.navConversationGroupTitle,
+.navConversationEmpty {
+  color: var(--text-secondary);
+}
+
+.navConversationHeading {
+  font-size: 13px;
+  line-height: 20px;
+  font-weight: 600;
+}
+
+.navConversationList {
+  min-height: 0;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  margin-right: -16px;
+  padding-right: 12px;
+  scrollbar-gutter: stable;
+}
+
+.navConversationGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.navConversationGroupTitle {
+  width: 100%;
+  min-height: 26px;
+  padding: 0 4px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  line-height: 18px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background 160ms ease,
+    color 160ms ease;
+
+  &:hover {
+    background: color-mix(in srgb, var(--text) 5%, transparent);
+    color: var(--text);
+  }
+}
+
+.navConversationGroupName {
+  min-width: 0;
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.navConversationGroupCaret {
+  width: 7px;
+  height: 7px;
+  flex-shrink: 0;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: rotate(45deg) translateY(-1px);
+  transition: transform 160ms ease;
+}
+
+.navConversationGroupCaretCollapsed {
+  transform: rotate(-45deg);
+}
+
+.navConversationSession {
+  width: 100%;
+  min-height: 36px;
+  padding: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  transition:
+    background 160ms ease,
+    color 160ms ease;
+
+  &:hover {
+    background: color-mix(in srgb, var(--text) 6%, transparent);
+  }
+}
+
+.navConversationSessionActive {
+  background: color-mix(in srgb, var(--text) 6%, transparent);
+}
+
+.navConversationSessionMain {
+  min-width: 0;
+  flex: 1;
+  align-self: stretch;
+  padding: 6px 0 6px 10px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  display: flex;
+  align-items: center;
+  text-align: left;
+  cursor: pointer;
+}
+
+.navConversationSessionTrailing {
+  position: relative;
+  width: 46px;
+  height: 28px;
+  margin-right: 8px;
+  flex: 0 0 46px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.navConversationSessionAction {
+  width: 28px;
+  height: 28px;
+  position: absolute;
+  right: 0;
+  top: 0;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-secondary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    opacity 160ms ease,
+    background 160ms ease,
+    color 160ms ease;
+
+  &:hover {
+    background: color-mix(in srgb, var(--text) 7%, transparent);
+    color: var(--text);
+  }
+}
+
+.navConversationSession:hover .navConversationSessionAction,
+.navConversationSession:focus-within .navConversationSessionAction {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.navConversationSession:hover .navConversationSessionTime,
+.navConversationSession:focus-within .navConversationSessionTime {
+  opacity: 0;
+}
+
+.navConversationSessionTitle {
+  min-width: 0;
+  flex: 1;
+  font-size: 13px;
+  line-height: 20px;
+  font-weight: 650;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.navConversationSessionTime {
+  position: absolute;
+  right: 0;
+  top: 5px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 18px;
+  font-weight: 500;
+  white-space: nowrap;
+  transition: opacity 160ms ease;
+}
+
+.navConversationToggleButton {
+  width: fit-content;
+  max-width: 100%;
+  padding: 2px 4px;
+  border: 0;
+  background: transparent;
+  color: var(--primary);
+  font-size: 12px;
+  line-height: 18px;
+  font-weight: 600;
+  cursor: pointer;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.navConversationEmpty {
+  padding: 10px 4px;
+  font-size: 12px;
+  line-height: 18px;
+}
+
 .main {
   flex: 1;
   height: 100%;
@@ -424,7 +647,97 @@
   }
 }
 
-@media (max-width: 720px) {
+@media (max-width: 900px) {
+  .root {
+    height: 100dvh;
+    min-height: 100dvh;
+    background: color-mix(in srgb, var(--surface) 94%, var(--app-bg));
+  }
+
+  .navRail {
+    flex: 0 0 auto;
+    width: 100%;
+    padding: 0;
+    position: relative;
+    background: color-mix(in srgb, var(--surface) 96%, var(--app-bg));
+    overflow: visible;
+  }
+
+  .brandBlock,
+  .brandBlockCollapsed {
+    min-height: 58px;
+    padding: 9px 104px 9px 16px;
+    border-bottom: 1px solid color-mix(in srgb, var(--text) 8%, transparent);
+  }
+
+  .brandIdentity {
+    flex: 1;
+  }
+
+  .brandName {
+    font-size: 16px;
+    line-height: 22px;
+    font-weight: 700;
+  }
+
+  .brandSubtitle {
+    font-size: 12px;
+    line-height: 18px;
+  }
+
+  .sidebarToggle {
+    width: 36px;
+    height: 36px;
+    position: absolute;
+    top: 11px;
+    right: 16px;
+  }
+
+  .navList {
+    flex: 0 0 auto;
+    width: 100%;
+    min-height: 0;
+    padding: 8px 12px;
+    gap: 6px;
+    flex-direction: row;
+    align-items: center;
+    overflow-x: auto;
+    overflow-y: hidden;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+  }
+
+  .navList::-webkit-scrollbar {
+    display: none;
+  }
+
+  .navButton {
+    min-width: auto;
+    width: auto;
+    min-height: 36px;
+    padding: 0 11px;
+    flex: 0 0 auto;
+    flex-direction: row;
+    border-radius: 999px;
+    gap: 7px;
+  }
+
+  .navIcon {
+    width: 16px;
+    height: 16px;
+    flex-basis: 16px;
+    font-size: 16px;
+  }
+
+  .navText {
+    font-size: 12px;
+    line-height: 18px;
+  }
+
+  .navConversationPanel {
+    display: none;
+  }
+
   .featureHeader {
     padding: 14px 16px;
     flex-direction: column;
@@ -432,11 +745,36 @@
   }
 
   .navFooter {
-    padding-top: 0;
+    margin: 0;
+    padding: 0;
+    position: absolute;
+    top: 12px;
+    right: 58px;
+    z-index: 6;
   }
 
   .navAccountButton {
-    width: auto;
-    min-width: 112px;
+    width: 34px;
+    min-width: 34px;
+    min-height: 34px;
+    padding: 0;
+    border-radius: 999px;
+    justify-content: center;
+    background: color-mix(in srgb, var(--text) 4%, transparent);
+  }
+
+  .main {
+    flex: 1 1 auto;
+    height: auto;
+    min-height: 0;
+  }
+
+  .mainPanel {
+    min-height: 0;
+  }
+
+  .content {
+    min-height: 0;
+    overflow: hidden;
   }
 }

@@ -931,7 +931,7 @@ export const activateMockTenantSubscriptionPlan = (
 ): MockTenantManagementSnapshot | null => {
   return applyMockSubscriptionPlanToTenant(tenantId, purchaseOption, {
     orderSourceLabel: "用户自助购买",
-    paymentChannelLabel: "统一扫码支付",
+    paymentChannelLabel: purchaseOption.paymentChannelLabel ?? "支付宝支付",
   });
 };
 

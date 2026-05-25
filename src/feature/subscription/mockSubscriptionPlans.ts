@@ -14,6 +14,7 @@ import type {
   MockSubscriptionPlanKey,
   MockSubscriptionPlanPurchaseInput,
   MockSubscriptionPlanPurchaseOption,
+  MockSubscriptionPlanSpec,
   MockSubscriptionPurchaseMode,
   MockSubscriptionPlanStatus,
   MockSubscriptionPlanTemplate,
@@ -30,6 +31,8 @@ const PRO_YEARLY_SEAT_PRICE = 399;
 const ENTERPRISE_YEARLY_SEAT_PRICE = 299;
 const ENTERPRISE_MINIMUM_SEATS_AFTER_PROMOTION = 10;
 const TEAM_SEAT_PACKAGE_KEY = "team-seat-package";
+const MONTHLY_SEAT_SPEC_KEY = "monthly-seat-package";
+const YEARLY_SEAT_SPEC_KEY = "yearly-seat-package";
 const LEGACY_SUBSCRIPTION_PLAN_KEYS = new Set([
   "lite",
   "pro-monthly",
@@ -113,6 +116,50 @@ const formatSeatUnitPrice = (
 ): string =>
   `¥${Math.max(priceAmount, 0).toLocaleString("zh-CN")} / 席 / ${VALIDITY_UNIT_LABELS[validityUnit]}`;
 
+const createPresetSubscriptionPlanSpecs = (): MockSubscriptionPlanSpec[] => [
+  {
+    key: MONTHLY_SEAT_SPEC_KEY,
+    title: "月付席位包",
+    billingCycle: "monthly",
+    billingCycleLabel: "按月支付",
+    enabled: true,
+    priceAmount: PRO_MONTHLY_SEAT_PRICE,
+    giftPoints: 1000,
+    validityCount: 1,
+    validityUnit: "month",
+    contractPriceEnabled: true,
+    contractPriceAmount: 29,
+  },
+  {
+    key: YEARLY_SEAT_SPEC_KEY,
+    title: "年付席位包",
+    billingCycle: "yearly",
+    billingCycleLabel: "按年支付",
+    enabled: true,
+    priceAmount: PRO_YEARLY_SEAT_PRICE,
+    giftPoints: 12000,
+    validityCount: 1,
+    validityUnit: "year",
+    contractPriceEnabled: true,
+    contractPriceAmount: ENTERPRISE_YEARLY_SEAT_PRICE,
+  },
+];
+
+const cloneSubscriptionPlanSpec = (spec: MockSubscriptionPlanSpec): MockSubscriptionPlanSpec => ({
+  ...spec,
+});
+
+const getMockSubscriptionPlanSpecs = (
+  plan: MockSubscriptionPlanTemplate,
+): MockSubscriptionPlanSpec[] =>
+  plan.specs.length > 0
+    ? plan.specs.map(cloneSubscriptionPlanSpec)
+    : createPresetSubscriptionPlanSpecs();
+
+const getEnabledMockSubscriptionPlanSpecs = (
+  plan: MockSubscriptionPlanTemplate,
+): MockSubscriptionPlanSpec[] => getMockSubscriptionPlanSpecs(plan).filter(item => item.enabled);
+
 /**
  * 根据团队席位包配置生成运营侧展示信息。
  */
@@ -120,23 +167,33 @@ export const buildMockSubscriptionPlanBenefitTexts = (
   plan: Pick<
     MockSubscriptionPlanTemplate,
     | "contractYearlyPriceAmount"
+    | "contractYearlyEnabled"
+    | "monthlyEnabled"
     | "monthlyGiftPoints"
     | "monthlyPriceAmount"
     | "monthlyValidityCount"
     | "seatCount"
+    | "yearlyEnabled"
     | "yearlyGiftPoints"
     | "yearlyPriceAmount"
     | "yearlyValidityCount"
+    | "specs"
   >,
 ): string[] => [
   `${plan.seatCount} 个席位单位`,
-  `月付 ${formatSeatUnitPrice(plan.monthlyPriceAmount, "month")}`,
-  `年付 ${formatSeatUnitPrice(plan.yearlyPriceAmount, "year")}`,
-  `签约年付 ${formatSeatUnitPrice(plan.contractYearlyPriceAmount, "year")}`,
-  `月付有效期 ${formatMockSubscriptionValidity(plan.monthlyValidityCount, "month")}`,
-  `年付有效期 ${formatMockSubscriptionValidity(plan.yearlyValidityCount, "year")}`,
-  `月付赠送 ${plan.monthlyGiftPoints.toLocaleString("zh-CN")} 积分`,
-  `年付赠送 ${plan.yearlyGiftPoints.toLocaleString("zh-CN")} 积分`,
+  ...plan.specs.flatMap(spec =>
+    spec.enabled
+      ? [
+          `${spec.title} ${formatSeatUnitPrice(spec.priceAmount, spec.validityUnit)}`,
+          `${spec.title}赠送 ${spec.giftPoints.toLocaleString("zh-CN")} 积分`,
+          ...(spec.contractPriceEnabled
+            ? [
+                `${spec.title}签约价 ${formatSeatUnitPrice(spec.contractPriceAmount, spec.validityUnit)}`,
+              ]
+            : []),
+        ]
+      : [],
+  ),
 ];
 
 const PRESET_SUBSCRIPTION_PLANS: MockSubscriptionPlanTemplate[] = [
@@ -145,6 +202,9 @@ const PRESET_SUBSCRIPTION_PLANS: MockSubscriptionPlanTemplate[] = [
     sequence: "01",
     title: "团队席位包",
     seatCount: 1,
+    monthlyEnabled: true,
+    yearlyEnabled: true,
+    contractYearlyEnabled: true,
     monthlyPriceAmount: PRO_MONTHLY_SEAT_PRICE,
     yearlyPriceAmount: PRO_YEARLY_SEAT_PRICE,
     contractYearlyPriceAmount: ENTERPRISE_YEARLY_SEAT_PRICE,
@@ -152,6 +212,7 @@ const PRESET_SUBSCRIPTION_PLANS: MockSubscriptionPlanTemplate[] = [
     yearlyGiftPoints: 12000,
     monthlyValidityCount: 1,
     yearlyValidityCount: 1,
+    specs: createPresetSubscriptionPlanSpecs(),
     status: "active",
     updatedAt: "2026-05-25 10:00",
   },
@@ -161,6 +222,7 @@ const cloneSubscriptionPlan = (
   plan: MockSubscriptionPlanTemplate,
 ): MockSubscriptionPlanTemplate => ({
   ...plan,
+  specs: plan.specs.map(cloneSubscriptionPlanSpec),
 });
 
 const buildSubscriptionPlanKey = (title: string): MockSubscriptionPlanKey => {
@@ -182,6 +244,9 @@ const readRecord = (value: unknown): Record<string, unknown> | null =>
 const readNumber = (value: unknown, fallback: number): number =>
   typeof value === "number" && Number.isFinite(value) ? value : fallback;
 
+const readBoolean = (value: unknown, fallback: boolean): boolean =>
+  typeof value === "boolean" ? value : fallback;
+
 const readString = (value: unknown, fallback: string): string =>
   typeof value === "string" ? value : fallback;
 
@@ -200,6 +265,138 @@ const readValidityUnit = (
   value: unknown,
   fallback: MockSubscriptionValidityUnit,
 ): MockSubscriptionValidityUnit => (value === "year" || value === "month" ? value : fallback);
+
+const buildLegacyPlanSpecs = (
+  plan: Pick<
+    MockSubscriptionPlanTemplate,
+    | "contractYearlyEnabled"
+    | "contractYearlyPriceAmount"
+    | "monthlyEnabled"
+    | "monthlyGiftPoints"
+    | "monthlyPriceAmount"
+    | "monthlyValidityCount"
+    | "yearlyEnabled"
+    | "yearlyGiftPoints"
+    | "yearlyPriceAmount"
+    | "yearlyValidityCount"
+  >,
+): MockSubscriptionPlanSpec[] => [
+  {
+    key: MONTHLY_SEAT_SPEC_KEY,
+    title: "月付席位包",
+    billingCycle: "monthly",
+    billingCycleLabel: "按月支付",
+    enabled: plan.monthlyEnabled,
+    priceAmount: plan.monthlyPriceAmount,
+    giftPoints: plan.monthlyGiftPoints,
+    validityCount: plan.monthlyValidityCount,
+    validityUnit: "month",
+    contractPriceEnabled: false,
+    contractPriceAmount: Math.max(Math.floor(plan.monthlyPriceAmount * 0.8), 0),
+  },
+  {
+    key: YEARLY_SEAT_SPEC_KEY,
+    title: "年付席位包",
+    billingCycle: "yearly",
+    billingCycleLabel: "按年支付",
+    enabled: plan.yearlyEnabled,
+    priceAmount: plan.yearlyPriceAmount,
+    giftPoints: plan.yearlyGiftPoints,
+    validityCount: plan.yearlyValidityCount,
+    validityUnit: "year",
+    contractPriceEnabled: plan.contractYearlyEnabled,
+    contractPriceAmount: plan.contractYearlyPriceAmount,
+  },
+];
+
+const normalizePlanSpec = (
+  value: unknown,
+  fallbackSpec: MockSubscriptionPlanSpec,
+): MockSubscriptionPlanSpec | null => {
+  const spec = readRecord(value);
+
+  if (!spec) {
+    return cloneSubscriptionPlanSpec(fallbackSpec);
+  }
+
+  const billingCycle = readString(spec.billingCycle, fallbackSpec.billingCycle).trim();
+  const key = readString(spec.key, fallbackSpec.key || billingCycle).trim();
+
+  if (!key || !billingCycle) {
+    return null;
+  }
+
+  return {
+    key,
+    title: readString(spec.title, fallbackSpec.title).trim() || fallbackSpec.title,
+    billingCycle,
+    billingCycleLabel:
+      readString(spec.billingCycleLabel, fallbackSpec.billingCycleLabel).trim() ||
+      fallbackSpec.billingCycleLabel,
+    enabled: readBoolean(spec.enabled, fallbackSpec.enabled),
+    priceAmount: readNumber(spec.priceAmount, fallbackSpec.priceAmount),
+    giftPoints: readNumber(spec.giftPoints, fallbackSpec.giftPoints),
+    validityCount: readNumber(spec.validityCount, fallbackSpec.validityCount),
+    validityUnit: readValidityUnit(spec.validityUnit, fallbackSpec.validityUnit),
+    contractPriceEnabled: readBoolean(spec.contractPriceEnabled, fallbackSpec.contractPriceEnabled),
+    contractPriceAmount: readNumber(spec.contractPriceAmount, fallbackSpec.contractPriceAmount),
+  };
+};
+
+const normalizePlanSpecs = (
+  value: unknown,
+  fallbackSpecs: MockSubscriptionPlanSpec[],
+): MockSubscriptionPlanSpec[] => {
+  if (!Array.isArray(value)) {
+    return fallbackSpecs.map(cloneSubscriptionPlanSpec);
+  }
+
+  const fallbackByKey = new Map(fallbackSpecs.map(item => [item.key, item]));
+  const normalizedSpecs = value
+    .map((item, index) => {
+      const itemRecord = readRecord(item);
+      const fallbackSpec =
+        fallbackByKey.get(readString(itemRecord?.key, "")) ??
+        fallbackSpecs[index] ??
+        fallbackSpecs[0];
+
+      return normalizePlanSpec(item, fallbackSpec);
+    })
+    .filter((item): item is MockSubscriptionPlanSpec => Boolean(item));
+  const dedupedSpecs = Array.from(new Map(normalizedSpecs.map(item => [item.key, item])).values());
+
+  return dedupedSpecs.length > 0 ? dedupedSpecs : fallbackSpecs.map(cloneSubscriptionPlanSpec);
+};
+
+const getPrimarySpecByBillingCycle = (
+  plan: MockSubscriptionPlanTemplate,
+  billingCycle: MockSubscriptionBillingCycle,
+): MockSubscriptionPlanSpec | null =>
+  getMockSubscriptionPlanSpecs(plan).find(item => item.billingCycle === billingCycle) ?? null;
+
+const applySpecsToLegacyFields = (
+  plan: MockSubscriptionPlanTemplate,
+  specs: MockSubscriptionPlanSpec[],
+): MockSubscriptionPlanTemplate => {
+  const monthlySpec = specs.find(item => item.billingCycle === "monthly") ?? specs[0];
+  const yearlySpec = specs.find(item => item.billingCycle === "yearly") ?? specs[1] ?? specs[0];
+  const contractSpec = yearlySpec ?? monthlySpec;
+
+  return {
+    ...plan,
+    specs: specs.map(cloneSubscriptionPlanSpec),
+    monthlyEnabled: monthlySpec?.enabled ?? false,
+    yearlyEnabled: yearlySpec?.enabled ?? false,
+    contractYearlyEnabled: contractSpec?.contractPriceEnabled ?? false,
+    monthlyPriceAmount: monthlySpec?.priceAmount ?? plan.monthlyPriceAmount,
+    yearlyPriceAmount: yearlySpec?.priceAmount ?? plan.yearlyPriceAmount,
+    contractYearlyPriceAmount: contractSpec?.contractPriceAmount ?? plan.contractYearlyPriceAmount,
+    monthlyGiftPoints: monthlySpec?.giftPoints ?? plan.monthlyGiftPoints,
+    yearlyGiftPoints: yearlySpec?.giftPoints ?? plan.yearlyGiftPoints,
+    monthlyValidityCount: monthlySpec?.validityCount ?? plan.monthlyValidityCount,
+    yearlyValidityCount: yearlySpec?.validityCount ?? plan.yearlyValidityCount,
+  };
+};
 
 const normalizeContractCode = (code: string): string => code.trim().toUpperCase();
 
@@ -304,11 +501,17 @@ const normalizeStoredPlan = (
   const legacyGiftPoints = readNumber(plan.giftPoints, 0);
   const legacyValidityCount = readNumber(plan.validityCount, 1);
 
-  return {
+  const normalizedPlan: MockSubscriptionPlanTemplate = {
     key: readString(plan.key, fallbackPlan.key),
     sequence: readString(plan.sequence, fallbackPlan.sequence),
     title: readString(plan.title, fallbackPlan.title),
     seatCount,
+    monthlyEnabled: readBoolean(plan.monthlyEnabled, fallbackPlan.monthlyEnabled),
+    yearlyEnabled: readBoolean(plan.yearlyEnabled, fallbackPlan.yearlyEnabled),
+    contractYearlyEnabled: readBoolean(
+      plan.contractYearlyEnabled,
+      fallbackPlan.contractYearlyEnabled,
+    ),
     monthlyPriceAmount: readNumber(
       plan.monthlyPriceAmount,
       legacyValidityUnit === "month" && legacyPriceAmount > 0
@@ -341,9 +544,15 @@ const normalizeStoredPlan = (
       plan.yearlyValidityCount,
       legacyValidityUnit === "year" ? legacyValidityCount : fallbackPlan.yearlyValidityCount,
     ),
+    specs: [],
     status: readStatus(plan.status, fallbackPlan.status),
     updatedAt: readString(plan.updatedAt, fallbackPlan.updatedAt),
   };
+
+  return applySpecsToLegacyFields(
+    normalizedPlan,
+    normalizePlanSpecs(plan.specs, buildLegacyPlanSpecs(normalizedPlan)),
+  );
 };
 
 const createCustomFallbackPlan = (
@@ -358,7 +567,7 @@ const createCustomFallbackPlan = (
 
   const fallbackPlan = PRESET_SUBSCRIPTION_PLANS[0];
 
-  return {
+  const normalizedPlan: MockSubscriptionPlanTemplate = {
     key: plan.key,
     sequence: readString(
       plan.sequence,
@@ -366,6 +575,12 @@ const createCustomFallbackPlan = (
     ),
     title: readString(plan.title, "团队席位包"),
     seatCount: readNumber(plan.seatCount, fallbackPlan.seatCount),
+    monthlyEnabled: readBoolean(plan.monthlyEnabled, fallbackPlan.monthlyEnabled),
+    yearlyEnabled: readBoolean(plan.yearlyEnabled, fallbackPlan.yearlyEnabled),
+    contractYearlyEnabled: readBoolean(
+      plan.contractYearlyEnabled,
+      fallbackPlan.contractYearlyEnabled,
+    ),
     monthlyPriceAmount: readNumber(plan.monthlyPriceAmount, fallbackPlan.monthlyPriceAmount),
     yearlyPriceAmount: readNumber(plan.yearlyPriceAmount, fallbackPlan.yearlyPriceAmount),
     contractYearlyPriceAmount: readNumber(
@@ -376,9 +591,15 @@ const createCustomFallbackPlan = (
     yearlyGiftPoints: readNumber(plan.yearlyGiftPoints, fallbackPlan.yearlyGiftPoints),
     monthlyValidityCount: readNumber(plan.monthlyValidityCount, fallbackPlan.monthlyValidityCount),
     yearlyValidityCount: readNumber(plan.yearlyValidityCount, fallbackPlan.yearlyValidityCount),
+    specs: [],
     status: readStatus(plan.status, "active"),
     updatedAt: readString(plan.updatedAt, "刚刚"),
   };
+
+  return applySpecsToLegacyFields(
+    normalizedPlan,
+    normalizePlanSpecs(plan.specs, buildLegacyPlanSpecs(normalizedPlan)),
+  );
 };
 
 const readStoredSubscriptionPlans = (): unknown[] => {
@@ -569,20 +790,25 @@ const getPlanBillingConfig = (
   validityCount: number;
   validityUnit: MockSubscriptionValidityUnit;
 } => {
-  if (billingCycle === "monthly") {
+  const matchedSpec = getPrimarySpecByBillingCycle(plan, billingCycle);
+
+  if (matchedSpec) {
     return {
-      giftPoints: plan.monthlyGiftPoints,
-      priceAmount: plan.monthlyPriceAmount,
-      validityCount: plan.monthlyValidityCount,
-      validityUnit: "month",
+      giftPoints: matchedSpec.giftPoints,
+      priceAmount:
+        enterpriseQualified && matchedSpec.contractPriceEnabled
+          ? matchedSpec.contractPriceAmount
+          : matchedSpec.priceAmount,
+      validityCount: matchedSpec.validityCount,
+      validityUnit: matchedSpec.validityUnit,
     };
   }
 
   return {
-    giftPoints: plan.yearlyGiftPoints,
-    priceAmount: enterpriseQualified ? plan.contractYearlyPriceAmount : plan.yearlyPriceAmount,
-    validityCount: plan.yearlyValidityCount,
-    validityUnit: "year",
+    giftPoints: plan.monthlyGiftPoints,
+    priceAmount: plan.monthlyPriceAmount,
+    validityCount: plan.monthlyValidityCount,
+    validityUnit: "month",
   };
 };
 
@@ -680,14 +906,6 @@ const resolveEnterpriseQualification = (
   enterpriseQualified: boolean;
   ruleMessage: string;
 } => {
-  if (input.billingCycle === "monthly") {
-    return {
-      customerTier: "pro",
-      enterpriseQualified: false,
-      ruleMessage: "",
-    };
-  }
-
   if (!input.contractCode?.trim()) {
     return {
       customerTier: "pro",
@@ -857,11 +1075,14 @@ export const createMockSubscriptionPlanTemplate = (
   payload: CreateMockSubscriptionPlanPayload,
 ): MockSubscriptionPlanTemplate[] => {
   const currentPlans = getMockSubscriptionPlanTemplates();
-  const nextPlan: MockSubscriptionPlanTemplate = {
+  const draftPlan: MockSubscriptionPlanTemplate = {
     key: buildSubscriptionPlanKey(payload.title),
     sequence: buildSubscriptionPlanSequence(currentPlans),
     title: payload.title.trim(),
     seatCount: payload.seatCount,
+    monthlyEnabled: payload.monthlyEnabled,
+    yearlyEnabled: payload.yearlyEnabled,
+    contractYearlyEnabled: payload.contractYearlyEnabled,
     monthlyPriceAmount: payload.monthlyPriceAmount,
     yearlyPriceAmount: payload.yearlyPriceAmount,
     contractYearlyPriceAmount: payload.contractYearlyPriceAmount,
@@ -869,9 +1090,14 @@ export const createMockSubscriptionPlanTemplate = (
     yearlyGiftPoints: payload.yearlyGiftPoints,
     monthlyValidityCount: payload.monthlyValidityCount,
     yearlyValidityCount: payload.yearlyValidityCount,
+    specs: [],
     status: payload.status,
     updatedAt: "刚刚",
   };
+  const nextPlan = applySpecsToLegacyFields(
+    draftPlan,
+    normalizePlanSpecs(payload.specs, buildLegacyPlanSpecs(draftPlan)),
+  );
 
   const nextPlans = sortSubscriptionPlans([...currentPlans, nextPlan]);
 
@@ -894,10 +1120,13 @@ export const updateMockSubscriptionPlanTemplate = (
 
     const seatCount = readNumber(updates.seatCount, item.seatCount);
 
-    return {
+    const draftPlan: MockSubscriptionPlanTemplate = {
       ...item,
       title: typeof updates.title === "string" ? updates.title.trim() : item.title,
       seatCount,
+      monthlyEnabled: readBoolean(updates.monthlyEnabled, item.monthlyEnabled),
+      yearlyEnabled: readBoolean(updates.yearlyEnabled, item.yearlyEnabled),
+      contractYearlyEnabled: readBoolean(updates.contractYearlyEnabled, item.contractYearlyEnabled),
       monthlyPriceAmount: readNumber(updates.monthlyPriceAmount, item.monthlyPriceAmount),
       yearlyPriceAmount: readNumber(updates.yearlyPriceAmount, item.yearlyPriceAmount),
       contractYearlyPriceAmount: readNumber(
@@ -908,9 +1137,15 @@ export const updateMockSubscriptionPlanTemplate = (
       yearlyGiftPoints: readNumber(updates.yearlyGiftPoints, item.yearlyGiftPoints),
       monthlyValidityCount: readNumber(updates.monthlyValidityCount, item.monthlyValidityCount),
       yearlyValidityCount: readNumber(updates.yearlyValidityCount, item.yearlyValidityCount),
+      specs: item.specs,
       status: readStatus(updates.status, item.status),
       updatedAt: "刚刚",
     };
+
+    return applySpecsToLegacyFields(
+      draftPlan,
+      normalizePlanSpecs(updates.specs ?? item.specs, buildLegacyPlanSpecs(draftPlan)),
+    );
   });
 
   writeStoredSubscriptionPlans(nextPlans);
@@ -941,11 +1176,20 @@ export const getMockSubscriptionPlanPurchaseOption = (
   tenantSnapshot?: MockTenantManagementSnapshot | null,
 ): MockSubscriptionPlanPurchaseOption | null => {
   const purchaseMode = input.purchaseMode ?? "addSeats";
+  const selectedPlan = getConfiguredSubscriptionPlan();
   const activeBillingCycle =
-    purchaseMode === "addSeats" ? getMockTenantActiveSubscriptionBillingCycle(tenantSnapshot) : null;
+    purchaseMode === "addSeats"
+      ? getMockTenantActiveSubscriptionBillingCycle(tenantSnapshot)
+      : null;
   const effectiveBillingCycle = activeBillingCycle ?? input.billingCycle;
+  const selectedSpec = getPrimarySpecByBillingCycle(selectedPlan, effectiveBillingCycle);
+
+  if (!selectedSpec?.enabled) {
+    return null;
+  }
+
   const activeContractCode =
-    effectiveBillingCycle === "yearly" && purchaseMode === "addSeats"
+    selectedSpec.contractPriceEnabled && purchaseMode === "addSeats"
       ? getMockTenantActiveSubscriptionContractCode(tenantSnapshot)
       : "";
   const effectiveContractCode = input.contractCode?.trim().toUpperCase() || activeContractCode;
@@ -955,13 +1199,19 @@ export const getMockSubscriptionPlanPurchaseOption = (
       : Math.max(Math.floor(input.seatCount), 1);
   const normalizedInput: MockSubscriptionPlanPurchaseInput = {
     billingCycle: effectiveBillingCycle,
-    contractCode: effectiveBillingCycle === "yearly" ? effectiveContractCode : "",
+    contractCode: selectedSpec.contractPriceEnabled ? effectiveContractCode : "",
     purchaseMode,
     seatCount,
   };
-  const matchedCode = findContractCode(normalizedInput.contractCode);
-  const qualification = resolveEnterpriseQualification(normalizedInput, matchedCode);
-  const selectedPlan = getConfiguredSubscriptionPlan();
+  const contractCodeEnabled = selectedSpec.contractPriceEnabled;
+  const matchedCode = contractCodeEnabled ? findContractCode(normalizedInput.contractCode) : null;
+  const qualification = contractCodeEnabled
+    ? resolveEnterpriseQualification(normalizedInput, matchedCode)
+    : {
+        customerTier: "pro" as MockSubscriptionCustomerTier,
+        enterpriseQualified: false,
+        ruleMessage: "",
+      };
   const cycleConfig = getPlanBillingConfig(
     selectedPlan,
     normalizedInput.billingCycle,
@@ -976,7 +1226,7 @@ export const getMockSubscriptionPlanPurchaseOption = (
   const originalUnitPrice = originalCycleConfig.priceAmount;
   const originalAmount = Math.ceil(originalUnitPrice * seatCount * expiryInfo.prorationRate);
   const amount = Math.ceil(cycleConfig.priceAmount * seatCount * expiryInfo.prorationRate);
-  const planLabel = selectedPlan.title;
+  const planLabel = selectedSpec.title;
   const validityLabel = formatMockSubscriptionValidity(
     cycleConfig.validityCount,
     cycleConfig.validityUnit,

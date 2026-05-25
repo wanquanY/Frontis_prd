@@ -12,10 +12,6 @@ export interface MockPointsPackageOption {
   description: string;
   points: number;
   price: number;
-  promotionEnabled?: boolean;
-  discountFactor?: number;
-  promotionStartsAt?: string;
-  promotionEndsAt?: string;
   giftPoints?: number;
   status: MockPointsPackageStatus;
   sortOrder: number;
@@ -25,16 +21,7 @@ export interface MockPointsPackageOption {
 
 export type MockPointsPackageInput = Pick<
   MockPointsPackageOption,
-  | "title"
-  | "description"
-  | "points"
-  | "price"
-  | "tagLabel"
-  | "promotionEnabled"
-  | "discountFactor"
-  | "promotionStartsAt"
-  | "promotionEndsAt"
-  | "giftPoints"
+  "title" | "description" | "points" | "price" | "tagLabel" | "giftPoints"
 >;
 
 export type MockPointsPackageUpdate = Partial<
@@ -47,10 +34,6 @@ export type MockPointsPackageUpdate = Partial<
     | "status"
     | "sortOrder"
     | "tagLabel"
-    | "promotionEnabled"
-    | "discountFactor"
-    | "promotionStartsAt"
-    | "promotionEndsAt"
     | "giftPoints"
   >
 >;
@@ -72,5 +55,6 @@ export interface MockPointsPackagePurchaseSnapshot {
   promotionActive: boolean;
   promotionStartsAt?: string;
   promotionEndsAt?: string;
+  paymentChannelLabel?: string;
   tagLabel?: string;
 }

@@ -327,11 +327,6 @@ const buildTenantFromForm = (form: OperationsTenantForm): OperationsTenant => {
   };
 };
 
-const resolveMeteringProviderName = (
-  providers: OperationsMeteringProvider[],
-  providerId: string,
-): string => providers.find(item => item.id === providerId)?.name ?? "未绑定服务商";
-
 const buildMeteringProviderFromForm = (
   form: OperationsMeteringProviderForm,
 ): OperationsMeteringProvider => ({
@@ -345,18 +340,11 @@ const buildMeteringProviderFromForm = (
   updatedAt: formatTimestamp(),
 });
 
-const buildModelServiceFromForm = (
-  form: OperationsModelServiceForm,
-  providers: OperationsMeteringProvider[],
-): OperationsModelService => ({
+const buildModelServiceFromForm = (form: OperationsModelServiceForm): OperationsModelService => ({
   id: buildModelServiceId(),
   providerId: form.providerId,
-  providerName: resolveMeteringProviderName(providers, form.providerId),
   modelCode: form.modelCode.trim(),
   modelName: form.modelName.trim(),
-  interfaceFormat: form.interfaceFormat,
-  modality: form.modality,
-  reasoningEnabled: form.reasoningEnabled,
   inputCostPerMillion: form.inputCostPerMillion,
   outputCostPerMillion: form.outputCostPerMillion,
   pricingMode: form.pricingMode,
@@ -869,7 +857,6 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
 
   const updateMeteringProvider = useCallback(
     (providerId: string, form: OperationsMeteringProviderForm): void => {
-      const nextProviderName = form.name.trim();
       const nextProvider = buildMeteringProviderFromForm(form);
 
       setMeteringProviders(currentProviders =>
@@ -882,31 +869,15 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
             : item,
         ),
       );
-
-      setModelServices(currentModels =>
-        currentModels.map(item =>
-          item.providerId === providerId
-            ? {
-                ...item,
-                providerName: nextProviderName,
-                updatedAt: formatTimestamp(),
-              }
-            : item,
-        ),
-      );
-
     },
     [],
   );
 
   const createModelService = useCallback(
     (form: OperationsModelServiceForm): void => {
-      setModelServices(currentModels => [
-        buildModelServiceFromForm(form, meteringProviders),
-        ...currentModels,
-      ]);
+      setModelServices(currentModels => [buildModelServiceFromForm(form), ...currentModels]);
     },
-    [meteringProviders],
+    [],
   );
 
   const updateModelService = useCallback(
@@ -915,14 +886,14 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
         currentModels.map(item =>
           item.id === modelId
             ? {
-                ...buildModelServiceFromForm(form, meteringProviders),
+                ...buildModelServiceFromForm(form),
                 id: item.id,
               }
             : item,
         ),
       );
     },
-    [meteringProviders],
+    [],
   );
 
   const createPointsPackage = useCallback(

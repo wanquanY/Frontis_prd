@@ -3,7 +3,6 @@ import {
   EXPERT_PLAZA_LABEL,
   EXPERT_STUDIO_LABEL,
   MANAGEMENT_CONSOLE_LABEL,
-  MA_WORKBENCH_LABEL,
   SKILL_CENTER_LABEL,
 } from "./brand";
 
@@ -98,11 +97,6 @@ export const TENANT_PERMISSION_IDS = {
 const WORKSPACE_PERMISSION_MENUS: TenantRolePermissionMenu[] = [
   {
     displayMode: "leaf",
-    title: MA_WORKBENCH_LABEL,
-    items: [{ id: "workspace.metaAgent.use", label: MA_WORKBENCH_LABEL }],
-  },
-  {
-    displayMode: "leaf",
     title: EXPERT_STUDIO_LABEL,
     items: [{ id: "workspace.expert.use", label: EXPERT_STUDIO_LABEL }],
   },
@@ -155,11 +149,6 @@ const MANAGEMENT_PERMISSION_MENUS: TenantRolePermissionMenu[] = [
     displayMode: "leaf",
     title: "驾驶舱",
     items: [{ id: MANAGEMENT_PERMISSION_IDS.dashboardView, label: "驾驶舱" }],
-  },
-  {
-    displayMode: "leaf",
-    title: "ME 管理",
-    items: [{ id: MANAGEMENT_PERMISSION_IDS.channelManage, label: "ME 管理" }],
   },
   {
     displayMode: "leaf",
@@ -315,7 +304,6 @@ export const TENANT_ADMIN_PERMISSION_IDS: string[] = TENANT_ROLE_PERMISSION_IDS.
 );
 
 export const DEPARTMENT_LEAD_PERMISSION_IDS: string[] = [
-  "workspace.metaAgent.use",
   "workspace.expert.use",
   TENANT_PERMISSION_IDS.develop,
   TENANT_PERMISSION_IDS.agentPublishTenant,
@@ -324,7 +312,6 @@ export const DEPARTMENT_LEAD_PERMISSION_IDS: string[] = [
 ];
 
 export const TENANT_MEMBER_PERMISSION_IDS: string[] = [
-  "workspace.metaAgent.use",
   "workspace.expert.use",
   TENANT_PERMISSION_IDS.expertPlazaView,
   TENANT_PERMISSION_IDS.skillCenterView,

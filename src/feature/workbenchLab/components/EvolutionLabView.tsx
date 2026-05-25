@@ -55,7 +55,7 @@ import {
   ZoomInOutlined,
   ZoomOutOutlined,
 } from "@ant-design/icons";
-import { Button, Checkbox, Dropdown, Input, Select, message } from "antd";
+import { Button, Checkbox, Dropdown, Input, Modal, Select, message } from "antd";
 import type { MenuProps } from "antd";
 
 import { EXPERT_PLAZA_LABEL, SKILL_CENTER_LABEL } from "@/constants/brand";
@@ -111,6 +111,15 @@ type EvoSidebarTab = "dataAnalysis" | "dataManagement" | "evolutionTrend";
 
 interface EvolutionLabViewProps {
   onNavigate?: (page: "agentStore", highlightAgentId?: string) => void;
+  pendingOpenWorkspaceId?: string | null;
+  onPendingOpenWorkspaceConsumed?: () => void;
+  openCreateWorkspaceSignal?: number;
+  onCreateWorkspaceModalConsumed?: () => void;
+}
+
+interface CreateWorkspaceFormState {
+  name: string;
+  description: string;
 }
 
 /* ─── Agent 文件 ─── */
@@ -125,6 +134,11 @@ const AGENT_FILES: AgentFile[] = [
   { key: "prompts", name: "prompts/", icon: <MessageOutlined /> },
   { key: "tests", name: "tests/", icon: <ExperimentOutlined /> },
 ];
+
+const DEFAULT_CREATE_WORKSPACE_FORM: CreateWorkspaceFormState = {
+  name: "",
+  description: "",
+};
 
 /* ─── 工具详情步骤 ─── */
 
@@ -688,7 +702,13 @@ const SummaryCard = (): JSX.Element => (
    主组件
    ═══════════════════════════════════════════════════════════ */
 
-export const EvolutionLabView = ({ onNavigate }: EvolutionLabViewProps = {}): JSX.Element => {
+export const EvolutionLabView = ({
+  onNavigate,
+  pendingOpenWorkspaceId,
+  onPendingOpenWorkspaceConsumed,
+  openCreateWorkspaceSignal = 0,
+  onCreateWorkspaceModalConsumed,
+}: EvolutionLabViewProps = {}): JSX.Element => {
   const { activeIdentity, session } = useMockAuth();
   const currentTenantName = activeIdentity?.tenantName ?? "当前企业租户";
   const currentUserName = activeIdentity?.subjectName ?? session?.name ?? "当前用户";
@@ -708,14 +728,21 @@ export const EvolutionLabView = ({ onNavigate }: EvolutionLabViewProps = {}): JS
 
   /* ── 顶层页面状态 ── */
   const [page, setPage] = useState<"list" | "detail">("list");
+  const [workspaceItems, setWorkspaceItems] = useState<WorkbenchAgentWorkspace[]>(
+    () => WORKBENCH_AGENT_WORKSPACES,
+  );
   const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string | null>(null);
   const [searchKeyword, setSearchKeyword] = useState("");
   const [inputValue, setInputValue] = useState("");
+  const [isCreateWorkspaceOpen, setIsCreateWorkspaceOpen] = useState(false);
+  const [createWorkspaceForm, setCreateWorkspaceForm] =
+    useState<CreateWorkspaceFormState>(DEFAULT_CREATE_WORKSPACE_FORM);
+  const createWorkspaceSignalRef = useRef(0);
 
   const selectedWorkspace = useMemo<WorkbenchAgentWorkspace | null>(() => {
-    const ws = WORKBENCH_AGENT_WORKSPACES.find(w => w.id === selectedWorkspaceId);
+    const ws = workspaceItems.find(w => w.id === selectedWorkspaceId);
     return ws ?? null;
-  }, [selectedWorkspaceId]);
+  }, [selectedWorkspaceId, workspaceItems]);
   const publishVisibilityOptions = useMemo(
     () => ({
       agent: [
@@ -1370,6 +1397,76 @@ export const EvolutionLabView = ({ onNavigate }: EvolutionLabViewProps = {}): JS
     testReplyIdx.current = 0;
   }, []);
 
+  const handleOpenCreateWorkspace = useCallback((): void => {
+    setCreateWorkspaceForm(DEFAULT_CREATE_WORKSPACE_FORM);
+    setPage("list");
+    setIsCreateWorkspaceOpen(true);
+  }, []);
+
+  const handleSubmitCreateWorkspace = useCallback((): void => {
+    const name = createWorkspaceForm.name.trim();
+    const description = createWorkspaceForm.description.trim();
+
+    if (!name || !description) {
+      message.warning("请填写 Agent 工作空间名称和描述");
+      return;
+    }
+
+    const nextWorkspace: WorkbenchAgentWorkspace = {
+      id: `ws-custom-${Date.now()}`,
+      name,
+      description,
+      iconColor: "#0ea5e9",
+      iconText: name.slice(0, 1),
+      framework: "MetaAgent",
+      skillCount: 0,
+      skills: [],
+      createdAt: new Date().toISOString().slice(0, 10),
+      conversations: [],
+      knowledgeBases: [],
+      feedbackData: [],
+      results: [],
+      fileCount: 0,
+      overviewText: "新建工作空间已创建，可继续补充 Agent 文件、技能配置和测试记录。",
+    };
+
+    setWorkspaceItems(current => [nextWorkspace, ...current]);
+    setIsCreateWorkspaceOpen(false);
+    setCreateWorkspaceForm(DEFAULT_CREATE_WORKSPACE_FORM);
+    handleOpenWorkspace(nextWorkspace);
+    message.success("Agent 工作空间已创建");
+  }, [createWorkspaceForm.description, createWorkspaceForm.name, handleOpenWorkspace]);
+
+  useEffect(() => {
+    if (!pendingOpenWorkspaceId) {
+      return;
+    }
+
+    const workspace = workspaceItems.find(item => item.id === pendingOpenWorkspaceId);
+    if (!workspace) {
+      onPendingOpenWorkspaceConsumed?.();
+      return;
+    }
+
+    handleOpenWorkspace(workspace);
+    onPendingOpenWorkspaceConsumed?.();
+  }, [
+    handleOpenWorkspace,
+    onPendingOpenWorkspaceConsumed,
+    pendingOpenWorkspaceId,
+    workspaceItems,
+  ]);
+
+  useEffect(() => {
+    if (createWorkspaceSignalRef.current === openCreateWorkspaceSignal) {
+      return;
+    }
+
+    createWorkspaceSignalRef.current = openCreateWorkspaceSignal;
+    handleOpenCreateWorkspace();
+    onCreateWorkspaceModalConsumed?.();
+  }, [handleOpenCreateWorkspace, onCreateWorkspaceModalConsumed, openCreateWorkspaceSignal]);
+
   const handleBackToList = useCallback(() => {
     if (streamTimerRef.current) clearTimeout(streamTimerRef.current);
     setIsStreaming(false);
@@ -1819,11 +1916,11 @@ export const EvolutionLabView = ({ onNavigate }: EvolutionLabViewProps = {}): JS
   /* ═══ 页面一：列表 ═══ */
   if (page === "list") {
     const filtered = searchKeyword.trim()
-      ? WORKBENCH_AGENT_WORKSPACES.filter(
+      ? workspaceItems.filter(
           w =>
             w.name.includes(searchKeyword.trim()) || w.description.includes(searchKeyword.trim()),
         )
-      : WORKBENCH_AGENT_WORKSPACES;
+      : workspaceItems;
 
     return (
       <div className={styles.listRoot}>
@@ -1837,6 +1934,9 @@ export const EvolutionLabView = ({ onNavigate }: EvolutionLabViewProps = {}): JS
             className={styles.listSearchBox}
             onChange={e => setSearchKeyword(e.target.value)}
           />
+          <Button type="primary" icon={<PlusOutlined />} onClick={handleOpenCreateWorkspace}>
+            新建 Agent 工作空间
+          </Button>
         </div>
         <div className={styles.listGrid}>
           {filtered.map(ws => (
@@ -1864,6 +1964,57 @@ export const EvolutionLabView = ({ onNavigate }: EvolutionLabViewProps = {}): JS
             </button>
           ))}
         </div>
+        <Modal
+          open={isCreateWorkspaceOpen}
+          title="新建 Agent 工作空间"
+          width={560}
+          centered
+          destroyOnHidden
+          footer={[
+            <Button key="cancel" onClick={() => setIsCreateWorkspaceOpen(false)}>
+              取消
+            </Button>,
+            <Button key="submit" type="primary" onClick={handleSubmitCreateWorkspace}>
+              创建
+            </Button>,
+          ]}
+          className={styles.createWorkspaceModal}
+          onCancel={() => setIsCreateWorkspaceOpen(false)}
+        >
+          <div className={styles.createWorkspaceForm}>
+            <label>
+              <span>
+                <b>*</b> Agent 工作空间名称
+              </span>
+              <Input
+                value={createWorkspaceForm.name}
+                placeholder="请输入内容"
+                onChange={event =>
+                  setCreateWorkspaceForm(current => ({
+                    ...current,
+                    name: event.target.value,
+                  }))
+                }
+              />
+            </label>
+            <label>
+              <span>
+                <b>*</b> Agent 工作空间描述
+              </span>
+              <Input.TextArea
+                value={createWorkspaceForm.description}
+                placeholder="请输入内容"
+                rows={5}
+                onChange={event =>
+                  setCreateWorkspaceForm(current => ({
+                    ...current,
+                    description: event.target.value,
+                  }))
+                }
+              />
+            </label>
+          </div>
+        </Modal>
       </div>
     );
   }
@@ -2412,7 +2563,7 @@ export const EvolutionLabView = ({ onNavigate }: EvolutionLabViewProps = {}): JS
         <div className={styles.publishSuccessView}>
           <CheckCircleFilled style={{ fontSize: 48, color: "#3cbf7b" }} />
           <h3 className={styles.publishSuccessTitle}>
-            {publishType === "skill" ? "Skill 已发布到团队资产" : "AI 专家已发布到团队资产"}
+            {publishType === "skill" ? "Skill 已发布到我的专区" : "AI 专家已发布到我的专区"}
           </h3>
           <p className={styles.publishSuccessHint}>
             {getPublishSuccessHint(publishType, publishForm)}
@@ -3953,7 +4104,7 @@ export const EvolutionLabView = ({ onNavigate }: EvolutionLabViewProps = {}): JS
           <div className={styles.publishSuccessView}>
             <CheckCircleFilled style={{ fontSize: 48, color: "#3cbf7b" }} />
             <h3 className={styles.publishSuccessTitle}>
-              {publishType === "skill" ? "Skill 已发布到团队资产" : "AI 专家已发布到团队资产"}
+              {publishType === "skill" ? "Skill 已发布到我的专区" : "AI 专家已发布到我的专区"}
             </h3>
             <p className={styles.publishSuccessHint}>
               {getPublishSuccessHint(publishType, publishForm)}

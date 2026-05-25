@@ -1,23 +1,18 @@
 import { useState } from "react";
 
-import { Button, Empty, Input, InputNumber, Modal, Select, Switch, message } from "antd";
+import { Button, Empty, Input, InputNumber, Modal, Select, message } from "antd";
 import classNames from "classnames";
 
-import {
-  buildMockSubscriptionPlanBenefitTexts,
-  formatMockSubscriptionValidity,
-} from "@/feature/subscription/mockSubscriptionPlans";
 import type {
   MockSubscriptionPlanKey,
+  MockSubscriptionPlanSpec,
   MockSubscriptionPlanStatus,
   MockSubscriptionPlanTemplate,
   MockSubscriptionPlanTemplateInput,
+  MockSubscriptionValidityUnit,
 } from "@/feature/subscription/types";
 import { formatOperationsCurrency } from "@/feature/operations/serviceMeteringUtils";
-import {
-  buildMockPointsPackagePurchaseSnapshot,
-  formatMockPointsPackageDiscount,
-} from "@/feature/points/mockPointsCommerce";
+import { buildMockPointsPackagePurchaseSnapshot } from "@/feature/points/mockPointsCommerce";
 import type {
   MockPointsPackageInput,
   MockPointsPackageOption,
@@ -58,71 +53,96 @@ type PointsPackageEditorState =
     };
 
 interface PointsPackageForm {
-  discountFactor: number;
   title: string;
   description: string;
   giftPoints: number;
   points: number;
   price: number;
-  promotionEnabled: boolean;
-  promotionEndsAt: string;
-  promotionStartsAt: string;
   tagLabel: string;
   sortOrder: number;
   status: MockPointsPackageOption["status"];
 }
 
 interface SubscriptionPlanFormState {
-  contractYearlyPriceAmount: number;
-  monthlyGiftPoints: number;
-  monthlyPriceAmount: number;
-  monthlyValidityCount: number;
   seatCount: number;
+  specs: MockSubscriptionPlanSpec[];
   status: MockSubscriptionPlanStatus;
   title: string;
-  yearlyGiftPoints: number;
-  yearlyPriceAmount: number;
-  yearlyValidityCount: number;
 }
 
+type SeatPackageSpecKey = string;
+
 interface SubscriptionPlanEditorState {
+  activeSpec: SeatPackageSpecKey;
   form: SubscriptionPlanFormState;
   open: boolean;
   planKey?: MockSubscriptionPlanKey;
 }
 
 const emptyPointsPackageForm: PointsPackageForm = {
-  discountFactor: 1,
   title: "",
   description: "",
   giftPoints: 0,
   points: 0,
   price: 0,
-  promotionEnabled: false,
-  promotionEndsAt: "",
-  promotionStartsAt: "",
   tagLabel: "",
   sortOrder: 10,
   status: "active",
 };
 
 const createEmptySubscriptionPlanForm = (): SubscriptionPlanFormState => ({
-  contractYearlyPriceAmount: 299,
-  monthlyGiftPoints: 1000,
-  monthlyPriceAmount: 39,
-  monthlyValidityCount: 1,
   seatCount: 1,
+  specs: [
+    {
+      key: "monthly-seat-package",
+      title: "月付席位包",
+      billingCycle: "monthly",
+      billingCycleLabel: "按月支付",
+      enabled: true,
+      priceAmount: 39,
+      giftPoints: 1000,
+      validityCount: 1,
+      validityUnit: "month",
+      contractPriceEnabled: true,
+      contractPriceAmount: 29,
+    },
+    {
+      key: "yearly-seat-package",
+      title: "年付席位包",
+      billingCycle: "yearly",
+      billingCycleLabel: "按年支付",
+      enabled: true,
+      priceAmount: 399,
+      giftPoints: 12000,
+      validityCount: 1,
+      validityUnit: "year",
+      contractPriceEnabled: true,
+      contractPriceAmount: 299,
+    },
+  ],
   status: "active",
   title: "团队席位包",
-  yearlyGiftPoints: 12000,
-  yearlyPriceAmount: 399,
-  yearlyValidityCount: 1,
 });
 
 const createSubscriptionPlanEditor = (): SubscriptionPlanEditorState => ({
+  activeSpec: "monthly-seat-package",
   form: createEmptySubscriptionPlanForm(),
   open: false,
 });
+
+const cloneSeatPackageSpecs = (specs: MockSubscriptionPlanSpec[]): MockSubscriptionPlanSpec[] =>
+  specs.map(item => ({ ...item }));
+
+const getSeatPackageSpecLabel = (
+  specs: MockSubscriptionPlanSpec[],
+  specKey: SeatPackageSpecKey,
+): string => specs.find(item => item.key === specKey)?.title ?? "席位包规格";
+
+const getSeatPackageCycleLabel = (spec: MockSubscriptionPlanSpec): string =>
+  spec.billingCycleLabel || spec.title;
+
+const getSeatPackageSpecUnitLabel = (validityUnit: MockSubscriptionValidityUnit): string =>
+  validityUnit === "month" ? "月" : "年";
 
 const buildStatusClassName = (tone?: "success" | "danger"): string =>
   classNames(
@@ -137,31 +157,15 @@ const getPointsPackageStatusLabel = (status: MockPointsPackageOption["status"]):
 const formatAmount = (value: number): string => `¥${value.toLocaleString("zh-CN")}`;
 
 const createPointsPackageForm = (pointsPackage: MockPointsPackageOption): PointsPackageForm => ({
-  discountFactor: pointsPackage.discountFactor ?? 1,
   title: pointsPackage.title,
   description: pointsPackage.description,
   giftPoints: pointsPackage.giftPoints ?? 0,
   points: pointsPackage.points,
   price: pointsPackage.price,
-  promotionEnabled: Boolean(pointsPackage.promotionEnabled),
-  promotionEndsAt: pointsPackage.promotionEndsAt ?? "",
-  promotionStartsAt: pointsPackage.promotionStartsAt ?? "",
   tagLabel: pointsPackage.tagLabel ?? "",
   sortOrder: pointsPackage.sortOrder,
   status: pointsPackage.status,
 });
-
-const parsePromotionDateTime = (value: string): number | null => {
-  const trimmedValue = value.trim();
-
-  if (!trimmedValue) {
-    return null;
-  }
-
-  const timestamp = new Date(trimmedValue.replace(" ", "T")).getTime();
-
-  return Number.isFinite(timestamp) ? timestamp : null;
-};
 
 const buildPointsPackagePayload = (form: PointsPackageForm): MockPointsPackageInput => ({
   title: form.title.trim(),
@@ -169,41 +173,66 @@ const buildPointsPackagePayload = (form: PointsPackageForm): MockPointsPackageIn
   points: Math.max(Math.floor(form.points), 0),
   price: Math.max(form.price, 0),
   tagLabel: form.tagLabel.trim() || undefined,
-  promotionEnabled: form.promotionEnabled,
-  discountFactor: form.promotionEnabled ? form.discountFactor : 1,
-  promotionStartsAt: form.promotionEnabled ? form.promotionStartsAt.trim() : undefined,
-  promotionEndsAt: form.promotionEnabled ? form.promotionEndsAt.trim() : undefined,
-  giftPoints: form.promotionEnabled ? Math.max(Math.floor(form.giftPoints), 0) : 0,
+  giftPoints: Math.max(Math.floor(form.giftPoints), 0),
 });
 
 const createSubscriptionPlanFormFromTemplate = (
   plan: MockSubscriptionPlanTemplate,
 ): SubscriptionPlanFormState => ({
-  contractYearlyPriceAmount: plan.contractYearlyPriceAmount,
-  monthlyGiftPoints: plan.monthlyGiftPoints,
-  monthlyPriceAmount: plan.monthlyPriceAmount,
-  monthlyValidityCount: plan.monthlyValidityCount,
   seatCount: plan.seatCount,
+  specs: cloneSeatPackageSpecs(plan.specs),
   status: plan.status,
   title: plan.title,
-  yearlyGiftPoints: plan.yearlyGiftPoints,
-  yearlyPriceAmount: plan.yearlyPriceAmount,
-  yearlyValidityCount: plan.yearlyValidityCount,
 });
 
 const normalizeSubscriptionPlanForm = (
   form: SubscriptionPlanFormState,
 ): MockSubscriptionPlanTemplateInput => ({
-  contractYearlyPriceAmount: Math.max(form.contractYearlyPriceAmount, 0),
-  monthlyGiftPoints: Math.max(Math.floor(form.monthlyGiftPoints), 0),
-  monthlyPriceAmount: Math.max(form.monthlyPriceAmount, 0),
-  monthlyValidityCount: Math.max(Math.floor(form.monthlyValidityCount), 1),
+  contractYearlyEnabled:
+    form.specs.find(item => item.billingCycle === "yearly")?.contractPriceEnabled ?? false,
+  contractYearlyPriceAmount: Math.max(
+    form.specs.find(item => item.billingCycle === "yearly")?.contractPriceAmount ?? 0,
+    0,
+  ),
+  monthlyEnabled: form.specs.find(item => item.billingCycle === "monthly")?.enabled ?? false,
+  monthlyGiftPoints: Math.max(
+    Math.floor(form.specs.find(item => item.billingCycle === "monthly")?.giftPoints ?? 0),
+    0,
+  ),
+  monthlyPriceAmount: Math.max(
+    form.specs.find(item => item.billingCycle === "monthly")?.priceAmount ?? 0,
+    0,
+  ),
+  monthlyValidityCount: Math.max(
+    Math.floor(form.specs.find(item => item.billingCycle === "monthly")?.validityCount ?? 1),
+    1,
+  ),
   seatCount: Math.max(Math.floor(form.seatCount), 1),
+  specs: form.specs.map(spec => ({
+    ...spec,
+    title: spec.title.trim(),
+    billingCycle: spec.billingCycle.trim(),
+    billingCycleLabel: spec.billingCycleLabel.trim(),
+    priceAmount: Math.max(spec.priceAmount, 0),
+    giftPoints: Math.max(Math.floor(spec.giftPoints), 0),
+    validityCount: Math.max(Math.floor(spec.validityCount), 1),
+    contractPriceAmount: Math.max(spec.contractPriceAmount, 0),
+  })),
   status: form.status,
   title: form.title.trim(),
-  yearlyGiftPoints: Math.max(Math.floor(form.yearlyGiftPoints), 0),
-  yearlyPriceAmount: Math.max(form.yearlyPriceAmount, 0),
-  yearlyValidityCount: Math.max(Math.floor(form.yearlyValidityCount), 1),
+  yearlyEnabled: form.specs.find(item => item.billingCycle === "yearly")?.enabled ?? false,
+  yearlyGiftPoints: Math.max(
+    Math.floor(form.specs.find(item => item.billingCycle === "yearly")?.giftPoints ?? 0),
+    0,
+  ),
+  yearlyPriceAmount: Math.max(
+    form.specs.find(item => item.billingCycle === "yearly")?.priceAmount ?? 0,
+    0,
+  ),
+  yearlyValidityCount: Math.max(
+    Math.floor(form.specs.find(item => item.billingCycle === "yearly")?.validityCount ?? 1),
+    1,
+  ),
 });
 
 export const OperationsPointsPackagePanel = ({
@@ -226,24 +255,6 @@ export const OperationsPointsPackagePanel = ({
     ) {
       message.warning("请先补齐积分包名称、说明、积分数量和售价。");
       return;
-    }
-
-    if (pointsPackageEditor.form.promotionEnabled) {
-      const startsAt = parsePromotionDateTime(pointsPackageEditor.form.promotionStartsAt);
-      const endsAt = parsePromotionDateTime(pointsPackageEditor.form.promotionEndsAt);
-
-      if (
-        pointsPackageEditor.form.discountFactor <= 0 ||
-        pointsPackageEditor.form.discountFactor > 1
-      ) {
-        message.warning("折扣系数必须大于 0 且小于等于 1。");
-        return;
-      }
-
-      if (startsAt === null || endsAt === null || endsAt <= startsAt) {
-        message.warning("请填写有效的活动开始时间和结束时间。");
-        return;
-      }
     }
 
     const payload = buildPointsPackagePayload(pointsPackageEditor.form);
@@ -287,8 +298,8 @@ export const OperationsPointsPackagePanel = ({
               <tr>
                 <th>积分包</th>
                 <th>售卖积分</th>
-                <th>活动权益</th>
-                <th>当前售价</th>
+                <th>购买赠送</th>
+                <th>售价</th>
                 <th>排序</th>
                 <th>状态</th>
                 <th>更新时间</th>
@@ -298,12 +309,7 @@ export const OperationsPointsPackagePanel = ({
             <tbody>
               {pointsPackages.map(item => {
                 const purchaseSnapshot = buildMockPointsPackagePurchaseSnapshot(item);
-                const promotionLabel =
-                  item.promotionEnabled && item.discountFactor && item.promotionStartsAt
-                    ? `${formatMockPointsPackageDiscount(item.discountFactor)} · ${
-                        item.promotionStartsAt
-                      } 至 ${item.promotionEndsAt ?? "-"}`
-                    : "-";
+                const giftPoints = item.giftPoints ?? 0;
 
                 return (
                   <tr key={item.id}>
@@ -313,20 +319,10 @@ export const OperationsPointsPackagePanel = ({
                     </td>
                     <td>{item.points.toLocaleString("zh-CN")}</td>
                     <td>
-                      <strong>{promotionLabel}</strong>
-                      {item.promotionEnabled && (item.giftPoints ?? 0) > 0 ? (
-                        <div className={adminStyles.consoleSectionMeta}>
-                          赠送 {(item.giftPoints ?? 0).toLocaleString("zh-CN")} 积分
-                        </div>
-                      ) : null}
+                      {giftPoints > 0 ? `赠送 ${giftPoints.toLocaleString("zh-CN")} 积分` : "-"}
                     </td>
                     <td>
                       <strong>{formatOperationsCurrency(purchaseSnapshot.payableAmount)}</strong>
-                      {purchaseSnapshot.promotionActive ? (
-                        <div className={adminStyles.consoleSectionMeta}>
-                          原价 {formatOperationsCurrency(purchaseSnapshot.originalPrice)}
-                        </div>
-                      ) : null}
                     </td>
                     <td>{item.sortOrder}</td>
                     <td>
@@ -423,82 +419,11 @@ export const OperationsPointsPackagePanel = ({
               />
             </div>
             <div className={billingStyles.modalField}>
-              <span>限时活动</span>
-              <Switch
-                checked={pointsPackageEditor.form.promotionEnabled}
-                checkedChildren="启用"
-                unCheckedChildren="停用"
-                onChange={value =>
-                  setPointsPackageEditor(current =>
-                    current.open
-                      ? { ...current, form: { ...current.form, promotionEnabled: value } }
-                      : current,
-                  )
-                }
-              />
-            </div>
-            <div className={billingStyles.modalField}>
-              <span>折扣系数</span>
-              <InputNumber
-                className={billingStyles.fullWidthInput}
-                min={0.01}
-                max={1}
-                precision={2}
-                step={0.01}
-                disabled={!pointsPackageEditor.form.promotionEnabled}
-                value={pointsPackageEditor.form.discountFactor}
-                onChange={value =>
-                  setPointsPackageEditor(current =>
-                    current.open
-                      ? { ...current, form: { ...current.form, discountFactor: value ?? 1 } }
-                      : current,
-                  )
-                }
-              />
-            </div>
-            <div className={billingStyles.modalField}>
-              <span>活动开始时间</span>
-              <Input
-                disabled={!pointsPackageEditor.form.promotionEnabled}
-                placeholder="2026-05-01 00:00"
-                value={pointsPackageEditor.form.promotionStartsAt}
-                onChange={event =>
-                  setPointsPackageEditor(current =>
-                    current.open
-                      ? {
-                          ...current,
-                          form: { ...current.form, promotionStartsAt: event.target.value },
-                        }
-                      : current,
-                  )
-                }
-              />
-            </div>
-            <div className={billingStyles.modalField}>
-              <span>活动结束时间</span>
-              <Input
-                disabled={!pointsPackageEditor.form.promotionEnabled}
-                placeholder="2026-05-31 23:59"
-                value={pointsPackageEditor.form.promotionEndsAt}
-                onChange={event =>
-                  setPointsPackageEditor(current =>
-                    current.open
-                      ? {
-                          ...current,
-                          form: { ...current.form, promotionEndsAt: event.target.value },
-                        }
-                      : current,
-                  )
-                }
-              />
-            </div>
-            <div className={billingStyles.modalField}>
               <span>赠送积分</span>
               <InputNumber
                 className={billingStyles.fullWidthInput}
                 min={0}
                 precision={0}
-                disabled={!pointsPackageEditor.form.promotionEnabled}
                 value={pointsPackageEditor.form.giftPoints}
                 onChange={value =>
                   setPointsPackageEditor(current =>
@@ -588,23 +513,52 @@ export const OperationsSeatPackagePanel = ({
   );
   const subscriptionPlan = subscriptionPlans[0] ?? null;
   const subscriptionPlanForm = subscriptionPlanEditor.form;
+  const activeSpec = subscriptionPlanEditor.activeSpec;
+  const activeSpecConfig =
+    subscriptionPlanForm.specs.find(item => item.key === activeSpec) ??
+    subscriptionPlanForm.specs[0];
+  const billingCards = subscriptionPlan?.specs ?? [];
 
-  const handleOpenEditSubscriptionPlan = (plan: MockSubscriptionPlanTemplate): void => {
+  const handleOpenEditSubscriptionPlan = (
+    plan: MockSubscriptionPlanTemplate,
+    activeSpec: SeatPackageSpecKey,
+  ): void => {
     setSubscriptionPlanEditor({
+      activeSpec,
       form: createSubscriptionPlanFormFromTemplate(plan),
       open: true,
       planKey: plan.key,
     });
   };
 
-  const handleUpdateSubscriptionPlanForm = (patch: Partial<SubscriptionPlanFormState>): void => {
+  const handleChangeActiveSpec = (activeSpec: SeatPackageSpecKey): void => {
+    setSubscriptionPlanEditor(current => ({
+      ...current,
+      activeSpec,
+    }));
+  };
+
+  const handleUpdateActiveSpec = (patch: Partial<MockSubscriptionPlanSpec>): void => {
     setSubscriptionPlanEditor(current => ({
       ...current,
       form: {
         ...current.form,
-        ...patch,
+        specs: current.form.specs.map(spec =>
+          spec.key === current.activeSpec ? { ...spec, ...patch } : spec,
+        ),
       },
     }));
+  };
+
+  const handleChangeActiveSpecEnabled = (enabled: boolean): void => {
+    const enabledSpecCount = subscriptionPlanForm.specs.filter(item => item.enabled).length;
+
+    if (!enabled && enabledSpecCount <= 1) {
+      message.warning("请至少保留一种可售规格。");
+      return;
+    }
+
+    handleUpdateActiveSpec({ enabled });
   };
 
   const handleSubmitSubscriptionPlan = (): void => {
@@ -612,6 +566,11 @@ export const OperationsSeatPackagePanel = ({
 
     if (!payload.title) {
       message.warning("请填写席位包名称。");
+      return;
+    }
+
+    if (!payload.specs.some(item => item.enabled)) {
+      message.warning("请至少启用一种席位规格。");
       return;
     }
 
@@ -634,42 +593,43 @@ export const OperationsSeatPackagePanel = ({
         </div>
         {subscriptionPlan ? (
           <div className={billingStyles.policyGrid}>
-            <section className={billingStyles.planCard} key={subscriptionPlan.key}>
-              <div className={billingStyles.planCardHeader}>
-                <span className={adminStyles.consolePill}>{subscriptionPlan.sequence}</span>
-                <span
-                  className={buildStatusClassName(
-                    subscriptionPlan.status === "active" ? "success" : "danger",
-                  )}
-                >
-                  {subscriptionPlan.status === "active" ? "启用" : "停用"}
-                </span>
-              </div>
-              <h3 className={billingStyles.planTitle}>{subscriptionPlan.title}</h3>
-              <div className={billingStyles.planPrice}>
-                月付 {formatAmount(subscriptionPlan.monthlyPriceAmount)} / 席 / 月
-              </div>
-              <div className={billingStyles.planPrice}>
-                年付 {formatAmount(subscriptionPlan.yearlyPriceAmount)} / 席 / 年
-              </div>
-              <div className={billingStyles.planPrice}>
-                签约年付 {formatAmount(subscriptionPlan.contractYearlyPriceAmount)} / 席 / 年
-              </div>
-              <div className={billingStyles.subscriptionEffectList}>
-                {buildMockSubscriptionPlanBenefitTexts(subscriptionPlan).map(item => (
-                  <span key={item}>{item}</span>
-                ))}
-              </div>
-              <div className={billingStyles.planCardFooter}>
-                <span>更新：{subscriptionPlan.updatedAt}</span>
-                <Button
-                  size="small"
-                  onClick={() => handleOpenEditSubscriptionPlan(subscriptionPlan)}
-                >
-                  编辑
-                </Button>
-              </div>
-            </section>
+            {billingCards.map(card => (
+              <section className={billingStyles.planCard} key={card.key}>
+                <div className={billingStyles.planCardHeader}>
+                  <span className={adminStyles.consolePill}>{getSeatPackageCycleLabel(card)}</span>
+                  <span
+                    className={buildStatusClassName(
+                      subscriptionPlan.status === "active" && card.enabled ? "success" : "danger",
+                    )}
+                  >
+                    {subscriptionPlan.status === "active" && card.enabled ? "启用" : "停用"}
+                  </span>
+                </div>
+                <h3 className={billingStyles.planTitle}>{card.title}</h3>
+                <div className={billingStyles.planPrice}>
+                  {formatAmount(card.priceAmount)} / 席 /{" "}
+                  {getSeatPackageSpecUnitLabel(card.validityUnit)}
+                </div>
+                {card.contractPriceEnabled ? (
+                  <div className={billingStyles.planAudience}>
+                    签约价 {formatAmount(card.contractPriceAmount)} / 席 /{" "}
+                    {getSeatPackageSpecUnitLabel(card.validityUnit)}
+                  </div>
+                ) : null}
+                <div className={billingStyles.subscriptionEffectList}>
+                  <span>赠送 {card.giftPoints.toLocaleString("zh-CN")} 积分</span>
+                </div>
+                <div className={billingStyles.planCardFooter}>
+                  <span>更新：{subscriptionPlan.updatedAt}</span>
+                  <Button
+                    size="small"
+                    onClick={() => handleOpenEditSubscriptionPlan(subscriptionPlan, card.key)}
+                  >
+                    编辑
+                  </Button>
+                </div>
+              </section>
+            ))}
           </div>
         ) : (
           <Empty description="暂无团队席位包配置。" />
@@ -678,7 +638,7 @@ export const OperationsSeatPackagePanel = ({
 
       <Modal
         open={subscriptionPlanEditor.open}
-        title="编辑团队席位包"
+        title={`编辑${getSeatPackageSpecLabel(subscriptionPlanForm.specs, activeSpec)}`}
         width={680}
         onCancel={() => setSubscriptionPlanEditor(createSubscriptionPlanEditor())}
         onOk={handleSubmitSubscriptionPlan}
@@ -687,148 +647,114 @@ export const OperationsSeatPackagePanel = ({
         <div className={billingStyles.modalStack}>
           <div className={billingStyles.formGrid}>
             <div className={billingStyles.modalField}>
+              <span>规格类型</span>
+              <Select<SeatPackageSpecKey>
+                value={activeSpec}
+                options={subscriptionPlanForm.specs.map(spec => ({
+                  value: spec.key,
+                  label: spec.title,
+                }))}
+                onChange={handleChangeActiveSpec}
+              />
+            </div>
+            <div className={billingStyles.modalField}>
               <span>席位包名称</span>
               <Input
-                value={subscriptionPlanForm.title}
-                onChange={event => handleUpdateSubscriptionPlanForm({ title: event.target.value })}
+                value={activeSpecConfig?.title ?? ""}
+                onChange={event => handleUpdateActiveSpec({ title: event.target.value })}
               />
             </div>
             <div className={billingStyles.modalField}>
-              <span>席位单位</span>
-              <InputNumber
-                className={billingStyles.fullWidthInput}
-                min={1}
-                precision={0}
-                value={subscriptionPlanForm.seatCount}
-                onChange={value => handleUpdateSubscriptionPlanForm({ seatCount: value ?? 1 })}
-              />
-            </div>
-            <div className={billingStyles.modalField}>
-              <span>月付价格</span>
-              <InputNumber
-                className={billingStyles.fullWidthInput}
-                min={0}
-                precision={0}
-                value={subscriptionPlanForm.monthlyPriceAmount}
-                onChange={value =>
-                  handleUpdateSubscriptionPlanForm({ monthlyPriceAmount: value ?? 0 })
-                }
-              />
-            </div>
-            <div className={billingStyles.modalField}>
-              <span>年付价格</span>
-              <InputNumber
-                className={billingStyles.fullWidthInput}
-                min={0}
-                precision={0}
-                value={subscriptionPlanForm.yearlyPriceAmount}
-                onChange={value =>
-                  handleUpdateSubscriptionPlanForm({ yearlyPriceAmount: value ?? 0 })
-                }
-              />
-            </div>
-            <div className={billingStyles.modalField}>
-              <span>签约年付价格</span>
-              <InputNumber
-                className={billingStyles.fullWidthInput}
-                min={0}
-                precision={0}
-                value={subscriptionPlanForm.contractYearlyPriceAmount}
-                onChange={value =>
-                  handleUpdateSubscriptionPlanForm({ contractYearlyPriceAmount: value ?? 0 })
-                }
-              />
-            </div>
-            <div className={billingStyles.modalField}>
-              <span>月付有效期（月）</span>
-              <InputNumber
-                className={billingStyles.fullWidthInput}
-                min={1}
-                precision={0}
-                value={subscriptionPlanForm.monthlyValidityCount}
-                onChange={value =>
-                  handleUpdateSubscriptionPlanForm({ monthlyValidityCount: value ?? 1 })
-                }
-              />
-            </div>
-            <div className={billingStyles.modalField}>
-              <span>年付有效期（年）</span>
-              <InputNumber
-                className={billingStyles.fullWidthInput}
-                min={1}
-                precision={0}
-                value={subscriptionPlanForm.yearlyValidityCount}
-                onChange={value =>
-                  handleUpdateSubscriptionPlanForm({ yearlyValidityCount: value ?? 1 })
-                }
-              />
-            </div>
-            <div className={billingStyles.modalField}>
-              <span>月付赠送积分</span>
-              <InputNumber
-                className={billingStyles.fullWidthInput}
-                min={0}
-                precision={0}
-                value={subscriptionPlanForm.monthlyGiftPoints}
-                onChange={value =>
-                  handleUpdateSubscriptionPlanForm({ monthlyGiftPoints: value ?? 0 })
-                }
-              />
-            </div>
-            <div className={billingStyles.modalField}>
-              <span>年付赠送积分</span>
-              <InputNumber
-                className={billingStyles.fullWidthInput}
-                min={0}
-                precision={0}
-                value={subscriptionPlanForm.yearlyGiftPoints}
-                onChange={value =>
-                  handleUpdateSubscriptionPlanForm({ yearlyGiftPoints: value ?? 0 })
-                }
-              />
-            </div>
-            <div className={billingStyles.modalField}>
-              <span>状态</span>
-              <Select<MockSubscriptionPlanStatus>
-                value={subscriptionPlanForm.status}
+              <span>规格状态</span>
+              <Select<"active" | "inactive">
+                value={activeSpecConfig?.enabled ? "active" : "inactive"}
                 options={[
                   { value: "active", label: "启用" },
                   { value: "inactive", label: "停用" },
                 ]}
-                onChange={status => handleUpdateSubscriptionPlanForm({ status })}
+                onChange={value => handleChangeActiveSpecEnabled(value === "active")}
+              />
+            </div>
+            <div className={billingStyles.modalField}>
+              <span>计费周期</span>
+              <Input
+                disabled
+                value={
+                  activeSpecConfig
+                    ? `${activeSpecConfig.billingCycleLabel}，有效期 ${activeSpecConfig.validityCount} ${getSeatPackageSpecUnitLabel(activeSpecConfig.validityUnit)}`
+                    : ""
+                }
+              />
+            </div>
+            <div className={billingStyles.modalField}>
+              <span>价格</span>
+              <InputNumber
+                className={billingStyles.fullWidthInput}
+                disabled={!activeSpecConfig?.enabled}
+                min={0}
+                precision={0}
+                value={activeSpecConfig?.priceAmount ?? 0}
+                onChange={value => handleUpdateActiveSpec({ priceAmount: value ?? 0 })}
+              />
+            </div>
+            <div className={billingStyles.modalField}>
+              <span>购买赠送积分</span>
+              <InputNumber
+                className={billingStyles.fullWidthInput}
+                disabled={!activeSpecConfig?.enabled}
+                min={0}
+                precision={0}
+                value={activeSpecConfig?.giftPoints ?? 0}
+                onChange={value => handleUpdateActiveSpec({ giftPoints: value ?? 0 })}
+              />
+            </div>
+            <div className={billingStyles.modalField}>
+              <span>签约价</span>
+              <Select<"active" | "inactive">
+                disabled={!activeSpecConfig?.enabled}
+                value={activeSpecConfig?.contractPriceEnabled ? "active" : "inactive"}
+                options={[
+                  { value: "active", label: "启用" },
+                  { value: "inactive", label: "停用" },
+                ]}
+                onChange={value =>
+                  handleUpdateActiveSpec({
+                    contractPriceEnabled: value === "active",
+                  })
+                }
+              />
+            </div>
+            <div className={billingStyles.modalField}>
+              <span>签约价格</span>
+              <InputNumber
+                className={billingStyles.fullWidthInput}
+                disabled={!activeSpecConfig?.enabled || !activeSpecConfig.contractPriceEnabled}
+                min={0}
+                precision={0}
+                value={activeSpecConfig?.contractPriceAmount ?? 0}
+                onChange={value => handleUpdateActiveSpec({ contractPriceAmount: value ?? 0 })}
               />
             </div>
           </div>
           <div className={billingStyles.previewPanel}>
-            <div className={billingStyles.previewRow}>
-              <span>月付</span>
-              <strong>
-                {formatAmount(Math.max(subscriptionPlanForm.monthlyPriceAmount, 0))} / 席 / 月，
-                有效期{" "}
-                {formatMockSubscriptionValidity(
-                  Math.max(Math.floor(subscriptionPlanForm.monthlyValidityCount), 1),
-                  "month",
-                )}
-              </strong>
-            </div>
-            <div className={billingStyles.previewRow}>
-              <span>年付</span>
-              <strong>
-                {formatAmount(Math.max(subscriptionPlanForm.yearlyPriceAmount, 0))} / 席 / 年，
-                有效期{" "}
-                {formatMockSubscriptionValidity(
-                  Math.max(Math.floor(subscriptionPlanForm.yearlyValidityCount), 1),
-                  "year",
-                )}
-              </strong>
-            </div>
-            <div className={billingStyles.previewRow}>
-              <span>签约年付</span>
-              <strong>
-                {formatAmount(Math.max(subscriptionPlanForm.contractYearlyPriceAmount, 0))} / 席 /
-                年
-              </strong>
-            </div>
+            {activeSpecConfig ? (
+              <div className={billingStyles.previewRow}>
+                <span>{activeSpecConfig.title}</span>
+                <strong>
+                  {formatAmount(Math.max(activeSpecConfig.priceAmount, 0))} / 席 /{" "}
+                  {getSeatPackageSpecUnitLabel(activeSpecConfig.validityUnit)}
+                </strong>
+              </div>
+            ) : null}
+            {activeSpecConfig?.contractPriceEnabled ? (
+              <div className={billingStyles.previewRow}>
+                <span>签约价</span>
+                <strong>
+                  {formatAmount(Math.max(activeSpecConfig.contractPriceAmount, 0))} / 席 /{" "}
+                  {getSeatPackageSpecUnitLabel(activeSpecConfig.validityUnit)}
+                </strong>
+              </div>
+            ) : null}
           </div>
         </div>
       </Modal>

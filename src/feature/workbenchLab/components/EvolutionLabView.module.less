@@ -66,6 +66,57 @@
 .wsCardName { color: var(--text); font-size: 15px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .wsCardDesc { color: var(--text-muted); font-size: 13px; line-height: 20px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 
+.createWorkspaceModal :global(.ant-modal-content) {
+  border-radius: 10px;
+}
+
+.createWorkspaceModal :global(.ant-modal-header) {
+  margin-bottom: 22px;
+}
+
+.createWorkspaceModal :global(.ant-modal-title) {
+  color: var(--text);
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.createWorkspaceModal :global(.ant-modal-footer) {
+  margin-top: 28px;
+}
+
+.createWorkspaceForm {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+
+  label {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    color: var(--text);
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  b {
+    color: #ef4444;
+    font-weight: 700;
+  }
+
+  :global(.ant-input),
+  :global(.ant-input-affix-wrapper),
+  :global(.ant-input-textarea textarea) {
+    border-color: color-mix(in srgb, var(--primary) 18%, var(--border));
+    border-radius: 8px;
+    box-shadow: none;
+  }
+
+  :global(.ant-input),
+  :global(.ant-input-affix-wrapper) {
+    min-height: 36px;
+  }
+}
+
 /* ═══ 详情页 ═══ */
 
 .detailRoot {

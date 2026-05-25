@@ -41,6 +41,17 @@ import {
 } from "@/feature/workbenchLab/components/ExpertPlazaView";
 import agentStoreStyles from "@/feature/workbenchLab/components/ExpertPlazaView.module.less";
 import {
+  loadMeSchedulableAgentRecords,
+  ME_SCHEDULABLE_AGENT_RECORDS_UPDATED_EVENT,
+  upsertMeSchedulableAgentRecord,
+  type MeSchedulableAgentRecord,
+} from "@/feature/workbenchLab/meSchedulableAgentsStorage";
+import {
+  loadWorkbenchAgentRecords,
+  WORKBENCH_AGENT_RECORDS_UPDATED_EVENT,
+  type WorkbenchAgentRecord,
+} from "@/feature/workbenchLab/workbenchAgentsStorage";
+import {
   loadStoredOperationsFulfillments,
   loadStoredOperationsProducts,
 } from "@/feature/operations/commerceStorage";
@@ -104,7 +115,33 @@ import styles from "./FrontisPage.module.less";
 interface FrontisPageProps {
   viewRole: FrontisWebRole;
   embedded?: boolean;
+  resetSignal?: number;
   workspaceMode?: "metaAgent" | "expertStudio";
+  pendingWorkbenchConversationSessionId?: string | null;
+  onPendingWorkbenchConversationSessionConsumed?: () => void;
+  pendingWorkbenchAgentId?: string | null;
+  onPendingWorkbenchAgentConsumed?: () => void;
+  onWorkbenchConversationNavChange?: (state: WorkbenchConversationNavState | null) => void;
+}
+
+export interface WorkbenchConversationNavSession {
+  id: string;
+  title: string;
+  updatedAt: string;
+  active: boolean;
+}
+
+export interface WorkbenchConversationNavGroup {
+  employeeId: string;
+  employeeName: string;
+  sessions: WorkbenchConversationNavSession[];
+}
+
+export interface WorkbenchConversationNavState {
+  groups: WorkbenchConversationNavGroup[];
+  onRemoveSession: (sessionId: string) => void;
+  onRenameSession: (sessionId: string, title: string) => void;
+  onSelectSession: (sessionId: string) => void;
 }
 
 const DEFAULT_CONVERSATION_EMPLOYEE_ID = "employee-writer";
@@ -159,6 +196,122 @@ const isMetaAgentEmployee = (employee: EmployeeItem | null): boolean =>
     employee.name === DEFAULT_WORKSPACE_AGENT_NAME,
   );
 
+const buildMetaAgentTopicSession = ({
+  id,
+  preview,
+  time,
+  title,
+  userContent,
+  assistantContent,
+}: {
+  id: string;
+  preview: string;
+  time: string;
+  title: string;
+  userContent: string;
+  assistantContent: string;
+}): DialogueSessionItem => ({
+  id,
+  employeeId: DEFAULT_CONVERSATION_EMPLOYEE_ID,
+  title,
+  preview,
+  updatedAt: time,
+  messages: [
+    {
+      id: `${id}-user-1`,
+      role: "user",
+      author: "你",
+      content: userContent,
+      timeLabel: time,
+    },
+    {
+      id: `${id}-assistant-1`,
+      role: "assistant",
+      author: DEFAULT_WORKSPACE_AGENT_NAME,
+      content: assistantContent,
+      timeLabel: time,
+    },
+  ],
+});
+
+const buildWorkbenchAgentTaskSession = ({
+  agentName,
+  assistantContent,
+  employeeId,
+  id,
+  preview,
+  time,
+  title,
+  userContent,
+}: {
+  agentName: string;
+  assistantContent: string;
+  employeeId: string;
+  id: string;
+  preview: string;
+  time: string;
+  title: string;
+  userContent: string;
+}): DialogueSessionItem => ({
+  id,
+  employeeId,
+  title,
+  preview,
+  updatedAt: time,
+  messages: [
+    {
+      id: `${id}-user-1`,
+      role: "user",
+      author: "你",
+      content: userContent,
+      timeLabel: time,
+    },
+    {
+      id: `${id}-assistant-1`,
+      role: "assistant",
+      author: agentName,
+      content: assistantContent,
+      timeLabel: time,
+    },
+  ],
+});
+
+const WORKBENCH_AGENT_SEED_SESSIONS: DialogueSessionItem[] = [
+  buildWorkbenchAgentTaskSession({
+    id: "dialogue-seed-sales-script-intent",
+    employeeId: "team-shared-sales-script",
+    agentName: "销售话术助手",
+    title: "客户异议话术整理",
+    preview: "销售话术助手已根据客户画像整理高频异议和下一轮跟进话术。",
+    time: "今天 20:18",
+    userContent: "客户觉得预算偏高，还在对比竞品，帮我整理下一轮沟通话术。",
+    assistantContent:
+      "我会先把客户顾虑拆成预算、价值感和决策风险三类，再输出一组可直接使用的跟进话术。建议下一轮先确认客户最在意的预算边界，再用已购客户案例强化收益预期，最后给出可分阶段试点的成交路径。",
+  }),
+  buildWorkbenchAgentTaskSession({
+    id: "dialogue-seed-opportunity-stalled",
+    employeeId: "team-shared-opportunity",
+    agentName: "商机跟进提醒",
+    title: "重点商机停滞预警",
+    preview: "商机跟进提醒已识别 3 个停留过久商机，并给出跟进行动建议。",
+    time: "今天 20:36",
+    userContent: "帮我看一下这周销售漏斗里哪些商机需要优先跟进。",
+    assistantContent:
+      "本周优先处理 3 个停滞商机：A 客户停留在方案确认 5 天，需要补一版 ROI 说明；B 客户采购负责人未回复，建议由销售主管介入；C 客户已进入合同评审，但法务问题未闭环，需要同步合同审查助手确认风险条款。",
+  }),
+  buildWorkbenchAgentTaskSession({
+    id: "dialogue-seed-delivery-weekly-risk",
+    employeeId: "team-shared-delivery",
+    agentName: "项目交付助手",
+    title: "本周交付风险周报",
+    preview: "项目交付助手已汇总里程碑延迟、资源冲突和客户验收风险。",
+    time: "今天 20:52",
+    userContent: "把本周交付项目的风险整理一下，给我一个可以同步给负责人看的版本。",
+    assistantContent:
+      "本周主要风险集中在三个方面：两个项目验收材料滞后，一个项目测试资源与上线窗口冲突，一个客户的关键确认人本周无法参与评审。建议今天先锁定验收材料责任人，明天上午同步资源排期，周五前完成客户确认人替代方案。",
+  }),
+];
+
 const buildMetaAgentSeedSessions = (): DialogueSessionItem[] => {
   const flattenedMessages = buildMetaAgentHistoryMessages(
     DEFAULT_WORKSPACE_AGENT_NAME,
@@ -174,6 +327,60 @@ const buildMetaAgentSeedSessions = (): DialogueSessionItem[] => {
       updatedAt: "11:22",
       messages: flattenedMessages,
     },
+    buildMetaAgentTopicSession({
+      id: "dialogue-seed-metaagent-weekly-task-plan",
+      title: "本周任务编排",
+      preview: "ME 已把本周原型调整拆成菜单、商店、详情和任务记录四条线。",
+      time: "今天 20:12",
+      userContent: "帮我把这周要改的原型任务按优先级排一下，不要漏掉商店和新任务。",
+      assistantContent:
+        "我会按影响面排序：先稳定新任务入口和任务记录，再处理商店筛选与专家卡片，最后校准详情弹窗和技能文件预览。每条任务都绑定验收点，避免改完以后只解决局部视觉问题。",
+    }),
+    buildMetaAgentTopicSession({
+      id: "dialogue-seed-metaagent-store-experience",
+      title: "商店体验优化",
+      preview: "ME 汇总了商店分类、专家名片、技能详情和只读权限的调整口径。",
+      time: "今天 20:27",
+      userContent: "商店现在看起来还是乱，你帮我整理一下到底应该怎么改。",
+      assistantContent:
+        "商店需要保持三个原则：筛选只保留真实分类，专家卡片呈现专业名片感，详情只读且不暴露平台内部字段。技能详情直接展示名称、描述和文件内容，不再堆类型、版本、依赖这类无效信息。",
+    }),
+    buildMetaAgentTopicSession({
+      id: "dialogue-seed-metaagent-expert-detail-rules",
+      title: "专家详情规则梳理",
+      preview: "ME 已明确商店专家只能查看，自己的专家才允许编辑和保存。",
+      time: "今天 20:43",
+      userContent: "专家详情里面不要再出现那些没意义字段，商店里的也不能编辑。",
+      assistantContent:
+        "我会把详情权限分成两类：商店来源只提供查看和添加/联系入口；我的专区或自建专家才有编辑、保存、核心文件维护和进化记录。详情页内容保留名称、描述、能力、工具、技能和核心文件，去掉 L3、Runtime、模型、形态等内部字段。",
+    }),
+    buildMetaAgentTopicSession({
+      id: "dialogue-seed-metaagent-skill-file-preview",
+      title: "技能文件预览校准",
+      preview: "ME 已把技能弹窗收敛为名称、描述和文件内容三块。",
+      time: "今天 21:01",
+      userContent: "技能详情别搞复杂，参考文件预览那种结构。",
+      assistantContent:
+        "技能详情会直接按文件浏览器模式组织：左侧是技能包内文件列表，右侧展示当前文件内容。顶部只保留技能名称和描述，不再展示类型、状态、场景分类、发布时间、版本和依赖。",
+    }),
+    buildMetaAgentTopicSession({
+      id: "dialogue-seed-metaagent-task-record-menu",
+      title: "任务记录菜单调整",
+      preview: "ME 已把任务记录移动到最左侧菜单，并按 AI 专家分组展示。",
+      time: "今天 21:18",
+      userContent: "任务记录要放到最左侧菜单栏，而且新任务不要自动进入历史任务。",
+      assistantContent:
+        "左侧菜单会常驻任务记录，并按 AI 专家分组。点击新任务只回到首页，只有点击某条任务记录才进入具体任务。每个专家默认展示前五条，可展开更多，也可以点击专家名整体收起。",
+    }),
+    buildMetaAgentTopicSession({
+      id: "dialogue-seed-metaagent-evolution-data",
+      title: "进化数据口径复盘",
+      preview: "ME 已区分未添加专家的空进化态和已使用专家的进化数据态。",
+      time: "今天 21:36",
+      userContent: "进化页要根据是否添加和是否有数据判断，不要所有专家都展示成长内容。",
+      assistantContent:
+        "我会把“成长”统一改为“进化”。未添加、未购买或仅联系的专家展示暂无进化记录；已添加并产生数据的专家展示进化曲线、进化路径和进化证据，用真实记忆、技能和会话沉淀来支撑。",
+    }),
   ];
 };
 
@@ -181,6 +388,7 @@ const INITIAL_META_AGENT_SEED_SESSIONS = buildMetaAgentSeedSessions();
 const NORMALIZED_INITIAL_DIALOGUE_SESSIONS = [
   ...INITIAL_DIALOGUE_SESSIONS.filter(item => item.employeeId !== DEFAULT_CONVERSATION_EMPLOYEE_ID),
   ...INITIAL_META_AGENT_SEED_SESSIONS,
+  ...WORKBENCH_AGENT_SEED_SESSIONS,
 ];
 
 const buildMetaAgentOnboardingSession = (): DialogueSessionItem => ({
@@ -235,6 +443,70 @@ const mapStoreAgentToEmployee = (agent: StoreAgentItem): EmployeeItem => ({
   welcomeMessage: `我是${agent.name}，${agent.summary}`,
   systemPrompt: `你是${agent.name}，${agent.summary}`,
   skills: agent.capabilities.map(item => item.name),
+});
+
+const mapStoreAgentToMeSchedulableRecord = (agent: StoreAgentItem): MeSchedulableAgentRecord => ({
+  id: agent.id,
+  name: agent.name,
+  avatarUrl: agent.avatarUrl,
+  visualSeed: agent.visualSeed,
+  role: `${agent.scene} · ${agent.techShape}`,
+  model: agent.model,
+  summary: agent.summary,
+  developerName: agent.submitterLabel,
+  agentId: agent.product?.linkedAgentId || agent.id,
+  runtimeAgentId: `rt-${agent.id}`,
+  skills: agent.capabilities.map(item => item.name),
+});
+
+const mapMeSchedulableRecordToEmployee = (record: MeSchedulableAgentRecord): EmployeeItem => ({
+  id: record.id,
+  name: record.name,
+  avatarUrl: record.avatarUrl || getAvatarUrl(record.visualSeed),
+  role: record.role,
+  portalRoles: ["admin", "employee"],
+  status: "online",
+  workspaceId: "workspace-cloud",
+  connectionMode: "cloud",
+  model: record.model,
+  summary: record.summary,
+  lastAction: "已添加到 ME，可由 ME 调度。",
+  source: "coworker",
+  visibility: "all",
+  developerName: record.developerName,
+  subAgentModel: record.model,
+  agentId: record.agentId,
+  runtimeAgentId: record.runtimeAgentId,
+  accessScopeSubjects: [],
+  boundMembers: [],
+  welcomeMessage: `我是${record.name}，${record.summary}`,
+  systemPrompt: `你是${record.name}，${record.summary}`,
+  skills: record.skills,
+});
+
+const mapWorkbenchRecordToEmployee = (record: WorkbenchAgentRecord): EmployeeItem => ({
+  id: record.id,
+  name: record.name,
+  avatarUrl: record.avatarUrl || getAvatarUrl(record.visualSeed),
+  role: record.role,
+  portalRoles: ["admin", "employee"],
+  status: "online",
+  workspaceId: "workspace-cloud",
+  connectionMode: "cloud",
+  model: record.model,
+  summary: record.summary,
+  lastAction: "已添加到工作台，可在新任务中使用。",
+  source: "coworker",
+  visibility: "all",
+  developerName: record.developerName,
+  subAgentModel: record.model,
+  agentId: record.agentId,
+  runtimeAgentId: record.runtimeAgentId,
+  accessScopeSubjects: [],
+  boundMembers: [],
+  welcomeMessage: `我是${record.name}，${record.summary}`,
+  systemPrompt: `你是${record.name}，${record.summary}`,
+  skills: record.skills,
 });
 
 const buildInitialDialogueSessions = (
@@ -848,7 +1120,13 @@ const getInitialFeishuQrCode = (): string => {
 const FrontisPage = ({
   viewRole,
   embedded = false,
+  resetSignal = 0,
   workspaceMode = "metaAgent",
+  pendingWorkbenchConversationSessionId = null,
+  onPendingWorkbenchConversationSessionConsumed,
+  pendingWorkbenchAgentId = null,
+  onPendingWorkbenchAgentConsumed,
+  onWorkbenchConversationNavChange,
 }: FrontisPageProps): JSX.Element => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -868,7 +1146,9 @@ const FrontisPage = ({
     getInitialActiveEmployeeId(workspaceMode),
   );
   const [activeDialogueSessionId, setActiveDialogueSessionId] = useState<string>("");
-  const [isDialogueHomeActive, setIsDialogueHomeActive] = useState<boolean>(false);
+  const [isDialogueHomeActive, setIsDialogueHomeActive] = useState<boolean>(
+    () => workspaceMode === "expertStudio",
+  );
   const [selectedSkillIds, setSelectedSkillIds] = useState<string[]>([]);
   const [activeCaseReplay, setActiveCaseReplay] = useState<CaseReplayState | null>(null);
   const [dialogueInputValue, setDialogueInputValue] = useState<string>("");
@@ -884,7 +1164,6 @@ const FrontisPage = ({
     null,
   );
   const [removedExpertStudioAgentIds, setRemovedExpertStudioAgentIds] = useState<string[]>([]);
-  const [onboardingSchedulableAgentIds, setOnboardingSchedulableAgentIds] = useState<string[]>([]);
   const [isMeExpertPickerOpen, setIsMeExpertPickerOpen] = useState<boolean>(false);
   const [isFeishuQrConfigured, setIsFeishuQrConfigured] = useState<boolean>(
     () => localStorage.getItem(FEISHU_QR_CONFIGURED_STORAGE_KEY) === "true",
@@ -893,6 +1172,7 @@ const FrontisPage = ({
   const [isFeishuWorkspaceConnected, setIsFeishuWorkspaceConnected] = useState<boolean>(false);
   const dialogueTimerRefs = useRef<number[]>([]);
   const latestDialogueAttachmentsRef = useRef<WorkspaceComposerAttachmentItem[]>([]);
+  const lastWorkbenchResetSignalRef = useRef<number>(resetSignal);
   const activeTenantId = activeIdentity?.tenantId ?? NEW_USER_ONBOARDING_TENANT_ID;
   const [agentStoreProducts, setAgentStoreProducts] = useState(() =>
     loadStoredOperationsProducts(),
@@ -900,20 +1180,25 @@ const FrontisPage = ({
   const [agentStoreFulfillments, setAgentStoreFulfillments] = useState(() =>
     loadStoredOperationsFulfillments(),
   );
+  const [meSchedulableAgentRecords, setMeSchedulableAgentRecords] = useState<
+    MeSchedulableAgentRecord[]
+  >(() => loadMeSchedulableAgentRecords());
+  const [workbenchAgentRecords, setWorkbenchAgentRecords] = useState<WorkbenchAgentRecord[]>(() =>
+    loadWorkbenchAgentRecords(),
+  );
 
   useEffect(() => {
     setDialogueSessions(buildInitialDialogueSessions(viewRole, activeIdentity?.tenantId));
     setDialogueArtifactsBySession(buildInitialDialogueArtifacts(activeIdentity?.tenantId));
     setDialogueResultsBySession(buildInitialDialogueResults(activeIdentity?.tenantId));
     setActiveDialogueSessionId("");
-    setIsDialogueHomeActive(false);
+    setIsDialogueHomeActive(workspaceMode === "expertStudio");
     setActiveCaseReplay(null);
     setDialogueInputValue("");
     setDialogueAttachments([]);
     setActiveMetaAgentTrajectoryId(null);
     setActiveMetaAgentTrajectoryAnchorBlockId(null);
     setRemovedExpertStudioAgentIds([]);
-    setOnboardingSchedulableAgentIds([]);
     setIsMeExpertPickerOpen(false);
     setIsFeishuWorkspaceConnected(false);
   }, [activeIdentity?.tenantId, viewRole, workspaceMode]);
@@ -948,6 +1233,39 @@ const FrontisPage = ({
     setAgentStoreFulfillments(loadStoredOperationsFulfillments());
   }, [activeTenantId]);
 
+  useEffect(() => {
+    const handleMeSchedulableAgentsUpdated = (): void => {
+      setMeSchedulableAgentRecords(loadMeSchedulableAgentRecords());
+    };
+
+    window.addEventListener(
+      ME_SCHEDULABLE_AGENT_RECORDS_UPDATED_EVENT,
+      handleMeSchedulableAgentsUpdated,
+    );
+
+    return () => {
+      window.removeEventListener(
+        ME_SCHEDULABLE_AGENT_RECORDS_UPDATED_EVENT,
+        handleMeSchedulableAgentsUpdated,
+      );
+    };
+  }, []);
+
+  useEffect(() => {
+    const handleWorkbenchAgentsUpdated = (): void => {
+      setWorkbenchAgentRecords(loadWorkbenchAgentRecords());
+    };
+
+    window.addEventListener(WORKBENCH_AGENT_RECORDS_UPDATED_EVENT, handleWorkbenchAgentsUpdated);
+
+    return () => {
+      window.removeEventListener(
+        WORKBENCH_AGENT_RECORDS_UPDATED_EVENT,
+        handleWorkbenchAgentsUpdated,
+      );
+    };
+  }, []);
+
   const latestAgentStoreFulfillmentsByProductId = useMemo(
     () => resolveLatestFulfillmentsByProductId(activeTenantId, agentStoreFulfillments),
     [activeTenantId, agentStoreFulfillments],
@@ -965,12 +1283,30 @@ const FrontisPage = ({
     () => directAddableAgentStoreItems.map(mapStoreAgentToEmployee),
     [directAddableAgentStoreItems],
   );
+  const meSchedulableEmployees = useMemo(
+    () => meSchedulableAgentRecords.map(mapMeSchedulableRecordToEmployee),
+    [meSchedulableAgentRecords],
+  );
+  const meSchedulableAgentIds = useMemo(
+    () => new Set(meSchedulableAgentRecords.map(record => record.id)),
+    [meSchedulableAgentRecords],
+  );
+  const workbenchEmployees = useMemo(
+    () => workbenchAgentRecords.map(mapWorkbenchRecordToEmployee),
+    [workbenchAgentRecords],
+  );
   const employees = useMemo(
-    () => [
-      ...INITIAL_EMPLOYEES.map(item => mapEmployeeForRole(item, viewRole)),
-      ...marketplaceEmployees,
-    ],
-    [marketplaceEmployees, viewRole],
+    () =>
+      Array.from(
+        new Map(
+          [
+            ...INITIAL_EMPLOYEES.map(item => mapEmployeeForRole(item, viewRole)),
+            ...marketplaceEmployees,
+            ...workbenchEmployees,
+          ].map(employee => [employee.id, employee] as const),
+        ).values(),
+      ),
+    [marketplaceEmployees, viewRole, workbenchEmployees],
   );
   const workspaces = useMemo(() => INITIAL_WORKSPACES, []);
   const tenantUsers = useMemo(
@@ -1017,18 +1353,14 @@ const FrontisPage = ({
     () => employees.filter(item => item.portalRoles.includes(viewRole)),
     [employees, viewRole],
   );
-  const baseAssignedAgentIds = useMemo(
-    () => (shouldEnableMeOnboardingProfileModal ? [] : (currentUser?.assignedAgentIds ?? [])),
-    [currentUser?.assignedAgentIds, shouldEnableMeOnboardingProfileModal],
-  );
-  const assignedMeSchedulableAgentIds = useMemo(
-    () => new Set([...baseAssignedAgentIds, ...onboardingSchedulableAgentIds]),
-    [baseAssignedAgentIds, onboardingSchedulableAgentIds],
+  const workbenchAgentIds = useMemo(
+    () => new Set(workbenchAgentRecords.map(record => record.id)),
+    [workbenchAgentRecords],
   );
   const assignedConversationEmployees = useMemo(
     () =>
       roleVisibleEmployees.filter(item => {
-        const isAssigned = assignedMeSchedulableAgentIds.has(item.id);
+        const isAssigned = workbenchAgentIds.has(item.id);
 
         if (!isAssigned || item.id === DEFAULT_CONVERSATION_EMPLOYEE_ID) {
           return false;
@@ -1050,19 +1382,19 @@ const FrontisPage = ({
             : false)
         );
       }),
-    [assignedMeSchedulableAgentIds, currentUser, roleVisibleEmployees, tenantUsers, viewRole],
+    [currentUser, roleVisibleEmployees, tenantUsers, viewRole, workbenchAgentIds],
   );
   const meSchedulableExpertOptions = directAddableAgentStoreItems;
   const handleAddMeSchedulableExpert = useCallback(
     (expertId: string): void => {
       const matchedExpert = meSchedulableExpertOptions.find(item => item.id === expertId);
 
-      setOnboardingSchedulableAgentIds(currentIds =>
-        currentIds.includes(expertId) ? currentIds : [...currentIds, expertId],
-      );
-
       if (matchedExpert) {
-        message.success(`已添加「${matchedExpert.name}」到专家列表。`);
+        const nextRecords = upsertMeSchedulableAgentRecord(
+          mapStoreAgentToMeSchedulableRecord(matchedExpert),
+        );
+        setMeSchedulableAgentRecords(nextRecords);
+        message.success(`已添加「${matchedExpert.name}」，可在新任务中调度。`);
       }
     },
     [meSchedulableExpertOptions],
@@ -1115,7 +1447,7 @@ const FrontisPage = ({
     const mergedEmployees =
       workspaceMode === "metaAgent"
         ? [...deviceDefaultAgents, ...assignedConversationEmployees]
-        : [...expertStudioAssignedEmployees];
+        : [...deviceDefaultAgents, ...expertStudioAssignedEmployees];
 
     return mergedEmployees.filter(
       (item, index) => mergedEmployees.findIndex(candidate => candidate.id === item.id) === index,
@@ -1161,12 +1493,25 @@ const FrontisPage = ({
     if (isDialogueHomeActive) {
       return null;
     }
+
+    if (workspaceMode === "expertStudio") {
+      return activeDialogueSessionId
+        ? (employeeDialogueSessions.find(item => item.id === activeDialogueSessionId) ?? null)
+        : null;
+    }
+
     return (
       employeeDialogueSessions.find(item => item.id === activeDialogueSessionId) ??
       employeeDialogueSessions[0] ??
       null
     );
-  }, [activeCaseReplay, activeDialogueSessionId, employeeDialogueSessions, isDialogueHomeActive]);
+  }, [
+    activeCaseReplay,
+    activeDialogueSessionId,
+    employeeDialogueSessions,
+    isDialogueHomeActive,
+    workspaceMode,
+  ]);
   const dialogueMessages = useMemo(
     () => activeDialogueSession?.messages ?? [],
     [activeDialogueSession],
@@ -1246,10 +1591,10 @@ const FrontisPage = ({
   const dialoguePlaceholder = "请告诉我你的需求或问题";
 
   useEffect(() => {
-    if (isMetaAgentDialogue && isDialogueHomeActive) {
+    if (workspaceMode === "metaAgent" && isMetaAgentDialogue && isDialogueHomeActive) {
       setIsDialogueHomeActive(false);
     }
-  }, [isDialogueHomeActive, isMetaAgentDialogue]);
+  }, [isDialogueHomeActive, isMetaAgentDialogue, workspaceMode]);
 
   useEffect(() => {
     if (!conversationEmployees.length) {
@@ -1286,7 +1631,7 @@ const FrontisPage = ({
         return DEFAULT_CONVERSATION_EMPLOYEE_ID;
       }
 
-      if (currentId && currentId !== DEFAULT_CONVERSATION_EMPLOYEE_ID) {
+      if (currentId && conversationEmployees.some(item => item.id === currentId)) {
         return currentId;
       }
 
@@ -1295,12 +1640,55 @@ const FrontisPage = ({
   }, [conversationEmployees, workspaceMode]);
 
   useEffect(() => {
+    if (workspaceMode !== "expertStudio") {
+      lastWorkbenchResetSignalRef.current = resetSignal;
+      return;
+    }
+
+    if (lastWorkbenchResetSignalRef.current === resetSignal) {
+      return;
+    }
+
+    lastWorkbenchResetSignalRef.current = resetSignal;
+    setActiveEmployeeId(
+      conversationEmployees.some(item => item.id === DEFAULT_CONVERSATION_EMPLOYEE_ID)
+        ? DEFAULT_CONVERSATION_EMPLOYEE_ID
+        : (conversationEmployees[0]?.id ?? ""),
+    );
+    setActiveCaseReplay(null);
+    setActiveMetaAgentTrajectoryId(null);
+    setActiveMetaAgentTrajectoryAnchorBlockId(null);
+    setIsDialogueHomeActive(true);
+    setActiveDialogueSessionId("");
+    setDialogueAttachments(currentAttachments => {
+      currentAttachments.forEach(revokeComposerAttachmentPreview);
+      return [];
+    });
+    setDialogueInputValue("");
+    setSelectedSkillIds([]);
+  }, [conversationEmployees, resetSignal, workspaceMode]);
+
+  useEffect(() => {
     if (isDialogueHomeActive) {
       if (activeDialogueSessionId !== "") {
         setActiveDialogueSessionId("");
       }
       return;
     }
+
+    if (workspaceMode === "expertStudio") {
+      if (
+        activeDialogueSessionId &&
+        employeeDialogueSessions.some(item => item.id === activeDialogueSessionId)
+      ) {
+        return;
+      }
+
+      setActiveDialogueSessionId("");
+      setIsDialogueHomeActive(true);
+      return;
+    }
+
     if (!employeeDialogueSessions.length) {
       if (activeDialogueSessionId !== "") {
         setActiveDialogueSessionId("");
@@ -1311,7 +1699,7 @@ const FrontisPage = ({
       return;
     }
     setActiveDialogueSessionId(employeeDialogueSessions[0].id);
-  }, [activeDialogueSessionId, employeeDialogueSessions, isDialogueHomeActive]);
+  }, [activeDialogueSessionId, employeeDialogueSessions, isDialogueHomeActive, workspaceMode]);
 
   useEffect(() => {
     latestDialogueAttachmentsRef.current = dialogueAttachments;
@@ -1388,7 +1776,8 @@ const FrontisPage = ({
         conversationEmployeeDirectory.find(item => item.id === employeeId) ?? null;
       const nextEmployeeSessions = dialogueSessions.filter(item => item.employeeId === employeeId);
       const nextIsMetaAgent = isMetaAgentEmployee(nextEmployee);
-      const nextHomeActive = nextIsMetaAgent ? false : isDialogueHomeActive;
+      const nextHomeActive =
+        workspaceMode === "expertStudio" ? true : nextIsMetaAgent ? false : isDialogueHomeActive;
       setIsDialogueHomeActive(nextHomeActive);
       setActiveDialogueSessionId(nextHomeActive ? "" : (nextEmployeeSessions[0]?.id ?? ""));
       dialogueAttachments.forEach(revokeComposerAttachmentPreview);
@@ -1396,7 +1785,13 @@ const FrontisPage = ({
       setDialogueInputValue("");
       setSelectedSkillIds([]);
     },
-    [conversationEmployeeDirectory, dialogueAttachments, dialogueSessions, isDialogueHomeActive],
+    [
+      conversationEmployeeDirectory,
+      dialogueAttachments,
+      dialogueSessions,
+      isDialogueHomeActive,
+      workspaceMode,
+    ],
   );
 
   const handleRemoveExpertStudioAgent = useCallback(
@@ -1410,8 +1805,13 @@ const FrontisPage = ({
         return;
       }
 
+      if (employeeId === DEFAULT_CONVERSATION_EMPLOYEE_ID) {
+        message.warning("ME 是新任务默认入口，不能移除。");
+        return;
+      }
+
       if (conversationEmployees.length <= 1) {
-        message.warning("ME 专家列表至少保留一个 AI 专家。");
+        message.warning("新任务至少保留一个可调度 AI 专家。");
         return;
       }
 
@@ -1436,13 +1836,19 @@ const FrontisPage = ({
         setIsDialogueHomeActive(false);
       }
 
-      message.success(`${targetEmployee.name} 已从 ME 专家列表移除。`);
+      message.success(`${targetEmployee.name} 已从新任务可调度专家中移除。`);
     },
     [activeEmployeeId, conversationEmployees, dialogueSessions, workspaceMode],
   );
 
   const handleSelectDialogueSession = useCallback(
     (sessionId: string): void => {
+      const targetSession = dialogueSessions.find(item => item.id === sessionId);
+
+      if (targetSession?.employeeId && targetSession.employeeId !== activeEmployeeId) {
+        setActiveEmployeeId(targetSession.employeeId);
+      }
+
       setActiveCaseReplay(null);
       setActiveMetaAgentTrajectoryId(null);
       setIsDialogueHomeActive(false);
@@ -1452,11 +1858,11 @@ const FrontisPage = ({
       setDialogueInputValue("");
       setSelectedSkillIds([]);
     },
-    [dialogueAttachments],
+    [activeEmployeeId, dialogueAttachments, dialogueSessions],
   );
 
   const handleCreateDialogueSession = useCallback((): void => {
-    if (isMetaAgentDialogue) {
+    if (workspaceMode === "metaAgent" && isMetaAgentDialogue) {
       setActiveCaseReplay(null);
       setActiveMetaAgentTrajectoryId(null);
       setIsDialogueHomeActive(false);
@@ -1478,7 +1884,79 @@ const FrontisPage = ({
     setDialogueAttachments([]);
     setDialogueInputValue("");
     setSelectedSkillIds([]);
-  }, [dialogueAttachments, employeeDialogueSessions, isMetaAgentDialogue]);
+  }, [dialogueAttachments, employeeDialogueSessions, isMetaAgentDialogue, workspaceMode]);
+
+  useEffect(() => {
+    if (!pendingWorkbenchConversationSessionId || workspaceMode !== "expertStudio") {
+      return;
+    }
+
+    handleSelectDialogueSession(pendingWorkbenchConversationSessionId);
+    onPendingWorkbenchConversationSessionConsumed?.();
+  }, [
+    handleSelectDialogueSession,
+    onPendingWorkbenchConversationSessionConsumed,
+    pendingWorkbenchConversationSessionId,
+    workspaceMode,
+  ]);
+
+  useEffect(() => {
+    if (!pendingWorkbenchAgentId || workspaceMode !== "expertStudio") {
+      return;
+    }
+
+    const targetEmployee = conversationEmployees.find(item => item.id === pendingWorkbenchAgentId);
+    if (!targetEmployee) {
+      return;
+    }
+
+    setActiveEmployeeId(targetEmployee.id);
+    setIsDialogueHomeActive(true);
+    setActiveDialogueSessionId("");
+    setActiveCaseReplay(null);
+    setActiveMetaAgentTrajectoryId(null);
+    setActiveMetaAgentTrajectoryAnchorBlockId(null);
+    setDialogueInputValue("");
+    setSelectedSkillIds([]);
+    setDialogueAttachments(currentAttachments => {
+      currentAttachments.forEach(revokeComposerAttachmentPreview);
+      return [];
+    });
+    onPendingWorkbenchAgentConsumed?.();
+  }, [
+    conversationEmployees,
+    onPendingWorkbenchAgentConsumed,
+    pendingWorkbenchAgentId,
+    workspaceMode,
+  ]);
+
+  const workbenchConversationNavGroups = useMemo<WorkbenchConversationNavGroup[]>(() => {
+    const employeeMap = new Map(conversationEmployees.map(employee => [employee.id, employee]));
+    const sessionsByEmployee = new Map<string, DialogueSessionItem[]>();
+
+    dialogueSessions.forEach(session => {
+      if (!employeeMap.has(session.employeeId)) {
+        return;
+      }
+
+      const employeeSessions = sessionsByEmployee.get(session.employeeId) ?? [];
+      employeeSessions.push(session);
+      sessionsByEmployee.set(session.employeeId, employeeSessions);
+    });
+
+    return conversationEmployees
+      .map(employee => ({
+        employeeId: employee.id,
+        employeeName: employee.name,
+        sessions: (sessionsByEmployee.get(employee.id) ?? []).map(session => ({
+          id: session.id,
+          title: session.title,
+          updatedAt: session.updatedAt,
+          active: !isDialogueHomeActive && session.id === activeDialogueSession?.id,
+        })),
+      }))
+      .filter(group => group.sessions.length > 0);
+  }, [activeDialogueSession?.id, conversationEmployees, dialogueSessions, isDialogueHomeActive]);
 
   const handleSelectSkill = useCallback((skillId: string): void => {
     setSelectedSkillIds(current =>
@@ -1537,6 +2015,32 @@ const FrontisPage = ({
     },
     [activeDialogueSessionId, dialogueSessions],
   );
+
+  useEffect(() => {
+    if (!onWorkbenchConversationNavChange) {
+      return;
+    }
+
+    if (!embedded || workspaceMode !== "expertStudio") {
+      onWorkbenchConversationNavChange(null);
+      return;
+    }
+
+    onWorkbenchConversationNavChange({
+      groups: workbenchConversationNavGroups,
+      onRemoveSession: handleRemoveDialogueSession,
+      onRenameSession: handleRenameDialogueSession,
+      onSelectSession: handleSelectDialogueSession,
+    });
+  }, [
+    embedded,
+    handleRemoveDialogueSession,
+    handleRenameDialogueSession,
+    handleSelectDialogueSession,
+    onWorkbenchConversationNavChange,
+    workbenchConversationNavGroups,
+    workspaceMode,
+  ]);
 
   const updateDialogueSession = useCallback(
     (sessionId: string, updater: (session: DialogueSessionItem) => DialogueSessionItem): void => {
@@ -1936,13 +2440,6 @@ const FrontisPage = ({
     commitDialogue(activeCaseReplay.practiceQuestion, true);
   }, [activeCaseReplay, commitDialogue]);
 
-  const handleSendDialogueHomePrompt = useCallback(
-    (question: string): void => {
-      commitDialogue(question, Boolean(activeCaseReplay));
-    },
-    [activeCaseReplay, commitDialogue],
-  );
-
   const handleSendDialogueQuickPrompt = useCallback(
     (question: string): void => {
       if (isDialogueResponding) {
@@ -2121,15 +2618,17 @@ const FrontisPage = ({
           dialogueAttachments={dialogueAttachments}
           dialogueInputValue={dialogueInputValue}
           dialogueMessages={dialogueMessages}
+          allDialogueSessions={dialogueSessions}
           dialogueSessions={employeeDialogueSessions}
-          homeCaseItems={activeAgentHomeConfig.caseItems}
-          homePromptItems={activeAgentHomeConfig.promptItems}
           homeSkillItems={activeAgentHomeConfig.skillItems}
+          meSchedulableExperts={isMetaAgentDialogue ? meSchedulableEmployees : []}
           isHomeVisible={isDialogueHomeActive}
           isDialogueResponding={isDialogueResponding}
           defaultAgentIds={
             workspaceMode === "metaAgent" ? deviceDefaultAgents.map(item => item.id) : []
           }
+          showAgentSwitcher={!(embedded && workspaceMode === "expertStudio")}
+          showDialogueSessionMenu={!(embedded && workspaceMode === "expertStudio")}
           onCreateDialogueSession={handleCreateDialogueSession}
           onDialogueAttachmentsSelected={handleDialogueAttachmentsSelected}
           onDialogueInputChange={setDialogueInputValue}
@@ -2138,9 +2637,7 @@ const FrontisPage = ({
           caseReplayActionLabel="立即实践"
           caseReplayOpenPanel={activeCaseReplay?.openPanel ?? null}
           onCaseReplayAction={handleStartCasePractice}
-          onHomePromptSend={handleSendDialogueHomePrompt}
           onQuickPromptSend={handleSendDialogueQuickPrompt}
-          onHomeCaseSelect={handleOpenHomeCase}
           onRemoveEmployee={
             workspaceMode === "expertStudio" ? handleRemoveExpertStudioAgent : undefined
           }
@@ -2153,6 +2650,7 @@ const FrontisPage = ({
           selectedSkillIds={selectedSkillIds}
           onStopDialogue={handleStopDialogue}
           hideAgentSidebar={workspaceMode === "metaAgent"}
+          hideInternalSidebar={embedded && workspaceMode === "expertStudio"}
           focusBlockId={
             activeMetaAgentTrajectoryAnchorBlockId ?? activeMetaAgentTrajectory?.anchorBlockId
           }
@@ -2212,7 +2710,7 @@ const FrontisPage = ({
         <div className={styles.meExpertPickerStoreRoot}>
           <div className={agentStoreStyles.agentGrid}>
             {meSchedulableExpertOptions.map(expert => {
-              const isAdded = assignedMeSchedulableAgentIds.has(expert.id);
+              const isAdded = meSchedulableAgentIds.has(expert.id);
 
               return (
                 <article key={expert.id} className={agentStoreStyles.agentCard}>
@@ -2257,7 +2755,7 @@ const FrontisPage = ({
                       disabled={isAdded}
                       onClick={() => handleAddMeSchedulableExpert(expert.id)}
                     >
-                      {isAdded ? "已添加" : "添加到专家列表"}
+                      {isAdded ? "已添加" : "添加"}
                     </Button>
                   </div>
                 </article>

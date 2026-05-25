@@ -69,6 +69,7 @@ const USAGE_RANGE_OPTIONS: Array<{ key: UsageRangeKey; label: string }> = [
 
 const DASHBOARD_RANK_LIMIT = 5;
 const MAX_VISIBLE_AGENT_TAG_COUNT = 3;
+const MAX_VISIBLE_MEMBER_TAG_COUNT = 3;
 const MOCK_TODAY = dayjs("2026-04-24 12:00");
 const DEFAULT_CUSTOM_USAGE_RANGE: [Dayjs, Dayjs] = [
   MOCK_TODAY.subtract(6, "day").startOf("day"),
@@ -488,15 +489,46 @@ const renderAgentTags = (agentNames: string[]): JSX.Element => {
   );
 };
 
-const renderNameTags = (names: string[]): JSX.Element => (
-  <div className={styles.agentTagGroup}>
-    {names.map(name => (
-      <span key={name} className={styles.agentTag}>
-        {name}
-      </span>
-    ))}
-  </div>
-);
+const renderNameTags = (names: string[]): JSX.Element => {
+  const visibleNames = names.slice(0, MAX_VISIBLE_MEMBER_TAG_COUNT);
+  const hiddenNames = names.slice(MAX_VISIBLE_MEMBER_TAG_COUNT);
+  const tagGroup = (
+    <div className={styles.agentTagGroup}>
+      {visibleNames.map(name => (
+        <span key={name} className={styles.agentTag}>
+          {name}
+        </span>
+      ))}
+      {hiddenNames.length ? (
+        <span className={`${styles.agentTag} ${styles.agentMoreTag}`}>
+          +{hiddenNames.length}
+        </span>
+      ) : null}
+    </div>
+  );
+
+  if (!hiddenNames.length) {
+    return tagGroup;
+  }
+
+  return (
+    <Popover
+      content={
+        <div className={styles.agentPopover}>
+          {names.map(name => (
+            <span key={name} className={styles.agentTag}>
+              {name}
+            </span>
+          ))}
+        </div>
+      }
+      placement="bottomLeft"
+      trigger="hover"
+    >
+      {tagGroup}
+    </Popover>
+  );
+};
 
 const renderMembersUsageTable = (
   summaries: MemberUsageSummary[],

@@ -37,8 +37,6 @@ import type { Block } from "@/types/block";
 import { resolveFileLogo } from "@/utils/fileLogo";
 
 import type {
-  AiCeoHomeCaseItem,
-  AiCeoHomePromptItem,
   AiCeoHomeSkillItem,
   AiCeoSkillIconKey,
 } from "@/constants/aiCeoHome";
@@ -69,7 +67,6 @@ import {
   groupConversationEmployees,
   resolveArtifactUrl,
 } from "../utils";
-import { DialogueHomeView } from "./DialogueHomeView";
 import { DialogueHistoryPanel } from "./DialogueHistoryPanel";
 import { DialogueInsightPanel } from "./DialogueInsightPanel";
 import { buildDialogueInsightTasks } from "./dialogueInsightPanelUtils";
@@ -92,13 +89,13 @@ interface DialoguePrototypeViewProps {
   dialogueAttachments: WorkspaceComposerAttachmentItem[];
   dialogueInputValue: string;
   dialogueMessages: ChatMessage[];
+  allDialogueSessions: DialogueSessionItem[];
   dialogueSessions: DialogueSessionItem[];
   focusBlockId?: string;
   caseReplayActionLabel?: string;
   caseReplayOpenPanel?: "artifacts" | "results" | null;
-  homeCaseItems?: AiCeoHomeCaseItem[];
-  homePromptItems: AiCeoHomePromptItem[];
   homeSkillItems: AiCeoHomeSkillItem[];
+  meSchedulableExperts?: EmployeeItem[];
   isHomeVisible: boolean;
   isCaseReplayMode?: boolean;
   isDialogueResponding: boolean;
@@ -106,9 +103,7 @@ interface DialoguePrototypeViewProps {
   onCreateDialogueSession: () => void;
   onDialogueAttachmentsSelected: (files?: FileList | File[] | null) => void;
   onDialogueInputChange: (value: string) => void;
-  onHomeCaseSelect: (item: AiCeoHomeCaseItem) => void;
   onDialogueSessionSelect: (sessionId: string) => void;
-  onHomePromptSend: (question: string) => void;
   onQuickPromptSend: (question: string) => void;
   onSelectMetaAgentTrajectory: (trajectoryId: string, anchorBlockId?: string) => void;
   onClearMetaAgentTrajectory: () => void;
@@ -123,6 +118,9 @@ interface DialoguePrototypeViewProps {
   selectedSkillIds: string[];
   onStopDialogue: () => void;
   hideAgentSidebar?: boolean;
+  hideInternalSidebar?: boolean;
+  showAgentSwitcher?: boolean;
+  showDialogueSessionMenu?: boolean;
   metaAgentTrajectoryItems: MetaAgentWorkTrajectoryItem[];
   showAccountEntry?: boolean;
   showFeishuConnectAction?: boolean;
@@ -375,6 +373,9 @@ const isMetaCoordinatorEmployee = (
     employee.name === EXPERT_TEAM_MAIN_AGENT_NAME,
   );
 
+const shouldRenderAsExpertTeam = (employee: EmployeeItem): boolean =>
+  Boolean(employee.isExpertTeam && employee.name !== EXPERT_TEAM_MAIN_AGENT_NAME);
+
 /**
  * 对话视图。
  */
@@ -394,13 +395,13 @@ export const DialoguePrototypeView = ({
   dialogueAttachments,
   dialogueInputValue,
   dialogueMessages,
+  allDialogueSessions,
   dialogueSessions,
   focusBlockId,
   caseReplayActionLabel,
   caseReplayOpenPanel,
-  homeCaseItems,
-  homePromptItems,
   homeSkillItems,
+  meSchedulableExperts = [],
   isHomeVisible,
   isCaseReplayMode = false,
   isDialogueResponding,
@@ -408,9 +409,7 @@ export const DialoguePrototypeView = ({
   onCreateDialogueSession,
   onDialogueAttachmentsSelected,
   onDialogueInputChange,
-  onHomeCaseSelect,
   onDialogueSessionSelect,
-  onHomePromptSend,
   onQuickPromptSend,
   onSelectMetaAgentTrajectory,
   onClearMetaAgentTrajectory,
@@ -425,6 +424,9 @@ export const DialoguePrototypeView = ({
   selectedSkillIds,
   onStopDialogue,
   hideAgentSidebar = false,
+  hideInternalSidebar = false,
+  showAgentSwitcher = true,
+  showDialogueSessionMenu = true,
   metaAgentTrajectoryItems,
   showAccountEntry = true,
   showFeishuConnectAction = false,
@@ -435,6 +437,7 @@ export const DialoguePrototypeView = ({
   const attachmentInputRef = useRef<HTMLInputElement | null>(null);
   const sessionTitleInputRef = useRef<InputRef | null>(null);
   const employeeSwitcherRef = useRef<HTMLDivElement | null>(null);
+  const homeEmployeeSwitcherRef = useRef<HTMLDivElement | null>(null);
   const metaAgentTrajectoryTimeFilterRef = useRef<HTMLDivElement | null>(null);
   const skillTrackRef = useRef<HTMLDivElement | null>(null);
   const dialogueShellRef = useRef<HTMLDivElement | null>(null);
@@ -498,7 +501,28 @@ export const DialoguePrototypeView = ({
     [allEmployees, defaultAgentIds],
   );
   const canRemoveEmployee = Boolean(onRemoveEmployee) && allEmployees.length > 1;
-  const shouldShowAgentSidebar = !hideAgentSidebar;
+  const dialogueSessionGroups = useMemo(() => {
+    const employeeMap = new Map(allEmployees.map(employee => [employee.id, employee]));
+    const sessionsByEmployee = new Map<string, DialogueSessionItem[]>();
+
+    allDialogueSessions.forEach(session => {
+      if (!employeeMap.has(session.employeeId)) {
+        return;
+      }
+
+      const employeeSessions = sessionsByEmployee.get(session.employeeId) ?? [];
+      employeeSessions.push(session);
+      sessionsByEmployee.set(session.employeeId, employeeSessions);
+    });
+
+    return allEmployees
+      .map(employee => ({
+        employee,
+        sessions: sessionsByEmployee.get(employee.id) ?? [],
+      }))
+      .filter(group => group.sessions.length > 0);
+  }, [allDialogueSessions, allEmployees]);
+  const shouldShowAgentSidebar = !hideAgentSidebar && !hideInternalSidebar;
   const shouldShowMetaAgentTrajectory =
     hideAgentSidebar && metaAgentTrajectoryItems.length > 0 && !isHomeVisible;
   const isStackedLayout = viewportWidth <= 1100;
@@ -1002,7 +1026,7 @@ export const DialoguePrototypeView = ({
   );
   const supportsDialogueSessions = !isMetaCoordinatorAgent(activeEmployee);
   const shouldShowExpertTeamUi =
-    activeEmployee.isExpertTeam && !isMetaCoordinatorAgent(activeEmployee);
+    shouldRenderAsExpertTeam(activeEmployee) && !isMetaCoordinatorAgent(activeEmployee);
   const expertTeamMentionOptions = useMemo<WorkspaceComposerMentionOption[]>(
     () =>
       activeEmployee.isExpertTeam
@@ -1033,10 +1057,10 @@ export const DialoguePrototypeView = ({
 
   useEffect(() => {
     if (!editingSessionId) return;
-    if (dialogueSessions.some(item => item.id === editingSessionId)) return;
+    if (allDialogueSessions.some(item => item.id === editingSessionId)) return;
     setEditingSessionId(null);
     setEditingSessionTitle("");
-  }, [dialogueSessions, editingSessionId]);
+  }, [allDialogueSessions, editingSessionId]);
 
   useEffect(() => {
     if (!editingSessionId) return;
@@ -1367,6 +1391,9 @@ export const DialoguePrototypeView = ({
       if (employeeSwitcherRef.current?.contains(event.target)) {
         return;
       }
+      if (homeEmployeeSwitcherRef.current?.contains(event.target)) {
+        return;
+      }
       setIsEmployeeSwitcherOpen(false);
     };
 
@@ -1606,7 +1633,7 @@ export const DialoguePrototypeView = ({
                     setIsEmployeeSwitcherOpen(false);
                   }}
                 >
-                  {item.isExpertTeam && !isMetaCoordinatorAgent(item) ? (
+                  {shouldRenderAsExpertTeam(item) && !isMetaCoordinatorAgent(item) ? (
                     <DialogueTeamAvatar team={item} members={teamMembers} />
                   ) : (
                     <span className={styles.employeeAvatarWrap}>
@@ -1651,6 +1678,50 @@ export const DialoguePrototypeView = ({
           })}
         </div>
       ))}
+    </div>
+  );
+
+  const homeEmployeeSwitcherMenu = (
+    <div className={styles.dialogueHomeExpertDropdownMenu}>
+      {allEmployees.map(item => {
+        const teamMembers = resolveExpertTeamMembersForItem(item);
+        const isActive = item.id === activeEmployee.id;
+
+        return (
+          <button
+            key={item.id}
+            type="button"
+            className={classNames(styles.dialogueHomeExpertOption, {
+              [styles.dialogueHomeExpertOptionActive]: isActive,
+            })}
+            title={item.name}
+            onClick={event => {
+              event.stopPropagation();
+              onEmployeeSelect(item.id);
+              setIsEmployeeSwitcherOpen(false);
+            }}
+          >
+            {shouldRenderAsExpertTeam(item) && !isMetaCoordinatorAgent(item) ? (
+              <DialogueTeamAvatar team={item} members={teamMembers} />
+            ) : (
+              <span className={styles.employeeAvatarWrap}>
+                <Avatar src={item.avatarUrl} size={34} className={styles.dialogueHeroAvatar}>
+                  {getAvatarText(item.name)}
+                </Avatar>
+                <span
+                  className={classNames(styles.employeeStatusDot, {
+                    [styles.employeeStatusDotBusy]: item.status === "running",
+                    [styles.employeeStatusDotOffline]: item.status === "offline",
+                    [styles.employeeStatusDotError]: item.status === "exception",
+                  })}
+                />
+              </span>
+            )}
+            <span className={styles.dialogueHomeExpertOptionName}>{item.name}</span>
+            {isActive ? <CheckOutlined className={styles.dialogueHomeExpertOptionCheck} /> : null}
+          </button>
+        );
+      })}
     </div>
   );
 
@@ -2350,51 +2421,60 @@ export const DialoguePrototypeView = ({
                 ) : null}
               </div>
 
-              <div ref={employeeSwitcherRef} className={styles.dialogueAgentListSection}>
-                <button
-                  type="button"
-                  className={styles.dialogueAgentSelectButton}
-                  aria-expanded={isEmployeeSwitcherOpen}
-                  aria-label="切换 AI 专家"
-                  title={activeEmployee.name}
-                  onClick={() => setIsEmployeeSwitcherOpen(current => !current)}
-                >
-                  <span className={styles.dialogueAgentSelectCurrent}>
-                    {shouldShowExpertTeamUi ? (
-                      <DialogueTeamAvatar team={activeEmployee} members={activeExpertTeamMembers} />
-                    ) : (
-                      <span className={styles.employeeAvatarWrap}>
-                        <Avatar
-                          src={activeEmployee.avatarUrl}
-                          size={40}
-                          className={styles.dialogueHeroAvatar}
-                        >
-                          {getAvatarText(activeEmployee.name)}
-                        </Avatar>
-                        <span
-                          className={classNames(styles.employeeStatusDot, {
-                            [styles.employeeStatusDotBusy]: activeEmployee.status === "running",
-                            [styles.employeeStatusDotOffline]: activeEmployee.status === "offline",
-                            [styles.employeeStatusDotError]: activeEmployee.status === "exception",
-                          })}
+              {showAgentSwitcher ? (
+                <div ref={employeeSwitcherRef} className={styles.dialogueAgentListSection}>
+                  <button
+                    type="button"
+                    className={styles.dialogueAgentSelectButton}
+                    aria-expanded={isEmployeeSwitcherOpen}
+                    aria-label="切换 AI 专家"
+                    title={activeEmployee.name}
+                    onClick={() => setIsEmployeeSwitcherOpen(current => !current)}
+                  >
+                    <span className={styles.dialogueAgentSelectCurrent}>
+                      {shouldShowExpertTeamUi ? (
+                        <DialogueTeamAvatar
+                          team={activeEmployee}
+                          members={activeExpertTeamMembers}
                         />
+                      ) : (
+                        <span className={styles.employeeAvatarWrap}>
+                          <Avatar
+                            src={activeEmployee.avatarUrl}
+                            size={40}
+                            className={styles.dialogueHeroAvatar}
+                          >
+                            {getAvatarText(activeEmployee.name)}
+                          </Avatar>
+                          <span
+                            className={classNames(styles.employeeStatusDot, {
+                              [styles.employeeStatusDotBusy]: activeEmployee.status === "running",
+                              [styles.employeeStatusDotOffline]:
+                                activeEmployee.status === "offline",
+                              [styles.employeeStatusDotError]:
+                                activeEmployee.status === "exception",
+                            })}
+                          />
+                        </span>
+                      )}
+                      <span className={styles.dialogueSwitcherItemBody}>
+                        <span className={styles.dialogueSwitcherItemName}>
+                          {activeEmployee.name}
+                        </span>
                       </span>
-                    )}
-                    <span className={styles.dialogueSwitcherItemBody}>
-                      <span className={styles.dialogueSwitcherItemName}>{activeEmployee.name}</span>
                     </span>
-                  </span>
-                  <DownOutlined
-                    className={classNames(styles.dialogueAgentSelectArrow, {
-                      [styles.dialogueAgentSelectArrowOpen]: isEmployeeSwitcherOpen,
-                    })}
-                  />
-                </button>
+                    <DownOutlined
+                      className={classNames(styles.dialogueAgentSelectArrow, {
+                        [styles.dialogueAgentSelectArrowOpen]: isEmployeeSwitcherOpen,
+                      })}
+                    />
+                  </button>
 
-                {isEmployeeSwitcherOpen ? (
-                  <div className={styles.dialogueAgentDropdownMenu}>{employeeSwitcherMenu}</div>
-                ) : null}
-              </div>
+                  {isEmployeeSwitcherOpen ? (
+                    <div className={styles.dialogueAgentDropdownMenu}>{employeeSwitcherMenu}</div>
+                  ) : null}
+                </div>
+              ) : null}
 
               {supportsDialogueSessions ? (
                 <>
@@ -2407,93 +2487,100 @@ export const DialoguePrototypeView = ({
                     <span>新对话</span>
                   </button>
 
-                  <div className={styles.dialogueSessionSection}>
-                    <div className={styles.dialogueSessionHeading}>最近对话</div>
-                    <div className={styles.dialogueSessionList}>
-                      {dialogueSessions.length > 0 ? (
-                        dialogueSessions.map(item => {
-                          return (
-                            <div
-                              key={item.id}
-                              className={classNames(styles.dialogueSessionItem, {
-                                [styles.dialogueSessionItemActive]:
-                                  item.id === activeDialogueSession?.id,
-                              })}
-                            >
-                              {editingSessionId === item.id ? (
-                                <div className={styles.dialogueSessionEditor}>
-                                  <Input
-                                    ref={sessionTitleInputRef}
-                                    size="small"
-                                    value={editingSessionTitle}
-                                    placeholder="输入会话名称"
-                                    onClick={event => event.stopPropagation()}
-                                    onChange={event => setEditingSessionTitle(event.target.value)}
-                                    onPressEnter={() => handleSubmitRenameSession()}
-                                  />
-                                  <div className={styles.dialogueSessionEditorActions}>
-                                    <button
-                                      type="button"
-                                      className={styles.dialogueSessionEditorButton}
-                                      aria-label="保存会话名称"
-                                      onClick={handleSubmitRenameSession}
-                                    >
-                                      <CheckOutlined />
-                                    </button>
-                                    <button
-                                      type="button"
-                                      className={styles.dialogueSessionEditorButton}
-                                      aria-label="取消重命名"
-                                      onClick={handleCancelRenameSession}
-                                    >
-                                      <CloseOutlined />
-                                    </button>
-                                  </div>
+                  {showDialogueSessionMenu ? (
+                    <div className={styles.dialogueSessionSection}>
+                      <div className={styles.dialogueSessionHeading}>会话记录</div>
+                      <div className={styles.dialogueSessionList}>
+                        {dialogueSessionGroups.length > 0 ? (
+                          dialogueSessionGroups.map(group => (
+                            <div key={group.employee.id} className={styles.dialogueSwitcherGroup}>
+                              <div className={styles.dialogueSwitcherGroupTitle}>
+                                {group.employee.name}
+                              </div>
+                              {group.sessions.map(item => (
+                                <div
+                                  key={item.id}
+                                  className={classNames(styles.dialogueSessionItem, {
+                                    [styles.dialogueSessionItemActive]:
+                                      item.id === activeDialogueSession?.id,
+                                  })}
+                                >
+                                  {editingSessionId === item.id ? (
+                                    <div className={styles.dialogueSessionEditor}>
+                                      <Input
+                                        ref={sessionTitleInputRef}
+                                        size="small"
+                                        value={editingSessionTitle}
+                                        placeholder="输入会话名称"
+                                        onClick={event => event.stopPropagation()}
+                                        onChange={event =>
+                                          setEditingSessionTitle(event.target.value)
+                                        }
+                                        onPressEnter={() => handleSubmitRenameSession()}
+                                      />
+                                      <div className={styles.dialogueSessionEditorActions}>
+                                        <button
+                                          type="button"
+                                          className={styles.dialogueSessionEditorButton}
+                                          aria-label="保存会话名称"
+                                          onClick={handleSubmitRenameSession}
+                                        >
+                                          <CheckOutlined />
+                                        </button>
+                                        <button
+                                          type="button"
+                                          className={styles.dialogueSessionEditorButton}
+                                          aria-label="取消重命名"
+                                          onClick={handleCancelRenameSession}
+                                        >
+                                          <CloseOutlined />
+                                        </button>
+                                      </div>
+                                    </div>
+                                  ) : (
+                                    <>
+                                      <button
+                                        type="button"
+                                        className={styles.dialogueSessionMainButton}
+                                        onClick={() => onDialogueSessionSelect(item.id)}
+                                      >
+                                        <span className={styles.dialogueSessionContent}>
+                                          <span className={styles.dialogueSessionTitle}>
+                                            {item.title}
+                                          </span>
+                                          <span className={styles.dialogueSessionTime}>
+                                            {item.updatedAt}
+                                          </span>
+                                        </span>
+                                      </button>
+                                      <Dropdown
+                                        menu={{
+                                          items: getDialogueSessionMenuItems(item.id, item.title),
+                                        }}
+                                        trigger={["click"]}
+                                      >
+                                        <button
+                                          type="button"
+                                          className={styles.dialogueSessionMenuButton}
+                                          aria-label="会话操作"
+                                          onClick={handleMenuButtonClick}
+                                          onKeyDown={handleMenuButtonKeyDown}
+                                        >
+                                          <MoreOutlined />
+                                        </button>
+                                      </Dropdown>
+                                    </>
+                                  )}
                                 </div>
-                              ) : (
-                                <>
-                                  <button
-                                    type="button"
-                                    className={styles.dialogueSessionMainButton}
-                                    onClick={() => onDialogueSessionSelect(item.id)}
-                                  >
-                                    <span className={styles.dialogueSessionContent}>
-                                      <span className={styles.dialogueSessionTitle}>
-                                        {item.title}
-                                      </span>
-                                      <span className={styles.dialogueSessionTime}>
-                                        {item.updatedAt}
-                                      </span>
-                                    </span>
-                                  </button>
-                                  <Dropdown
-                                    menu={{
-                                      items: getDialogueSessionMenuItems(item.id, item.title),
-                                    }}
-                                    trigger={["click"]}
-                                  >
-                                    <button
-                                      type="button"
-                                      className={styles.dialogueSessionMenuButton}
-                                      aria-label="会话操作"
-                                      onClick={handleMenuButtonClick}
-                                      onKeyDown={handleMenuButtonKeyDown}
-                                    >
-                                      <MoreOutlined />
-                                    </button>
-                                  </Dropdown>
-                                </>
-                              )}
+                              ))}
                             </div>
-                          );
-                        })
-                      ) : (
-                        <div className={styles.dialogueSessionEmpty}>
-                          当前 AI 专家还没有历史会话
-                        </div>
-                      )}
+                          ))
+                        ) : (
+                          <div className={styles.dialogueSessionEmpty}>暂无历史会话</div>
+                        )}
+                      </div>
                     </div>
-                  </div>
+                  ) : null}
                 </>
               ) : null}
 
@@ -2530,31 +2617,78 @@ export const DialoguePrototypeView = ({
       <section className={styles.dialogueMainCard}>
         {isHomeVisible ? (
           <div className={styles.dialogueHomeLayout}>
+            <div className={styles.dialogueHomeDock}>
+              {allEmployees.length > 1 ? (
+                <div ref={homeEmployeeSwitcherRef} className={styles.dialogueHomeExpertSwitchWrap}>
+                  <button
+                    type="button"
+                    className={styles.dialogueHomeExpertSwitch}
+                    aria-label="切换首页 AI 专家"
+                    aria-expanded={isEmployeeSwitcherOpen}
+                    onClick={() => setIsEmployeeSwitcherOpen(current => !current)}
+                  >
+                    <span className={styles.dialogueHomeExpertSwitchAvatar}>
+                      {shouldShowExpertTeamUi ? (
+                        <DialogueTeamAvatar
+                          team={activeEmployee}
+                          members={activeExpertTeamMembers}
+                        />
+                      ) : (
+                        <Avatar
+                          src={activeEmployee.avatarUrl}
+                          size={28}
+                          className={styles.dialogueHeroAvatar}
+                        >
+                          {getAvatarText(activeEmployee.name)}
+                        </Avatar>
+                      )}
+                    </span>
+                    <span className={styles.dialogueHomeExpertSwitchText}>
+                      {activeEmployee.name}
+                    </span>
+                    <DownOutlined
+                      className={classNames(styles.dialogueHomeExpertSwitchIcon, {
+                        [styles.dialogueHomeExpertSwitchIconOpen]: isEmployeeSwitcherOpen,
+                      })}
+                    />
+                  </button>
+                  {isEmployeeSwitcherOpen ? homeEmployeeSwitcherMenu : null}
+                </div>
+              ) : null}
+
+              {meSchedulableExperts.length > 0 ? (
+                <section
+                  className={styles.dialogueHomeDispatchPanel}
+                  aria-label="ME 可调度 AI 专家"
+                >
+                  <div className={styles.dialogueHomeDispatchHeader}>可调度</div>
+                  <div className={styles.dialogueHomeDispatchList}>
+                    {meSchedulableExperts.map(expert => (
+                      <article key={expert.id} className={styles.dialogueHomeDispatchItem}>
+                        <div className={styles.dialogueHomeDispatchAvatar}>
+                          {expert.avatarUrl ? (
+                            <img alt={expert.name} src={expert.avatarUrl} />
+                          ) : (
+                            <span>{getAvatarText(expert.name)}</span>
+                          )}
+                        </div>
+                        <strong>{expert.name}</strong>
+                      </article>
+                    ))}
+                  </div>
+                </section>
+              ) : null}
+            </div>
+
             <div
               className={classNames(styles.dialogueHomeHero, {
                 [styles.dialogueHomeHeroExpertTeam]: shouldShowExpertTeamUi,
               })}
             >
-              {shouldShowExpertTeamUi ? (
-                expertTeamMemberStrip
-              ) : (
-                <Avatar
-                  src={activeEmployee.avatarUrl}
-                  size={88}
-                  className={styles.dialogueHomeHeroAvatar}
-                >
-                  {getAvatarText(activeEmployee.name)}
-                </Avatar>
-              )}
+              {shouldShowExpertTeamUi ? expertTeamMemberStrip : null}
               <h2 className={styles.dialogueHomeHeroTitle}>{dialogueHomeHeroTitle}</h2>
             </div>
             {composerNode}
-            <DialogueHomeView
-              caseItems={homeCaseItems}
-              promptItems={homePromptItems}
-              onCaseSelect={onHomeCaseSelect}
-              onPromptSend={onHomePromptSend}
-            />
           </div>
         ) : (
           <>

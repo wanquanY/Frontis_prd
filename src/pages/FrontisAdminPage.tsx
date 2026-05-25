@@ -5,7 +5,6 @@ import {
   ArrowLeftOutlined,
   ControlOutlined,
   DashboardOutlined,
-  LinkOutlined,
   LogoutOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
@@ -55,7 +54,6 @@ import { getUserPermissionIds, hasAnyPermission, hasPermission } from "@/utils/t
 import { AccountDropdownPanel } from "./components/AccountDropdownPanel";
 import { AgentStoreView } from "./components/agentStore/AgentStoreView";
 import { hasUserAccessToExpert } from "./components/agentStore/utils";
-import { ChannelManagementView } from "./components/ChannelManagementView";
 import { OrganizationManagementView } from "./components/OrganizationManagementView";
 import { RoleManagementView } from "./components/RoleManagementView";
 import {
@@ -120,13 +118,6 @@ const FRONTIS_ADMIN_TABS: FrontisWebTabItem[] = [
     label: "驾驶舱",
     icon: <DashboardOutlined />,
     permissionIds: [MANAGEMENT_PERMISSION_IDS.dashboardView],
-    roles: ["admin"],
-  },
-  {
-    key: "channels",
-    label: "ME 管理",
-    icon: <LinkOutlined />,
-    permissionIds: [MANAGEMENT_PERMISSION_IDS.channelManage],
     roles: ["admin"],
   },
   {
@@ -847,10 +838,6 @@ const FrontisAdminPage = (): JSX.Element => {
           tenantSnapshot={tenantSnapshot}
         />
       );
-    }
-
-    if (activeTabKey === "channels") {
-      return <ChannelManagementView tenantSnapshot={tenantSnapshot} />;
     }
 
     if (activeTabKey === "points") {

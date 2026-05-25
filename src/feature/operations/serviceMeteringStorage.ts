@@ -6,8 +6,6 @@ import type {
   OperationsMeteringProvider,
   OperationsMeteringProviderKind,
   OperationsMeteringStatus,
-  OperationsModelInterfaceFormat,
-  OperationsModelModality,
   OperationsModelService,
   OperationsServicePricingMode,
 } from "@/feature/operations/types";
@@ -28,12 +26,6 @@ const isMeteringStatus = (value: unknown): value is OperationsMeteringStatus =>
 
 const isProviderKind = (value: unknown): value is OperationsMeteringProviderKind =>
   value === "largeModel";
-
-const isModelModality = (value: unknown): value is OperationsModelModality =>
-  value === "text" || value === "multimodal" || value === "embedding" || value === "image";
-
-const isModelInterfaceFormat = (value: unknown): value is OperationsModelInterfaceFormat =>
-  value === "openai" || value === "anthropic" || value === "gemini";
 
 const isPricingMode = (value: unknown): value is OperationsServicePricingMode =>
   value === "markup" || value === "grossMargin" || value === "manual";
@@ -63,12 +55,8 @@ const isValidModelService = (value: unknown): value is OperationsModelService =>
   return (
     isString(value.id) &&
     isString(value.providerId) &&
-    isString(value.providerName) &&
     isString(value.modelCode) &&
     isString(value.modelName) &&
-    isModelInterfaceFormat(value.interfaceFormat) &&
-    isModelModality(value.modality) &&
-    typeof value.reasoningEnabled === "boolean" &&
     isNumber(value.inputCostPerMillion) &&
     isNumber(value.outputCostPerMillion) &&
     isPricingMode(value.pricingMode) &&
@@ -134,7 +122,19 @@ const cloneProvider = (item: OperationsMeteringProvider): OperationsMeteringProv
 });
 
 const cloneModelService = (item: OperationsModelService): OperationsModelService => ({
-  ...item,
+  id: item.id,
+  providerId: item.providerId,
+  modelCode: item.modelCode,
+  modelName: item.modelName,
+  inputCostPerMillion: item.inputCostPerMillion,
+  outputCostPerMillion: item.outputCostPerMillion,
+  pricingMode: item.pricingMode,
+  markupRate: item.markupRate,
+  grossMarginRate: item.grossMarginRate,
+  inputSalePricePerMillion: item.inputSalePricePerMillion,
+  outputSalePricePerMillion: item.outputSalePricePerMillion,
+  status: item.status,
+  updatedAt: item.updatedAt,
 });
 
 /**

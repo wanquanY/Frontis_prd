@@ -1174,12 +1174,25 @@
 }
 
 .dialogueHomeLayout {
+  position: relative;
   flex: 1;
   min-height: 0;
   display: flex;
   flex-direction: column;
   overflow-y: auto;
-  padding-top: 44px;
+  padding-top: 208px;
+}
+
+.dialogueHomeDock {
+  position: absolute;
+  top: 24px;
+  left: 28px;
+  z-index: 18;
+  width: min(260px, calc(100% - 56px));
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 14px;
 }
 
 .dialogueHomeStage {
@@ -1191,8 +1204,7 @@
   justify-content: center;
 }
 
-.dialogueHomeInner,
-.dialogueHomeLower {
+.dialogueHomeInner {
   width: min(1120px, 100%);
 }
 
@@ -1201,7 +1213,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 12px;
+  gap: 14px;
   text-align: center;
 }
 
@@ -1220,6 +1232,129 @@
   font-size: 32px;
   line-height: 42px;
   font-weight: 500;
+}
+
+.dialogueHomeExpertSwitchWrap {
+  position: relative;
+  display: inline-flex;
+  justify-content: flex-start;
+}
+
+.dialogueHomeExpertSwitch {
+  min-height: 36px;
+  padding: 3px 12px 3px 5px;
+  border: 1px solid var(--panelBorder);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--surface) 94%, var(--app-bg));
+  color: var(--text);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  box-shadow: 0 10px 28px color-mix(in srgb, var(--text) 5%, transparent);
+  transition:
+    border-color 160ms ease,
+    background 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.dialogueHomeExpertSwitch:hover {
+  border-color: color-mix(in srgb, var(--primary) 24%, var(--panelBorder));
+  background: color-mix(in srgb, var(--primary) 5%, var(--surface));
+  box-shadow: 0 14px 34px color-mix(in srgb, var(--primary) 9%, transparent);
+}
+
+.dialogueHomeExpertSwitchAvatar {
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dialogueHomeExpertSwitchText {
+  max-width: 180px;
+  color: inherit;
+  font-size: 13px;
+  line-height: 20px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dialogueHomeExpertSwitchIcon {
+  color: var(--text-secondary);
+  font-size: 11px;
+  transition: transform 160ms ease;
+}
+
+.dialogueHomeExpertSwitchIconOpen {
+  transform: rotate(180deg);
+}
+
+.dialogueHomeExpertDropdownMenu {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  z-index: 20;
+  width: 280px;
+  max-height: min(420px, 56vh);
+  padding: 8px;
+  border: 1px solid var(--panelBorder);
+  border-radius: 16px;
+  background: var(--surface);
+  box-shadow: var(--shadow-md);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.dialogueHomeExpertOption {
+  width: 100%;
+  min-height: 46px;
+  padding: 6px 8px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--text);
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) 16px;
+  align-items: center;
+  gap: 10px;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background 160ms ease,
+    color 160ms ease;
+}
+
+.dialogueHomeExpertOption:hover {
+  background: color-mix(in srgb, var(--text) 5%, transparent);
+}
+
+.dialogueHomeExpertOptionActive {
+  background: color-mix(in srgb, var(--primary) 10%, var(--surface));
+  color: var(--text);
+}
+
+.dialogueHomeExpertOptionName {
+  min-width: 0;
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dialogueHomeExpertOptionCheck {
+  color: var(--primary);
+  font-size: 14px;
 }
 
 .dialogueHomeHeroSubtitle {
@@ -1324,44 +1459,73 @@
   text-overflow: ellipsis;
 }
 
-.dialogueHomeLower {
-  margin: 0 auto;
-  padding: 0 24px 28px;
+.dialogueHomeDispatchPanel {
+  width: 100%;
+  margin: 0;
   display: flex;
   flex-direction: column;
-  gap: 26px;
+  gap: 8px;
 }
 
-.dialoguePromptRail {
+.dialogueHomeDispatchHeader {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: center;
-  gap: 14px 16px;
+  justify-content: flex-start;
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 18px;
+  font-weight: 700;
 }
 
-.dialoguePromptChip {
-  min-height: 40px;
-  max-width: 100%;
-  padding: 0 16px;
+.dialogueHomeDispatchList {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.dialogueHomeDispatchItem {
+  min-width: 0;
+  min-height: 38px;
+  padding: 5px 8px;
   border: 1px solid var(--panelBorder);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--surface) 95%, var(--app-bg));
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  text-align: left;
+
+  strong {
+    min-width: 0;
+    overflow: hidden;
+    color: var(--text);
+    font-size: 12px;
+    line-height: 18px;
+    font-weight: 800;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+.dialogueHomeDispatchAvatar {
+  width: 28px;
+  height: 28px;
   border-radius: 999px;
-  background: transparent;
+  background: color-mix(in srgb, var(--primary) 10%, var(--surface));
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  text-align: center;
-  cursor: pointer;
-  transition:
-    border-color 160ms ease,
-    background 160ms ease,
-    transform 160ms ease;
-}
+  overflow: hidden;
+  color: var(--primary);
+  font-size: 12px;
+  font-weight: 800;
 
-.dialoguePromptChip:hover {
-  transform: translateY(-1px);
-  border-color: color-mix(in srgb, var(--primary) 22%, var(--panelBorder));
-  background: color-mix(in srgb, var(--primary) 5%, var(--surface));
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
 }
 
 .meExpertPickerModal {

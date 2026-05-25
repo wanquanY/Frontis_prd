@@ -29,9 +29,9 @@ export const PRODUCT_LOGO_URL = "https://go.frontis.top/workspace/logo.svg";
 export const MA_WORKBENCH_LABEL = "ME";
 
 /**
- * 一级导航中 ME 专家列表文案。
+ * 一级导航中新任务入口文案。
  */
-export const EXPERT_STUDIO_LABEL = "专家列表";
+export const EXPERT_STUDIO_LABEL = "新任务";
 
 /**
  * 一级导航中商店文案。
@@ -45,9 +45,9 @@ export const EXPERT_STORE_LABEL = STORE_LABEL;
 export const EXPERT_PLAZA_LABEL = EXPERT_STORE_LABEL;
 
 /**
- * 一级导航中团队资产文案。
+ * 一级导航中我的专区文案。
  */
-export const TEAM_ASSETS_LABEL = "团队资产";
+export const TEAM_ASSETS_LABEL = "我的专区";
 export const TEAM_EXPERTS_LABEL = TEAM_ASSETS_LABEL;
 
 /**

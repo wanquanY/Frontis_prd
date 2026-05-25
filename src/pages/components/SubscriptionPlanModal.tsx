@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { Button, Input, InputNumber, Modal } from "antd";
 import classNames from "classnames";
@@ -10,7 +10,6 @@ import {
   getMockSubscriptionPlanPurchaseOption,
   getMockTenantActiveSubscriptionBillingCycle,
   getMockTenantActiveSubscriptionContractCode,
-  getMockSubscriptionPricingPolicy,
 } from "@/feature/subscription/mockSubscriptionPlans";
 import type {
   MockSubscriptionBillingCycle,
@@ -93,7 +92,6 @@ export const SubscriptionPlanModal = ({
   onClose,
   onSelectPlan,
 }: SubscriptionPlanModalProps): JSX.Element => {
-  const pricingPolicy = getMockSubscriptionPricingPolicy();
   const [billingCycle, setBillingCycle] = useState<MockSubscriptionBillingCycle>("monthly");
   const [seatCount, setSeatCount] = useState<number>(1);
   const [contractCode, setContractCode] = useState<string>("");
@@ -116,9 +114,20 @@ export const SubscriptionPlanModal = ({
   const isCurrentLite = currentPlanKey === "lite";
   const defaultSeatCount = isRenewMode ? Math.max(tenantSnapshot?.totalSeats ?? 1, 1) : 1;
   const seatFieldLabel = isRenewMode ? "续约席位" : "新增席位";
-  const teamSeatPackage =
-    getActiveMockSubscriptionPlanTemplates()[0] ??
-    getMockSubscriptionPlanTemplate("team-seat-package");
+  const teamSeatPackage = useMemo(
+    () =>
+      getActiveMockSubscriptionPlanTemplates()[0] ??
+      getMockSubscriptionPlanTemplate("team-seat-package"),
+    [open],
+  );
+  const enabledSpecs = useMemo(
+    () => teamSeatPackage.specs.filter(item => item.enabled),
+    [teamSeatPackage.specs],
+  );
+  const defaultBillingCycle: MockSubscriptionBillingCycle =
+    enabledSpecs[0]?.billingCycle ?? "monthly";
+  const activeBillingSpec =
+    enabledSpecs.find(item => item.billingCycle === billingCycle) ?? enabledSpecs[0] ?? null;
   const currentSeatCount = tenantSnapshot?.totalSeats ?? 1;
   const usedSeatCount = tenantSnapshot?.usedSeats ?? 1;
 
@@ -127,27 +136,48 @@ export const SubscriptionPlanModal = ({
       return;
     }
 
-    setBillingCycle(lockedAddSeatBillingCycle ?? "monthly");
+    const nextBillingCycle = lockedAddSeatBillingCycle ?? defaultBillingCycle;
+    const nextBillingSpec =
+      enabledSpecs.find(item => item.billingCycle === nextBillingCycle) ?? enabledSpecs[0] ?? null;
+
+    setBillingCycle(nextBillingCycle);
     setSeatCount(defaultSeatCount);
-    setContractCode(lockedAddSeatContractCode);
-  }, [defaultSeatCount, lockedAddSeatBillingCycle, lockedAddSeatContractCode, open]);
+    setContractCode(nextBillingSpec?.contractPriceEnabled ? lockedAddSeatContractCode : "");
+  }, [
+    defaultBillingCycle,
+    defaultSeatCount,
+    enabledSpecs,
+    lockedAddSeatBillingCycle,
+    lockedAddSeatContractCode,
+    open,
+  ]);
 
   const handleSelectBillingCycle = (nextBillingCycle: MockSubscriptionBillingCycle): void => {
     if (lockedAddSeatBillingCycle) {
       return;
     }
 
+    const nextBillingSpec = enabledSpecs.find(item => item.billingCycle === nextBillingCycle);
+
+    if (!nextBillingSpec) {
+      return;
+    }
+
     setBillingCycle(nextBillingCycle);
 
-    if (nextBillingCycle === "monthly") {
+    if (!nextBillingSpec.contractPriceEnabled) {
       setContractCode("");
     }
   };
 
   const handleSubmit = (): void => {
+    if (!purchasePreview) {
+      return;
+    }
+
     onSelectPlan({
       billingCycle,
-      contractCode,
+      contractCode: activeBillingSpec?.contractPriceEnabled ? contractCode : "",
       purchaseMode,
       seatCount,
     });
@@ -201,18 +231,24 @@ export const SubscriptionPlanModal = ({
             </span>
           </div>
           <div className={styles.priceGrid}>
-            <div>
-              <span>月付</span>
-              <strong>¥{pricingPolicy.proMonthlySeatPrice} / 席 / 月</strong>
-            </div>
-            <div>
-              <span>年付</span>
-              <strong>¥{pricingPolicy.proYearlySeatPrice} / 席 / 年</strong>
-            </div>
-            <div>
-              <span>年付签约价</span>
-              <strong>¥{pricingPolicy.enterpriseYearlySeatPrice} / 席 / 年</strong>
-            </div>
+            {enabledSpecs.map(spec => (
+              <div key={spec.key}>
+                <span>{spec.title}</span>
+                <strong>
+                  ¥{spec.priceAmount} / 席 / {spec.validityUnit === "month" ? "月" : "年"}
+                </strong>
+              </div>
+            ))}
+            {enabledSpecs
+              .filter(spec => spec.contractPriceEnabled)
+              .map(spec => (
+                <div key={`${spec.key}-contract`}>
+                  <span>{spec.title}签约价</span>
+                  <strong>
+                    ¥{spec.contractPriceAmount} / 席 / {spec.validityUnit === "month" ? "月" : "年"}
+                  </strong>
+                </div>
+              ))}
           </div>
           <div className={styles.purchaseForm}>
             <div className={styles.formField}>
@@ -231,33 +267,25 @@ export const SubscriptionPlanModal = ({
               />
             </div>
             <div className={styles.formField}>
-              <span className={styles.fieldLabel}>付费方式</span>
+              <span className={styles.fieldLabel}>购买规格</span>
               <div className={styles.cycleSwitch}>
-                <button
-                  type="button"
-                  className={classNames(
-                    styles.cycleButton,
-                    billingCycle === "monthly" && styles.cycleButtonActive,
-                  )}
-                  disabled={Boolean(lockedAddSeatBillingCycle)}
-                  onClick={() => handleSelectBillingCycle("monthly")}
-                >
-                  按月支付
-                </button>
-                <button
-                  type="button"
-                  className={classNames(
-                    styles.cycleButton,
-                    billingCycle === "yearly" && styles.cycleButtonActive,
-                  )}
-                  disabled={Boolean(lockedAddSeatBillingCycle)}
-                  onClick={() => handleSelectBillingCycle("yearly")}
-                >
-                  按年支付
-                </button>
+                {enabledSpecs.map(spec => (
+                  <button
+                    key={spec.key}
+                    type="button"
+                    className={classNames(
+                      styles.cycleButton,
+                      billingCycle === spec.billingCycle && styles.cycleButtonActive,
+                    )}
+                    disabled={Boolean(lockedAddSeatBillingCycle)}
+                    onClick={() => handleSelectBillingCycle(spec.billingCycle)}
+                  >
+                    {spec.billingCycleLabel}
+                  </button>
+                ))}
               </div>
             </div>
-            {billingCycle === "yearly" ? (
+            {activeBillingSpec?.contractPriceEnabled ? (
               <div className={styles.formField}>
                 <span className={styles.fieldLabel}>签约码</span>
                 <Input
@@ -323,7 +351,12 @@ export const SubscriptionPlanModal = ({
             </div>
           ) : null}
 
-          <Button type="primary" className={styles.proAction} onClick={handleSubmit}>
+          <Button
+            type="primary"
+            className={styles.proAction}
+            disabled={!purchasePreview}
+            onClick={handleSubmit}
+          >
             {isRenewMode ? "去续约" : "去支付"}
           </Button>
         </section>

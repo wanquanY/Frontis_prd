@@ -53,7 +53,7 @@ interface UseMockAuthResult {
   resolveSessionPath: typeof resolveSessionEntryPath;
 }
 
-const DEFAULT_NEW_USER_REDIRECT_PATH = "/web/employee/meta-agent?from=register";
+const DEFAULT_NEW_USER_REDIRECT_PATH = "/web/employee/expert-studio?from=register";
 const DEFAULT_MOCK_VERIFICATION_CODE = "123456";
 
 const normalizePhone = (phone: string): string => phone.replace(/\s+/g, "").trim();
@@ -335,7 +335,7 @@ export const useMockAuth = (): UseMockAuthResult => {
         message: "注册成功，请设置登录密码。",
         account: payload.account,
         requiresPasswordSetup: true,
-        redirectPath: "/web/employee/meta-agent",
+        redirectPath: "/web/employee/expert-studio",
       };
     },
     [refreshMockAccounts],

@@ -13,6 +13,12 @@ import type { SubscriptionPlanPurchaseOption } from "./SubscriptionPlanModal";
 import styles from "./SubscriptionPlanPaymentModal.module.less";
 
 type SubscriptionPaymentStep = "pay" | "success";
+type PaymentMethod = "alipay" | "wechat";
+
+const PAYMENT_METHOD_OPTIONS: Array<{ key: PaymentMethod; label: string }> = [
+  { key: "alipay", label: "支付宝" },
+  { key: "wechat", label: "微信支付" },
+];
 
 interface SubscriptionPlanPaymentModalProps {
   currentPlanLabel: string;
@@ -40,16 +46,22 @@ export const SubscriptionPlanPaymentModal = ({
   );
   const [isProcessingPayment, setIsProcessingPayment] = useState<boolean>(false);
   const [orderId, setOrderId] = useState<string>("");
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("alipay");
 
   const qrImage = useMemo<string>(
-    () => buildMockPaymentQr(`${plan?.planKey ?? "none"}-${plan?.amount ?? 0}-${orderId}`),
-    [orderId, plan?.amount, plan?.planKey],
+    () =>
+      buildMockPaymentQr(
+        `${plan?.planKey ?? "none"}-${plan?.amount ?? 0}-${paymentMethod}-${orderId}`,
+      ),
+    [orderId, paymentMethod, plan?.amount, plan?.planKey],
   );
   const isQrExpired = countdownSeconds <= 0;
   const isRenewMode = plan?.purchaseMode === "renew";
   const qrCountdownLabel = isQrExpired
     ? "二维码已失效"
     : `${formatMockPaymentCountdown(countdownSeconds)} 后二维码失效`;
+  const paymentMethodLabel =
+    PAYMENT_METHOD_OPTIONS.find(item => item.key === paymentMethod)?.label ?? "支付宝";
 
   useEffect(() => {
     if (!open || !plan) {
@@ -59,6 +71,7 @@ export const SubscriptionPlanPaymentModal = ({
     setCurrentStep("pay");
     setCountdownSeconds(MOCK_PAYMENT_QR_COUNTDOWN_SECONDS);
     setIsProcessingPayment(false);
+    setPaymentMethod("alipay");
     setOrderId(buildMockPaymentOrderId(`SUB-${plan.planKey}`));
   }, [open, plan]);
 
@@ -99,7 +112,10 @@ export const SubscriptionPlanPaymentModal = ({
     setIsProcessingPayment(true);
 
     window.setTimeout(() => {
-      const purchaseSucceeded = onConfirmPayment(plan);
+      const purchaseSucceeded = onConfirmPayment({
+        ...plan,
+        paymentChannelLabel: `${paymentMethodLabel}支付`,
+      });
 
       if (!purchaseSucceeded) {
         setIsProcessingPayment(false);
@@ -109,7 +125,7 @@ export const SubscriptionPlanPaymentModal = ({
       setCurrentStep("success");
       setIsProcessingPayment(false);
     }, 700);
-  }, [isProcessingPayment, isQrExpired, onConfirmPayment, plan]);
+  }, [isProcessingPayment, isQrExpired, onConfirmPayment, paymentMethodLabel, plan]);
 
   return (
     <Modal
@@ -141,7 +157,7 @@ export const SubscriptionPlanPaymentModal = ({
                   <strong>{plan.planLabel}</strong>
                 </div>
                 <div className={styles.summaryRow}>
-                  <span>付费方式</span>
+                  <span>计费周期</span>
                   <strong>{plan.billingCycle === "monthly" ? "按月支付" : "按年支付"}</strong>
                 </div>
                 <div className={styles.summaryRow}>
@@ -184,7 +200,7 @@ export const SubscriptionPlanPaymentModal = ({
                 ) : null}
                 {plan.discountAmount > 0 ? (
                   <div className={styles.summaryRow}>
-                    <span>企业折扣</span>
+                    <span>签约优惠</span>
                     <strong>-¥{plan.discountAmount.toLocaleString("zh-CN")}</strong>
                   </div>
                 ) : null}
@@ -200,10 +216,29 @@ export const SubscriptionPlanPaymentModal = ({
               <section className={styles.paymentPanel}>
                 <div className={styles.paymentHeader}>
                   <div>
-                    <h3>支付宝 / 微信扫码支付 ¥{plan.amount.toLocaleString("zh-CN")}</h3>
+                    <h3>
+                      {paymentMethodLabel} ¥{plan.amount.toLocaleString("zh-CN")}
+                    </h3>
                     <span>订单号 {orderId}</span>
                   </div>
                   <strong>{qrCountdownLabel}</strong>
+                </div>
+                <div className={styles.paymentMethodGroup}>
+                  {PAYMENT_METHOD_OPTIONS.map(item => (
+                    <button
+                      key={item.key}
+                      type="button"
+                      className={`${styles.paymentMethodButton} ${
+                        item.key === paymentMethod ? styles.paymentMethodButtonActive : ""
+                      }`}
+                      onClick={() => {
+                        setPaymentMethod(item.key);
+                        handleRestartQr();
+                      }}
+                    >
+                      {item.label}
+                    </button>
+                  ))}
                 </div>
                 <button
                   type="button"
@@ -222,7 +257,7 @@ export const SubscriptionPlanPaymentModal = ({
                     ? `支付处理中，团队席位将在支付成功后${isRenewMode ? "续约" : "生效"}。`
                     : isQrExpired
                       ? "二维码已失效，请重新生成后支付。"
-                      : "请使用支付宝或微信扫码完成支付。"}
+                      : `请使用${paymentMethodLabel}扫码完成支付。`}
                 </div>
                 <ul className={styles.paymentNoticeList}>
                   <li>

@@ -1,16 +1,11 @@
 import { useMemo, useState } from "react";
 
-import { Button, Empty, Input, InputNumber, Modal, Select, Switch, message } from "antd";
+import { PlusOutlined } from "@ant-design/icons";
+import { Button, Empty, Input, InputNumber, Modal, Select, message } from "antd";
 import classNames from "classnames";
 
 import {
   OPERATIONS_METERING_STATUS_LABELS,
-  OPERATIONS_MODEL_INTERFACE_FORMAT_LABELS,
-  OPERATIONS_MODEL_INTERFACE_FORMAT_OPTIONS,
-  OPERATIONS_MODEL_MODALITY_LABELS,
-  OPERATIONS_MODEL_MODALITY_OPTIONS,
-  OPERATIONS_SERVICE_PRICING_MODE_LABELS,
-  createEmptyOperationsMeteringProviderForm,
   createEmptyOperationsModelServiceForm,
 } from "@/feature/operations/mockData";
 import {
@@ -19,13 +14,9 @@ import {
 } from "@/feature/operations/serviceMeteringUtils";
 import type {
   OperationsMeteringProvider,
-  OperationsMeteringProviderForm,
   OperationsMeteringStatus,
-  OperationsModelInterfaceFormat,
-  OperationsModelModality,
   OperationsModelService,
   OperationsModelServiceForm,
-  OperationsServicePricingMode,
 } from "@/feature/operations/types";
 import adminStyles from "@/pages/components/FrontisAdminViews.module.less";
 
@@ -34,17 +25,8 @@ import styles from "./OperationsPlatformView.module.less";
 interface OperationsResourceMeteringConsoleProps {
   meteringProviders: OperationsMeteringProvider[];
   modelServices: OperationsModelService[];
-  onCreateMeteringProvider: (form: OperationsMeteringProviderForm) => void;
   onCreateModelService: (form: OperationsModelServiceForm) => void;
-  onUpdateMeteringProvider: (providerId: string, form: OperationsMeteringProviderForm) => void;
   onUpdateModelService: (modelId: string, form: OperationsModelServiceForm) => void;
-}
-
-interface ProviderEditorState {
-  form: OperationsMeteringProviderForm;
-  mode: "create" | "edit";
-  open: boolean;
-  providerId?: string;
 }
 
 interface ModelEditorState {
@@ -54,15 +36,15 @@ interface ModelEditorState {
   open: boolean;
 }
 
+interface ModelTestState {
+  loading: boolean;
+  message: string;
+  status: "idle" | "success" | "error";
+}
+
 const METERING_STATUS_OPTIONS: Array<{ value: OperationsMeteringStatus; label: string }> = [
   { value: "active", label: OPERATIONS_METERING_STATUS_LABELS.active },
   { value: "inactive", label: OPERATIONS_METERING_STATUS_LABELS.inactive },
-];
-
-const PRICING_MODE_OPTIONS: Array<{ value: OperationsServicePricingMode; label: string }> = [
-  { value: "markup", label: OPERATIONS_SERVICE_PRICING_MODE_LABELS.markup },
-  { value: "grossMargin", label: OPERATIONS_SERVICE_PRICING_MODE_LABELS.grossMargin },
-  { value: "manual", label: OPERATIONS_SERVICE_PRICING_MODE_LABELS.manual },
 ];
 
 const buildStatusClassName = (status: OperationsMeteringStatus): string =>
@@ -71,34 +53,29 @@ const buildStatusClassName = (status: OperationsMeteringStatus): string =>
     [adminStyles.consoleStatusTagWarning]: status === "inactive",
   });
 
-const createProviderForm = (): OperationsMeteringProviderForm => ({
-  ...createEmptyOperationsMeteringProviderForm(),
-  providerKind: "largeModel",
-});
-
-const providerToForm = (provider: OperationsMeteringProvider): OperationsMeteringProviderForm => ({
-  name: provider.name,
-  providerKind: provider.providerKind,
-  baseUrl: provider.baseUrl,
-  billingCurrency: provider.billingCurrency,
-  credentialStatusLabel: provider.credentialStatusLabel,
-  status: provider.status,
-});
-
 const modelToForm = (model: OperationsModelService): OperationsModelServiceForm => ({
   providerId: model.providerId,
   modelCode: model.modelCode,
   modelName: model.modelName,
-  interfaceFormat: model.interfaceFormat,
-  modality: model.modality,
-  reasoningEnabled: model.reasoningEnabled,
   inputCostPerMillion: model.inputCostPerMillion,
   outputCostPerMillion: model.outputCostPerMillion,
-  pricingMode: model.pricingMode,
+  pricingMode: "markup",
   markupRate: model.markupRate,
   grossMarginRate: model.grossMarginRate,
-  inputSalePricePerMillion: model.inputSalePricePerMillion,
-  outputSalePricePerMillion: model.outputSalePricePerMillion,
+  inputSalePricePerMillion: calculateOperationsSalePrice(
+    model.inputCostPerMillion,
+    "markup",
+    model.markupRate,
+    0,
+    0,
+  ),
+  outputSalePricePerMillion: calculateOperationsSalePrice(
+    model.outputCostPerMillion,
+    "markup",
+    model.markupRate,
+    0,
+    0,
+  ),
   status: model.status,
 });
 
@@ -113,124 +90,120 @@ const createModelForm = (providerId: string): OperationsModelServiceForm => ({
 export const OperationsResourceMeteringConsole = ({
   meteringProviders,
   modelServices,
-  onCreateMeteringProvider,
   onCreateModelService,
-  onUpdateMeteringProvider,
   onUpdateModelService,
 }: OperationsResourceMeteringConsoleProps): JSX.Element => {
   const [keyword, setKeyword] = useState<string>("");
-  const [managedProviderId, setManagedProviderId] = useState<string>("");
-  const [providerEditor, setProviderEditor] = useState<ProviderEditorState>({
-    form: createProviderForm(),
-    mode: "create",
-    open: false,
-  });
   const [modelEditor, setModelEditor] = useState<ModelEditorState>({
     form: createModelForm(""),
     mode: "create",
     open: false,
+  });
+  const [modelTest, setModelTest] = useState<ModelTestState>({
+    loading: false,
+    message: "",
+    status: "idle",
   });
 
   const largeModelProviders = useMemo(
     () => meteringProviders.filter(provider => provider.providerKind === "largeModel"),
     [meteringProviders],
   );
-  const providerOptions = largeModelProviders.map(provider => ({
-    value: provider.id,
-    label: provider.name,
-  }));
-  const filteredModelProviders = useMemo(() => {
+  const filteredModels = useMemo(() => {
     const normalizedKeyword = keyword.trim().toLowerCase();
 
     if (!normalizedKeyword) {
-      return largeModelProviders;
+      return modelServices;
     }
 
-    return largeModelProviders.filter(provider => {
-      const providerModels = modelServices.filter(model => model.providerId === provider.id);
-      const searchText = [
-        provider.name,
-        provider.baseUrl,
-        provider.credentialStatusLabel,
-        ...providerModels.map(model => `${model.modelName} ${model.modelCode}`),
-      ]
-        .join(" ")
-        .toLowerCase();
+    return modelServices.filter(model => {
+      const searchText = [model.modelName, model.modelCode].join(" ").toLowerCase();
 
       return searchText.includes(normalizedKeyword);
     });
-  }, [keyword, largeModelProviders, modelServices]);
-  const managedProvider = largeModelProviders.find(provider => provider.id === managedProviderId);
-  const managedProviderModels = managedProvider
-    ? modelServices.filter(model => model.providerId === managedProvider.id)
-    : [];
+  }, [keyword, modelServices]);
   const modelPricePreview = useMemo(
     () => ({
       input: calculateOperationsSalePrice(
         modelEditor.form.inputCostPerMillion,
-        modelEditor.form.pricingMode,
+        "markup",
         modelEditor.form.markupRate,
-        modelEditor.form.grossMarginRate,
-        modelEditor.form.inputSalePricePerMillion,
+        0,
+        0,
       ),
       output: calculateOperationsSalePrice(
         modelEditor.form.outputCostPerMillion,
-        modelEditor.form.pricingMode,
+        "markup",
         modelEditor.form.markupRate,
-        modelEditor.form.grossMarginRate,
-        modelEditor.form.outputSalePricePerMillion,
+        0,
+        0,
       ),
     }),
-    [modelEditor.form],
+    [
+      modelEditor.form.inputCostPerMillion,
+      modelEditor.form.markupRate,
+      modelEditor.form.outputCostPerMillion,
+    ],
   );
-  const handleOpenCreateProvider = (): void => {
-    setProviderEditor({
-      form: createProviderForm(),
-      mode: "create",
-      open: true,
+  const resetModelTest = (): void => {
+    setModelTest({
+      loading: false,
+      message: "",
+      status: "idle",
     });
   };
 
-  const handleOpenEditProvider = (provider: OperationsMeteringProvider): void => {
-    setProviderEditor({
-      form: providerToForm(provider),
-      mode: "edit",
-      open: true,
-      providerId: provider.id,
+  const validateModelForm = (): boolean => {
+    if (!modelEditor.form.providerId) {
+      message.warning("请先配置大模型服务商。");
+      return false;
+    }
+
+    if (!modelEditor.form.modelName.trim()) {
+      message.warning("请填写模型名称。");
+      return false;
+    }
+
+    if (!modelEditor.form.modelCode.trim()) {
+      message.warning("请填写模型 ID。");
+      return false;
+    }
+
+    const hasDuplicateModel = modelServices.some(model => {
+      const isSameRecord = modelEditor.mode === "edit" && model.id === modelEditor.modelId;
+
+      return (
+        !isSameRecord &&
+        model.providerId === modelEditor.form.providerId &&
+        model.modelCode.trim().toLowerCase() === modelEditor.form.modelCode.trim().toLowerCase()
+      );
     });
+
+    if (hasDuplicateModel) {
+      message.warning("该服务商下已存在相同模型 ID。");
+      return false;
+    }
+
+    return true;
   };
 
-  const handleCloseProviderEditor = (): void => {
-    setProviderEditor({
-      form: createProviderForm(),
-      mode: "create",
-      open: false,
-    });
-  };
+  const handleOpenCreateModel = (): void => {
+    const defaultProviderId =
+      largeModelProviders.find(provider => provider.status === "active")?.id ??
+      largeModelProviders[0]?.id ??
+      "";
 
-  const handleConfirmProvider = (): void => {
-    if (!providerEditor.form.name.trim()) {
-      message.warning("请填写服务商名称。");
+    if (!defaultProviderId) {
+      message.warning("请先配置大模型服务商。");
       return;
     }
 
-    if (providerEditor.mode === "edit" && providerEditor.providerId) {
-      onUpdateMeteringProvider(providerEditor.providerId, providerEditor.form);
-      message.success("服务商已更新。");
-    } else {
-      onCreateMeteringProvider(providerEditor.form);
-      message.success("服务商已添加。");
-    }
-
-    handleCloseProviderEditor();
-  };
-
-  const handleOpenCreateModel = (providerId: string): void => {
     setModelEditor({
-      form: createModelForm(providerId),
+      form: createModelForm(defaultProviderId),
       mode: "create",
       open: true,
     });
+    resetModelTest();
   };
 
   const handleOpenEditModel = (model: OperationsModelService): void => {
@@ -240,6 +213,7 @@ export const OperationsResourceMeteringConsole = ({
       modelId: model.id,
       open: true,
     });
+    resetModelTest();
   };
 
   const handleCloseModelEditor = (): void => {
@@ -248,24 +222,85 @@ export const OperationsResourceMeteringConsole = ({
       mode: "create",
       open: false,
     });
+    resetModelTest();
   };
 
-  const handleConfirmModel = (): void => {
-    if (!modelEditor.form.providerId) {
-      message.warning("请选择模型服务商。");
+  const handleTestModel = (): void => {
+    if (!validateModelForm()) {
       return;
     }
 
-    if (!modelEditor.form.modelName.trim() || !modelEditor.form.modelCode.trim()) {
-      message.warning("请填写模型名称和模型 ID。");
+    const selectedProvider = largeModelProviders.find(
+      provider => provider.id === modelEditor.form.providerId,
+    );
+
+    if (!selectedProvider) {
+      setModelTest({
+        loading: false,
+        message: "测试失败：未找到模型服务商。",
+        status: "error",
+      });
+      return;
+    }
+
+    setModelTest({
+      loading: true,
+      message: "正在测试模型调用...",
+      status: "idle",
+    });
+
+    window.setTimeout(() => {
+      if (selectedProvider.status !== "active") {
+        setModelTest({
+          loading: false,
+          message: "测试失败：模型服务商已停用。",
+          status: "error",
+        });
+        return;
+      }
+
+      if (!selectedProvider.baseUrl.trim()) {
+        setModelTest({
+          loading: false,
+          message: "测试失败：模型服务商 Base URL 未配置。",
+          status: "error",
+        });
+        return;
+      }
+
+      if (!selectedProvider.credentialStatusLabel.trim()) {
+        setModelTest({
+          loading: false,
+          message: "测试失败：模型服务商凭证状态未配置。",
+          status: "error",
+        });
+        return;
+      }
+
+      setModelTest({
+        loading: false,
+        message: `测试通过：${modelEditor.form.modelName.trim()} 可正常调用。`,
+        status: "success",
+      });
+    }, 720);
+  };
+
+  const handleConfirmModel = (): void => {
+    if (!validateModelForm()) {
       return;
     }
 
     if (modelEditor.mode === "edit" && modelEditor.modelId) {
-      onUpdateModelService(modelEditor.modelId, modelEditor.form);
+      onUpdateModelService(modelEditor.modelId, {
+        ...modelEditor.form,
+        pricingMode: "markup",
+      });
       message.success("模型资源已更新。");
     } else {
-      onCreateModelService(modelEditor.form);
+      onCreateModelService({
+        ...modelEditor.form,
+        pricingMode: "markup",
+      });
       message.success("模型资源已添加。");
     }
 
@@ -276,75 +311,89 @@ export const OperationsResourceMeteringConsole = ({
     <section className={adminStyles.consoleSection}>
       <div className={adminStyles.consoleSectionHeader}>
         <div className={adminStyles.consoleSectionHeaderMain}>
-          <h2 className={adminStyles.consoleSectionTitle}>大模型资源</h2>
+          <h2 className={adminStyles.consoleSectionTitle}>模型列表</h2>
         </div>
         <div className={adminStyles.consoleInlineActions}>
           <Input
             allowClear
             className={adminStyles.consoleInlineSearch}
-            placeholder="搜索服务商或模型"
+            placeholder="搜索模型名称或模型 ID"
             value={keyword}
             onChange={event => setKeyword(event.target.value)}
           />
-          <Button type="primary" onClick={handleOpenCreateProvider}>
-            添加模型服务商
+          <Button type="primary" icon={<PlusOutlined />} onClick={handleOpenCreateModel}>
+            添加模型
           </Button>
         </div>
       </div>
 
-      {filteredModelProviders.length ? (
+      {filteredModels.length ? (
         <div className={adminStyles.consoleHtmlTableWrap}>
           <table className={adminStyles.consoleHtmlTable}>
             <thead>
               <tr>
-                <th>服务商</th>
-                <th>API Key</th>
-                <th>Base URL</th>
-                <th>模型数</th>
+                <th>模型名称</th>
+                <th>模型 ID</th>
+                <th>输入成本 / 百万 Tokens</th>
+                <th>输出成本 / 百万 Tokens</th>
+                <th>销售策略</th>
+                <th>售价 / 百万 Tokens</th>
                 <th>状态</th>
                 <th>最近更新</th>
                 <th>操作</th>
               </tr>
             </thead>
             <tbody>
-              {filteredModelProviders.map(provider => {
-                const providerModels = modelServices.filter(
-                  model => model.providerId === provider.id,
-                );
-
-                return (
-                  <tr key={provider.id}>
-                    <td className={adminStyles.consoleHtmlTableStrong}>{provider.name}</td>
-                    <td>{provider.credentialStatusLabel || "未配置"}</td>
-                    <td>{provider.baseUrl || "-"}</td>
-                    <td>{providerModels.length} 个</td>
-                    <td>
-                      <span className={buildStatusClassName(provider.status)}>
-                        {OPERATIONS_METERING_STATUS_LABELS[provider.status]}
-                      </span>
-                    </td>
-                    <td>{provider.updatedAt}</td>
-                    <td>
-                      <div className={adminStyles.consoleActions}>
-                        <Button size="small" onClick={() => setManagedProviderId(provider.id)}>
-                          模型管理
-                        </Button>
-                        <Button size="small" onClick={() => handleOpenCreateModel(provider.id)}>
-                          添加模型
-                        </Button>
-                        <Button size="small" onClick={() => handleOpenEditProvider(provider)}>
-                          编辑
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
+              {filteredModels.map(model => (
+                <tr key={model.id}>
+                  <td className={adminStyles.consoleHtmlTableStrong}>{model.modelName}</td>
+                  <td>{model.modelCode}</td>
+                  <td>{formatOperationsCurrency(model.inputCostPerMillion)}</td>
+                  <td>{formatOperationsCurrency(model.outputCostPerMillion)}</td>
+                  <td>倍率 {model.markupRate.toLocaleString("zh-CN")}x</td>
+                  <td>
+                    输入{" "}
+                    {formatOperationsCurrency(
+                      calculateOperationsSalePrice(
+                        model.inputCostPerMillion,
+                        "markup",
+                        model.markupRate,
+                        0,
+                        0,
+                      ),
+                    )}
+                    <br />
+                    输出{" "}
+                    {formatOperationsCurrency(
+                      calculateOperationsSalePrice(
+                        model.outputCostPerMillion,
+                        "markup",
+                        model.markupRate,
+                        0,
+                        0,
+                      ),
+                    )}
+                  </td>
+                  <td>
+                    <span className={buildStatusClassName(model.status)}>
+                      {OPERATIONS_METERING_STATUS_LABELS[model.status]}
+                    </span>
+                  </td>
+                  <td>{model.updatedAt}</td>
+                  <td>
+                    <div className={adminStyles.consoleActions}>
+                      <Button size="small" onClick={() => handleOpenEditModel(model)}>
+                        配置
+                      </Button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>
       ) : (
-        <Empty description="暂无大模型服务商。" />
+        <Empty description="暂无模型配置。" />
       )}
     </section>
   );
@@ -361,158 +410,50 @@ export const OperationsResourceMeteringConsole = ({
 
       <Modal
         destroyOnHidden
-        open={providerEditor.open}
-        title={providerEditor.mode === "edit" ? "编辑服务商" : "添加服务商"}
-        width={720}
-        onCancel={handleCloseProviderEditor}
-        onOk={handleConfirmProvider}
-      >
-        <div className={styles.formGrid}>
-          <div className={styles.modalField}>
-            <span className={styles.modalLabel}>服务商名称</span>
-            <Input
-              value={providerEditor.form.name}
-              onChange={event =>
-                setProviderEditor(current => ({
-                  ...current,
-                  form: { ...current.form, name: event.target.value },
-                }))
-              }
-            />
-          </div>
-          <div className={styles.modalField}>
-            <span className={styles.modalLabel}>API Key</span>
-            <Input
-              value={providerEditor.form.credentialStatusLabel}
-              onChange={event =>
-                setProviderEditor(current => ({
-                  ...current,
-                  form: { ...current.form, credentialStatusLabel: event.target.value },
-                }))
-              }
-            />
-          </div>
-          <div className={styles.modalField}>
-            <span className={styles.modalLabel}>结算币种</span>
-            <Input
-              value={providerEditor.form.billingCurrency}
-              onChange={event =>
-                setProviderEditor(current => ({
-                  ...current,
-                  form: { ...current.form, billingCurrency: event.target.value },
-                }))
-              }
-            />
-          </div>
-          <div className={classNames(styles.modalField, styles.modalFieldWide)}>
-            <span className={styles.modalLabel}>Base URL</span>
-            <Input
-              value={providerEditor.form.baseUrl}
-              onChange={event =>
-                setProviderEditor(current => ({
-                  ...current,
-                  form: { ...current.form, baseUrl: event.target.value },
-                }))
-              }
-            />
-          </div>
-          <div className={styles.modalField}>
-            <span className={styles.modalLabel}>状态</span>
-            <Select<OperationsMeteringStatus>
-              value={providerEditor.form.status}
-              options={METERING_STATUS_OPTIONS}
-              onChange={value =>
-                setProviderEditor(current => ({
-                  ...current,
-                  form: { ...current.form, status: value },
-                }))
-              }
-            />
-          </div>
-        </div>
-      </Modal>
-
-      <Modal
-        destroyOnHidden
-        footer={null}
-        open={Boolean(managedProvider)}
-        title={managedProvider ? `模型管理 · ${managedProvider.name}` : "模型管理"}
-        width={920}
-        onCancel={() => setManagedProviderId("")}
-      >
-        {managedProvider ? (
-          <div className={styles.modalDetailStack}>
-            <div className={adminStyles.consoleActions}>
-              <Button type="primary" onClick={() => handleOpenCreateModel(managedProvider.id)}>
-                添加模型
-              </Button>
-            </div>
-            <div className={adminStyles.consoleHtmlTableWrap}>
-              <table className={adminStyles.consoleHtmlTable}>
-                <thead>
-                  <tr>
-                    <th>模型名称</th>
-                    <th>模型 ID</th>
-                    <th>接口格式</th>
-                    <th>模型能力</th>
-                    <th>推理</th>
-                    <th>成本价 / 百万 Tokens</th>
-                    <th>售价 / 百万 Tokens</th>
-                    <th>操作</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {managedProviderModels.map(model => (
-                    <tr key={model.id}>
-                      <td className={adminStyles.consoleHtmlTableStrong}>{model.modelName}</td>
-                      <td>{model.modelCode}</td>
-                      <td>{OPERATIONS_MODEL_INTERFACE_FORMAT_LABELS[model.interfaceFormat]}</td>
-                      <td>{OPERATIONS_MODEL_MODALITY_LABELS[model.modality]}</td>
-                      <td>{model.reasoningEnabled ? "是" : "否"}</td>
-                      <td>
-                        输入 {formatOperationsCurrency(model.inputCostPerMillion)}
-                        <br />
-                        输出 {formatOperationsCurrency(model.outputCostPerMillion)}
-                      </td>
-                      <td>
-                        输入 {formatOperationsCurrency(model.inputSalePricePerMillion)}
-                        <br />
-                        输出 {formatOperationsCurrency(model.outputSalePricePerMillion)}
-                      </td>
-                      <td>
-                        <Button size="small" type="link" onClick={() => handleOpenEditModel(model)}>
-                          编辑
-                        </Button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        ) : null}
-      </Modal>
-
-      <Modal
-        destroyOnHidden
         open={modelEditor.open}
-        title={modelEditor.mode === "edit" ? "编辑模型" : "添加模型"}
+        title={modelEditor.mode === "edit" ? "配置模型" : "添加模型"}
         width={920}
         onCancel={handleCloseModelEditor}
-        onOk={handleConfirmModel}
+        footer={
+          <div className={styles.modelEditorFooter}>
+            <div className={styles.modelEditorTestResult}>
+              {modelTest.status !== "idle" || modelTest.message ? (
+                <span
+                  className={classNames(adminStyles.consoleStatusTag, {
+                    [adminStyles.consoleStatusTagSuccess]: modelTest.status === "success",
+                    [adminStyles.consoleStatusTagWarning]:
+                      modelTest.status === "idle" || modelTest.status === "error",
+                  })}
+                >
+                  {modelTest.message}
+                </span>
+              ) : null}
+            </div>
+            <div className={styles.modelEditorFooterActions}>
+              <Button loading={modelTest.loading} onClick={handleTestModel}>
+                测试模型
+              </Button>
+              <Button onClick={handleCloseModelEditor}>取消</Button>
+              <Button type="primary" onClick={handleConfirmModel}>
+                确定
+              </Button>
+            </div>
+          </div>
+        }
       >
         <div className={styles.formGrid}>
           <div className={styles.modalField}>
-            <span className={styles.modalLabel}>模型服务商</span>
-            <Select<string>
-              value={modelEditor.form.providerId}
-              options={providerOptions}
-              onChange={value =>
+            <span className={styles.modalLabel}>模型 ID</span>
+            <Input
+              value={modelEditor.form.modelCode}
+              placeholder="例如 gpt-4.1"
+              onChange={event => {
                 setModelEditor(current => ({
                   ...current,
-                  form: { ...current.form, providerId: value },
-                }))
-              }
+                  form: { ...current.form, modelCode: event.target.value },
+                }));
+                resetModelTest();
+              }}
             />
           </div>
           <div className={styles.modalField}>
@@ -523,44 +464,6 @@ export const OperationsResourceMeteringConsole = ({
                 setModelEditor(current => ({
                   ...current,
                   form: { ...current.form, modelName: event.target.value },
-                }))
-              }
-            />
-          </div>
-          <div className={styles.modalField}>
-            <span className={styles.modalLabel}>模型 ID</span>
-            <Input
-              value={modelEditor.form.modelCode}
-              onChange={event =>
-                setModelEditor(current => ({
-                  ...current,
-                  form: { ...current.form, modelCode: event.target.value },
-                }))
-              }
-            />
-          </div>
-          <div className={styles.modalField}>
-            <span className={styles.modalLabel}>接口格式</span>
-            <Select<OperationsModelInterfaceFormat>
-              value={modelEditor.form.interfaceFormat}
-              options={OPERATIONS_MODEL_INTERFACE_FORMAT_OPTIONS}
-              onChange={value =>
-                setModelEditor(current => ({
-                  ...current,
-                  form: { ...current.form, interfaceFormat: value },
-                }))
-              }
-            />
-          </div>
-          <div className={styles.modalField}>
-            <span className={styles.modalLabel}>模型能力</span>
-            <Select<OperationsModelModality>
-              value={modelEditor.form.modality}
-              options={OPERATIONS_MODEL_MODALITY_OPTIONS}
-              onChange={value =>
-                setModelEditor(current => ({
-                  ...current,
-                  form: { ...current.form, modality: value },
                 }))
               }
             />
@@ -594,84 +497,15 @@ export const OperationsResourceMeteringConsole = ({
             />
           </div>
           <div className={styles.modalField}>
-            <span className={styles.modalLabel}>售价策略</span>
-            <Select<OperationsServicePricingMode>
-              value={modelEditor.form.pricingMode}
-              options={PRICING_MODE_OPTIONS}
-              onChange={value =>
-                setModelEditor(current => ({
-                  ...current,
-                  form: { ...current.form, pricingMode: value },
-                }))
-              }
-            />
-          </div>
-          <div className={styles.modalField}>
-            <span className={styles.modalLabel}>
-              {modelEditor.form.pricingMode === "grossMargin" ? "目标毛利率（%）" : "成本倍率（x）"}
-            </span>
+            <span className={styles.modalLabel}>成本倍率（x）</span>
             <InputNumber
               className={styles.fullWidthInput}
-              max={modelEditor.form.pricingMode === "grossMargin" ? 95 : undefined}
-              min={modelEditor.form.pricingMode === "grossMargin" ? 0 : 1}
-              value={
-                modelEditor.form.pricingMode === "grossMargin"
-                  ? modelEditor.form.grossMarginRate
-                  : modelEditor.form.markupRate
-              }
+              min={1}
+              value={modelEditor.form.markupRate}
               onChange={value =>
                 setModelEditor(current => ({
                   ...current,
-                  form:
-                    current.form.pricingMode === "grossMargin"
-                      ? { ...current.form, grossMarginRate: Number(value ?? 0) }
-                      : { ...current.form, markupRate: Number(value ?? 1) },
-                }))
-              }
-            />
-          </div>
-          {modelEditor.form.pricingMode === "manual" ? (
-            <>
-              <div className={styles.modalField}>
-                <span className={styles.modalLabel}>输入售价 / 百万 Tokens</span>
-                <InputNumber
-                  className={styles.fullWidthInput}
-                  min={0}
-                  value={modelEditor.form.inputSalePricePerMillion}
-                  onChange={value =>
-                    setModelEditor(current => ({
-                      ...current,
-                      form: { ...current.form, inputSalePricePerMillion: Number(value ?? 0) },
-                    }))
-                  }
-                />
-              </div>
-              <div className={styles.modalField}>
-                <span className={styles.modalLabel}>输出售价 / 百万 Tokens</span>
-                <InputNumber
-                  className={styles.fullWidthInput}
-                  min={0}
-                  value={modelEditor.form.outputSalePricePerMillion}
-                  onChange={value =>
-                    setModelEditor(current => ({
-                      ...current,
-                      form: { ...current.form, outputSalePricePerMillion: Number(value ?? 0) },
-                    }))
-                  }
-                />
-              </div>
-            </>
-          ) : null}
-          <div className={styles.modalField}>
-            <span className={styles.modalLabel}>推理</span>
-            <Switch
-              checked={modelEditor.form.reasoningEnabled}
-              checkedChildren="是"
-              unCheckedChildren="否"
-              onChange={checked =>
-                setModelEditor(current => ({
-                  ...current,
-                  form: { ...current.form, reasoningEnabled: checked },
+                  form: { ...current.form, markupRate: Number(value ?? 1), pricingMode: "markup" },
                 }))
               }
             />
@@ -702,7 +536,6 @@ export const OperationsResourceMeteringConsole = ({
           </div>
         </div>
       </Modal>
-
     </div>
   );
 };

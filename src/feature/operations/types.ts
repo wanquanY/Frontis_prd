@@ -371,16 +371,6 @@ export type OperationsMeteringStatus = "active" | "inactive";
 export type OperationsMeteringProviderKind = "largeModel";
 
 /**
- * 模型能力类型。
- */
-export type OperationsModelModality = "text" | "multimodal" | "embedding" | "image";
-
-/**
- * 模型接口格式。
- */
-export type OperationsModelInterfaceFormat = "anthropic" | "gemini" | "openai";
-
-/**
  * 服务定价模式。
  */
 export type OperationsServicePricingMode = "markup" | "grossMargin" | "manual";
@@ -422,12 +412,8 @@ export interface OperationsMeteringProviderForm {
 export interface OperationsModelService {
   id: string;
   providerId: string;
-  providerName: string;
   modelCode: string;
   modelName: string;
-  interfaceFormat: OperationsModelInterfaceFormat;
-  modality: OperationsModelModality;
-  reasoningEnabled: boolean;
   inputCostPerMillion: number;
   outputCostPerMillion: number;
   pricingMode: OperationsServicePricingMode;
@@ -446,9 +432,6 @@ export interface OperationsModelServiceForm {
   providerId: string;
   modelCode: string;
   modelName: string;
-  interfaceFormat: OperationsModelInterfaceFormat;
-  modality: OperationsModelModality;
-  reasoningEnabled: boolean;
   inputCostPerMillion: number;
   outputCostPerMillion: number;
   pricingMode: OperationsServicePricingMode;

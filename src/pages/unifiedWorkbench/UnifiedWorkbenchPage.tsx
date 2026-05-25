@@ -9,11 +9,11 @@ import {
   MenuFoldOutlined,
   MenuUnfoldOutlined,
   MessageOutlined,
-  RobotOutlined,
+  MoreOutlined,
   TeamOutlined,
 } from "@ant-design/icons";
 import type { MenuProps } from "antd";
-import { Avatar, Dropdown, message } from "antd";
+import { Avatar, Dropdown, Input, Modal, message } from "antd";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 
 import {
@@ -36,13 +36,16 @@ import {
   EXPERT_PLAZA_LABEL,
   EXPERT_STUDIO_LABEL,
   MANAGEMENT_CONSOLE_LABEL,
-  MA_WORKBENCH_LABEL,
   PRODUCT_LOGO_URL,
   PRODUCT_NAME,
   PRODUCT_SLOGAN,
   TEAM_EXPERTS_LABEL,
 } from "@/constants/brand";
 import { AccountDropdownPanel } from "@/pages/components/AccountDropdownPanel";
+import type {
+  WorkbenchConversationNavGroup,
+  WorkbenchConversationNavState,
+} from "@/pages/FrontisPage";
 import {
   resolveSubscriptionPlanKey,
   resolveSubscriptionPlanLabel,
@@ -58,12 +61,7 @@ import type { FrontisWebRole } from "@/pages/types";
 
 import styles from "./UnifiedWorkbenchPage.module.less";
 
-type UnifiedWorkbenchTabKey =
-  | "metaAgent"
-  | "expertStudio"
-  | "evolutionLab"
-  | "agentStore"
-  | "teamExperts";
+type UnifiedWorkbenchTabKey = "expertStudio" | "evolutionLab" | "agentStore" | "teamExperts";
 
 interface UnifiedWorkbenchPageProps {
   viewRole: FrontisWebRole;
@@ -76,7 +74,7 @@ interface UnifiedWorkbenchNavItem {
   icon: JSX.Element;
 }
 
-const DEFAULT_TAB_KEY: UnifiedWorkbenchTabKey = "metaAgent";
+const DEFAULT_TAB_KEY: UnifiedWorkbenchTabKey = "expertStudio";
 const FrontisPage = lazy(() => import("@/pages/FrontisPage"));
 const EvolutionLabView = lazy(() =>
   import("@/feature/workbenchLab/components/EvolutionLabView").then(module => ({
@@ -89,23 +87,17 @@ const AssetCatalogView = lazy(() =>
   })),
 );
 const TAB_SEGMENTS: Record<UnifiedWorkbenchTabKey, string> = {
-  metaAgent: "meta-agent",
   expertStudio: "expert-studio",
   evolutionLab: "evolution-lab",
   agentStore: "agent-store",
   teamExperts: "team-experts",
 };
+const MOBILE_WORKBENCH_BREAKPOINT = 900;
 const TAB_ITEMS: UnifiedWorkbenchNavItem[] = [
-  {
-    key: "metaAgent",
-    label: MA_WORKBENCH_LABEL,
-    description: "默认协同入口，持续承接同一条工作线程。",
-    icon: <RobotOutlined />,
-  },
   {
     key: "expertStudio",
     label: EXPERT_STUDIO_LABEL,
-    description: "进入其他 AI 专家的多 topic 工作模式。",
+    description: "以 ME 为入口创建多 topic 会话，并调度可用 AI 专家。",
     icon: <MessageOutlined />,
   },
   {
@@ -127,9 +119,129 @@ const TAB_ITEMS: UnifiedWorkbenchNavItem[] = [
     icon: <CodeOutlined />,
   },
 ];
+
+const DEFAULT_WORKBENCH_TASK_RECORD_GROUPS: WorkbenchConversationNavGroup[] = [
+  {
+    employeeId: "employee-writer",
+    employeeName: "ME",
+    sessions: [
+      {
+        id: "dialogue-seed-metaagent-collab",
+        title: "ME 持续对话",
+        updatedAt: "11:22",
+        active: false,
+      },
+      {
+        id: "dialogue-seed-metaagent-weekly-task-plan",
+        title: "本周任务编排",
+        updatedAt: "今天 20:12",
+        active: false,
+      },
+      {
+        id: "dialogue-seed-metaagent-store-experience",
+        title: "商店体验优化",
+        updatedAt: "今天 20:27",
+        active: false,
+      },
+      {
+        id: "dialogue-seed-metaagent-expert-detail-rules",
+        title: "专家详情规则梳理",
+        updatedAt: "今天 20:43",
+        active: false,
+      },
+      {
+        id: "dialogue-seed-metaagent-skill-file-preview",
+        title: "技能文件预览校准",
+        updatedAt: "今天 21:01",
+        active: false,
+      },
+      {
+        id: "dialogue-seed-metaagent-task-record-menu",
+        title: "任务记录菜单调整",
+        updatedAt: "今天 21:18",
+        active: false,
+      },
+      {
+        id: "dialogue-seed-metaagent-evolution-data",
+        title: "进化数据口径复盘",
+        updatedAt: "今天 21:36",
+        active: false,
+      },
+    ],
+  },
+  {
+    employeeId: "team-shared-sales-script",
+    employeeName: "销售话术助手",
+    sessions: [
+      {
+        id: "dialogue-seed-sales-script-intent",
+        title: "客户异议话术整理",
+        updatedAt: "今天 20:18",
+        active: false,
+      },
+    ],
+  },
+  {
+    employeeId: "team-shared-opportunity",
+    employeeName: "商机跟进提醒",
+    sessions: [
+      {
+        id: "dialogue-seed-opportunity-stalled",
+        title: "重点商机停滞预警",
+        updatedAt: "今天 20:36",
+        active: false,
+      },
+    ],
+  },
+  {
+    employeeId: "team-shared-delivery",
+    employeeName: "项目交付助手",
+    sessions: [
+      {
+        id: "dialogue-seed-delivery-weekly-risk",
+        title: "本周交付风险周报",
+        updatedAt: "今天 20:52",
+        active: false,
+      },
+    ],
+  },
+];
+
+const formatTaskRecordTime = (updatedAt: string): string => {
+  const normalizedTime = updatedAt.trim();
+
+  if (!normalizedTime) {
+    return "";
+  }
+
+  const todayTimeMatch = /^今天\s+(\d{1,2}:\d{2})$/.exec(normalizedTime);
+  if (todayTimeMatch) {
+    return todayTimeMatch[1];
+  }
+
+  if (/^\d{1,2}:\d{2}$/.test(normalizedTime) || normalizedTime === "刚刚") {
+    return normalizedTime;
+  }
+
+  if (normalizedTime === "昨天" || /^昨天\s+\d{1,2}:\d{2}$/.test(normalizedTime)) {
+    return "1 天";
+  }
+
+  const dayOffsetMatch = /^(\d+)天前$/.exec(normalizedTime);
+  if (dayOffsetMatch) {
+    return `${dayOffsetMatch[1]} 天`;
+  }
+
+  return normalizedTime;
+};
+
 const getTabKeyFromPath = (tabPath?: string): UnifiedWorkbenchTabKey | null => {
   if (!tabPath) {
     return null;
+  }
+
+  if (tabPath === "meta-agent") {
+    return DEFAULT_TAB_KEY;
   }
 
   const matchedItem = TAB_ITEMS.find(item => TAB_SEGMENTS[item.key] === tabPath);
@@ -145,7 +257,7 @@ const getUnifiedWorkbenchPath = (
 };
 
 /**
- * 统一用户端页面，聚合 ME、专家列表、商店、团队资产与进化实验室。
+ * 统一用户端页面，聚合新任务、商店、我的专区与进化实验室。
  */
 export const UnifiedWorkbenchPage = ({ viewRole }: UnifiedWorkbenchPageProps): JSX.Element => {
   const location = useLocation();
@@ -156,6 +268,9 @@ export const UnifiedWorkbenchPage = ({ viewRole }: UnifiedWorkbenchPageProps): J
   const isAdminIdentity = activeIdentity?.role === "admin" || session?.role === "admin";
   const [isAccountMenuOpen, setIsAccountMenuOpen] = useState<boolean>(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(false);
+  const [viewportWidth, setViewportWidth] = useState<number>(
+    typeof window === "undefined" ? 1440 : window.innerWidth,
+  );
   const [isPointsRechargeModalOpen, setIsPointsRechargeModalOpen] = useState<boolean>(false);
   const [isSubscriptionPlanModalOpen, setIsSubscriptionPlanModalOpen] = useState<boolean>(false);
   const [pendingSubscriptionPurchase, setPendingSubscriptionPurchase] =
@@ -163,6 +278,22 @@ export const UnifiedWorkbenchPage = ({ viewRole }: UnifiedWorkbenchPageProps): J
   const [subscriptionPlanOverrideKey, setSubscriptionPlanOverrideKey] =
     useState<SubscriptionPlanKey | null>(null);
   const [tenantSnapshotRevision, setTenantSnapshotRevision] = useState<number>(0);
+  const [expertStudioResetKey, setExpertStudioResetKey] = useState<number>(0);
+  const [conversationNavState, setConversationNavState] =
+    useState<WorkbenchConversationNavState | null>(null);
+  const [fallbackTaskRecordGroups, setFallbackTaskRecordGroups] = useState<
+    WorkbenchConversationNavGroup[]
+  >(() => DEFAULT_WORKBENCH_TASK_RECORD_GROUPS);
+  const [pendingConversationSessionId, setPendingConversationSessionId] = useState<string | null>(
+    null,
+  );
+  const [pendingWorkbenchAgentId, setPendingWorkbenchAgentId] = useState<string | null>(null);
+  const [expandedConversationGroupIds, setExpandedConversationGroupIds] = useState<
+    Record<string, boolean>
+  >({});
+  const [collapsedConversationGroupIds, setCollapsedConversationGroupIds] = useState<
+    Record<string, boolean>
+  >({});
 
   const routeTab = useMemo<UnifiedWorkbenchTabKey | null>(
     () => getTabKeyFromPath(tabPath),
@@ -189,6 +320,15 @@ export const UnifiedWorkbenchPage = ({ viewRole }: UnifiedWorkbenchPageProps): J
     ? resolveSubscriptionPlanLabel(tenantSnapshot, currentSubscriptionPlanKey)
     : undefined;
   const pendingSubscriptionPlan = pendingSubscriptionPurchase;
+  const isMobileWorkbench = viewportWidth <= MOBILE_WORKBENCH_BREAKPOINT;
+
+  useEffect(() => {
+    const handleResize = (): void => setViewportWidth(window.innerWidth);
+
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   useEffect(() => {
     setSubscriptionPlanOverrideKey(null);
@@ -210,6 +350,7 @@ export const UnifiedWorkbenchPage = ({ viewRole }: UnifiedWorkbenchPageProps): J
 
     setIsPointsRechargeModalOpen(false);
   }, [isTenantPointsBilling]);
+
   useEffect(() => {
     if (routeTab) {
       return;
@@ -217,6 +358,14 @@ export const UnifiedWorkbenchPage = ({ viewRole }: UnifiedWorkbenchPageProps): J
 
     navigate(getUnifiedWorkbenchPath(viewRole, DEFAULT_TAB_KEY), { replace: true });
   }, [navigate, routeTab, viewRole]);
+
+  useEffect(() => {
+    if (tabPath !== "meta-agent") {
+      return;
+    }
+
+    navigate(getUnifiedWorkbenchPath(viewRole, DEFAULT_TAB_KEY), { replace: true });
+  }, [navigate, tabPath, viewRole]);
 
   const handleLogout = useCallback((): void => {
     const redirectPath = `${location.pathname}${location.search}`;
@@ -442,22 +591,138 @@ export const UnifiedWorkbenchPage = ({ viewRole }: UnifiedWorkbenchPageProps): J
   const handleNavigateTab = useCallback(
     (tabKey: UnifiedWorkbenchTabKey): void => {
       if (tabKey === activeTab) {
+        if (tabKey === "expertStudio") {
+          setExpertStudioResetKey(current => current + 1);
+        }
         return;
       }
 
+      if (tabKey === "expertStudio") {
+        setExpertStudioResetKey(current => current + 1);
+      }
       navigate(getUnifiedWorkbenchPath(viewRole, tabKey));
     },
     [activeTab, navigate, viewRole],
   );
 
+  const handleUseWorkbenchAgent = useCallback(
+    (agentId: string): void => {
+      setPendingWorkbenchAgentId(agentId);
+      handleNavigateTab("expertStudio");
+    },
+    [handleNavigateTab],
+  );
+
+  const handleRenameConversationSession = useCallback(
+    (sessionId: string, title: string): void => {
+      let nextTitle = title;
+      Modal.confirm({
+        title: "重命名任务",
+        icon: null,
+        content: (
+          <Input
+            defaultValue={title}
+            autoFocus={true}
+            maxLength={30}
+            onChange={event => {
+              nextTitle = event.target.value;
+            }}
+          />
+        ),
+        okText: "保存",
+        cancelText: "取消",
+        onOk: () => {
+          const normalizedTitle = nextTitle.trim();
+          if (!normalizedTitle) {
+            message.warning("任务名称不能为空。");
+            return Promise.reject();
+          }
+
+          if (conversationNavState) {
+            conversationNavState.onRenameSession(sessionId, normalizedTitle);
+          } else {
+            setFallbackTaskRecordGroups(currentGroups =>
+              currentGroups.map(group => ({
+                ...group,
+                sessions: group.sessions.map(session =>
+                  session.id === sessionId ? { ...session, title: normalizedTitle } : session,
+                ),
+              })),
+            );
+          }
+
+          return undefined;
+        },
+      });
+    },
+    [conversationNavState],
+  );
+
+  const handleRemoveConversationSession = useCallback(
+    (sessionId: string): void => {
+      Modal.confirm({
+        title: "删除任务",
+        content: "删除后，该任务记录不可恢复。",
+        okText: "删除",
+        okButtonProps: { danger: true },
+        cancelText: "取消",
+        onOk: () => {
+          if (conversationNavState) {
+            conversationNavState.onRemoveSession(sessionId);
+            return;
+          }
+
+          setFallbackTaskRecordGroups(currentGroups =>
+            currentGroups
+              .map(group => ({
+                ...group,
+                sessions: group.sessions.filter(session => session.id !== sessionId),
+              }))
+              .filter(group => group.sessions.length > 0),
+          );
+        },
+      });
+    },
+    [conversationNavState],
+  );
+
+  const handleSelectConversationSession = useCallback(
+    (sessionId: string): void => {
+      if (activeTab !== "expertStudio") {
+        setPendingConversationSessionId(sessionId);
+        navigate(getUnifiedWorkbenchPath(viewRole, "expertStudio"));
+        return;
+      }
+
+      if (conversationNavState) {
+        conversationNavState.onSelectSession(sessionId);
+      } else {
+        setPendingConversationSessionId(sessionId);
+      }
+    },
+    [activeTab, conversationNavState, navigate, viewRole],
+  );
+
+  const visibleTaskRecordGroups = conversationNavState?.groups ?? fallbackTaskRecordGroups;
   const featureAccountName = activeIdentity?.subjectName ?? session?.name ?? "当前账号";
   const activeContent = useMemo((): JSX.Element => {
-    if (activeTab === "metaAgent") {
-      return <FrontisPage viewRole={viewRole} embedded={true} workspaceMode="metaAgent" />;
-    }
-
     if (activeTab === "expertStudio") {
-      return <FrontisPage viewRole={viewRole} embedded={true} workspaceMode="expertStudio" />;
+      return (
+        <FrontisPage
+          key={`expert-studio-${expertStudioResetKey}`}
+          viewRole={viewRole}
+          embedded={true}
+          resetSignal={expertStudioResetKey}
+          workspaceMode="expertStudio"
+          pendingWorkbenchConversationSessionId={pendingConversationSessionId}
+          onPendingWorkbenchConversationSessionConsumed={() =>
+            setPendingConversationSessionId(null)
+          }
+          pendingWorkbenchAgentId={pendingWorkbenchAgentId}
+          onPendingWorkbenchAgentConsumed={() => setPendingWorkbenchAgentId(null)}
+          onWorkbenchConversationNavChange={setConversationNavState}
+        />
+      );
     }
 
     if (activeTab === "evolutionLab") {
@@ -465,21 +730,26 @@ export const UnifiedWorkbenchPage = ({ viewRole }: UnifiedWorkbenchPageProps): J
     }
 
     if (activeTab === "agentStore") {
-      return <AssetCatalogView mode="store" />;
+      return <AssetCatalogView mode="store" onUseAgent={handleUseWorkbenchAgent} />;
     }
 
     if (activeTab === "teamExperts") {
-      return <AssetCatalogView mode="team" />;
+      return <AssetCatalogView mode="team" onUseAgent={handleUseWorkbenchAgent} />;
     }
 
     return <FrontisPage viewRole={viewRole} embedded={true} />;
-  }, [activeTab, handleNavigateTab, viewRole]);
+  }, [
+    activeTab,
+    expertStudioResetKey,
+    handleNavigateTab,
+    handleUseWorkbenchAgent,
+    pendingConversationSessionId,
+    pendingWorkbenchAgentId,
+    viewRole,
+  ]);
 
   const shouldShowFeatureHeader =
-    activeTab !== "metaAgent" &&
-    activeTab !== "expertStudio" &&
-    activeTab !== "agentStore" &&
-    activeTab !== "teamExperts";
+    activeTab !== "expertStudio" && activeTab !== "agentStore" && activeTab !== "teamExperts";
 
   return (
     <>
@@ -535,16 +805,129 @@ export const UnifiedWorkbenchPage = ({ viewRole }: UnifiedWorkbenchPageProps): J
                 })}
                 onClick={() => handleNavigateTab(item.key)}
               >
-                <span
-                  className={classNames(styles.navIcon, {
-                    [styles.navIconPlain]: item.key === "metaAgent",
-                  })}
-                >
-                  {item.icon}
-                </span>
+                <span className={styles.navIcon}>{item.icon}</span>
                 {isSidebarCollapsed ? null : <span className={styles.navText}>{item.label}</span>}
               </button>
             ))}
+
+            {!isSidebarCollapsed ? (
+              <section className={styles.navConversationPanel} aria-label="任务记录">
+                <div className={styles.navConversationHeading}>任务记录</div>
+                <div className={styles.navConversationList}>
+                  {visibleTaskRecordGroups.length ? (
+                    visibleTaskRecordGroups.map(group => {
+                      const isExpanded = Boolean(expandedConversationGroupIds[group.employeeId]);
+                      const isGroupCollapsed = Boolean(
+                        collapsedConversationGroupIds[group.employeeId],
+                      );
+                      const visibleSessions = isExpanded
+                        ? group.sessions
+                        : group.sessions.slice(0, 5);
+                      const hasMoreSessions = group.sessions.length > 5;
+
+                      return (
+                        <div key={group.employeeId} className={styles.navConversationGroup}>
+                          <button
+                            type="button"
+                            className={styles.navConversationGroupTitle}
+                            aria-expanded={!isGroupCollapsed}
+                            onClick={() =>
+                              setCollapsedConversationGroupIds(current => ({
+                                ...current,
+                                [group.employeeId]: !isGroupCollapsed,
+                              }))
+                            }
+                          >
+                            <span className={styles.navConversationGroupName}>
+                              {group.employeeName}
+                            </span>
+                            <span
+                              className={classNames(styles.navConversationGroupCaret, {
+                                [styles.navConversationGroupCaretCollapsed]: isGroupCollapsed,
+                              })}
+                            />
+                          </button>
+                          {isGroupCollapsed
+                            ? null
+                            : visibleSessions.map(session => (
+                                <div
+                                  key={session.id}
+                                  className={classNames(styles.navConversationSession, {
+                                    [styles.navConversationSessionActive]: session.active,
+                                  })}
+                                >
+                                  <button
+                                    type="button"
+                                    className={styles.navConversationSessionMain}
+                                    title={session.title}
+                                    onClick={() => handleSelectConversationSession(session.id)}
+                                  >
+                                    <span className={styles.navConversationSessionTitle}>
+                                      {session.title}
+                                    </span>
+                                  </button>
+                                  <div className={styles.navConversationSessionTrailing}>
+                                    <span className={styles.navConversationSessionTime}>
+                                      {formatTaskRecordTime(session.updatedAt)}
+                                    </span>
+                                    <Dropdown
+                                      trigger={["click"]}
+                                      menu={{
+                                        items: [
+                                          {
+                                            key: "rename",
+                                            label: "重命名",
+                                            onClick: () =>
+                                              handleRenameConversationSession(
+                                                session.id,
+                                                session.title,
+                                              ),
+                                          },
+                                          {
+                                            key: "delete",
+                                            label: "删除",
+                                            danger: true,
+                                            onClick: () =>
+                                              handleRemoveConversationSession(session.id),
+                                          },
+                                        ],
+                                      }}
+                                    >
+                                      <button
+                                        type="button"
+                                        className={styles.navConversationSessionAction}
+                                        aria-label="任务操作"
+                                        onClick={event => event.stopPropagation()}
+                                      >
+                                        <MoreOutlined />
+                                      </button>
+                                    </Dropdown>
+                                  </div>
+                                </div>
+                              ))}
+                          {!isGroupCollapsed && hasMoreSessions ? (
+                            <button
+                              type="button"
+                              className={styles.navConversationToggleButton}
+                              onClick={() =>
+                                setExpandedConversationGroupIds(current => ({
+                                  ...current,
+                                  [group.employeeId]: !isExpanded,
+                                }))
+                              }
+                            >
+                              {isExpanded ? "收起" : `展开更多 ${group.sessions.length - 5} 条`}
+                            </button>
+                          ) : null}
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <div className={styles.navConversationEmpty}>暂无历史任务</div>
+                  )}
+                </div>
+              </section>
+            ) : null}
           </nav>
 
           <div
@@ -554,7 +937,9 @@ export const UnifiedWorkbenchPage = ({ viewRole }: UnifiedWorkbenchPageProps): J
           >
             <Dropdown
               menu={{ items: accountMenuItems }}
-              placement={isSidebarCollapsed ? "topRight" : "topLeft"}
+              placement={
+                isMobileWorkbench ? "bottomRight" : isSidebarCollapsed ? "topRight" : "topLeft"
+              }
               trigger={["click"]}
               open={isAccountMenuOpen}
               onOpenChange={setIsAccountMenuOpen}
@@ -576,14 +961,14 @@ export const UnifiedWorkbenchPage = ({ viewRole }: UnifiedWorkbenchPageProps): J
                 type="button"
                 className={classNames(styles.navAccountButton, {
                   [styles.navAccountButtonOpen]: isAccountMenuOpen,
-                  [styles.navAccountButtonCollapsed]: isSidebarCollapsed,
+                  [styles.navAccountButtonCollapsed]: isSidebarCollapsed || isMobileWorkbench,
                 })}
                 aria-label="打开账户菜单"
               >
                 <Avatar className={styles.accountAvatar} size={30}>
                   {featureAccountName.slice(0, 1)}
                 </Avatar>
-                {isSidebarCollapsed ? null : (
+                {isSidebarCollapsed || isMobileWorkbench ? null : (
                   <span className={styles.navAccountName}>{featureAccountName}</span>
                 )}
               </button>
