@@ -225,7 +225,8 @@ const TEAM_SHARED_AGENTS: TeamSharedAgentTemplate[] = [
     versionLabel: "v1.2.0",
     businessLine: "销售",
     businessLineLabel: "销售",
-    summary: "根据客户画像与历史沟通记录，生成个性化销售话术与应对策略。",
+    summary:
+      "Aiden，资深销售顾问出身的客户沟通教练。长期陪跑一线销售团队，擅长把客户画像、异议记录和历史对话翻译成下一轮可直接开口的话术，帮你在预算、价值和决策风险之间找到更稳的推进方式。",
     scene: "销售沟通",
     techShape: "对话型",
     model: "Claude Sonnet 4.6",
@@ -267,7 +268,8 @@ const TEAM_SHARED_AGENTS: TeamSharedAgentTemplate[] = [
     versionLabel: "v1.0.5",
     businessLine: "销售",
     businessLineLabel: "销售",
-    summary: "自动追踪销售漏斗各阶段商机，根据停留时长推送跟进提醒。",
+    summary:
+      "Mira，客户成功体系出身的商机节奏教练。熟悉销售漏斗和客户成功协作节奏，会盯住每个商机的停留时长、关键联系人和下一步动作，在机会变冷前提醒你补材料、换触点或升级协同。",
     scene: "商机管理",
     techShape: "触发型",
     model: "Claude Sonnet 4.6",
@@ -305,7 +307,8 @@ const TEAM_SHARED_AGENTS: TeamSharedAgentTemplate[] = [
     versionLabel: "v2.0.0",
     businessLine: "生产",
     businessLineLabel: "生产",
-    summary: "智能追踪项目里程碑与交付进度，自动生成周报与风险提醒。",
+    summary:
+      "Ethan，交付 PMO 出身的项目风险教练。具备 PMO 式的交付视角，习惯从里程碑、资源占用和客户确认链路里提前发现风险，帮项目负责人把周报、阻塞项和下一步责任人说清楚。",
     scene: "项目管理",
     techShape: "工作流型",
     model: "Claude Sonnet 4.6",
@@ -347,7 +350,8 @@ const TEAM_SHARED_AGENTS: TeamSharedAgentTemplate[] = [
     versionLabel: "v1.1.0",
     businessLine: "办公协同",
     businessLineLabel: "办公协同",
-    summary: "面向标准合同场景，快速识别关键风险条款并给出审查建议。",
+    summary:
+      "Lex，企业法务支持出身的合同风险教练。熟悉销售、采购和服务合同的常见风险点，会先抓付款、违约、责任边界和交付承诺，再把风险等级、修改建议和需人工确认的条款整理成可复核结论。",
     scene: "法务审查",
     techShape: "文档型",
     model: "GPT-4.1",
@@ -949,7 +953,7 @@ const buildTeamSharedAgents = (
     id: item.id,
     sourceType: "teamShare",
     visualSeed: item.id,
-    expertTitle: "团队共享专家",
+    expertTitle: "团队共享",
     audienceLabel: `适用：${item.scene}`,
     name: item.name,
     versionLabel: item.versionLabel,
@@ -1348,8 +1352,10 @@ export const ExpertPlazaView = ({
   );
 
   const isInExpertList = useCallback(
-    (agent: StoreAgentItem): boolean => expertListOverrides[agent.id] ?? Boolean(agent.fulfillment),
-    [expertListOverrides],
+    (agent: StoreAgentItem): boolean =>
+      expertListOverrides[agent.id] ??
+      (Boolean(agent.fulfillment) || workbenchAgentIds.has(agent.id)),
+    [expertListOverrides, workbenchAgentIds],
   );
 
   const purchasedAgents = useMemo(
@@ -1883,7 +1889,6 @@ export const ExpertPlazaView = ({
                         </div>
                         <div>
                           <h3>{detailAgent.name}</h3>
-                          <strong>{detailAgent.expertTitle}</strong>
                           <p>{detailAgent.summary}</p>
                         </div>
                       </section>

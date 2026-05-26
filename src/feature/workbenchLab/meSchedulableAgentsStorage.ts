@@ -17,9 +17,10 @@ const DEFAULT_ME_SCHEDULABLE_AGENT_RECORDS: MeSchedulableAgentRecord[] = [
     id: "team-shared-sales-script",
     name: "销售话术助手",
     visualSeed: "team-shared-sales-script",
-    role: "销售沟通 · 对话型",
+    role: "Aiden · 销售沟通教练",
     model: "Claude Sonnet 4.6",
-    summary: "根据客户画像与历史沟通记录，生成个性化销售话术与应对策略。",
+    summary:
+      "Aiden，资深销售顾问出身的客户沟通教练。长期陪跑一线销售团队，擅长把客户画像、异议记录和历史对话翻译成下一轮可直接开口的话术，帮你在预算、价值和决策风险之间找到更稳的推进方式。",
     developerName: "销售团队",
     agentId: "team-shared-sales-script",
     runtimeAgentId: "rt-team-shared-sales-script",
