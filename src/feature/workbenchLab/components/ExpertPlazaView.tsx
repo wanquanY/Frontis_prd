@@ -204,7 +204,7 @@ const TEAM_EXPERT_FILTER_OPTIONS: Array<{ label: string; value: TeamExpertFilter
 ];
 
 const STORE_SYSTEM_CATEGORY_OPTIONS: Array<{ label: string; value: StoreSystemCategoryKey }> = [
-  { label: "角色全区", value: "roleZone" },
+  { label: "角色专区", value: "roleZone" },
   { label: "行业专区", value: "industryExpert" },
 ];
 
@@ -1107,7 +1107,7 @@ export const buildFrontisAgents = (
         versionLabel: updatedAt,
         businessLine,
         businessLineLabel,
-        storeCategory: blueprint?.storeCategory ?? "industryExpert",
+        storeCategory: product.storeZone ?? blueprint?.storeCategory ?? "industryExpert",
         summary: blueprint?.summary ?? product.description,
         scene: blueprint?.scene ?? "FrontisAI发布",
         techShape: blueprint?.techShape ?? "商品化服务",

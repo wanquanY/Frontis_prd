@@ -1654,6 +1654,7 @@ export const createEmptyOperationsProductForm = (): OperationsProductForm => ({
   contactMode: "disabled",
   contactQrCodeValue: "",
   contactRemark: "",
+  storeZone: "roleZone",
   plazaCategory: OPERATIONS_AGENT_PLAZA_DEFAULT_CATEGORY,
   plazaVisibility: "public",
   visibleTenantIds: [],

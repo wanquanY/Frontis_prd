@@ -10,6 +10,7 @@ import {
 import type {
   OperationsAgentPlazaCategoryOption,
   OperationsAgentPlazaVisibility,
+  OperationsAgentStoreZone,
   OperationsAgentSubmission,
   OperationsProduct,
   OperationsProductForm,
@@ -142,6 +143,7 @@ const PRODUCT_ACQUISITION_MODE_OPTIONS: Array<{
 
 const PRODUCT_FIELD_IDS = {
   name: "operations-product-name",
+  storeZone: "operations-product-store-zone",
   category: "operations-product-category",
   visibility: "operations-product-visibility",
   visibleTenants: "operations-product-visible-tenants",
@@ -152,6 +154,14 @@ const PRODUCT_FIELD_IDS = {
   trialValue: "operations-product-trial-value",
   description: "operations-product-description",
 } as const;
+
+const PRODUCT_STORE_ZONE_OPTIONS: Array<{ value: OperationsAgentStoreZone; label: string }> = [
+  { value: "roleZone", label: "角色专区" },
+  { value: "industryExpert", label: "行业专区" },
+];
+
+const getProductStoreZoneLabel = (value?: OperationsAgentStoreZone): string =>
+  PRODUCT_STORE_ZONE_OPTIONS.find(option => option.value === value)?.label ?? "角色专区";
 
 const AGENT_PLAZA_CATEGORY_FIELD_IDS = {
   name: "operations-agent-plaza-category-name",
@@ -407,6 +417,7 @@ export const OperationsProductConsole = ({
         meteringUnit: "duration",
         billingSpec: "year",
         contactMode: "disabled",
+        storeZone: "roleZone",
         plazaCategory: OPERATIONS_AGENT_PLAZA_DEFAULT_CATEGORY,
         plazaVisibility: "public",
         visibleTenantIds: [],
@@ -445,6 +456,7 @@ export const OperationsProductConsole = ({
           contactMode: product.contactMode ?? "disabled",
           contactQrCodeValue: product.contactQrCodeValue ?? "",
           contactRemark: product.contactRemark ?? "",
+          storeZone: product.storeZone ?? "roleZone",
           plazaCategory: product.plazaCategory ?? OPERATIONS_AGENT_PLAZA_DEFAULT_CATEGORY,
           plazaVisibility: product.plazaVisibility ?? "public",
           visibleTenantIds: product.visibleTenantIds ?? [],
@@ -853,8 +865,28 @@ export const OperationsProductConsole = ({
           </div>
 
           <div className={styles.modalField}>
+            <label className={styles.modalLabel} htmlFor={PRODUCT_FIELD_IDS.storeZone}>
+              专区
+            </label>
+            <Select<OperationsAgentStoreZone>
+              id={PRODUCT_FIELD_IDS.storeZone}
+              value={productEditor.form.storeZone}
+              options={PRODUCT_STORE_ZONE_OPTIONS}
+              onChange={nextValue =>
+                setProductEditor(currentState => ({
+                  ...currentState,
+                  form: {
+                    ...currentState.form,
+                    storeZone: nextValue,
+                  },
+                }))
+              }
+            />
+          </div>
+
+          <div className={styles.modalField}>
             <label className={styles.modalLabel} htmlFor={PRODUCT_FIELD_IDS.category}>
-              商品分类
+              场景分类
             </label>
             <Select
               id={PRODUCT_FIELD_IDS.category}
@@ -1107,7 +1139,8 @@ const ProductList = ({
           <thead>
             <tr>
               <th>AI专家商品</th>
-              <th>分类</th>
+              <th>专区</th>
+              <th>场景分类</th>
               <th>可见范围</th>
               <th>获取方式</th>
               <th>试用规则</th>
@@ -1128,6 +1161,7 @@ const ProductList = ({
                     <span className={styles.recordEntryTitle}>{product.name}</span>
                   </button>
                 </td>
+                <td>{getProductStoreZoneLabel(product.storeZone)}</td>
                 <td>{product.plazaCategory ?? OPERATIONS_AGENT_PLAZA_DEFAULT_CATEGORY}</td>
                 <td>{getProductVisibilityLabel(product)}</td>
                 <td>{getProductAcquisitionLabel(product)}</td>
@@ -1430,7 +1464,13 @@ const ProductDetail = ({
             <h3 className={adminStyles.detailBlockTitle}>获取配置</h3>
             <div className={adminStyles.consoleRows}>
               <div className={adminStyles.consoleInfoRow}>
-                <span className={adminStyles.consoleInfoLabel}>商品分类</span>
+                <span className={adminStyles.consoleInfoLabel}>专区</span>
+                <span className={adminStyles.consoleInfoValue}>
+                  {getProductStoreZoneLabel(product.storeZone)}
+                </span>
+              </div>
+              <div className={adminStyles.consoleInfoRow}>
+                <span className={adminStyles.consoleInfoLabel}>场景分类</span>
                 <span className={adminStyles.consoleInfoValue}>
                   {product.plazaCategory ?? OPERATIONS_AGENT_PLAZA_DEFAULT_CATEGORY}
                 </span>

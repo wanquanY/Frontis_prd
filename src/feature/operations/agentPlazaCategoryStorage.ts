@@ -87,13 +87,13 @@ const mergeStoredCategoriesWithPreset = (
 };
 
 /**
- * 读取运营后台商品分类配置。
+ * 读取运营后台专家广场场景分类配置。
  */
 export const loadStoredAgentPlazaCategories = (): OperationsAgentPlazaCategoryOption[] =>
   mergeStoredCategoriesWithPreset(readStoredAgentPlazaCategories() ?? []);
 
 /**
- * 保存运营后台商品分类配置。
+ * 保存运营后台专家广场场景分类配置。
  */
 export const saveStoredAgentPlazaCategories = (
   categories: OperationsAgentPlazaCategoryOption[],

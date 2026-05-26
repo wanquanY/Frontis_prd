@@ -53,12 +53,12 @@ export type OperationsAgentApprovalStatus = "pending" | "approved" | "rejected";
 export type OperationsAgentPlazaStatus = "online" | "offline";
 
 /**
- * 商品分类名称，由运营后台维护。
+ * 专家广场场景分类名称，由运营后台维护。
  */
 export type OperationsAgentPlazaCategory = string;
 
 /**
- * 商品分类状态。
+ * 专家广场场景分类状态。
  */
 export type OperationsAgentPlazaCategoryStatus = "active" | "inactive";
 
@@ -68,12 +68,17 @@ export type OperationsAgentPlazaCategoryStatus = "active" | "inactive";
 export type OperationsAgentPlazaVisibility = "public" | "tenant";
 
 /**
+ * 商品所属商店专区。
+ */
+export type OperationsAgentStoreZone = "roleZone" | "industryExpert";
+
+/**
  * 商品适用的租户计费方式。
  */
 export type OperationsProductBillingScope = "points" | "cost";
 
 /**
- * 商品分类配置项。
+ * 专家广场场景分类配置项。
  */
 export interface OperationsAgentPlazaCategoryOption {
   id: string;
@@ -515,6 +520,7 @@ export interface OperationsProduct {
   contactQrCodeValue?: string;
   contactRemark?: string;
   status: OperationsProductStatus;
+  storeZone?: OperationsAgentStoreZone;
   plazaCategory?: OperationsAgentPlazaCategory;
   plazaVisibility?: OperationsAgentPlazaVisibility;
   visibleTenantIds?: string[];
@@ -547,6 +553,7 @@ export interface OperationsProductForm {
   contactMode: OperationsProductContactMode;
   contactQrCodeValue: string;
   contactRemark: string;
+  storeZone: OperationsAgentStoreZone;
   plazaCategory: OperationsAgentPlazaCategory;
   plazaVisibility: OperationsAgentPlazaVisibility;
   visibleTenantIds: string[];
