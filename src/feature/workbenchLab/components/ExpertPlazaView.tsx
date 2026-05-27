@@ -112,6 +112,11 @@ interface AgentCoreFile {
   content: string;
 }
 
+interface AgentUsageGuideItem {
+  title: string;
+  description: string;
+}
+
 interface TeamSharedAgentTemplate {
   id: string;
   name: string;
@@ -895,6 +900,36 @@ const getAgentCoreFiles = (agent: StoreAgentItem): AgentCoreFile[] => [
     ].join("\n"),
   },
 ];
+
+const getAgentUsageGuide = (agent: StoreAgentItem): AgentUsageGuideItem[] => {
+  const capabilityNames = agent.capabilities.map(capability => capability.name);
+  const primaryCapability = capabilityNames[0] ?? agent.scene;
+  const secondaryCapability = capabilityNames[1] ?? agent.businessLineLabel;
+  const inputExamples = [
+    `${agent.scene}相关资料`,
+    "历史沟通记录",
+    "目标对象与约束条件",
+  ].join("、");
+
+  return [
+    {
+      title: "适合处理",
+      description: `${agent.name}适合承接${agent.scene}类任务，重点处理${primaryCapability}、${secondaryCapability}等工作，帮助团队把零散信息整理成可执行的下一步动作。`,
+    },
+    {
+      title: "建议输入",
+      description: `使用时建议上传或粘贴${inputExamples}，并明确希望输出的格式、时间范围和判断标准；信息越完整，专家给出的建议越稳定。`,
+    },
+    {
+      title: "交付结果",
+      description: `默认输出围绕${agent.businessLineLabel}场景的分析结论、处理建议和可复用文本，必要时会补充待确认问题，避免直接替用户拍板。`,
+    },
+    {
+      title: "使用方式",
+      description: `点击免费使用后，该专家会进入工作台，既可以在 AI 专家列表中单独对话，也可以在 ME 处理任务时被自动调度。`,
+    },
+  ];
+};
 
 const getAcquisitionLabel = (product: OperationsProduct): string => {
   if (product.contactMode && product.contactMode !== "disabled") {
@@ -1894,7 +1929,14 @@ export const ExpertPlazaView = ({
 
                       <section className={styles.agentReadOnlyBlock}>
                         <h3>使用指南</h3>
-                        <p>{detailAgent.audienceLabel.replace(/^适用：/, "")}</p>
+                        <div className={styles.agentUsageGuideGrid}>
+                          {getAgentUsageGuide(detailAgent).map(item => (
+                            <article key={item.title}>
+                              <strong>{item.title}</strong>
+                              <span>{item.description}</span>
+                            </article>
+                          ))}
+                        </div>
                       </section>
                     </div>
                   )
