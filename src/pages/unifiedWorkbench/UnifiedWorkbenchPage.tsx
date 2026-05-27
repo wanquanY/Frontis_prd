@@ -101,16 +101,16 @@ const TAB_ITEMS: UnifiedWorkbenchNavItem[] = [
     icon: <MessageOutlined />,
   },
   {
-    key: "agentStore",
-    label: EXPERT_PLAZA_LABEL,
-    description: "浏览平台预置与运营上架的 AI 专家、Skill 和 MCP。",
-    icon: <AppstoreOutlined />,
-  },
-  {
     key: "teamExperts",
     label: TEAM_EXPERTS_LABEL,
     description: "查看团队共享和自己开发的 AI 专家、Skill 和 MCP。",
     icon: <TeamOutlined />,
+  },
+  {
+    key: "agentStore",
+    label: EXPERT_PLAZA_LABEL,
+    description: "浏览平台预置与运营上架的 AI 专家、Skill 和 MCP。",
+    icon: <AppstoreOutlined />,
   },
   {
     key: "evolutionLab",

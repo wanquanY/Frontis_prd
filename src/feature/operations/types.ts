@@ -68,9 +68,9 @@ export type OperationsAgentPlazaCategoryStatus = "active" | "inactive";
 export type OperationsAgentPlazaVisibility = "public" | "tenant";
 
 /**
- * 商品所属商店专区。
+ * 商品所属商店专区，由运营后台维护。
  */
-export type OperationsAgentStoreZone = "roleZone" | "industryExpert";
+export type OperationsAgentStoreZone = string;
 
 /**
  * 商品适用的租户计费方式。
@@ -82,7 +82,19 @@ export type OperationsProductBillingScope = "points" | "cost";
  */
 export interface OperationsAgentPlazaCategoryOption {
   id: string;
+  zoneId: OperationsAgentStoreZone;
   name: OperationsAgentPlazaCategory;
+  sortOrder: number;
+  status: OperationsAgentPlazaCategoryStatus;
+  updatedAt: string;
+}
+
+/**
+ * 专家商店专区配置项。
+ */
+export interface OperationsAgentStoreZoneOption {
+  id: OperationsAgentStoreZone;
+  name: string;
   sortOrder: number;
   status: OperationsAgentPlazaCategoryStatus;
   updatedAt: string;
@@ -521,7 +533,9 @@ export interface OperationsProduct {
   contactRemark?: string;
   status: OperationsProductStatus;
   storeZone?: OperationsAgentStoreZone;
+  storeZones?: OperationsAgentStoreZone[];
   plazaCategory?: OperationsAgentPlazaCategory;
+  plazaCategoryByZone?: Record<OperationsAgentStoreZone, OperationsAgentPlazaCategory>;
   plazaVisibility?: OperationsAgentPlazaVisibility;
   visibleTenantIds?: string[];
   visibleTenantNames?: string[];
@@ -554,11 +568,14 @@ export interface OperationsProductForm {
   contactQrCodeValue: string;
   contactRemark: string;
   storeZone: OperationsAgentStoreZone;
+  storeZones: OperationsAgentStoreZone[];
   plazaCategory: OperationsAgentPlazaCategory;
+  plazaCategoryByZone: Record<OperationsAgentStoreZone, OperationsAgentPlazaCategory>;
   plazaVisibility: OperationsAgentPlazaVisibility;
   visibleTenantIds: string[];
   visibleTenantNames: string[];
   plazaStatus: OperationsAgentPlazaStatus;
+  plazaSort: number;
   billingScopes: OperationsProductBillingScope[];
 }
 

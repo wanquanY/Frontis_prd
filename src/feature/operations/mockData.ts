@@ -12,6 +12,7 @@ import type {
   OperationsRegistrationStrategy,
   OperationsAgentPlazaCategory,
   OperationsAgentPlazaCategoryOption,
+  OperationsAgentStoreZoneOption,
   OperationsSkillCenterCategory,
   OperationsSkillCenterCategoryOption,
   OperationsProduct,
@@ -1196,9 +1197,27 @@ export const OPERATIONS_TENANT_TYPE_LABELS: Record<OperationsTenant["type"], str
 export const OPERATIONS_AGENT_PLAZA_DEFAULT_CATEGORY: OperationsAgentPlazaCategory = "通用";
 export const OPERATIONS_SKILL_CENTER_DEFAULT_CATEGORY: OperationsSkillCenterCategory = "通用";
 
+export const OPERATIONS_INITIAL_AGENT_STORE_ZONES: OperationsAgentStoreZoneOption[] = [
+  {
+    id: "roleZone",
+    name: "角色专区",
+    sortOrder: 10,
+    status: "active",
+    updatedAt: "2026-04-16 10:42",
+  },
+  {
+    id: "industryExpert",
+    name: "行业专区",
+    sortOrder: 20,
+    status: "active",
+    updatedAt: "2026-04-16 10:42",
+  },
+];
+
 export const OPERATIONS_INITIAL_AGENT_PLAZA_CATEGORIES: OperationsAgentPlazaCategoryOption[] = [
   {
     id: "ops-agent-plaza-category-general",
+    zoneId: "roleZone",
     name: "通用",
     sortOrder: 10,
     status: "active",
@@ -1206,6 +1225,7 @@ export const OPERATIONS_INITIAL_AGENT_PLAZA_CATEGORIES: OperationsAgentPlazaCate
   },
   {
     id: "ops-agent-plaza-category-sales",
+    zoneId: "roleZone",
     name: "销售",
     sortOrder: 20,
     status: "active",
@@ -1213,6 +1233,7 @@ export const OPERATIONS_INITIAL_AGENT_PLAZA_CATEGORIES: OperationsAgentPlazaCate
   },
   {
     id: "ops-agent-plaza-category-production",
+    zoneId: "roleZone",
     name: "生产",
     sortOrder: 30,
     status: "active",
@@ -1220,6 +1241,7 @@ export const OPERATIONS_INITIAL_AGENT_PLAZA_CATEGORIES: OperationsAgentPlazaCate
   },
   {
     id: "ops-agent-plaza-category-supply-chain",
+    zoneId: "industryExpert",
     name: "供应链",
     sortOrder: 40,
     status: "active",
@@ -1227,6 +1249,7 @@ export const OPERATIONS_INITIAL_AGENT_PLAZA_CATEGORIES: OperationsAgentPlazaCate
   },
   {
     id: "ops-agent-plaza-category-office",
+    zoneId: "industryExpert",
     name: "办公协同",
     sortOrder: 50,
     status: "active",
@@ -1655,11 +1678,16 @@ export const createEmptyOperationsProductForm = (): OperationsProductForm => ({
   contactQrCodeValue: "",
   contactRemark: "",
   storeZone: "roleZone",
+  storeZones: ["roleZone"],
   plazaCategory: OPERATIONS_AGENT_PLAZA_DEFAULT_CATEGORY,
+  plazaCategoryByZone: {
+    roleZone: OPERATIONS_AGENT_PLAZA_DEFAULT_CATEGORY,
+  },
   plazaVisibility: "public",
   visibleTenantIds: [],
   visibleTenantNames: [],
   plazaStatus: "offline",
+  plazaSort: 10,
   billingScopes: ["points"],
 });
 

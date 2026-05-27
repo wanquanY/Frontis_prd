@@ -26,17 +26,15 @@ import {
   loadStoredOperationsProducts,
 } from "@/feature/operations/commerceStorage";
 import { loadOperationsServiceContactConfig } from "@/feature/operations/platformConfigStorage";
-import { loadStoredAgentPlazaCategories } from "@/feature/operations/agentPlazaCategoryStorage";
+import {
+  loadStoredAgentPlazaCategories,
+  loadStoredAgentStoreZones,
+} from "@/feature/operations/agentPlazaCategoryStorage";
 import { OPERATIONS_AGENT_PLAZA_DEFAULT_CATEGORY } from "@/feature/operations/mockData";
 import {
   TENANT_PERMISSION_IDS,
   normalizeTenantRolePermissionIds,
 } from "@/constants/tenantRolePermissions";
-import {
-  loadMeSchedulableAgentRecords,
-  ME_SCHEDULABLE_AGENT_RECORDS_UPDATED_EVENT,
-  upsertMeSchedulableAgentRecord,
-} from "@/feature/workbenchLab/meSchedulableAgentsStorage";
 import {
   loadWorkbenchAgentRecords,
   upsertWorkbenchAgentRecord,
@@ -44,6 +42,7 @@ import {
 } from "@/feature/workbenchLab/workbenchAgentsStorage";
 import type {
   OperationsAgentPlazaCategoryOption,
+  OperationsAgentStoreZoneOption,
   OperationsAgentSubmission,
   OperationsFulfillment,
   OperationsProduct,
@@ -56,8 +55,8 @@ import knowledgeGovernanceExpertAvatar from "@/assets/images/ai-experts/knowledg
 
 import styles from "./ExpertPlazaView.module.less";
 
-type TeamExpertFilter = "all" | "purchased" | "mine" | "teamShare";
-type StoreSystemCategoryKey = "roleZone" | "industryExpert";
+type TeamExpertFilter = "all" | "mine" | "teamShare";
+type StoreSystemCategoryKey = string;
 type SceneCategoryFilter = "all" | BusinessLineKey;
 export type BusinessLineKey = OperationsAgentPlazaCategoryOption["name"];
 type AgentSourceType = "mine" | "teamShare" | "frontis";
@@ -159,6 +158,8 @@ export interface StoreAgentItem {
   businessLine: BusinessLineKey;
   businessLineLabel: string;
   storeCategory?: StoreSystemCategoryKey;
+  storeCategories?: StoreSystemCategoryKey[];
+  sceneCategoriesByZone?: Record<StoreSystemCategoryKey, BusinessLineKey>;
   summary: string;
   scene: string;
   techShape: string;
@@ -198,14 +199,8 @@ const ACTIVE_FULFILLMENT_STATUSES = new Set<OperationsFulfillment["status"]>([
 
 const TEAM_EXPERT_FILTER_OPTIONS: Array<{ label: string; value: TeamExpertFilter }> = [
   { label: "全部", value: "all" },
-  { label: "已购买", value: "purchased" },
   { label: "我的", value: "mine" },
   { label: "团队共享", value: "teamShare" },
-];
-
-const STORE_SYSTEM_CATEGORY_OPTIONS: Array<{ label: string; value: StoreSystemCategoryKey }> = [
-  { label: "角色专区", value: "roleZone" },
-  { label: "行业专区", value: "industryExpert" },
 ];
 
 const DEFAULT_DOMAIN_TONE = "linear-gradient(180deg, #dff4ff 0%, #eef8ff 100%)";
@@ -702,7 +697,7 @@ const getSceneCategoryOptions = (
 ];
 
 const getProductPriceLabel = (product: OperationsProduct): string =>
-  product.supportsTrial ? (getProductTrialLabel(product) ?? "免费试用") : "免费添加";
+  product.supportsTrial ? (getProductTrialLabel(product) ?? "免费试用") : "免费使用";
 
 const getProductTrialLabel = (product: OperationsProduct): string | undefined => {
   if (!product.supportsTrial || !product.trialUnit || !product.trialValue) {
@@ -742,13 +737,7 @@ const getVisibilityLabel = (agent: StoreAgentItem): string => {
   return "商店";
 };
 
-const getCategoryLabel = (agent: StoreAgentItem): string => {
-  const systemCategory = STORE_SYSTEM_CATEGORY_OPTIONS.find(
-    option => option.value === agent.storeCategory,
-  );
-
-  return systemCategory?.label ?? agent.businessLineLabel;
-};
+const getCategoryLabel = (agent: StoreAgentItem): string => agent.businessLineLabel;
 
 const getAgentAvatarSrc = (agent: StoreAgentItem): string =>
   agent.avatarUrl ?? getAvatarUrl(agent.visualSeed);
@@ -1089,8 +1078,24 @@ export const buildFrontisAgents = (
       const blueprintName = product.linkedAgentName?.trim() || displayName;
       const blueprint = FRONTIS_AGENT_BLUEPRINTS[blueprintName];
       const agentName = blueprint?.displayName ?? displayName;
+      const productStoreZones = product.storeZones?.length
+        ? product.storeZones
+        : product.storeZone
+          ? [product.storeZone]
+          : [blueprint?.storeCategory ?? "industryExpert"];
+      const sceneCategoriesByZone = productStoreZones.reduce<Record<string, BusinessLineKey>>(
+        (result, zoneId) => {
+          result[zoneId] =
+            product.plazaCategoryByZone?.[zoneId]?.trim() ||
+            product.plazaCategory?.trim() ||
+            blueprint?.businessLine ||
+            OPERATIONS_AGENT_PLAZA_DEFAULT_CATEGORY;
+          return result;
+        },
+        {},
+      );
       const businessLine =
-        product.plazaCategory?.trim() ||
+        sceneCategoriesByZone[productStoreZones[0]] ||
         blueprint?.businessLine ||
         OPERATIONS_AGENT_PLAZA_DEFAULT_CATEGORY;
       const businessLineLabel = getBusinessLineLabel(businessLine);
@@ -1107,7 +1112,9 @@ export const buildFrontisAgents = (
         versionLabel: updatedAt,
         businessLine,
         businessLineLabel,
-        storeCategory: product.storeZone ?? blueprint?.storeCategory ?? "industryExpert",
+        storeCategory: productStoreZones[0],
+        storeCategories: productStoreZones,
+        sceneCategoriesByZone,
         summary: blueprint?.summary ?? product.description,
         scene: blueprint?.scene ?? "FrontisAI发布",
         techShape: blueprint?.techShape ?? "商品化服务",
@@ -1181,11 +1188,11 @@ export const ExpertPlazaView = ({
   const [detailFileKey, setDetailFileKey] = useState<AgentCoreFileKey>("soulMarkdown");
   const [removedMineAgentIds, setRemovedMineAgentIds] = useState<Set<string>>(() => new Set());
   const [expertListOverrides, setExpertListOverrides] = useState<Record<string, boolean>>({});
-  const [meSchedulableAgentIds, setMeSchedulableAgentIds] = useState<Set<string>>(
-    () => new Set(loadMeSchedulableAgentRecords().map(record => record.id)),
-  );
   const [workbenchAgentIds, setWorkbenchAgentIds] = useState<Set<string>>(
     () => new Set(loadWorkbenchAgentRecords().map(record => record.id)),
+  );
+  const [agentStoreZones, setAgentStoreZones] = useState<OperationsAgentStoreZoneOption[]>(() =>
+    loadStoredAgentStoreZones(),
   );
   const [agentPlazaCategories, setAgentPlazaCategories] = useState<
     OperationsAgentPlazaCategoryOption[]
@@ -1219,10 +1226,6 @@ export const ExpertPlazaView = ({
           return true;
         }
 
-        if (item.value === "purchased") {
-          return true;
-        }
-
         if (item.value === "mine") {
           return canManageOwnPublishedAgents;
         }
@@ -1237,8 +1240,30 @@ export const ExpertPlazaView = ({
   );
 
   const sceneCategoryOptions = useMemo(
-    () => getSceneCategoryOptions(agentPlazaCategories),
-    [agentPlazaCategories],
+    () =>
+      getSceneCategoryOptions(
+        mode === "store"
+          ? agentPlazaCategories.filter(category => category.zoneId === storeSystemCategory)
+          : agentPlazaCategories,
+      ),
+    [agentPlazaCategories, mode, storeSystemCategory],
+  );
+  const storeSystemCategoryOptions = useMemo(
+    () =>
+      [...agentStoreZones]
+        .filter(zone => zone.status === "active")
+        .sort((leftItem, rightItem) => {
+          if (leftItem.sortOrder !== rightItem.sortOrder) {
+            return leftItem.sortOrder - rightItem.sortOrder;
+          }
+
+          return leftItem.updatedAt.localeCompare(rightItem.updatedAt);
+        })
+        .map(zone => ({
+          label: zone.name,
+          value: zone.id,
+        })),
+    [agentStoreZones],
   );
 
   const refreshStorefrontState = useCallback((): void => {
@@ -1246,30 +1271,13 @@ export const ExpertPlazaView = ({
     setFulfillments(loadStoredOperationsFulfillments());
     setCommodityApplications(loadEnterpriseCommodityApplications());
     setServiceContactConfig(loadOperationsServiceContactConfig());
+    setAgentStoreZones(loadStoredAgentStoreZones());
     setAgentPlazaCategories(loadStoredAgentPlazaCategories());
   }, []);
 
   useEffect(() => {
     refreshStorefrontState();
   }, [refreshStorefrontState]);
-
-  useEffect(() => {
-    const handleMeSchedulableAgentsUpdated = (): void => {
-      setMeSchedulableAgentIds(new Set(loadMeSchedulableAgentRecords().map(record => record.id)));
-    };
-
-    window.addEventListener(
-      ME_SCHEDULABLE_AGENT_RECORDS_UPDATED_EVENT,
-      handleMeSchedulableAgentsUpdated,
-    );
-
-    return () => {
-      window.removeEventListener(
-        ME_SCHEDULABLE_AGENT_RECORDS_UPDATED_EVENT,
-        handleMeSchedulableAgentsUpdated,
-      );
-    };
-  }, []);
 
   useEffect(() => {
     const handleWorkbenchAgentsUpdated = (): void => {
@@ -1295,6 +1303,16 @@ export const ExpertPlazaView = ({
       setTeamExpertFilter(teamExpertFilterOptions[0].value);
     }
   }, [teamExpertFilter, teamExpertFilterOptions]);
+
+  useEffect(() => {
+    if (!storeSystemCategoryOptions.length) {
+      return;
+    }
+
+    if (!storeSystemCategoryOptions.some(item => item.value === storeSystemCategory)) {
+      setStoreSystemCategory(storeSystemCategoryOptions[0].value);
+    }
+  }, [storeSystemCategory, storeSystemCategoryOptions]);
 
   useEffect(() => {
     if (storeSceneFilter === "all") {
@@ -1385,22 +1403,22 @@ export const ExpertPlazaView = ({
           return teamSceneFilter === "all" || agent.businessLine === teamSceneFilter;
         }
 
-        if (teamExpertFilter === "purchased") {
-          if (agent.sourceType !== "frontis") {
-            return false;
-          }
-        } else if (agent.sourceType !== teamExpertFilter) {
+        if (agent.sourceType !== teamExpertFilter) {
           return false;
         }
 
         return teamSceneFilter === "all" || agent.businessLine === teamSceneFilter;
       }
 
-      if (agent.storeCategory !== storeSystemCategory) {
+      if (!(agent.storeCategories ?? [agent.storeCategory]).includes(storeSystemCategory)) {
         return false;
       }
 
-      return storeSceneFilter === "all" || agent.businessLine === storeSceneFilter;
+      return (
+        storeSceneFilter === "all" ||
+        agent.sceneCategoriesByZone?.[storeSystemCategory] === storeSceneFilter ||
+        agent.businessLine === storeSceneFilter
+      );
     });
   }, [
     frontisAgents,
@@ -1460,25 +1478,6 @@ export const ExpertPlazaView = ({
     message.success("已从我的专区删除该 AI 专家。");
   }, []);
 
-  const handleAddToMe = useCallback((agent: StoreAgentItem): void => {
-    const nextRecords = upsertMeSchedulableAgentRecord({
-      id: agent.id,
-      name: agent.name,
-      avatarUrl: agent.avatarUrl,
-      visualSeed: agent.visualSeed,
-      role: `${agent.scene} · ${agent.techShape}`,
-      model: agent.model,
-      summary: agent.summary,
-      developerName: agent.submitterLabel,
-      agentId: agent.product?.linkedAgentId || agent.id,
-      runtimeAgentId: `rt-${agent.id}`,
-      skills: agent.capabilities.map(item => item.name),
-    });
-
-    setMeSchedulableAgentIds(new Set(nextRecords.map(record => record.id)));
-    message.success(`已添加「${agent.name}」到 ME，可在首页由 ME 调度。`);
-  }, []);
-
   const handleAddToWorkbench = useCallback((agent: StoreAgentItem): void => {
     const nextRecords = upsertWorkbenchAgentRecord({
       id: agent.id,
@@ -1498,7 +1497,7 @@ export const ExpertPlazaView = ({
     if (agent.sourceType === "frontis") {
       setExpertListOverrides(current => ({ ...current, [agent.id]: true }));
     }
-    message.success(`已添加「${agent.name}」到工作台，可在新任务中使用。`);
+    message.success(`已免费使用「${agent.name}」，可单聊，也可由 ME 调度。`);
   }, []);
 
   const handleUseAgent = useCallback(
@@ -1526,9 +1525,9 @@ export const ExpertPlazaView = ({
           className={`${styles.cardActionButton} ${styles.cardActionButtonPrimary}`}
           icon={<ArrowRightOutlined />}
           onClick={() => handleUseAgent(agent)}
-        >
-          去使用
-        </Button>
+      >
+        去使用
+      </Button>
       );
     }
 
@@ -1538,7 +1537,7 @@ export const ExpertPlazaView = ({
         icon={<UserAddOutlined />}
         onClick={() => handleAddToWorkbench(agent)}
       >
-        添加到工作台
+        免费使用
       </Button>
     );
   };
@@ -1578,18 +1577,6 @@ export const ExpertPlazaView = ({
               />
             </Tooltip>
           </Popconfirm>
-        ) : null}
-        {mode === "team" ? (
-          <Button
-            className={styles.cardActionButton}
-            disabled={meSchedulableAgentIds.has(agent.id)}
-            icon={
-              meSchedulableAgentIds.has(agent.id) ? <CheckCircleOutlined /> : <UserAddOutlined />
-            }
-            onClick={() => handleAddToMe(agent)}
-          >
-            {meSchedulableAgentIds.has(agent.id) ? "已添加" : "添加到ME"}
-          </Button>
         ) : null}
         {renderExpertListAction(agent)}
         {agent.sourceType === "mine" && canApplyForMarketplaceListing ? (
@@ -1658,7 +1645,7 @@ export const ExpertPlazaView = ({
           ) : (
             <>
               <div className={styles.filterTabRow} role="tablist" aria-label="商店系统分类">
-                {STORE_SYSTEM_CATEGORY_OPTIONS.map(option => (
+                {storeSystemCategoryOptions.map(option => (
                   <button
                     key={option.value}
                     type="button"
@@ -1906,7 +1893,7 @@ export const ExpertPlazaView = ({
                       </section>
 
                       <section className={styles.agentReadOnlyBlock}>
-                        <h3>适用场景</h3>
+                        <h3>使用指南</h3>
                         <p>{detailAgent.audienceLabel.replace(/^适用：/, "")}</p>
                       </section>
                     </div>

@@ -11,6 +11,7 @@ import type {
   OperationsAgentPlazaCategoryOption,
   OperationsAgentPlazaVisibility,
   OperationsAgentStoreZone,
+  OperationsAgentStoreZoneOption,
   OperationsAgentSubmission,
   OperationsProduct,
   OperationsProductForm,
@@ -38,10 +39,11 @@ import styles from "./OperationsPlatformView.module.less";
 
 type ProductConsoleTabKey = "delivery" | "pointsPackage" | "seatPackage" | "category" | "contact";
 type ProductAcquisitionMode = "freeAdd" | "trial" | "contactSupport";
-type CategoryManagementScope = "expertPlaza" | "skillCenter";
+type CategoryManagementScope = "storeZone" | "expertPlaza" | "skillCenter";
 
 interface CatalogCategoryListItem {
   id: string;
+  zoneId?: string;
   name: string;
   sortOrder: number;
   status: "active" | "inactive";
@@ -59,12 +61,14 @@ interface CatalogCategoryEditorState {
   open: boolean;
   mode: "create" | "edit";
   categoryId?: string;
+  zoneId: string;
   name: string;
   sortOrder: number;
 }
 
 export interface OperationsProductConsoleProps {
   approvedAgents: OperationsAgentSubmission[];
+  storeZones: OperationsAgentStoreZoneOption[];
   categories: OperationsAgentPlazaCategoryOption[];
   emptyProductForm: OperationsProductForm;
   productId?: string;
@@ -82,8 +86,9 @@ export interface OperationsProductConsoleProps {
   tenants: OperationsTenant[];
   onBackToProductList: () => void;
   onCreateCategory: (
-    payload: Pick<OperationsAgentPlazaCategoryOption, "name" | "sortOrder">,
+    payload: Pick<OperationsAgentPlazaCategoryOption, "zoneId" | "name" | "sortOrder">,
   ) => void;
+  onCreateStoreZone: (payload: Pick<OperationsAgentStoreZoneOption, "name" | "sortOrder">) => void;
   onCreatePointsPackage: (payload: MockPointsPackageInput) => void;
   onCreateProduct: (form: OperationsProductForm) => void;
   onCreateSkillCategory: (
@@ -99,7 +104,13 @@ export interface OperationsProductConsoleProps {
   ) => void;
   onUpdateCategory: (
     categoryId: string,
-    updates: Partial<Pick<OperationsAgentPlazaCategoryOption, "name" | "sortOrder" | "status">>,
+    updates: Partial<
+      Pick<OperationsAgentPlazaCategoryOption, "zoneId" | "name" | "sortOrder" | "status">
+    >,
+  ) => void;
+  onUpdateStoreZone: (
+    zoneId: string,
+    updates: Partial<Pick<OperationsAgentStoreZoneOption, "name" | "sortOrder" | "status">>,
   ) => void;
   onUpdateSkillCategory: (
     categoryId: string,
@@ -128,7 +139,8 @@ const CATEGORY_MANAGEMENT_SCOPE_OPTIONS: Array<{
   key: CategoryManagementScope;
   label: string;
 }> = [
-  { key: "expertPlaza", label: "专家广场分类" },
+  { key: "storeZone", label: "专家商店专区" },
+  { key: "expertPlaza", label: "专区分类" },
   { key: "skillCenter", label: "技能中心分类" },
 ];
 
@@ -136,7 +148,7 @@ const PRODUCT_ACQUISITION_MODE_OPTIONS: Array<{
   value: ProductAcquisitionMode;
   label: string;
 }> = [
-  { value: "freeAdd", label: "免费添加" },
+  { value: "freeAdd", label: "免费使用" },
   { value: "trial", label: "免费试用" },
   { value: "contactSupport", label: "联系客服" },
 ];
@@ -148,6 +160,7 @@ const PRODUCT_FIELD_IDS = {
   visibility: "operations-product-visibility",
   visibleTenants: "operations-product-visible-tenants",
   status: "operations-product-status",
+  plazaSort: "operations-product-plaza-sort",
   acquisitionMode: "operations-product-acquisition-mode",
   linkedAgentId: "operations-product-linked-agent",
   trialUnit: "operations-product-trial-unit",
@@ -155,13 +168,8 @@ const PRODUCT_FIELD_IDS = {
   description: "operations-product-description",
 } as const;
 
-const PRODUCT_STORE_ZONE_OPTIONS: Array<{ value: OperationsAgentStoreZone; label: string }> = [
-  { value: "roleZone", label: "角色专区" },
-  { value: "industryExpert", label: "行业专区" },
-];
-
-const getProductStoreZoneLabel = (value?: OperationsAgentStoreZone): string =>
-  PRODUCT_STORE_ZONE_OPTIONS.find(option => option.value === value)?.label ?? "角色专区";
+const getProductZoneIds = (product: OperationsProduct): OperationsAgentStoreZone[] =>
+  product.storeZones?.length ? product.storeZones : product.storeZone ? [product.storeZone] : [];
 
 const AGENT_PLAZA_CATEGORY_FIELD_IDS = {
   name: "operations-agent-plaza-category-name",
@@ -218,32 +226,6 @@ const getSortedCatalogCategories = <TCategory extends CatalogCategoryListItem>(
     return leftItem.updatedAt.localeCompare(rightItem.updatedAt);
   });
 
-const getAgentPlazaCategorySelectOptions = (
-  categories: OperationsAgentPlazaCategoryOption[],
-  currentCategory: string,
-): Array<{ label: string; value: string; disabled?: boolean }> => {
-  const activeOptions = getSortedCatalogCategories(categories)
-    .filter(item => item.status === "active")
-    .map(item => ({
-      label: item.name,
-      value: item.name,
-    }));
-  const hasCurrentOption = activeOptions.some(item => item.value === currentCategory);
-
-  if (hasCurrentOption || !currentCategory.trim()) {
-    return activeOptions;
-  }
-
-  return [
-    {
-      label: `${currentCategory}（已停用）`,
-      value: currentCategory,
-      disabled: true,
-    },
-    ...activeOptions,
-  ];
-};
-
 const getProductTrialLabel = (
   product: OperationsProduct,
   productTrialUnitLabels: Record<NonNullable<OperationsProduct["trialUnit"]>, string>,
@@ -272,7 +254,7 @@ const getProductAcquisitionLabel = (product: OperationsProduct): string => {
     return "免费试用";
   }
 
-  return "免费添加";
+  return "免费使用";
 };
 
 const getProductAcquisitionMode = (
@@ -319,6 +301,7 @@ const applyProductAcquisitionMode = (
  */
 export const OperationsProductConsole = ({
   approvedAgents,
+  storeZones,
   categories,
   emptyProductForm,
   productId,
@@ -333,6 +316,7 @@ export const OperationsProductConsole = ({
   tenants,
   onBackToProductList,
   onCreateCategory,
+  onCreateStoreZone,
   onCreatePointsPackage,
   onCreateProduct,
   onCreateSkillCategory,
@@ -340,6 +324,7 @@ export const OperationsProductConsole = ({
   onToggleProductStatus,
   onUpdateServiceContactConfig,
   onUpdateCategory,
+  onUpdateStoreZone,
   onUpdateSkillCategory,
   onUpdatePointsPackage,
   onUpdateProduct,
@@ -357,6 +342,7 @@ export const OperationsProductConsole = ({
   const [categoryEditor, setCategoryEditor] = useState<CatalogCategoryEditorState>({
     open: false,
     mode: "create",
+    zoneId: "",
     name: "",
     sortOrder: 10,
   });
@@ -368,19 +354,58 @@ export const OperationsProductConsole = ({
     () => getSortedCatalogCategories(categories),
     [categories],
   );
+  const sortedStoreZones = useMemo<OperationsAgentStoreZoneOption[]>(
+    () => getSortedCatalogCategories(storeZones),
+    [storeZones],
+  );
   const sortedSkillCategories = useMemo<OperationsSkillCenterCategoryOption[]>(
     () => getSortedCatalogCategories(skillCategories),
     [skillCategories],
   );
   const currentManagedCategories = useMemo<CatalogCategoryListItem[]>(
-    () => (activeCategoryScope === "expertPlaza" ? sortedCategories : sortedSkillCategories),
-    [activeCategoryScope, sortedCategories, sortedSkillCategories],
+    () =>
+      activeCategoryScope === "storeZone"
+        ? sortedStoreZones
+        : activeCategoryScope === "expertPlaza"
+          ? sortedCategories
+          : sortedSkillCategories,
+    [activeCategoryScope, sortedCategories, sortedSkillCategories, sortedStoreZones],
   );
   const activeCategoryScopeLabel =
-    activeCategoryScope === "expertPlaza" ? "专家广场分类" : "技能中心分类";
-  const categoryOptions = useMemo(
-    () => getAgentPlazaCategorySelectOptions(categories, productEditor.form.plazaCategory),
-    [categories, productEditor.form.plazaCategory],
+    activeCategoryScope === "storeZone"
+      ? "专家商店专区"
+      : activeCategoryScope === "expertPlaza"
+        ? "专区分类"
+        : "技能中心分类";
+  const storeZoneOptions = useMemo(
+    () =>
+      sortedStoreZones
+        .filter(zone => zone.status === "active")
+        .map(zone => ({
+          value: zone.id,
+          label: zone.name,
+        })),
+    [sortedStoreZones],
+  );
+  const storeZoneLabelMap = useMemo(
+    () => new Map(sortedStoreZones.map(zone => [zone.id, zone.name] as const)),
+    [sortedStoreZones],
+  );
+  const categoryOptionsByZone = useMemo(
+    () =>
+      sortedStoreZones.reduce<Record<string, Array<{ value: string; label: string }>>>(
+        (result, zone) => {
+          result[zone.id] = sortedCategories
+            .filter(category => category.zoneId === zone.id && category.status === "active")
+            .map(category => ({
+              value: category.name,
+              label: category.name,
+            }));
+          return result;
+        },
+        {},
+      ),
+    [sortedCategories, sortedStoreZones],
   );
   const filteredAgentProducts = useMemo<OperationsProduct[]>(
     () =>
@@ -394,6 +419,8 @@ export const OperationsProductConsole = ({
           item.linkedAgentName ?? "",
           item.description,
           item.plazaCategory ?? "",
+          getProductZoneIds(item).map(zoneId => storeZoneLabelMap.get(zoneId) ?? zoneId).join(" "),
+          Object.values(item.plazaCategoryByZone ?? {}).join(" "),
           getProductAcquisitionLabel(item),
           getProductVisibilityLabel(item),
         ]
@@ -402,7 +429,7 @@ export const OperationsProductConsole = ({
 
         return searchSource.includes(keyword.trim().toLowerCase());
       }),
-    [keyword, products],
+    [keyword, products, storeZoneLabelMap],
   );
 
   const handleOpenCreateProduct = useCallback((): void => {
@@ -417,16 +444,25 @@ export const OperationsProductConsole = ({
         meteringUnit: "duration",
         billingSpec: "year",
         contactMode: "disabled",
-        storeZone: "roleZone",
-        plazaCategory: OPERATIONS_AGENT_PLAZA_DEFAULT_CATEGORY,
+        storeZone: storeZoneOptions[0]?.value ?? "roleZone",
+        storeZones: storeZoneOptions[0]?.value ? [storeZoneOptions[0].value] : ["roleZone"],
+        plazaCategory:
+          categoryOptionsByZone[storeZoneOptions[0]?.value ?? "roleZone"]?.[0]?.value ??
+          OPERATIONS_AGENT_PLAZA_DEFAULT_CATEGORY,
+        plazaCategoryByZone: {
+          [storeZoneOptions[0]?.value ?? "roleZone"]:
+            categoryOptionsByZone[storeZoneOptions[0]?.value ?? "roleZone"]?.[0]?.value ??
+            OPERATIONS_AGENT_PLAZA_DEFAULT_CATEGORY,
+        },
         plazaVisibility: "public",
         visibleTenantIds: [],
         visibleTenantNames: [],
         plazaStatus: "offline",
+        plazaSort: 10,
         billingScopes: ["points"],
       },
     });
-  }, [emptyProductForm]);
+  }, [categoryOptionsByZone, emptyProductForm, storeZoneOptions]);
 
   const handleOpenEditProduct = useCallback(
     (product: OperationsProduct): void => {
@@ -456,12 +492,19 @@ export const OperationsProductConsole = ({
           contactMode: product.contactMode ?? "disabled",
           contactQrCodeValue: product.contactQrCodeValue ?? "",
           contactRemark: product.contactRemark ?? "",
-          storeZone: product.storeZone ?? "roleZone",
+          storeZone: product.storeZones?.[0] ?? product.storeZone ?? "roleZone",
+          storeZones: getProductZoneIds(product),
           plazaCategory: product.plazaCategory ?? OPERATIONS_AGENT_PLAZA_DEFAULT_CATEGORY,
+          plazaCategoryByZone:
+            product.plazaCategoryByZone ??
+            (product.storeZone && product.plazaCategory
+              ? { [product.storeZone]: product.plazaCategory }
+              : {}),
           plazaVisibility: product.plazaVisibility ?? "public",
           visibleTenantIds: product.visibleTenantIds ?? [],
           visibleTenantNames: product.visibleTenantNames ?? [],
           plazaStatus: product.status === "active" ? "online" : (product.plazaStatus ?? "offline"),
+          plazaSort: product.plazaSort ?? 10,
           billingScopes: product.billingScopes?.length ? product.billingScopes : ["points"],
         },
       });
@@ -485,6 +528,20 @@ export const OperationsProductConsole = ({
 
     if (!productEditor.form.linkedAgentId) {
       message.warning("请选择绑定 AI专家。");
+      return;
+    }
+
+    if (!productEditor.form.storeZones.length) {
+      message.warning("请至少选择一个专区。");
+      return;
+    }
+
+    const hasMissingZoneCategory = productEditor.form.storeZones.some(
+      zoneId => !productEditor.form.plazaCategoryByZone[zoneId],
+    );
+
+    if (hasMissingZoneCategory) {
+      message.warning("请为已选专区选择分类。");
       return;
     }
 
@@ -518,6 +575,9 @@ export const OperationsProductConsole = ({
       resourcePoolId: undefined,
       price: 0,
       billingScopes: ["points"],
+      storeZone: productEditor.form.storeZones[0],
+      plazaCategory: productEditor.form.plazaCategoryByZone[productEditor.form.storeZones[0]],
+      plazaSort: productEditor.form.plazaSort,
       contactMode: productEditor.form.contactMode,
       contactQrCodeValue:
         productEditor.form.contactMode === "custom"
@@ -550,16 +610,18 @@ export const OperationsProductConsole = ({
     setCategoryEditor({
       open: true,
       mode: "create",
+      zoneId: storeZoneOptions[0]?.value ?? "",
       name: "",
       sortOrder: maxSortOrder + 10,
     });
-  }, [currentManagedCategories]);
+  }, [currentManagedCategories, storeZoneOptions]);
 
   const handleOpenEditCategory = useCallback((category: CatalogCategoryListItem): void => {
     setCategoryEditor({
       open: true,
       mode: "edit",
       categoryId: category.id,
+      zoneId: category.zoneId ?? "",
       name: category.name,
       sortOrder: category.sortOrder,
     });
@@ -569,6 +631,7 @@ export const OperationsProductConsole = ({
     setCategoryEditor({
       open: false,
       mode: "create",
+      zoneId: "",
       name: "",
       sortOrder: 10,
     });
@@ -578,13 +641,19 @@ export const OperationsProductConsole = ({
     const nextName = categoryEditor.name.trim();
 
     if (!nextName || categoryEditor.sortOrder < 0) {
-      message.warning("请先补齐分类名称，并填写有效排序。");
+      message.warning("请先补齐名称，并填写有效排序。");
+      return;
+    }
+
+    if (activeCategoryScope === "expertPlaza" && !categoryEditor.zoneId) {
+      message.warning("请选择所属专区。");
       return;
     }
 
     const hasDuplicateName = currentManagedCategories.some(
       item =>
         item.id !== categoryEditor.categoryId &&
+        (activeCategoryScope !== "expertPlaza" || item.zoneId === categoryEditor.zoneId) &&
         item.name.trim().toLowerCase() === nextName.toLowerCase(),
     );
 
@@ -594,8 +663,14 @@ export const OperationsProductConsole = ({
     }
 
     if (categoryEditor.mode === "create") {
-      if (activeCategoryScope === "expertPlaza") {
+      if (activeCategoryScope === "storeZone") {
+        onCreateStoreZone({
+          name: nextName,
+          sortOrder: categoryEditor.sortOrder,
+        });
+      } else if (activeCategoryScope === "expertPlaza") {
         onCreateCategory({
+          zoneId: categoryEditor.zoneId,
           name: nextName,
           sortOrder: categoryEditor.sortOrder,
         });
@@ -608,8 +683,14 @@ export const OperationsProductConsole = ({
 
       message.success(`${activeCategoryScopeLabel}已创建。`);
     } else if (categoryEditor.categoryId) {
-      if (activeCategoryScope === "expertPlaza") {
+      if (activeCategoryScope === "storeZone") {
+        onUpdateStoreZone(categoryEditor.categoryId, {
+          name: nextName,
+          sortOrder: categoryEditor.sortOrder,
+        });
+      } else if (activeCategoryScope === "expertPlaza") {
         onUpdateCategory(categoryEditor.categoryId, {
+          zoneId: categoryEditor.zoneId,
           name: nextName,
           sortOrder: categoryEditor.sortOrder,
         });
@@ -631,8 +712,10 @@ export const OperationsProductConsole = ({
     currentManagedCategories,
     handleCloseCategoryEditor,
     onCreateCategory,
+    onCreateStoreZone,
     onCreateSkillCategory,
     onUpdateCategory,
+    onUpdateStoreZone,
     onUpdateSkillCategory,
   ]);
 
@@ -648,7 +731,11 @@ export const OperationsProductConsole = ({
         return;
       }
 
-      if (activeCategoryScope === "expertPlaza") {
+      if (activeCategoryScope === "storeZone") {
+        onUpdateStoreZone(category.id, {
+          status: nextStatus,
+        });
+      } else if (activeCategoryScope === "expertPlaza") {
         onUpdateCategory(category.id, {
           status: nextStatus,
         });
@@ -660,7 +747,13 @@ export const OperationsProductConsole = ({
 
       message.success(nextStatus === "active" ? "分类已启用。" : "分类已停用。");
     },
-    [activeCategoryScope, currentManagedCategories, onUpdateCategory, onUpdateSkillCategory],
+    [
+      activeCategoryScope,
+      currentManagedCategories,
+      onUpdateCategory,
+      onUpdateSkillCategory,
+      onUpdateStoreZone,
+    ],
   );
 
   const handleToggleProductStatus = useCallback(
@@ -683,6 +776,7 @@ export const OperationsProductConsole = ({
       {productId ? (
         <ProductDetail
           product={activeProduct}
+          storeZoneLabelMap={storeZoneLabelMap}
           productStatusLabels={productStatusLabels}
           productTrialUnitLabels={productTrialUnitLabels}
           onBack={onBackToProductList}
@@ -712,7 +806,11 @@ export const OperationsProductConsole = ({
               ) : null}
               {activeConsoleTab === "category" ? (
                 <Button type="primary" icon={<PlusOutlined />} onClick={handleOpenCreateCategory}>
-                  {activeCategoryScope === "expertPlaza" ? "新建专家分类" : "新建技能分类"}
+                  {activeCategoryScope === "storeZone"
+                    ? "新建专区"
+                    : activeCategoryScope === "expertPlaza"
+                      ? "新建专区分类"
+                      : "新建技能分类"}
                 </Button>
               ) : null}
             </div>
@@ -738,6 +836,7 @@ export const OperationsProductConsole = ({
             <ProductList
               keyword={keyword}
               products={filteredAgentProducts}
+              storeZoneLabelMap={storeZoneLabelMap}
               productStatusLabels={productStatusLabels}
               productTrialUnitLabels={productTrialUnitLabels}
               onNavigateToProduct={onNavigateToProduct}
@@ -778,7 +877,9 @@ export const OperationsProductConsole = ({
               </div>
 
               <CategoryList
+                scope={activeCategoryScope}
                 categories={currentManagedCategories}
+                storeZoneLabelMap={storeZoneLabelMap}
                 onEditCategory={handleOpenEditCategory}
                 onToggleCategoryStatus={handleToggleCategoryStatus}
               />
@@ -868,40 +969,69 @@ export const OperationsProductConsole = ({
             <label className={styles.modalLabel} htmlFor={PRODUCT_FIELD_IDS.storeZone}>
               专区
             </label>
-            <Select<OperationsAgentStoreZone>
+            <Select<OperationsAgentStoreZone[]>
               id={PRODUCT_FIELD_IDS.storeZone}
-              value={productEditor.form.storeZone}
-              options={PRODUCT_STORE_ZONE_OPTIONS}
+              mode="multiple"
+              value={productEditor.form.storeZones}
+              options={storeZoneOptions}
               onChange={nextValue =>
                 setProductEditor(currentState => ({
                   ...currentState,
                   form: {
                     ...currentState.form,
-                    storeZone: nextValue,
+                    storeZone: nextValue[0] ?? currentState.form.storeZone,
+                    storeZones: nextValue,
+                    plazaCategoryByZone: nextValue.reduce<Record<string, string>>(
+                      (result, zoneId) => {
+                        result[zoneId] =
+                          currentState.form.plazaCategoryByZone[zoneId] ??
+                          categoryOptionsByZone[zoneId]?.[0]?.value ??
+                          OPERATIONS_AGENT_PLAZA_DEFAULT_CATEGORY;
+                        return result;
+                      },
+                      {},
+                    ),
                   },
                 }))
               }
             />
           </div>
 
-          <div className={styles.modalField}>
+          <div className={`${styles.modalField} ${styles.modalFieldWide}`}>
             <label className={styles.modalLabel} htmlFor={PRODUCT_FIELD_IDS.category}>
-              场景分类
+              专区分类
             </label>
-            <Select
-              id={PRODUCT_FIELD_IDS.category}
-              value={productEditor.form.plazaCategory}
-              options={categoryOptions}
-              onChange={nextValue =>
-                setProductEditor(currentState => ({
-                  ...currentState,
-                  form: {
-                    ...currentState.form,
-                    plazaCategory: nextValue,
-                  },
-                }))
-              }
-            />
+            <div className={styles.platformConfigStack}>
+              {productEditor.form.storeZones.map(zoneId => (
+                <div key={zoneId} className={adminStyles.consoleInfoRow}>
+                  <span className={adminStyles.consoleInfoLabel}>
+                    {storeZoneLabelMap.get(zoneId) ?? zoneId}
+                  </span>
+                  <Select
+                    className={styles.fullWidthInput}
+                    value={productEditor.form.plazaCategoryByZone[zoneId]}
+                    options={categoryOptionsByZone[zoneId] ?? []}
+                    placeholder="请选择分类"
+                    onChange={nextValue =>
+                      setProductEditor(currentState => ({
+                        ...currentState,
+                        form: {
+                          ...currentState.form,
+                          plazaCategory:
+                            zoneId === currentState.form.storeZones[0]
+                              ? nextValue
+                              : currentState.form.plazaCategory,
+                          plazaCategoryByZone: {
+                            ...currentState.form.plazaCategoryByZone,
+                            [zoneId]: nextValue,
+                          },
+                        },
+                      }))
+                    }
+                  />
+                </div>
+              ))}
+            </div>
           </div>
 
           <div className={styles.modalField}>
@@ -978,6 +1108,28 @@ export const OperationsProductConsole = ({
                   form: {
                     ...currentState.form,
                     plazaStatus: nextValue,
+                  },
+                }))
+              }
+            />
+          </div>
+
+          <div className={styles.modalField}>
+            <label className={styles.modalLabel} htmlFor={PRODUCT_FIELD_IDS.plazaSort}>
+              排序
+            </label>
+            <InputNumber
+              id={PRODUCT_FIELD_IDS.plazaSort}
+              className={styles.fullWidthInput}
+              min={0}
+              precision={0}
+              value={productEditor.form.plazaSort}
+              onChange={nextValue =>
+                setProductEditor(currentState => ({
+                  ...currentState,
+                  form: {
+                    ...currentState.form,
+                    plazaSort: typeof nextValue === "number" ? nextValue : 0,
                   },
                 }))
               }
@@ -1067,9 +1219,25 @@ export const OperationsProductConsole = ({
         destroyOnHidden
       >
         <div className={styles.formGrid}>
+          {activeCategoryScope === "expertPlaza" ? (
+            <div className={`${styles.modalField} ${styles.modalFieldWide}`}>
+              <label className={styles.modalLabel}>所属专区</label>
+              <Select
+                value={categoryEditor.zoneId}
+                options={storeZoneOptions}
+                onChange={nextValue =>
+                  setCategoryEditor(currentState => ({
+                    ...currentState,
+                    zoneId: nextValue,
+                  }))
+                }
+              />
+            </div>
+          ) : null}
+
           <div className={`${styles.modalField} ${styles.modalFieldWide}`}>
             <label className={styles.modalLabel} htmlFor={AGENT_PLAZA_CATEGORY_FIELD_IDS.name}>
-              分类名称
+              {activeCategoryScope === "storeZone" ? "专区名称" : "分类名称"}
             </label>
             <Input
               id={AGENT_PLAZA_CATEGORY_FIELD_IDS.name}
@@ -1077,6 +1245,8 @@ export const OperationsProductConsole = ({
               placeholder={
                 activeCategoryScope === "expertPlaza"
                   ? "如 销售、供应链、财务"
+                  : activeCategoryScope === "storeZone"
+                    ? "如 角色专区、行业专区"
                   : "如 工作流、数据分析、工具"
               }
               onChange={event =>
@@ -1116,6 +1286,7 @@ interface ProductListProps {
   productStatusLabels: Record<OperationsProduct["status"], string>;
   productTrialUnitLabels: Record<NonNullable<OperationsProduct["trialUnit"]>, string>;
   products: OperationsProduct[];
+  storeZoneLabelMap: Map<string, string>;
   onNavigateToProduct: (productId: string) => void;
 }
 
@@ -1124,6 +1295,7 @@ const ProductList = ({
   productStatusLabels,
   productTrialUnitLabels,
   products,
+  storeZoneLabelMap,
   onNavigateToProduct,
 }: ProductListProps): JSX.Element => (
   <section className={adminStyles.consoleSection}>
@@ -1140,7 +1312,8 @@ const ProductList = ({
             <tr>
               <th>AI专家商品</th>
               <th>专区</th>
-              <th>场景分类</th>
+              <th>专区分类</th>
+              <th>排序</th>
               <th>可见范围</th>
               <th>获取方式</th>
               <th>试用规则</th>
@@ -1161,8 +1334,18 @@ const ProductList = ({
                     <span className={styles.recordEntryTitle}>{product.name}</span>
                   </button>
                 </td>
-                <td>{getProductStoreZoneLabel(product.storeZone)}</td>
-                <td>{product.plazaCategory ?? OPERATIONS_AGENT_PLAZA_DEFAULT_CATEGORY}</td>
+                <td>
+                  {getProductZoneIds(product)
+                    .map(zoneId => storeZoneLabelMap.get(zoneId) ?? zoneId)
+                    .join("、")}
+                </td>
+                <td>
+                  {getProductZoneIds(product)
+                    .map(zoneId => product.plazaCategoryByZone?.[zoneId] ?? product.plazaCategory)
+                    .filter(Boolean)
+                    .join("、") || OPERATIONS_AGENT_PLAZA_DEFAULT_CATEGORY}
+                </td>
+                <td>{product.plazaSort ?? 0}</td>
                 <td>{getProductVisibilityLabel(product)}</td>
                 <td>{getProductAcquisitionLabel(product)}</td>
                 <td>{getProductTrialLabel(product, productTrialUnitLabels)}</td>
@@ -1196,12 +1379,16 @@ const ProductList = ({
 
 interface CategoryListProps {
   categories: CatalogCategoryListItem[];
+  scope: CategoryManagementScope;
+  storeZoneLabelMap: Map<string, string>;
   onEditCategory: (category: CatalogCategoryListItem) => void;
   onToggleCategoryStatus: (category: CatalogCategoryListItem) => void;
 }
 
 const CategoryList = ({
   categories,
+  scope,
+  storeZoneLabelMap,
   onEditCategory,
   onToggleCategoryStatus,
 }: CategoryListProps): JSX.Element => (
@@ -1211,7 +1398,8 @@ const CategoryList = ({
         <table className={adminStyles.consoleHtmlTable}>
           <thead>
             <tr>
-              <th>分类名称</th>
+              {scope === "expertPlaza" ? <th>所属专区</th> : null}
+              <th>{scope === "storeZone" ? "专区名称" : "分类名称"}</th>
               <th>排序</th>
               <th>状态</th>
               <th>更新时间</th>
@@ -1221,6 +1409,9 @@ const CategoryList = ({
           <tbody>
             {categories.map(category => (
               <tr key={category.id}>
+                {scope === "expertPlaza" ? (
+                  <td>{storeZoneLabelMap.get(category.zoneId ?? "") ?? category.zoneId}</td>
+                ) : null}
                 <td className={adminStyles.consoleHtmlTableStrong}>{category.name}</td>
                 <td>{category.sortOrder}</td>
                 <td>
@@ -1406,6 +1597,7 @@ const ServiceContactConfigPanel = ({
 
 interface ProductDetailProps {
   product: OperationsProduct | null;
+  storeZoneLabelMap: Map<string, string>;
   productStatusLabels: Record<OperationsProduct["status"], string>;
   productTrialUnitLabels: Record<NonNullable<OperationsProduct["trialUnit"]>, string>;
   onBack: () => void;
@@ -1415,6 +1607,7 @@ interface ProductDetailProps {
 
 const ProductDetail = ({
   product,
+  storeZoneLabelMap,
   productStatusLabels,
   productTrialUnitLabels,
   onBack,
@@ -1466,13 +1659,24 @@ const ProductDetail = ({
               <div className={adminStyles.consoleInfoRow}>
                 <span className={adminStyles.consoleInfoLabel}>专区</span>
                 <span className={adminStyles.consoleInfoValue}>
-                  {getProductStoreZoneLabel(product.storeZone)}
+                  {getProductZoneIds(product)
+                    .map(zoneId => storeZoneLabelMap.get(zoneId) ?? zoneId)
+                    .join("、")}
                 </span>
               </div>
               <div className={adminStyles.consoleInfoRow}>
-                <span className={adminStyles.consoleInfoLabel}>场景分类</span>
+                <span className={adminStyles.consoleInfoLabel}>专区分类</span>
                 <span className={adminStyles.consoleInfoValue}>
-                  {product.plazaCategory ?? OPERATIONS_AGENT_PLAZA_DEFAULT_CATEGORY}
+                  {getProductZoneIds(product)
+                    .map(zoneId => product.plazaCategoryByZone?.[zoneId] ?? product.plazaCategory)
+                    .filter(Boolean)
+                    .join("、") || OPERATIONS_AGENT_PLAZA_DEFAULT_CATEGORY}
+                </span>
+              </div>
+              <div className={adminStyles.consoleInfoRow}>
+                <span className={adminStyles.consoleInfoLabel}>排序</span>
+                <span className={adminStyles.consoleInfoValue}>
+                  {product.plazaSort ?? 0}
                 </span>
               </div>
               <div className={adminStyles.consoleInfoRow}>

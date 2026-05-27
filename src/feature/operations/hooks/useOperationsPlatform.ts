@@ -2,7 +2,9 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import {
   loadStoredAgentPlazaCategories,
+  loadStoredAgentStoreZones,
   saveStoredAgentPlazaCategories,
+  saveStoredAgentStoreZones,
 } from "@/feature/operations/agentPlazaCategoryStorage";
 import {
   getMockTenantManagementSnapshot,
@@ -89,6 +91,7 @@ import type {
 } from "@/feature/subscription/types";
 import type {
   OperationsAgentPlazaCategoryOption,
+  OperationsAgentStoreZoneOption,
   OperationsAgentSubmission,
   OperationsCommunityGroupConfig,
   OperationsMeteringProvider,
@@ -119,6 +122,7 @@ import {
 interface UseOperationsPlatformResult {
   tenants: OperationsTenant[];
   agentSubmissions: OperationsAgentSubmission[];
+  agentStoreZones: OperationsAgentStoreZoneOption[];
   agentPlazaCategories: OperationsAgentPlazaCategoryOption[];
   skillCenterCategories: OperationsSkillCenterCategoryOption[];
   approvedAgentSubmissions: OperationsAgentSubmission[];
@@ -204,11 +208,20 @@ interface UseOperationsPlatformResult {
     >,
   ) => void;
   createAgentPlazaCategory: (
-    payload: Pick<OperationsAgentPlazaCategoryOption, "name" | "sortOrder">,
+    payload: Pick<OperationsAgentPlazaCategoryOption, "zoneId" | "name" | "sortOrder">,
   ) => void;
   updateAgentPlazaCategory: (
     categoryId: string,
-    updates: Partial<Pick<OperationsAgentPlazaCategoryOption, "name" | "sortOrder" | "status">>,
+    updates: Partial<
+      Pick<OperationsAgentPlazaCategoryOption, "zoneId" | "name" | "sortOrder" | "status">
+    >,
+  ) => void;
+  createAgentStoreZone: (
+    payload: Pick<OperationsAgentStoreZoneOption, "name" | "sortOrder">,
+  ) => void;
+  updateAgentStoreZone: (
+    zoneId: string,
+    updates: Partial<Pick<OperationsAgentStoreZoneOption, "name" | "sortOrder" | "status">>,
   ) => void;
   createSkillCenterCategory: (
     payload: Pick<OperationsSkillCenterCategoryOption, "name" | "sortOrder">,
@@ -435,8 +448,13 @@ const buildPendingProductFromSubmission = (
   contactQrCodeValue: "",
   contactRemark: "",
   storeZone: submission.plazaCategory === "通用" ? "roleZone" : "industryExpert",
+  storeZones: [submission.plazaCategory === "通用" ? "roleZone" : "industryExpert"],
   status: "pendingProductization",
   plazaCategory: OPERATIONS_AGENT_PLAZA_DEFAULT_CATEGORY,
+  plazaCategoryByZone: {
+    [submission.plazaCategory === "通用" ? "roleZone" : "industryExpert"]:
+      OPERATIONS_AGENT_PLAZA_DEFAULT_CATEGORY,
+  },
   plazaVisibility: "public",
   visibleTenantIds: [],
   visibleTenantNames: [],
@@ -482,11 +500,14 @@ const buildProductFromForm = (
     contactRemark: form.contactMode === "custom" ? form.contactRemark.trim() : "",
     status: form.plazaStatus === "online" ? "active" : "draft",
     storeZone: form.storeZone,
+    storeZones: form.storeZones,
     plazaCategory: form.plazaCategory,
+    plazaCategoryByZone: form.plazaCategoryByZone,
     plazaVisibility: form.plazaVisibility,
     visibleTenantIds: form.plazaVisibility === "tenant" ? form.visibleTenantIds : [],
     visibleTenantNames: form.plazaVisibility === "tenant" ? form.visibleTenantNames : [],
     plazaStatus: form.plazaStatus,
+    plazaSort: form.plazaSort,
     billingScopes: form.billingScopes,
     updatedAt: formatTimestamp(),
   };
@@ -566,6 +587,9 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
   const [agentSubmissions, setAgentSubmissions] = useState<OperationsAgentSubmission[]>(
     buildInitialAgentSubmissions,
   );
+  const [agentStoreZones, setAgentStoreZones] = useState<OperationsAgentStoreZoneOption[]>(() =>
+    loadStoredAgentStoreZones(),
+  );
   const [agentPlazaCategories, setAgentPlazaCategories] = useState<
     OperationsAgentPlazaCategoryOption[]
   >(() => loadStoredAgentPlazaCategories());
@@ -614,6 +638,10 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
   useEffect(() => {
     saveStoredAgentPlazaCategories(agentPlazaCategories);
   }, [agentPlazaCategories]);
+
+  useEffect(() => {
+    saveStoredAgentStoreZones(agentStoreZones);
+  }, [agentStoreZones]);
 
   useEffect(() => {
     saveStoredSkillCenterCategories(skillCenterCategories);
@@ -819,11 +847,14 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
             contactRemark: form.contactMode === "custom" ? form.contactRemark.trim() : "",
             status: form.plazaStatus === "online" ? "active" : "inactive",
             storeZone: form.storeZone,
+            storeZones: form.storeZones,
             plazaCategory: form.plazaCategory,
+            plazaCategoryByZone: form.plazaCategoryByZone,
             plazaVisibility: form.plazaVisibility,
             visibleTenantIds: form.plazaVisibility === "tenant" ? form.visibleTenantIds : [],
             visibleTenantNames: form.plazaVisibility === "tenant" ? form.visibleTenantNames : [],
             plazaStatus: form.plazaStatus,
+            plazaSort: form.plazaSort,
             billingScopes: form.billingScopes,
             updatedAt: formatTimestamp(),
           };
@@ -1029,7 +1060,7 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
   );
 
   const createAgentPlazaCategory = useCallback(
-    (payload: Pick<OperationsAgentPlazaCategoryOption, "name" | "sortOrder">): void => {
+    (payload: Pick<OperationsAgentPlazaCategoryOption, "zoneId" | "name" | "sortOrder">): void => {
       const updatedAt = formatTimestamp();
 
       setAgentPlazaCategories(currentCategories =>
@@ -1037,6 +1068,7 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
           ...currentCategories,
           {
             id: buildAgentPlazaCategoryId(),
+            zoneId: payload.zoneId,
             name: payload.name.trim(),
             sortOrder: payload.sortOrder,
             status: "active",
@@ -1051,7 +1083,9 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
   const updateAgentPlazaCategory = useCallback(
     (
       categoryId: string,
-      updates: Partial<Pick<OperationsAgentPlazaCategoryOption, "name" | "sortOrder" | "status">>,
+      updates: Partial<
+        Pick<OperationsAgentPlazaCategoryOption, "zoneId" | "name" | "sortOrder" | "status">
+      >,
     ): void => {
       const currentCategory = agentPlazaCategories.find(item => item.id === categoryId) ?? null;
 
@@ -1070,6 +1104,7 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
               ? {
                   ...item,
                   ...updates,
+                  zoneId: updates.zoneId ?? item.zoneId,
                   name: nextName,
                   sortOrder:
                     typeof updates.sortOrder === "number" ? updates.sortOrder : item.sortOrder,
@@ -1087,10 +1122,15 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
 
       setProducts(currentProducts =>
         currentProducts.map(item =>
-          item.plazaCategory === currentCategory.name
+          item.plazaCategory === currentCategory.name ||
+          item.plazaCategoryByZone?.[currentCategory.zoneId] === currentCategory.name
             ? {
                 ...item,
                 plazaCategory: nextName,
+                plazaCategoryByZone: {
+                  ...(item.plazaCategoryByZone ?? {}),
+                  [currentCategory.zoneId]: nextName,
+                },
                 updatedAt,
               }
             : item,
@@ -1110,6 +1150,54 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
       );
     },
     [agentPlazaCategories],
+  );
+
+  const createAgentStoreZone = useCallback(
+    (payload: Pick<OperationsAgentStoreZoneOption, "name" | "sortOrder">): void => {
+      const updatedAt = formatTimestamp();
+
+      setAgentStoreZones(currentZones =>
+        sortCategoryOptions([
+          ...currentZones,
+          {
+            id: `ops-agent-store-zone-${Date.now()}`,
+            name: payload.name.trim(),
+            sortOrder: payload.sortOrder,
+            status: "active",
+            updatedAt,
+          },
+        ]),
+      );
+    },
+    [],
+  );
+
+  const updateAgentStoreZone = useCallback(
+    (
+      zoneId: string,
+      updates: Partial<Pick<OperationsAgentStoreZoneOption, "name" | "sortOrder" | "status">>,
+    ): void => {
+      const updatedAt = formatTimestamp();
+
+      setAgentStoreZones(currentZones =>
+        sortCategoryOptions(
+          currentZones.map(item =>
+            item.id === zoneId
+              ? {
+                  ...item,
+                  ...updates,
+                  name: updates.name?.trim() || item.name,
+                  sortOrder:
+                    typeof updates.sortOrder === "number" ? updates.sortOrder : item.sortOrder,
+                  status: updates.status ?? item.status,
+                  updatedAt,
+                }
+              : item,
+          ),
+        ),
+      );
+    },
+    [],
   );
 
   const createSkillCenterCategory = useCallback(
@@ -1179,6 +1267,7 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
   return {
     tenants,
     agentSubmissions,
+    agentStoreZones,
     agentPlazaCategories,
     skillCenterCategories,
     approvedAgentSubmissions,
@@ -1234,6 +1323,8 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
     updateRegistrationStrategy,
     createAgentPlazaCategory,
     updateAgentPlazaCategory,
+    createAgentStoreZone,
+    updateAgentStoreZone,
     createSkillCenterCategory,
     updateSkillCenterCategory,
   };

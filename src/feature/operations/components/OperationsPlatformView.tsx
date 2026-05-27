@@ -675,12 +675,14 @@ export const OperationsPlatformView = (): JSX.Element => {
   const {
     agentStatusLabels,
     agentPlazaCategories,
+    agentStoreZones,
     agentSubmissions,
     approveAgent,
     approvedAgents,
     applyTenantSubscriptionPlan,
     communityGroupConfig,
     createAgentPlazaCategory,
+    createAgentStoreZone,
     createMeteringProvider,
     createModelService,
     createPointsPackage,
@@ -707,6 +709,7 @@ export const OperationsPlatformView = (): JSX.Element => {
     tenantStatusLabels,
     tenants,
     updateAgentPlazaCategory,
+    updateAgentStoreZone,
     updateMeteringProvider,
     updateModelService,
     updateProduct,
@@ -1095,6 +1098,7 @@ export const OperationsPlatformView = (): JSX.Element => {
       return (
         <OperationsProductConsole
           approvedAgents={approvedAgents}
+          storeZones={agentStoreZones}
           categories={agentPlazaCategories}
           emptyProductForm={emptyProductForm}
           productId={productId}
@@ -1109,6 +1113,7 @@ export const OperationsPlatformView = (): JSX.Element => {
           tenants={tenants}
           onBackToProductList={handleBackToProductList}
           onCreateCategory={createAgentPlazaCategory}
+          onCreateStoreZone={createAgentStoreZone}
           onCreatePointsPackage={createPointsPackage}
           onCreateProduct={createProduct}
           onCreateSkillCategory={createSkillCenterCategory}
@@ -1116,6 +1121,7 @@ export const OperationsPlatformView = (): JSX.Element => {
           onToggleProductStatus={updateProductStatus}
           onUpdateServiceContactConfig={updateServiceContactConfig}
           onUpdateCategory={updateAgentPlazaCategory}
+          onUpdateStoreZone={updateAgentStoreZone}
           onUpdateSkillCategory={updateSkillCenterCategory}
           onUpdatePointsPackage={updatePointsPackage}
           onUpdateProduct={updateProduct}

@@ -22,6 +22,8 @@ const cloneProduct = (item: OperationsProduct): OperationsProduct => ({
   visibleTenantIds: item.visibleTenantIds ? [...item.visibleTenantIds] : [],
   visibleTenantNames: item.visibleTenantNames ? [...item.visibleTenantNames] : [],
   billingScopes: item.billingScopes ? [...item.billingScopes] : ["points"],
+  storeZones: item.storeZones?.length ? [...item.storeZones] : item.storeZone ? [item.storeZone] : [],
+  plazaCategoryByZone: item.plazaCategoryByZone ? { ...item.plazaCategoryByZone } : {},
 });
 
 const cloneFulfillment = (item: OperationsFulfillment): OperationsFulfillment => ({
@@ -109,6 +111,16 @@ const normalizeAgentSubscriptionProduct = (
     contactMode: product.contactMode ?? "disabled",
     contactQrCodeValue: product.contactQrCodeValue?.trim() ?? "",
     contactRemark: product.contactRemark?.trim() ?? "",
+    storeZones: product.storeZones?.length
+      ? [...product.storeZones]
+      : product.storeZone
+        ? [product.storeZone]
+        : [],
+    plazaCategoryByZone:
+      product.plazaCategoryByZone ??
+      (product.storeZone && product.plazaCategory
+        ? { [product.storeZone]: product.plazaCategory }
+        : {}),
   };
 
   if (!shouldUseAgentSubscriptionPlans(product)) {
