@@ -941,6 +941,12 @@ export const OPERATIONS_INITIAL_PRODUCTS: OperationsProduct[] = [
     linkedAgentId: "ops-agent-010",
     linkedAgentName: "客户成功续约专家",
     description: "围绕客户健康度、使用深度和历史沟通，生成续约风险判断和跟进策略。",
+    identityAvatarUrl: "",
+    identityName: "客户成功续约专家",
+    identityDescription:
+      "Mira，客户成功体系出身的商机节奏教练。熟悉销售漏斗和客户成功协作节奏，会盯住每个商机的停留时长、关键联系人和下一步动作，在机会变冷前提醒你补材料、换触点或升级协同。",
+    usageGuide:
+      "适合处理：续约风险识别、客户健康度诊断、跟进策略制定和关键联系人行动提醒。\n\n建议输入：客户画像、历史沟通记录、产品使用数据、续约周期、目标金额、已知异议和当前阻塞点。\n\n交付结果：输出续约风险判断、下一步跟进动作、可直接复用的话术、需要补充的材料清单和升级协同建议。\n\n使用方式：点击免费使用后，该专家会进入工作台，既可以在 AI 专家列表中单独对话，也可以在 ME 处理任务时被自动调度。",
     supportsTrial: true,
     trialUnit: "day",
     trialValue: 14,
@@ -1669,6 +1675,10 @@ export const createEmptyOperationsProductForm = (): OperationsProductForm => ({
   linkedAgentId: undefined,
   resourcePoolId: undefined,
   description: "",
+  identityAvatarUrl: "",
+  identityName: "",
+  identityDescription: "",
+  usageGuide: "",
   price: 0,
   subscriptionPlans: createDefaultAgentSubscriptionPlans(),
   supportsTrial: false,

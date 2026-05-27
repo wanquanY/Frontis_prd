@@ -440,6 +440,10 @@ const buildPendingProductFromSubmission = (
   linkedAgentId: submission.id,
   linkedAgentName: submission.name,
   description: "该 AI专家 已通过商品化审核，请完善获取方式和试用规则后再上架。",
+  identityAvatarUrl: "",
+  identityName: submission.name,
+  identityDescription: submission.description,
+  usageGuide: "",
   subscriptionPlans: createDefaultAgentSubscriptionPlans(),
   supportsTrial: false,
   trialUnit: "day",
@@ -488,6 +492,10 @@ const buildProductFromForm = (
     resourcePoolId: undefined,
     resourcePoolName: undefined,
     description: form.description.trim(),
+    identityAvatarUrl: form.identityAvatarUrl.trim(),
+    identityName: form.identityName.trim(),
+    identityDescription: form.identityDescription.trim(),
+    usageGuide: form.usageGuide.trim(),
     price: form.saleType === "free" ? 0 : useSubscriptionPlans ? undefined : form.price,
     subscriptionPlans: useSubscriptionPlans
       ? normalizeSubscriptionPlans(form.subscriptionPlans)
@@ -835,6 +843,10 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
             resourcePoolId: undefined,
             resourcePoolName: undefined,
             description: form.description.trim(),
+            identityAvatarUrl: form.identityAvatarUrl.trim(),
+            identityName: form.identityName.trim(),
+            identityDescription: form.identityDescription.trim(),
+            usageGuide: form.usageGuide.trim(),
             price: form.saleType === "free" ? 0 : useSubscriptionPlans ? undefined : form.price,
             subscriptionPlans: useSubscriptionPlans
               ? normalizeSubscriptionPlans(form.subscriptionPlans)

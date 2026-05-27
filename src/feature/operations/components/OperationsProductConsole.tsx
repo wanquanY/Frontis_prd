@@ -135,15 +135,6 @@ const PRODUCT_CONSOLE_TAB_OPTIONS: Array<{
   { key: "contact", label: "客服配置" },
 ];
 
-const CATEGORY_MANAGEMENT_SCOPE_OPTIONS: Array<{
-  key: CategoryManagementScope;
-  label: string;
-}> = [
-  { key: "storeZone", label: "专家商店专区" },
-  { key: "expertPlaza", label: "专区分类" },
-  { key: "skillCenter", label: "技能中心分类" },
-];
-
 const PRODUCT_ACQUISITION_MODE_OPTIONS: Array<{
   value: ProductAcquisitionMode;
   label: string;
@@ -163,9 +154,11 @@ const PRODUCT_FIELD_IDS = {
   plazaSort: "operations-product-plaza-sort",
   acquisitionMode: "operations-product-acquisition-mode",
   linkedAgentId: "operations-product-linked-agent",
+  identityAvatarUrl: "operations-product-identity-avatar-url",
+  identityDescription: "operations-product-identity-description",
+  usageGuide: "operations-product-usage-guide",
   trialUnit: "operations-product-trial-unit",
   trialValue: "operations-product-trial-value",
-  description: "operations-product-description",
 } as const;
 
 const getProductZoneIds = (product: OperationsProduct): OperationsAgentStoreZone[] =>
@@ -481,6 +474,10 @@ export const OperationsProductConsole = ({
           linkedAgentId: product.linkedAgentId,
           resourcePoolId: undefined,
           description: product.description,
+          identityAvatarUrl: product.identityAvatarUrl ?? "",
+          identityName: product.identityName ?? product.linkedAgentName ?? product.name,
+          identityDescription: product.identityDescription ?? product.description,
+          usageGuide: product.usageGuide ?? "",
           price: 0,
           subscriptionPlans:
             product.subscriptionPlans?.map(item => ({
@@ -573,6 +570,11 @@ export const OperationsProductConsole = ({
       meteringUnit: "duration",
       billingSpec: "year",
       resourcePoolId: undefined,
+      description:
+        productEditor.form.identityDescription.trim() ||
+        productEditor.form.description.trim() ||
+        productEditor.form.name.trim(),
+      identityName: productEditor.form.name.trim(),
       price: 0,
       billingScopes: ["points"],
       storeZone: productEditor.form.storeZones[0],
@@ -601,22 +603,33 @@ export const OperationsProductConsole = ({
     handleCloseProductEditor();
   }, [handleCloseProductEditor, onCreateProduct, onUpdateProduct, productEditor, tenants]);
 
-  const handleOpenCreateCategory = useCallback((): void => {
-    const maxSortOrder = currentManagedCategories.reduce(
+  const handleOpenCreateCategory = useCallback(
+    (scope: CategoryManagementScope = activeCategoryScope, zoneId?: string): void => {
+    const categorySource =
+      scope === "storeZone"
+        ? sortedStoreZones
+        : scope === "expertPlaza"
+          ? sortedCategories
+          : sortedSkillCategories;
+    const maxSortOrder = categorySource.reduce(
       (result, item) => Math.max(result, item.sortOrder),
       0,
     );
 
+    setActiveCategoryScope(scope);
     setCategoryEditor({
       open: true,
       mode: "create",
-      zoneId: storeZoneOptions[0]?.value ?? "",
+      zoneId: zoneId ?? storeZoneOptions[0]?.value ?? "",
       name: "",
       sortOrder: maxSortOrder + 10,
     });
-  }, [currentManagedCategories, storeZoneOptions]);
+    },
+    [activeCategoryScope, sortedCategories, sortedSkillCategories, sortedStoreZones, storeZoneOptions],
+  );
 
-  const handleOpenEditCategory = useCallback((category: CatalogCategoryListItem): void => {
+  const handleOpenEditCategory = useCallback((category: CatalogCategoryListItem, scope: CategoryManagementScope = activeCategoryScope): void => {
+    setActiveCategoryScope(scope);
     setCategoryEditor({
       open: true,
       mode: "edit",
@@ -625,7 +638,7 @@ export const OperationsProductConsole = ({
       name: category.name,
       sortOrder: category.sortOrder,
     });
-  }, []);
+  }, [activeCategoryScope]);
 
   const handleCloseCategoryEditor = useCallback((): void => {
     setCategoryEditor({
@@ -720,9 +733,15 @@ export const OperationsProductConsole = ({
   ]);
 
   const handleToggleCategoryStatus = useCallback(
-    (category: CatalogCategoryListItem): void => {
+    (category: CatalogCategoryListItem, scope: CategoryManagementScope = activeCategoryScope): void => {
       const nextStatus = category.status === "active" ? "inactive" : "active";
-      const currentActiveCategoryCount = currentManagedCategories.filter(
+      const categorySource =
+        scope === "storeZone"
+          ? sortedStoreZones
+          : scope === "expertPlaza"
+            ? sortedCategories
+            : sortedSkillCategories;
+      const currentActiveCategoryCount = categorySource.filter(
         item => item.status === "active",
       ).length;
 
@@ -731,11 +750,11 @@ export const OperationsProductConsole = ({
         return;
       }
 
-      if (activeCategoryScope === "storeZone") {
+      if (scope === "storeZone") {
         onUpdateStoreZone(category.id, {
           status: nextStatus,
         });
-      } else if (activeCategoryScope === "expertPlaza") {
+      } else if (scope === "expertPlaza") {
         onUpdateCategory(category.id, {
           status: nextStatus,
         });
@@ -749,10 +768,12 @@ export const OperationsProductConsole = ({
     },
     [
       activeCategoryScope,
-      currentManagedCategories,
       onUpdateCategory,
       onUpdateSkillCategory,
       onUpdateStoreZone,
+      sortedCategories,
+      sortedSkillCategories,
+      sortedStoreZones,
     ],
   );
 
@@ -805,13 +826,21 @@ export const OperationsProductConsole = ({
                 </>
               ) : null}
               {activeConsoleTab === "category" ? (
-                <Button type="primary" icon={<PlusOutlined />} onClick={handleOpenCreateCategory}>
-                  {activeCategoryScope === "storeZone"
-                    ? "新建专区"
-                    : activeCategoryScope === "expertPlaza"
-                      ? "新建专区分类"
-                      : "新建技能分类"}
-                </Button>
+                <div className={adminStyles.consoleActions}>
+                  <Button
+                    icon={<PlusOutlined />}
+                    onClick={() => handleOpenCreateCategory("storeZone")}
+                  >
+                    新建专区
+                  </Button>
+                  <Button
+                    type="primary"
+                    icon={<PlusOutlined />}
+                    onClick={() => handleOpenCreateCategory("expertPlaza")}
+                  >
+                    新建专区分类
+                  </Button>
+                </div>
               ) : null}
             </div>
           </header>
@@ -859,31 +888,15 @@ export const OperationsProductConsole = ({
           ) : null}
 
           {activeConsoleTab === "category" ? (
-            <>
-              <div className={styles.detailTabBar}>
-                {CATEGORY_MANAGEMENT_SCOPE_OPTIONS.map(item => (
-                  <button
-                    key={item.key}
-                    type="button"
-                    className={classNames(
-                      styles.detailTabButton,
-                      activeCategoryScope === item.key && styles.detailTabButtonActive,
-                    )}
-                    onClick={() => setActiveCategoryScope(item.key)}
-                  >
-                    {item.label}
-                  </button>
-                ))}
-              </div>
-
-              <CategoryList
-                scope={activeCategoryScope}
-                categories={currentManagedCategories}
-                storeZoneLabelMap={storeZoneLabelMap}
-                onEditCategory={handleOpenEditCategory}
-                onToggleCategoryStatus={handleToggleCategoryStatus}
-              />
-            </>
+            <CategoryTreeList
+              storeZones={sortedStoreZones}
+              categories={sortedCategories}
+              onCreateChildCategory={zoneId => handleOpenCreateCategory("expertPlaza", zoneId)}
+              onEditStoreZone={category => handleOpenEditCategory(category, "storeZone")}
+              onToggleStoreZoneStatus={category => handleToggleCategoryStatus(category, "storeZone")}
+              onEditCategory={category => handleOpenEditCategory(category, "expertPlaza")}
+              onToggleCategoryStatus={category => handleToggleCategoryStatus(category, "expertPlaza")}
+            />
           ) : null}
 
           {activeConsoleTab === "contact" ? (
@@ -918,6 +931,7 @@ export const OperationsProductConsole = ({
                   form: {
                     ...currentState.form,
                     name: event.target.value,
+                    identityName: event.target.value,
                   },
                 }))
               }
@@ -942,6 +956,10 @@ export const OperationsProductConsole = ({
                   form: {
                     ...currentState.form,
                     linkedAgentId: nextValue,
+                    identityDescription:
+                      currentState.form.identityDescription ||
+                      approvedAgents.find(item => item.id === nextValue)?.description ||
+                      "",
                   },
                 }))
               }
@@ -1184,24 +1202,67 @@ export const OperationsProductConsole = ({
           ) : null}
 
           <div className={`${styles.modalField} ${styles.modalFieldWide}`}>
-            <label className={styles.modalLabel} htmlFor={PRODUCT_FIELD_IDS.description}>
-              商品描述
+            <label className={styles.modalLabel} htmlFor={PRODUCT_FIELD_IDS.identityAvatarUrl}>
+              详情头像
             </label>
-            <Input.TextArea
-              id={PRODUCT_FIELD_IDS.description}
-              rows={4}
-              value={productEditor.form.description}
+            <Input
+              id={PRODUCT_FIELD_IDS.identityAvatarUrl}
+              value={productEditor.form.identityAvatarUrl}
+              placeholder="请输入头像图片 URL，留空则使用绑定 AI 专家头像"
               onChange={event =>
                 setProductEditor(currentState => ({
                   ...currentState,
                   form: {
                     ...currentState.form,
-                    description: event.target.value,
+                    identityAvatarUrl: event.target.value,
                   },
                 }))
               }
             />
           </div>
+
+          <div className={`${styles.modalField} ${styles.modalFieldWide}`}>
+            <label className={styles.modalLabel} htmlFor={PRODUCT_FIELD_IDS.identityDescription}>
+              详情描述
+            </label>
+            <Input.TextArea
+              id={PRODUCT_FIELD_IDS.identityDescription}
+              rows={4}
+              value={productEditor.form.identityDescription}
+              placeholder="用人格化介绍说明这个专家是谁、擅长什么、会怎样帮助用户工作"
+              onChange={event =>
+                setProductEditor(currentState => ({
+                  ...currentState,
+                  form: {
+                    ...currentState.form,
+                    identityDescription: event.target.value,
+                  },
+                }))
+              }
+            />
+          </div>
+
+          <div className={`${styles.modalField} ${styles.modalFieldWide}`}>
+            <label className={styles.modalLabel} htmlFor={PRODUCT_FIELD_IDS.usageGuide}>
+              使用指南
+            </label>
+            <Input.TextArea
+              id={PRODUCT_FIELD_IDS.usageGuide}
+              rows={6}
+              value={productEditor.form.usageGuide}
+              placeholder="支持输入富文本内容，用于说明适合处理、建议输入、交付结果和使用方式"
+              onChange={event =>
+                setProductEditor(currentState => ({
+                  ...currentState,
+                  form: {
+                    ...currentState.form,
+                    usageGuide: event.target.value,
+                  },
+                }))
+              }
+            />
+          </div>
+
         </div>
       </Modal>
 
@@ -1377,29 +1438,38 @@ const ProductList = ({
   </section>
 );
 
-interface CategoryListProps {
-  categories: CatalogCategoryListItem[];
-  scope: CategoryManagementScope;
-  storeZoneLabelMap: Map<string, string>;
+interface CategoryTreeListProps {
+  categories: OperationsAgentPlazaCategoryOption[];
+  storeZones: OperationsAgentStoreZoneOption[];
+  onCreateChildCategory: (zoneId: string) => void;
+  onEditStoreZone: (category: CatalogCategoryListItem) => void;
+  onToggleStoreZoneStatus: (category: CatalogCategoryListItem) => void;
   onEditCategory: (category: CatalogCategoryListItem) => void;
   onToggleCategoryStatus: (category: CatalogCategoryListItem) => void;
 }
 
-const CategoryList = ({
+const CategoryTreeList = ({
   categories,
-  scope,
-  storeZoneLabelMap,
+  storeZones,
+  onCreateChildCategory,
+  onEditStoreZone,
+  onToggleStoreZoneStatus,
   onEditCategory,
   onToggleCategoryStatus,
-}: CategoryListProps): JSX.Element => (
+}: CategoryTreeListProps): JSX.Element => (
   <section className={adminStyles.consoleSection}>
-    {categories.length ? (
+    <div className={adminStyles.consoleSectionHeader}>
+      <div className={adminStyles.consoleSectionHeaderMain}>
+        <h2 className={adminStyles.consoleSectionTitle}>专家商店分类</h2>
+      </div>
+    </div>
+    {storeZones.length ? (
       <div className={adminStyles.consoleHtmlTableWrap}>
         <table className={adminStyles.consoleHtmlTable}>
           <thead>
             <tr>
-              {scope === "expertPlaza" ? <th>所属专区</th> : null}
-              <th>{scope === "storeZone" ? "专区名称" : "分类名称"}</th>
+              <th>分类名称</th>
+              <th>层级</th>
               <th>排序</th>
               <th>状态</th>
               <th>更新时间</th>
@@ -1407,41 +1477,68 @@ const CategoryList = ({
             </tr>
           </thead>
           <tbody>
-            {categories.map(category => (
-              <tr key={category.id}>
-                {scope === "expertPlaza" ? (
-                  <td>{storeZoneLabelMap.get(category.zoneId ?? "") ?? category.zoneId}</td>
-                ) : null}
-                <td className={adminStyles.consoleHtmlTableStrong}>{category.name}</td>
-                <td>{category.sortOrder}</td>
-                <td>
-                  <span className={getCatalogCategoryStatusClassName(category.status)}>
-                    {getCatalogCategoryStatusLabel(category.status)}
-                  </span>
-                </td>
-                <td>{category.updatedAt}</td>
-                <td>
-                  <div className={adminStyles.consoleActions}>
-                    <Button size="small" type="link" onClick={() => onEditCategory(category)}>
-                      编辑
-                    </Button>
-                    <Button
-                      size="small"
-                      type="link"
-                      onClick={() => onToggleCategoryStatus(category)}
-                    >
-                      {category.status === "active" ? "停用" : "启用"}
-                    </Button>
-                  </div>
-                </td>
-              </tr>
-            ))}
+            {storeZones.flatMap(zone => {
+              const childCategories = categories.filter(category => category.zoneId === zone.id);
+              const zoneRow = (
+                <tr key={zone.id}>
+                  <td className={adminStyles.consoleHtmlTableStrong}>{zone.name}</td>
+                  <td>专区</td>
+                  <td>{zone.sortOrder}</td>
+                  <td>
+                    <span className={getCatalogCategoryStatusClassName(zone.status)}>
+                      {getCatalogCategoryStatusLabel(zone.status)}
+                    </span>
+                  </td>
+                  <td>{zone.updatedAt}</td>
+                  <td>
+                    <div className={adminStyles.consoleActions}>
+                      <Button size="small" type="link" onClick={() => onCreateChildCategory(zone.id)}>
+                        新建二级分类
+                      </Button>
+                      <Button size="small" type="link" onClick={() => onEditStoreZone(zone)}>
+                        编辑
+                      </Button>
+                      <Button size="small" type="link" onClick={() => onToggleStoreZoneStatus(zone)}>
+                        {zone.status === "active" ? "停用" : "启用"}
+                      </Button>
+                    </div>
+                  </td>
+                </tr>
+              );
+              const childRows = childCategories.map(category => (
+                <tr key={category.id}>
+                  <td>
+                    <span className={styles.categoryChildName}>└ {category.name}</span>
+                  </td>
+                  <td>专区分类</td>
+                  <td>{category.sortOrder}</td>
+                  <td>
+                    <span className={getCatalogCategoryStatusClassName(category.status)}>
+                      {getCatalogCategoryStatusLabel(category.status)}
+                    </span>
+                  </td>
+                  <td>{category.updatedAt}</td>
+                  <td>
+                    <div className={adminStyles.consoleActions}>
+                      <Button size="small" type="link" onClick={() => onEditCategory(category)}>
+                        编辑
+                      </Button>
+                      <Button size="small" type="link" onClick={() => onToggleCategoryStatus(category)}>
+                        {category.status === "active" ? "停用" : "启用"}
+                      </Button>
+                    </div>
+                  </td>
+                </tr>
+              ));
+
+              return [zoneRow, ...childRows];
+            })}
           </tbody>
         </table>
       </div>
     ) : (
       <div className={styles.emptyWrap}>
-        <Empty description="暂无分类，请先创建分类。" />
+        <Empty description="暂无专区，请先创建专区。" />
       </div>
     )}
   </section>
@@ -1711,8 +1808,24 @@ const ProductDetail = ({
           </section>
 
           <section className={adminStyles.detailBlock}>
-            <h3 className={adminStyles.detailBlockTitle}>商品描述</h3>
-            <p className={styles.detailParagraph}>{product.description}</p>
+            <h3 className={adminStyles.detailBlockTitle}>用户侧详情配置</h3>
+            <div className={styles.productIdentityPreview}>
+              <div className={styles.productIdentityAvatar}>
+                {product.identityAvatarUrl ? (
+                  <img src={product.identityAvatarUrl} alt={product.identityName ?? product.name} />
+                ) : (
+                  <span>{(product.identityName ?? product.linkedAgentName ?? product.name).slice(0, 1)}</span>
+                )}
+              </div>
+              <div className={styles.productIdentityContent}>
+                <strong>{product.identityName || product.linkedAgentName || product.name}</strong>
+                <p>{product.identityDescription || product.description}</p>
+              </div>
+            </div>
+            <div className={styles.productUsageGuidePreview}>
+              <h4>使用指南</h4>
+              <p>{product.usageGuide || "暂未配置使用指南。"}</p>
+            </div>
           </section>
         </div>
       </section>

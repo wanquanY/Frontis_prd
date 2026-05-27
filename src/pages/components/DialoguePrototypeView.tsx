@@ -437,7 +437,6 @@ export const DialoguePrototypeView = ({
   const attachmentInputRef = useRef<HTMLInputElement | null>(null);
   const sessionTitleInputRef = useRef<InputRef | null>(null);
   const employeeSwitcherRef = useRef<HTMLDivElement | null>(null);
-  const homeEmployeeSwitcherRef = useRef<HTMLDivElement | null>(null);
   const metaAgentTrajectoryTimeFilterRef = useRef<HTMLDivElement | null>(null);
   const skillTrackRef = useRef<HTMLDivElement | null>(null);
   const dialogueShellRef = useRef<HTMLDivElement | null>(null);
@@ -532,6 +531,19 @@ export const DialoguePrototypeView = ({
   const isSidePanelVisible = isArtifactPanelVisible || isResultPanelVisible;
   const isMetaAgentWorkspace =
     hideAgentSidebar && isMetaCoordinatorEmployee(activeEmployee, defaultAgentIds);
+  const homeMeEmployee =
+    allEmployees.find(item => item.name === EXPERT_TEAM_MAIN_AGENT_NAME) ?? activeEmployee;
+  const homeDispatchExperts = useMemo(() => {
+    const expertMap = new Map<string, EmployeeItem>();
+
+    meSchedulableExperts.forEach(expert => {
+      if (expert.id !== homeMeEmployee.id) {
+        expertMap.set(expert.id, expert);
+      }
+    });
+
+    return Array.from(expertMap.values());
+  }, [homeMeEmployee.id, meSchedulableExperts]);
   const handleOpenFeishuQrModal = useCallback((): void => {
     if (isFeishuConnected) {
       return;
@@ -1391,9 +1403,6 @@ export const DialoguePrototypeView = ({
       if (employeeSwitcherRef.current?.contains(event.target)) {
         return;
       }
-      if (homeEmployeeSwitcherRef.current?.contains(event.target)) {
-        return;
-      }
       setIsEmployeeSwitcherOpen(false);
     };
 
@@ -1678,50 +1687,6 @@ export const DialoguePrototypeView = ({
           })}
         </div>
       ))}
-    </div>
-  );
-
-  const homeEmployeeSwitcherMenu = (
-    <div className={styles.dialogueHomeExpertDropdownMenu}>
-      {allEmployees.map(item => {
-        const teamMembers = resolveExpertTeamMembersForItem(item);
-        const isActive = item.id === activeEmployee.id;
-
-        return (
-          <button
-            key={item.id}
-            type="button"
-            className={classNames(styles.dialogueHomeExpertOption, {
-              [styles.dialogueHomeExpertOptionActive]: isActive,
-            })}
-            title={item.name}
-            onClick={event => {
-              event.stopPropagation();
-              onEmployeeSelect(item.id);
-              setIsEmployeeSwitcherOpen(false);
-            }}
-          >
-            {shouldRenderAsExpertTeam(item) && !isMetaCoordinatorAgent(item) ? (
-              <DialogueTeamAvatar team={item} members={teamMembers} />
-            ) : (
-              <span className={styles.employeeAvatarWrap}>
-                <Avatar src={item.avatarUrl} size={34} className={styles.dialogueHeroAvatar}>
-                  {getAvatarText(item.name)}
-                </Avatar>
-                <span
-                  className={classNames(styles.employeeStatusDot, {
-                    [styles.employeeStatusDotBusy]: item.status === "running",
-                    [styles.employeeStatusDotOffline]: item.status === "offline",
-                    [styles.employeeStatusDotError]: item.status === "exception",
-                  })}
-                />
-              </span>
-            )}
-            <span className={styles.dialogueHomeExpertOptionName}>{item.name}</span>
-            {isActive ? <CheckOutlined className={styles.dialogueHomeExpertOptionCheck} /> : null}
-          </button>
-        );
-      })}
     </div>
   );
 
@@ -2618,53 +2583,43 @@ export const DialoguePrototypeView = ({
         {isHomeVisible ? (
           <div className={styles.dialogueHomeLayout}>
             <div className={styles.dialogueHomeDock}>
-              {allEmployees.length > 1 ? (
-                <div ref={homeEmployeeSwitcherRef} className={styles.dialogueHomeExpertSwitchWrap}>
-                  <button
-                    type="button"
-                    className={styles.dialogueHomeExpertSwitch}
-                    aria-label="切换首页 AI 专家"
-                    aria-expanded={isEmployeeSwitcherOpen}
-                    onClick={() => setIsEmployeeSwitcherOpen(current => !current)}
-                  >
-                    <span className={styles.dialogueHomeExpertSwitchAvatar}>
-                      {shouldShowExpertTeamUi ? (
-                        <DialogueTeamAvatar
-                          team={activeEmployee}
-                          members={activeExpertTeamMembers}
-                        />
-                      ) : (
-                        <Avatar
-                          src={activeEmployee.avatarUrl}
-                          size={28}
-                          className={styles.dialogueHeroAvatar}
-                        >
-                          {getAvatarText(activeEmployee.name)}
-                        </Avatar>
-                      )}
-                    </span>
-                    <span className={styles.dialogueHomeExpertSwitchText}>
-                      {activeEmployee.name}
-                    </span>
-                    <DownOutlined
-                      className={classNames(styles.dialogueHomeExpertSwitchIcon, {
-                        [styles.dialogueHomeExpertSwitchIconOpen]: isEmployeeSwitcherOpen,
-                      })}
-                    />
-                  </button>
-                  {isEmployeeSwitcherOpen ? homeEmployeeSwitcherMenu : null}
-                </div>
-              ) : null}
-
-              {meSchedulableExperts.length > 0 ? (
-                <section
-                  className={styles.dialogueHomeDispatchPanel}
-                  aria-label="ME 可调度 AI 专家"
+              <section className={styles.dialogueHomeMePanel} aria-label="ME">
+                <button
+                  type="button"
+                  className={classNames(styles.dialogueHomeMeItem, {
+                    [styles.dialogueHomeMeItemActive]: homeMeEmployee.id === activeEmployee.id,
+                  })}
+                  title="和 ME 对话"
+                  onClick={() => onEmployeeSelect(homeMeEmployee.id)}
                 >
-                  <div className={styles.dialogueHomeDispatchHeader}>可调度</div>
+                  <div className={styles.dialogueHomeDispatchAvatar}>
+                    {homeMeEmployee.avatarUrl ? (
+                      <img alt={homeMeEmployee.name} src={homeMeEmployee.avatarUrl} />
+                    ) : (
+                      <span>{getAvatarText(homeMeEmployee.name)}</span>
+                    )}
+                  </div>
+                  <strong>{homeMeEmployee.name}</strong>
+                  {homeMeEmployee.id === activeEmployee.id ? (
+                    <CheckOutlined className={styles.dialogueHomeDispatchCheck} />
+                  ) : null}
+                </button>
+              </section>
+
+              {homeDispatchExperts.length > 0 ? (
+                <section className={styles.dialogueHomeDispatchPanel} aria-label="可调度 AI 专家">
+                  <div className={styles.dialogueHomeDispatchHeader}>可调度 AI 专家</div>
                   <div className={styles.dialogueHomeDispatchList}>
-                    {meSchedulableExperts.map(expert => (
-                      <article key={expert.id} className={styles.dialogueHomeDispatchItem}>
+                    {homeDispatchExperts.map(expert => (
+                      <button
+                        key={expert.id}
+                        type="button"
+                        className={classNames(styles.dialogueHomeDispatchItem, {
+                          [styles.dialogueHomeDispatchItemActive]: expert.id === activeEmployee.id,
+                        })}
+                        title={`和${expert.name}单独对话`}
+                        onClick={() => onEmployeeSelect(expert.id)}
+                      >
                         <div className={styles.dialogueHomeDispatchAvatar}>
                           {expert.avatarUrl ? (
                             <img alt={expert.name} src={expert.avatarUrl} />
@@ -2673,7 +2628,10 @@ export const DialoguePrototypeView = ({
                           )}
                         </div>
                         <strong>{expert.name}</strong>
-                      </article>
+                        {expert.id === activeEmployee.id ? (
+                          <CheckOutlined className={styles.dialogueHomeDispatchCheck} />
+                        ) : null}
+                      </button>
                     ))}
                   </div>
                 </section>

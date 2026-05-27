@@ -112,11 +112,6 @@ interface AgentCoreFile {
   content: string;
 }
 
-interface AgentUsageGuideItem {
-  title: string;
-  description: string;
-}
-
 interface TeamSharedAgentTemplate {
   id: string;
   name: string;
@@ -901,7 +896,11 @@ const getAgentCoreFiles = (agent: StoreAgentItem): AgentCoreFile[] => [
   },
 ];
 
-const getAgentUsageGuide = (agent: StoreAgentItem): AgentUsageGuideItem[] => {
+const getAgentUsageGuide = (agent: StoreAgentItem): string => {
+  if (agent.product?.usageGuide?.trim()) {
+    return agent.product.usageGuide.trim();
+  }
+
   const capabilityNames = agent.capabilities.map(capability => capability.name);
   const primaryCapability = capabilityNames[0] ?? agent.scene;
   const secondaryCapability = capabilityNames[1] ?? agent.businessLineLabel;
@@ -912,23 +911,11 @@ const getAgentUsageGuide = (agent: StoreAgentItem): AgentUsageGuideItem[] => {
   ].join("、");
 
   return [
-    {
-      title: "适合处理",
-      description: `${agent.name}适合承接${agent.scene}类任务，重点处理${primaryCapability}、${secondaryCapability}等工作，帮助团队把零散信息整理成可执行的下一步动作。`,
-    },
-    {
-      title: "建议输入",
-      description: `使用时建议上传或粘贴${inputExamples}，并明确希望输出的格式、时间范围和判断标准；信息越完整，专家给出的建议越稳定。`,
-    },
-    {
-      title: "交付结果",
-      description: `默认输出围绕${agent.businessLineLabel}场景的分析结论、处理建议和可复用文本，必要时会补充待确认问题，避免直接替用户拍板。`,
-    },
-    {
-      title: "使用方式",
-      description: `点击免费使用后，该专家会进入工作台，既可以在 AI 专家列表中单独对话，也可以在 ME 处理任务时被自动调度。`,
-    },
-  ];
+    `${agent.name}适合承接${agent.scene}类任务，重点处理${primaryCapability}、${secondaryCapability}等工作，帮助团队把零散信息整理成可执行的下一步动作。`,
+    `使用时建议上传或粘贴${inputExamples}，并明确希望输出的格式、时间范围和判断标准；信息越完整，专家给出的建议越稳定。`,
+    `默认输出围绕${agent.businessLineLabel}场景的分析结论、处理建议和可复用文本，必要时会补充待确认问题，避免直接替用户拍板。`,
+    "点击免费使用后，该专家会进入工作台，既可以在 AI 专家列表中单独对话，也可以在 ME 处理任务时被自动调度。",
+  ].join("\n\n");
 };
 
 const getAcquisitionLabel = (product: OperationsProduct): string => {
@@ -1112,7 +1099,7 @@ export const buildFrontisAgents = (
       const displayName = product.name.trim();
       const blueprintName = product.linkedAgentName?.trim() || displayName;
       const blueprint = FRONTIS_AGENT_BLUEPRINTS[blueprintName];
-      const agentName = blueprint?.displayName ?? displayName;
+      const agentName = product.identityName?.trim() || blueprint?.displayName || displayName;
       const productStoreZones = product.storeZones?.length
         ? product.storeZones
         : product.storeZone
@@ -1140,7 +1127,7 @@ export const buildFrontisAgents = (
         id: `frontis-${product.id}`,
         sourceType: "frontis",
         visualSeed: `frontis-${agentName}`,
-        avatarUrl: blueprint?.avatarUrl,
+        avatarUrl: product.identityAvatarUrl?.trim() || blueprint?.avatarUrl,
         name: agentName,
         expertTitle: blueprint?.expertTitle ?? "企业级 AI 专家",
         audienceLabel: blueprint?.audienceLabel ?? "适用：企业业务团队",
@@ -1150,7 +1137,7 @@ export const buildFrontisAgents = (
         storeCategory: productStoreZones[0],
         storeCategories: productStoreZones,
         sceneCategoriesByZone,
-        summary: blueprint?.summary ?? product.description,
+        summary: product.identityDescription?.trim() || blueprint?.summary || product.description,
         scene: blueprint?.scene ?? "FrontisAI发布",
         techShape: blueprint?.techShape ?? "商品化服务",
         model: blueprint?.model ?? "平台托管模型",
@@ -1916,26 +1903,9 @@ export const ExpertPlazaView = ({
                       </section>
 
                       <section className={styles.agentReadOnlyBlock}>
-                        <h3>专家能力</h3>
-                        <div className={styles.agentReadOnlyCapabilities}>
-                          {detailAgent.capabilities.map(capability => (
-                            <article key={capability.name}>
-                              <strong>{capability.name}</strong>
-                              <span>{capability.description}</span>
-                            </article>
-                          ))}
-                        </div>
-                      </section>
-
-                      <section className={styles.agentReadOnlyBlock}>
                         <h3>使用指南</h3>
-                        <div className={styles.agentUsageGuideGrid}>
-                          {getAgentUsageGuide(detailAgent).map(item => (
-                            <article key={item.title}>
-                              <strong>{item.title}</strong>
-                              <span>{item.description}</span>
-                            </article>
-                          ))}
+                        <div className={styles.agentUsageGuideContent}>
+                          {getAgentUsageGuide(detailAgent)}
                         </div>
                       </section>
                     </div>

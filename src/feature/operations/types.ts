@@ -523,6 +523,10 @@ export interface OperationsProduct {
   resourcePoolId?: string;
   resourcePoolName?: string;
   description: string;
+  identityAvatarUrl?: string;
+  identityName?: string;
+  identityDescription?: string;
+  usageGuide?: string;
   price?: number;
   subscriptionPlans?: OperationsProductSubscriptionPlan[];
   supportsTrial: boolean;
@@ -559,6 +563,10 @@ export interface OperationsProductForm {
   linkedAgentId?: string;
   resourcePoolId?: string;
   description: string;
+  identityAvatarUrl: string;
+  identityName: string;
+  identityDescription: string;
+  usageGuide: string;
   price?: number;
   subscriptionPlans: OperationsProductSubscriptionPlan[];
   supportsTrial: boolean;
