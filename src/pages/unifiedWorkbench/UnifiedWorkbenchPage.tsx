@@ -605,14 +605,6 @@ export const UnifiedWorkbenchPage = ({ viewRole }: UnifiedWorkbenchPageProps): J
     [activeTab, navigate, viewRole],
   );
 
-  const handleUseWorkbenchAgent = useCallback(
-    (agentId: string): void => {
-      setPendingWorkbenchAgentId(agentId);
-      handleNavigateTab("expertStudio");
-    },
-    [handleNavigateTab],
-  );
-
   const handleRenameConversationSession = useCallback(
     (sessionId: string, title: string): void => {
       let nextTitle = title;
@@ -730,11 +722,11 @@ export const UnifiedWorkbenchPage = ({ viewRole }: UnifiedWorkbenchPageProps): J
     }
 
     if (activeTab === "agentStore") {
-      return <AssetCatalogView mode="store" onUseAgent={handleUseWorkbenchAgent} />;
+      return <AssetCatalogView mode="store" />;
     }
 
     if (activeTab === "teamExperts") {
-      return <AssetCatalogView mode="team" onUseAgent={handleUseWorkbenchAgent} />;
+      return <AssetCatalogView mode="team" />;
     }
 
     return <FrontisPage viewRole={viewRole} embedded={true} />;
@@ -742,7 +734,6 @@ export const UnifiedWorkbenchPage = ({ viewRole }: UnifiedWorkbenchPageProps): J
     activeTab,
     expertStudioResetKey,
     handleNavigateTab,
-    handleUseWorkbenchAgent,
     pendingConversationSessionId,
     pendingWorkbenchAgentId,
     viewRole,

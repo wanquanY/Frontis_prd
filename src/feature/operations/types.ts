@@ -13,6 +13,7 @@ export type OperationsPlatformTabKey =
   | "products"
   | "resources"
   | "points"
+  | "channels"
   | "orders"
   | "agents"
   | "platformConfig";
@@ -320,6 +321,31 @@ export interface OperationsTenantForm {
   seatCount: number;
   effectiveAt: string;
   expiresAt: string;
+}
+
+/**
+ * 运营后台给指定租户直接充值积分。
+ */
+export interface OperationsTenantPointsRechargePayload {
+  packageId: string;
+  packageTitle: string;
+  points: number;
+  giftPoints: number;
+  remark?: string;
+}
+
+/**
+ * 运营后台基于席位包给指定租户分配席位。
+ */
+export interface OperationsTenantSeatAllocationPayload {
+  planKey: string;
+  planTitle: string;
+  specKey: string;
+  specTitle: string;
+  seatCount: number;
+  expiresAt: string;
+  giftPoints: number;
+  remark?: string;
 }
 
 /**

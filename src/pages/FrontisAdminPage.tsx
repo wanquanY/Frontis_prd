@@ -8,6 +8,7 @@ import {
   LogoutOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
+  QrcodeOutlined,
   RobotOutlined,
   AppstoreOutlined,
   SafetyCertificateOutlined,
@@ -50,6 +51,7 @@ import {
 } from "@/constants/tenantRolePermissions";
 import { INITIAL_EMPLOYEES, INITIAL_ORGANIZATION_DEPARTMENTS } from "@/mocks/mockData";
 import { getUserPermissionIds, hasAnyPermission, hasPermission } from "@/utils/tenantRoleAccess";
+import { SalesManagementView } from "@/feature/sales/components/SalesManagementView";
 
 import { AccountDropdownPanel } from "./components/AccountDropdownPanel";
 import { AgentStoreView } from "./components/agentStore/AgentStoreView";
@@ -125,6 +127,13 @@ const FRONTIS_ADMIN_TABS: FrontisWebTabItem[] = [
     label: "订单记录",
     icon: <ControlOutlined />,
     permissionIds: [MANAGEMENT_PERMISSION_IDS.pointsManage],
+    roles: ["admin"],
+  },
+  {
+    key: "salesManagement",
+    label: "销售管理",
+    icon: <QrcodeOutlined />,
+    permissionIds: [MANAGEMENT_PERMISSION_IDS.salesManage],
     roles: ["admin"],
   },
   {
@@ -852,8 +861,16 @@ const FrontisAdminPage = (): JSX.Element => {
         );
       }
 
+      return <TenantPointsView tenantSnapshot={tenantSnapshot} />;
+    }
+
+    if (activeTabKey === "salesManagement") {
       return (
-        <TenantPointsView tenantSnapshot={tenantSnapshot} />
+        <SalesManagementView
+          departments={departments}
+          tenantSnapshot={tenantSnapshot}
+          users={effectiveUsers}
+        />
       );
     }
 

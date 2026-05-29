@@ -8,6 +8,7 @@ import { OperationsAuthRoute } from "@/feature/operations/components/OperationsA
 import { getMockTenantManagementSnapshot } from "@/feature/auth/mockTenantRegistry";
 
 const FrontisAdminPage = lazy(() => import("@/pages/FrontisAdminPage"));
+const DaGuanSalesPage = lazy(() => import("@/pages/DaGuanSalesPage"));
 const IdentitySelectionPage = lazy(() => import("@/pages/identity/IdentitySelectionPage"));
 const LoginPage = lazy(() => import("@/pages/login/LoginPage"));
 const UnifiedWorkbenchPage = lazy(() => import("@/pages/unifiedWorkbench/UnifiedWorkbenchPage"));
@@ -146,6 +147,22 @@ const App = (): JSX.Element => {
             element={
               <AuthRoute allowedRole={["admin"]}>
                 <UnifiedWorkbenchPage viewRole="admin" />
+              </AuthRoute>
+            }
+          />
+          <Route
+            path="/web/sales"
+            element={
+              <AuthRoute allowedRole={["employee", "admin"]}>
+                <DaGuanSalesPage />
+              </AuthRoute>
+            }
+          />
+          <Route
+            path="/web/sales/:tabPath"
+            element={
+              <AuthRoute allowedRole={["employee", "admin"]}>
+                <DaGuanSalesPage />
               </AuthRoute>
             }
           />

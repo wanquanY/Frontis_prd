@@ -153,6 +153,14 @@ export const resolveOperationsTenantModuleLabels = (permissionIds: string[]): st
     moduleLabels.push("运营管理平台");
   }
 
+  if (
+    normalizedPermissionIds.some(permissionId =>
+      SYSTEM_ACCESS_DERIVED_PERMISSION_IDS.sales.includes(permissionId),
+    )
+  ) {
+    moduleLabels.push("大观销售");
+  }
+
   return moduleLabels;
 };
 
@@ -208,11 +216,17 @@ export const OPERATIONS_TAB_OPTIONS: Array<{
   {
     key: "points",
     label: "积分和订阅运营",
-    description: "维护积分规则、消耗对账、签约码和租户订阅。",
+    description: "维护积分规则、消耗对账和租户订阅。",
     permissionIds: [
       OPERATIONS_PERMISSION_IDS.pointsManage,
       OPERATIONS_PERMISSION_IDS.billingManage,
     ],
+  },
+  {
+    key: "channels",
+    label: "渠道管理",
+    description: "维护渠道、关联租户、关联销售和渠道码。",
+    permissionIds: [OPERATIONS_PERMISSION_IDS.channelManage],
   },
   {
     key: "orders",

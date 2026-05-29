@@ -57,6 +57,8 @@ const buildStatusClassName = (status: UnifiedOrderStatus): string =>
 
 const getStatusLabel = (status: UnifiedOrderStatus): string => ORDER_STATUS_LABELS[status];
 
+const isOfflineOrderLabel = (value?: string): boolean => value === "线下订单";
+
 const buildPointsOrder = (
   tenantName: string,
   order: MockTenantPointsOrderItem,
@@ -72,7 +74,7 @@ const buildPointsOrder = (
   subjectLabel: order.packageTitle,
   tenantName,
   type: "points",
-  typeLabel: "积分订单",
+  typeLabel: isOfflineOrderLabel(order.paymentChannelLabel) ? "线下订单" : "积分订单",
 });
 
 const buildSubscriptionOrder = (
@@ -90,7 +92,10 @@ const buildSubscriptionOrder = (
   subjectLabel: order.planTitle,
   tenantName,
   type: "subscription",
-  typeLabel: "订阅订单",
+  typeLabel:
+    isOfflineOrderLabel(order.orderSourceLabel) || isOfflineOrderLabel(order.paymentChannelLabel)
+      ? "线下订单"
+      : "订阅订单",
 });
 
 const sortOrders = (orders: UnifiedOperationsOrder[]): UnifiedOperationsOrder[] =>

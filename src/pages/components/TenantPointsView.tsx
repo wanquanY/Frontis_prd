@@ -103,6 +103,8 @@ const formatCurrency = (value: number): string =>
 const getOrderSortTime = (order: Pick<TenantOrderRecordItem, "createdAt" | "paidAt">): number =>
   parseMockOccurredAt(order.paidAt ?? order.createdAt).valueOf();
 
+const isOfflineOrderLabel = (value?: string): boolean => value === "线下订单";
+
 const buildPointsOrder = (order: MockTenantPointsOrderItem): TenantOrderRecordItem => ({
   amount: order.amount,
   benefitLabel: formatMockPointsOrderBenefit(order),
@@ -114,7 +116,7 @@ const buildPointsOrder = (order: MockTenantPointsOrderItem): TenantOrderRecordIt
   sortTime: getOrderSortTime(order),
   status: order.status,
   subjectLabel: order.packageTitle,
-  typeLabel: "积分订单",
+  typeLabel: isOfflineOrderLabel(order.paymentChannelLabel) ? "线下订单" : "积分订单",
 });
 
 const buildSubscriptionOrder = (order: MockTenantSubscriptionOrderItem): TenantOrderRecordItem => ({
@@ -128,7 +130,10 @@ const buildSubscriptionOrder = (order: MockTenantSubscriptionOrderItem): TenantO
   sortTime: getOrderSortTime(order),
   status: order.status,
   subjectLabel: order.planTitle,
-  typeLabel: "订阅订单",
+  typeLabel:
+    isOfflineOrderLabel(order.orderSourceLabel) || isOfflineOrderLabel(order.paymentChannelLabel)
+      ? "线下订单"
+      : "订阅订单",
 });
 
 const sortOrderRecordItems = (orders: TenantOrderRecordItem[]): TenantOrderRecordItem[] =>
@@ -147,9 +152,7 @@ const renderOrderStatusTag = (status: TenantOrderRecordStatus): JSX.Element => (
 /**
  * 租户订单记录视图，展示积分包和团队席位购买订单。
  */
-export const TenantPointsView = ({
-  tenantSnapshot,
-}: TenantPointsViewProps): JSX.Element => {
+export const TenantPointsView = ({ tenantSnapshot }: TenantPointsViewProps): JSX.Element => {
   const orderRecordItems = useMemo(
     () =>
       sortOrderRecordItems([

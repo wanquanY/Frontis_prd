@@ -1,7 +1,11 @@
 import type { FrontisUserRole, FrontisWebRole, FrontisWebUserItem } from "@/pages/types";
 
 export type MockAuthRole = FrontisWebRole;
-export type MockIdentityPlatform = "enterpriseWorkspace" | "enterpriseAdmin" | "operationsAdmin";
+export type MockIdentityPlatform =
+  | "enterpriseWorkspace"
+  | "enterpriseAdmin"
+  | "operationsAdmin"
+  | "daguanSales";
 
 /**
  * 统一用户的可选身份入口定义。

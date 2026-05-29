@@ -10,7 +10,6 @@ import {
   ProfileOutlined,
   SlidersOutlined,
   UploadOutlined,
-  UserAddOutlined,
   UserOutlined,
 } from "@ant-design/icons";
 import { Button, Empty, Modal, Popconfirm, QRCode, Tooltip, message } from "antd";
@@ -181,7 +180,6 @@ export interface StoreAgentItem {
 
 interface ExpertPlazaViewProps {
   mode?: ExpertPlazaMode;
-  onUseAgent?: (agentId: string) => void;
 }
 
 interface ContactModalInfo {
@@ -697,7 +695,7 @@ const getSceneCategoryOptions = (
 ];
 
 const getProductPriceLabel = (product: OperationsProduct): string =>
-  product.supportsTrial ? (getProductTrialLabel(product) ?? "免费试用") : "免费使用";
+  product.supportsTrial ? (getProductTrialLabel(product) ?? "免费试用") : "添加到工作台";
 
 const getProductTrialLabel = (product: OperationsProduct): string | undefined => {
   if (!product.supportsTrial || !product.trialUnit || !product.trialValue) {
@@ -904,17 +902,13 @@ const getAgentUsageGuide = (agent: StoreAgentItem): string => {
   const capabilityNames = agent.capabilities.map(capability => capability.name);
   const primaryCapability = capabilityNames[0] ?? agent.scene;
   const secondaryCapability = capabilityNames[1] ?? agent.businessLineLabel;
-  const inputExamples = [
-    `${agent.scene}相关资料`,
-    "历史沟通记录",
-    "目标对象与约束条件",
-  ].join("、");
+  const inputExamples = [`${agent.scene}相关资料`, "历史沟通记录", "目标对象与约束条件"].join("、");
 
   return [
     `${agent.name}适合承接${agent.scene}类任务，重点处理${primaryCapability}、${secondaryCapability}等工作，帮助团队把零散信息整理成可执行的下一步动作。`,
     `使用时建议上传或粘贴${inputExamples}，并明确希望输出的格式、时间范围和判断标准；信息越完整，专家给出的建议越稳定。`,
     `默认输出围绕${agent.businessLineLabel}场景的分析结论、处理建议和可复用文本，必要时会补充待确认问题，避免直接替用户拍板。`,
-    "点击免费使用后，该专家会进入工作台，既可以在 AI 专家列表中单独对话，也可以在 ME 处理任务时被自动调度。",
+    "点击添加到工作台后，该专家会进入工作台，既可以在 AI 专家列表中单独对话，也可以在 ME 处理任务时被自动调度。",
   ].join("\n\n");
 };
 
@@ -1182,10 +1176,7 @@ export const resolveLatestFulfillmentsByProductId = (
 /**
  * AI 专家入口原型页，按菜单拆分为商店与我的专区。
  */
-export const ExpertPlazaView = ({
-  mode = "store",
-  onUseAgent,
-}: ExpertPlazaViewProps): JSX.Element => {
+export const ExpertPlazaView = ({ mode = "store" }: ExpertPlazaViewProps): JSX.Element => {
   const { activeIdentity, session } = useMockAuth();
   const [teamExpertFilter, setTeamExpertFilter] = useState<TeamExpertFilter>("all");
   const [storeSystemCategory, setStoreSystemCategory] =
@@ -1519,50 +1510,22 @@ export const ExpertPlazaView = ({
     if (agent.sourceType === "frontis") {
       setExpertListOverrides(current => ({ ...current, [agent.id]: true }));
     }
-    message.success(`已免费使用「${agent.name}」，可单聊，也可由 ME 调度。`);
+    message.success(`已添加「${agent.name}」到工作台，可单聊，也可由 ME 调度。`);
   }, []);
-
-  const handleUseAgent = useCallback(
-    (agent: StoreAgentItem): void => {
-      if (onUseAgent) {
-        onUseAgent(agent.id);
-        return;
-      }
-
-      message.success(`已进入「${agent.name}」使用入口。`);
-    },
-    [onUseAgent],
-  );
 
   const handleApplyForMarketplaceListing = useCallback((agent: StoreAgentItem): void => {
     message.success(`已提交「${agent.name}」上架申请。`);
   }, []);
 
-  const renderExpertListAction = (agent: StoreAgentItem): JSX.Element => {
-    const isInWorkbench = workbenchAgentIds.has(agent.id);
-
-    if (isInWorkbench) {
-      return (
-        <Button
-          className={`${styles.cardActionButton} ${styles.cardActionButtonPrimary}`}
-          icon={<ArrowRightOutlined />}
-          onClick={() => handleUseAgent(agent)}
-      >
-        去使用
-      </Button>
-      );
-    }
-
-    return (
-      <Button
-        className={styles.cardActionButton}
-        icon={<UserAddOutlined />}
-        onClick={() => handleAddToWorkbench(agent)}
-      >
-        免费使用
-      </Button>
-    );
-  };
+  const renderExpertListAction = (agent: StoreAgentItem): JSX.Element => (
+    <Button
+      className={`${styles.cardActionButton} ${styles.cardActionButtonPrimary}`}
+      icon={<ArrowRightOutlined />}
+      onClick={() => handleAddToWorkbench(agent)}
+    >
+      添加到工作台
+    </Button>
+  );
 
   const renderAgentActions = (agent: StoreAgentItem): JSX.Element => {
     const shouldContact = agent.sourceType === "frontis" && shouldContactForAgent(agent);
@@ -1725,7 +1688,6 @@ export const ExpertPlazaView = ({
               </div>
               <div className={styles.cardTitleBlock}>
                 <h3 className={styles.cardTitle}>{agent.name}</h3>
-                <span className={styles.cardExpertTitle}>{agent.expertTitle}</span>
                 <p className={styles.agentDescription}>{agent.summary}</p>
               </div>
             </header>

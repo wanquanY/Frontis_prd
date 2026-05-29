@@ -4,6 +4,11 @@
 export type MockPointsPackageStatus = "active" | "inactive";
 
 /**
+ * 积分包可见范围。内部包只供运营后台给指定租户充值，用户侧不可见。
+ */
+export type MockPointsPackageScope = "public" | "internal";
+
+/**
  * 原型中的积分包定义。
  */
 export interface MockPointsPackageOption {
@@ -13,6 +18,7 @@ export interface MockPointsPackageOption {
   points: number;
   price: number;
   giftPoints?: number;
+  scope: MockPointsPackageScope;
   status: MockPointsPackageStatus;
   sortOrder: number;
   tagLabel?: string;
@@ -22,7 +28,9 @@ export interface MockPointsPackageOption {
 export type MockPointsPackageInput = Pick<
   MockPointsPackageOption,
   "title" | "description" | "points" | "price" | "tagLabel" | "giftPoints"
->;
+> & {
+  scope?: MockPointsPackageScope;
+};
 
 export type MockPointsPackageUpdate = Partial<
   Pick<
@@ -35,6 +43,7 @@ export type MockPointsPackageUpdate = Partial<
     | "sortOrder"
     | "tagLabel"
     | "giftPoints"
+    | "scope"
   >
 >;
 

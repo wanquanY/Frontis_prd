@@ -8,11 +8,7 @@ import type {
   OperationsRegistrationStrategy,
   OperationsTenant,
 } from "@/feature/operations/types";
-import type {
-  MockSalesChannelContractCode,
-  MockSalesChannelContractCodeInput,
-  MockSubscriptionPlanPurchaseOption,
-} from "@/feature/subscription/types";
+import type { MockSubscriptionPlanPurchaseOption } from "@/feature/subscription/types";
 import adminStyles from "@/pages/components/FrontisAdminViews.module.less";
 
 import { OperationsBillingConsole } from "./OperationsBillingConsole";
@@ -30,17 +26,11 @@ interface OperationsPointsSubscriptionConsoleProps {
   canManagePoints: boolean;
   pointsUsageRecords: OperationsPointsUsageRecord[];
   registrationStrategy: OperationsRegistrationStrategy;
-  salesChannelContractCodes: MockSalesChannelContractCode[];
   tenants: OperationsTenant[];
   onApplyTenantSubscriptionPlan: (
     tenantId: string,
     purchaseOption: MockSubscriptionPlanPurchaseOption,
   ) => boolean;
-  onCreateSalesChannelContractCode: (payload: MockSalesChannelContractCodeInput) => void;
-  onUpdateSalesChannelContractCode: (
-    code: string,
-    updates: Partial<MockSalesChannelContractCodeInput>,
-  ) => void;
   onUpdateRegistrationStrategy: (
     patch: Partial<
       Pick<
@@ -62,11 +52,8 @@ export const OperationsPointsSubscriptionConsole = ({
   canManagePoints,
   pointsUsageRecords,
   registrationStrategy,
-  salesChannelContractCodes,
   tenants,
   onApplyTenantSubscriptionPlan,
-  onCreateSalesChannelContractCode,
-  onUpdateSalesChannelContractCode,
   onUpdateRegistrationStrategy,
 }: OperationsPointsSubscriptionConsoleProps): JSX.Element => {
   const availableTabs = useMemo<PointsSubscriptionTabOption[]>(
@@ -125,11 +112,8 @@ export const OperationsPointsSubscriptionConsole = ({
       ) : (
         <OperationsBillingConsole
           embedded={true}
-          salesChannelContractCodes={salesChannelContractCodes}
           tenants={tenants}
           onApplyTenantSubscriptionPlan={onApplyTenantSubscriptionPlan}
-          onCreateSalesChannelContractCode={onCreateSalesChannelContractCode}
-          onUpdateSalesChannelContractCode={onUpdateSalesChannelContractCode}
         />
       )}
     </div>

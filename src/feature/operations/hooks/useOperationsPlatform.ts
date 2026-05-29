@@ -10,6 +10,7 @@ import {
   getMockTenantManagementSnapshot,
   saveMockTenantManagementSnapshot,
 } from "@/feature/auth/mockTenantRegistry";
+import type { MockTenantManagementSnapshot } from "@/feature/auth/types";
 import {
   createMockPointsPackage,
   getMockPointsPackages,
@@ -75,6 +76,7 @@ import {
 } from "@/feature/operations/tenantStorage";
 import {
   applyMockSubscriptionPlanToTenant,
+  createMockSubscriptionPlanTemplate,
   createMockSalesChannelContractCode,
   getMockSalesChannelContractCodes,
   getMockSubscriptionPlanTemplates,
@@ -108,6 +110,8 @@ import type {
   OperationsSkillCenterCategoryOption,
   OperationsTenant,
   OperationsTenantForm,
+  OperationsTenantPointsRechargePayload,
+  OperationsTenantSeatAllocationPayload,
 } from "@/feature/operations/types";
 import { calculateOperationsSalePrice } from "@/feature/operations/serviceMeteringUtils";
 import {
@@ -158,6 +162,14 @@ interface UseOperationsPlatformResult {
   createTenant: (form: OperationsTenantForm) => void;
   updateTenant: (tenantId: string, form: OperationsTenantForm) => void;
   updateTenantStatus: (tenantId: string, status: OperationsTenant["status"]) => void;
+  rechargeTenantPoints: (
+    tenantId: string,
+    payload: OperationsTenantPointsRechargePayload,
+  ) => boolean;
+  allocateTenantSeats: (
+    tenantId: string,
+    payload: OperationsTenantSeatAllocationPayload,
+  ) => boolean;
   approveAgent: (submissionId: string) => void;
   rejectAgent: (submissionId: string, reason: string) => void;
   createProduct: (form: OperationsProductForm) => void;
@@ -178,6 +190,7 @@ interface UseOperationsPlatformResult {
     planKey: MockSubscriptionPlanKey,
     updates: Partial<MockSubscriptionPlanTemplateInput>,
   ) => void;
+  createSubscriptionPlan: (payload: MockSubscriptionPlanTemplateInput) => void;
   applyTenantSubscriptionPlan: (
     tenantId: string,
     purchaseOption: MockSubscriptionPlanPurchaseOption,
@@ -249,9 +262,7 @@ const buildAgentPlazaCategoryId = (): string => `ops-agent-plaza-category-${Date
 const buildSkillCenterCategoryId = (): string => `ops-skill-center-category-${Date.now()}`;
 const buildMeteringProviderId = (): string => `ops-metering-provider-${Date.now()}`;
 const buildModelServiceId = (): string => `ops-model-service-${Date.now()}`;
-
-const resolveTenantEditionBySeatCount = (seatCount: number): OperationsTenant["edition"] =>
-  seatCount <= 1 ? "personal" : "team";
+const DEFAULT_ADMIN_SEAT_COUNT = 1;
 
 const buildAdminTenantMember = (adminName: string, adminPhone: string, addedAt: string) => ({
   id: buildTenantMemberId(),
@@ -289,20 +300,50 @@ const syncAdminTenantMember = (
   );
 };
 
-const syncManagementSnapshotBillingMode = (
-  tenantId: string,
-  billingMode: OperationsTenant["billingMode"],
-): void => {
-  const matchedSnapshot = getMockTenantManagementSnapshot(tenantId);
+const buildTenantSnapshotFromTenant = (tenant: OperationsTenant): MockTenantManagementSnapshot => {
+  const adminUser = {
+    id: `${tenant.id}-admin-user`,
+    departmentId: "dept-root",
+    name: tenant.adminName,
+    phone: tenant.adminPhone,
+    role: "enterpriseAdmin" as const,
+    roleIds: [DEFAULT_TENANT_ROLE_IDS.enterpriseAdmin],
+    status: "active" as const,
+    assignedAgentIds: [],
+    assignedWorkspaceIds: [],
+    lastActiveAt: "刚刚",
+    dialogueCount: 0,
+    tokenUsage: 0,
+    resultCount: 0,
+  };
 
-  if (!matchedSnapshot) {
-    return;
-  }
-
-  saveMockTenantManagementSnapshot({
-    ...matchedSnapshot,
-    billingMode,
-  });
+  return {
+    tenantId: tenant.id,
+    tenantName: tenant.name,
+    tenantCode: tenant.code,
+    ownerAccountId: `${tenant.id}-owner`,
+    adminUserId: adminUser.id,
+    deploymentMode: tenant.deploymentMode,
+    billingMode: tenant.billingMode,
+    edition: "personal",
+    planLabel: "默认管理员席位",
+    includedSeats: DEFAULT_ADMIN_SEAT_COUNT,
+    extraSeatCount: 0,
+    planExpiresAt: "长期有效",
+    hasAgentListingAccess: tenant.hasAgentListingAccess,
+    invitePolicyLabel: "系统已为初始管理员开通 1 个长期有效席位。",
+    lowBalanceThreshold: 5000,
+    monthlyUsedPoints: 0,
+    pointsBalance: 0,
+    totalSeats: DEFAULT_ADMIN_SEAT_COUNT,
+    usedSeats: DEFAULT_ADMIN_SEAT_COUNT,
+    users: [adminUser],
+    agentUsageRecords: [],
+    pointsLedger: [],
+    pointsUsageRecords: [],
+    pointsOrders: [],
+    subscriptionOrders: [],
+  };
 };
 
 const buildTenantFromForm = (form: OperationsTenantForm): OperationsTenant => {
@@ -319,7 +360,7 @@ const buildTenantFromForm = (form: OperationsTenantForm): OperationsTenant => {
     code: form.code.trim().toUpperCase(),
     type: "enterprise",
     deploymentMode: "publicCloud",
-    edition: resolveTenantEditionBySeatCount(form.seatCount),
+    edition: "personal",
     billingMode: form.billingMode,
     industry: form.industry.trim(),
     adminName: form.adminName.trim(),
@@ -329,9 +370,9 @@ const buildTenantFromForm = (form: OperationsTenantForm): OperationsTenant => {
     adminRoleLabel: "初始管理员",
     hasAgentListingAccess,
     hasOperationsConsoleAccess,
-    seatCount: form.seatCount,
-    effectiveAt: form.effectiveAt.trim(),
-    expiresAt: form.expiresAt.trim(),
+    seatCount: DEFAULT_ADMIN_SEAT_COUNT,
+    effectiveAt: createdAt,
+    expiresAt: "长期有效",
     moduleLabels,
     members: [buildAdminTenantMember(form.adminName, form.adminPhone, createdAt)],
     status: "pending",
@@ -687,7 +728,7 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
   const createTenant = useCallback((form: OperationsTenantForm): void => {
     const nextTenant = buildTenantFromForm(form);
 
-    syncManagementSnapshotBillingMode(nextTenant.id, nextTenant.billingMode);
+    saveMockTenantManagementSnapshot(buildTenantSnapshotFromTenant(nextTenant));
     setTenants(currentTenants => [nextTenant, ...currentTenants]);
   }, []);
 
@@ -705,7 +746,7 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
               ...item,
               name: form.name.trim(),
               code: form.code.trim().toUpperCase(),
-              edition: resolveTenantEditionBySeatCount(form.seatCount),
+              edition: item.edition,
               billingMode: item.billingMode,
               industry: form.industry.trim(),
               adminName: form.adminName.trim(),
@@ -715,9 +756,9 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
               adminRoleLabel: item.adminRoleLabel,
               hasAgentListingAccess,
               hasOperationsConsoleAccess,
-              seatCount: form.seatCount,
-              effectiveAt: form.effectiveAt.trim(),
-              expiresAt: form.expiresAt.trim(),
+              seatCount: item.seatCount,
+              effectiveAt: item.effectiveAt,
+              expiresAt: item.expiresAt,
               moduleLabels,
               members: syncAdminTenantMember(
                 item.members,
@@ -745,6 +786,158 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
             : item,
         ),
       );
+    },
+    [],
+  );
+
+  const rechargeTenantPoints = useCallback(
+    (tenantId: string, payload: OperationsTenantPointsRechargePayload): boolean => {
+      const matchedSnapshot = getMockTenantManagementSnapshot(tenantId);
+
+      if (!matchedSnapshot) {
+        return false;
+      }
+
+      const timestamp = Date.now();
+      const basePoints = Math.max(Math.floor(payload.points), 0);
+      const giftPoints = Math.max(Math.floor(payload.giftPoints), 0);
+      const totalPoints = Math.max(basePoints + giftPoints, 1);
+      const createdAt = formatTimestamp();
+
+      saveMockTenantManagementSnapshot({
+        ...matchedSnapshot,
+        pointsBalance: matchedSnapshot.pointsBalance + totalPoints,
+        pointsLedger: [
+          {
+            id: `${tenantId}-ops-points-recharge-${timestamp}`,
+            title: payload.packageTitle,
+            description: payload.remark?.trim() || "运营通过内部积分包给租户充值。",
+            points: totalPoints,
+            direction: "income",
+            createdAt,
+            actorName: "运营后台",
+          },
+          ...(matchedSnapshot.pointsLedger ?? []),
+        ],
+        pointsOrders: [
+          {
+            id: `${tenantId}-ops-points-order-${timestamp}`,
+            orderNo: `OPS-POINTS-${timestamp.toString().slice(-10)}`,
+            packageId: payload.packageId,
+            packageTitle: payload.packageTitle,
+            packagePoints: basePoints,
+            totalPoints,
+            amount: 0,
+            originalAmount: 0,
+            discountAmount: 0,
+            status: "paid",
+            paymentChannelLabel: "线下订单",
+            purchaserName: "运营后台",
+            createdAt,
+            paidAt: createdAt,
+          },
+          ...(matchedSnapshot.pointsOrders ?? []),
+        ],
+      });
+
+      setTenants(currentTenants =>
+        currentTenants.map(item =>
+          item.id === tenantId
+            ? {
+                ...item,
+                updatedAt: createdAt,
+              }
+            : item,
+        ),
+      );
+
+      return true;
+    },
+    [],
+  );
+
+  const allocateTenantSeats = useCallback(
+    (tenantId: string, payload: OperationsTenantSeatAllocationPayload): boolean => {
+      const matchedSnapshot = getMockTenantManagementSnapshot(tenantId);
+
+      if (!matchedSnapshot) {
+        return false;
+      }
+
+      const timestamp = Date.now();
+      const seatCount = Math.max(Math.floor(payload.seatCount), 1);
+      const createdAt = formatTimestamp();
+      const nextTotalSeats = Math.max(
+        matchedSnapshot.usedSeats,
+        matchedSnapshot.totalSeats + seatCount,
+      );
+      const nextIncludedSeats = matchedSnapshot.includedSeats + seatCount;
+
+      saveMockTenantManagementSnapshot({
+        ...matchedSnapshot,
+        edition: "team",
+        planLabel: payload.planTitle,
+        includedSeats: nextIncludedSeats,
+        totalSeats: nextTotalSeats,
+        teamPlanPackageId: payload.planKey,
+        planExpiresAt: payload.expiresAt,
+        invitePolicyLabel: `运营已分配 ${seatCount} 个席位，到期时间 ${payload.expiresAt}。`,
+        pointsBalance: matchedSnapshot.pointsBalance + Math.max(Math.floor(payload.giftPoints), 0),
+        pointsLedger:
+          payload.giftPoints > 0
+            ? [
+                {
+                  id: `${tenantId}-ops-seat-gift-points-${timestamp}`,
+                  title: `${payload.specTitle}赠送积分`,
+                  description: "运营通过内部席位包给租户分配席位时赠送。",
+                  points: Math.max(Math.floor(payload.giftPoints), 0),
+                  direction: "income",
+                  createdAt,
+                  actorName: "运营后台",
+                },
+                ...(matchedSnapshot.pointsLedger ?? []),
+              ]
+            : matchedSnapshot.pointsLedger,
+        subscriptionOrders: [
+          {
+            id: `${tenantId}-ops-seat-order-${timestamp}`,
+            orderNo: `OPS-SEAT-${timestamp.toString().slice(-10)}`,
+            planKey: payload.planKey,
+            planTitle: payload.specTitle,
+            amount: 0,
+            seatCount,
+            billingCycleLabel: payload.expiresAt === "长期有效" ? "长期有效" : "线下合同周期",
+            status: "paid",
+            orderSourceLabel: "线下订单",
+            paymentChannelLabel: "线下订单",
+            purchaserName: "运营后台",
+            createdAt,
+            paidAt: createdAt,
+            billingCycle: payload.specKey,
+            unitPrice: 0,
+            originalAmount: 0,
+            discountAmount: 0,
+            expiresAt: payload.expiresAt,
+            purchaseMode: "addSeats",
+          },
+          ...(matchedSnapshot.subscriptionOrders ?? []),
+        ],
+      });
+
+      setTenants(currentTenants =>
+        currentTenants.map(item =>
+          item.id === tenantId
+            ? {
+                ...item,
+                edition: "team",
+                seatCount: nextTotalSeats,
+                updatedAt: createdAt,
+              }
+            : item,
+        ),
+      );
+
+      return true;
     },
     [],
   );
@@ -919,12 +1112,9 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
     [],
   );
 
-  const createModelService = useCallback(
-    (form: OperationsModelServiceForm): void => {
-      setModelServices(currentModels => [buildModelServiceFromForm(form), ...currentModels]);
-    },
-    [],
-  );
+  const createModelService = useCallback((form: OperationsModelServiceForm): void => {
+    setModelServices(currentModels => [buildModelServiceFromForm(form), ...currentModels]);
+  }, []);
 
   const updateModelService = useCallback(
     (modelId: string, form: OperationsModelServiceForm): void => {
@@ -942,12 +1132,9 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
     [],
   );
 
-  const createPointsPackage = useCallback(
-    (payload: MockPointsPackageInput): void => {
-      setPointsPackages(createMockPointsPackage(payload));
-    },
-    [],
-  );
+  const createPointsPackage = useCallback((payload: MockPointsPackageInput): void => {
+    setPointsPackages(createMockPointsPackage(payload));
+  }, []);
 
   const updatePointsPackage = useCallback(
     (packageId: string, updates: MockPointsPackageUpdate): void => {
@@ -979,6 +1166,10 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
     },
     [],
   );
+
+  const createSubscriptionPlan = useCallback((payload: MockSubscriptionPlanTemplateInput): void => {
+    setSubscriptionPlans(createMockSubscriptionPlanTemplate(payload));
+  }, []);
 
   const applyTenantSubscriptionPlan = useCallback(
     (tenantId: string, purchaseOption: MockSubscriptionPlanPurchaseOption): boolean => {
@@ -1315,6 +1506,8 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
     createTenant,
     updateTenant,
     updateTenantStatus,
+    rechargeTenantPoints,
+    allocateTenantSeats,
     approveAgent,
     rejectAgent,
     createProduct,
@@ -1329,6 +1522,7 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
     createSalesChannelContractCode,
     updateSalesChannelContractCode,
     updateSubscriptionPlan,
+    createSubscriptionPlan,
     applyTenantSubscriptionPlan,
     updateServiceContactConfig,
     updateCommunityGroupConfig,

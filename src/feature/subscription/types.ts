@@ -16,6 +16,11 @@ export type MockSelfServeSubscriptionPlanKey = string;
 export type MockSubscriptionPlanStatus = "active" | "inactive";
 
 /**
+ * 席位包可见范围。内部包只供运营后台给指定租户分配席位，用户侧不可见。
+ */
+export type MockSubscriptionPlanScope = "public" | "internal";
+
+/**
  * 订阅包有效周期单位。
  */
 export type MockSubscriptionValidityUnit = "month" | "year";
@@ -36,7 +41,7 @@ export type MockSubscriptionCustomerTier = "pro" | "enterprise";
 export type MockSubscriptionOrderStatus = MockTenantPointsOrderStatus;
 
 /**
- * 平台团队席位包售卖规格。月付、年付、签约价都只是规格属性，不作为特殊业务分支。
+ * 平台团队席位包售卖规格。席位包只配置是否启用签约码优惠，最终优惠价格由渠道折扣计算。
  */
 export interface MockSubscriptionPlanSpec {
   key: string;
@@ -49,6 +54,7 @@ export interface MockSubscriptionPlanSpec {
   validityCount: number;
   validityUnit: MockSubscriptionValidityUnit;
   contractPriceEnabled: boolean;
+  /** 历史原型字段，仅用于兼容旧本地数据；新价格逻辑不再读取该金额。 */
   contractPriceAmount: number;
 }
 
@@ -71,6 +77,7 @@ export interface MockSubscriptionPlanTemplate {
   monthlyValidityCount: number;
   yearlyValidityCount: number;
   specs: MockSubscriptionPlanSpec[];
+  scope: MockSubscriptionPlanScope;
   status: MockSubscriptionPlanStatus;
   updatedAt: string;
 }
@@ -93,18 +100,9 @@ export type MockSubscriptionPlanTemplateInput = Pick<
   | "monthlyValidityCount"
   | "yearlyValidityCount"
   | "specs"
+  | "scope"
   | "status"
 >;
-
-/**
- * 签约子码。
- */
-export interface MockSalesChannelContractSubCode {
-  code: string;
-  ownerName?: string;
-  status: "active" | "inactive";
-  serviceLabel?: string;
-}
 
 /**
  * 签约码。
@@ -112,10 +110,16 @@ export interface MockSalesChannelContractSubCode {
 export interface MockSalesChannelContractCode {
   code: string;
   channelName: string;
+  discountFactor: number;
   ownerName: string;
+  ownerPhone?: string;
+  salesMemberId?: string;
+  salesMemberName?: string;
+  salesMemberPhone?: string;
   status: "active" | "inactive";
   serviceLabel: string;
-  subCodes: MockSalesChannelContractSubCode[];
+  tenantId?: string;
+  tenantName?: string;
 }
 
 /**

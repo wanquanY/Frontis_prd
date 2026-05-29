@@ -243,10 +243,8 @@ export const SubscriptionPlanModal = ({
               .filter(spec => spec.contractPriceEnabled)
               .map(spec => (
                 <div key={`${spec.key}-contract`}>
-                  <span>{spec.title}签约价</span>
-                  <strong>
-                    ¥{spec.contractPriceAmount} / 席 / {spec.validityUnit === "month" ? "月" : "年"}
-                  </strong>
+                  <span>{spec.title}签约码优惠</span>
+                  <strong>按渠道折扣计算</strong>
                 </div>
               ))}
           </div>

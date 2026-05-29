@@ -779,7 +779,7 @@ export const SkillCenterView = ({
             handleOpenWorkspaceChooser(skill);
           }}
         >
-          去使用
+          添加到工作台
         </Button>
       );
     }
@@ -1056,7 +1056,11 @@ export const SkillCenterView = ({
 
             <footer className={styles.workspacePickerFooter}>
               <Button onClick={() => setWorkspaceSkill(null)}>取消</Button>
-              <Button type="primary" icon={<PlusOutlined />} onClick={handleCreateWorkspaceForSkill}>
+              <Button
+                type="primary"
+                icon={<PlusOutlined />}
+                onClick={handleCreateWorkspaceForSkill}
+              >
                 新建工作空间
               </Button>
             </footer>

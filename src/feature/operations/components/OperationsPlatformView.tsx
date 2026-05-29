@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   AppstoreOutlined,
   ApartmentOutlined,
+  BranchesOutlined,
   CheckCircleOutlined,
   CreditCardOutlined,
   DatabaseOutlined,
@@ -17,7 +18,7 @@ import {
   TeamOutlined,
 } from "@ant-design/icons";
 import type { MenuProps } from "antd";
-import { Avatar, Button, Dropdown, Empty, Input, InputNumber, Modal, Select, message } from "antd";
+import { Avatar, Button, Dropdown, Empty, Input, Modal, Select, message } from "antd";
 import classNames from "classnames";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 
@@ -59,9 +60,14 @@ import styles from "./OperationsPlatformView.module.less";
 import { OperationsOrganizationConsole } from "./OperationsOrganizationConsole";
 import { OperationsOrderCenterConsole } from "./OperationsOrderCenterConsole";
 import { OperationsPlatformConfigConsole } from "./OperationsPlatformConfigConsole";
+import { OperationsChannelConsole } from "./OperationsChannelConsole";
 import { OperationsPointsSubscriptionConsole } from "./OperationsPointsSubscriptionConsole";
 import { OperationsProductConsole } from "./OperationsProductConsole";
 import { OperationsResourceMeteringConsole } from "./OperationsResourceMeteringConsole";
+import {
+  OperationsTenantPointsRechargeModal,
+  OperationsTenantSeatAllocationModal,
+} from "./OperationsTenantEntitlementModals";
 
 interface TenantEditorState {
   open: boolean;
@@ -93,12 +99,15 @@ interface TenantConsoleProps {
 
 interface TenantDetailConsoleProps {
   canEdit: boolean;
+  canManageEntitlements: boolean;
   canToggleStatus: boolean;
   tenant: OperationsTenant | null;
   tenantSnapshot: MockTenantManagementSnapshot | null;
   statusLabels: Record<OperationsTenant["status"], string>;
   onBack: () => void;
   onEdit: (tenant: OperationsTenant) => void;
+  onOpenPointsRecharge: (tenant: OperationsTenant) => void;
+  onOpenSeatAllocation: (tenant: OperationsTenant) => void;
   onToggleStatus: (tenant: OperationsTenant) => void;
 }
 
@@ -116,6 +125,7 @@ const OPERATIONS_TAB_ICON_MAP: Record<OperationsPlatformTabKey, JSX.Element> = {
   products: <ShopOutlined />,
   resources: <DatabaseOutlined />,
   points: <CreditCardOutlined />,
+  channels: <BranchesOutlined />,
   orders: <FileTextOutlined />,
   agents: <RobotOutlined />,
   platformConfig: <SettingOutlined />,
@@ -128,9 +138,6 @@ const TENANT_FIELD_IDS = {
   adminName: "operations-tenant-admin-name",
   adminPhone: "operations-tenant-admin-phone",
   billingMode: "operations-tenant-billing-mode",
-  seatCount: "operations-tenant-seat-count",
-  effectiveAt: "operations-tenant-effective-at",
-  expiresAt: "operations-tenant-expires-at",
   moduleLabels: "operations-tenant-module-labels",
 } as const;
 
@@ -151,6 +158,7 @@ const getTabKeyFromPath = (tabPath?: string): OperationsPlatformTabKey | null =>
     tabPath === "products" ||
     tabPath === "resources" ||
     tabPath === "points" ||
+    tabPath === "channels" ||
     tabPath === "orders" ||
     tabPath === "agents" ||
     tabPath === "platformConfig"
@@ -339,17 +347,23 @@ const TenantConsole = ({
 
 const TenantDetailConsole = ({
   canEdit,
+  canManageEntitlements,
   canToggleStatus,
   tenant,
   tenantSnapshot,
   statusLabels,
   onBack,
   onEdit,
+  onOpenPointsRecharge,
+  onOpenSeatAllocation,
   onToggleStatus,
 }: TenantDetailConsoleProps): JSX.Element => {
   const latestPointsLedger = tenantSnapshot?.pointsLedger[0] ?? null;
   const isPointsBillingTenant =
     tenant?.billingMode === "points" && tenantSnapshot?.billingMode === "points";
+  const totalSeats = tenantSnapshot?.totalSeats ?? tenant?.seatCount ?? 0;
+  const usedSeats = tenantSnapshot?.usedSeats ?? tenant?.members.length ?? 0;
+  const allocatedSeatCount = Math.max(totalSeats - 1, 0);
 
   return (
     <div className={adminStyles.consolePage}>
@@ -382,11 +396,18 @@ const TenantDetailConsole = ({
         <section className={adminStyles.consoleSection}>
           <div className={classNames(styles.detailGrid, styles.tenantDetailGrid)}>
             <section className={adminStyles.detailBlock}>
-              <h3
-                className={classNames(adminStyles.detailBlockTitle, styles.detailBlockTitleReset)}
-              >
-                基础信息
-              </h3>
+              <div className={adminStyles.consoleSectionHeader}>
+                <h3
+                  className={classNames(adminStyles.detailBlockTitle, styles.detailBlockTitleReset)}
+                >
+                  基础信息
+                </h3>
+                {canManageEntitlements ? (
+                  <Button size="small" onClick={() => onOpenSeatAllocation(tenant)}>
+                    分配席位
+                  </Button>
+                ) : null}
+              </div>
               <div className={adminStyles.consoleRows}>
                 <div className={adminStyles.consoleInfoRow}>
                   <span className={adminStyles.consoleInfoLabel}>版本</span>
@@ -413,20 +434,26 @@ const TenantDetailConsole = ({
                   </span>
                 </div>
                 <div className={adminStyles.consoleInfoRow}>
-                  <span className={adminStyles.consoleInfoLabel}>席位数量</span>
-                  <span className={adminStyles.consoleInfoValue}>{tenant.seatCount}</span>
+                  <span className={adminStyles.consoleInfoLabel}>默认管理员席位</span>
+                  <span className={adminStyles.consoleInfoValue}>1 · 长期有效</span>
+                </div>
+                <div className={adminStyles.consoleInfoRow}>
+                  <span className={adminStyles.consoleInfoLabel}>运营分配席位</span>
+                  <span className={adminStyles.consoleInfoValue}>{allocatedSeatCount}</span>
+                </div>
+                <div className={adminStyles.consoleInfoRow}>
+                  <span className={adminStyles.consoleInfoLabel}>当前总席位</span>
+                  <span className={adminStyles.consoleInfoValue}>{totalSeats}</span>
                 </div>
                 <div className={adminStyles.consoleInfoRow}>
                   <span className={adminStyles.consoleInfoLabel}>已用席位</span>
-                  <span className={adminStyles.consoleInfoValue}>{tenant.members.length}</span>
+                  <span className={adminStyles.consoleInfoValue}>{usedSeats}</span>
                 </div>
                 <div className={adminStyles.consoleInfoRow}>
-                  <span className={adminStyles.consoleInfoLabel}>生效时间</span>
-                  <span className={adminStyles.consoleInfoValue}>{tenant.effectiveAt}</span>
-                </div>
-                <div className={adminStyles.consoleInfoRow}>
-                  <span className={adminStyles.consoleInfoLabel}>到期时间</span>
-                  <span className={adminStyles.consoleInfoValue}>{tenant.expiresAt}</span>
+                  <span className={adminStyles.consoleInfoLabel}>席位到期</span>
+                  <span className={adminStyles.consoleInfoValue}>
+                    {tenantSnapshot?.planExpiresAt ?? "长期有效"}
+                  </span>
                 </div>
                 <div className={adminStyles.consoleInfoRow}>
                   <span className={adminStyles.consoleInfoLabel}>创建时间</span>
@@ -455,11 +482,18 @@ const TenantDetailConsole = ({
             </section>
 
             <section className={adminStyles.detailBlock}>
-              <h3
-                className={classNames(adminStyles.detailBlockTitle, styles.detailBlockTitleReset)}
-              >
-                计费与积分
-              </h3>
+              <div className={adminStyles.consoleSectionHeader}>
+                <h3
+                  className={classNames(adminStyles.detailBlockTitle, styles.detailBlockTitleReset)}
+                >
+                  计费与积分
+                </h3>
+                {canManageEntitlements && isPointsBillingTenant ? (
+                  <Button size="small" onClick={() => onOpenPointsRecharge(tenant)}>
+                    运营充值
+                  </Button>
+                ) : null}
+              </div>
               <div className={adminStyles.consoleRows}>
                 <div className={adminStyles.consoleInfoRow}>
                   <span className={adminStyles.consoleInfoLabel}>计费方式</span>
@@ -677,6 +711,7 @@ export const OperationsPlatformView = (): JSX.Element => {
     agentPlazaCategories,
     agentStoreZones,
     agentSubmissions,
+    allocateTenantSeats,
     approveAgent,
     approvedAgents,
     applyTenantSubscriptionPlan,
@@ -688,6 +723,7 @@ export const OperationsPlatformView = (): JSX.Element => {
     createPointsPackage,
     createProduct,
     createSalesChannelContractCode,
+    createSubscriptionPlan,
     createSkillCenterCategory,
     createTenant,
     emptyTenantForm,
@@ -702,6 +738,7 @@ export const OperationsPlatformView = (): JSX.Element => {
     products,
     registrationStrategy,
     rejectAgent,
+    rechargeTenantPoints,
     salesChannelContractCodes,
     serviceContactConfig,
     skillCenterCategories,
@@ -730,6 +767,8 @@ export const OperationsPlatformView = (): JSX.Element => {
     mode: "create",
     form: emptyTenantForm,
   });
+  const [pointsRechargeTenantId, setPointsRechargeTenantId] = useState<string | null>(null);
+  const [seatAllocationTenantId, setSeatAllocationTenantId] = useState<string | null>(null);
   const [agentReview, setAgentReview] = useState<AgentReviewState>({
     open: false,
   });
@@ -773,6 +812,7 @@ export const OperationsPlatformView = (): JSX.Element => {
   );
   const canManageRoles = hasOperationsPermission(OPERATIONS_PERMISSION_IDS.roleManage);
   const canManageBilling = hasOperationsPermission(OPERATIONS_PERMISSION_IDS.billingManage);
+  const canManageChannels = hasOperationsPermission(OPERATIONS_PERMISSION_IDS.channelManage);
   const canManageOrders = hasOperationsPermission(OPERATIONS_PERMISSION_IDS.orderManage);
   const canManagePoints = hasOperationsPermission(OPERATIONS_PERMISSION_IDS.pointsManage);
   const canManageResources = hasOperationsPermission(OPERATIONS_PERMISSION_IDS.resourceManage);
@@ -913,27 +953,23 @@ export const OperationsPlatformView = (): JSX.Element => {
     });
   }, []);
 
-  const handleSubmitTenant = useCallback((): void => {
-    const editingTenant = tenantEditor.tenantId
-      ? (tenants.find(item => item.id === tenantEditor.tenantId) ?? null)
-      : null;
+  const handleOpenPointsRecharge = useCallback((tenant: OperationsTenant): void => {
+    setPointsRechargeTenantId(tenant.id);
+  }, []);
 
+  const handleOpenSeatAllocation = useCallback((tenant: OperationsTenant): void => {
+    setSeatAllocationTenantId(tenant.id);
+  }, []);
+
+  const handleSubmitTenant = useCallback((): void => {
     if (
       !tenantEditor.form.name.trim() ||
       !tenantEditor.form.adminName.trim() ||
       !tenantEditor.form.adminPermissionIds.length ||
       !tenantEditor.form.billingMode ||
-      tenantEditor.form.adminPhone.trim().length !== 11 ||
-      tenantEditor.form.seatCount < 1 ||
-      !tenantEditor.form.effectiveAt.trim() ||
-      !tenantEditor.form.expiresAt.trim()
+      tenantEditor.form.adminPhone.trim().length !== 11
     ) {
-      message.warning("请先补齐租户名称、初始管理员信息、计费方式、席位数量、生效时间和失效时间。");
-      return;
-    }
-
-    if (editingTenant && tenantEditor.form.seatCount < editingTenant.members.length) {
-      message.warning("席位数量不能少于当前已加入的成员数量。");
+      message.warning("请先补齐租户名称、初始管理员信息和计费方式。");
       return;
     }
 
@@ -950,7 +986,7 @@ export const OperationsPlatformView = (): JSX.Element => {
       mode: "create",
       form: emptyTenantForm,
     });
-  }, [createTenant, emptyTenantForm, tenantEditor, tenants, updateTenant]);
+  }, [createTenant, emptyTenantForm, tenantEditor, updateTenant]);
 
   const handleToggleTenantStatus = useCallback(
     (tenant: OperationsTenant): void => {
@@ -1024,6 +1060,14 @@ export const OperationsPlatformView = (): JSX.Element => {
     () => tenants.find(item => item.id === tenantId) ?? null,
     [tenantId, tenants],
   );
+  const pointsRechargeTenant = useMemo<OperationsTenant | null>(
+    () => tenants.find(item => item.id === pointsRechargeTenantId) ?? null,
+    [pointsRechargeTenantId, tenants],
+  );
+  const seatAllocationTenant = useMemo<OperationsTenant | null>(
+    () => tenants.find(item => item.id === seatAllocationTenantId) ?? null,
+    [seatAllocationTenantId, tenants],
+  );
   const activeTenantSnapshot = useMemo<MockTenantManagementSnapshot | null>(
     () => (activeTenant ? getMockTenantManagementSnapshot(activeTenant.id) : null),
     [activeTenant],
@@ -1042,12 +1086,15 @@ export const OperationsPlatformView = (): JSX.Element => {
         return (
           <TenantDetailConsole
             canEdit={canManageTenants}
+            canManageEntitlements={canManagePoints || canManageBilling}
             canToggleStatus={canManageTenants}
             tenant={activeTenant}
             tenantSnapshot={activeTenantSnapshot}
             statusLabels={tenantStatusLabels}
             onBack={handleBackToTenantList}
             onEdit={handleOpenEditTenant}
+            onOpenPointsRecharge={handleOpenPointsRecharge}
+            onOpenSeatAllocation={handleOpenSeatAllocation}
             onToggleStatus={handleToggleTenantStatus}
           />
         );
@@ -1115,6 +1162,7 @@ export const OperationsPlatformView = (): JSX.Element => {
           onCreateCategory={createAgentPlazaCategory}
           onCreateStoreZone={createAgentStoreZone}
           onCreatePointsPackage={createPointsPackage}
+          onCreateSubscriptionPlan={createSubscriptionPlan}
           onCreateProduct={createProduct}
           onCreateSkillCategory={createSkillCenterCategory}
           onNavigateToProduct={handleOpenProductDetail}
@@ -1156,12 +1204,24 @@ export const OperationsPlatformView = (): JSX.Element => {
           canManagePoints={canManagePoints}
           pointsUsageRecords={pointsUsageRecords}
           registrationStrategy={registrationStrategy}
-          salesChannelContractCodes={salesChannelContractCodes}
           tenants={tenants}
           onApplyTenantSubscriptionPlan={applyTenantSubscriptionPlan}
+          onUpdateRegistrationStrategy={updateRegistrationStrategy}
+        />
+      );
+    }
+
+    if (activeTab === "channels") {
+      if (!canManageChannels) {
+        return <Empty description="当前角色暂无渠道管理权限" />;
+      }
+
+      return (
+        <OperationsChannelConsole
+          salesChannelContractCodes={salesChannelContractCodes}
+          tenants={tenants}
           onCreateSalesChannelContractCode={createSalesChannelContractCode}
           onUpdateSalesChannelContractCode={updateSalesChannelContractCode}
-          onUpdateRegistrationStrategy={updateRegistrationStrategy}
         />
       );
     }
@@ -1215,6 +1275,7 @@ export const OperationsPlatformView = (): JSX.Element => {
     applyTenantSubscriptionPlan,
     approvedAgents,
     canManageBilling,
+    canManageChannels,
     canManageOrders,
     canManagePoints,
     canManageResources,
@@ -1236,7 +1297,9 @@ export const OperationsPlatformView = (): JSX.Element => {
     handleOpenAgentReview,
     handleOpenCreateTenant,
     handleOpenEditTenant,
+    handleOpenPointsRecharge,
     handleOpenProductDetail,
+    handleOpenSeatAllocation,
     handleOpenTenantDetail,
     handleToggleTenantStatus,
     meteringProviders,
@@ -1537,70 +1600,24 @@ export const OperationsPlatformView = (): JSX.Element => {
               }
             />
           </div>
-
-          <div className={styles.modalField}>
-            <label className={styles.modalLabel} htmlFor={TENANT_FIELD_IDS.seatCount}>
-              席位数量
-            </label>
-            <InputNumber
-              id={TENANT_FIELD_IDS.seatCount}
-              className={styles.fullWidthInput}
-              min={1}
-              precision={0}
-              value={tenantEditor.form.seatCount || null}
-              onChange={nextValue =>
-                setTenantEditor(currentState => ({
-                  ...currentState,
-                  form: {
-                    ...currentState.form,
-                    seatCount: typeof nextValue === "number" ? nextValue : 0,
-                  },
-                }))
-              }
-            />
-          </div>
-
-          <div className={styles.modalField}>
-            <label className={styles.modalLabel} htmlFor={TENANT_FIELD_IDS.effectiveAt}>
-              生效时间
-            </label>
-            <Input
-              id={TENANT_FIELD_IDS.effectiveAt}
-              type="date"
-              value={tenantEditor.form.effectiveAt}
-              onChange={event =>
-                setTenantEditor(currentState => ({
-                  ...currentState,
-                  form: {
-                    ...currentState.form,
-                    effectiveAt: event.target.value,
-                  },
-                }))
-              }
-            />
-          </div>
-
-          <div className={styles.modalField}>
-            <label className={styles.modalLabel} htmlFor={TENANT_FIELD_IDS.expiresAt}>
-              失效时间
-            </label>
-            <Input
-              id={TENANT_FIELD_IDS.expiresAt}
-              type="date"
-              value={tenantEditor.form.expiresAt}
-              onChange={event =>
-                setTenantEditor(currentState => ({
-                  ...currentState,
-                  form: {
-                    ...currentState.form,
-                    expiresAt: event.target.value,
-                  },
-                }))
-              }
-            />
-          </div>
         </div>
       </Modal>
+
+      <OperationsTenantPointsRechargeModal
+        open={Boolean(pointsRechargeTenantId)}
+        tenant={pointsRechargeTenant}
+        pointsPackages={pointsPackages}
+        onCancel={() => setPointsRechargeTenantId(null)}
+        onSubmit={rechargeTenantPoints}
+      />
+
+      <OperationsTenantSeatAllocationModal
+        open={Boolean(seatAllocationTenantId)}
+        tenant={seatAllocationTenant}
+        subscriptionPlans={subscriptionPlans}
+        onCancel={() => setSeatAllocationTenantId(null)}
+        onSubmit={allocateTenantSeats}
+      />
 
       <Modal
         open={agentReview.open}

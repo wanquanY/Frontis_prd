@@ -52,13 +52,16 @@ const STANDARD_POINTS_ORDER_ACTIVITY_SNAPSHOT = {
   | "promotionEndsAt"
   | "totalPoints"
 >;
+const MOCK_LEGACY_CONTRACT_CODE_MAP: Record<string, string> = {
+  CHANNEL299: "CHANNEL299-DG4587-Q8M2K7ND",
+  DGMAIN299: "DGMAIN299-DG3294-Q8M2K7ND",
+  SALES299: "SALES299-DG4607-Q8M2K7ND",
+};
 
 const isStandardPointsPackageOrder = (order: MockTenantPointsOrderItem): boolean =>
   order.packageId === "standard" || order.packageTitle === "标准积分包";
 
-const shouldNormalizeStandardPointsPackageOrder = (
-  order: MockTenantPointsOrderItem,
-): boolean =>
+const shouldNormalizeStandardPointsPackageOrder = (order: MockTenantPointsOrderItem): boolean =>
   isStandardPointsPackageOrder(order) &&
   (order.packagePoints !== STANDARD_POINTS_ORDER_ACTIVITY_SNAPSHOT.packagePoints ||
     order.amount !== STANDARD_POINTS_ORDER_ACTIVITY_SNAPSHOT.amount ||
@@ -69,9 +72,7 @@ const shouldNormalizeStandardPointsPackageOrder = (
     order.discountFactor !== STANDARD_POINTS_ORDER_ACTIVITY_SNAPSHOT.discountFactor ||
     order.promotionEndsAt !== STANDARD_POINTS_ORDER_ACTIVITY_SNAPSHOT.promotionEndsAt);
 
-const normalizePointsOrderItem = (
-  order: MockTenantPointsOrderItem,
-): MockTenantPointsOrderItem =>
+const normalizePointsOrderItem = (order: MockTenantPointsOrderItem): MockTenantPointsOrderItem =>
   shouldNormalizeStandardPointsPackageOrder(order)
     ? {
         ...order,
@@ -79,9 +80,18 @@ const normalizePointsOrderItem = (
       }
     : order;
 
+const normalizeSubscriptionOrderItem = (
+  order: MockTenantSubscriptionOrderItem,
+): MockTenantSubscriptionOrderItem => ({
+  ...order,
+  contractCode: order.contractCode
+    ? (MOCK_LEGACY_CONTRACT_CODE_MAP[order.contractCode] ?? order.contractCode)
+    : order.contractCode,
+});
+
 const buildSubscriptionOrderItem = (
   item: MockTenantSubscriptionOrderItem,
-): MockTenantSubscriptionOrderItem => item;
+): MockTenantSubscriptionOrderItem => normalizeSubscriptionOrderItem(item);
 
 const buildAgentUsageRecordItem = (
   item: MockTenantAgentUsageRecordItem,
@@ -105,10 +115,7 @@ const mergeStoredItemsWithPreset = <TItem extends { id: string }>(
 const isFrontisUserRole = (role: unknown): role is FrontisUserRole =>
   role === "enterpriseAdmin" || role === "departmentLead" || role === "employee";
 
-const normalizeTenantUser = (
-  user: FrontisWebUserItem,
-  adminUserId: string,
-): FrontisWebUserItem => {
+const normalizeTenantUser = (user: FrontisWebUserItem, adminUserId: string): FrontisWebUserItem => {
   const fallbackRole: FrontisUserRole = user.id === adminUserId ? "enterpriseAdmin" : "employee";
   const role = isFrontisUserRole(user.role) ? user.role : fallbackRole;
   const roleIds =
@@ -1045,7 +1052,7 @@ const normalizeTenantSnapshot = (
           : undefined),
     planExpiresAt: snapshot.planExpiresAt ?? (nextEdition === "team" ? "2027-04-23" : undefined),
     pointsOrders: (snapshot.pointsOrders ?? []).map(normalizePointsOrderItem),
-    subscriptionOrders: snapshot.subscriptionOrders ?? [],
+    subscriptionOrders: (snapshot.subscriptionOrders ?? []).map(normalizeSubscriptionOrderItem),
   };
 };
 

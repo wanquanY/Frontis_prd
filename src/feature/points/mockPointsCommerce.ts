@@ -14,6 +14,7 @@ const PRESET_POINTS_PACKAGES: MockPointsPackageOption[] = [
     description: "适合新租户体验 ME、AI 专家与轻量 Skill 调用。",
     points: 5000,
     price: 29,
+    scope: "public",
     status: "active",
     sortOrder: 10,
     updatedAt: "2026-04-23 10:20",
@@ -25,6 +26,7 @@ const PRESET_POINTS_PACKAGES: MockPointsPackageOption[] = [
     points: 10000,
     price: 100,
     giftPoints: 100,
+    scope: "public",
     status: "active",
     sortOrder: 20,
     tagLabel: "推荐",
@@ -36,9 +38,23 @@ const PRESET_POINTS_PACKAGES: MockPointsPackageOption[] = [
     description: "适合多人协作、重模型调用与持续运行的租户。",
     points: 60000,
     price: 249,
+    scope: "public",
     status: "active",
     sortOrder: 30,
     updatedAt: "2026-04-23 10:20",
+  },
+  {
+    id: "internal-offline-contract-points",
+    title: "线下合同积分包",
+    description: "仅运营后台可见，用于给线下成单租户充值积分。",
+    points: 100000,
+    price: 0,
+    giftPoints: 0,
+    scope: "internal",
+    status: "active",
+    sortOrder: 90,
+    tagLabel: "内部",
+    updatedAt: "2026-05-29 10:00",
   },
 ];
 
@@ -116,6 +132,7 @@ const readStoredPointsPackages = (): MockPointsPackageOption[] => {
     return parsedValue.filter(isValidPointsPackage).map(item => ({
       ...clonePointsPackage(item),
       status: item.status === "inactive" ? "inactive" : "active",
+      scope: item.scope === "internal" ? "internal" : "public",
       sortOrder: typeof item.sortOrder === "number" ? item.sortOrder : 0,
       updatedAt: typeof item.updatedAt === "string" ? item.updatedAt : "刚刚",
       description: typeof item.description === "string" ? item.description : "",
@@ -167,7 +184,7 @@ export const getMockPointsPackages = (): MockPointsPackageOption[] =>
  * 读取当前处于可售状态的积分包。
  */
 export const getActiveMockPointsPackages = (): MockPointsPackageOption[] =>
-  getMockPointsPackages().filter(item => item.status === "active");
+  getMockPointsPackages().filter(item => item.status === "active" && item.scope !== "internal");
 
 /**
  * 创建积分包商品。
@@ -183,6 +200,7 @@ export const createMockPointsPackage = (
     points: payload.points,
     price: payload.price,
     giftPoints: Math.max(Math.floor(payload.giftPoints ?? 0), 0),
+    scope: payload.scope ?? "public",
     status: "active",
     sortOrder:
       currentPackages.reduce((maxSortOrder, item) => Math.max(maxSortOrder, item.sortOrder), 0) +
