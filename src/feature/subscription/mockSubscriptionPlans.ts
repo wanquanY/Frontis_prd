@@ -4,12 +4,16 @@ import {
   saveMockTenantManagementSnapshot,
 } from "@/feature/auth/mockTenantRegistry";
 import { formatSalesDateTime } from "@/feature/sales/salesDateFormat";
-import { resolveMainCodeFromContractInput } from "@/feature/sales/salesCodeFormat";
-import { activateSalesLeadCode } from "@/feature/sales/salesStorage";
+import {
+  parseSalesLeadCode,
+  resolveMainCodeFromContractInput,
+} from "@/feature/sales/salesCodeFormat";
+import { activateSalesLeadCode, loadSalesLeadCodes } from "@/feature/sales/salesStorage";
 
 import type {
   MockSalesChannelContractCode,
   MockSalesChannelContractCodeInput,
+  MockSalesChannelContractCodePriceVersion,
   MockSelfServeSubscriptionPlanKey,
   MockSubscriptionBillingCycle,
   MockSubscriptionCustomerTier,
@@ -32,6 +36,8 @@ const MOCK_PROMOTION_ENDS_AT = "2026-08-25";
 const PRO_MONTHLY_SEAT_PRICE = 39;
 const PRO_YEARLY_SEAT_PRICE = 399;
 const ENTERPRISE_MINIMUM_SEATS_AFTER_PROMOTION = 10;
+const DEFAULT_CHANNEL_CODE_QUOTA = 200;
+const DEFAULT_CHANNEL_CODE_UNIT_PRICE = 299;
 const TEAM_SEAT_PACKAGE_KEY = "team-seat-package";
 const INTERNAL_SEAT_PACKAGE_KEY = "internal-offline-seat-package";
 const MONTHLY_SEAT_SPEC_KEY = "monthly-seat-package";
@@ -59,22 +65,29 @@ const VALIDITY_UNIT_LABELS: Record<MockSubscriptionValidityUnit, string> = {
   year: "年",
 };
 
-const normalizeChannelDiscountFactor = (value: unknown, fallback = 0.8): number => {
+const normalizeChannelDiscountFactor = (value: unknown, fallback = 1): number => {
   const discountFactor = typeof value === "number" && Number.isFinite(value) ? value : fallback;
 
   return Math.max(Math.min(discountFactor, 1), 0.01);
 };
 
-const formatChannelDiscount = (discountFactor: number): string =>
-  `${Math.round(normalizeChannelDiscountFactor(discountFactor) * 100) / 10} 折`;
-
 const PRESET_CONTRACT_CODES: MockSalesChannelContractCode[] = [
   {
     code: "DGMAIN299",
     channelName: "星澜集团渠道",
-    discountFactor: 0.75,
+    discountFactor: 1,
+    codeQuota: 120,
     ownerName: "杨万泉",
     ownerPhone: "13800000001",
+    priceVersions: [
+      {
+        id: "DGMAIN299-v1",
+        operationLabel: "create",
+        codeQuota: 120,
+        unitPriceAmount: 299,
+        createdAt: "2026-05-29 09:00:00",
+      },
+    ],
     tenantId: "tenant-enterprise-hq",
     tenantName: "星澜服饰集团租户",
     salesMemberId: "user-admin-001",
@@ -82,13 +95,24 @@ const PRESET_CONTRACT_CODES: MockSalesChannelContractCode[] = [
     salesMemberPhone: "13800000001",
     status: "active",
     serviceLabel: "大观销售签约跟进、团队版开通协同",
+    unitPriceAmount: 299,
   },
   {
     code: "SALES299",
     channelName: "直营销售",
-    discountFactor: 0.75,
+    discountFactor: 1,
+    codeQuota: 80,
     ownerName: "王晨",
     ownerPhone: "13800008881",
+    priceVersions: [
+      {
+        id: "SALES299-v1",
+        operationLabel: "create",
+        codeQuota: 80,
+        unitPriceAmount: 299,
+        createdAt: "2026-05-29 09:00:00",
+      },
+    ],
     tenantId: "ops-tenant-frontis",
     tenantName: "Frontis 官方演示租户",
     salesMemberId: "tenant-member-frontis-admin",
@@ -96,13 +120,24 @@ const PRESET_CONTRACT_CODES: MockSalesChannelContractCode[] = [
     salesMemberPhone: "13800000001",
     status: "active",
     serviceLabel: "专属销售跟进、Agent 定制化需求对接",
+    unitPriceAmount: 299,
   },
   {
     code: "CHANNEL299",
     channelName: "华东渠道",
-    discountFactor: 0.85,
+    discountFactor: 1,
+    codeQuota: 60,
     ownerName: "李婷",
     ownerPhone: "13900008882",
+    priceVersions: [
+      {
+        id: "CHANNEL299-v1",
+        operationLabel: "create",
+        codeQuota: 60,
+        unitPriceAmount: 329,
+        createdAt: "2026-05-29 09:00:00",
+      },
+    ],
     tenantId: "ops-tenant-yuedong",
     tenantName: "悦动科技",
     salesMemberId: "tenant-member-yuedong-admin",
@@ -110,15 +145,27 @@ const PRESET_CONTRACT_CODES: MockSalesChannelContractCode[] = [
     salesMemberPhone: "13900000002",
     status: "active",
     serviceLabel: "渠道专属售后、Agent 定制化需求对接",
+    unitPriceAmount: 329,
   },
   {
     code: "EXPIRED299",
     channelName: "历史渠道",
-    discountFactor: 0.8,
+    discountFactor: 1,
+    codeQuota: 30,
     ownerName: "赵立",
     ownerPhone: "13700008883",
+    priceVersions: [
+      {
+        id: "EXPIRED299-v1",
+        operationLabel: "create",
+        codeQuota: 30,
+        unitPriceAmount: 399,
+        createdAt: "2026-05-29 09:00:00",
+      },
+    ],
     status: "inactive",
     serviceLabel: "已停用签约码",
+    unitPriceAmount: 399,
   },
 ];
 
@@ -207,7 +254,7 @@ export const buildMockSubscriptionPlanBenefitTexts = (
       ? [
           `${spec.title} ${formatSeatUnitPrice(spec.priceAmount, spec.validityUnit)}`,
           `${spec.title}赠送 ${spec.giftPoints.toLocaleString("zh-CN")} 积分`,
-          ...(spec.contractPriceEnabled ? [`${spec.title}支持签约码渠道折扣`] : []),
+          ...(spec.contractPriceEnabled ? [`${spec.title}支持签约码单价`] : []),
         ]
       : [],
   ),
@@ -487,7 +534,61 @@ const cloneContractCode = (
   contractCode: MockSalesChannelContractCode,
 ): MockSalesChannelContractCode => ({
   ...contractCode,
+  priceVersions: contractCode.priceVersions.map(item => ({ ...item })),
 });
+
+const createInitialPriceVersion = (
+  contractCode: Pick<MockSalesChannelContractCode, "code" | "codeQuota" | "unitPriceAmount">,
+): MockSalesChannelContractCodePriceVersion => ({
+  id: `${contractCode.code}-v-${Date.now()}`,
+  operationLabel: "create",
+  codeQuota: contractCode.codeQuota,
+  unitPriceAmount: contractCode.unitPriceAmount,
+  createdAt: formatSalesDateTime(),
+});
+
+const normalizePriceVersions = (
+  value: unknown,
+  fallbackCode: MockSalesChannelContractCode,
+  allowEmpty = false,
+): MockSalesChannelContractCodePriceVersion[] => {
+  const versions = Array.isArray(value)
+    ? value
+        .map((item, index): MockSalesChannelContractCodePriceVersion | null => {
+          const version = readRecord(item);
+
+          if (!version) {
+            return null;
+          }
+
+          return {
+            id: readString(version.id, `${fallbackCode.code}-v-${index + 1}`).trim(),
+            operationLabel:
+              version.operationLabel === "appendQuota" ||
+              version.operationLabel === "updateUnitPrice" ||
+              version.operationLabel === "create"
+                ? version.operationLabel
+                : "create",
+            codeQuota: Math.max(
+              Math.floor(readNumber(version.codeQuota, fallbackCode.codeQuota)),
+              0,
+            ),
+            unitPriceAmount: Math.max(
+              Math.floor(readNumber(version.unitPriceAmount, fallbackCode.unitPriceAmount)),
+              0,
+            ),
+            createdAt: readString(version.createdAt, formatSalesDateTime()).trim(),
+          };
+        })
+        .filter((item): item is MockSalesChannelContractCodePriceVersion => Boolean(item))
+    : [];
+
+  if (versions.length) {
+    return versions;
+  }
+
+  return allowEmpty ? [] : [createInitialPriceVersion(fallbackCode)];
+};
 
 const normalizeStoredContractCode = (
   value: unknown,
@@ -506,8 +607,19 @@ const normalizeStoredContractCode = (
       contractCode.discountFactor,
       fallbackCode.discountFactor,
     ),
+    codeQuota: Math.max(
+      Math.floor(
+        readNumber(contractCode.codeQuota, fallbackCode.codeQuota ?? DEFAULT_CHANNEL_CODE_QUOTA),
+      ),
+      0,
+    ),
     ownerName: readString(contractCode.ownerName, fallbackCode.ownerName).trim(),
     ownerPhone: readString(contractCode.ownerPhone, fallbackCode.ownerPhone ?? "").trim(),
+    priceVersions: normalizePriceVersions(
+      contractCode.priceVersions,
+      fallbackCode,
+      Array.isArray(contractCode.priceVersions),
+    ),
     tenantId: readString(contractCode.tenantId, fallbackCode.tenantId ?? "").trim(),
     tenantName: readString(contractCode.tenantName, fallbackCode.tenantName ?? "").trim(),
     salesMemberId: readString(contractCode.salesMemberId, fallbackCode.salesMemberId ?? "").trim(),
@@ -521,6 +633,15 @@ const normalizeStoredContractCode = (
     ).trim(),
     status: readContractCodeStatus(contractCode.status, fallbackCode.status),
     serviceLabel: readString(contractCode.serviceLabel, fallbackCode.serviceLabel).trim(),
+    unitPriceAmount: Math.max(
+      Math.floor(
+        readNumber(
+          contractCode.unitPriceAmount,
+          fallbackCode.unitPriceAmount ?? DEFAULT_CHANNEL_CODE_UNIT_PRICE,
+        ),
+      ),
+      0,
+    ),
   };
 };
 
@@ -535,9 +656,12 @@ const createCustomFallbackContractCode = (value: unknown): MockSalesChannelContr
     code: contractCode.code,
     channelName: "",
     discountFactor: 0.8,
+    codeQuota: DEFAULT_CHANNEL_CODE_QUOTA,
     ownerName: "",
+    priceVersions: [],
     status: "active",
     serviceLabel: "",
+    unitPriceAmount: DEFAULT_CHANNEL_CODE_UNIT_PRICE,
   });
 };
 
@@ -823,13 +947,72 @@ const findContractCode = (contractCode?: string): MockSalesChannelContractCode |
   return null;
 };
 
+const parseMockSalesDateTime = (value: string | undefined): Date | null => {
+  if (!value) {
+    return null;
+  }
+
+  const parsedDate = new Date(value.replace(" ", "T"));
+
+  return Number.isNaN(parsedDate.getTime()) ? null : parsedDate;
+};
+
+const getSalesLeadCodeStatus = (
+  contractCode: string | undefined,
+): "empty" | "invalid" | "used" | "expired" | "usable" => {
+  const parsedCode = parseSalesLeadCode(contractCode);
+
+  if (!contractCode?.trim()) {
+    return "empty";
+  }
+
+  if (!parsedCode) {
+    return "invalid";
+  }
+
+  const matchedLeadCode = loadSalesLeadCodes().find(
+    item => item.fullCode.trim().toUpperCase() === parsedCode.fullCode,
+  );
+
+  if (!matchedLeadCode) {
+    return "invalid";
+  }
+
+  if (
+    matchedLeadCode.status === "used" ||
+    matchedLeadCode.status === ("effective" as typeof matchedLeadCode.status)
+  ) {
+    return "used";
+  }
+
+  if (
+    matchedLeadCode.status === "invalid" ||
+    matchedLeadCode.status === ("expired" as typeof matchedLeadCode.status)
+  ) {
+    return "expired";
+  }
+
+  const expiresAt = parseMockSalesDateTime(matchedLeadCode.expiredAt);
+
+  return expiresAt && expiresAt.getTime() <= Date.now() ? "expired" : "usable";
+};
+
+const getUsedContractCodeCount = (tenantMainCode: string): number =>
+  loadSalesLeadCodes().filter(item => {
+    if (item.tenantMainCode !== tenantMainCode) {
+      return false;
+    }
+
+    return item.status === "used" || item.status === ("effective" as typeof item.status);
+  }).length;
+
 const getPromotionIsActive = (): boolean =>
   toDate(MOCK_SUBSCRIPTION_TODAY).getTime() <= toDate(MOCK_PROMOTION_ENDS_AT).getTime();
 
 const getPlanBillingConfig = (
   plan: MockSubscriptionPlanTemplate,
   billingCycle: MockSubscriptionBillingCycle,
-  channelDiscountFactor?: number,
+  contractCodeUnitPrice?: number,
 ): {
   giftPoints: number;
   priceAmount: number;
@@ -842,8 +1025,8 @@ const getPlanBillingConfig = (
     return {
       giftPoints: matchedSpec.giftPoints,
       priceAmount:
-        matchedSpec.contractPriceEnabled && typeof channelDiscountFactor === "number"
-          ? Math.max(Math.floor(matchedSpec.priceAmount * channelDiscountFactor), 0)
+        matchedSpec.contractPriceEnabled && typeof contractCodeUnitPrice === "number"
+          ? Math.max(Math.floor(contractCodeUnitPrice), 0)
           : matchedSpec.priceAmount,
       validityCount: matchedSpec.validityCount,
       validityUnit: matchedSpec.validityUnit,
@@ -937,13 +1120,25 @@ const getContractCodeStatusLabel = (
     return "签约码无效";
   }
 
+  const leadCodeStatus = getSalesLeadCodeStatus(contractCode);
+
+  if (leadCodeStatus === "used") {
+    return "签约码已使用";
+  }
+
+  if (leadCodeStatus === "expired") {
+    return "签约码已失效";
+  }
+
+  if (leadCodeStatus === "invalid") {
+    return "签约码无效";
+  }
+
   if (matchedCode.status !== "active") {
     return "签约码已停用";
   }
 
-  return matchedCode
-    ? `已应用渠道折扣（${formatChannelDiscount(matchedCode.discountFactor)}）`
-    : "已应用渠道折扣";
+  return `已应用签约码单价（¥${matchedCode.unitPriceAmount.toLocaleString("zh-CN")} / 席）`;
 };
 
 const resolveEnterpriseQualification = (
@@ -967,6 +1162,24 @@ const resolveEnterpriseQualification = (
       customerTier: "pro",
       enterpriseQualified: false,
       ruleMessage: "",
+    };
+  }
+
+  const leadCodeStatus = getSalesLeadCodeStatus(input.contractCode);
+
+  if (leadCodeStatus !== "usable") {
+    return {
+      customerTier: "pro",
+      enterpriseQualified: false,
+      ruleMessage: "",
+    };
+  }
+
+  if (getUsedContractCodeCount(matchedCode.code) >= matchedCode.codeQuota) {
+    return {
+      customerTier: "pro",
+      enterpriseQualified: false,
+      ruleMessage: "当前渠道签约码数量已用完",
     };
   }
 
@@ -1048,7 +1261,7 @@ export const updateMockSalesChannelContractCode = (
       return item;
     }
 
-    return normalizeStoredContractCode(
+    const mergedCode = normalizeStoredContractCode(
       {
         ...item,
         ...updates,
@@ -1059,6 +1272,35 @@ export const updateMockSalesChannelContractCode = (
       },
       item,
     );
+    const shouldRecordQuotaVersion =
+      typeof updates.codeQuota === "number" && updates.codeQuota !== item.codeQuota;
+    const shouldRecordPriceVersion =
+      typeof updates.unitPriceAmount === "number" &&
+      updates.unitPriceAmount !== item.unitPriceAmount;
+    const priceVersionOperation: MockSalesChannelContractCodePriceVersion["operationLabel"] | null =
+      shouldRecordQuotaVersion
+        ? "appendQuota"
+        : shouldRecordPriceVersion
+          ? "updateUnitPrice"
+          : null;
+
+    if (!priceVersionOperation) {
+      return mergedCode;
+    }
+
+    return {
+      ...mergedCode,
+      priceVersions: [
+        ...mergedCode.priceVersions,
+        {
+          id: `${mergedCode.code}-v-${Date.now()}`,
+          operationLabel: priceVersionOperation,
+          codeQuota: mergedCode.codeQuota,
+          unitPriceAmount: mergedCode.unitPriceAmount,
+          createdAt: formatSalesDateTime(),
+        },
+      ],
+    };
   });
   const dedupedCodes = Array.from(new Map(nextCodes.map(item => [item.code, item])).values());
 
@@ -1264,13 +1506,13 @@ export const getMockSubscriptionPlanPurchaseOption = (
         enterpriseQualified: false,
         ruleMessage: "",
       };
-  const channelDiscountFactor = qualification.enterpriseQualified
-    ? normalizeChannelDiscountFactor(matchedCode?.discountFactor)
+  const contractCodeUnitPrice = qualification.enterpriseQualified
+    ? matchedCode?.unitPriceAmount
     : undefined;
   const cycleConfig = getPlanBillingConfig(
     selectedPlan,
     normalizedInput.billingCycle,
-    channelDiscountFactor,
+    contractCodeUnitPrice,
   );
   const originalCycleConfig = getPlanBillingConfig(selectedPlan, normalizedInput.billingCycle);
   const expiryInfo = getAlignedExpiryInfo(cycleConfig, tenantSnapshot, purchaseMode);
@@ -1388,9 +1630,9 @@ export const applyMockSubscriptionPlanToTenant = (
   activateSalesLeadCode(purchaseOption.contractCode, {
     amount: purchaseOption.amount,
     customerTenantName: matchedSnapshot.tenantName,
-    effectiveAt: activationTimestamp,
     orderNo: subscriptionOrder.orderNo,
     seatCount: purchaseOption.seatCount,
+    usedAt: activationTimestamp,
   });
 
   return saveMockTenantManagementSnapshot({

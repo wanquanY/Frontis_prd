@@ -244,7 +244,7 @@ export const SubscriptionPlanModal = ({
               .map(spec => (
                 <div key={`${spec.key}-contract`}>
                   <span>{spec.title}签约码优惠</span>
-                  <strong>按渠道折扣计算</strong>
+                  <strong>按签约码单价计算</strong>
                 </div>
               ))}
           </div>

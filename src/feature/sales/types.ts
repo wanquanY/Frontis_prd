@@ -1,6 +1,6 @@
 export type SalesMemberCodeStatus = "active" | "inactive";
 
-export type SalesLeadCodeStatus = "unused" | "effective" | "expired";
+export type SalesLeadCodeStatus = "unused" | "used" | "invalid";
 
 export interface SalesMemberCode {
   id: string;
@@ -27,7 +27,7 @@ export interface SalesLeadCode {
   fullCode: string;
   status: SalesLeadCodeStatus;
   createdAt: string;
-  effectiveAt?: string;
+  usedAt?: string;
   expiredAt?: string;
   orderNo?: string;
   customerTenantName?: string;

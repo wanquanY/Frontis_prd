@@ -57,7 +57,7 @@ export const activateSalesLeadCode = (
   fullCode: string | undefined,
   activation: Pick<
     SalesLeadCode,
-    "amount" | "customerTenantName" | "effectiveAt" | "orderNo" | "seatCount"
+    "amount" | "customerTenantName" | "orderNo" | "seatCount" | "usedAt"
   >,
 ): SalesLeadCode | null => {
   const normalizedCode = fullCode?.trim().toUpperCase();
@@ -76,8 +76,7 @@ export const activateSalesLeadCode = (
     activatedCode = {
       ...item,
       ...activation,
-      status: "effective",
-      expiredAt: undefined,
+      status: "used",
     };
 
     return activatedCode;

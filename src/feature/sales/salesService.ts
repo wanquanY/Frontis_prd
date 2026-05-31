@@ -7,13 +7,14 @@ import {
   saveSalesLeadCodes,
   saveSalesMemberCodes,
 } from "./salesStorage";
-import { formatSalesDateTime } from "./salesDateFormat";
+import { addSalesMinutes, formatSalesDateTime, parseSalesDateTime } from "./salesDateFormat";
 import { parseSalesLeadCode, resolveMainCodeFromContractInput } from "./salesCodeFormat";
 import type { SalesLeadCode, SalesMemberCode, SalesMemberCodeInput } from "./types";
 
 const CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 const MEMBER_CODE_LENGTH = 6;
 const RANDOM_CODE_LENGTH = 8;
+const SALES_LEAD_CODE_VALIDITY_MINUTES = 10;
 
 const normalizeCode = (value: string): string =>
   value
@@ -45,9 +46,36 @@ const normalizeDateTimeTimestamp = (value: string | undefined): string | undefin
 const normalizeSalesLeadCodeTime = (code: SalesLeadCode): SalesLeadCode => ({
   ...code,
   createdAt: normalizeDateTimeTimestamp(code.createdAt) ?? formatSalesDateTime(),
-  effectiveAt: normalizeDateTimeTimestamp(code.effectiveAt),
+  usedAt: normalizeDateTimeTimestamp(code.usedAt ?? (code as { effectiveAt?: string }).effectiveAt),
   expiredAt: normalizeDateTimeTimestamp(code.expiredAt),
 });
+
+const normalizeSalesLeadCode = (code: SalesLeadCode): SalesLeadCode => {
+  const normalizedCode = normalizeSalesLeadCodeTime(code);
+  const normalizedStatus =
+    normalizedCode.status === ("effective" as SalesLeadCode["status"])
+      ? "used"
+      : normalizedCode.status === ("expired" as SalesLeadCode["status"])
+        ? "invalid"
+        : normalizedCode.status;
+  const expiredAt =
+    normalizedCode.expiredAt ??
+    addSalesMinutes(normalizedCode.createdAt, SALES_LEAD_CODE_VALIDITY_MINUTES);
+  const expiredDate = parseSalesDateTime(expiredAt);
+  const isExpiredUnused =
+    normalizedStatus === "unused" && Boolean(expiredDate && expiredDate.getTime() <= Date.now());
+
+  return {
+    ...normalizedCode,
+    status: isExpiredUnused ? "invalid" : normalizedStatus,
+    expiredAt,
+  };
+};
+
+const getUsedSalesLeadCodeCount = (tenantMainCode: string): number =>
+  loadSalesLeadCodes()
+    .map(normalizeSalesLeadCode)
+    .filter(item => item.tenantMainCode === tenantMainCode && item.status === "used").length;
 
 const getExistingMemberCodes = (): Set<string> =>
   new Set(loadSalesMemberCodes().map(item => item.memberCode));
@@ -130,11 +158,11 @@ const buildMockSalesLeadCode = (
       | "amount"
       | "createdAt"
       | "customerTenantName"
-      | "effectiveAt"
       | "expiredAt"
       | "orderNo"
       | "seatCount"
       | "status"
+      | "usedAt"
     >
   >,
 ): SalesLeadCode => {
@@ -152,6 +180,7 @@ const buildMockSalesLeadCode = (
     fullCode: `${memberCode.tenantMainCode}-${memberCode.memberCode}-${randomCode}`,
     status: "unused",
     createdAt: "2026-05-29 09:18:00",
+    expiredAt: "2026-05-29 09:28:00",
     ...overrides,
   };
 };
@@ -163,36 +192,37 @@ const getMockSalesLeadCodesForMember = (memberCode: SalesMemberCode | null): Sal
 
   return [
     buildMockSalesLeadCode(memberCode, "Q8M2K7ND", {
-      status: "effective",
+      status: "used",
       customerTenantName: "杭州云织科技有限公司",
       seatCount: 18,
       amount: 5382,
       createdAt: "2026-05-29 09:18:00",
-      effectiveAt: "2026-05-29 10:02:00",
+      usedAt: "2026-05-29 09:24:00",
       orderNo: "SUB-2605281002",
     }),
     buildMockSalesLeadCode(memberCode, "TX5P9R2A", {
-      status: "effective",
+      status: "used",
       customerTenantName: "宁波橙界商贸有限公司",
       seatCount: 12,
       amount: 3588,
       createdAt: "2026-05-28 16:45:00",
-      effectiveAt: "2026-05-28 17:20:00",
+      usedAt: "2026-05-28 16:51:00",
       orderNo: "SUB-2605271720",
     }),
     buildMockSalesLeadCode(memberCode, "HN7C4V6K", {
       status: "unused",
       customerTenantName: "上海岚屿品牌管理有限公司",
       seatCount: 10,
-      createdAt: "2026-05-28 11:12:00",
+      createdAt: formatSalesDateTime(),
+      expiredAt: addSalesMinutes(formatSalesDateTime(), SALES_LEAD_CODE_VALIDITY_MINUTES),
     }),
     buildMockSalesLeadCode(memberCode, "R6JQ8W3L", {
-      status: "effective",
+      status: "used",
       customerTenantName: "苏州青野智能科技有限公司",
       seatCount: 25,
       amount: 7475,
       createdAt: "2026-05-26 14:08:00",
-      effectiveAt: "2026-05-26 15:33:00",
+      usedAt: "2026-05-26 14:16:00",
       orderNo: "SUB-2605261533",
     }),
     buildMockSalesLeadCode(memberCode, "B4N8S2YE", {
@@ -202,11 +232,11 @@ const getMockSalesLeadCodesForMember = (memberCode: SalesMemberCode | null): Sal
       createdAt: "2026-05-25 18:26:00",
     }),
     buildMockSalesLeadCode(memberCode, "M9XK2T4P", {
-      status: "expired",
+      status: "invalid",
       customerTenantName: "南京晟源数字科技有限公司",
       seatCount: 15,
       createdAt: "2026-05-21 13:50:00",
-      expiredAt: "2026-05-28 13:50:00",
+      expiredAt: "2026-05-21 14:00:00",
     }),
   ];
 };
@@ -275,13 +305,36 @@ export const upsertSalesMemberCode = (
 export const generateSalesLeadCode = (
   memberCode: SalesMemberCode,
 ): {
-  createdCode: SalesLeadCode;
+  createdCode: SalesLeadCode | null;
   codes: SalesLeadCode[];
+  message?: string;
+  success: boolean;
 } => {
+  const tenantMainContractCode = resolveTenantMainContractCode(memberCode.tenantId);
+
+  if (!tenantMainContractCode || tenantMainContractCode.status !== "active") {
+    return {
+      createdCode: null,
+      codes: getSalesLeadCodesForUser(memberCode.tenantId, memberCode.memberId),
+      message: "当前租户没有可用渠道码。",
+      success: false,
+    };
+  }
+
+  if (getUsedSalesLeadCodeCount(memberCode.tenantMainCode) >= tenantMainContractCode.codeQuota) {
+    return {
+      createdCode: null,
+      codes: getSalesLeadCodesForUser(memberCode.tenantId, memberCode.memberId),
+      message: "当前渠道可使用签约码数量已用完。",
+      success: false,
+    };
+  }
+
   const { fullCode, randomCode } = createUniqueLeadCode(
     memberCode.tenantMainCode,
     memberCode.memberCode,
   );
+  const createdAt = formatSalesDateTime();
   const createdCode: SalesLeadCode = {
     id: `sales-lead-${Date.now()}`,
     tenantId: memberCode.tenantId,
@@ -293,13 +346,14 @@ export const generateSalesLeadCode = (
     randomCode,
     fullCode,
     status: "unused",
-    createdAt: formatSalesDateTime(),
+    createdAt,
+    expiredAt: addSalesMinutes(createdAt, SALES_LEAD_CODE_VALIDITY_MINUTES),
   };
   const codes = [createdCode, ...loadSalesLeadCodes()];
 
   saveSalesLeadCodes(codes);
 
-  return { createdCode, codes };
+  return { createdCode, codes, success: true };
 };
 
 export const getSalesLeadCodesForUser = (
@@ -309,8 +363,10 @@ export const getSalesLeadCodesForUser = (
   [
     ...loadSalesLeadCodes()
       .filter(item => item.tenantId === tenantId && item.memberId === memberId)
-      .map(normalizeSalesLeadCodeTime),
+      .map(normalizeSalesLeadCode),
     ...getMockSalesLeadCodesForMember(getSalesMemberCodeForUser(tenantId, memberId)),
-  ].filter(
-    (item, index, codes) => codes.findIndex(code => code.fullCode === item.fullCode) === index,
-  );
+  ]
+    .map(normalizeSalesLeadCode)
+    .filter(
+      (item, index, codes) => codes.findIndex(code => code.fullCode === item.fullCode) === index,
+    );

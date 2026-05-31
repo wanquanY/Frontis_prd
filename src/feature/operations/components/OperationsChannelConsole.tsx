@@ -18,7 +18,6 @@ import styles from "./OperationsBillingConsole.module.less";
 
 interface ChannelFormState {
   channelName: string;
-  discountRate: number;
   ownerName: string;
   ownerPhone: string;
   salesMemberId: string;
@@ -26,11 +25,22 @@ interface ChannelFormState {
   tenantId: string;
 }
 
+interface AppendCodeFormState {
+  appendCodeQuantity: number;
+  unitPriceAmount: number | null;
+}
+
 interface ChannelEditorState {
   form: ChannelFormState;
   mode: "create" | "edit";
   open: boolean;
   originalCode?: string;
+}
+
+interface AppendCodeEditorState {
+  channelCode?: string;
+  form: AppendCodeFormState;
+  open: boolean;
 }
 
 interface SalesMemberOption {
@@ -58,7 +68,6 @@ const FALLBACK_TENANT_ID = "tenant-enterprise-demo";
 
 const createEmptyChannelForm = (): ChannelFormState => ({
   channelName: "",
-  discountRate: 8,
   ownerName: "",
   ownerPhone: "",
   salesMemberId: "",
@@ -69,6 +78,14 @@ const createEmptyChannelForm = (): ChannelFormState => ({
 const createChannelEditor = (): ChannelEditorState => ({
   form: createEmptyChannelForm(),
   mode: "create",
+  open: false,
+});
+
+const createAppendCodeEditor = (): AppendCodeEditorState => ({
+  form: {
+    appendCodeQuantity: 1,
+    unitPriceAmount: null,
+  },
   open: false,
 });
 
@@ -89,7 +106,6 @@ const createChannelFormFromCode = (
   contractCode: MockSalesChannelContractCode,
 ): ChannelFormState => ({
   channelName: contractCode.channelName,
-  discountRate: Math.round(Math.max(Math.min(contractCode.discountFactor, 1), 0.1) * 100) / 10,
   ownerName: contractCode.ownerName,
   ownerPhone: contractCode.ownerPhone ?? "",
   salesMemberId: contractCode.salesMemberId ?? "",
@@ -103,9 +119,6 @@ const buildStatusClassName = (tone?: "success" | "danger"): string =>
     tone === "success" && adminStyles.consoleStatusTagSuccess,
     tone === "danger" && adminStyles.consoleStatusTagDanger,
   );
-
-const formatChannelDiscount = (discountFactor: number): string =>
-  `${Math.round(Math.max(Math.min(discountFactor, 1), 0.1) * 100) / 10} 折`;
 
 const buildSalesMemberTree = (
   departments: OrganizationDepartmentItem[],
@@ -143,8 +156,14 @@ export const OperationsChannelConsole = ({
 }: OperationsChannelConsoleProps): JSX.Element => {
   const { activeIdentity } = useMockAuth();
   const [channelEditor, setChannelEditor] = useState<ChannelEditorState>(createChannelEditor());
+  const [appendCodeEditor, setAppendCodeEditor] =
+    useState<AppendCodeEditorState>(createAppendCodeEditor());
   const channelForm = channelEditor.form;
+  const appendCodeForm = appendCodeEditor.form;
   const selectedTenant = tenants.find(item => item.id === channelForm.tenantId);
+  const appendTargetChannel = salesChannelContractCodes.find(
+    item => item.code === appendCodeEditor.channelCode,
+  );
   const organizationSnapshot = useMemo(
     () =>
       getMockTenantManagementSnapshot(activeIdentity?.tenantId) ??
@@ -191,6 +210,17 @@ export const OperationsChannelConsole = ({
     });
   };
 
+  const handleOpenAppendCode = (contractCode: MockSalesChannelContractCode): void => {
+    setAppendCodeEditor({
+      channelCode: contractCode.code,
+      form: {
+        appendCodeQuantity: 1,
+        unitPriceAmount: contractCode.unitPriceAmount > 0 ? contractCode.unitPriceAmount : null,
+      },
+      open: true,
+    });
+  };
+
   const handleSubmitChannel = (): void => {
     if (!channelForm.channelName.trim()) {
       message.warning("请填写渠道名称。");
@@ -207,11 +237,6 @@ export const OperationsChannelConsole = ({
       return;
     }
 
-    if (channelForm.discountRate <= 0 || channelForm.discountRate > 10) {
-      message.warning("渠道折扣需在 0.1 到 10 折之间。");
-      return;
-    }
-
     if (!channelForm.salesMemberId || !selectedSalesMember) {
       message.warning("请选择关联销售。");
       return;
@@ -222,30 +247,68 @@ export const OperationsChannelConsole = ({
       channelEditor.mode === "edit" && originalCode
         ? originalCode
         : buildChannelCode(channelForm.channelName);
-    const payload: MockSalesChannelContractCodeInput = {
-      code: currentCode,
-      channelName: channelForm.channelName.trim(),
-      discountFactor: Math.max(Math.min(channelForm.discountRate / 10, 1), 0.01),
-      ownerName: channelForm.ownerName.trim(),
-      ownerPhone: channelForm.ownerPhone.trim(),
-      salesMemberId: selectedSalesMember.user.id,
-      salesMemberName: selectedSalesMember.user.name,
-      salesMemberPhone: selectedSalesMember.user.phone,
-      serviceLabel: selectedTenant?.name ?? "",
-      status: channelForm.status,
-      tenantId: selectedTenant?.id,
-      tenantName: selectedTenant?.name,
-    };
-
     if (channelEditor.mode === "edit" && originalCode) {
-      onUpdateSalesChannelContractCode(originalCode, payload);
+      onUpdateSalesChannelContractCode(originalCode, {
+        channelName: channelForm.channelName.trim(),
+        ownerName: channelForm.ownerName.trim(),
+        ownerPhone: channelForm.ownerPhone.trim(),
+        salesMemberId: selectedSalesMember.user.id,
+        salesMemberName: selectedSalesMember.user.name,
+        salesMemberPhone: selectedSalesMember.user.phone,
+        serviceLabel: selectedTenant?.name ?? "",
+        status: channelForm.status,
+        tenantId: selectedTenant?.id,
+        tenantName: selectedTenant?.name,
+      });
       message.success("渠道已更新。");
     } else {
+      const payload: MockSalesChannelContractCodeInput = {
+        code: currentCode,
+        channelName: channelForm.channelName.trim(),
+        discountFactor: 1,
+        codeQuota: 0,
+        ownerName: channelForm.ownerName.trim(),
+        ownerPhone: channelForm.ownerPhone.trim(),
+        priceVersions: [],
+        salesMemberId: selectedSalesMember.user.id,
+        salesMemberName: selectedSalesMember.user.name,
+        salesMemberPhone: selectedSalesMember.user.phone,
+        serviceLabel: selectedTenant?.name ?? "",
+        status: channelForm.status,
+        tenantId: selectedTenant?.id,
+        tenantName: selectedTenant?.name,
+        unitPriceAmount: 0,
+      };
+
       onCreateSalesChannelContractCode(payload);
       message.success("渠道已创建。");
     }
 
     setChannelEditor(createChannelEditor());
+  };
+
+  const handleSubmitAppendCode = (): void => {
+    if (!appendTargetChannel) {
+      message.warning("请选择要追加码数的渠道。");
+      return;
+    }
+
+    if (appendCodeForm.appendCodeQuantity <= 0) {
+      message.warning("请填写追加码数量。");
+      return;
+    }
+
+    if (appendCodeForm.unitPriceAmount === null || appendCodeForm.unitPriceAmount < 0) {
+      message.warning("请设置有效的码单价。");
+      return;
+    }
+
+    onUpdateSalesChannelContractCode(appendTargetChannel.code, {
+      codeQuota: appendTargetChannel.codeQuota + appendCodeForm.appendCodeQuantity,
+      unitPriceAmount: appendCodeForm.unitPriceAmount,
+    });
+    setAppendCodeEditor(createAppendCodeEditor());
+    message.success("码数已追加。");
   };
 
   return (
@@ -272,7 +335,8 @@ export const OperationsChannelConsole = ({
                 <th>手机号</th>
                 <th>关联租户</th>
                 <th>关联销售</th>
-                <th>渠道折扣</th>
+                <th>码数量</th>
+                <th>码单价</th>
                 <th>渠道码</th>
                 <th>状态</th>
                 <th>操作</th>
@@ -286,7 +350,12 @@ export const OperationsChannelConsole = ({
                   <td>{item.ownerPhone || "-"}</td>
                   <td>{item.tenantName || "-"}</td>
                   <td>{item.salesMemberName || "-"}</td>
-                  <td>{formatChannelDiscount(item.discountFactor)}</td>
+                  <td>{item.codeQuota}</td>
+                  <td>
+                    {item.unitPriceAmount > 0
+                      ? `¥${item.unitPriceAmount.toLocaleString("zh-CN")}`
+                      : "-"}
+                  </td>
                   <td>{item.code}</td>
                   <td>
                     <span
@@ -301,6 +370,9 @@ export const OperationsChannelConsole = ({
                     <div className={adminStyles.consoleActions}>
                       <Button size="small" onClick={() => handleOpenEditChannel(item)}>
                         编辑
+                      </Button>
+                      <Button size="small" onClick={() => handleOpenAppendCode(item)}>
+                        追加码数
                       </Button>
                     </div>
                   </td>
@@ -370,18 +442,6 @@ export const OperationsChannelConsole = ({
               />
             </div>
             <div className={styles.modalField}>
-              <span>渠道折扣</span>
-              <InputNumber
-                className={styles.fullWidthInput}
-                min={0.1}
-                max={10}
-                precision={1}
-                addonAfter="折"
-                value={channelForm.discountRate}
-                onChange={value => handleUpdateChannelForm({ discountRate: value ?? 8 })}
-              />
-            </div>
-            <div className={styles.modalField}>
               <span>状态</span>
               <Select<MockSalesChannelContractCode["status"]>
                 value={channelForm.status}
@@ -390,6 +450,66 @@ export const OperationsChannelConsole = ({
                   { value: "inactive", label: "停用" },
                 ]}
                 onChange={status => handleUpdateChannelForm({ status })}
+              />
+            </div>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal
+        open={appendCodeEditor.open}
+        title={`追加码数${appendTargetChannel ? ` · ${appendTargetChannel.channelName}` : ""}`}
+        width={560}
+        onCancel={() => setAppendCodeEditor(createAppendCodeEditor())}
+        onOk={handleSubmitAppendCode}
+        destroyOnHidden
+      >
+        <div className={styles.modalStack}>
+          <div className={styles.formGrid}>
+            <div className={styles.modalField}>
+              <span>当前码数量</span>
+              <InputNumber
+                className={styles.fullWidthInput}
+                disabled
+                value={appendTargetChannel?.codeQuota ?? 0}
+              />
+            </div>
+            <div className={styles.modalField}>
+              <span>追加码数量</span>
+              <InputNumber
+                className={styles.fullWidthInput}
+                min={1}
+                precision={0}
+                value={appendCodeForm.appendCodeQuantity}
+                onChange={value =>
+                  setAppendCodeEditor(current => ({
+                    ...current,
+                    form: {
+                      ...current.form,
+                      appendCodeQuantity: value ?? 1,
+                    },
+                  }))
+                }
+              />
+            </div>
+            <div className={styles.modalField}>
+              <span>本次码单价</span>
+              <InputNumber
+                className={styles.fullWidthInput}
+                min={0}
+                precision={0}
+                addonBefore="¥"
+                placeholder={appendTargetChannel?.unitPriceAmount ? undefined : "请填写码单价"}
+                value={appendCodeForm.unitPriceAmount}
+                onChange={value =>
+                  setAppendCodeEditor(current => ({
+                    ...current,
+                    form: {
+                      ...current.form,
+                      unitPriceAmount: value ?? null,
+                    },
+                  }))
+                }
               />
             </div>
           </div>

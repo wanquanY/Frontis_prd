@@ -55,17 +55,17 @@ const STATUS_FILTER_OPTIONS: Array<{
 }> = [
   { label: "全部状态", value: "all" },
   { label: "未使用", value: "unused" },
-  { label: "已生效", value: "effective" },
-  { label: "已过期", value: "expired" },
+  { label: "已使用", value: "used" },
+  { label: "已失效", value: "invalid" },
 ];
 
 const getStatusLabel = (status: SalesLeadCode["status"]): string => {
-  if (status === "effective") {
-    return "已生效";
+  if (status === "used") {
+    return "已使用";
   }
 
-  if (status === "expired") {
-    return "已过期";
+  if (status === "invalid") {
+    return "已失效";
   }
 
   return "未使用";
@@ -89,11 +89,11 @@ const DaGuanSalesPage = (): JSX.Element => {
     getSalesLeadCodesForUser(activeIdentity?.tenantId, activeIdentity?.subjectId),
   );
   const [statusFilter, setStatusFilter] = useState<SalesLeadCodeStatusFilter>("all");
-  const effectiveRecordCount = records.filter(item => item.status === "effective").length;
+  const usedRecordCount = records.filter(item => item.status === "used").length;
   const unusedRecordCount = records.filter(item => item.status === "unused").length;
-  const expiredRecordCount = records.filter(item => item.status === "expired").length;
+  const invalidRecordCount = records.filter(item => item.status === "invalid").length;
   const totalEffectiveAmount = records.reduce(
-    (total, item) => total + (item.status === "effective" ? (item.amount ?? 0) : 0),
+    (total, item) => total + (item.status === "used" ? (item.amount ?? 0) : 0),
     0,
   );
   const filteredRecords = useMemo(
@@ -167,9 +167,16 @@ const DaGuanSalesPage = (): JSX.Element => {
       return;
     }
 
-    generateSalesLeadCode(memberCode);
+    const result = generateSalesLeadCode(memberCode);
+
     setRecords(getSalesLeadCodesForUser(memberCode.tenantId, memberCode.memberId));
-    message.success("签约码已生成。");
+
+    if (!result.success) {
+      message.warning(result.message ?? "签约码生成失败。");
+      return;
+    }
+
+    message.success("签约码已生成，10 分钟内有效。");
   };
 
   const handleCopyCode = (code: string): void => {
@@ -266,9 +273,9 @@ const DaGuanSalesPage = (): JSX.Element => {
               <h1 className={salesStyles.title}>生成签约码</h1>
               <div className={salesStyles.compactStats}>
                 <span>累计 {records.length}</span>
-                <span>已生效 {effectiveRecordCount}</span>
+                <span>已使用 {usedRecordCount}</span>
                 <span>未使用 {unusedRecordCount}</span>
-                <span>已过期 {expiredRecordCount}</span>
+                <span>已失效 {invalidRecordCount}</span>
                 <span>成交 ¥{totalEffectiveAmount}</span>
               </div>
             </div>

@@ -41,7 +41,7 @@ export type MockSubscriptionCustomerTier = "pro" | "enterprise";
 export type MockSubscriptionOrderStatus = MockTenantPointsOrderStatus;
 
 /**
- * 平台团队席位包售卖规格。席位包只配置是否启用签约码优惠，最终优惠价格由渠道折扣计算。
+ * 平台团队席位包售卖规格。席位包只配置是否启用签约码优惠，最终价格由签约码所属渠道单价计算。
  */
 export interface MockSubscriptionPlanSpec {
   key: string;
@@ -104,15 +104,26 @@ export type MockSubscriptionPlanTemplateInput = Pick<
   | "status"
 >;
 
+export interface MockSalesChannelContractCodePriceVersion {
+  codeQuota: number;
+  createdAt: string;
+  id: string;
+  operationLabel: "create" | "appendQuota" | "updateUnitPrice";
+  unitPriceAmount: number;
+}
+
 /**
- * 签约码。
+ * 渠道码。渠道码是签约码三段格式中的第一段，负责承载渠道额度和单价规则。
  */
 export interface MockSalesChannelContractCode {
   code: string;
   channelName: string;
+  /** 历史原型字段，仅用于兼容旧本地数据；新签约码价格不再读取该系数。 */
   discountFactor: number;
+  codeQuota: number;
   ownerName: string;
   ownerPhone?: string;
+  priceVersions: MockSalesChannelContractCodePriceVersion[];
   salesMemberId?: string;
   salesMemberName?: string;
   salesMemberPhone?: string;
@@ -120,6 +131,7 @@ export interface MockSalesChannelContractCode {
   serviceLabel: string;
   tenantId?: string;
   tenantName?: string;
+  unitPriceAmount: number;
 }
 
 /**
