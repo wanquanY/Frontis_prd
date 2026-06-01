@@ -6,9 +6,15 @@ import classNames from "classnames";
 import { useMockAuth } from "@/feature/auth/hooks/useMockAuth";
 import { getMockTenantManagementSnapshot } from "@/feature/auth/mockTenantRegistry";
 import type { OperationsTenant } from "@/feature/operations/types";
+import {
+  getOccupiedSalesLeadCodeCount,
+  getSalesLeadCodesByChannel,
+} from "@/feature/sales/salesService";
+import type { SalesLeadCode } from "@/feature/sales/types";
 import type {
   MockSalesChannelContractCode,
   MockSalesChannelContractCodeInput,
+  MockSalesChannelContractCodePriceVersion,
 } from "@/feature/subscription/types";
 import { INITIAL_ORGANIZATION_DEPARTMENTS } from "@/mocks/mockData";
 import adminStyles from "@/pages/components/FrontisAdminViews.module.less";
@@ -43,6 +49,17 @@ interface AppendCodeEditorState {
   open: boolean;
 }
 
+type ChannelDetailTabKey = "info" | "recharge" | "usage";
+
+interface ChannelRechargeRecord {
+  codeQuota: number;
+  createdAt: string;
+  id: string;
+  quantity: number;
+  title: string;
+  unitPriceAmount: number;
+}
+
 interface SalesMemberOption {
   user: FrontisWebUserItem;
 }
@@ -65,6 +82,12 @@ interface OperationsChannelConsoleProps {
 }
 
 const FALLBACK_TENANT_ID = "tenant-enterprise-demo";
+
+const CHANNEL_DETAIL_TABS: Array<{ key: ChannelDetailTabKey; label: string }> = [
+  { key: "info", label: "渠道信息" },
+  { key: "recharge", label: "充值记录" },
+  { key: "usage", label: "消耗记录" },
+];
 
 const createEmptyChannelForm = (): ChannelFormState => ({
   channelName: "",
@@ -114,12 +137,86 @@ const createChannelFormFromCode = (
   tenantId: contractCode.tenantId ?? "",
 });
 
-const buildStatusClassName = (tone?: "success" | "danger"): string =>
+const buildStatusClassName = (tone?: "success" | "danger" | "warning"): string =>
   classNames(
     adminStyles.consoleStatusTag,
     tone === "success" && adminStyles.consoleStatusTagSuccess,
     tone === "danger" && adminStyles.consoleStatusTagDanger,
+    tone === "warning" && adminStyles.consoleStatusTagWarning,
   );
+
+const formatNumber = (value: number): string => value.toLocaleString("zh-CN");
+
+const formatAmount = (value: number): string => `¥${value.toLocaleString("zh-CN")}`;
+
+const getChannelOccupiedCodeCount = (contractCode: MockSalesChannelContractCode): number =>
+  getOccupiedSalesLeadCodeCount(contractCode.code);
+
+const getChannelRemainingCodeCount = (contractCode: MockSalesChannelContractCode): number =>
+  Math.max(contractCode.codeQuota - getChannelOccupiedCodeCount(contractCode), 0);
+
+const getLeadCodeStatusLabel = (status: SalesLeadCode["status"]): string => {
+  if (status === "used") {
+    return "已使用";
+  }
+
+  if (status === "invalid") {
+    return "已失效";
+  }
+
+  return "未使用";
+};
+
+const getLeadCodeStatusTone = (
+  status: SalesLeadCode["status"],
+): "danger" | "success" | "warning" => {
+  if (status === "used") {
+    return "success";
+  }
+
+  if (status === "invalid") {
+    return "danger";
+  }
+
+  return "warning";
+};
+
+const getRechargeRecordTitle = (
+  operationLabel: MockSalesChannelContractCodePriceVersion["operationLabel"],
+): string => {
+  if (operationLabel === "appendQuota") {
+    return "追加码数";
+  }
+
+  if (operationLabel === "updateUnitPrice") {
+    return "优惠调整";
+  }
+
+  return "首次投放";
+};
+
+const buildRechargeRecords = (
+  contractCode: MockSalesChannelContractCode,
+): ChannelRechargeRecord[] => {
+  let previousQuota = 0;
+
+  return contractCode.priceVersions
+    .map(version => {
+      const quantity = Math.max(version.codeQuota - previousQuota, 0);
+      previousQuota = version.codeQuota;
+
+      return {
+        id: version.id,
+        title: getRechargeRecordTitle(version.operationLabel),
+        quantity,
+        codeQuota: version.codeQuota,
+        unitPriceAmount: version.unitPriceAmount,
+        createdAt: version.createdAt,
+      };
+    })
+    .filter(record => record.quantity > 0 || record.title === "优惠调整")
+    .reverse();
+};
 
 const buildSalesMemberTree = (
   departments: OrganizationDepartmentItem[],
@@ -159,9 +256,12 @@ export const OperationsChannelConsole = ({
   const [channelEditor, setChannelEditor] = useState<ChannelEditorState>(createChannelEditor());
   const [appendCodeEditor, setAppendCodeEditor] =
     useState<AppendCodeEditorState>(createAppendCodeEditor());
+  const [selectedChannelCode, setSelectedChannelCode] = useState<string | null>(null);
+  const [activeDetailTab, setActiveDetailTab] = useState<ChannelDetailTabKey>("info");
   const channelForm = channelEditor.form;
   const appendCodeForm = appendCodeEditor.form;
   const selectedTenant = tenants.find(item => item.id === channelForm.tenantId);
+  const selectedChannel = salesChannelContractCodes.find(item => item.code === selectedChannelCode);
   const appendTargetChannel = salesChannelContractCodes.find(
     item => item.code === appendCodeEditor.channelCode,
   );
@@ -183,6 +283,12 @@ export const OperationsChannelConsole = ({
     () => buildSalesMemberTree(INITIAL_ORGANIZATION_DEPARTMENTS, organizationUsers),
     [organizationUsers],
   );
+  const selectedChannelLeadCodes = selectedChannel
+    ? getSalesLeadCodesByChannel(selectedChannel.code)
+    : [];
+  const selectedChannelRechargeRecords = selectedChannel
+    ? buildRechargeRecords(selectedChannel)
+    : [];
 
   const handleUpdateChannelForm = (patch: Partial<ChannelFormState>): void => {
     setChannelEditor(current => ({
@@ -220,6 +326,16 @@ export const OperationsChannelConsole = ({
       },
       open: true,
     });
+  };
+
+  const handleOpenChannelDetail = (code: string): void => {
+    setSelectedChannelCode(code);
+    setActiveDetailTab("info");
+  };
+
+  const handleBackToChannelList = (): void => {
+    setSelectedChannelCode(null);
+    setActiveDetailTab("info");
   };
 
   const handleSubmitChannel = (): void => {
@@ -314,75 +430,268 @@ export const OperationsChannelConsole = ({
 
   return (
     <div className={adminStyles.consolePage}>
-      <header className={adminStyles.consoleHeader}>
-        <div className={adminStyles.consoleHeaderMain}>
-          <h1 className={adminStyles.consoleTitle}>渠道管理</h1>
-        </div>
-      </header>
+      {selectedChannel ? (
+        <header className={adminStyles.consoleHeader}>
+          <div className={adminStyles.consoleHeaderSide}>
+            <Button onClick={handleBackToChannelList}>返回渠道列表</Button>
+          </div>
+        </header>
+      ) : (
+        <header className={adminStyles.consoleHeader}>
+          <div className={adminStyles.consoleHeaderMain}>
+            <h1 className={adminStyles.consoleTitle}>渠道管理</h1>
+          </div>
+        </header>
+      )}
 
-      <section className={adminStyles.consoleSection}>
-        <div className={adminStyles.consoleSectionHeader}>
-          <h2 className={adminStyles.consoleSectionTitle}>渠道列表</h2>
-          <Button type="primary" onClick={handleOpenCreateChannel}>
-            新建渠道
-          </Button>
-        </div>
-        <div className={adminStyles.consoleHtmlTableWrap}>
-          <table className={adminStyles.consoleHtmlTable}>
-            <thead>
-              <tr>
-                <th>渠道名称</th>
-                <th>渠道负责人</th>
-                <th>手机号</th>
-                <th>关联租户</th>
-                <th>关联销售</th>
-                <th>码数量</th>
-                <th>每席优惠</th>
-                <th>渠道码</th>
-                <th>状态</th>
-                <th>操作</th>
-              </tr>
-            </thead>
-            <tbody>
-              {salesChannelContractCodes.map(item => (
-                <tr key={item.code}>
-                  <td className={adminStyles.consoleHtmlTableStrong}>{item.channelName}</td>
-                  <td>{item.ownerName}</td>
-                  <td>{item.ownerPhone || "-"}</td>
-                  <td>{item.tenantName || "-"}</td>
-                  <td>{item.salesMemberName || "-"}</td>
-                  <td>{item.codeQuota}</td>
-                  <td>
-                    {item.unitPriceAmount > 0
-                      ? `¥${item.unitPriceAmount.toLocaleString("zh-CN")}`
-                      : "-"}
-                  </td>
-                  <td>{item.code}</td>
-                  <td>
-                    <span
-                      className={buildStatusClassName(
-                        item.status === "active" ? "success" : "danger",
-                      )}
-                    >
-                      {item.status === "active" ? "启用" : "停用"}
-                    </span>
-                  </td>
-                  <td>
-                    <div className={adminStyles.consoleActions}>
-                      <Button size="small" onClick={() => handleOpenEditChannel(item)}>
-                        编辑
-                      </Button>
-                      <Button size="small" onClick={() => handleOpenAppendCode(item)}>
-                        追加码数
-                      </Button>
-                    </div>
-                  </td>
+      {selectedChannel ? (
+        <>
+          <div className={adminStyles.consoleTabs}>
+            {CHANNEL_DETAIL_TABS.map(tab => (
+              <button
+                key={tab.key}
+                type="button"
+                className={classNames(adminStyles.consoleTabButton, {
+                  [adminStyles.consoleTabButtonActive]: activeDetailTab === tab.key,
+                })}
+                onClick={() => setActiveDetailTab(tab.key)}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+
+          {activeDetailTab === "info" ? (
+            <section className={adminStyles.consoleSection}>
+              <div className={adminStyles.consoleSectionHeader}>
+                <div className={adminStyles.consoleSectionHeaderMain}>
+                  <h2 className={adminStyles.consoleSectionTitle}>渠道信息</h2>
+                </div>
+                <div className={adminStyles.consoleActions}>
+                  <Button onClick={() => handleOpenAppendCode(selectedChannel)}>追加码数</Button>
+                  <Button type="primary" onClick={() => handleOpenEditChannel(selectedChannel)}>
+                    编辑渠道
+                  </Button>
+                </div>
+              </div>
+              <div className={adminStyles.consoleInfoRow}>
+                <span className={adminStyles.consoleInfoLabel}>渠道名称</span>
+                <strong className={adminStyles.consoleInfoValue}>
+                  {selectedChannel.channelName}
+                </strong>
+              </div>
+              <div className={adminStyles.consoleInfoRow}>
+                <span className={adminStyles.consoleInfoLabel}>渠道总码</span>
+                <strong className={adminStyles.consoleInfoValue}>{selectedChannel.code}</strong>
+              </div>
+              <div className={adminStyles.consoleInfoRow}>
+                <span className={adminStyles.consoleInfoLabel}>关联租户</span>
+                <strong className={adminStyles.consoleInfoValue}>
+                  {selectedChannel.tenantName || "-"}
+                </strong>
+              </div>
+              <div className={adminStyles.consoleInfoRow}>
+                <span className={adminStyles.consoleInfoLabel}>渠道负责人</span>
+                <strong className={adminStyles.consoleInfoValue}>
+                  {selectedChannel.ownerName}
+                </strong>
+              </div>
+              <div className={adminStyles.consoleSummaryStrip}>
+                <div className={adminStyles.consoleSummaryItem}>
+                  <span className={adminStyles.consoleSummaryLabel}>总码数量</span>
+                  <strong className={adminStyles.consoleSummaryValue}>
+                    {formatNumber(selectedChannel.codeQuota)}
+                  </strong>
+                </div>
+                <div className={adminStyles.consoleSummaryItem}>
+                  <span className={adminStyles.consoleSummaryLabel}>剩余渠道码</span>
+                  <strong className={adminStyles.consoleSummaryValue}>
+                    {formatNumber(getChannelRemainingCodeCount(selectedChannel))}
+                  </strong>
+                </div>
+                <div className={adminStyles.consoleSummaryItem}>
+                  <span className={adminStyles.consoleSummaryLabel}>已占用渠道码</span>
+                  <strong className={adminStyles.consoleSummaryValue}>
+                    {formatNumber(getChannelOccupiedCodeCount(selectedChannel))}
+                  </strong>
+                </div>
+                <div className={adminStyles.consoleSummaryItem}>
+                  <span className={adminStyles.consoleSummaryLabel}>当前每席优惠</span>
+                  <strong className={adminStyles.consoleSummaryValue}>
+                    {formatAmount(selectedChannel.unitPriceAmount)}
+                  </strong>
+                </div>
+              </div>
+            </section>
+          ) : null}
+
+          {activeDetailTab === "recharge" ? (
+            <section className={adminStyles.consoleSection}>
+              <div className={adminStyles.consoleSectionHeader}>
+                <div className={adminStyles.consoleSectionHeaderMain}>
+                  <h2 className={adminStyles.consoleSectionTitle}>渠道码充值记录</h2>
+                </div>
+                <div className={adminStyles.consoleActions}>
+                  <Button type="primary" onClick={() => handleOpenAppendCode(selectedChannel)}>
+                    追加码数
+                  </Button>
+                </div>
+              </div>
+              {selectedChannelRechargeRecords.length ? (
+                <div className={adminStyles.consoleHtmlTableWrap}>
+                  <table className={adminStyles.consoleHtmlTable}>
+                    <thead>
+                      <tr>
+                        <th>操作类型</th>
+                        <th>本次码数</th>
+                        <th>充值后总量</th>
+                        <th>每席优惠</th>
+                        <th>操作时间</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {selectedChannelRechargeRecords.map(record => (
+                        <tr key={record.id}>
+                          <td className={adminStyles.consoleHtmlTableStrong}>{record.title}</td>
+                          <td>{record.quantity ? `+${formatNumber(record.quantity)}` : "-"}</td>
+                          <td>{formatNumber(record.codeQuota)}</td>
+                          <td>{formatAmount(record.unitPriceAmount)}</td>
+                          <td>{record.createdAt}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div className={adminStyles.consoleEmpty}>暂无渠道码充值记录</div>
+              )}
+            </section>
+          ) : null}
+
+          {activeDetailTab === "usage" ? (
+            <section className={adminStyles.consoleSection}>
+              <div className={adminStyles.consoleSectionHeader}>
+                <div className={adminStyles.consoleSectionHeaderMain}>
+                  <h2 className={adminStyles.consoleSectionTitle}>渠道码消耗记录</h2>
+                </div>
+              </div>
+              {selectedChannelLeadCodes.length ? (
+                <div className={adminStyles.consoleHtmlTableWrap}>
+                  <table className={adminStyles.consoleHtmlTable}>
+                    <thead>
+                      <tr>
+                        <th>渠道码</th>
+                        <th>销售人员</th>
+                        <th>状态</th>
+                        <th>创建时间</th>
+                        <th>使用时间</th>
+                        <th>客户租户</th>
+                        <th>席位</th>
+                        <th>订单金额</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {selectedChannelLeadCodes.map(record => {
+                        const isUsed = record.status === "used";
+
+                        return (
+                          <tr key={record.id}>
+                            <td className={adminStyles.consoleHtmlTableStrong}>
+                              {record.fullCode}
+                            </td>
+                            <td>{record.memberName}</td>
+                            <td>
+                              <span
+                                className={buildStatusClassName(
+                                  getLeadCodeStatusTone(record.status),
+                                )}
+                              >
+                                {getLeadCodeStatusLabel(record.status)}
+                              </span>
+                            </td>
+                            <td>{record.createdAt}</td>
+                            <td>{isUsed ? (record.usedAt ?? "-") : "-"}</td>
+                            <td>{isUsed ? (record.customerTenantName ?? "-") : "-"}</td>
+                            <td>{isUsed && record.seatCount ? `${record.seatCount} 席` : "-"}</td>
+                            <td>{isUsed && record.amount ? formatAmount(record.amount) : "-"}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div className={adminStyles.consoleEmpty}>暂无渠道码消耗记录</div>
+              )}
+            </section>
+          ) : null}
+        </>
+      ) : (
+        <section className={adminStyles.consoleSection}>
+          <div className={adminStyles.consoleSectionHeader}>
+            <h2 className={adminStyles.consoleSectionTitle}>渠道列表</h2>
+            <Button type="primary" onClick={handleOpenCreateChannel}>
+              新建渠道
+            </Button>
+          </div>
+          <div className={adminStyles.consoleHtmlTableWrap}>
+            <table className={adminStyles.consoleHtmlTable}>
+              <thead>
+                <tr>
+                  <th>渠道名称</th>
+                  <th>渠道负责人</th>
+                  <th>手机号</th>
+                  <th>关联租户</th>
+                  <th>关联销售</th>
+                  <th>总码数量</th>
+                  <th>剩余码数量</th>
+                  <th>每席优惠</th>
+                  <th>渠道码</th>
+                  <th>状态</th>
+                  <th>操作</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </section>
+              </thead>
+              <tbody>
+                {salesChannelContractCodes.map(item => (
+                  <tr key={item.code}>
+                    <td className={adminStyles.consoleHtmlTableStrong}>{item.channelName}</td>
+                    <td>{item.ownerName}</td>
+                    <td>{item.ownerPhone || "-"}</td>
+                    <td>{item.tenantName || "-"}</td>
+                    <td>{item.salesMemberName || "-"}</td>
+                    <td>{formatNumber(item.codeQuota)}</td>
+                    <td>{formatNumber(getChannelRemainingCodeCount(item))}</td>
+                    <td>{item.unitPriceAmount > 0 ? formatAmount(item.unitPriceAmount) : "-"}</td>
+                    <td>{item.code}</td>
+                    <td>
+                      <span
+                        className={buildStatusClassName(
+                          item.status === "active" ? "success" : "danger",
+                        )}
+                      >
+                        {item.status === "active" ? "启用" : "停用"}
+                      </span>
+                    </td>
+                    <td>
+                      <div className={adminStyles.consoleActions}>
+                        <Button size="small" onClick={() => handleOpenChannelDetail(item.code)}>
+                          详情
+                        </Button>
+                        <Button size="small" onClick={() => handleOpenEditChannel(item)}>
+                          编辑
+                        </Button>
+                        <Button size="small" onClick={() => handleOpenAppendCode(item)}>
+                          追加码数
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
 
       <Modal
         open={channelEditor.open}

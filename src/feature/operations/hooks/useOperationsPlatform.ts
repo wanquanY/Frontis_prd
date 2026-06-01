@@ -119,6 +119,7 @@ import type {
   OperationsTenantSeatAllocationPayload,
 } from "@/feature/operations/types";
 import { calculateOperationsSalePrice } from "@/feature/operations/serviceMeteringUtils";
+import { useOperationsAuthStore } from "@/store/operationsAuth";
 import {
   loadEnterpriseCommodityApplications,
   saveEnterpriseCommodityApplications,
@@ -644,6 +645,10 @@ const buildInitialAgentSubmissions = (): OperationsAgentSubmission[] => {
  * 提供运营后台租户管理与 AI 专家上架审核所需的本地 mock 状态和交互动作。
  */
 export const useOperationsPlatform = (): UseOperationsPlatformResult => {
+  const operationsSession = useOperationsAuthStore(state => state.session);
+  const currentOperatorUserId = operationsSession?.userId;
+  const currentOperatorName = operationsSession?.name ?? "未记录";
+  const currentOperatorRoleLabel = operationsSession?.roleLabel;
   const [tenants, setTenants] = useState<OperationsTenant[]>(() =>
     mergeStoredTenantsWithPreset(OPERATIONS_INITIAL_TENANTS, loadStoredOperationsTenants()),
   );
@@ -836,7 +841,7 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
             points: totalPoints,
             direction: "income",
             createdAt,
-            actorName: "运营后台",
+            actorName: currentOperatorName,
           },
           ...(matchedSnapshot.pointsLedger ?? []),
         ],
@@ -852,8 +857,12 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
             originalAmount: 0,
             discountAmount: 0,
             status: "paid",
+            orderSourceLabel: "运营后台开通",
             paymentChannelLabel: "线下订单",
-            purchaserName: "运营后台",
+            purchaserName: "-",
+            operatorUserId: currentOperatorUserId,
+            operatorName: currentOperatorName,
+            operatorRoleLabel: currentOperatorRoleLabel,
             createdAt,
             paidAt: createdAt,
           },
@@ -874,7 +883,7 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
 
       return true;
     },
-    [],
+    [currentOperatorName, currentOperatorRoleLabel, currentOperatorUserId],
   );
 
   const allocateTenantSeats = useCallback(
@@ -914,7 +923,7 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
                   points: Math.max(Math.floor(payload.giftPoints), 0),
                   direction: "income",
                   createdAt,
-                  actorName: "运营后台",
+                  actorName: currentOperatorName,
                 },
                 ...(matchedSnapshot.pointsLedger ?? []),
               ]
@@ -929,9 +938,12 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
             seatCount,
             billingCycleLabel: payload.expiresAt === "长期有效" ? "长期有效" : "线下合同周期",
             status: "paid",
-            orderSourceLabel: "线下订单",
+            orderSourceLabel: "运营后台开通",
             paymentChannelLabel: "线下订单",
-            purchaserName: "运营后台",
+            purchaserName: "-",
+            operatorUserId: currentOperatorUserId,
+            operatorName: currentOperatorName,
+            operatorRoleLabel: currentOperatorRoleLabel,
             createdAt,
             paidAt: createdAt,
             billingCycle: payload.specKey,
@@ -960,7 +972,7 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
 
       return true;
     },
-    [],
+    [currentOperatorName, currentOperatorRoleLabel, currentOperatorUserId],
   );
 
   const approveAgent = useCallback(
@@ -1195,8 +1207,13 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
   const applyTenantSubscriptionPlan = useCallback(
     (tenantId: string, purchaseOption: MockSubscriptionPlanPurchaseOption): boolean => {
       const nextSnapshot = applyMockSubscriptionPlanToTenant(tenantId, purchaseOption, {
+        actorName: currentOperatorName,
         orderSourceLabel: "运营后台开通",
         paymentChannelLabel: "运营后台确认",
+        purchaserName: "-",
+        operatorUserId: currentOperatorUserId,
+        operatorName: currentOperatorName,
+        operatorRoleLabel: currentOperatorRoleLabel,
       });
 
       if (!nextSnapshot) {
@@ -1218,7 +1235,7 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
 
       return true;
     },
-    [],
+    [currentOperatorName, currentOperatorRoleLabel, currentOperatorUserId],
   );
 
   const updateServiceContactConfig = useCallback(

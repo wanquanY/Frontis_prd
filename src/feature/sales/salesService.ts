@@ -71,10 +71,27 @@ const normalizeSalesLeadCode = (code: SalesLeadCode): SalesLeadCode => {
   };
 };
 
-const getOccupiedSalesLeadCodeCount = (tenantMainCode: string): number =>
-  loadSalesLeadCodes()
+export const getSalesLeadCodesByChannel = (tenantMainCode: string): SalesLeadCode[] => {
+  const channelCode =
+    getMockSalesChannelContractCodes().find(item => item.code === tenantMainCode) ?? null;
+  const storedCodes = loadSalesLeadCodes().filter(item => item.tenantMainCode === tenantMainCode);
+  const mockCodes = getMergedSalesMemberCodes()
+    .filter(item => item.tenantMainCode === tenantMainCode)
+    .flatMap(getMockSalesLeadCodesForMember);
+  const channelMockCodes = getMockSalesLeadCodesForMember(
+    channelCode ? createMockSalesMemberCodeFromChannel(channelCode) : null,
+  );
+
+  return [...storedCodes, ...mockCodes, ...channelMockCodes]
     .map(normalizeSalesLeadCode)
-    .filter(item => item.tenantMainCode === tenantMainCode && item.status !== "invalid").length;
+    .filter(
+      (item, index, codes) => codes.findIndex(code => code.fullCode === item.fullCode) === index,
+    )
+    .sort((left, right) => right.createdAt.localeCompare(left.createdAt));
+};
+
+export const getOccupiedSalesLeadCodeCount = (tenantMainCode: string): number =>
+  getSalesLeadCodesByChannel(tenantMainCode).filter(item => item.status !== "invalid").length;
 
 const getExistingMemberCodes = (): Set<string> =>
   new Set(loadSalesMemberCodes().map(item => item.memberCode));
@@ -96,6 +113,25 @@ const createPresetMemberCode = (contractCode: MockSalesChannelContractCode): str
 
   return String(hash % 10000).padStart(MEMBER_CODE_LENGTH, "0");
 };
+
+function createMockSalesMemberCodeFromChannel(
+  contractCode: MockSalesChannelContractCode,
+): SalesMemberCode {
+  const memberId = contractCode.salesMemberId || `${contractCode.code}-sales-member`;
+
+  return {
+    id: `sales-member-${contractCode.tenantId ?? contractCode.code}-${memberId}`,
+    tenantId: contractCode.tenantId ?? "",
+    tenantName: contractCode.tenantName ?? contractCode.channelName,
+    tenantMainCode: contractCode.code,
+    memberId,
+    memberName: contractCode.salesMemberName || contractCode.ownerName,
+    memberCode: createPresetMemberCode(contractCode),
+    status: "active",
+    createdAt: "预置",
+    updatedAt: "预置",
+  };
+}
 
 const getPresetSalesMemberCodes = (): SalesMemberCode[] =>
   getMockSalesChannelContractCodes()
@@ -231,8 +267,6 @@ const getMockSalesLeadCodesForMember = (memberCode: SalesMemberCode | null): Sal
     }),
     buildMockSalesLeadCode(memberCode, "560183", {
       status: "unused",
-      customerTenantName: "上海岚屿品牌管理有限公司",
-      seatCount: 10,
       createdAt: formatSalesDateTime(),
       expiredAt: addSalesMinutes(formatSalesDateTime(), SALES_LEAD_CODE_VALIDITY_MINUTES),
     }),
@@ -247,14 +281,10 @@ const getMockSalesLeadCodesForMember = (memberCode: SalesMemberCode | null): Sal
     }),
     buildMockSalesLeadCode(memberCode, "119872", {
       status: "unused",
-      customerTenantName: "合肥新域供应链有限公司",
-      seatCount: 8,
       createdAt: "2026-05-25 18:26:00",
     }),
     buildMockSalesLeadCode(memberCode, "304689", {
       status: "invalid",
-      customerTenantName: "南京晟源数字科技有限公司",
-      seatCount: 15,
       createdAt: "2026-05-21 13:50:00",
       expiredAt: "2026-05-21 14:00:00",
     }),

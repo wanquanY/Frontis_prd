@@ -7,11 +7,13 @@ import type { MockTenantManagementSnapshot } from "@/feature/auth/types";
 import type { FrontisWebUserItem, OrganizationDepartmentItem } from "@/pages/types";
 
 import {
+  getOccupiedSalesLeadCodeCount,
+  getSalesLeadCodesByChannel,
   getSalesMemberCodesByTenant,
   resolveTenantMainContractCode,
   upsertSalesMemberCode,
 } from "../salesService";
-import type { SalesMemberCode, SalesMemberCodeInput } from "../types";
+import type { SalesLeadCode, SalesMemberCode, SalesMemberCodeInput } from "../types";
 import styles from "./SalesViews.module.less";
 
 interface SalesManagementViewProps {
@@ -32,6 +34,13 @@ interface UserTreeNode {
   title: string;
   value: string;
 }
+
+type SalesManagementTabKey = "memberCodes" | "usageRecords";
+
+const SALES_MANAGEMENT_TABS: Array<{ key: SalesManagementTabKey; label: string }> = [
+  { key: "memberCodes", label: "销售个人码" },
+  { key: "usageRecords", label: "消耗记录" },
+];
 
 const createInitialForm = (code?: SalesMemberCode | null): SalesMemberCodeForm => ({
   memberId: code?.memberId ?? "",
@@ -63,6 +72,22 @@ const buildUserTree = (
       };
     });
 
+const formatNumber = (value: number): string => value.toLocaleString("zh-CN");
+
+const formatAmount = (value: number): string => `¥${value.toLocaleString("zh-CN")}`;
+
+const getLeadCodeStatusLabel = (status: SalesLeadCode["status"]): string => {
+  if (status === "used") {
+    return "已使用";
+  }
+
+  if (status === "invalid") {
+    return "已失效";
+  }
+
+  return "未使用";
+};
+
 /**
  * 企业管理后台销售管理，用于把租户内成员绑定为销售并生成销售个人码。
  */
@@ -78,12 +103,17 @@ export const SalesManagementView = ({
   const [memberCodes, setMemberCodes] = useState<SalesMemberCode[]>(() =>
     getSalesMemberCodesByTenant(tenantSnapshot.tenantId),
   );
+  const [activeTab, setActiveTab] = useState<SalesManagementTabKey>("memberCodes");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCode, setEditingCode] = useState<SalesMemberCode | null>(null);
   const [form, setForm] = useState<SalesMemberCodeForm>(() => createInitialForm());
 
   const userTreeData = useMemo(() => buildUserTree(departments, users), [departments, users]);
   const activeCodeCount = memberCodes.filter(item => item.status === "active").length;
+  const salesLeadCodes = tenantMainCode ? getSalesLeadCodesByChannel(tenantMainCode.code) : [];
+  const totalCodeQuota = tenantMainCode?.codeQuota ?? 0;
+  const occupiedCodeCount = tenantMainCode ? getOccupiedSalesLeadCodeCount(tenantMainCode.code) : 0;
+  const remainingCodeCount = Math.max(totalCodeQuota - occupiedCodeCount, 0);
 
   const handleOpenCreate = (): void => {
     setEditingCode(null);
@@ -147,67 +177,142 @@ export const SalesManagementView = ({
 
       <section className={styles.summaryGrid}>
         <div className={styles.summaryItem}>
-          <div className={styles.summaryLabel}>渠道总码</div>
-          <div className={styles.summaryValue}>{tenantMainCode?.code ?? "未配置"}</div>
+          <div className={styles.summaryLabel}>购买渠道码总数量</div>
+          <div className={styles.summaryValue}>{formatNumber(totalCodeQuota)}</div>
         </div>
         <div className={styles.summaryItem}>
-          <div className={styles.summaryLabel}>已绑定销售</div>
-          <div className={styles.summaryValue}>{memberCodes.length}</div>
+          <div className={styles.summaryLabel}>剩余库存</div>
+          <div className={styles.summaryValue}>{formatNumber(remainingCodeCount)}</div>
         </div>
         <div className={styles.summaryItem}>
-          <div className={styles.summaryLabel}>启用中销售码</div>
-          <div className={styles.summaryValue}>{activeCodeCount}</div>
+          <div className={styles.summaryLabel}>已占用渠道码</div>
+          <div className={styles.summaryValue}>{formatNumber(occupiedCodeCount)}</div>
         </div>
       </section>
 
-      <section className={styles.section}>
-        <div className={styles.sectionHeader}>
-          <h2 className={styles.sectionTitle}>销售个人码</h2>
-        </div>
+      <div className={styles.tabs}>
+        {SALES_MANAGEMENT_TABS.map(tab => (
+          <button
+            key={tab.key}
+            type="button"
+            className={`${styles.tabButton} ${activeTab === tab.key ? styles.tabButtonActive : ""}`}
+            onClick={() => setActiveTab(tab.key)}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
 
-        {memberCodes.length ? (
-          <div className={styles.tableWrap}>
-            <table className={styles.table}>
-              <thead>
-                <tr>
-                  <th>销售成员</th>
-                  <th>销售个人码</th>
-                  <th>最终渠道码格式</th>
-                  <th>状态</th>
-                  <th>更新时间</th>
-                  <th>操作</th>
-                </tr>
-              </thead>
-              <tbody>
-                {memberCodes.map(code => (
-                  <tr key={code.id}>
-                    <td>{code.memberName}</td>
-                    <td className={styles.codeCell}>{code.memberCode}</td>
-                    <td className={styles.codeCell}>
-                      {code.tenantMainCode}-{code.memberCode}-动态随机码
-                    </td>
-                    <td
-                      className={
-                        code.status === "active" ? styles.statusActive : styles.statusMuted
-                      }
-                    >
-                      {code.status === "active" ? "启用" : "停用"}
-                    </td>
-                    <td>{code.updatedAt}</td>
-                    <td>
-                      <Button type="link" onClick={() => handleOpenEdit(code)}>
-                        编辑
-                      </Button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+      {activeTab === "memberCodes" ? (
+        <section className={styles.section}>
+          <div className={styles.sectionHeader}>
+            <h2 className={styles.sectionTitle}>销售个人码</h2>
+            <span className={styles.sectionMeta}>
+              渠道总码：{tenantMainCode?.code ?? "未配置"} · 启用中销售：{activeCodeCount}
+            </span>
           </div>
-        ) : (
-          <div className={styles.emptyPanel}>暂无销售个人码</div>
-        )}
-      </section>
+
+          {memberCodes.length ? (
+            <div className={styles.tableWrap}>
+              <table className={styles.table}>
+                <thead>
+                  <tr>
+                    <th>销售成员</th>
+                    <th>销售个人码</th>
+                    <th>最终渠道码格式</th>
+                    <th>状态</th>
+                    <th>更新时间</th>
+                    <th>操作</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {memberCodes.map(code => (
+                    <tr key={code.id}>
+                      <td>{code.memberName}</td>
+                      <td className={styles.codeCell}>{code.memberCode}</td>
+                      <td className={styles.codeCell}>
+                        {code.tenantMainCode}-{code.memberCode}-动态随机码
+                      </td>
+                      <td
+                        className={
+                          code.status === "active" ? styles.statusActive : styles.statusMuted
+                        }
+                      >
+                        {code.status === "active" ? "启用" : "停用"}
+                      </td>
+                      <td>{code.updatedAt}</td>
+                      <td>
+                        <Button type="link" onClick={() => handleOpenEdit(code)}>
+                          编辑
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className={styles.emptyPanel}>暂无销售个人码</div>
+          )}
+        </section>
+      ) : null}
+
+      {activeTab === "usageRecords" ? (
+        <section className={styles.section}>
+          <div className={styles.sectionHeader}>
+            <h2 className={styles.sectionTitle}>渠道码消耗记录</h2>
+          </div>
+
+          {salesLeadCodes.length ? (
+            <div className={styles.tableWrap}>
+              <table className={styles.table}>
+                <thead>
+                  <tr>
+                    <th>渠道码</th>
+                    <th>销售人员</th>
+                    <th>状态</th>
+                    <th>创建时间</th>
+                    <th>使用时间</th>
+                    <th>客户租户</th>
+                    <th>席位</th>
+                    <th>订单金额</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {salesLeadCodes.map(record => {
+                    const isUsed = record.status === "used";
+
+                    return (
+                      <tr key={record.id}>
+                        <td className={styles.codeCell}>{record.fullCode}</td>
+                        <td>{record.memberName}</td>
+                        <td
+                          className={
+                            record.status === "used"
+                              ? styles.statusActive
+                              : record.status === "invalid"
+                                ? styles.statusDanger
+                                : styles.statusWarning
+                          }
+                        >
+                          {getLeadCodeStatusLabel(record.status)}
+                        </td>
+                        <td>{record.createdAt}</td>
+                        <td>{isUsed ? (record.usedAt ?? "-") : "-"}</td>
+                        <td>{isUsed ? (record.customerTenantName ?? "-") : "-"}</td>
+                        <td>{isUsed && record.seatCount ? `${record.seatCount} 席` : "-"}</td>
+                        <td>{isUsed && record.amount ? formatAmount(record.amount) : "-"}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className={styles.emptyPanel}>暂无渠道码消耗记录</div>
+          )}
+        </section>
+      ) : null}
 
       <Modal
         destroyOnClose

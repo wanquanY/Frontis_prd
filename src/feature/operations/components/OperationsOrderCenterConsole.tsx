@@ -28,9 +28,11 @@ interface UnifiedOperationsOrder {
   benefitLabel: string;
   createdAt: string;
   id: string;
+  operatorName: string;
   orderNo: string;
   paidAt?: string;
   purchaserName: string;
+  sourceLabel: string;
   status: UnifiedOrderStatus;
   subjectLabel: string;
   tenantName: string;
@@ -52,51 +54,146 @@ const ORDER_STATUS_CLASS_NAMES: Record<UnifiedOrderStatus, string | undefined> =
   closed: undefined,
 };
 
+const EMPTY_CELL_LABEL = "-";
+const LEGACY_OPERATIONS_PURCHASER_LABEL = "运营后台";
+
 const buildStatusClassName = (status: UnifiedOrderStatus): string =>
   classNames(adminStyles.consoleStatusTag, ORDER_STATUS_CLASS_NAMES[status]);
 
 const getStatusLabel = (status: UnifiedOrderStatus): string => ORDER_STATUS_LABELS[status];
 
-const isOfflineOrderLabel = (value?: string): boolean => value === "线下订单";
+const isOperationsSourceLabel = (value?: string): boolean =>
+  Boolean(value && (value.includes("运营后台") || value.includes("线下")));
+
+const normalizeOrderSourceLabel = (params: {
+  isOperationsOrder: boolean;
+}): string => {
+  if (params.isOperationsOrder) {
+    return "运营后台开通";
+  }
+
+  return "用户自助购买";
+};
+
+const isOperationsGeneratedOrder = (params: {
+  orderSourceLabel?: string;
+  paymentChannelLabel?: string;
+  purchaserName?: string;
+}): boolean =>
+  isOperationsSourceLabel(params.orderSourceLabel) ||
+  params.paymentChannelLabel === "线下订单" ||
+  params.purchaserName === LEGACY_OPERATIONS_PURCHASER_LABEL;
+
+const normalizePurchaserName = (params: {
+  isOperationsOrder: boolean;
+  purchaserName?: string;
+}): string => {
+  const name = params.purchaserName?.trim();
+
+  if (!name || name === LEGACY_OPERATIONS_PURCHASER_LABEL) {
+    return EMPTY_CELL_LABEL;
+  }
+
+  return params.isOperationsOrder ? EMPTY_CELL_LABEL : name;
+};
+
+const normalizeOperatorName = (params: {
+  isOperationsOrder: boolean;
+  operatorName?: string;
+  purchaserName?: string;
+}): string => {
+  if (!params.isOperationsOrder) {
+    return EMPTY_CELL_LABEL;
+  }
+
+  const operatorName = params.operatorName?.trim();
+
+  if (operatorName) {
+    return operatorName;
+  }
+
+  const legacyPurchaserName = params.purchaserName?.trim();
+
+  if (legacyPurchaserName && legacyPurchaserName !== LEGACY_OPERATIONS_PURCHASER_LABEL) {
+    return legacyPurchaserName;
+  }
+
+  return "未记录";
+};
 
 const buildPointsOrder = (
   tenantName: string,
   order: MockTenantPointsOrderItem,
-): UnifiedOperationsOrder => ({
-  amount: order.amount,
-  benefitLabel: formatMockPointsOrderBenefit(order),
-  createdAt: order.createdAt,
-  id: `points-${order.id}`,
-  orderNo: order.orderNo,
-  paidAt: order.paidAt,
-  purchaserName: order.purchaserName,
-  status: order.status,
-  subjectLabel: order.packageTitle,
-  tenantName,
-  type: "points",
-  typeLabel: isOfflineOrderLabel(order.paymentChannelLabel) ? "线下订单" : "积分订单",
-});
+): UnifiedOperationsOrder => {
+  const isOperationsOrder = isOperationsGeneratedOrder({
+    orderSourceLabel: order.orderSourceLabel,
+    paymentChannelLabel: order.paymentChannelLabel,
+    purchaserName: order.purchaserName,
+  });
+
+  return {
+    amount: order.amount,
+    benefitLabel: formatMockPointsOrderBenefit(order),
+    createdAt: order.createdAt,
+    id: `points-${order.id}`,
+    operatorName: normalizeOperatorName({
+      isOperationsOrder,
+      operatorName: order.operatorName,
+      purchaserName: order.purchaserName,
+    }),
+    orderNo: order.orderNo,
+    paidAt: order.paidAt,
+    purchaserName: normalizePurchaserName({
+      isOperationsOrder,
+      purchaserName: order.purchaserName,
+    }),
+    sourceLabel: normalizeOrderSourceLabel({
+      isOperationsOrder,
+    }),
+    status: order.status,
+    subjectLabel: order.packageTitle,
+    tenantName,
+    type: "points",
+    typeLabel: "积分订单",
+  };
+};
 
 const buildSubscriptionOrder = (
   tenantName: string,
   order: MockTenantSubscriptionOrderItem,
-): UnifiedOperationsOrder => ({
-  amount: order.amount,
-  benefitLabel: formatMockSubscriptionOrderBenefit(order),
-  createdAt: order.createdAt,
-  id: `subscription-${order.id}`,
-  orderNo: order.orderNo,
-  paidAt: order.paidAt,
-  purchaserName: order.purchaserName,
-  status: order.status,
-  subjectLabel: order.planTitle,
-  tenantName,
-  type: "subscription",
-  typeLabel:
-    isOfflineOrderLabel(order.orderSourceLabel) || isOfflineOrderLabel(order.paymentChannelLabel)
-      ? "线下订单"
-      : "订阅订单",
-});
+): UnifiedOperationsOrder => {
+  const isOperationsOrder = isOperationsGeneratedOrder({
+    orderSourceLabel: order.orderSourceLabel,
+    paymentChannelLabel: order.paymentChannelLabel,
+    purchaserName: order.purchaserName,
+  });
+
+  return {
+    amount: order.amount,
+    benefitLabel: formatMockSubscriptionOrderBenefit(order),
+    createdAt: order.createdAt,
+    id: `subscription-${order.id}`,
+    operatorName: normalizeOperatorName({
+      isOperationsOrder,
+      operatorName: order.operatorName,
+      purchaserName: order.purchaserName,
+    }),
+    orderNo: order.orderNo,
+    paidAt: order.paidAt,
+    purchaserName: normalizePurchaserName({
+      isOperationsOrder,
+      purchaserName: order.purchaserName,
+    }),
+    sourceLabel: normalizeOrderSourceLabel({
+      isOperationsOrder,
+    }),
+    status: order.status,
+    subjectLabel: order.planTitle,
+    tenantName,
+    type: "subscription",
+    typeLabel: "订阅订单",
+  };
+};
 
 const sortOrders = (orders: UnifiedOperationsOrder[]): UnifiedOperationsOrder[] =>
   [...orders].sort((leftItem, rightItem) =>
@@ -152,6 +249,8 @@ export const OperationsOrderCenterConsole = ({
                   <th>权益明细</th>
                   <th>支付金额</th>
                   <th>购买人</th>
+                  <th>操作人</th>
+                  <th>来源</th>
                   <th>状态</th>
                   <th>下单时间</th>
                   <th>支付时间</th>
@@ -169,6 +268,8 @@ export const OperationsOrderCenterConsole = ({
                     <td>{order.benefitLabel}</td>
                     <td>{formatOperationsCurrency(order.amount)}</td>
                     <td>{order.purchaserName}</td>
+                    <td>{order.operatorName}</td>
+                    <td>{order.sourceLabel}</td>
                     <td>
                       <span className={buildStatusClassName(order.status)}>
                         {getStatusLabel(order.status)}
@@ -182,7 +283,7 @@ export const OperationsOrderCenterConsole = ({
             </table>
           </div>
         ) : (
-          <Empty description="暂无订单。" />
+          <Empty description="暂无订单记录" />
         )}
       </section>
     </div>

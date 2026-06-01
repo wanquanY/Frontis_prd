@@ -135,8 +135,12 @@ export interface MockTenantPointsOrderItem {
   discountFactor?: number;
   promotionEndsAt?: string;
   status: MockTenantPointsOrderStatus;
+  orderSourceLabel?: string;
   paymentChannelLabel: string;
   purchaserName: string;
+  operatorUserId?: string;
+  operatorName?: string;
+  operatorRoleLabel?: string;
   createdAt: string;
   paidAt?: string;
 }
@@ -156,6 +160,9 @@ export interface MockTenantSubscriptionOrderItem {
   orderSourceLabel: string;
   paymentChannelLabel: string;
   purchaserName: string;
+  operatorUserId?: string;
+  operatorName?: string;
+  operatorRoleLabel?: string;
   createdAt: string;
   paidAt?: string;
   billingCycle?: string;

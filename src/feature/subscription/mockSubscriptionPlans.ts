@@ -83,6 +83,20 @@ const PRESET_CONTRACT_CODES: MockSalesChannelContractCode[] = [
       {
         id: "XY0001-v1",
         operationLabel: "create",
+        codeQuota: 40,
+        unitPriceAmount: 299,
+        createdAt: "2026-05-20 09:00:00",
+      },
+      {
+        id: "XY0001-v2",
+        operationLabel: "appendQuota",
+        codeQuota: 80,
+        unitPriceAmount: 299,
+        createdAt: "2026-05-24 10:30:00",
+      },
+      {
+        id: "XY0001-v3",
+        operationLabel: "appendQuota",
         codeQuota: 120,
         unitPriceAmount: 299,
         createdAt: "2026-05-29 09:00:00",
@@ -108,6 +122,13 @@ const PRESET_CONTRACT_CODES: MockSalesChannelContractCode[] = [
       {
         id: "XS0001-v1",
         operationLabel: "create",
+        codeQuota: 30,
+        unitPriceAmount: 299,
+        createdAt: "2026-05-21 11:00:00",
+      },
+      {
+        id: "XS0001-v2",
+        operationLabel: "appendQuota",
         codeQuota: 80,
         unitPriceAmount: 299,
         createdAt: "2026-05-29 09:00:00",
@@ -133,6 +154,13 @@ const PRESET_CONTRACT_CODES: MockSalesChannelContractCode[] = [
       {
         id: "HD0001-v1",
         operationLabel: "create",
+        codeQuota: 20,
+        unitPriceAmount: 329,
+        createdAt: "2026-05-22 15:00:00",
+      },
+      {
+        id: "HD0001-v2",
+        operationLabel: "appendQuota",
         codeQuota: 60,
         unitPriceAmount: 329,
         createdAt: "2026-05-29 09:00:00",
@@ -1565,6 +1593,10 @@ export const applyMockSubscriptionPlanToTenant = (
     actorName?: string;
     orderSourceLabel?: string;
     paymentChannelLabel?: string;
+    purchaserName?: string;
+    operatorUserId?: string;
+    operatorName?: string;
+    operatorRoleLabel?: string;
   },
 ): MockTenantManagementSnapshot | null => {
   const matchedSnapshot = getMockTenantManagementSnapshot(tenantId);
@@ -1603,7 +1635,10 @@ export const applyMockSubscriptionPlanToTenant = (
     status: "paid" as const,
     orderSourceLabel: options?.orderSourceLabel ?? "运营后台开通",
     paymentChannelLabel: options?.paymentChannelLabel ?? "统一扫码支付",
-    purchaserName: options?.actorName ?? matchedSnapshot.adminUserId,
+    purchaserName: options?.purchaserName ?? options?.actorName ?? matchedSnapshot.adminUserId,
+    operatorUserId: options?.operatorUserId,
+    operatorName: options?.operatorName,
+    operatorRoleLabel: options?.operatorRoleLabel,
     createdAt: "刚刚",
     paidAt: "刚刚",
     billingCycle: purchaseOption.billingCycle,

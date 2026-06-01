@@ -125,6 +125,37 @@
   font-weight: 700;
 }
 
+.sectionMeta {
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.tabs {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.tabButton {
+  min-height: 34px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 20px;
+  cursor: pointer;
+}
+
+.tabButtonActive {
+  background: color-mix(in srgb, var(--brand) 10%, transparent);
+  color: var(--brand);
+  font-weight: 700;
+}
+
 .toolbar {
   display: flex;
   flex-wrap: wrap;
@@ -258,6 +289,18 @@
 
 .statusMuted {
   color: var(--text-tertiary);
+}
+
+.statusWarning {
+  color: #f5ae3c;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.statusDanger {
+  color: #ff6767;
+  font-weight: 700;
+  white-space: nowrap;
 }
 
 .formGrid {
