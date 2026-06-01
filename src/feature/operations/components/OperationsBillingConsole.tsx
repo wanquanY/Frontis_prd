@@ -177,7 +177,7 @@ export const OperationsBillingConsole = ({
                 <th>席位</th>
                 <th>付费周期</th>
                 <th>最近订单</th>
-                <th>签约码</th>
+                <th>渠道码</th>
                 <th>负责人</th>
                 <th>到期时间</th>
                 <th>状态</th>
@@ -313,7 +313,7 @@ export const OperationsBillingConsole = ({
             </div>
             {tenantPlanEditor.billingCycle === "yearly" ? (
               <div className={styles.modalField}>
-                <span>签约码</span>
+                <span>渠道码</span>
                 <Input
                   value={tenantPlanEditor.contractCode}
                   onChange={event =>

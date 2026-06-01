@@ -82,7 +82,7 @@ export const resolveSubscriptionPlanLabel = (
 };
 
 /**
- * 用户侧团队扩充弹窗，用于按席位购买 Pro，并通过年付签约码自动判定企业版。
+ * 用户侧团队扩充弹窗，用于按席位购买 Pro，并通过年付渠道码自动判定企业版。
  */
 export const SubscriptionPlanModal = ({
   currentPlanKey,
@@ -243,8 +243,8 @@ export const SubscriptionPlanModal = ({
               .filter(spec => spec.contractPriceEnabled)
               .map(spec => (
                 <div key={`${spec.key}-contract`}>
-                  <span>{spec.title}签约码优惠</span>
-                  <strong>按签约码单价计算</strong>
+                  <span>{spec.title}渠道码优惠</span>
+                  <strong>按渠道码单价计算</strong>
                 </div>
               ))}
           </div>
@@ -285,10 +285,10 @@ export const SubscriptionPlanModal = ({
             </div>
             {activeBillingSpec?.contractPriceEnabled ? (
               <div className={styles.formField}>
-                <span className={styles.fieldLabel}>签约码</span>
+                <span className={styles.fieldLabel}>渠道码</span>
                 <Input
                   value={contractCode}
-                  placeholder="填写有效签约码可自动判定企业版"
+                  placeholder="填写有效渠道码可自动判定企业版"
                   onChange={event => setContractCode(event.target.value)}
                 />
               </div>
@@ -329,7 +329,7 @@ export const SubscriptionPlanModal = ({
               </div>
               {purchasePreview.contractCodeStatusLabel ? (
                 <div className={styles.previewRow}>
-                  <span>签约码</span>
+                  <span>渠道码</span>
                   <strong>{purchasePreview.contractCodeStatusLabel}</strong>
                 </div>
               ) : null}

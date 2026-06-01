@@ -277,7 +277,7 @@ const buildDaguanSalesIdentity = (
     ),
     role: getWorkspaceRole(role),
     roleLabel: getRoleLabel(role),
-    description: `进入 ${tenant.name} 的${DAGUAN_SALES_LABEL}，生成签约码并查看销售记录。`,
+    description: `进入 ${tenant.name} 的${DAGUAN_SALES_LABEL}，生成和管理渠道码。`,
     entryPath: "/web/sales",
   });
 

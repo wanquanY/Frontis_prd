@@ -655,7 +655,7 @@ export const OperationsSeatPackagePanel = ({
                     {getSeatPackageSpecUnitLabel(card.validityUnit)}
                   </div>
                   {card.contractPriceEnabled ? (
-                    <div className={billingStyles.planAudience}>支持签约码渠道折扣</div>
+                    <div className={billingStyles.planAudience}>支持渠道码优惠</div>
                   ) : null}
                   <div className={billingStyles.subscriptionEffectList}>
                     <span>默认席位单位 {plan.seatCount}</span>

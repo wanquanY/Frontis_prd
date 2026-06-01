@@ -188,7 +188,7 @@ export const SubscriptionPlanPaymentModal = ({
                 ) : null}
                 {plan.contractCode ? (
                   <div className={styles.summaryRow}>
-                    <span>签约码</span>
+                    <span>渠道码</span>
                     <strong>{plan.contractCodeStatusLabel ?? plan.contractCode}</strong>
                   </div>
                 ) : null}

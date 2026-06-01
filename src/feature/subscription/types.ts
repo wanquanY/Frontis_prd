@@ -41,7 +41,7 @@ export type MockSubscriptionCustomerTier = "pro" | "enterprise";
 export type MockSubscriptionOrderStatus = MockTenantPointsOrderStatus;
 
 /**
- * 平台团队席位包售卖规格。席位包只配置是否启用签约码优惠，最终价格由签约码所属渠道单价计算。
+ * 平台团队席位包售卖规格。席位包只配置是否启用渠道码优惠，最终价格由渠道码所属渠道单价计算。
  */
 export interface MockSubscriptionPlanSpec {
   key: string;
@@ -113,12 +113,12 @@ export interface MockSalesChannelContractCodePriceVersion {
 }
 
 /**
- * 渠道码。渠道码是签约码三段格式中的第一段，负责承载渠道额度和单价规则。
+ * 渠道主码。渠道主码是渠道码三段格式中的第一段，负责承载渠道额度和单价规则。
  */
 export interface MockSalesChannelContractCode {
   code: string;
   channelName: string;
-  /** 历史原型字段，仅用于兼容旧本地数据；新签约码价格不再读取该系数。 */
+  /** 历史原型字段，仅用于兼容旧本地数据；新渠道码价格不再读取该系数。 */
   discountFactor: number;
   codeQuota: number;
   ownerName: string;
@@ -135,7 +135,7 @@ export interface MockSalesChannelContractCode {
 }
 
 /**
- * 运营后台维护签约码时提交的配置。
+ * 运营后台维护渠道码时提交的配置。
  */
 export type MockSalesChannelContractCodeInput = MockSalesChannelContractCode;
 

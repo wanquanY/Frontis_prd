@@ -164,7 +164,7 @@ const PRESET_CONTRACT_CODES: MockSalesChannelContractCode[] = [
       },
     ],
     status: "inactive",
-    serviceLabel: "已停用签约码",
+    serviceLabel: "已停用渠道码",
     unitPriceAmount: 399,
   },
 ];
@@ -254,7 +254,7 @@ export const buildMockSubscriptionPlanBenefitTexts = (
       ? [
           `${spec.title} ${formatSeatUnitPrice(spec.priceAmount, spec.validityUnit)}`,
           `${spec.title}赠送 ${spec.giftPoints.toLocaleString("zh-CN")} 积分`,
-          ...(spec.contractPriceEnabled ? [`${spec.title}支持签约码单价`] : []),
+          ...(spec.contractPriceEnabled ? [`${spec.title}支持渠道码单价`] : []),
         ]
       : [],
   ),
@@ -1117,28 +1117,28 @@ const getContractCodeStatusLabel = (
   }
 
   if (!matchedCode) {
-    return "签约码无效";
+    return "渠道码无效";
   }
 
   const leadCodeStatus = getSalesLeadCodeStatus(contractCode);
 
   if (leadCodeStatus === "used") {
-    return "签约码已使用";
+    return "渠道码已使用";
   }
 
   if (leadCodeStatus === "expired") {
-    return "签约码已失效";
+    return "渠道码已失效";
   }
 
   if (leadCodeStatus === "invalid") {
-    return "签约码无效";
+    return "渠道码无效";
   }
 
   if (matchedCode.status !== "active") {
-    return "签约码已停用";
+    return "渠道码已停用";
   }
 
-  return `已应用签约码单价（¥${matchedCode.unitPriceAmount.toLocaleString("zh-CN")} / 席）`;
+  return `已应用渠道码单价（¥${matchedCode.unitPriceAmount.toLocaleString("zh-CN")} / 席）`;
 };
 
 const resolveEnterpriseQualification = (
@@ -1179,7 +1179,7 @@ const resolveEnterpriseQualification = (
     return {
       customerTier: "pro",
       enterpriseQualified: false,
-      ruleMessage: "当前渠道签约码数量已用完",
+      ruleMessage: "当前渠道码数量已用完",
     };
   }
 
@@ -1187,7 +1187,7 @@ const resolveEnterpriseQualification = (
     return {
       customerTier: "pro",
       enterpriseQualified: false,
-      ruleMessage: `未达到签约码优惠起订席位`,
+      ruleMessage: `未达到渠道码优惠起订席位`,
     };
   }
 
@@ -1199,7 +1199,7 @@ const resolveEnterpriseQualification = (
 };
 
 /**
- * 读取当前签约码。
+ * 读取当前渠道码。
  */
 export const getMockSalesChannelContractCodes = (): MockSalesChannelContractCode[] => {
   const storedCodes = readStoredContractCodes();
@@ -1230,7 +1230,7 @@ export const getMockSalesChannelContractCodes = (): MockSalesChannelContractCode
 };
 
 /**
- * 新建签约码。
+ * 新建渠道码。
  */
 export const createMockSalesChannelContractCode = (
   payload: CreateMockSalesChannelContractCodePayload,
@@ -1248,7 +1248,7 @@ export const createMockSalesChannelContractCode = (
 };
 
 /**
- * 更新签约码。
+ * 更新渠道码。
  */
 export const updateMockSalesChannelContractCode = (
   code: string,
@@ -1553,7 +1553,7 @@ export const getMockSubscriptionPlanPurchaseOption = (
 };
 
 /**
- * 按订阅购买快照更新租户。席位统一写入同一到期日，企业版由年付签约码规则自动判定。
+ * 按订阅购买快照更新租户。席位统一写入同一到期日，企业版由年付渠道码规则自动判定。
  */
 export const applyMockSubscriptionPlanToTenant = (
   tenantId: string,

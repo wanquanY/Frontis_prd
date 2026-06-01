@@ -158,14 +158,7 @@ const App = (): JSX.Element => {
               </AuthRoute>
             }
           />
-          <Route
-            path="/web/sales/:tabPath"
-            element={
-              <AuthRoute allowedRole={["employee", "admin"]}>
-                <DaGuanSalesPage />
-              </AuthRoute>
-            }
-          />
+          <Route path="/web/sales/:tabPath" element={<Navigate replace to="/web/sales" />} />
           <Route path="*" element={<Navigate replace to="/login" />} />
         </Routes>
       </Suspense>

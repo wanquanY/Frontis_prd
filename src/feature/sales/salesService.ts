@@ -72,10 +72,10 @@ const normalizeSalesLeadCode = (code: SalesLeadCode): SalesLeadCode => {
   };
 };
 
-const getUsedSalesLeadCodeCount = (tenantMainCode: string): number =>
+const getOccupiedSalesLeadCodeCount = (tenantMainCode: string): number =>
   loadSalesLeadCodes()
     .map(normalizeSalesLeadCode)
-    .filter(item => item.tenantMainCode === tenantMainCode && item.status === "used").length;
+    .filter(item => item.tenantMainCode === tenantMainCode && item.status !== "invalid").length;
 
 const getExistingMemberCodes = (): Set<string> =>
   new Set(loadSalesMemberCodes().map(item => item.memberCode));
@@ -321,11 +321,13 @@ export const generateSalesLeadCode = (
     };
   }
 
-  if (getUsedSalesLeadCodeCount(memberCode.tenantMainCode) >= tenantMainContractCode.codeQuota) {
+  if (
+    getOccupiedSalesLeadCodeCount(memberCode.tenantMainCode) >= tenantMainContractCode.codeQuota
+  ) {
     return {
       createdCode: null,
       codes: getSalesLeadCodesForUser(memberCode.tenantId, memberCode.memberId),
-      message: "当前渠道可使用签约码数量已用完。",
+      message: "当前渠道可使用渠道码数量已用完。",
       success: false,
     };
   }

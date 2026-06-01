@@ -137,7 +137,7 @@ export const SalesManagementView = ({
           <p className={styles.eyebrow}>Sales management</p>
           <h1 className={styles.title}>销售管理</h1>
           <p className={styles.description}>
-            绑定租户内成员并生成员工销售码，员工可在大观销售中生成客户签约码。
+            绑定租户内成员并生成员工销售码，员工可在大观销售中生成客户渠道码。
           </p>
         </div>
         <Button type="primary" icon={<PlusOutlined />} onClick={handleOpenCreate}>
@@ -172,7 +172,7 @@ export const SalesManagementView = ({
                 <tr>
                   <th>销售成员</th>
                   <th>员工销售码</th>
-                  <th>最终签约码格式</th>
+                  <th>最终渠道码格式</th>
                   <th>状态</th>
                   <th>更新时间</th>
                   <th>操作</th>

@@ -1,19 +1,17 @@
 import { useCallback, useMemo, useState } from "react";
 
-import classNames from "classnames";
 import {
   AppstoreOutlined,
   CopyOutlined,
   LogoutOutlined,
   MenuOutlined,
   PlusOutlined,
-  ProfileOutlined,
   QrcodeOutlined,
 } from "@ant-design/icons";
 import { Avatar, Button, Drawer, Dropdown, message } from "antd";
 import type { MenuProps } from "antd";
 import { Select } from "antd";
-import { Navigate, useNavigate, useParams } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
 
 import { PRODUCT_LOGO_URL } from "@/constants/brand";
 import { useMockAuth } from "@/feature/auth/hooks/useMockAuth";
@@ -34,20 +32,7 @@ import { useOperationsAuth } from "@/feature/operations/hooks/useOperationsAuth"
 import salesStyles from "@/feature/sales/components/SalesViews.module.less";
 import styles from "./DaGuanSalesPage.module.less";
 
-type SalesAppTabKey = "generate" | "records";
 type SalesLeadCodeStatusFilter = SalesLeadCode["status"] | "all";
-
-const TAB_ITEMS: Array<{
-  icon: JSX.Element;
-  key: SalesAppTabKey;
-  label: string;
-}> = [
-  { key: "generate", label: "生成签约码", icon: <QrcodeOutlined /> },
-  { key: "records", label: "销售记录", icon: <ProfileOutlined /> },
-];
-
-const resolveTabKey = (tabPath?: string): SalesAppTabKey =>
-  tabPath === "records" ? "records" : "generate";
 
 const STATUS_FILTER_OPTIONS: Array<{
   label: string;
@@ -72,14 +57,12 @@ const getStatusLabel = (status: SalesLeadCode["status"]): string => {
 };
 
 /**
- * 大观销售应用，面向租户内销售成员生成客户签约码并查看本人销售记录。
+ * 大观销售应用，面向租户内销售成员生成客户渠道码并维护本人渠道码记录。
  */
 const DaGuanSalesPage = (): JSX.Element => {
   const navigate = useNavigate();
-  const params = useParams<{ tabPath?: string }>();
   const { activateIdentity, activeIdentity, logout, session } = useMockAuth();
   const { loginByAccountId: loginOperationsByAccountId } = useOperationsAuth();
-  const activeTabKey = resolveTabKey(params.tabPath);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const memberCode = useMemo(
     () => getSalesMemberCodeForUser(activeIdentity?.tenantId, activeIdentity?.subjectId),
@@ -92,10 +75,6 @@ const DaGuanSalesPage = (): JSX.Element => {
   const usedRecordCount = records.filter(item => item.status === "used").length;
   const unusedRecordCount = records.filter(item => item.status === "unused").length;
   const invalidRecordCount = records.filter(item => item.status === "invalid").length;
-  const totalEffectiveAmount = records.reduce(
-    (total, item) => total + (item.status === "used" ? (item.amount ?? 0) : 0),
-    0,
-  );
   const filteredRecords = useMemo(
     () => records.filter(item => statusFilter === "all" || item.status === statusFilter),
     [records, statusFilter],
@@ -163,7 +142,7 @@ const DaGuanSalesPage = (): JSX.Element => {
 
   const handleGenerateCode = (): void => {
     if (!memberCode || memberCode.status !== "active") {
-      message.warning("当前账号暂无可用签约码权限。");
+      message.warning("当前账号暂无可用渠道码权限。");
       return;
     }
 
@@ -172,21 +151,16 @@ const DaGuanSalesPage = (): JSX.Element => {
     setRecords(getSalesLeadCodesForUser(memberCode.tenantId, memberCode.memberId));
 
     if (!result.success) {
-      message.warning(result.message ?? "签约码生成失败。");
+      message.warning(result.message ?? "渠道码生成失败。");
       return;
     }
 
-    message.success("签约码已生成，10 分钟内有效。");
+    message.success("渠道码已生成，10 分钟内有效。");
   };
 
   const handleCopyCode = (code: string): void => {
     void navigator.clipboard?.writeText(code);
-    message.success("签约码已复制。");
-  };
-
-  const handleSelectTab = (tabKey: SalesAppTabKey): void => {
-    setDrawerOpen(false);
-    navigate(tabKey === "generate" ? "/web/sales" : "/web/sales/records");
+    message.success("渠道码已复制。");
   };
 
   if (!activeIdentity) {
@@ -204,19 +178,16 @@ const DaGuanSalesPage = (): JSX.Element => {
       </div>
 
       <nav className={styles.nav}>
-        {TAB_ITEMS.map(item => (
-          <button
-            key={item.key}
-            type="button"
-            className={classNames(styles.navButton, {
-              [styles.navButtonActive]: item.key === activeTabKey,
-            })}
-            onClick={() => handleSelectTab(item.key)}
-          >
-            <span className={styles.navIcon}>{item.icon}</span>
-            <span>{item.label}</span>
-          </button>
-        ))}
+        <button
+          type="button"
+          className={`${styles.navButton} ${styles.navButtonActive}`}
+          onClick={() => setDrawerOpen(false)}
+        >
+          <span className={styles.navIcon}>
+            <QrcodeOutlined />
+          </span>
+          <span>生成渠道码</span>
+        </button>
       </nav>
 
       <Dropdown
@@ -270,13 +241,12 @@ const DaGuanSalesPage = (): JSX.Element => {
         <div className={salesStyles.view}>
           <section className={salesStyles.generateBar}>
             <div className={salesStyles.generateInfo}>
-              <h1 className={salesStyles.title}>生成签约码</h1>
+              <h1 className={salesStyles.title}>生成渠道码</h1>
               <div className={salesStyles.compactStats}>
                 <span>累计 {records.length}</span>
                 <span>已使用 {usedRecordCount}</span>
                 <span>未使用 {unusedRecordCount}</span>
                 <span>已失效 {invalidRecordCount}</span>
-                <span>成交 ¥{totalEffectiveAmount}</span>
               </div>
             </div>
             <Button
@@ -285,13 +255,13 @@ const DaGuanSalesPage = (): JSX.Element => {
               type="primary"
               onClick={handleGenerateCode}
             >
-              生成签约码
+              生成渠道码
             </Button>
           </section>
 
           <section className={salesStyles.recordsPanel}>
             <div className={salesStyles.sectionHeader}>
-              <h2 className={salesStyles.sectionTitle}>签约码记录</h2>
+              <h2 className={salesStyles.sectionTitle}>渠道码记录</h2>
               <Select<SalesLeadCodeStatusFilter>
                 className={salesStyles.statusSelect}
                 value={statusFilter}
@@ -323,7 +293,7 @@ const DaGuanSalesPage = (): JSX.Element => {
               </div>
             ) : (
               <div className={salesStyles.emptyPanel}>
-                {memberCode ? "当前状态下暂无签约码" : "当前账号暂无可用签约码权限"}
+                {memberCode ? "当前状态下暂无渠道码" : "当前账号暂无可用渠道码权限"}
               </div>
             )}
           </section>

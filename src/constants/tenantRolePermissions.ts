@@ -86,7 +86,6 @@ export const MANAGEMENT_PERMISSION_IDS = {
 
 export const DAGUAN_SALES_PERMISSION_IDS = {
   generateContractCode: "sales.contractCode.generate",
-  recordViewOwn: "sales.record.viewOwn",
 } as const;
 
 export const TENANT_PERMISSION_IDS = {
@@ -244,10 +243,7 @@ const OPERATIONS_PERMISSION_MENUS: TenantRolePermissionMenu[] = [
 const DAGUAN_SALES_PERMISSION_MENUS: TenantRolePermissionMenu[] = [
   {
     title: "大观销售",
-    items: [
-      { id: DAGUAN_SALES_PERMISSION_IDS.generateContractCode, label: "生成签约码" },
-      { id: DAGUAN_SALES_PERMISSION_IDS.recordViewOwn, label: "查看本人销售记录" },
-    ],
+    items: [{ id: DAGUAN_SALES_PERMISSION_IDS.generateContractCode, label: "生成渠道码" }],
   },
 ];
 
@@ -352,7 +348,6 @@ export const TENANT_MEMBER_PERMISSION_IDS: string[] = [
   TENANT_PERMISSION_IDS.develop,
   TENANT_PERMISSION_IDS.agentPublishTenant,
   DAGUAN_SALES_PERMISSION_IDS.generateContractCode,
-  DAGUAN_SALES_PERMISSION_IDS.recordViewOwn,
 ];
 
 export const OPERATIONS_SUPER_ADMIN_PERMISSION_IDS: string[] = [
