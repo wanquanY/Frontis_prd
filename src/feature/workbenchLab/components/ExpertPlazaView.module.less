@@ -47,9 +47,9 @@
   display: flex;
   min-width: 0;
   flex: 1 1 auto;
-  align-items: center;
-  flex-direction: row;
-  gap: 8px;
+  align-items: stretch;
+  flex-direction: column;
+  gap: 10px;
   overflow-x: auto;
   padding-bottom: 2px;
 }
@@ -57,9 +57,11 @@
 .filterTabRow {
   display: flex;
   flex: 0 0 auto;
+  width: 100%;
   min-width: 0;
   flex-wrap: nowrap;
   gap: 8px;
+  overflow-x: auto;
 }
 
 .filterTabButton {
@@ -125,7 +127,6 @@
     border-color: #b8c7d9;
     box-shadow: 0 14px 30px rgba(15, 23, 42, 0.075);
   }
-
 }
 
 .cardHeader {
@@ -980,9 +981,11 @@
   border-radius: 12px;
   background:
     linear-gradient(#f2f4f7 1px, transparent 1px),
-    linear-gradient(90deg, #f2f4f7 1px, transparent 1px),
-    #fcfcfd;
-  background-size: 100% 35px, 60px 100%, auto;
+    linear-gradient(90deg, #f2f4f7 1px, transparent 1px), #fcfcfd;
+  background-size:
+    100% 35px,
+    60px 100%,
+    auto;
 
   svg {
     display: block;

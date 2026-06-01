@@ -123,6 +123,27 @@ export interface OperationsSkillCenterCategoryOption {
 }
 
 /**
+ * 我的专区分类名称，由运营后台单独维护。
+ */
+export type OperationsMyZoneCategory = string;
+
+/**
+ * 我的专区分类状态。
+ */
+export type OperationsMyZoneCategoryStatus = "active" | "inactive";
+
+/**
+ * 我的专区分类配置项。
+ */
+export interface OperationsMyZoneCategoryOption {
+  id: string;
+  name: OperationsMyZoneCategory;
+  sortOrder: number;
+  status: OperationsMyZoneCategoryStatus;
+  updatedAt: string;
+}
+
+/**
  * 商品售卖类型。
  */
 export type OperationsProductSaleType = "free" | "paid";

@@ -720,6 +720,7 @@ export const OperationsPlatformView = (): JSX.Element => {
     createAgentStoreZone,
     createMeteringProvider,
     createModelService,
+    createMyZoneCategory,
     createPointsPackage,
     createProduct,
     createSalesChannelContractCode,
@@ -730,6 +731,7 @@ export const OperationsPlatformView = (): JSX.Element => {
     emptyProductForm,
     meteringProviders,
     modelServices,
+    myZoneCategories,
     productStatusLabels,
     productTrialUnitLabels,
     productTrialUnitOptions,
@@ -749,6 +751,7 @@ export const OperationsPlatformView = (): JSX.Element => {
     updateAgentStoreZone,
     updateMeteringProvider,
     updateModelService,
+    updateMyZoneCategory,
     updateProduct,
     updateProductStatus,
     updateSalesChannelContractCode,
@@ -1156,6 +1159,7 @@ export const OperationsPlatformView = (): JSX.Element => {
           products={products}
           serviceContactConfig={serviceContactConfig}
           skillCategories={skillCenterCategories}
+          myZoneCategories={myZoneCategories}
           subscriptionPlans={subscriptionPlans}
           tenants={tenants}
           onBackToProductList={handleBackToProductList}
@@ -1165,12 +1169,14 @@ export const OperationsPlatformView = (): JSX.Element => {
           onCreateSubscriptionPlan={createSubscriptionPlan}
           onCreateProduct={createProduct}
           onCreateSkillCategory={createSkillCenterCategory}
+          onCreateMyZoneCategory={createMyZoneCategory}
           onNavigateToProduct={handleOpenProductDetail}
           onToggleProductStatus={updateProductStatus}
           onUpdateServiceContactConfig={updateServiceContactConfig}
           onUpdateCategory={updateAgentPlazaCategory}
           onUpdateStoreZone={updateAgentStoreZone}
           onUpdateSkillCategory={updateSkillCenterCategory}
+          onUpdateMyZoneCategory={updateMyZoneCategory}
           onUpdatePointsPackage={updatePointsPackage}
           onUpdateProduct={updateProduct}
           onUpdateSubscriptionPlan={updateSubscriptionPlan}
@@ -1287,6 +1293,7 @@ export const OperationsPlatformView = (): JSX.Element => {
     createAgentPlazaCategory,
     createMeteringProvider,
     createModelService,
+    createMyZoneCategory,
     createPointsPackage,
     createProduct,
     createSalesChannelContractCode,
@@ -1304,6 +1311,7 @@ export const OperationsPlatformView = (): JSX.Element => {
     handleToggleTenantStatus,
     meteringProviders,
     modelServices,
+    myZoneCategories,
     productId,
     productStatusLabels,
     productTrialUnitLabels,
@@ -1323,6 +1331,7 @@ export const OperationsPlatformView = (): JSX.Element => {
     updateCommunityGroupConfig,
     updateMeteringProvider,
     updateModelService,
+    updateMyZoneCategory,
     updatePointsPackage,
     updateProduct,
     updateProductStatus,

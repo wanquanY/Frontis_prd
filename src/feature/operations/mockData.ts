@@ -13,6 +13,8 @@ import type {
   OperationsAgentPlazaCategory,
   OperationsAgentPlazaCategoryOption,
   OperationsAgentStoreZoneOption,
+  OperationsMyZoneCategory,
+  OperationsMyZoneCategoryOption,
   OperationsSkillCenterCategory,
   OperationsSkillCenterCategoryOption,
   OperationsProduct,
@@ -1310,6 +1312,32 @@ export const OPERATIONS_INITIAL_SKILL_CENTER_CATEGORIES: OperationsSkillCenterCa
     id: "ops-skill-center-category-data",
     name: "数据分析",
     sortOrder: 50,
+    status: "active",
+    updatedAt: "2026-04-16 10:42",
+  },
+];
+
+export const OPERATIONS_MY_ZONE_DEFAULT_CATEGORY: OperationsMyZoneCategory = "通用";
+
+export const OPERATIONS_INITIAL_MY_ZONE_CATEGORIES: OperationsMyZoneCategoryOption[] = [
+  {
+    id: "ops-my-zone-category-general",
+    name: "通用",
+    sortOrder: 10,
+    status: "active",
+    updatedAt: "2026-04-16 10:42",
+  },
+  {
+    id: "ops-my-zone-category-efficiency",
+    name: "效率工具",
+    sortOrder: 20,
+    status: "active",
+    updatedAt: "2026-04-16 10:42",
+  },
+  {
+    id: "ops-my-zone-category-team",
+    name: "团队共享",
+    sortOrder: 30,
     status: "active",
     updatedAt: "2026-04-16 10:42",
   },

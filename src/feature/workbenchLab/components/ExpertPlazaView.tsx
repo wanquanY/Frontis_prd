@@ -29,7 +29,11 @@ import {
   loadStoredAgentPlazaCategories,
   loadStoredAgentStoreZones,
 } from "@/feature/operations/agentPlazaCategoryStorage";
-import { OPERATIONS_AGENT_PLAZA_DEFAULT_CATEGORY } from "@/feature/operations/mockData";
+import {
+  OPERATIONS_AGENT_PLAZA_DEFAULT_CATEGORY,
+  OPERATIONS_MY_ZONE_DEFAULT_CATEGORY,
+} from "@/feature/operations/mockData";
+import { loadStoredMyZoneCategories } from "@/feature/operations/myZoneCategoryStorage";
 import {
   TENANT_PERMISSION_IDS,
   normalizeTenantRolePermissionIds,
@@ -44,6 +48,8 @@ import type {
   OperationsAgentStoreZoneOption,
   OperationsAgentSubmission,
   OperationsFulfillment,
+  OperationsMyZoneCategory,
+  OperationsMyZoneCategoryOption,
   OperationsProduct,
   OperationsProductDeliveryKind,
   OperationsServiceContactConfig,
@@ -57,6 +63,7 @@ import styles from "./ExpertPlazaView.module.less";
 type TeamExpertFilter = "all" | "mine" | "teamShare";
 type StoreSystemCategoryKey = string;
 type SceneCategoryFilter = "all" | BusinessLineKey;
+type MyZoneCategoryFilter = OperationsMyZoneCategory;
 export type BusinessLineKey = OperationsAgentPlazaCategoryOption["name"];
 type AgentSourceType = "mine" | "teamShare" | "frontis";
 type ExpertPlazaMode = "store" | "team";
@@ -156,6 +163,7 @@ export interface StoreAgentItem {
   versionLabel: string;
   businessLine: BusinessLineKey;
   businessLineLabel: string;
+  myZoneCategory?: OperationsMyZoneCategory;
   storeCategory?: StoreSystemCategoryKey;
   storeCategories?: StoreSystemCategoryKey[];
   sceneCategoriesByZone?: Record<StoreSystemCategoryKey, BusinessLineKey>;
@@ -202,6 +210,8 @@ const TEAM_EXPERT_FILTER_OPTIONS: Array<{ label: string; value: TeamExpertFilter
 ];
 
 const DEFAULT_DOMAIN_TONE = "linear-gradient(180deg, #dff4ff 0%, #eef8ff 100%)";
+const DEFAULT_PERSONAL_MY_ZONE_CATEGORY: OperationsMyZoneCategory = "效率工具";
+const TEAM_SHARED_MY_ZONE_CATEGORY: OperationsMyZoneCategory = "团队共享";
 
 const DOMAIN_TONE_MAP: Record<string, string> = {
   通用: DEFAULT_DOMAIN_TONE,
@@ -964,6 +974,7 @@ const buildTeamSharedAgents = (
     versionLabel: item.versionLabel,
     businessLine: item.businessLine,
     businessLineLabel: item.businessLineLabel,
+    myZoneCategory: TEAM_SHARED_MY_ZONE_CATEGORY,
     summary: item.summary,
     scene: item.scene,
     techShape: item.techShape,
@@ -1014,6 +1025,7 @@ const buildMyAgents = (
       versionLabel: item.version,
       businessLine,
       businessLineLabel: getBusinessLineLabel(businessLine),
+      myZoneCategory: DEFAULT_PERSONAL_MY_ZONE_CATEGORY,
       summary: item.description,
       scene: item.tags[0] ?? "通用场景",
       techShape:
@@ -1128,6 +1140,7 @@ export const buildFrontisAgents = (
         versionLabel: updatedAt,
         businessLine,
         businessLineLabel,
+        myZoneCategory: OPERATIONS_MY_ZONE_DEFAULT_CATEGORY,
         storeCategory: productStoreZones[0],
         storeCategories: productStoreZones,
         sceneCategoriesByZone,
@@ -1179,10 +1192,12 @@ export const resolveLatestFulfillmentsByProductId = (
 export const ExpertPlazaView = ({ mode = "store" }: ExpertPlazaViewProps): JSX.Element => {
   const { activeIdentity, session } = useMockAuth();
   const [teamExpertFilter, setTeamExpertFilter] = useState<TeamExpertFilter>("all");
+  const [myZoneCategoryFilter, setMyZoneCategoryFilter] = useState<MyZoneCategoryFilter>(
+    OPERATIONS_MY_ZONE_DEFAULT_CATEGORY,
+  );
   const [storeSystemCategory, setStoreSystemCategory] =
     useState<StoreSystemCategoryKey>("roleZone");
   const [storeSceneFilter, setStoreSceneFilter] = useState<SceneCategoryFilter>("all");
-  const [teamSceneFilter, setTeamSceneFilter] = useState<SceneCategoryFilter>("all");
   const [products, setProducts] = useState<OperationsProduct[]>(() =>
     loadStoredOperationsProducts(),
   );
@@ -1210,6 +1225,9 @@ export const ExpertPlazaView = ({ mode = "store" }: ExpertPlazaViewProps): JSX.E
   const [agentPlazaCategories, setAgentPlazaCategories] = useState<
     OperationsAgentPlazaCategoryOption[]
   >(() => loadStoredAgentPlazaCategories());
+  const [myZoneCategories, setMyZoneCategories] = useState<OperationsMyZoneCategoryOption[]>(() =>
+    loadStoredMyZoneCategories(),
+  );
 
   const currentTenantId = activeIdentity?.tenantId ?? DEFAULT_TENANT_ID;
   const currentUserName = activeIdentity?.subjectName ?? session?.name ?? "当前用户";
@@ -1252,14 +1270,12 @@ export const ExpertPlazaView = ({ mode = "store" }: ExpertPlazaViewProps): JSX.E
     [canManageOwnPublishedAgents, isTeamEdition],
   );
 
-  const sceneCategoryOptions = useMemo(
+  const storeSceneCategoryOptions = useMemo(
     () =>
       getSceneCategoryOptions(
-        mode === "store"
-          ? agentPlazaCategories.filter(category => category.zoneId === storeSystemCategory)
-          : agentPlazaCategories,
+        agentPlazaCategories.filter(category => category.zoneId === storeSystemCategory),
       ),
-    [agentPlazaCategories, mode, storeSystemCategory],
+    [agentPlazaCategories, storeSystemCategory],
   );
   const storeSystemCategoryOptions = useMemo(
     () =>
@@ -1278,7 +1294,23 @@ export const ExpertPlazaView = ({ mode = "store" }: ExpertPlazaViewProps): JSX.E
         })),
     [agentStoreZones],
   );
+  const myZoneCategoryOptions = useMemo(
+    () =>
+      [...myZoneCategories]
+        .filter(category => category.status === "active")
+        .sort((leftItem, rightItem) => {
+          if (leftItem.sortOrder !== rightItem.sortOrder) {
+            return leftItem.sortOrder - rightItem.sortOrder;
+          }
 
+          return leftItem.updatedAt.localeCompare(rightItem.updatedAt);
+        })
+        .map(category => ({
+          label: category.name,
+          value: category.name,
+        })),
+    [myZoneCategories],
+  );
   const refreshStorefrontState = useCallback((): void => {
     setProducts(loadStoredOperationsProducts());
     setFulfillments(loadStoredOperationsFulfillments());
@@ -1286,6 +1318,7 @@ export const ExpertPlazaView = ({ mode = "store" }: ExpertPlazaViewProps): JSX.E
     setServiceContactConfig(loadOperationsServiceContactConfig());
     setAgentStoreZones(loadStoredAgentStoreZones());
     setAgentPlazaCategories(loadStoredAgentPlazaCategories());
+    setMyZoneCategories(loadStoredMyZoneCategories());
   }, []);
 
   useEffect(() => {
@@ -1318,6 +1351,22 @@ export const ExpertPlazaView = ({ mode = "store" }: ExpertPlazaViewProps): JSX.E
   }, [teamExpertFilter, teamExpertFilterOptions]);
 
   useEffect(() => {
+    if (!storeSceneCategoryOptions.some(item => item.value === storeSceneFilter)) {
+      setStoreSceneFilter("all");
+    }
+  }, [storeSceneCategoryOptions, storeSceneFilter]);
+
+  useEffect(() => {
+    if (!myZoneCategoryOptions.length) {
+      return;
+    }
+
+    if (!myZoneCategoryOptions.some(item => item.value === myZoneCategoryFilter)) {
+      setMyZoneCategoryFilter(myZoneCategoryOptions[0].value);
+    }
+  }, [myZoneCategoryFilter, myZoneCategoryOptions]);
+
+  useEffect(() => {
     if (!storeSystemCategoryOptions.length) {
       return;
     }
@@ -1326,30 +1375,6 @@ export const ExpertPlazaView = ({ mode = "store" }: ExpertPlazaViewProps): JSX.E
       setStoreSystemCategory(storeSystemCategoryOptions[0].value);
     }
   }, [storeSystemCategory, storeSystemCategoryOptions]);
-
-  useEffect(() => {
-    if (storeSceneFilter === "all") {
-      return;
-    }
-
-    const hasCurrentFilter = sceneCategoryOptions.some(item => item.value === storeSceneFilter);
-
-    if (!hasCurrentFilter) {
-      setStoreSceneFilter("all");
-    }
-  }, [sceneCategoryOptions, storeSceneFilter]);
-
-  useEffect(() => {
-    if (teamSceneFilter === "all") {
-      return;
-    }
-
-    const hasCurrentFilter = sceneCategoryOptions.some(item => item.value === teamSceneFilter);
-
-    if (!hasCurrentFilter) {
-      setTeamSceneFilter("all");
-    }
-  }, [sceneCategoryOptions, teamSceneFilter]);
 
   const commodityApplicationsByAgentId = useMemo(
     () =>
@@ -1412,15 +1437,10 @@ export const ExpertPlazaView = ({ mode = "store" }: ExpertPlazaViewProps): JSX.E
       }
 
       if (mode === "team") {
-        if (teamExpertFilter === "all") {
-          return teamSceneFilter === "all" || agent.businessLine === teamSceneFilter;
-        }
+        const matchesSource = teamExpertFilter === "all" || agent.sourceType === teamExpertFilter;
+        const matchesCategory = agent.myZoneCategory === myZoneCategoryFilter;
 
-        if (agent.sourceType !== teamExpertFilter) {
-          return false;
-        }
-
-        return teamSceneFilter === "all" || agent.businessLine === teamSceneFilter;
+        return matchesSource && matchesCategory;
       }
 
       if (!(agent.storeCategories ?? [agent.storeCategory]).includes(storeSystemCategory)) {
@@ -1443,7 +1463,7 @@ export const ExpertPlazaView = ({ mode = "store" }: ExpertPlazaViewProps): JSX.E
     storeSceneFilter,
     storeSystemCategory,
     teamExpertFilter,
-    teamSceneFilter,
+    myZoneCategoryFilter,
     teamSharedAgents,
   ]);
 
@@ -1583,50 +1603,44 @@ export const ExpertPlazaView = ({ mode = "store" }: ExpertPlazaViewProps): JSX.E
       <div className={styles.toolbarCard}>
         <div className={styles.filterGroup}>
           {mode === "team" ? (
-            <div className={styles.filterTabRow} role="tablist" aria-label="我的专区专家分类">
-              {teamExpertFilterOptions.map(option => (
-                <button
-                  key={option.value}
-                  type="button"
-                  role="tab"
-                  aria-selected={teamExpertFilter === option.value && teamSceneFilter === "all"}
-                  className={classNames(
-                    styles.filterTabButton,
-                    teamExpertFilter === option.value &&
-                      teamSceneFilter === "all" &&
-                      styles.filterTabButtonActive,
-                  )}
-                  onClick={() => {
-                    setTeamExpertFilter(option.value);
-                    setTeamSceneFilter("all");
-                  }}
-                >
-                  {option.label}
-                </button>
-              ))}
-              {sceneCategoryOptions
-                .filter(option => option.value !== "all")
-                .map(option => (
+            <>
+              <div className={styles.filterTabRow} role="tablist" aria-label="我的专区来源分类">
+                {teamExpertFilterOptions.map(option => (
                   <button
                     key={option.value}
                     type="button"
                     role="tab"
-                    aria-selected={teamExpertFilter === "all" && teamSceneFilter === option.value}
+                    aria-selected={teamExpertFilter === option.value}
                     className={classNames(
                       styles.filterTabButton,
-                      teamExpertFilter === "all" &&
-                        teamSceneFilter === option.value &&
-                        styles.filterTabButtonActive,
+                      teamExpertFilter === option.value && styles.filterTabButtonActive,
                     )}
-                    onClick={() => {
-                      setTeamExpertFilter("all");
-                      setTeamSceneFilter(option.value);
-                    }}
+                    onClick={() => setTeamExpertFilter(option.value)}
                   >
                     {option.label}
                   </button>
                 ))}
-            </div>
+              </div>
+              {myZoneCategoryOptions.length ? (
+                <div className={styles.filterTabRow} role="tablist" aria-label="我的专区分类">
+                  {myZoneCategoryOptions.map(option => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      role="tab"
+                      aria-selected={myZoneCategoryFilter === option.value}
+                      className={classNames(
+                        styles.filterTabButton,
+                        myZoneCategoryFilter === option.value && styles.filterTabButtonActive,
+                      )}
+                      onClick={() => setMyZoneCategoryFilter(option.value)}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+            </>
           ) : (
             <>
               <div className={styles.filterTabRow} role="tablist" aria-label="商店系统分类">
@@ -1647,7 +1661,7 @@ export const ExpertPlazaView = ({ mode = "store" }: ExpertPlazaViewProps): JSX.E
                 ))}
               </div>
               <div className={styles.filterTabRow} role="tablist" aria-label="商店场景分类">
-                {sceneCategoryOptions.map(option => (
+                {storeSceneCategoryOptions.map(option => (
                   <button
                     key={option.value}
                     type="button"
