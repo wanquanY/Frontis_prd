@@ -9,6 +9,7 @@ import {
   resolveMainCodeFromContractInput,
 } from "@/feature/sales/salesCodeFormat";
 import { activateSalesLeadCode, loadSalesLeadCodes } from "@/feature/sales/salesStorage";
+import type { SalesLeadCode } from "@/feature/sales/types";
 
 import type {
   MockSalesChannelContractCode,
@@ -985,22 +986,42 @@ const parseMockSalesDateTime = (value: string | undefined): Date | null => {
   return Number.isNaN(parsedDate.getTime()) ? null : parsedDate;
 };
 
+const findSalesLeadCode = (contractCode: string | undefined): SalesLeadCode | null => {
+  const normalizedCode = contractCode?.trim().toUpperCase();
+
+  if (!normalizedCode) {
+    return null;
+  }
+
+  const exactMatchedCode =
+    loadSalesLeadCodes().find(item => item.fullCode.trim().toUpperCase() === normalizedCode) ??
+    null;
+
+  if (exactMatchedCode) {
+    return exactMatchedCode;
+  }
+
+  const parsedCode = parseSalesLeadCode(contractCode);
+
+  if (!parsedCode) {
+    return null;
+  }
+
+  return (
+    loadSalesLeadCodes().find(
+      item => item.fullCode.trim().toUpperCase() === parsedCode.fullCode,
+    ) ?? null
+  );
+};
+
 const getSalesLeadCodeStatus = (
   contractCode: string | undefined,
 ): "empty" | "invalid" | "used" | "expired" | "usable" => {
-  const parsedCode = parseSalesLeadCode(contractCode);
-
   if (!contractCode?.trim()) {
     return "empty";
   }
 
-  if (!parsedCode) {
-    return "invalid";
-  }
-
-  const matchedLeadCode = loadSalesLeadCodes().find(
-    item => item.fullCode.trim().toUpperCase() === parsedCode.fullCode,
-  );
+  const matchedLeadCode = findSalesLeadCode(contractCode);
 
   if (!matchedLeadCode) {
     return "invalid";
@@ -1520,10 +1541,18 @@ export const getMockSubscriptionPlanPurchaseOption = (
       ? getMockTenantActiveSubscriptionContractCode(tenantSnapshot)
       : "";
   const effectiveContractCode = input.contractCode?.trim().toUpperCase() || activeContractCode;
+  const matchedLeadCode = findSalesLeadCode(effectiveContractCode);
+  const leadCodeStatus = getSalesLeadCodeStatus(effectiveContractCode);
+  const fixedContractSeatCount =
+    leadCodeStatus === "usable" && matchedLeadCode
+      ? Math.max(Math.floor(matchedLeadCode.seatCount ?? 1), 1)
+      : null;
+  const hasContractCodeInput = Boolean(selectedSpec.contractPriceEnabled && effectiveContractCode);
   const seatCount =
     purchaseMode === "renew"
       ? Math.max(Math.floor(tenantSnapshot?.totalSeats ?? input.seatCount), 1)
-      : Math.max(Math.floor(input.seatCount), 1);
+      : (fixedContractSeatCount ??
+        (hasContractCodeInput ? 1 : Math.max(Math.floor(input.seatCount), 1)));
   const normalizedInput: MockSubscriptionPlanPurchaseInput = {
     billingCycle: effectiveBillingCycle,
     contractCode: selectedSpec.contractPriceEnabled ? effectiveContractCode : "",

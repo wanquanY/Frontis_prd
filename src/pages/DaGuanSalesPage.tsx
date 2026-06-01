@@ -8,7 +8,7 @@ import {
   PlusOutlined,
   QrcodeOutlined,
 } from "@ant-design/icons";
-import { Avatar, Button, Drawer, Dropdown, InputNumber, message } from "antd";
+import { Avatar, Button, Drawer, Dropdown, InputNumber, Modal, message } from "antd";
 import type { MenuProps } from "antd";
 import { Select } from "antd";
 import { Navigate, useNavigate } from "react-router-dom";
@@ -73,6 +73,7 @@ const DaGuanSalesPage = (): JSX.Element => {
   );
   const [statusFilter, setStatusFilter] = useState<SalesLeadCodeStatusFilter>("all");
   const [seatCount, setSeatCount] = useState(1);
+  const [generateModalOpen, setGenerateModalOpen] = useState(false);
   const usedRecordCount = records.filter(item => item.status === "used").length;
   const unusedRecordCount = records.filter(item => item.status === "unused").length;
   const invalidRecordCount = records.filter(item => item.status === "invalid").length;
@@ -141,6 +142,16 @@ const DaGuanSalesPage = (): JSX.Element => {
     },
   ];
 
+  const handleOpenGenerateModal = (): void => {
+    if (!memberCode || memberCode.status !== "active") {
+      message.warning("当前账号暂无可用渠道码权限。");
+      return;
+    }
+
+    setSeatCount(1);
+    setGenerateModalOpen(true);
+  };
+
   const handleGenerateCode = (): void => {
     if (!memberCode || memberCode.status !== "active") {
       message.warning("当前账号暂无可用渠道码权限。");
@@ -156,6 +167,7 @@ const DaGuanSalesPage = (): JSX.Element => {
       return;
     }
 
+    setGenerateModalOpen(false);
     message.success("渠道码已生成，10 分钟内有效。");
   };
 
@@ -251,19 +263,11 @@ const DaGuanSalesPage = (): JSX.Element => {
               </div>
             </div>
             <div className={salesStyles.generateControls}>
-              <InputNumber
-                className={salesStyles.seatInput}
-                min={1}
-                precision={0}
-                addonBefore="席位"
-                value={seatCount}
-                onChange={value => setSeatCount(value ?? 1)}
-              />
               <Button
                 disabled={!memberCode || memberCode.status !== "active"}
                 icon={<PlusOutlined />}
                 type="primary"
-                onClick={handleGenerateCode}
+                onClick={handleOpenGenerateModal}
               >
                 生成渠道码
               </Button>
@@ -311,6 +315,26 @@ const DaGuanSalesPage = (): JSX.Element => {
           </section>
         </div>
       </main>
+
+      <Modal
+        centered
+        destroyOnClose
+        open={generateModalOpen}
+        title="生成渠道码"
+        onCancel={() => setGenerateModalOpen(false)}
+        onOk={handleGenerateCode}
+      >
+        <div className={salesStyles.generateModalField}>
+          <span>席位数量</span>
+          <InputNumber
+            className={salesStyles.fullWidthControl}
+            min={1}
+            precision={0}
+            value={seatCount}
+            onChange={value => setSeatCount(value ?? 1)}
+          />
+        </div>
+      </Modal>
     </div>
   );
 };

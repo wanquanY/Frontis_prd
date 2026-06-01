@@ -130,6 +130,9 @@ export const SubscriptionPlanModal = ({
     enabledSpecs.find(item => item.billingCycle === billingCycle) ?? enabledSpecs[0] ?? null;
   const currentSeatCount = tenantSnapshot?.totalSeats ?? 1;
   const usedSeatCount = tenantSnapshot?.usedSeats ?? 1;
+  const isSeatCountLockedByContractCode = Boolean(
+    !isRenewMode && activeBillingSpec?.contractPriceEnabled && contractCode.trim(),
+  );
 
   useEffect(() => {
     if (!open) {
@@ -179,7 +182,7 @@ export const SubscriptionPlanModal = ({
       billingCycle,
       contractCode: activeBillingSpec?.contractPriceEnabled ? contractCode : "",
       purchaseMode,
-      seatCount,
+      seatCount: purchasePreview.seatCount,
     });
   };
 
@@ -257,10 +260,12 @@ export const SubscriptionPlanModal = ({
               <span className={styles.fieldLabel}>{seatFieldLabel}</span>
               <InputNumber
                 className={styles.fullWidthInput}
-                disabled={isRenewMode}
+                disabled={isRenewMode || isSeatCountLockedByContractCode}
                 min={1}
                 precision={0}
-                value={seatCount}
+                value={
+                  isSeatCountLockedByContractCode ? (purchasePreview?.seatCount ?? 1) : seatCount
+                }
                 onChange={value => setSeatCount(value ?? 1)}
               />
             </div>
