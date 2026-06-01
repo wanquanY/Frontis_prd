@@ -1,24 +1,21 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 
-import { Button, Input, InputNumber, Modal, Select, TreeSelect, message } from "antd";
+import { Button, Input, InputNumber, Modal, Select, message } from "antd";
 import classNames from "classnames";
 
-import { useMockAuth } from "@/feature/auth/hooks/useMockAuth";
-import { getMockTenantManagementSnapshot } from "@/feature/auth/mockTenantRegistry";
 import type { OperationsTenant } from "@/feature/operations/types";
 import {
   getOccupiedSalesLeadCodeCount,
+  getRedeemedSalesLeadCodeCount,
+  getSalesChannelRechargeRecords,
   getSalesLeadCodesByChannel,
 } from "@/feature/sales/salesService";
 import type { SalesLeadCode } from "@/feature/sales/types";
 import type {
   MockSalesChannelContractCode,
   MockSalesChannelContractCodeInput,
-  MockSalesChannelContractCodePriceVersion,
 } from "@/feature/subscription/types";
-import { INITIAL_ORGANIZATION_DEPARTMENTS } from "@/mocks/mockData";
 import adminStyles from "@/pages/components/FrontisAdminViews.module.less";
-import type { FrontisWebUserItem, OrganizationDepartmentItem } from "@/pages/types";
 
 import styles from "./OperationsBillingConsole.module.less";
 
@@ -26,7 +23,6 @@ interface ChannelFormState {
   channelName: string;
   ownerName: string;
   ownerPhone: string;
-  salesMemberId: string;
   status: MockSalesChannelContractCode["status"];
   tenantId: string;
 }
@@ -51,26 +47,6 @@ interface AppendCodeEditorState {
 
 type ChannelDetailTabKey = "info" | "recharge" | "usage";
 
-interface ChannelRechargeRecord {
-  codeQuota: number;
-  createdAt: string;
-  id: string;
-  quantity: number;
-  title: string;
-  unitPriceAmount: number;
-}
-
-interface SalesMemberOption {
-  user: FrontisWebUserItem;
-}
-
-interface SalesMemberTreeNode {
-  children?: SalesMemberTreeNode[];
-  selectable?: boolean;
-  title: string;
-  value: string;
-}
-
 interface OperationsChannelConsoleProps {
   salesChannelContractCodes: MockSalesChannelContractCode[];
   tenants: OperationsTenant[];
@@ -81,11 +57,9 @@ interface OperationsChannelConsoleProps {
   ) => void;
 }
 
-const FALLBACK_TENANT_ID = "tenant-enterprise-demo";
-
 const CHANNEL_DETAIL_TABS: Array<{ key: ChannelDetailTabKey; label: string }> = [
   { key: "info", label: "渠道信息" },
-  { key: "recharge", label: "充值记录" },
+  { key: "recharge", label: "分配记录" },
   { key: "usage", label: "消耗记录" },
 ];
 
@@ -93,7 +67,6 @@ const createEmptyChannelForm = (): ChannelFormState => ({
   channelName: "",
   ownerName: "",
   ownerPhone: "",
-  salesMemberId: "",
   status: "active",
   tenantId: "",
 });
@@ -132,7 +105,6 @@ const createChannelFormFromCode = (
   channelName: contractCode.channelName,
   ownerName: contractCode.ownerName,
   ownerPhone: contractCode.ownerPhone ?? "",
-  salesMemberId: contractCode.salesMemberId ?? "",
   status: contractCode.status,
   tenantId: contractCode.tenantId ?? "",
 });
@@ -151,6 +123,9 @@ const formatAmount = (value: number): string => `¥${value.toLocaleString("zh-CN
 
 const getChannelOccupiedCodeCount = (contractCode: MockSalesChannelContractCode): number =>
   getOccupiedSalesLeadCodeCount(contractCode.code);
+
+const getChannelRedeemedCodeCount = (contractCode: MockSalesChannelContractCode): number =>
+  getRedeemedSalesLeadCodeCount(contractCode.code);
 
 const getChannelRemainingCodeCount = (contractCode: MockSalesChannelContractCode): number =>
   Math.max(contractCode.codeQuota - getChannelOccupiedCodeCount(contractCode), 0);
@@ -181,70 +156,8 @@ const getLeadCodeStatusTone = (
   return "warning";
 };
 
-const getRechargeRecordTitle = (
-  operationLabel: MockSalesChannelContractCodePriceVersion["operationLabel"],
-): string => {
-  if (operationLabel === "appendQuota") {
-    return "追加码数";
-  }
-
-  if (operationLabel === "updateUnitPrice") {
-    return "优惠调整";
-  }
-
-  return "首次投放";
-};
-
-const buildRechargeRecords = (
-  contractCode: MockSalesChannelContractCode,
-): ChannelRechargeRecord[] => {
-  let previousQuota = 0;
-
-  return contractCode.priceVersions
-    .map(version => {
-      const quantity = Math.max(version.codeQuota - previousQuota, 0);
-      previousQuota = version.codeQuota;
-
-      return {
-        id: version.id,
-        title: getRechargeRecordTitle(version.operationLabel),
-        quantity,
-        codeQuota: version.codeQuota,
-        unitPriceAmount: version.unitPriceAmount,
-        createdAt: version.createdAt,
-      };
-    })
-    .filter(record => record.quantity > 0 || record.title === "优惠调整")
-    .reverse();
-};
-
-const buildSalesMemberTree = (
-  departments: OrganizationDepartmentItem[],
-  users: FrontisWebUserItem[],
-): SalesMemberTreeNode[] => {
-  const buildDepartmentNode = (department: OrganizationDepartmentItem): SalesMemberTreeNode => {
-    const childDepartments = departments.filter(item => item.parentId === department.id);
-    const departmentUsers = users.filter(user => user.departmentId === department.id);
-
-    return {
-      title: department.name,
-      value: `department:${department.id}`,
-      selectable: false,
-      children: [
-        ...childDepartments.map(buildDepartmentNode),
-        ...departmentUsers.map(user => ({
-          title: user.name,
-          value: user.id,
-        })),
-      ],
-    };
-  };
-
-  return departments.filter(item => item.parentId === null).map(buildDepartmentNode);
-};
-
 /**
- * 运营后台渠道管理，承载渠道建档、租户绑定、销售绑定和渠道码维护。
+ * 运营后台渠道管理，承载渠道建档、租户绑定和渠道席位池维护。
  */
 export const OperationsChannelConsole = ({
   salesChannelContractCodes,
@@ -252,7 +165,6 @@ export const OperationsChannelConsole = ({
   onCreateSalesChannelContractCode,
   onUpdateSalesChannelContractCode,
 }: OperationsChannelConsoleProps): JSX.Element => {
-  const { activeIdentity } = useMockAuth();
   const [channelEditor, setChannelEditor] = useState<ChannelEditorState>(createChannelEditor());
   const [appendCodeEditor, setAppendCodeEditor] =
     useState<AppendCodeEditorState>(createAppendCodeEditor());
@@ -265,29 +177,11 @@ export const OperationsChannelConsole = ({
   const appendTargetChannel = salesChannelContractCodes.find(
     item => item.code === appendCodeEditor.channelCode,
   );
-  const organizationSnapshot = useMemo(
-    () =>
-      getMockTenantManagementSnapshot(activeIdentity?.tenantId) ??
-      getMockTenantManagementSnapshot(FALLBACK_TENANT_ID),
-    [activeIdentity?.tenantId],
-  );
-  const organizationUsers = organizationSnapshot?.users ?? [];
-  const salesMemberOptions = useMemo<SalesMemberOption[]>(
-    () => organizationUsers.map(user => ({ user })),
-    [organizationUsers],
-  );
-  const selectedSalesMember = salesMemberOptions.find(
-    item => item.user.id === channelForm.salesMemberId,
-  );
-  const salesTreeData = useMemo(
-    () => buildSalesMemberTree(INITIAL_ORGANIZATION_DEPARTMENTS, organizationUsers),
-    [organizationUsers],
-  );
   const selectedChannelLeadCodes = selectedChannel
     ? getSalesLeadCodesByChannel(selectedChannel.code)
     : [];
   const selectedChannelRechargeRecords = selectedChannel
-    ? buildRechargeRecords(selectedChannel)
+    ? getSalesChannelRechargeRecords(selectedChannel)
     : [];
 
   const handleUpdateChannelForm = (patch: Partial<ChannelFormState>): void => {
@@ -354,11 +248,6 @@ export const OperationsChannelConsole = ({
       return;
     }
 
-    if (!channelForm.salesMemberId || !selectedSalesMember) {
-      message.warning("请选择关联销售。");
-      return;
-    }
-
     const originalCode = channelEditor.originalCode;
     const currentCode =
       channelEditor.mode === "edit" && originalCode
@@ -369,9 +258,6 @@ export const OperationsChannelConsole = ({
         channelName: channelForm.channelName.trim(),
         ownerName: channelForm.ownerName.trim(),
         ownerPhone: channelForm.ownerPhone.trim(),
-        salesMemberId: selectedSalesMember.user.id,
-        salesMemberName: selectedSalesMember.user.name,
-        salesMemberPhone: selectedSalesMember.user.phone,
         serviceLabel: selectedTenant?.name ?? "",
         status: channelForm.status,
         tenantId: selectedTenant?.id,
@@ -387,9 +273,6 @@ export const OperationsChannelConsole = ({
         ownerName: channelForm.ownerName.trim(),
         ownerPhone: channelForm.ownerPhone.trim(),
         priceVersions: [],
-        salesMemberId: selectedSalesMember.user.id,
-        salesMemberName: selectedSalesMember.user.name,
-        salesMemberPhone: selectedSalesMember.user.phone,
         serviceLabel: selectedTenant?.name ?? "",
         status: channelForm.status,
         tenantId: selectedTenant?.id,
@@ -406,12 +289,12 @@ export const OperationsChannelConsole = ({
 
   const handleSubmitAppendCode = (): void => {
     if (!appendTargetChannel) {
-      message.warning("请选择要追加码数的渠道。");
+      message.warning("请选择要分配席位的渠道。");
       return;
     }
 
     if (appendCodeForm.appendCodeQuantity <= 0) {
-      message.warning("请填写追加码数量。");
+      message.warning("请填写分配席位数。");
       return;
     }
 
@@ -425,7 +308,7 @@ export const OperationsChannelConsole = ({
       unitPriceAmount: appendCodeForm.unitPriceAmount,
     });
     setAppendCodeEditor(createAppendCodeEditor());
-    message.success("码数已追加。");
+    message.success("席位已分配。");
   };
 
   return (
@@ -468,7 +351,7 @@ export const OperationsChannelConsole = ({
                   <h2 className={adminStyles.consoleSectionTitle}>渠道信息</h2>
                 </div>
                 <div className={adminStyles.consoleActions}>
-                  <Button onClick={() => handleOpenAppendCode(selectedChannel)}>追加码数</Button>
+                  <Button onClick={() => handleOpenAppendCode(selectedChannel)}>分配席位</Button>
                   <Button type="primary" onClick={() => handleOpenEditChannel(selectedChannel)}>
                     编辑渠道
                   </Button>
@@ -498,21 +381,21 @@ export const OperationsChannelConsole = ({
               </div>
               <div className={adminStyles.consoleSummaryStrip}>
                 <div className={adminStyles.consoleSummaryItem}>
-                  <span className={adminStyles.consoleSummaryLabel}>总码数量</span>
+                  <span className={adminStyles.consoleSummaryLabel}>分配席位</span>
                   <strong className={adminStyles.consoleSummaryValue}>
                     {formatNumber(selectedChannel.codeQuota)}
                   </strong>
                 </div>
                 <div className={adminStyles.consoleSummaryItem}>
-                  <span className={adminStyles.consoleSummaryLabel}>剩余渠道码</span>
+                  <span className={adminStyles.consoleSummaryLabel}>剩余席位</span>
                   <strong className={adminStyles.consoleSummaryValue}>
                     {formatNumber(getChannelRemainingCodeCount(selectedChannel))}
                   </strong>
                 </div>
                 <div className={adminStyles.consoleSummaryItem}>
-                  <span className={adminStyles.consoleSummaryLabel}>已占用渠道码</span>
+                  <span className={adminStyles.consoleSummaryLabel}>已核销席位</span>
                   <strong className={adminStyles.consoleSummaryValue}>
-                    {formatNumber(getChannelOccupiedCodeCount(selectedChannel))}
+                    {formatNumber(getChannelRedeemedCodeCount(selectedChannel))}
                   </strong>
                 </div>
                 <div className={adminStyles.consoleSummaryItem}>
@@ -529,11 +412,11 @@ export const OperationsChannelConsole = ({
             <section className={adminStyles.consoleSection}>
               <div className={adminStyles.consoleSectionHeader}>
                 <div className={adminStyles.consoleSectionHeaderMain}>
-                  <h2 className={adminStyles.consoleSectionTitle}>渠道码充值记录</h2>
+                  <h2 className={adminStyles.consoleSectionTitle}>席位分配记录</h2>
                 </div>
                 <div className={adminStyles.consoleActions}>
                   <Button type="primary" onClick={() => handleOpenAppendCode(selectedChannel)}>
-                    追加码数
+                    分配席位
                   </Button>
                 </div>
               </div>
@@ -543,8 +426,8 @@ export const OperationsChannelConsole = ({
                     <thead>
                       <tr>
                         <th>操作类型</th>
-                        <th>本次码数</th>
-                        <th>充值后总量</th>
+                        <th>本次席位</th>
+                        <th>分配后总席位</th>
                         <th>每席优惠</th>
                         <th>操作时间</th>
                       </tr>
@@ -563,7 +446,7 @@ export const OperationsChannelConsole = ({
                   </table>
                 </div>
               ) : (
-                <div className={adminStyles.consoleEmpty}>暂无渠道码充值记录</div>
+                <div className={adminStyles.consoleEmpty}>暂无席位分配记录</div>
               )}
             </section>
           ) : null}
@@ -612,7 +495,7 @@ export const OperationsChannelConsole = ({
                             <td>{record.createdAt}</td>
                             <td>{isUsed ? (record.usedAt ?? "-") : "-"}</td>
                             <td>{isUsed ? (record.customerTenantName ?? "-") : "-"}</td>
-                            <td>{isUsed && record.seatCount ? `${record.seatCount} 席` : "-"}</td>
+                            <td>{record.seatCount ? `${record.seatCount} 席` : "-"}</td>
                             <td>{isUsed && record.amount ? formatAmount(record.amount) : "-"}</td>
                           </tr>
                         );
@@ -642,9 +525,8 @@ export const OperationsChannelConsole = ({
                   <th>渠道负责人</th>
                   <th>手机号</th>
                   <th>关联租户</th>
-                  <th>关联销售</th>
-                  <th>总码数量</th>
-                  <th>剩余码数量</th>
+                  <th>分配席位</th>
+                  <th>剩余席位</th>
                   <th>每席优惠</th>
                   <th>渠道码</th>
                   <th>状态</th>
@@ -658,7 +540,6 @@ export const OperationsChannelConsole = ({
                     <td>{item.ownerName}</td>
                     <td>{item.ownerPhone || "-"}</td>
                     <td>{item.tenantName || "-"}</td>
-                    <td>{item.salesMemberName || "-"}</td>
                     <td>{formatNumber(item.codeQuota)}</td>
                     <td>{formatNumber(getChannelRemainingCodeCount(item))}</td>
                     <td>{item.unitPriceAmount > 0 ? formatAmount(item.unitPriceAmount) : "-"}</td>
@@ -681,7 +562,7 @@ export const OperationsChannelConsole = ({
                           编辑
                         </Button>
                         <Button size="small" onClick={() => handleOpenAppendCode(item)}>
-                          追加码数
+                          分配席位
                         </Button>
                       </div>
                     </td>
@@ -742,16 +623,6 @@ export const OperationsChannelConsole = ({
               />
             </div>
             <div className={styles.modalField}>
-              <span>关联销售</span>
-              <TreeSelect
-                showSearch
-                treeDefaultExpandAll
-                value={channelForm.salesMemberId || undefined}
-                treeData={salesTreeData}
-                onChange={salesMemberId => handleUpdateChannelForm({ salesMemberId })}
-              />
-            </div>
-            <div className={styles.modalField}>
               <span>状态</span>
               <Select<MockSalesChannelContractCode["status"]>
                 value={channelForm.status}
@@ -768,7 +639,7 @@ export const OperationsChannelConsole = ({
 
       <Modal
         open={appendCodeEditor.open}
-        title={`追加码数${appendTargetChannel ? ` · ${appendTargetChannel.channelName}` : ""}`}
+        title={`分配席位${appendTargetChannel ? ` · ${appendTargetChannel.channelName}` : ""}`}
         width={560}
         onCancel={() => setAppendCodeEditor(createAppendCodeEditor())}
         onOk={handleSubmitAppendCode}
@@ -777,7 +648,7 @@ export const OperationsChannelConsole = ({
         <div className={styles.modalStack}>
           <div className={styles.formGrid}>
             <div className={styles.modalField}>
-              <span>当前码数量</span>
+              <span>当前分配席位</span>
               <InputNumber
                 className={styles.fullWidthInput}
                 disabled
@@ -785,7 +656,7 @@ export const OperationsChannelConsole = ({
               />
             </div>
             <div className={styles.modalField}>
-              <span>追加码数量</span>
+              <span>本次分配席位</span>
               <InputNumber
                 className={styles.fullWidthInput}
                 min={1}

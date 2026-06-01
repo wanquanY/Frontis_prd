@@ -8,7 +8,7 @@ import {
   PlusOutlined,
   QrcodeOutlined,
 } from "@ant-design/icons";
-import { Avatar, Button, Drawer, Dropdown, message } from "antd";
+import { Avatar, Button, Drawer, Dropdown, InputNumber, message } from "antd";
 import type { MenuProps } from "antd";
 import { Select } from "antd";
 import { Navigate, useNavigate } from "react-router-dom";
@@ -72,6 +72,7 @@ const DaGuanSalesPage = (): JSX.Element => {
     getSalesLeadCodesForUser(activeIdentity?.tenantId, activeIdentity?.subjectId),
   );
   const [statusFilter, setStatusFilter] = useState<SalesLeadCodeStatusFilter>("all");
+  const [seatCount, setSeatCount] = useState(1);
   const usedRecordCount = records.filter(item => item.status === "used").length;
   const unusedRecordCount = records.filter(item => item.status === "unused").length;
   const invalidRecordCount = records.filter(item => item.status === "invalid").length;
@@ -146,7 +147,7 @@ const DaGuanSalesPage = (): JSX.Element => {
       return;
     }
 
-    const result = generateSalesLeadCode(memberCode);
+    const result = generateSalesLeadCode(memberCode, seatCount);
 
     setRecords(getSalesLeadCodesForUser(memberCode.tenantId, memberCode.memberId));
 
@@ -249,14 +250,24 @@ const DaGuanSalesPage = (): JSX.Element => {
                 <span>已失效 {invalidRecordCount}</span>
               </div>
             </div>
-            <Button
-              disabled={!memberCode || memberCode.status !== "active"}
-              icon={<PlusOutlined />}
-              type="primary"
-              onClick={handleGenerateCode}
-            >
-              生成渠道码
-            </Button>
+            <div className={salesStyles.generateControls}>
+              <InputNumber
+                className={salesStyles.seatInput}
+                min={1}
+                precision={0}
+                addonBefore="席位"
+                value={seatCount}
+                onChange={value => setSeatCount(value ?? 1)}
+              />
+              <Button
+                disabled={!memberCode || memberCode.status !== "active"}
+                icon={<PlusOutlined />}
+                type="primary"
+                onClick={handleGenerateCode}
+              >
+                生成渠道码
+              </Button>
+            </div>
           </section>
 
           <section className={salesStyles.recordsPanel}>
@@ -278,6 +289,7 @@ const DaGuanSalesPage = (): JSX.Element => {
                       <div className={salesStyles.codeText}>{record.fullCode}</div>
                       <div className={salesStyles.metaGrid}>
                         <span>状态：{getStatusLabel(record.status)}</span>
+                        <span>席位：{record.seatCount ?? 1}</span>
                         <span>创建时间：{record.createdAt}</span>
                       </div>
                     </div>

@@ -1,5 +1,8 @@
 import { getMockSalesChannelContractCodes } from "@/feature/subscription/mockSubscriptionPlans";
-import type { MockSalesChannelContractCode } from "@/feature/subscription/types";
+import type {
+  MockSalesChannelContractCode,
+  MockSalesChannelContractCodePriceVersion,
+} from "@/feature/subscription/types";
 
 import {
   loadSalesLeadCodes,
@@ -14,6 +17,15 @@ import type { SalesLeadCode, SalesMemberCode, SalesMemberCodeInput } from "./typ
 const MEMBER_CODE_LENGTH = 4;
 const RANDOM_CODE_LENGTH = 6;
 const SALES_LEAD_CODE_VALIDITY_MINUTES = 10;
+
+export interface SalesChannelRechargeRecord {
+  codeQuota: number;
+  createdAt: string;
+  id: string;
+  quantity: number;
+  title: string;
+  unitPriceAmount: number;
+}
 
 const normalizeCode = (value: string): string =>
   value
@@ -79,7 +91,9 @@ export const getSalesLeadCodesByChannel = (tenantMainCode: string): SalesLeadCod
     .filter(item => item.tenantMainCode === tenantMainCode)
     .flatMap(getMockSalesLeadCodesForMember);
   const channelMockCodes = getMockSalesLeadCodesForMember(
-    channelCode ? createMockSalesMemberCodeFromChannel(channelCode) : null,
+    channelCode?.salesMemberId && channelCode.salesMemberName
+      ? createMockSalesMemberCodeFromChannel(channelCode)
+      : null,
   );
 
   return [...storedCodes, ...mockCodes, ...channelMockCodes]
@@ -91,7 +105,55 @@ export const getSalesLeadCodesByChannel = (tenantMainCode: string): SalesLeadCod
 };
 
 export const getOccupiedSalesLeadCodeCount = (tenantMainCode: string): number =>
-  getSalesLeadCodesByChannel(tenantMainCode).filter(item => item.status !== "invalid").length;
+  getSalesLeadCodesByChannel(tenantMainCode)
+    .filter(item => item.status !== "invalid")
+    .reduce((total, item) => total + Math.max(item.seatCount ?? 1, 1), 0);
+
+export const getRedeemedSalesLeadCodeCount = (tenantMainCode: string): number =>
+  getSalesLeadCodesByChannel(tenantMainCode)
+    .filter(item => item.status === "used")
+    .reduce((total, item) => total + Math.max(item.seatCount ?? 1, 1), 0);
+
+const getRechargeRecordTitle = (
+  operationLabel: MockSalesChannelContractCodePriceVersion["operationLabel"],
+): string => {
+  if (operationLabel === "appendQuota") {
+    return "分配席位";
+  }
+
+  if (operationLabel === "updateUnitPrice") {
+    return "优惠调整";
+  }
+
+  return "首次分配";
+};
+
+export const getSalesChannelRechargeRecords = (
+  contractCode: MockSalesChannelContractCode | null,
+): SalesChannelRechargeRecord[] => {
+  if (!contractCode) {
+    return [];
+  }
+
+  let previousQuota = 0;
+
+  return contractCode.priceVersions
+    .map(version => {
+      const quantity = Math.max(version.codeQuota - previousQuota, 0);
+      previousQuota = version.codeQuota;
+
+      return {
+        id: version.id,
+        title: getRechargeRecordTitle(version.operationLabel),
+        quantity,
+        codeQuota: version.codeQuota,
+        unitPriceAmount: version.unitPriceAmount,
+        createdAt: version.createdAt,
+      };
+    })
+    .filter(record => record.quantity > 0 || record.title === "优惠调整")
+    .reverse();
+};
 
 const getExistingMemberCodes = (): Set<string> =>
   new Set(loadSalesMemberCodes().map(item => item.memberCode));
@@ -267,6 +329,7 @@ const getMockSalesLeadCodesForMember = (memberCode: SalesMemberCode | null): Sal
     }),
     buildMockSalesLeadCode(memberCode, "560183", {
       status: "unused",
+      seatCount: 10,
       createdAt: formatSalesDateTime(),
       expiredAt: addSalesMinutes(formatSalesDateTime(), SALES_LEAD_CODE_VALIDITY_MINUTES),
     }),
@@ -281,10 +344,12 @@ const getMockSalesLeadCodesForMember = (memberCode: SalesMemberCode | null): Sal
     }),
     buildMockSalesLeadCode(memberCode, "119872", {
       status: "unused",
+      seatCount: 8,
       createdAt: "2026-05-25 18:26:00",
     }),
     buildMockSalesLeadCode(memberCode, "304689", {
       status: "invalid",
+      seatCount: 15,
       createdAt: "2026-05-21 13:50:00",
       expiredAt: "2026-05-21 14:00:00",
     }),
@@ -354,6 +419,7 @@ export const upsertSalesMemberCode = (
 
 export const generateSalesLeadCode = (
   memberCode: SalesMemberCode,
+  seatCount = 1,
 ): {
   createdCode: SalesLeadCode | null;
   codes: SalesLeadCode[];
@@ -361,6 +427,7 @@ export const generateSalesLeadCode = (
   success: boolean;
 } => {
   const tenantMainContractCode = resolveTenantMainContractCode(memberCode.tenantId);
+  const normalizedSeatCount = Math.max(Math.floor(seatCount), 1);
 
   if (!tenantMainContractCode || tenantMainContractCode.status !== "active") {
     return {
@@ -372,12 +439,13 @@ export const generateSalesLeadCode = (
   }
 
   if (
-    getOccupiedSalesLeadCodeCount(memberCode.tenantMainCode) >= tenantMainContractCode.codeQuota
+    getOccupiedSalesLeadCodeCount(memberCode.tenantMainCode) + normalizedSeatCount >
+    tenantMainContractCode.codeQuota
   ) {
     return {
       createdCode: null,
       codes: getSalesLeadCodesForUser(memberCode.tenantId, memberCode.memberId),
-      message: "当前渠道可使用渠道码数量已用完。",
+      message: "当前渠道剩余席位不足。",
       success: false,
     };
   }
@@ -398,6 +466,7 @@ export const generateSalesLeadCode = (
     randomCode,
     fullCode,
     status: "unused",
+    seatCount: normalizedSeatCount,
     createdAt,
     expiredAt: addSalesMinutes(createdAt, SALES_LEAD_CODE_VALIDITY_MINUTES),
   };

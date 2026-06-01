@@ -8,6 +8,8 @@ import type { FrontisWebUserItem, OrganizationDepartmentItem } from "@/pages/typ
 
 import {
   getOccupiedSalesLeadCodeCount,
+  getRedeemedSalesLeadCodeCount,
+  getSalesChannelRechargeRecords,
   getSalesLeadCodesByChannel,
   getSalesMemberCodesByTenant,
   resolveTenantMainContractCode,
@@ -35,10 +37,11 @@ interface UserTreeNode {
   value: string;
 }
 
-type SalesManagementTabKey = "memberCodes" | "usageRecords";
+type SalesManagementTabKey = "memberCodes" | "rechargeRecords" | "usageRecords";
 
 const SALES_MANAGEMENT_TABS: Array<{ key: SalesManagementTabKey; label: string }> = [
   { key: "memberCodes", label: "销售个人码" },
+  { key: "rechargeRecords", label: "分配记录" },
   { key: "usageRecords", label: "消耗记录" },
 ];
 
@@ -111,8 +114,10 @@ export const SalesManagementView = ({
   const userTreeData = useMemo(() => buildUserTree(departments, users), [departments, users]);
   const activeCodeCount = memberCodes.filter(item => item.status === "active").length;
   const salesLeadCodes = tenantMainCode ? getSalesLeadCodesByChannel(tenantMainCode.code) : [];
+  const rechargeRecords = getSalesChannelRechargeRecords(tenantMainCode);
   const totalCodeQuota = tenantMainCode?.codeQuota ?? 0;
   const occupiedCodeCount = tenantMainCode ? getOccupiedSalesLeadCodeCount(tenantMainCode.code) : 0;
+  const redeemedCodeCount = tenantMainCode ? getRedeemedSalesLeadCodeCount(tenantMainCode.code) : 0;
   const remainingCodeCount = Math.max(totalCodeQuota - occupiedCodeCount, 0);
 
   const handleOpenCreate = (): void => {
@@ -177,16 +182,16 @@ export const SalesManagementView = ({
 
       <section className={styles.summaryGrid}>
         <div className={styles.summaryItem}>
-          <div className={styles.summaryLabel}>购买渠道码总数量</div>
+          <div className={styles.summaryLabel}>分配席位总数</div>
           <div className={styles.summaryValue}>{formatNumber(totalCodeQuota)}</div>
         </div>
         <div className={styles.summaryItem}>
-          <div className={styles.summaryLabel}>剩余库存</div>
+          <div className={styles.summaryLabel}>剩余席位</div>
           <div className={styles.summaryValue}>{formatNumber(remainingCodeCount)}</div>
         </div>
         <div className={styles.summaryItem}>
-          <div className={styles.summaryLabel}>已占用渠道码</div>
-          <div className={styles.summaryValue}>{formatNumber(occupiedCodeCount)}</div>
+          <div className={styles.summaryLabel}>已核销席位</div>
+          <div className={styles.summaryValue}>{formatNumber(redeemedCodeCount)}</div>
         </div>
       </section>
 
@@ -257,6 +262,43 @@ export const SalesManagementView = ({
         </section>
       ) : null}
 
+      {activeTab === "rechargeRecords" ? (
+        <section className={styles.section}>
+          <div className={styles.sectionHeader}>
+            <h2 className={styles.sectionTitle}>席位分配记录</h2>
+          </div>
+
+          {rechargeRecords.length ? (
+            <div className={styles.tableWrap}>
+              <table className={styles.table}>
+                <thead>
+                  <tr>
+                    <th>操作类型</th>
+                    <th>本次席位</th>
+                    <th>分配后总席位</th>
+                    <th>每席优惠</th>
+                    <th>操作时间</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rechargeRecords.map(record => (
+                    <tr key={record.id}>
+                      <td>{record.title}</td>
+                      <td>{record.quantity ? `+${formatNumber(record.quantity)}` : "-"}</td>
+                      <td>{formatNumber(record.codeQuota)}</td>
+                      <td>{formatAmount(record.unitPriceAmount)}</td>
+                      <td>{record.createdAt}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className={styles.emptyPanel}>暂无席位分配记录</div>
+          )}
+        </section>
+      ) : null}
+
       {activeTab === "usageRecords" ? (
         <section className={styles.section}>
           <div className={styles.sectionHeader}>
@@ -300,7 +342,7 @@ export const SalesManagementView = ({
                         <td>{record.createdAt}</td>
                         <td>{isUsed ? (record.usedAt ?? "-") : "-"}</td>
                         <td>{isUsed ? (record.customerTenantName ?? "-") : "-"}</td>
-                        <td>{isUsed && record.seatCount ? `${record.seatCount} 席` : "-"}</td>
+                        <td>{record.seatCount ? `${record.seatCount} 席` : "-"}</td>
                         <td>{isUsed && record.amount ? formatAmount(record.amount) : "-"}</td>
                       </tr>
                     );

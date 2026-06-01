@@ -91,6 +91,18 @@
   min-width: 0;
 }
 
+.generateControls {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.seatInput {
+  width: 150px;
+}
+
 .title {
   margin: 0;
   color: var(--text);
@@ -364,6 +376,11 @@
   }
 
   .generateBar :global(.ant-btn) {
+    width: 100%;
+  }
+
+  .generateControls,
+  .seatInput {
     width: 100%;
   }
 

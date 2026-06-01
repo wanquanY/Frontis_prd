@@ -1025,14 +1025,16 @@ const getSalesLeadCodeStatus = (
   return expiresAt && expiresAt.getTime() <= Date.now() ? "expired" : "usable";
 };
 
-const getUsedContractCodeCount = (tenantMainCode: string): number =>
-  loadSalesLeadCodes().filter(item => {
-    if (item.tenantMainCode !== tenantMainCode) {
-      return false;
-    }
+const getUsedContractSeatCount = (tenantMainCode: string): number =>
+  loadSalesLeadCodes()
+    .filter(item => {
+      if (item.tenantMainCode !== tenantMainCode) {
+        return false;
+      }
 
-    return item.status === "used" || item.status === ("effective" as typeof item.status);
-  }).length;
+      return item.status === "used" || item.status === ("effective" as typeof item.status);
+    })
+    .reduce((total, item) => total + Math.max(item.seatCount ?? 1, 1), 0);
 
 const getPromotionIsActive = (): boolean =>
   toDate(MOCK_SUBSCRIPTION_TODAY).getTime() <= toDate(MOCK_PROMOTION_ENDS_AT).getTime();
@@ -1206,11 +1208,11 @@ const resolveEnterpriseQualification = (
     };
   }
 
-  if (getUsedContractCodeCount(matchedCode.code) >= matchedCode.codeQuota) {
+  if (getUsedContractSeatCount(matchedCode.code) + input.seatCount > matchedCode.codeQuota) {
     return {
       customerTier: "pro",
       enterpriseQualified: false,
-      ruleMessage: "当前渠道码数量已用完",
+      ruleMessage: "当前渠道剩余席位不足",
     };
   }
 
