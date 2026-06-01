@@ -9,6 +9,76 @@
   background: var(--surface);
 }
 
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  flex-shrink: 0;
+}
+
+.headerBody {
+  min-width: 0;
+}
+
+.eyebrow {
+  margin: 0 0 4px;
+  color: var(--brand);
+  font-size: 12px;
+  line-height: 18px;
+  font-weight: 700;
+}
+
+.description {
+  margin: 4px 0 0;
+  max-width: 680px;
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.summaryGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.summaryItem {
+  min-width: 0;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-elevated);
+}
+
+.summaryLabel {
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.summaryValue {
+  margin-top: 6px;
+  overflow: hidden;
+  color: var(--text);
+  font-size: 22px;
+  line-height: 30px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.section {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 18px 20px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-elevated);
+}
+
 .generateBar {
   display: flex;
   align-items: center;
@@ -137,6 +207,59 @@
   text-align: center;
 }
 
+.tableWrap {
+  min-width: 0;
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  min-width: 760px;
+  border-collapse: collapse;
+  color: var(--text);
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.table th,
+.table td {
+  padding: 13px 12px;
+  border-bottom: 1px solid color-mix(in srgb, var(--text) 8%, var(--border));
+  text-align: left;
+  vertical-align: middle;
+}
+
+.table th {
+  color: var(--text-secondary);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.codeCell {
+  color: var(--text);
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.statusActive,
+.statusMuted {
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.statusActive {
+  color: var(--success);
+}
+
+.statusMuted {
+  color: var(--text-tertiary);
+}
+
 .formGrid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -166,6 +289,24 @@
     gap: 16px;
     padding: 16px;
     overflow: auto;
+  }
+
+  .header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .header :global(.ant-btn) {
+    width: 100%;
+  }
+
+  .summaryGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .summaryItem,
+  .section {
+    border-radius: 8px;
   }
 
   .generateBar,

@@ -244,7 +244,7 @@ export const SubscriptionPlanModal = ({
               .map(spec => (
                 <div key={`${spec.key}-contract`}>
                   <span>{spec.title}渠道码优惠</span>
-                  <strong>按渠道码单价计算</strong>
+                  <strong>按渠道码每席抵扣</strong>
                 </div>
               ))}
           </div>
@@ -341,6 +341,12 @@ export const SubscriptionPlanModal = ({
               ) : null}
               {purchasePreview.ruleMessage ? (
                 <div className={styles.previewHint}>{purchasePreview.ruleMessage}</div>
+              ) : null}
+              {purchasePreview.discountAmount > 0 ? (
+                <div className={styles.previewRow}>
+                  <span>优惠金额</span>
+                  <strong>-¥{purchasePreview.discountAmount.toLocaleString("zh-CN")}</strong>
+                </div>
               ) : null}
               <div className={styles.totalRow}>
                 <span>支付金额</span>

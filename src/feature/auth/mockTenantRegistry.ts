@@ -53,9 +53,9 @@ const STANDARD_POINTS_ORDER_ACTIVITY_SNAPSHOT = {
   | "totalPoints"
 >;
 const MOCK_LEGACY_CONTRACT_CODE_MAP: Record<string, string> = {
-  CHANNEL299: "CHANNEL299-DG4587-Q8M2K7ND",
-  DGMAIN299: "DGMAIN299-DG3294-Q8M2K7ND",
-  SALES299: "SALES299-DG4607-Q8M2K7ND",
+  CHANNEL299: "HD0001-0012-897654",
+  DGMAIN299: "XY0001-0012-897654",
+  SALES299: "XS0001-0012-897654",
 };
 
 const isStandardPointsPackageOrder = (order: MockTenantPointsOrderItem): boolean =>
@@ -611,7 +611,7 @@ const PRESET_TENANT_SNAPSHOTS: MockTenantManagementSnapshot[] = [
         unitPrice: 299,
         originalAmount: 7980,
         discountAmount: 2000,
-        contractCode: "SALES299",
+        contractCode: "XS0001-0012-897654",
         customerTier: "enterprise",
         channelName: "直营销售",
         ownerName: "王晨",

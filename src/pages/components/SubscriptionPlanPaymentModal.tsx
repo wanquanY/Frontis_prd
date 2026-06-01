@@ -200,7 +200,7 @@ export const SubscriptionPlanPaymentModal = ({
                 ) : null}
                 {plan.discountAmount > 0 ? (
                   <div className={styles.summaryRow}>
-                    <span>签约优惠</span>
+                    <span>渠道码优惠</span>
                     <strong>-¥{plan.discountAmount.toLocaleString("zh-CN")}</strong>
                   </div>
                 ) : null}

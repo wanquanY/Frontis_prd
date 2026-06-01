@@ -5,6 +5,10 @@ export interface ParsedSalesLeadCode {
   tenantMainCode: string;
 }
 
+const TENANT_MAIN_CODE_PATTERN = /^[A-Z0-9]{6}$/;
+const MEMBER_CODE_PATTERN = /^\d{4}$/;
+const RANDOM_CODE_PATTERN = /^\d{6}$/;
+
 export const parseSalesLeadCode = (
   contractCode: string | undefined,
 ): ParsedSalesLeadCode | null => {
@@ -16,6 +20,14 @@ export const parseSalesLeadCode = (
     .filter(Boolean);
 
   if (!parts || parts.length !== 3) {
+    return null;
+  }
+
+  if (
+    !TENANT_MAIN_CODE_PATTERN.test(parts[0]) ||
+    !MEMBER_CODE_PATTERN.test(parts[1]) ||
+    !RANDOM_CODE_PATTERN.test(parts[2])
+  ) {
     return null;
   }
 

@@ -98,8 +98,9 @@ const normalizeContractCode = (value: string): string =>
 const buildChannelCode = (channelName: string): string => {
   const normalizedName = normalizeContractCode(channelName);
   const suffix = `${Date.now()}`.slice(-4);
+  const prefix = `${normalizedName || "QD"}`.slice(0, 2).padEnd(2, "0");
 
-  return `${normalizedName.slice(0, 10) || "CHANNEL"}${suffix}`;
+  return `${prefix}${suffix}`;
 };
 
 const createChannelFormFromCode = (
@@ -299,7 +300,7 @@ export const OperationsChannelConsole = ({
     }
 
     if (appendCodeForm.unitPriceAmount === null || appendCodeForm.unitPriceAmount < 0) {
-      message.warning("请设置有效的码单价。");
+      message.warning("请设置有效的每席优惠金额。");
       return;
     }
 
@@ -336,7 +337,7 @@ export const OperationsChannelConsole = ({
                 <th>关联租户</th>
                 <th>关联销售</th>
                 <th>码数量</th>
-                <th>码单价</th>
+                <th>每席优惠</th>
                 <th>渠道码</th>
                 <th>状态</th>
                 <th>操作</th>
@@ -493,13 +494,15 @@ export const OperationsChannelConsole = ({
               />
             </div>
             <div className={styles.modalField}>
-              <span>本次码单价</span>
+              <span>本次每席优惠</span>
               <InputNumber
                 className={styles.fullWidthInput}
                 min={0}
                 precision={0}
                 addonBefore="¥"
-                placeholder={appendTargetChannel?.unitPriceAmount ? undefined : "请填写码单价"}
+                placeholder={
+                  appendTargetChannel?.unitPriceAmount ? undefined : "请填写每席优惠金额"
+                }
                 value={appendCodeForm.unitPriceAmount}
                 onChange={value =>
                   setAppendCodeEditor(current => ({

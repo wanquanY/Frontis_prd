@@ -64,7 +64,7 @@ const buildUserTree = (
     });
 
 /**
- * 企业管理后台销售管理，用于把租户内成员绑定为销售并生成员工销售码。
+ * 企业管理后台销售管理，用于把租户内成员绑定为销售并生成销售个人码。
  */
 export const SalesManagementView = ({
   departments,
@@ -99,7 +99,7 @@ export const SalesManagementView = ({
 
   const handleSubmit = (): void => {
     if (!tenantMainCode) {
-      message.warning("当前租户还没有运营后台渠道主码，暂不能生成员工销售码。");
+      message.warning("当前租户还没有运营后台渠道总码，暂不能生成销售个人码。");
       return;
     }
 
@@ -137,7 +137,7 @@ export const SalesManagementView = ({
           <p className={styles.eyebrow}>Sales management</p>
           <h1 className={styles.title}>销售管理</h1>
           <p className={styles.description}>
-            绑定租户内成员并生成员工销售码，员工可在大观销售中生成客户渠道码。
+            绑定租户内成员并生成销售个人码，员工可在大观销售中生成客户渠道码。
           </p>
         </div>
         <Button type="primary" icon={<PlusOutlined />} onClick={handleOpenCreate}>
@@ -147,7 +147,7 @@ export const SalesManagementView = ({
 
       <section className={styles.summaryGrid}>
         <div className={styles.summaryItem}>
-          <div className={styles.summaryLabel}>租户主码</div>
+          <div className={styles.summaryLabel}>渠道总码</div>
           <div className={styles.summaryValue}>{tenantMainCode?.code ?? "未配置"}</div>
         </div>
         <div className={styles.summaryItem}>
@@ -162,7 +162,7 @@ export const SalesManagementView = ({
 
       <section className={styles.section}>
         <div className={styles.sectionHeader}>
-          <h2 className={styles.sectionTitle}>员工销售码</h2>
+          <h2 className={styles.sectionTitle}>销售个人码</h2>
         </div>
 
         {memberCodes.length ? (
@@ -171,7 +171,7 @@ export const SalesManagementView = ({
               <thead>
                 <tr>
                   <th>销售成员</th>
-                  <th>员工销售码</th>
+                  <th>销售个人码</th>
                   <th>最终渠道码格式</th>
                   <th>状态</th>
                   <th>更新时间</th>
@@ -184,7 +184,7 @@ export const SalesManagementView = ({
                     <td>{code.memberName}</td>
                     <td className={styles.codeCell}>{code.memberCode}</td>
                     <td className={styles.codeCell}>
-                      {code.tenantMainCode}-{code.memberCode}-随机串码
+                      {code.tenantMainCode}-{code.memberCode}-动态随机码
                     </td>
                     <td
                       className={
@@ -205,7 +205,7 @@ export const SalesManagementView = ({
             </table>
           </div>
         ) : (
-          <div className={styles.emptyPanel}>暂无员工销售码</div>
+          <div className={styles.emptyPanel}>暂无销售个人码</div>
         )}
       </section>
 
@@ -228,7 +228,7 @@ export const SalesManagementView = ({
             />
           </label>
           <label className={styles.formItem}>
-            <span className={styles.formLabel}>员工销售码</span>
+            <span className={styles.formLabel}>销售个人码</span>
             <Input
               placeholder="不填则自动生成"
               value={form.memberCode}

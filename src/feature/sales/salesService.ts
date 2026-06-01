@@ -11,9 +11,8 @@ import { addSalesMinutes, formatSalesDateTime, parseSalesDateTime } from "./sale
 import { parseSalesLeadCode, resolveMainCodeFromContractInput } from "./salesCodeFormat";
 import type { SalesLeadCode, SalesMemberCode, SalesMemberCodeInput } from "./types";
 
-const CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-const MEMBER_CODE_LENGTH = 6;
-const RANDOM_CODE_LENGTH = 8;
+const MEMBER_CODE_LENGTH = 4;
+const RANDOM_CODE_LENGTH = 6;
 const SALES_LEAD_CODE_VALIDITY_MINUTES = 10;
 
 const normalizeCode = (value: string): string =>
@@ -22,11 +21,11 @@ const normalizeCode = (value: string): string =>
     .toUpperCase()
     .replace(/[^A-Z0-9]/g, "");
 
-const createRandomCode = (length: number): string => {
+const createRandomNumericCode = (length: number): string => {
   let result = "";
 
   for (let index = 0; index < length; index += 1) {
-    result += CODE_ALPHABET[Math.floor(Math.random() * CODE_ALPHABET.length)];
+    result += String(Math.floor(Math.random() * 10));
   }
 
   return result;
@@ -85,7 +84,7 @@ const createUniqueMemberCode = (): string => {
   let nextCode = "";
 
   do {
-    nextCode = createRandomCode(MEMBER_CODE_LENGTH);
+    nextCode = createRandomNumericCode(MEMBER_CODE_LENGTH);
   } while (existingCodes.has(nextCode));
 
   return nextCode;
@@ -95,7 +94,7 @@ const createPresetMemberCode = (contractCode: MockSalesChannelContractCode): str
   const seed = `${contractCode.tenantId ?? ""}-${contractCode.salesMemberId ?? ""}`;
   const hash = Array.from(seed).reduce((total, char) => total + char.charCodeAt(0), 0);
 
-  return `DG${String(hash % 10000).padStart(4, "0")}`;
+  return String(hash % 10000).padStart(MEMBER_CODE_LENGTH, "0");
 };
 
 const getPresetSalesMemberCodes = (): SalesMemberCode[] =>
@@ -121,16 +120,37 @@ const getPresetSalesMemberCodes = (): SalesMemberCode[] =>
       updatedAt: "预置",
     }));
 
+const resolveActiveTenantMainCode = (tenantId: string): string | null =>
+  getMockSalesChannelContractCodes().find(
+    item => item.tenantId === tenantId && item.status === "active",
+  )?.code ?? null;
+
+const normalizeStoredSalesMemberCode = (code: SalesMemberCode): SalesMemberCode => ({
+  ...code,
+  tenantMainCode: resolveActiveTenantMainCode(code.tenantId) ?? code.tenantMainCode,
+});
+
+const dedupeSalesMemberCodes = (codes: SalesMemberCode[]): SalesMemberCode[] => {
+  const dedupedCodes = new Map<string, SalesMemberCode>();
+
+  codes.forEach(code => {
+    const key = `${code.tenantId}:${code.memberName}:${code.memberCode}`;
+    dedupedCodes.set(key, code);
+  });
+
+  return Array.from(dedupedCodes.values());
+};
+
 const getMergedSalesMemberCodes = (): SalesMemberCode[] => {
-  const storedCodes = loadSalesMemberCodes();
+  const storedCodes = loadSalesMemberCodes().map(normalizeStoredSalesMemberCode);
   const storedKeys = new Set(storedCodes.map(item => `${item.tenantId}:${item.memberId}`));
 
-  return [
+  return dedupeSalesMemberCodes([
     ...storedCodes,
     ...getPresetSalesMemberCodes().filter(
       item => !storedKeys.has(`${item.tenantId}:${item.memberId}`),
     ),
-  ];
+  ]);
 };
 
 const createUniqueLeadCode = (
@@ -142,7 +162,7 @@ const createUniqueLeadCode = (
   let fullCode = "";
 
   do {
-    randomCode = createRandomCode(RANDOM_CODE_LENGTH);
+    randomCode = createRandomNumericCode(RANDOM_CODE_LENGTH);
     fullCode = `${tenantMainCode}-${memberCode}-${randomCode}`;
   } while (existingCodes.has(fullCode));
 
@@ -191,7 +211,7 @@ const getMockSalesLeadCodesForMember = (memberCode: SalesMemberCode | null): Sal
   }
 
   return [
-    buildMockSalesLeadCode(memberCode, "Q8M2K7ND", {
+    buildMockSalesLeadCode(memberCode, "897654", {
       status: "used",
       customerTenantName: "杭州云织科技有限公司",
       seatCount: 18,
@@ -200,7 +220,7 @@ const getMockSalesLeadCodesForMember = (memberCode: SalesMemberCode | null): Sal
       usedAt: "2026-05-29 09:24:00",
       orderNo: "SUB-2605281002",
     }),
-    buildMockSalesLeadCode(memberCode, "TX5P9R2A", {
+    buildMockSalesLeadCode(memberCode, "438912", {
       status: "used",
       customerTenantName: "宁波橙界商贸有限公司",
       seatCount: 12,
@@ -209,14 +229,14 @@ const getMockSalesLeadCodesForMember = (memberCode: SalesMemberCode | null): Sal
       usedAt: "2026-05-28 16:51:00",
       orderNo: "SUB-2605271720",
     }),
-    buildMockSalesLeadCode(memberCode, "HN7C4V6K", {
+    buildMockSalesLeadCode(memberCode, "560183", {
       status: "unused",
       customerTenantName: "上海岚屿品牌管理有限公司",
       seatCount: 10,
       createdAt: formatSalesDateTime(),
       expiredAt: addSalesMinutes(formatSalesDateTime(), SALES_LEAD_CODE_VALIDITY_MINUTES),
     }),
-    buildMockSalesLeadCode(memberCode, "R6JQ8W3L", {
+    buildMockSalesLeadCode(memberCode, "726045", {
       status: "used",
       customerTenantName: "苏州青野智能科技有限公司",
       seatCount: 25,
@@ -225,13 +245,13 @@ const getMockSalesLeadCodesForMember = (memberCode: SalesMemberCode | null): Sal
       usedAt: "2026-05-26 14:16:00",
       orderNo: "SUB-2605261533",
     }),
-    buildMockSalesLeadCode(memberCode, "B4N8S2YE", {
+    buildMockSalesLeadCode(memberCode, "119872", {
       status: "unused",
       customerTenantName: "合肥新域供应链有限公司",
       seatCount: 8,
       createdAt: "2026-05-25 18:26:00",
     }),
-    buildMockSalesLeadCode(memberCode, "M9XK2T4P", {
+    buildMockSalesLeadCode(memberCode, "304689", {
       status: "invalid",
       customerTenantName: "南京晟源数字科技有限公司",
       seatCount: 15,

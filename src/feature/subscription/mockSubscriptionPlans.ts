@@ -73,7 +73,7 @@ const normalizeChannelDiscountFactor = (value: unknown, fallback = 1): number =>
 
 const PRESET_CONTRACT_CODES: MockSalesChannelContractCode[] = [
   {
-    code: "DGMAIN299",
+    code: "XY0001",
     channelName: "星澜集团渠道",
     discountFactor: 1,
     codeQuota: 120,
@@ -81,7 +81,7 @@ const PRESET_CONTRACT_CODES: MockSalesChannelContractCode[] = [
     ownerPhone: "13800000001",
     priceVersions: [
       {
-        id: "DGMAIN299-v1",
+        id: "XY0001-v1",
         operationLabel: "create",
         codeQuota: 120,
         unitPriceAmount: 299,
@@ -98,7 +98,7 @@ const PRESET_CONTRACT_CODES: MockSalesChannelContractCode[] = [
     unitPriceAmount: 299,
   },
   {
-    code: "SALES299",
+    code: "XS0001",
     channelName: "直营销售",
     discountFactor: 1,
     codeQuota: 80,
@@ -106,7 +106,7 @@ const PRESET_CONTRACT_CODES: MockSalesChannelContractCode[] = [
     ownerPhone: "13800008881",
     priceVersions: [
       {
-        id: "SALES299-v1",
+        id: "XS0001-v1",
         operationLabel: "create",
         codeQuota: 80,
         unitPriceAmount: 299,
@@ -123,7 +123,7 @@ const PRESET_CONTRACT_CODES: MockSalesChannelContractCode[] = [
     unitPriceAmount: 299,
   },
   {
-    code: "CHANNEL299",
+    code: "HD0001",
     channelName: "华东渠道",
     discountFactor: 1,
     codeQuota: 60,
@@ -131,7 +131,7 @@ const PRESET_CONTRACT_CODES: MockSalesChannelContractCode[] = [
     ownerPhone: "13900008882",
     priceVersions: [
       {
-        id: "CHANNEL299-v1",
+        id: "HD0001-v1",
         operationLabel: "create",
         codeQuota: 60,
         unitPriceAmount: 329,
@@ -148,7 +148,7 @@ const PRESET_CONTRACT_CODES: MockSalesChannelContractCode[] = [
     unitPriceAmount: 329,
   },
   {
-    code: "EXPIRED299",
+    code: "LS0001",
     channelName: "历史渠道",
     discountFactor: 1,
     codeQuota: 30,
@@ -156,7 +156,7 @@ const PRESET_CONTRACT_CODES: MockSalesChannelContractCode[] = [
     ownerPhone: "13700008883",
     priceVersions: [
       {
-        id: "EXPIRED299-v1",
+        id: "LS0001-v1",
         operationLabel: "create",
         codeQuota: 30,
         unitPriceAmount: 399,
@@ -254,7 +254,7 @@ export const buildMockSubscriptionPlanBenefitTexts = (
       ? [
           `${spec.title} ${formatSeatUnitPrice(spec.priceAmount, spec.validityUnit)}`,
           `${spec.title}赠送 ${spec.giftPoints.toLocaleString("zh-CN")} 积分`,
-          ...(spec.contractPriceEnabled ? [`${spec.title}支持渠道码单价`] : []),
+          ...(spec.contractPriceEnabled ? [`${spec.title}支持渠道码每席优惠`] : []),
         ]
       : [],
   ),
@@ -1012,7 +1012,7 @@ const getPromotionIsActive = (): boolean =>
 const getPlanBillingConfig = (
   plan: MockSubscriptionPlanTemplate,
   billingCycle: MockSubscriptionBillingCycle,
-  contractCodeUnitPrice?: number,
+  contractCodeDiscountAmount?: number,
 ): {
   giftPoints: number;
   priceAmount: number;
@@ -1025,8 +1025,11 @@ const getPlanBillingConfig = (
     return {
       giftPoints: matchedSpec.giftPoints,
       priceAmount:
-        matchedSpec.contractPriceEnabled && typeof contractCodeUnitPrice === "number"
-          ? Math.max(Math.floor(contractCodeUnitPrice), 0)
+        matchedSpec.contractPriceEnabled && typeof contractCodeDiscountAmount === "number"
+          ? Math.max(
+              matchedSpec.priceAmount - Math.max(Math.floor(contractCodeDiscountAmount), 0),
+              0,
+            )
           : matchedSpec.priceAmount,
       validityCount: matchedSpec.validityCount,
       validityUnit: matchedSpec.validityUnit,
@@ -1138,7 +1141,7 @@ const getContractCodeStatusLabel = (
     return "渠道码已停用";
   }
 
-  return `已应用渠道码单价（¥${matchedCode.unitPriceAmount.toLocaleString("zh-CN")} / 席）`;
+  return `已应用渠道码每席优惠（¥${matchedCode.unitPriceAmount.toLocaleString("zh-CN")} / 席）`;
 };
 
 const resolveEnterpriseQualification = (
@@ -1506,13 +1509,13 @@ export const getMockSubscriptionPlanPurchaseOption = (
         enterpriseQualified: false,
         ruleMessage: "",
       };
-  const contractCodeUnitPrice = qualification.enterpriseQualified
+  const contractCodeDiscountAmount = qualification.enterpriseQualified
     ? matchedCode?.unitPriceAmount
     : undefined;
   const cycleConfig = getPlanBillingConfig(
     selectedPlan,
     normalizedInput.billingCycle,
-    contractCodeUnitPrice,
+    contractCodeDiscountAmount,
   );
   const originalCycleConfig = getPlanBillingConfig(selectedPlan, normalizedInput.billingCycle);
   const expiryInfo = getAlignedExpiryInfo(cycleConfig, tenantSnapshot, purchaseMode);

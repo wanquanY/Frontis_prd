@@ -812,8 +812,8 @@ export const OperationsSeatPackagePanel = ({
             ) : null}
             {activeSpecConfig?.contractPriceEnabled ? (
               <div className={billingStyles.previewRow}>
-                <span>签约价</span>
-                <strong>按渠道折扣计算</strong>
+                <span>渠道码优惠</span>
+                <strong>按渠道每席优惠抵扣</strong>
               </div>
             ) : null}
           </div>
