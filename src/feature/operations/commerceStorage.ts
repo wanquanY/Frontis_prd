@@ -24,6 +24,7 @@ const cloneProduct = (item: OperationsProduct): OperationsProduct => ({
   billingScopes: item.billingScopes ? [...item.billingScopes] : ["points"],
   storeZones: item.storeZones?.length ? [...item.storeZones] : item.storeZone ? [item.storeZone] : [],
   plazaCategoryByZone: item.plazaCategoryByZone ? { ...item.plazaCategoryByZone } : {},
+  tags: item.tags ? [...item.tags] : [],
 });
 
 const cloneFulfillment = (item: OperationsFulfillment): OperationsFulfillment => ({
@@ -111,6 +112,7 @@ const normalizeAgentSubscriptionProduct = (
     contactMode: product.contactMode ?? "disabled",
     contactQrCodeValue: product.contactQrCodeValue?.trim() ?? "",
     contactRemark: product.contactRemark?.trim() ?? "",
+    tags: product.tags ? [...product.tags] : [],
     storeZones: product.storeZones?.length
       ? [...product.storeZones]
       : product.storeZone

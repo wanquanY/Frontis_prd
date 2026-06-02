@@ -4,7 +4,6 @@ import type { FrontisUserRole, FrontisWebRole, FrontisWebUserItem } from "@/page
 import { MANAGEMENT_CONSOLE_LABEL, PRODUCT_NAME } from "@/constants/brand";
 import {
   DEFAULT_TENANT_ROLE_IDS,
-  DAGUAN_SALES_PERMISSION_IDS,
   DEPARTMENT_LEAD_PERMISSION_IDS,
   MANAGEMENT_PERMISSION_IDS,
   OPERATIONS_AGENT_REVIEWER_PERMISSION_IDS,
@@ -47,7 +46,6 @@ const DEFAULT_MOCK_VERIFICATION_CODE = "123456";
 const DEFAULT_MOCK_PASSWORD = "Frontis@2026";
 const NEW_USER_ACCOUNT_ROLE_LABEL = "新用户";
 const ENTERPRISE_WORKSPACE_LABEL = `${PRODUCT_NAME}工作台`;
-const DAGUAN_SALES_LABEL = "大观销售";
 const OPERATIONS_CONSOLE_LABEL = "运营管理平台";
 const OPERATIONS_TENANT: MockTenantInfo = {
   id: "platform-operations",
@@ -67,15 +65,12 @@ const DEFAULT_MEMBER_ASSIGNED_WORKSPACE_IDS =
 const PLATFORM_ORDER: Record<MockIdentityPlatform, number> = {
   enterpriseWorkspace: 0,
   enterpriseAdmin: 1,
-  daguanSales: 2,
-  operationsAdmin: 3,
+  operationsAdmin: 2,
 };
 const ROLE_ORDER: Record<MockAuthRole, number> = {
   employee: 0,
   admin: 1,
 };
-const DAGUAN_SALES_PERMISSION_SET = new Set<string>(Object.values(DAGUAN_SALES_PERMISSION_IDS));
-
 interface MockTenantInfo {
   id: string;
   name: string;
@@ -257,30 +252,6 @@ const buildWorkspaceIdentity = (
   });
 };
 
-const buildDaguanSalesIdentity = (
-  tenant: MockTenantInfo,
-  subjectId: string,
-  subjectName: string,
-  role: FrontisUserRole,
-): MockAuthIdentity =>
-  buildIdentity({
-    id: `${subjectId}-${tenant.id}-daguan-sales`,
-    subjectId,
-    subjectName,
-    tenantId: tenant.id,
-    tenantName: tenant.name,
-    tenantCode: tenant.code,
-    platform: "daguanSales",
-    platformLabel: DAGUAN_SALES_LABEL,
-    permissionIds: getPermissionIdsByUserRole(role).filter(permissionId =>
-      DAGUAN_SALES_PERMISSION_SET.has(permissionId),
-    ),
-    role: getWorkspaceRole(role),
-    roleLabel: getRoleLabel(role),
-    description: `进入 ${tenant.name} 的${DAGUAN_SALES_LABEL}，生成和管理渠道码。`,
-    entryPath: "/web/sales",
-  });
-
 const buildOperationsIdentity = (
   identityId: string,
   operationsAccountId: string,
@@ -368,10 +339,7 @@ const buildTenantAccount = (
   options: BuildMockAccountOptions,
 ): MockAuthAccount => {
   const tenant = options.tenant ?? ENTERPRISE_TENANT;
-  const identities = [
-    buildWorkspaceIdentity(tenant, userId, name, role),
-    buildDaguanSalesIdentity(tenant, userId, name, role),
-  ];
+  const identities = [buildWorkspaceIdentity(tenant, userId, name, role)];
 
   return {
     accountId: options.accountId,
@@ -399,7 +367,7 @@ const applyInitialPermissionTemplateToTenantAccount = (
   return {
     ...account,
     identities: account.identities.map(identity => {
-      if (identity.platform !== "enterpriseWorkspace" && identity.platform !== "daguanSales") {
+      if (identity.platform !== "enterpriseWorkspace") {
         return identity;
       }
 
@@ -407,12 +375,7 @@ const applyInitialPermissionTemplateToTenantAccount = (
         ...identity,
         permissionIds: [...normalizedPermissionIds],
         roleLabel: roleLabel ?? identity.roleLabel,
-        entryPath:
-          identity.platform === "daguanSales"
-            ? identity.entryPath
-            : hasAdminAccess
-              ? "/web/admin/workspace"
-              : "/web/employee",
+        entryPath: hasAdminAccess ? "/web/admin/workspace" : "/web/employee",
       };
     }),
   };
@@ -706,21 +669,6 @@ export const MULTI_TENANT_MOCK_ACCOUNT: MockAuthAccount = {
       },
     ),
     buildMultiTenantIdentity(
-      "multi-tenant-enterprise-employee-sales",
-      MULTI_TENANT_ENTERPRISE_WORKSPACE_TENANT,
-      {
-        subjectId: "user-member-001",
-        subjectName: "王晨",
-        platform: "daguanSales",
-        platformLabel: DAGUAN_SALES_LABEL,
-        permissionIds: Object.values(DAGUAN_SALES_PERMISSION_IDS),
-        role: "employee",
-        roleLabel: "租户成员",
-        description: `以租户成员身份进入华东运营租户的${DAGUAN_SALES_LABEL}。`,
-        entryPath: "/web/sales",
-      },
-    ),
-    buildMultiTenantIdentity(
       "multi-tenant-enterprise-admin",
       MULTI_TENANT_ENTERPRISE_ADMIN_TENANT,
       {
@@ -733,21 +681,6 @@ export const MULTI_TENANT_MOCK_ACCOUNT: MockAuthAccount = {
         roleLabel: "租户管理员",
         description: `以租户管理员身份进入集团租户的${PRODUCT_NAME}工作台，并继续进入${MANAGEMENT_CONSOLE_LABEL}。`,
         entryPath: "/web/admin/workspace",
-      },
-    ),
-    buildMultiTenantIdentity(
-      "multi-tenant-enterprise-admin-sales",
-      MULTI_TENANT_ENTERPRISE_ADMIN_TENANT,
-      {
-        subjectId: "user-admin-001",
-        subjectName: "杨万泉",
-        platform: "daguanSales",
-        platformLabel: DAGUAN_SALES_LABEL,
-        permissionIds: Object.values(DAGUAN_SALES_PERMISSION_IDS),
-        role: "admin",
-        roleLabel: "租户管理员",
-        description: `以租户管理员身份进入集团租户的${DAGUAN_SALES_LABEL}。`,
-        entryPath: "/web/sales",
       },
     ),
     buildOperationsIdentity(
@@ -1306,10 +1239,6 @@ const getTargetPlatformByPath = (redirectPath?: string): MockIdentityPlatform | 
     return "enterpriseWorkspace";
   }
 
-  if (normalizedRedirectPath.startsWith("/web/sales")) {
-    return "daguanSales";
-  }
-
   if (normalizedRedirectPath.startsWith("/web/admin")) {
     return "enterpriseAdmin";
   }
@@ -1381,18 +1310,10 @@ const isRedirectAllowedForIdentity = (
       return normalizedRedirectPath.startsWith("/ops");
     }
 
-    if (identity.platform === "daguanSales") {
-      return normalizedRedirectPath.startsWith("/web/sales");
-    }
-
     return (
       normalizedRedirectPath.startsWith("/web/admin") ||
       normalizedRedirectPath.startsWith("/web/employee")
     );
-  }
-
-  if (identity.platform === "daguanSales") {
-    return normalizedRedirectPath.startsWith("/web/sales");
   }
 
   return normalizedRedirectPath.startsWith("/web/employee");

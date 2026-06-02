@@ -3,21 +3,10 @@ import {
   getMockTenantManagementSnapshot,
   saveMockTenantManagementSnapshot,
 } from "@/feature/auth/mockTenantRegistry";
-import { formatSalesDateTime } from "@/feature/sales/salesDateFormat";
-import {
-  parseSalesLeadCode,
-  resolveMainCodeFromContractInput,
-} from "@/feature/sales/salesCodeFormat";
-import { activateSalesLeadCode, loadSalesLeadCodes } from "@/feature/sales/salesStorage";
-import type { SalesLeadCode } from "@/feature/sales/types";
 
 import type {
-  MockSalesChannelContractCode,
-  MockSalesChannelContractCodeInput,
-  MockSalesChannelContractCodePriceVersion,
   MockSelfServeSubscriptionPlanKey,
   MockSubscriptionBillingCycle,
-  MockSubscriptionCustomerTier,
   MockSubscriptionPlanKey,
   MockSubscriptionPlanScope,
   MockSubscriptionPlanPurchaseInput,
@@ -30,15 +19,10 @@ import type {
   MockSubscriptionValidityUnit,
 } from "./types";
 
-const MOCK_CONTRACT_CODE_STORAGE_KEY = "frontis.mock.sales-channel-contract-codes";
 const MOCK_SUBSCRIPTION_PLAN_STORAGE_KEY = "frontis.mock.team-seat-packages.v2";
 const MOCK_SUBSCRIPTION_TODAY = "2026-05-25";
-const MOCK_PROMOTION_ENDS_AT = "2026-08-25";
 const PRO_MONTHLY_SEAT_PRICE = 39;
 const PRO_YEARLY_SEAT_PRICE = 399;
-const ENTERPRISE_MINIMUM_SEATS_AFTER_PROMOTION = 10;
-const DEFAULT_CHANNEL_CODE_QUOTA = 200;
-const DEFAULT_CHANNEL_CODE_UNIT_PRICE = 299;
 const TEAM_SEAT_PACKAGE_KEY = "team-seat-package";
 const INTERNAL_SEAT_PACKAGE_KEY = "internal-offline-seat-package";
 const MONTHLY_SEAT_SPEC_KEY = "monthly-seat-package";
@@ -53,7 +37,6 @@ const LEGACY_SUBSCRIPTION_PLAN_KEYS = new Set([
 ]);
 
 type CreateMockSubscriptionPlanPayload = MockSubscriptionPlanTemplateInput;
-type CreateMockSalesChannelContractCodePayload = MockSalesChannelContractCodeInput;
 
 interface DateParts {
   day: number;
@@ -65,138 +48,6 @@ const VALIDITY_UNIT_LABELS: Record<MockSubscriptionValidityUnit, string> = {
   month: "月",
   year: "年",
 };
-
-const normalizeChannelDiscountFactor = (value: unknown, fallback = 1): number => {
-  const discountFactor = typeof value === "number" && Number.isFinite(value) ? value : fallback;
-
-  return Math.max(Math.min(discountFactor, 1), 0.01);
-};
-
-const PRESET_CONTRACT_CODES: MockSalesChannelContractCode[] = [
-  {
-    code: "XY0001",
-    channelName: "星澜集团渠道",
-    discountFactor: 1,
-    codeQuota: 120,
-    ownerName: "杨万泉",
-    ownerPhone: "13800000001",
-    priceVersions: [
-      {
-        id: "XY0001-v1",
-        operationLabel: "create",
-        codeQuota: 40,
-        unitPriceAmount: 299,
-        createdAt: "2026-05-20 09:00:00",
-      },
-      {
-        id: "XY0001-v2",
-        operationLabel: "appendQuota",
-        codeQuota: 80,
-        unitPriceAmount: 299,
-        createdAt: "2026-05-24 10:30:00",
-      },
-      {
-        id: "XY0001-v3",
-        operationLabel: "appendQuota",
-        codeQuota: 120,
-        unitPriceAmount: 299,
-        createdAt: "2026-05-29 09:00:00",
-      },
-    ],
-    tenantId: "tenant-enterprise-hq",
-    tenantName: "星澜服饰集团租户",
-    salesMemberId: "user-admin-001",
-    salesMemberName: "杨万泉",
-    salesMemberPhone: "13800000001",
-    status: "active",
-    serviceLabel: "大观销售签约跟进、团队版开通协同",
-    unitPriceAmount: 299,
-  },
-  {
-    code: "XS0001",
-    channelName: "直营销售",
-    discountFactor: 1,
-    codeQuota: 80,
-    ownerName: "王晨",
-    ownerPhone: "13800008881",
-    priceVersions: [
-      {
-        id: "XS0001-v1",
-        operationLabel: "create",
-        codeQuota: 30,
-        unitPriceAmount: 299,
-        createdAt: "2026-05-21 11:00:00",
-      },
-      {
-        id: "XS0001-v2",
-        operationLabel: "appendQuota",
-        codeQuota: 80,
-        unitPriceAmount: 299,
-        createdAt: "2026-05-29 09:00:00",
-      },
-    ],
-    tenantId: "ops-tenant-frontis",
-    tenantName: "Frontis 官方演示租户",
-    salesMemberId: "tenant-member-frontis-admin",
-    salesMemberName: "杨万泉",
-    salesMemberPhone: "13800000001",
-    status: "active",
-    serviceLabel: "专属销售跟进、Agent 定制化需求对接",
-    unitPriceAmount: 299,
-  },
-  {
-    code: "HD0001",
-    channelName: "华东渠道",
-    discountFactor: 1,
-    codeQuota: 60,
-    ownerName: "李婷",
-    ownerPhone: "13900008882",
-    priceVersions: [
-      {
-        id: "HD0001-v1",
-        operationLabel: "create",
-        codeQuota: 20,
-        unitPriceAmount: 329,
-        createdAt: "2026-05-22 15:00:00",
-      },
-      {
-        id: "HD0001-v2",
-        operationLabel: "appendQuota",
-        codeQuota: 60,
-        unitPriceAmount: 329,
-        createdAt: "2026-05-29 09:00:00",
-      },
-    ],
-    tenantId: "ops-tenant-yuedong",
-    tenantName: "悦动科技",
-    salesMemberId: "tenant-member-yuedong-admin",
-    salesMemberName: "陈思远",
-    salesMemberPhone: "13900000002",
-    status: "active",
-    serviceLabel: "渠道专属售后、Agent 定制化需求对接",
-    unitPriceAmount: 329,
-  },
-  {
-    code: "LS0001",
-    channelName: "历史渠道",
-    discountFactor: 1,
-    codeQuota: 30,
-    ownerName: "赵立",
-    ownerPhone: "13700008883",
-    priceVersions: [
-      {
-        id: "LS0001-v1",
-        operationLabel: "create",
-        codeQuota: 30,
-        unitPriceAmount: 399,
-        createdAt: "2026-05-29 09:00:00",
-      },
-    ],
-    status: "inactive",
-    serviceLabel: "已停用渠道码",
-    unitPriceAmount: 399,
-  },
-];
 
 /**
  * 格式化订阅包有效期展示文案。
@@ -224,7 +75,7 @@ const createPresetSubscriptionPlanSpecs = (): MockSubscriptionPlanSpec[] => [
     giftPoints: 1000,
     validityCount: 1,
     validityUnit: "month",
-    contractPriceEnabled: true,
+    contractPriceEnabled: false,
     contractPriceAmount: 0,
   },
   {
@@ -237,7 +88,7 @@ const createPresetSubscriptionPlanSpecs = (): MockSubscriptionPlanSpec[] => [
     giftPoints: 12000,
     validityCount: 1,
     validityUnit: "year",
-    contractPriceEnabled: true,
+    contractPriceEnabled: false,
     contractPriceAmount: 0,
   },
 ];
@@ -252,10 +103,6 @@ const getMockSubscriptionPlanSpecs = (
   plan.specs.length > 0
     ? plan.specs.map(cloneSubscriptionPlanSpec)
     : createPresetSubscriptionPlanSpecs();
-
-const getEnabledMockSubscriptionPlanSpecs = (
-  plan: MockSubscriptionPlanTemplate,
-): MockSubscriptionPlanSpec[] => getMockSubscriptionPlanSpecs(plan).filter(item => item.enabled);
 
 /**
  * 根据团队席位包配置生成运营侧展示信息。
@@ -283,7 +130,6 @@ export const buildMockSubscriptionPlanBenefitTexts = (
       ? [
           `${spec.title} ${formatSeatUnitPrice(spec.priceAmount, spec.validityUnit)}`,
           `${spec.title}赠送 ${spec.giftPoints.toLocaleString("zh-CN")} 积分`,
-          ...(spec.contractPriceEnabled ? [`${spec.title}支持渠道码每席优惠`] : []),
         ]
       : [],
   ),
@@ -297,7 +143,7 @@ const PRESET_SUBSCRIPTION_PLANS: MockSubscriptionPlanTemplate[] = [
     seatCount: 1,
     monthlyEnabled: true,
     yearlyEnabled: true,
-    contractYearlyEnabled: true,
+    contractYearlyEnabled: false,
     monthlyPriceAmount: PRO_MONTHLY_SEAT_PRICE,
     yearlyPriceAmount: PRO_YEARLY_SEAT_PRICE,
     contractYearlyPriceAmount: 0,
@@ -401,12 +247,6 @@ const readPlanScope = (
   fallback: MockSubscriptionPlanScope,
 ): MockSubscriptionPlanScope => (value === "internal" || value === "public" ? value : fallback);
 
-const readContractCodeStatus = (
-  value: unknown,
-  fallback: MockSalesChannelContractCode["status"],
-): MockSalesChannelContractCode["status"] =>
-  value === "inactive" || value === "active" ? value : fallback;
-
 const readValidityUnit = (
   value: unknown,
   fallback: MockSubscriptionValidityUnit,
@@ -438,7 +278,7 @@ const buildLegacyPlanSpecs = (
     validityCount: plan.monthlyValidityCount,
     validityUnit: "month",
     contractPriceEnabled: false,
-    contractPriceAmount: Math.max(Math.floor(plan.monthlyPriceAmount * 0.8), 0),
+    contractPriceAmount: 0,
   },
   {
     key: YEARLY_SEAT_SPEC_KEY,
@@ -450,8 +290,8 @@ const buildLegacyPlanSpecs = (
     giftPoints: plan.yearlyGiftPoints,
     validityCount: plan.yearlyValidityCount,
     validityUnit: "year",
-    contractPriceEnabled: plan.contractYearlyEnabled,
-    contractPriceAmount: plan.contractYearlyPriceAmount,
+    contractPriceEnabled: false,
+    contractPriceAmount: 0,
   },
 ];
 
@@ -484,8 +324,8 @@ const normalizePlanSpec = (
     giftPoints: readNumber(spec.giftPoints, fallbackSpec.giftPoints),
     validityCount: readNumber(spec.validityCount, fallbackSpec.validityCount),
     validityUnit: readValidityUnit(spec.validityUnit, fallbackSpec.validityUnit),
-    contractPriceEnabled: readBoolean(spec.contractPriceEnabled, fallbackSpec.contractPriceEnabled),
-    contractPriceAmount: readNumber(spec.contractPriceAmount, fallbackSpec.contractPriceAmount),
+    contractPriceEnabled: false,
+    contractPriceAmount: 0,
   };
 };
 
@@ -539,159 +379,20 @@ const applySpecsToLegacyFields = (
 ): MockSubscriptionPlanTemplate => {
   const monthlySpec = specs.find(item => item.billingCycle === "monthly") ?? specs[0];
   const yearlySpec = specs.find(item => item.billingCycle === "yearly") ?? specs[1] ?? specs[0];
-  const contractSpec = yearlySpec ?? monthlySpec;
-
   return {
     ...plan,
     specs: specs.map(cloneSubscriptionPlanSpec),
     monthlyEnabled: monthlySpec?.enabled ?? false,
     yearlyEnabled: yearlySpec?.enabled ?? false,
-    contractYearlyEnabled: contractSpec?.contractPriceEnabled ?? false,
+    contractYearlyEnabled: false,
     monthlyPriceAmount: monthlySpec?.priceAmount ?? plan.monthlyPriceAmount,
     yearlyPriceAmount: yearlySpec?.priceAmount ?? plan.yearlyPriceAmount,
-    contractYearlyPriceAmount: contractSpec?.contractPriceAmount ?? plan.contractYearlyPriceAmount,
+    contractYearlyPriceAmount: 0,
     monthlyGiftPoints: monthlySpec?.giftPoints ?? plan.monthlyGiftPoints,
     yearlyGiftPoints: yearlySpec?.giftPoints ?? plan.yearlyGiftPoints,
     monthlyValidityCount: monthlySpec?.validityCount ?? plan.monthlyValidityCount,
     yearlyValidityCount: yearlySpec?.validityCount ?? plan.yearlyValidityCount,
   };
-};
-
-const normalizeContractCode = (code: string): string => code.trim().toUpperCase();
-
-const cloneContractCode = (
-  contractCode: MockSalesChannelContractCode,
-): MockSalesChannelContractCode => ({
-  ...contractCode,
-  priceVersions: contractCode.priceVersions.map(item => ({ ...item })),
-});
-
-const createInitialPriceVersion = (
-  contractCode: Pick<MockSalesChannelContractCode, "code" | "codeQuota" | "unitPriceAmount">,
-): MockSalesChannelContractCodePriceVersion => ({
-  id: `${contractCode.code}-v-${Date.now()}`,
-  operationLabel: "create",
-  codeQuota: contractCode.codeQuota,
-  unitPriceAmount: contractCode.unitPriceAmount,
-  createdAt: formatSalesDateTime(),
-});
-
-const normalizePriceVersions = (
-  value: unknown,
-  fallbackCode: MockSalesChannelContractCode,
-  allowEmpty = false,
-): MockSalesChannelContractCodePriceVersion[] => {
-  const versions = Array.isArray(value)
-    ? value
-        .map((item, index): MockSalesChannelContractCodePriceVersion | null => {
-          const version = readRecord(item);
-
-          if (!version) {
-            return null;
-          }
-
-          return {
-            id: readString(version.id, `${fallbackCode.code}-v-${index + 1}`).trim(),
-            operationLabel:
-              version.operationLabel === "appendQuota" ||
-              version.operationLabel === "updateUnitPrice" ||
-              version.operationLabel === "create"
-                ? version.operationLabel
-                : "create",
-            codeQuota: Math.max(
-              Math.floor(readNumber(version.codeQuota, fallbackCode.codeQuota)),
-              0,
-            ),
-            unitPriceAmount: Math.max(
-              Math.floor(readNumber(version.unitPriceAmount, fallbackCode.unitPriceAmount)),
-              0,
-            ),
-            createdAt: readString(version.createdAt, formatSalesDateTime()).trim(),
-          };
-        })
-        .filter((item): item is MockSalesChannelContractCodePriceVersion => Boolean(item))
-    : [];
-
-  if (versions.length) {
-    return versions;
-  }
-
-  return allowEmpty ? [] : [createInitialPriceVersion(fallbackCode)];
-};
-
-const normalizeStoredContractCode = (
-  value: unknown,
-  fallbackCode: MockSalesChannelContractCode,
-): MockSalesChannelContractCode => {
-  const contractCode = readRecord(value);
-
-  if (!contractCode) {
-    return cloneContractCode(fallbackCode);
-  }
-
-  return {
-    code: normalizeContractCode(readString(contractCode.code, fallbackCode.code)),
-    channelName: readString(contractCode.channelName, fallbackCode.channelName).trim(),
-    discountFactor: normalizeChannelDiscountFactor(
-      contractCode.discountFactor,
-      fallbackCode.discountFactor,
-    ),
-    codeQuota: Math.max(
-      Math.floor(
-        readNumber(contractCode.codeQuota, fallbackCode.codeQuota ?? DEFAULT_CHANNEL_CODE_QUOTA),
-      ),
-      0,
-    ),
-    ownerName: readString(contractCode.ownerName, fallbackCode.ownerName).trim(),
-    ownerPhone: readString(contractCode.ownerPhone, fallbackCode.ownerPhone ?? "").trim(),
-    priceVersions: normalizePriceVersions(
-      contractCode.priceVersions,
-      fallbackCode,
-      Array.isArray(contractCode.priceVersions),
-    ),
-    tenantId: readString(contractCode.tenantId, fallbackCode.tenantId ?? "").trim(),
-    tenantName: readString(contractCode.tenantName, fallbackCode.tenantName ?? "").trim(),
-    salesMemberId: readString(contractCode.salesMemberId, fallbackCode.salesMemberId ?? "").trim(),
-    salesMemberName: readString(
-      contractCode.salesMemberName,
-      fallbackCode.salesMemberName ?? "",
-    ).trim(),
-    salesMemberPhone: readString(
-      contractCode.salesMemberPhone,
-      fallbackCode.salesMemberPhone ?? "",
-    ).trim(),
-    status: readContractCodeStatus(contractCode.status, fallbackCode.status),
-    serviceLabel: readString(contractCode.serviceLabel, fallbackCode.serviceLabel).trim(),
-    unitPriceAmount: Math.max(
-      Math.floor(
-        readNumber(
-          contractCode.unitPriceAmount,
-          fallbackCode.unitPriceAmount ?? DEFAULT_CHANNEL_CODE_UNIT_PRICE,
-        ),
-      ),
-      0,
-    ),
-  };
-};
-
-const createCustomFallbackContractCode = (value: unknown): MockSalesChannelContractCode | null => {
-  const contractCode = readRecord(value);
-
-  if (!contractCode || typeof contractCode.code !== "string") {
-    return null;
-  }
-
-  return normalizeStoredContractCode(contractCode, {
-    code: contractCode.code,
-    channelName: "",
-    discountFactor: 0.8,
-    codeQuota: DEFAULT_CHANNEL_CODE_QUOTA,
-    ownerName: "",
-    priceVersions: [],
-    status: "active",
-    serviceLabel: "",
-    unitPriceAmount: DEFAULT_CHANNEL_CODE_UNIT_PRICE,
-  });
 };
 
 const normalizeStoredPlan = (
@@ -717,10 +418,7 @@ const normalizeStoredPlan = (
     seatCount,
     monthlyEnabled: readBoolean(plan.monthlyEnabled, fallbackPlan.monthlyEnabled),
     yearlyEnabled: readBoolean(plan.yearlyEnabled, fallbackPlan.yearlyEnabled),
-    contractYearlyEnabled: readBoolean(
-      plan.contractYearlyEnabled,
-      fallbackPlan.contractYearlyEnabled,
-    ),
+    contractYearlyEnabled: false,
     monthlyPriceAmount: readNumber(
       plan.monthlyPriceAmount,
       legacyValidityUnit === "month" && legacyPriceAmount > 0
@@ -733,10 +431,7 @@ const normalizeStoredPlan = (
         ? legacyPriceAmount
         : fallbackPlan.yearlyPriceAmount,
     ),
-    contractYearlyPriceAmount: readNumber(
-      plan.contractYearlyPriceAmount,
-      fallbackPlan.contractYearlyPriceAmount,
-    ),
+    contractYearlyPriceAmount: 0,
     monthlyGiftPoints: readNumber(
       plan.monthlyGiftPoints,
       legacyValidityUnit === "month" ? legacyGiftPoints : fallbackPlan.monthlyGiftPoints,
@@ -787,16 +482,10 @@ const createCustomFallbackPlan = (
     seatCount: readNumber(plan.seatCount, fallbackPlan.seatCount),
     monthlyEnabled: readBoolean(plan.monthlyEnabled, fallbackPlan.monthlyEnabled),
     yearlyEnabled: readBoolean(plan.yearlyEnabled, fallbackPlan.yearlyEnabled),
-    contractYearlyEnabled: readBoolean(
-      plan.contractYearlyEnabled,
-      fallbackPlan.contractYearlyEnabled,
-    ),
+    contractYearlyEnabled: false,
     monthlyPriceAmount: readNumber(plan.monthlyPriceAmount, fallbackPlan.monthlyPriceAmount),
     yearlyPriceAmount: readNumber(plan.yearlyPriceAmount, fallbackPlan.yearlyPriceAmount),
-    contractYearlyPriceAmount: readNumber(
-      plan.contractYearlyPriceAmount,
-      fallbackPlan.contractYearlyPriceAmount,
-    ),
+    contractYearlyPriceAmount: 0,
     monthlyGiftPoints: readNumber(plan.monthlyGiftPoints, fallbackPlan.monthlyGiftPoints),
     yearlyGiftPoints: readNumber(plan.yearlyGiftPoints, fallbackPlan.yearlyGiftPoints),
     monthlyValidityCount: readNumber(plan.monthlyValidityCount, fallbackPlan.monthlyValidityCount),
@@ -833,26 +522,6 @@ const readStoredSubscriptionPlans = (): unknown[] => {
   }
 };
 
-const readStoredContractCodes = (): unknown[] => {
-  if (typeof window === "undefined") {
-    return [];
-  }
-
-  try {
-    const rawValue = window.localStorage.getItem(MOCK_CONTRACT_CODE_STORAGE_KEY);
-
-    if (!rawValue) {
-      return [];
-    }
-
-    const parsedValue = JSON.parse(rawValue) as unknown;
-
-    return Array.isArray(parsedValue) ? parsedValue.filter(Boolean) : [];
-  } catch {
-    return [];
-  }
-};
-
 const writeStoredSubscriptionPlans = (plans: MockSubscriptionPlanTemplate[]): void => {
   if (typeof window === "undefined") {
     return;
@@ -860,19 +529,6 @@ const writeStoredSubscriptionPlans = (plans: MockSubscriptionPlanTemplate[]): vo
 
   window.localStorage.setItem(MOCK_SUBSCRIPTION_PLAN_STORAGE_KEY, JSON.stringify(plans));
 };
-
-const writeStoredContractCodes = (contractCodes: MockSalesChannelContractCode[]): void => {
-  if (typeof window === "undefined") {
-    return;
-  }
-
-  window.localStorage.setItem(MOCK_CONTRACT_CODE_STORAGE_KEY, JSON.stringify(contractCodes));
-};
-
-const sortContractCodes = (
-  contractCodes: MockSalesChannelContractCode[],
-): MockSalesChannelContractCode[] =>
-  [...contractCodes].sort((leftItem, rightItem) => leftItem.code.localeCompare(rightItem.code));
 
 const sortSubscriptionPlans = (
   plans: MockSubscriptionPlanTemplate[],
@@ -950,120 +606,9 @@ export const getMockTenantActiveSubscriptionBillingCycle = (
   return getLatestPaidSubscriptionOrder(tenantSnapshot)?.billingCycle ?? null;
 };
 
-export const getMockTenantActiveSubscriptionContractCode = (
-  tenantSnapshot?: MockTenantManagementSnapshot | null,
-): string => {
-  if (!isDateAfter(tenantSnapshot?.planExpiresAt, MOCK_SUBSCRIPTION_TODAY)) {
-    return "";
-  }
-
-  return getLatestPaidSubscriptionOrder(tenantSnapshot)?.contractCode ?? "";
-};
-
-const findContractCode = (contractCode?: string): MockSalesChannelContractCode | null => {
-  const normalizedCode = resolveMainCodeFromContractInput(contractCode);
-
-  if (!normalizedCode) {
-    return null;
-  }
-
-  for (const item of getMockSalesChannelContractCodes()) {
-    if (item.code === normalizedCode) {
-      return item;
-    }
-  }
-
-  return null;
-};
-
-const parseMockSalesDateTime = (value: string | undefined): Date | null => {
-  if (!value) {
-    return null;
-  }
-
-  const parsedDate = new Date(value.replace(" ", "T"));
-
-  return Number.isNaN(parsedDate.getTime()) ? null : parsedDate;
-};
-
-const findSalesLeadCode = (contractCode: string | undefined): SalesLeadCode | null => {
-  const normalizedCode = contractCode?.trim().toUpperCase();
-
-  if (!normalizedCode) {
-    return null;
-  }
-
-  const exactMatchedCode =
-    loadSalesLeadCodes().find(item => item.fullCode.trim().toUpperCase() === normalizedCode) ??
-    null;
-
-  if (exactMatchedCode) {
-    return exactMatchedCode;
-  }
-
-  const parsedCode = parseSalesLeadCode(contractCode);
-
-  if (!parsedCode) {
-    return null;
-  }
-
-  return (
-    loadSalesLeadCodes().find(
-      item => item.fullCode.trim().toUpperCase() === parsedCode.fullCode,
-    ) ?? null
-  );
-};
-
-const getSalesLeadCodeStatus = (
-  contractCode: string | undefined,
-): "empty" | "invalid" | "used" | "expired" | "usable" => {
-  if (!contractCode?.trim()) {
-    return "empty";
-  }
-
-  const matchedLeadCode = findSalesLeadCode(contractCode);
-
-  if (!matchedLeadCode) {
-    return "invalid";
-  }
-
-  if (
-    matchedLeadCode.status === "used" ||
-    matchedLeadCode.status === ("effective" as typeof matchedLeadCode.status)
-  ) {
-    return "used";
-  }
-
-  if (
-    matchedLeadCode.status === "invalid" ||
-    matchedLeadCode.status === ("expired" as typeof matchedLeadCode.status)
-  ) {
-    return "expired";
-  }
-
-  const expiresAt = parseMockSalesDateTime(matchedLeadCode.expiredAt);
-
-  return expiresAt && expiresAt.getTime() <= Date.now() ? "expired" : "usable";
-};
-
-const getUsedContractSeatCount = (tenantMainCode: string): number =>
-  loadSalesLeadCodes()
-    .filter(item => {
-      if (item.tenantMainCode !== tenantMainCode) {
-        return false;
-      }
-
-      return item.status === "used" || item.status === ("effective" as typeof item.status);
-    })
-    .reduce((total, item) => total + Math.max(item.seatCount ?? 1, 1), 0);
-
-const getPromotionIsActive = (): boolean =>
-  toDate(MOCK_SUBSCRIPTION_TODAY).getTime() <= toDate(MOCK_PROMOTION_ENDS_AT).getTime();
-
 const getPlanBillingConfig = (
   plan: MockSubscriptionPlanTemplate,
   billingCycle: MockSubscriptionBillingCycle,
-  contractCodeDiscountAmount?: number,
 ): {
   giftPoints: number;
   priceAmount: number;
@@ -1075,13 +620,7 @@ const getPlanBillingConfig = (
   if (matchedSpec) {
     return {
       giftPoints: matchedSpec.giftPoints,
-      priceAmount:
-        matchedSpec.contractPriceEnabled && typeof contractCodeDiscountAmount === "number"
-          ? Math.max(
-              matchedSpec.priceAmount - Math.max(Math.floor(contractCodeDiscountAmount), 0),
-              0,
-            )
-          : matchedSpec.priceAmount,
+      priceAmount: matchedSpec.priceAmount,
       validityCount: matchedSpec.validityCount,
       validityUnit: matchedSpec.validityUnit,
     };
@@ -1162,225 +701,18 @@ const getConfiguredSubscriptionPlan = (): MockSubscriptionPlanTemplate =>
   getActiveMockSubscriptionPlanTemplates()[0] ??
   cloneSubscriptionPlan(PRESET_SUBSCRIPTION_PLANS[0]);
 
-const getContractCodeStatusLabel = (
-  contractCode: string | undefined,
-  matchedCode: MockSalesChannelContractCode | null,
-): string | undefined => {
-  if (!contractCode?.trim()) {
-    return undefined;
-  }
-
-  if (!matchedCode) {
-    return "渠道码无效";
-  }
-
-  const leadCodeStatus = getSalesLeadCodeStatus(contractCode);
-
-  if (leadCodeStatus === "used") {
-    return "渠道码已使用";
-  }
-
-  if (leadCodeStatus === "expired") {
-    return "渠道码已失效";
-  }
-
-  if (leadCodeStatus === "invalid") {
-    return "渠道码无效";
-  }
-
-  if (matchedCode.status !== "active") {
-    return "渠道码已停用";
-  }
-
-  return `已应用渠道码每席优惠（¥${matchedCode.unitPriceAmount.toLocaleString("zh-CN")} / 席）`;
-};
-
-const resolveEnterpriseQualification = (
-  input: MockSubscriptionPlanPurchaseInput,
-  matchedCode: MockSalesChannelContractCode | null,
-): {
-  customerTier: MockSubscriptionCustomerTier;
-  enterpriseQualified: boolean;
-  ruleMessage: string;
-} => {
-  if (!input.contractCode?.trim()) {
-    return {
-      customerTier: "pro",
-      enterpriseQualified: false,
-      ruleMessage: "",
-    };
-  }
-
-  if (!matchedCode || matchedCode.status !== "active") {
-    return {
-      customerTier: "pro",
-      enterpriseQualified: false,
-      ruleMessage: "",
-    };
-  }
-
-  const leadCodeStatus = getSalesLeadCodeStatus(input.contractCode);
-
-  if (leadCodeStatus !== "usable") {
-    return {
-      customerTier: "pro",
-      enterpriseQualified: false,
-      ruleMessage: "",
-    };
-  }
-
-  if (getUsedContractSeatCount(matchedCode.code) + input.seatCount > matchedCode.codeQuota) {
-    return {
-      customerTier: "pro",
-      enterpriseQualified: false,
-      ruleMessage: "当前渠道剩余席位不足",
-    };
-  }
-
-  if (!getPromotionIsActive() && input.seatCount < ENTERPRISE_MINIMUM_SEATS_AFTER_PROMOTION) {
-    return {
-      customerTier: "pro",
-      enterpriseQualified: false,
-      ruleMessage: `未达到渠道码优惠起订席位`,
-    };
-  }
-
-  return {
-    customerTier: "enterprise",
-    enterpriseQualified: true,
-    ruleMessage: "",
-  };
-};
-
-/**
- * 读取当前渠道码。
- */
-export const getMockSalesChannelContractCodes = (): MockSalesChannelContractCode[] => {
-  const storedCodes = readStoredContractCodes();
-  const presetCodes = new Set(PRESET_CONTRACT_CODES.map(item => item.code));
-  const normalizedPresetCodes = PRESET_CONTRACT_CODES.map(presetCode => {
-    const storedCode = storedCodes.find(item => {
-      const contractCode = readRecord(item);
-      const normalizedCode =
-        typeof contractCode?.code === "string" ? normalizeContractCode(contractCode.code) : "";
-
-      return normalizedCode === normalizeContractCode(presetCode.code);
-    });
-
-    return normalizeStoredContractCode(storedCode, presetCode);
-  });
-  const normalizedCustomCodes = storedCodes
-    .filter(item => {
-      const contractCode = readRecord(item);
-      const normalizedCode =
-        typeof contractCode?.code === "string" ? normalizeContractCode(contractCode.code) : "";
-
-      return normalizedCode && !presetCodes.has(normalizedCode);
-    })
-    .map(createCustomFallbackContractCode)
-    .filter((item): item is MockSalesChannelContractCode => Boolean(item));
-
-  return [...normalizedPresetCodes, ...sortContractCodes(normalizedCustomCodes)];
-};
-
-/**
- * 新建渠道码。
- */
-export const createMockSalesChannelContractCode = (
-  payload: CreateMockSalesChannelContractCodePayload,
-): MockSalesChannelContractCode[] => {
-  const nextCode = normalizeStoredContractCode(payload, payload);
-  const currentCodes = getMockSalesChannelContractCodes();
-  const nextCodes = sortContractCodes([
-    ...currentCodes.filter(item => item.code !== nextCode.code),
-    nextCode,
-  ]);
-
-  writeStoredContractCodes(nextCodes);
-
-  return nextCodes;
-};
-
-/**
- * 更新渠道码。
- */
-export const updateMockSalesChannelContractCode = (
-  code: string,
-  updates: Partial<CreateMockSalesChannelContractCodePayload>,
-): MockSalesChannelContractCode[] => {
-  const normalizedCurrentCode = normalizeContractCode(code);
-  const currentCodes = getMockSalesChannelContractCodes();
-  const nextCodes = currentCodes.map(item => {
-    if (item.code !== normalizedCurrentCode) {
-      return item;
-    }
-
-    const mergedCode = normalizeStoredContractCode(
-      {
-        ...item,
-        ...updates,
-        code:
-          typeof updates.code === "string"
-            ? normalizeContractCode(updates.code)
-            : normalizedCurrentCode,
-      },
-      item,
-    );
-    const shouldRecordQuotaVersion =
-      typeof updates.codeQuota === "number" && updates.codeQuota !== item.codeQuota;
-    const shouldRecordPriceVersion =
-      typeof updates.unitPriceAmount === "number" &&
-      updates.unitPriceAmount !== item.unitPriceAmount;
-    const priceVersionOperation: MockSalesChannelContractCodePriceVersion["operationLabel"] | null =
-      shouldRecordQuotaVersion
-        ? "appendQuota"
-        : shouldRecordPriceVersion
-          ? "updateUnitPrice"
-          : null;
-
-    if (!priceVersionOperation) {
-      return mergedCode;
-    }
-
-    return {
-      ...mergedCode,
-      priceVersions: [
-        ...mergedCode.priceVersions,
-        {
-          id: `${mergedCode.code}-v-${Date.now()}`,
-          operationLabel: priceVersionOperation,
-          codeQuota: mergedCode.codeQuota,
-          unitPriceAmount: mergedCode.unitPriceAmount,
-          createdAt: formatSalesDateTime(),
-        },
-      ],
-    };
-  });
-  const dedupedCodes = Array.from(new Map(nextCodes.map(item => [item.code, item])).values());
-
-  writeStoredContractCodes(sortContractCodes(dedupedCodes));
-
-  return sortContractCodes(dedupedCodes);
-};
-
 /**
  * 读取订阅策略摘要。
  */
 export const getMockSubscriptionPricingPolicy = (): {
-  enterpriseMinimumSeatsAfterPromotion: number;
-  enterpriseYearlySeatPrice: number;
   proMonthlySeatPrice: number;
   proYearlySeatPrice: number;
-  promotionEndsAt: string;
 } => {
   const packageTemplate = getConfiguredSubscriptionPlan();
 
   return {
-    enterpriseMinimumSeatsAfterPromotion: ENTERPRISE_MINIMUM_SEATS_AFTER_PROMOTION,
-    enterpriseYearlySeatPrice: packageTemplate.contractYearlyPriceAmount,
     proMonthlySeatPrice: packageTemplate.monthlyPriceAmount,
     proYearlySeatPrice: packageTemplate.yearlyPriceAmount,
-    promotionEndsAt: MOCK_PROMOTION_ENDS_AT,
   };
 };
 
@@ -1426,10 +758,10 @@ export const createMockSubscriptionPlanTemplate = (
     seatCount: payload.seatCount,
     monthlyEnabled: payload.monthlyEnabled,
     yearlyEnabled: payload.yearlyEnabled,
-    contractYearlyEnabled: payload.contractYearlyEnabled,
+    contractYearlyEnabled: false,
     monthlyPriceAmount: payload.monthlyPriceAmount,
     yearlyPriceAmount: payload.yearlyPriceAmount,
-    contractYearlyPriceAmount: payload.contractYearlyPriceAmount,
+    contractYearlyPriceAmount: 0,
     monthlyGiftPoints: payload.monthlyGiftPoints,
     yearlyGiftPoints: payload.yearlyGiftPoints,
     monthlyValidityCount: payload.monthlyValidityCount,
@@ -1471,13 +803,10 @@ export const updateMockSubscriptionPlanTemplate = (
       seatCount,
       monthlyEnabled: readBoolean(updates.monthlyEnabled, item.monthlyEnabled),
       yearlyEnabled: readBoolean(updates.yearlyEnabled, item.yearlyEnabled),
-      contractYearlyEnabled: readBoolean(updates.contractYearlyEnabled, item.contractYearlyEnabled),
+      contractYearlyEnabled: false,
       monthlyPriceAmount: readNumber(updates.monthlyPriceAmount, item.monthlyPriceAmount),
       yearlyPriceAmount: readNumber(updates.yearlyPriceAmount, item.yearlyPriceAmount),
-      contractYearlyPriceAmount: readNumber(
-        updates.contractYearlyPriceAmount,
-        item.contractYearlyPriceAmount,
-      ),
+      contractYearlyPriceAmount: 0,
       monthlyGiftPoints: readNumber(updates.monthlyGiftPoints, item.monthlyGiftPoints),
       yearlyGiftPoints: readNumber(updates.yearlyGiftPoints, item.yearlyGiftPoints),
       monthlyValidityCount: readNumber(updates.monthlyValidityCount, item.monthlyValidityCount),
@@ -1536,50 +865,18 @@ export const getMockSubscriptionPlanPurchaseOption = (
     return null;
   }
 
-  const activeContractCode =
-    selectedSpec.contractPriceEnabled && purchaseMode === "addSeats"
-      ? getMockTenantActiveSubscriptionContractCode(tenantSnapshot)
-      : "";
-  const effectiveContractCode = input.contractCode?.trim().toUpperCase() || activeContractCode;
-  const matchedLeadCode = findSalesLeadCode(effectiveContractCode);
-  const leadCodeStatus = getSalesLeadCodeStatus(effectiveContractCode);
-  const fixedContractSeatCount =
-    leadCodeStatus === "usable" && matchedLeadCode
-      ? Math.max(Math.floor(matchedLeadCode.seatCount ?? 1), 1)
-      : null;
-  const hasContractCodeInput = Boolean(selectedSpec.contractPriceEnabled && effectiveContractCode);
   const seatCount =
     purchaseMode === "renew"
       ? Math.max(Math.floor(tenantSnapshot?.totalSeats ?? input.seatCount), 1)
-      : (fixedContractSeatCount ??
-        (hasContractCodeInput ? 1 : Math.max(Math.floor(input.seatCount), 1)));
+      : Math.max(Math.floor(input.seatCount), 1);
   const normalizedInput: MockSubscriptionPlanPurchaseInput = {
     billingCycle: effectiveBillingCycle,
-    contractCode: selectedSpec.contractPriceEnabled ? effectiveContractCode : "",
     purchaseMode,
     seatCount,
   };
-  const contractCodeEnabled = selectedSpec.contractPriceEnabled;
-  const matchedCode = contractCodeEnabled ? findContractCode(normalizedInput.contractCode) : null;
-  const qualification = contractCodeEnabled
-    ? resolveEnterpriseQualification(normalizedInput, matchedCode)
-    : {
-        customerTier: "pro" as MockSubscriptionCustomerTier,
-        enterpriseQualified: false,
-        ruleMessage: "",
-      };
-  const contractCodeDiscountAmount = qualification.enterpriseQualified
-    ? matchedCode?.unitPriceAmount
-    : undefined;
-  const cycleConfig = getPlanBillingConfig(
-    selectedPlan,
-    normalizedInput.billingCycle,
-    contractCodeDiscountAmount,
-  );
-  const originalCycleConfig = getPlanBillingConfig(selectedPlan, normalizedInput.billingCycle);
+  const cycleConfig = getPlanBillingConfig(selectedPlan, normalizedInput.billingCycle);
   const expiryInfo = getAlignedExpiryInfo(cycleConfig, tenantSnapshot, purchaseMode);
-  const originalUnitPrice = originalCycleConfig.priceAmount;
-  const originalAmount = Math.ceil(originalUnitPrice * seatCount * expiryInfo.prorationRate);
+  const originalAmount = Math.ceil(cycleConfig.priceAmount * seatCount * expiryInfo.prorationRate);
   const amount = Math.ceil(cycleConfig.priceAmount * seatCount * expiryInfo.prorationRate);
   const planLabel = selectedSpec.title;
   const validityLabel = formatMockSubscriptionValidity(
@@ -1592,30 +889,22 @@ export const getMockSubscriptionPlanPurchaseOption = (
     planLabel,
     billingCycle: normalizedInput.billingCycle,
     billingCycleLabel: validityLabel,
-    contractCode: normalizedInput.contractCode || undefined,
-    contractCodeStatusLabel: getContractCodeStatusLabel(normalizedInput.contractCode, matchedCode),
-    customerTier: qualification.customerTier,
-    discountAmount: Math.max(originalAmount - amount, 0),
-    enterpriseQualified: qualification.enterpriseQualified,
+    discountAmount: 0,
     expiresAt: expiryInfo.expiresAt,
     originalAmount,
-    ownerName: qualification.enterpriseQualified ? matchedCode?.ownerName : undefined,
     priceLabel: formatSeatUnitPrice(cycleConfig.priceAmount, cycleConfig.validityUnit),
     purchaseMode,
     seatCount,
     seatLabel: purchaseMode === "renew" ? `续约 ${seatCount} 个席位` : `${seatCount} 个席位`,
-    serviceLabel: qualification.enterpriseQualified ? matchedCode?.serviceLabel : undefined,
     unitPrice: cycleConfig.priceAmount,
     giftPoints: cycleConfig.giftPoints,
-    channelName: qualification.enterpriseQualified ? matchedCode?.channelName : undefined,
     amount,
     prorationLabel: expiryInfo.prorationLabel,
-    ruleMessage: qualification.ruleMessage,
   };
 };
 
 /**
- * 按订阅购买快照更新租户。席位统一写入同一到期日，企业版由年付渠道码规则自动判定。
+ * 按订阅购买快照更新租户。席位统一写入同一到期日。
  */
 export const applyMockSubscriptionPlanToTenant = (
   tenantId: string,
@@ -1637,7 +926,6 @@ export const applyMockSubscriptionPlanToTenant = (
   }
 
   const timestamp = Date.now();
-  const activationTimestamp = formatSalesDateTime(new Date(timestamp));
   const nextTotalSeats =
     purchaseOption.purchaseMode === "renew"
       ? Math.max(matchedSnapshot.usedSeats, matchedSnapshot.totalSeats)
@@ -1676,11 +964,6 @@ export const applyMockSubscriptionPlanToTenant = (
     unitPrice: purchaseOption.unitPrice,
     originalAmount: purchaseOption.originalAmount,
     discountAmount: purchaseOption.discountAmount,
-    contractCode: purchaseOption.contractCode,
-    customerTier: purchaseOption.customerTier,
-    channelName: purchaseOption.channelName,
-    ownerName: purchaseOption.ownerName,
-    serviceLabel: purchaseOption.serviceLabel,
     expiresAt: purchaseOption.expiresAt,
     prorationLabel: purchaseOption.prorationLabel,
     purchaseMode: purchaseOption.purchaseMode,
@@ -1695,14 +978,6 @@ export const applyMockSubscriptionPlanToTenant = (
       : `${purchaseOption.planLabel}已开通，新增订阅席位 ${purchaseOption.seatCount} 个，到期时间 ${purchaseOption.expiresAt}${
           purchaseOption.prorationLabel ? `，${purchaseOption.prorationLabel}` : ""
         }。`;
-
-  activateSalesLeadCode(purchaseOption.contractCode, {
-    amount: purchaseOption.amount,
-    customerTenantName: matchedSnapshot.tenantName,
-    orderNo: subscriptionOrder.orderNo,
-    seatCount: purchaseOption.seatCount,
-    usedAt: activationTimestamp,
-  });
 
   return saveMockTenantManagementSnapshot({
     ...matchedSnapshot,

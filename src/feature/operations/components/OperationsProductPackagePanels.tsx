@@ -107,7 +107,7 @@ const createEmptySubscriptionPlanForm = (): SubscriptionPlanFormState => ({
       giftPoints: 1000,
       validityCount: 1,
       validityUnit: "month",
-      contractPriceEnabled: true,
+      contractPriceEnabled: false,
       contractPriceAmount: 0,
     },
     {
@@ -120,7 +120,7 @@ const createEmptySubscriptionPlanForm = (): SubscriptionPlanFormState => ({
       giftPoints: 12000,
       validityCount: 1,
       validityUnit: "year",
-      contractPriceEnabled: true,
+      contractPriceEnabled: false,
       contractPriceAmount: 0,
     },
   ],
@@ -136,15 +136,12 @@ const createSubscriptionPlanEditor = (): SubscriptionPlanEditorState => ({
 });
 
 const cloneSeatPackageSpecs = (specs: MockSubscriptionPlanSpec[]): MockSubscriptionPlanSpec[] =>
-  specs.map(item => ({ ...item }));
+  specs.map(item => ({ ...item, contractPriceAmount: 0, contractPriceEnabled: false }));
 
 const getSeatPackageSpecLabel = (
   specs: MockSubscriptionPlanSpec[],
   specKey: SeatPackageSpecKey,
 ): string => specs.find(item => item.key === specKey)?.title ?? "席位包规格";
-
-const getSeatPackageCycleLabel = (spec: MockSubscriptionPlanSpec): string =>
-  spec.billingCycleLabel || spec.title;
 
 const getSeatPackageSpecUnitLabel = (validityUnit: MockSubscriptionValidityUnit): string =>
   validityUnit === "month" ? "月" : "年";
@@ -196,12 +193,8 @@ const createSubscriptionPlanFormFromTemplate = (
 const normalizeSubscriptionPlanForm = (
   form: SubscriptionPlanFormState,
 ): MockSubscriptionPlanTemplateInput => ({
-  contractYearlyEnabled:
-    form.specs.find(item => item.billingCycle === "yearly")?.contractPriceEnabled ?? false,
-  contractYearlyPriceAmount: Math.max(
-    form.specs.find(item => item.billingCycle === "yearly")?.contractPriceAmount ?? 0,
-    0,
-  ),
+  contractYearlyEnabled: false,
+  contractYearlyPriceAmount: 0,
   monthlyEnabled: form.specs.find(item => item.billingCycle === "monthly")?.enabled ?? false,
   monthlyGiftPoints: Math.max(
     Math.floor(form.specs.find(item => item.billingCycle === "monthly")?.giftPoints ?? 0),
@@ -225,7 +218,8 @@ const normalizeSubscriptionPlanForm = (
     priceAmount: Math.max(spec.priceAmount, 0),
     giftPoints: Math.max(Math.floor(spec.giftPoints), 0),
     validityCount: Math.max(Math.floor(spec.validityCount), 1),
-    contractPriceAmount: Math.max(spec.contractPriceAmount, 0),
+    contractPriceAmount: 0,
+    contractPriceEnabled: false,
   })),
   status: form.status,
   title: form.title.trim(),
@@ -654,9 +648,6 @@ export const OperationsSeatPackagePanel = ({
                     {formatAmount(card.priceAmount)} / 席 /{" "}
                     {getSeatPackageSpecUnitLabel(card.validityUnit)}
                   </div>
-                  {card.contractPriceEnabled ? (
-                    <div className={billingStyles.planAudience}>支持渠道码优惠</div>
-                  ) : null}
                   <div className={billingStyles.subscriptionEffectList}>
                     <span>默认席位单位 {plan.seatCount}</span>
                     <span>赠送 {card.giftPoints.toLocaleString("zh-CN")} 积分</span>
@@ -783,22 +774,6 @@ export const OperationsSeatPackagePanel = ({
                 onChange={value => handleUpdateActiveSpec({ giftPoints: value ?? 0 })}
               />
             </div>
-            <div className={billingStyles.modalField}>
-              <span>启用签约价</span>
-              <Select<"active" | "inactive">
-                disabled={!activeSpecConfig?.enabled}
-                value={activeSpecConfig?.contractPriceEnabled ? "active" : "inactive"}
-                options={[
-                  { value: "active", label: "启用" },
-                  { value: "inactive", label: "停用" },
-                ]}
-                onChange={value =>
-                  handleUpdateActiveSpec({
-                    contractPriceEnabled: value === "active",
-                  })
-                }
-              />
-            </div>
           </div>
           <div className={billingStyles.previewPanel}>
             {activeSpecConfig ? (
@@ -808,12 +783,6 @@ export const OperationsSeatPackagePanel = ({
                   {formatAmount(Math.max(activeSpecConfig.priceAmount, 0))} / 席 /{" "}
                   {getSeatPackageSpecUnitLabel(activeSpecConfig.validityUnit)}
                 </strong>
-              </div>
-            ) : null}
-            {activeSpecConfig?.contractPriceEnabled ? (
-              <div className={billingStyles.previewRow}>
-                <span>渠道码优惠</span>
-                <strong>按渠道每席优惠抵扣</strong>
               </div>
             ) : null}
           </div>

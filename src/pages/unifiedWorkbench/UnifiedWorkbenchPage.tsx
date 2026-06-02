@@ -75,6 +75,7 @@ interface UnifiedWorkbenchNavItem {
 }
 
 const DEFAULT_TAB_KEY: UnifiedWorkbenchTabKey = "expertStudio";
+const MAX_CONVERSATION_NAV_TITLE_LENGTH = 18;
 const FrontisPage = lazy(() => import("@/pages/FrontisPage"));
 const EvolutionLabView = lazy(() =>
   import("@/feature/workbenchLab/components/EvolutionLabView").then(module => ({
@@ -93,6 +94,14 @@ const TAB_SEGMENTS: Record<UnifiedWorkbenchTabKey, string> = {
   teamExperts: "team-experts",
 };
 const MOBILE_WORKBENCH_BREAKPOINT = 900;
+const truncateConversationNavTitle = (title: string): string => {
+  const normalizedTitle = title.trim();
+
+  return normalizedTitle.length > MAX_CONVERSATION_NAV_TITLE_LENGTH
+    ? `${normalizedTitle.slice(0, MAX_CONVERSATION_NAV_TITLE_LENGTH)}...`
+    : normalizedTitle;
+};
+
 const TAB_ITEMS: UnifiedWorkbenchNavItem[] = [
   {
     key: "expertStudio",
@@ -840,62 +849,66 @@ export const UnifiedWorkbenchPage = ({ viewRole }: UnifiedWorkbenchPageProps): J
                           </button>
                           {isGroupCollapsed
                             ? null
-                            : visibleSessions.map(session => (
-                                <div
-                                  key={session.id}
-                                  className={classNames(styles.navConversationSession, {
-                                    [styles.navConversationSessionActive]: session.active,
-                                  })}
-                                >
-                                  <button
-                                    type="button"
-                                    className={styles.navConversationSessionMain}
-                                    title={session.title}
-                                    onClick={() => handleSelectConversationSession(session.id)}
+                            : visibleSessions.map(session => {
+                                const displayTitle = truncateConversationNavTitle(session.title);
+
+                                return (
+                                  <div
+                                    key={session.id}
+                                    className={classNames(styles.navConversationSession, {
+                                      [styles.navConversationSessionActive]: session.active,
+                                    })}
                                   >
-                                    <span className={styles.navConversationSessionTitle}>
-                                      {session.title}
-                                    </span>
-                                  </button>
-                                  <div className={styles.navConversationSessionTrailing}>
-                                    <span className={styles.navConversationSessionTime}>
-                                      {formatTaskRecordTime(session.updatedAt)}
-                                    </span>
-                                    <Dropdown
-                                      trigger={["click"]}
-                                      menu={{
-                                        items: [
-                                          {
-                                            key: "rename",
-                                            label: "重命名",
-                                            onClick: () =>
-                                              handleRenameConversationSession(
-                                                session.id,
-                                                session.title,
-                                              ),
-                                          },
-                                          {
-                                            key: "delete",
-                                            label: "删除",
-                                            danger: true,
-                                            onClick: () =>
-                                              handleRemoveConversationSession(session.id),
-                                          },
-                                        ],
-                                      }}
+                                    <button
+                                      type="button"
+                                      className={styles.navConversationSessionMain}
+                                      title={session.title}
+                                      onClick={() => handleSelectConversationSession(session.id)}
                                     >
-                                      <button
-                                        type="button"
-                                        className={styles.navConversationSessionAction}
-                                        aria-label="任务操作"
-                                        onClick={event => event.stopPropagation()}
+                                      <span className={styles.navConversationSessionTitle}>
+                                        {displayTitle}
+                                      </span>
+                                    </button>
+                                    <div className={styles.navConversationSessionTrailing}>
+                                      <span className={styles.navConversationSessionTime}>
+                                        {formatTaskRecordTime(session.updatedAt)}
+                                      </span>
+                                      <Dropdown
+                                        trigger={["click"]}
+                                        menu={{
+                                          items: [
+                                            {
+                                              key: "rename",
+                                              label: "重命名",
+                                              onClick: () =>
+                                                handleRenameConversationSession(
+                                                  session.id,
+                                                  session.title,
+                                                ),
+                                            },
+                                            {
+                                              key: "delete",
+                                              label: "删除",
+                                              danger: true,
+                                              onClick: () =>
+                                                handleRemoveConversationSession(session.id),
+                                            },
+                                          ],
+                                        }}
                                       >
-                                        <MoreOutlined />
-                                      </button>
-                                    </Dropdown>
+                                        <button
+                                          type="button"
+                                          className={styles.navConversationSessionAction}
+                                          aria-label="任务操作"
+                                          onClick={event => event.stopPropagation()}
+                                        >
+                                          <MoreOutlined />
+                                        </button>
+                                      </Dropdown>
+                                    </div>
                                   </div>
-                                </div>
-                              ))}
+                                );
+                              })}
                           {!isGroupCollapsed && hasMoreSessions ? (
                             <button
                               type="button"

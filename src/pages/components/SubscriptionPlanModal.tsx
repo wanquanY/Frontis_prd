@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 
-import { Button, Input, InputNumber, Modal } from "antd";
+import { Button, InputNumber, Modal } from "antd";
 import classNames from "classnames";
 
 import type { MockTenantManagementSnapshot } from "@/feature/auth/types";
@@ -9,7 +9,6 @@ import {
   getMockSubscriptionPlanTemplate,
   getMockSubscriptionPlanPurchaseOption,
   getMockTenantActiveSubscriptionBillingCycle,
-  getMockTenantActiveSubscriptionContractCode,
 } from "@/feature/subscription/mockSubscriptionPlans";
 import type {
   MockSubscriptionBillingCycle,
@@ -82,7 +81,7 @@ export const resolveSubscriptionPlanLabel = (
 };
 
 /**
- * 用户侧团队扩充弹窗，用于按席位购买 Pro，并通过年付渠道码自动判定企业版。
+ * 用户侧团队扩充弹窗，用于按席位购买 Pro 团队版。
  */
 export const SubscriptionPlanModal = ({
   currentPlanKey,
@@ -94,18 +93,13 @@ export const SubscriptionPlanModal = ({
 }: SubscriptionPlanModalProps): JSX.Element => {
   const [billingCycle, setBillingCycle] = useState<MockSubscriptionBillingCycle>("monthly");
   const [seatCount, setSeatCount] = useState<number>(1);
-  const [contractCode, setContractCode] = useState<string>("");
   const isRenewMode = purchaseMode === "renew";
   const lockedAddSeatBillingCycle = isRenewMode
     ? null
     : getMockTenantActiveSubscriptionBillingCycle(tenantSnapshot);
-  const lockedAddSeatContractCode = isRenewMode
-    ? ""
-    : getMockTenantActiveSubscriptionContractCode(tenantSnapshot);
   const purchasePreview = getMockSubscriptionPlanPurchaseOption(
     {
       billingCycle,
-      contractCode,
       purchaseMode,
       seatCount,
     },
@@ -114,25 +108,14 @@ export const SubscriptionPlanModal = ({
   const isCurrentLite = currentPlanKey === "lite";
   const defaultSeatCount = isRenewMode ? Math.max(tenantSnapshot?.totalSeats ?? 1, 1) : 1;
   const seatFieldLabel = isRenewMode ? "续约席位" : "新增席位";
-  const teamSeatPackage = useMemo(
-    () =>
-      getActiveMockSubscriptionPlanTemplates()[0] ??
-      getMockSubscriptionPlanTemplate("team-seat-package"),
-    [open],
-  );
-  const enabledSpecs = useMemo(
-    () => teamSeatPackage.specs.filter(item => item.enabled),
-    [teamSeatPackage.specs],
-  );
+  const teamSeatPackage =
+    getActiveMockSubscriptionPlanTemplates()[0] ??
+    getMockSubscriptionPlanTemplate("team-seat-package");
+  const enabledSpecs = teamSeatPackage.specs.filter(item => item.enabled);
   const defaultBillingCycle: MockSubscriptionBillingCycle =
     enabledSpecs[0]?.billingCycle ?? "monthly";
-  const activeBillingSpec =
-    enabledSpecs.find(item => item.billingCycle === billingCycle) ?? enabledSpecs[0] ?? null;
   const currentSeatCount = tenantSnapshot?.totalSeats ?? 1;
   const usedSeatCount = tenantSnapshot?.usedSeats ?? 1;
-  const isSeatCountLockedByContractCode = Boolean(
-    !isRenewMode && activeBillingSpec?.contractPriceEnabled && contractCode.trim(),
-  );
 
   useEffect(() => {
     if (!open) {
@@ -140,18 +123,13 @@ export const SubscriptionPlanModal = ({
     }
 
     const nextBillingCycle = lockedAddSeatBillingCycle ?? defaultBillingCycle;
-    const nextBillingSpec =
-      enabledSpecs.find(item => item.billingCycle === nextBillingCycle) ?? enabledSpecs[0] ?? null;
 
     setBillingCycle(nextBillingCycle);
     setSeatCount(defaultSeatCount);
-    setContractCode(nextBillingSpec?.contractPriceEnabled ? lockedAddSeatContractCode : "");
   }, [
     defaultBillingCycle,
     defaultSeatCount,
-    enabledSpecs,
     lockedAddSeatBillingCycle,
-    lockedAddSeatContractCode,
     open,
   ]);
 
@@ -167,10 +145,6 @@ export const SubscriptionPlanModal = ({
     }
 
     setBillingCycle(nextBillingCycle);
-
-    if (!nextBillingSpec.contractPriceEnabled) {
-      setContractCode("");
-    }
   };
 
   const handleSubmit = (): void => {
@@ -180,7 +154,6 @@ export const SubscriptionPlanModal = ({
 
     onSelectPlan({
       billingCycle,
-      contractCode: activeBillingSpec?.contractPriceEnabled ? contractCode : "",
       purchaseMode,
       seatCount: purchasePreview.seatCount,
     });
@@ -242,14 +215,6 @@ export const SubscriptionPlanModal = ({
                 </strong>
               </div>
             ))}
-            {enabledSpecs
-              .filter(spec => spec.contractPriceEnabled)
-              .map(spec => (
-                <div key={`${spec.key}-contract`}>
-                  <span>{spec.title}渠道码优惠</span>
-                  <strong>按渠道码每席抵扣</strong>
-                </div>
-              ))}
           </div>
           <div className={styles.purchaseForm}>
             <div className={styles.formField}>
@@ -260,12 +225,10 @@ export const SubscriptionPlanModal = ({
               <span className={styles.fieldLabel}>{seatFieldLabel}</span>
               <InputNumber
                 className={styles.fullWidthInput}
-                disabled={isRenewMode || isSeatCountLockedByContractCode}
+                disabled={isRenewMode}
                 min={1}
                 precision={0}
-                value={
-                  isSeatCountLockedByContractCode ? (purchasePreview?.seatCount ?? 1) : seatCount
-                }
+                value={seatCount}
                 onChange={value => setSeatCount(value ?? 1)}
               />
             </div>
@@ -288,16 +251,6 @@ export const SubscriptionPlanModal = ({
                 ))}
               </div>
             </div>
-            {activeBillingSpec?.contractPriceEnabled ? (
-              <div className={styles.formField}>
-                <span className={styles.fieldLabel}>渠道码</span>
-                <Input
-                  value={contractCode}
-                  placeholder="填写有效渠道码可自动判定企业版"
-                  onChange={event => setContractCode(event.target.value)}
-                />
-              </div>
-            ) : null}
           </div>
 
           {purchasePreview ? (
@@ -332,21 +285,6 @@ export const SubscriptionPlanModal = ({
                 <span>计费单价</span>
                 <strong>{purchasePreview.priceLabel}</strong>
               </div>
-              {purchasePreview.contractCodeStatusLabel ? (
-                <div className={styles.previewRow}>
-                  <span>渠道码</span>
-                  <strong>{purchasePreview.contractCodeStatusLabel}</strong>
-                </div>
-              ) : null}
-              {purchasePreview.ownerName ? (
-                <div className={styles.previewRow}>
-                  <span>签约负责人</span>
-                  <strong>{purchasePreview.ownerName}</strong>
-                </div>
-              ) : null}
-              {purchasePreview.ruleMessage ? (
-                <div className={styles.previewHint}>{purchasePreview.ruleMessage}</div>
-              ) : null}
               {purchasePreview.discountAmount > 0 ? (
                 <div className={styles.previewRow}>
                   <span>优惠金额</span>

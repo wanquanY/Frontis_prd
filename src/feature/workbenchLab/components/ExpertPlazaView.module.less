@@ -129,6 +129,23 @@
   }
 }
 
+.agentCardMainButton {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+
+  &:focus-visible {
+    border-radius: 8px;
+    outline: 2px solid var(--brand-primary);
+    outline-offset: 4px;
+  }
+}
+
 .cardHeader {
   display: grid;
   grid-template-columns: 58px minmax(0, 1fr);

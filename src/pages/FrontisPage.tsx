@@ -154,6 +154,39 @@ const PRODUCT_TEAM_COLLAB_QUESTION = "帮我把这个需求拆成核心模块、
 const PRODUCT_TEAM_RISK_QUESTION = "这版方案上线前，架构层面最需要提前规避哪些风险？";
 const META_AGENT_ONBOARDING_QUICK_PROMPT = "请根据我的信息生成公司宣传材料";
 
+const resolveFirstSentenceTitle = (content: string): string => {
+  const normalizedContent = content.replace(/\s+/g, " ").trim();
+  const matchedSentence = normalizedContent.match(/^[^。！？!?；;]+[。！？!?；;]?/u)?.[0]?.trim();
+
+  return matchedSentence || normalizedContent;
+};
+
+const resolveDialogueTitleFromFirstMessage = ({
+  attachmentName,
+  content,
+  skillName,
+}: {
+  attachmentName?: string;
+  content: string;
+  skillName?: string;
+}): string => {
+  const firstSentence = resolveFirstSentenceTitle(content);
+
+  if (firstSentence) {
+    return firstSentence;
+  }
+
+  if (attachmentName) {
+    return attachmentName;
+  }
+
+  if (skillName) {
+    return `${skillName}需求`;
+  }
+
+  return "新对话";
+};
+
 interface ExpertTeamDialogueRouting {
   mode: "primary" | "member" | "all";
   primaryEmployee: EmployeeItem;
@@ -2004,20 +2037,24 @@ const FrontisPage = ({
           scenarioQuestion,
           createId("dialogue-scenario"),
         );
-      const targetSessionId = isSingleThreadMetaAgentDialogue
+      const shouldStartNewDialogueSession = createNewSession || isDialogueHomeActive;
+      const shouldUseSingleThreadMetaAgentSession =
+        isSingleThreadMetaAgentDialogue && !shouldStartNewDialogueSession;
+      const targetSessionId = shouldUseSingleThreadMetaAgentSession
         ? (employeeDialogueSessions[0]?.id ?? META_AGENT_PRIMARY_SEED_SESSION_ID)
-        : !createNewSession && activeDialogueSession?.id
+        : !shouldStartNewDialogueSession && activeDialogueSession?.id
           ? activeDialogueSession.id
           : createId("dialogue-session");
-      const nextSessionTitle = isSingleThreadMetaAgentDialogue
+      const firstMessageTitle = resolveDialogueTitleFromFirstMessage({
+        attachmentName: dialogueAttachments[0]?.name,
+        content,
+        skillName: effectiveSelectedSkills[0]?.name,
+      });
+      const nextSessionTitle = shouldUseSingleThreadMetaAgentSession
         ? "ME 持续对话"
-        : (matchedScenario?.title ??
-          (content.length > 0
-            ? content.slice(0, 18)
-            : (dialogueAttachments[0]?.name ??
-              (effectiveSelectedSkills.length
-                ? `${effectiveSelectedSkills[0]?.name ?? "技能"}需求`
-                : "新对话"))));
+        : shouldStartNewDialogueSession
+          ? firstMessageTitle
+          : (matchedScenario?.title ?? firstMessageTitle);
       const messageAttachments =
         dialogueAttachments.length > 0 ? dialogueAttachments.map(buildAttachmentItem) : undefined;
       const userMessageContent = effectiveSelectedSkills.length
@@ -2284,6 +2321,7 @@ const FrontisPage = ({
       dialogueAttachments,
       employeeDialogueSessions,
       effectiveSelectedSkills,
+      isDialogueHomeActive,
       selectedSkillNamesLabel,
       selectedSkills.length,
       updateDialogueSession,
@@ -2291,8 +2329,8 @@ const FrontisPage = ({
   );
 
   const handleSendDialogue = useCallback((): void => {
-    commitDialogue(dialogueInputValue);
-  }, [commitDialogue, dialogueInputValue]);
+    commitDialogue(dialogueInputValue, isDialogueHomeActive);
+  }, [commitDialogue, dialogueInputValue, isDialogueHomeActive]);
 
   const handleSelectMetaAgentTrajectory = useCallback(
     (trajectoryId: string, anchorBlockId?: string): void => {
@@ -2352,9 +2390,9 @@ const FrontisPage = ({
         return;
       }
 
-      commitDialogue(question);
+      commitDialogue(question, isDialogueHomeActive);
     },
-    [commitDialogue, isDialogueResponding],
+    [commitDialogue, isDialogueHomeActive, isDialogueResponding],
   );
 
   const handleStopDialogue = useCallback((): void => {

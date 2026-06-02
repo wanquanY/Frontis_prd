@@ -52,12 +52,6 @@ const STANDARD_POINTS_ORDER_ACTIVITY_SNAPSHOT = {
   | "promotionEndsAt"
   | "totalPoints"
 >;
-const MOCK_LEGACY_CONTRACT_CODE_MAP: Record<string, string> = {
-  CHANNEL299: "HD0001-0012-897654",
-  DGMAIN299: "XY0001-0012-897654",
-  SALES299: "XS0001-0012-897654",
-};
-
 const isStandardPointsPackageOrder = (order: MockTenantPointsOrderItem): boolean =>
   order.packageId === "standard" || order.packageTitle === "标准积分包";
 
@@ -80,18 +74,9 @@ const normalizePointsOrderItem = (order: MockTenantPointsOrderItem): MockTenantP
       }
     : order;
 
-const normalizeSubscriptionOrderItem = (
-  order: MockTenantSubscriptionOrderItem,
-): MockTenantSubscriptionOrderItem => ({
-  ...order,
-  contractCode: order.contractCode
-    ? (MOCK_LEGACY_CONTRACT_CODE_MAP[order.contractCode] ?? order.contractCode)
-    : order.contractCode,
-});
-
 const buildSubscriptionOrderItem = (
   item: MockTenantSubscriptionOrderItem,
-): MockTenantSubscriptionOrderItem => normalizeSubscriptionOrderItem(item);
+): MockTenantSubscriptionOrderItem => item;
 
 const buildAgentUsageRecordItem = (
   item: MockTenantAgentUsageRecordItem,
@@ -453,7 +438,6 @@ const PRESET_TENANT_SNAPSHOTS: MockTenantManagementSnapshot[] = [
         unitPrice: 399,
         originalAmount: 9576,
         discountAmount: 0,
-        customerTier: "pro",
         expiresAt: "2027-04-22",
         purchaseMode: "renew",
       }),
@@ -596,8 +580,8 @@ const PRESET_TENANT_SNAPSHOTS: MockTenantManagementSnapshot[] = [
       buildSubscriptionOrderItem({
         id: "tenant-enterprise-hq-subscription-order-01",
         orderNo: "SUB-20260312-001",
-        planKey: "enterprise-contract-yearly",
-        planTitle: "企业版签约年付",
+        planKey: "team-20-yearly",
+        planTitle: "Pro 团队版年付",
         amount: 5980,
         seatCount: 20,
         billingCycleLabel: "年付",
@@ -608,14 +592,9 @@ const PRESET_TENANT_SNAPSHOTS: MockTenantManagementSnapshot[] = [
         createdAt: "2026-03-12 09:32",
         paidAt: "2026-03-12 09:35",
         billingCycle: "yearly",
-        unitPrice: 299,
+        unitPrice: 399,
         originalAmount: 7980,
-        discountAmount: 2000,
-        contractCode: "XS0001-0012-897654",
-        customerTier: "enterprise",
-        channelName: "直营销售",
-        ownerName: "王晨",
-        serviceLabel: "专属销售跟进、Agent 定制化需求对接",
+        discountAmount: 0,
         expiresAt: "2027-03-12",
         purchaseMode: "addSeats",
       }),
@@ -737,7 +716,6 @@ const PRESET_TENANT_SNAPSHOTS: MockTenantManagementSnapshot[] = [
         unitPrice: 39,
         originalAmount: 195,
         discountAmount: 0,
-        customerTier: "pro",
         expiresAt: "2026-06-15",
         purchaseMode: "addSeats",
       }),
@@ -878,7 +856,6 @@ const PRESET_TENANT_SNAPSHOTS: MockTenantManagementSnapshot[] = [
         unitPrice: 399,
         originalAmount: 399,
         discountAmount: 0,
-        customerTier: "pro",
         expiresAt: "2027-04-21",
         purchaseMode: "addSeats",
       }),
@@ -944,7 +921,6 @@ const PRESET_TENANT_SNAPSHOTS: MockTenantManagementSnapshot[] = [
         unitPrice: 39,
         originalAmount: 39,
         discountAmount: 0,
-        customerTier: "pro",
         expiresAt: "2026-06-15",
         purchaseMode: "addSeats",
       }),
@@ -1052,7 +1028,7 @@ const normalizeTenantSnapshot = (
           : undefined),
     planExpiresAt: snapshot.planExpiresAt ?? (nextEdition === "team" ? "2027-04-23" : undefined),
     pointsOrders: (snapshot.pointsOrders ?? []).map(normalizePointsOrderItem),
-    subscriptionOrders: (snapshot.subscriptionOrders ?? []).map(normalizeSubscriptionOrderItem),
+    subscriptionOrders: (snapshot.subscriptionOrders ?? []).map(buildSubscriptionOrderItem),
   };
 };
 

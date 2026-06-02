@@ -15,7 +15,6 @@ export type FrontisWebTabKey =
   | "automation"
   | "overview"
   | "points"
-  | "salesManagement"
   | "store"
   | "organization"
   | "roleManagement"

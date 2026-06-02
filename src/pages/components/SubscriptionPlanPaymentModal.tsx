@@ -186,21 +186,9 @@ export const SubscriptionPlanPaymentModal = ({
                     <strong>{plan.prorationLabel}</strong>
                   </div>
                 ) : null}
-                {plan.contractCode ? (
-                  <div className={styles.summaryRow}>
-                    <span>渠道码</span>
-                    <strong>{plan.contractCodeStatusLabel ?? plan.contractCode}</strong>
-                  </div>
-                ) : null}
-                {plan.ownerName ? (
-                  <div className={styles.summaryRow}>
-                    <span>签约负责人</span>
-                    <strong>{plan.ownerName}</strong>
-                  </div>
-                ) : null}
                 {plan.discountAmount > 0 ? (
                   <div className={styles.summaryRow}>
-                    <span>渠道码优惠</span>
+                    <span>优惠金额</span>
                     <strong>-¥{plan.discountAmount.toLocaleString("zh-CN")}</strong>
                   </div>
                 ) : null}
@@ -208,9 +196,6 @@ export const SubscriptionPlanPaymentModal = ({
                   <span>支付金额</span>
                   <strong className={styles.amount}>¥{plan.amount.toLocaleString("zh-CN")}</strong>
                 </div>
-                {plan.ruleMessage ? (
-                  <div className={styles.summaryHint}>{plan.ruleMessage}</div>
-                ) : null}
               </section>
 
               <section className={styles.paymentPanel}>

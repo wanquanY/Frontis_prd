@@ -44,10 +44,6 @@ import {
   saveStoredSkillCenterCategories,
 } from "@/feature/operations/skillCenterCategoryStorage";
 import {
-  loadStoredMyZoneCategories,
-  saveStoredMyZoneCategories,
-} from "@/feature/operations/myZoneCategoryStorage";
-import {
   OPERATIONS_AGENT_PLAZA_DEFAULT_CATEGORY,
   OPERATIONS_AGENT_STATUS_LABELS,
   OPERATIONS_INITIAL_AGENT_SUBMISSIONS,
@@ -81,15 +77,10 @@ import {
 import {
   applyMockSubscriptionPlanToTenant,
   createMockSubscriptionPlanTemplate,
-  createMockSalesChannelContractCode,
-  getMockSalesChannelContractCodes,
   getMockSubscriptionPlanTemplates,
-  updateMockSalesChannelContractCode,
   updateMockSubscriptionPlanTemplate,
 } from "@/feature/subscription/mockSubscriptionPlans";
 import type {
-  MockSalesChannelContractCode,
-  MockSalesChannelContractCodeInput,
   MockSubscriptionPlanKey,
   MockSubscriptionPlanPurchaseOption,
   MockSubscriptionPlanTemplate,
@@ -104,7 +95,6 @@ import type {
   OperationsMeteringProviderForm,
   OperationsModelService,
   OperationsModelServiceForm,
-  OperationsMyZoneCategoryOption,
   OperationsProduct,
   OperationsProductForm,
   OperationsProductSubscriptionPlan,
@@ -135,14 +125,12 @@ interface UseOperationsPlatformResult {
   agentStoreZones: OperationsAgentStoreZoneOption[];
   agentPlazaCategories: OperationsAgentPlazaCategoryOption[];
   skillCenterCategories: OperationsSkillCenterCategoryOption[];
-  myZoneCategories: OperationsMyZoneCategoryOption[];
   approvedAgentSubmissions: OperationsAgentSubmission[];
   approvedAgents: OperationsAgentSubmission[];
   products: OperationsProduct[];
   meteringProviders: OperationsMeteringProvider[];
   modelServices: OperationsModelService[];
   pointsPackages: MockPointsPackageOption[];
-  salesChannelContractCodes: MockSalesChannelContractCode[];
   subscriptionPlans: MockSubscriptionPlanTemplate[];
   pointsUsageRecords: OperationsPointsUsageRecord[];
   registrationStrategy: OperationsRegistrationStrategy;
@@ -188,11 +176,6 @@ interface UseOperationsPlatformResult {
   updateModelService: (modelId: string, form: OperationsModelServiceForm) => void;
   createPointsPackage: (payload: MockPointsPackageInput) => void;
   updatePointsPackage: (packageId: string, updates: MockPointsPackageUpdate) => void;
-  createSalesChannelContractCode: (payload: MockSalesChannelContractCodeInput) => void;
-  updateSalesChannelContractCode: (
-    code: string,
-    updates: Partial<MockSalesChannelContractCodeInput>,
-  ) => void;
   updateSubscriptionPlan: (
     planKey: MockSubscriptionPlanKey,
     updates: Partial<MockSubscriptionPlanTemplateInput>,
@@ -250,13 +233,6 @@ interface UseOperationsPlatformResult {
     categoryId: string,
     updates: Partial<Pick<OperationsSkillCenterCategoryOption, "name" | "sortOrder" | "status">>,
   ) => void;
-  createMyZoneCategory: (
-    payload: Pick<OperationsMyZoneCategoryOption, "name" | "sortOrder">,
-  ) => void;
-  updateMyZoneCategory: (
-    categoryId: string,
-    updates: Partial<Pick<OperationsMyZoneCategoryOption, "name" | "sortOrder" | "status">>,
-  ) => void;
 }
 
 const formatTimestamp = (): string => {
@@ -274,7 +250,6 @@ const buildTenantMemberId = (): string => `ops-tenant-member-${Date.now()}`;
 const buildProductId = (): string => `ops-product-${Date.now()}`;
 const buildAgentPlazaCategoryId = (): string => `ops-agent-plaza-category-${Date.now()}`;
 const buildSkillCenterCategoryId = (): string => `ops-skill-center-category-${Date.now()}`;
-const buildMyZoneCategoryId = (): string => `ops-my-zone-category-${Date.now()}`;
 const buildMeteringProviderId = (): string => `ops-metering-provider-${Date.now()}`;
 const buildModelServiceId = (): string => `ops-model-service-${Date.now()}`;
 const DEFAULT_ADMIN_SEAT_COUNT = 1;
@@ -500,6 +475,7 @@ const buildPendingProductFromSubmission = (
   identityName: submission.name,
   identityDescription: submission.description,
   usageGuide: "",
+  tags: [submission.plazaCategory ?? OPERATIONS_AGENT_PLAZA_DEFAULT_CATEGORY],
   subscriptionPlans: createDefaultAgentSubscriptionPlans(),
   supportsTrial: false,
   trialUnit: "day",
@@ -552,6 +528,7 @@ const buildProductFromForm = (
     identityName: form.identityName.trim(),
     identityDescription: form.identityDescription.trim(),
     usageGuide: form.usageGuide.trim(),
+    tags: form.tags,
     price: form.saleType === "free" ? 0 : useSubscriptionPlans ? undefined : form.price,
     subscriptionPlans: useSubscriptionPlans
       ? normalizeSubscriptionPlans(form.subscriptionPlans)
@@ -664,9 +641,6 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
   const [skillCenterCategories, setSkillCenterCategories] = useState<
     OperationsSkillCenterCategoryOption[]
   >(() => loadStoredSkillCenterCategories());
-  const [myZoneCategories, setMyZoneCategories] = useState<OperationsMyZoneCategoryOption[]>(() =>
-    loadStoredMyZoneCategories(),
-  );
   const [products, setProducts] = useState<OperationsProduct[]>(() =>
     loadStoredOperationsProducts(),
   );
@@ -682,9 +656,6 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
   const [pointsPackages, setPointsPackages] = useState<MockPointsPackageOption[]>(() =>
     getMockPointsPackages(),
   );
-  const [salesChannelContractCodes, setSalesChannelContractCodes] = useState<
-    MockSalesChannelContractCode[]
-  >(() => getMockSalesChannelContractCodes());
   const [subscriptionPlans, setSubscriptionPlans] = useState<MockSubscriptionPlanTemplate[]>(() =>
     getMockSubscriptionPlanTemplates(),
   );
@@ -717,10 +688,6 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
   useEffect(() => {
     saveStoredSkillCenterCategories(skillCenterCategories);
   }, [skillCenterCategories]);
-
-  useEffect(() => {
-    saveStoredMyZoneCategories(myZoneCategories);
-  }, [myZoneCategories]);
 
   useEffect(() => {
     saveStoredOperationsProducts(products);
@@ -1073,6 +1040,7 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
             identityName: form.identityName.trim(),
             identityDescription: form.identityDescription.trim(),
             usageGuide: form.usageGuide.trim(),
+            tags: form.tags,
             price: form.saleType === "free" ? 0 : useSubscriptionPlans ? undefined : form.price,
             subscriptionPlans: useSubscriptionPlans
               ? normalizeSubscriptionPlans(form.subscriptionPlans)
@@ -1172,20 +1140,6 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
   const updatePointsPackage = useCallback(
     (packageId: string, updates: MockPointsPackageUpdate): void => {
       setPointsPackages(updateMockPointsPackage(packageId, updates));
-    },
-    [],
-  );
-
-  const createSalesChannelContractCode = useCallback(
-    (payload: MockSalesChannelContractCodeInput): void => {
-      setSalesChannelContractCodes(createMockSalesChannelContractCode(payload));
-    },
-    [],
-  );
-
-  const updateSalesChannelContractCode = useCallback(
-    (code: string, updates: Partial<MockSalesChannelContractCodeInput>): void => {
-      setSalesChannelContractCodes(updateMockSalesChannelContractCode(code, updates));
     },
     [],
   );
@@ -1496,61 +1450,6 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
     [skillCenterCategories],
   );
 
-  const createMyZoneCategory = useCallback(
-    (payload: Pick<OperationsMyZoneCategoryOption, "name" | "sortOrder">): void => {
-      const updatedAt = formatTimestamp();
-
-      setMyZoneCategories(currentCategories =>
-        sortCategoryOptions([
-          ...currentCategories,
-          {
-            id: buildMyZoneCategoryId(),
-            name: payload.name.trim(),
-            sortOrder: payload.sortOrder,
-            status: "active",
-            updatedAt,
-          },
-        ]),
-      );
-    },
-    [],
-  );
-
-  const updateMyZoneCategory = useCallback(
-    (
-      categoryId: string,
-      updates: Partial<Pick<OperationsMyZoneCategoryOption, "name" | "sortOrder" | "status">>,
-    ): void => {
-      const currentCategory = myZoneCategories.find(item => item.id === categoryId) ?? null;
-
-      if (!currentCategory) {
-        return;
-      }
-
-      const updatedAt = formatTimestamp();
-      const nextName = updates.name?.trim() || currentCategory.name;
-
-      setMyZoneCategories(currentCategories =>
-        sortCategoryOptions(
-          currentCategories.map(item =>
-            item.id === categoryId
-              ? {
-                  ...item,
-                  ...updates,
-                  name: nextName,
-                  sortOrder:
-                    typeof updates.sortOrder === "number" ? updates.sortOrder : item.sortOrder,
-                  status: updates.status ?? item.status,
-                  updatedAt,
-                }
-              : item,
-          ),
-        ),
-      );
-    },
-    [myZoneCategories],
-  );
-
   const emptyTenantForm = useMemo<OperationsTenantForm>(
     () => createEmptyOperationsTenantForm(),
     [],
@@ -1566,14 +1465,12 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
     agentStoreZones,
     agentPlazaCategories,
     skillCenterCategories,
-    myZoneCategories,
     approvedAgentSubmissions,
     approvedAgents: approvedAgentSubmissions,
     products,
     meteringProviders,
     modelServices,
     pointsPackages,
-    salesChannelContractCodes,
     subscriptionPlans,
     pointsUsageRecords,
     registrationStrategy,
@@ -1613,8 +1510,6 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
     updateModelService,
     createPointsPackage,
     updatePointsPackage,
-    createSalesChannelContractCode,
-    updateSalesChannelContractCode,
     updateSubscriptionPlan,
     createSubscriptionPlan,
     applyTenantSubscriptionPlan,
@@ -1627,7 +1522,5 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
     updateAgentStoreZone,
     createSkillCenterCategory,
     updateSkillCenterCategory,
-    createMyZoneCategory,
-    updateMyZoneCategory,
   };
 };

@@ -105,12 +105,6 @@ const hasDerivedSystemAccessPermission = (
     );
   }
 
-  if (systemAccessPermissionId === SYSTEM_ACCESS_PERMISSION_IDS.sales) {
-    return SYSTEM_ACCESS_DERIVED_PERMISSION_IDS.sales.some(permissionId =>
-      normalizedPermissionIds.includes(permissionId),
-    );
-  }
-
   return false;
 };
 
@@ -133,10 +127,6 @@ export const hasAnyPermission = (permissionIds: string[], targetPermissionIds: s
 export const getSystemAccessPermissionId = (identity: MockAuthIdentity): string => {
   if (identity.platform === "operationsAdmin") {
     return SYSTEM_ACCESS_PERMISSION_IDS.operations;
-  }
-
-  if (identity.platform === "daguanSales") {
-    return SYSTEM_ACCESS_PERMISSION_IDS.sales;
   }
 
   if (identity.entryPath.startsWith("/web/admin")) {

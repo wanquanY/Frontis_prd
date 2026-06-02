@@ -31,17 +31,12 @@ export type MockSubscriptionValidityUnit = "month" | "year";
 export type MockSubscriptionBillingCycle = string;
 
 /**
- * 订阅购买后判定的客户版本。
- */
-export type MockSubscriptionCustomerTier = "pro" | "enterprise";
-
-/**
  * 订阅开通订单状态。
  */
 export type MockSubscriptionOrderStatus = MockTenantPointsOrderStatus;
 
 /**
- * 平台团队席位包售卖规格。席位包只配置是否启用渠道码优惠，最终价格按渠道码每席优惠金额抵扣。
+ * 平台团队席位包售卖规格。席位包售卖后影响席位容量、赠送积分和席位有效期。
  */
 export interface MockSubscriptionPlanSpec {
   key: string;
@@ -53,8 +48,9 @@ export interface MockSubscriptionPlanSpec {
   giftPoints: number;
   validityCount: number;
   validityUnit: MockSubscriptionValidityUnit;
+  /** 历史原型字段，仅用于兼容旧本地数据；当前版本不展示也不参与计价。 */
   contractPriceEnabled: boolean;
-  /** 历史原型字段，仅用于兼容旧本地数据；新价格逻辑不再读取该金额。 */
+  /** 历史原型字段，仅用于兼容旧本地数据；当前版本不展示也不参与计价。 */
   contractPriceAmount: number;
 }
 
@@ -104,41 +100,6 @@ export type MockSubscriptionPlanTemplateInput = Pick<
   | "status"
 >;
 
-export interface MockSalesChannelContractCodePriceVersion {
-  codeQuota: number;
-  createdAt: string;
-  id: string;
-  operationLabel: "create" | "appendQuota" | "updateUnitPrice";
-  unitPriceAmount: number;
-}
-
-/**
- * 渠道总码。渠道总码是渠道码三段格式中的第一段，负责承载渠道额度和每席优惠规则。
- */
-export interface MockSalesChannelContractCode {
-  code: string;
-  channelName: string;
-  /** 历史原型字段，仅用于兼容旧本地数据；新渠道码价格不再读取该系数。 */
-  discountFactor: number;
-  codeQuota: number;
-  ownerName: string;
-  ownerPhone?: string;
-  priceVersions: MockSalesChannelContractCodePriceVersion[];
-  salesMemberId?: string;
-  salesMemberName?: string;
-  salesMemberPhone?: string;
-  status: "active" | "inactive";
-  serviceLabel: string;
-  tenantId?: string;
-  tenantName?: string;
-  unitPriceAmount: number;
-}
-
-/**
- * 运营后台维护渠道码时提交的配置。
- */
-export type MockSalesChannelContractCodeInput = MockSalesChannelContractCode;
-
 /**
  * Pro 席位购买输入。
  */
@@ -146,7 +107,6 @@ export type MockSubscriptionPurchaseMode = "addSeats" | "renew";
 
 export interface MockSubscriptionPlanPurchaseInput {
   billingCycle: MockSubscriptionBillingCycle;
-  contractCode?: string;
   purchaseMode?: MockSubscriptionPurchaseMode;
   seatCount: number;
 }
@@ -159,24 +119,16 @@ export interface MockSubscriptionPlanPurchaseOption {
   planLabel: string;
   billingCycle: MockSubscriptionBillingCycle;
   billingCycleLabel: string;
-  contractCode?: string;
-  contractCodeStatusLabel?: string;
-  customerTier: MockSubscriptionCustomerTier;
   discountAmount: number;
-  enterpriseQualified: boolean;
   expiresAt: string;
   originalAmount: number;
-  ownerName?: string;
   priceLabel: string;
   purchaseMode: MockSubscriptionPurchaseMode;
   seatCount: number;
   seatLabel: string;
-  serviceLabel?: string;
   unitPrice: number;
   giftPoints: number;
-  channelName?: string;
   amount: number;
   paymentChannelLabel?: string;
   prorationLabel?: string;
-  ruleMessage: string;
 }

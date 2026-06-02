@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 
-import { Button, Input, InputNumber, Modal, Select, message } from "antd";
+import { Button, InputNumber, Modal, Select, message } from "antd";
 import classNames from "classnames";
 
 import { getMockTenantManagementSnapshot } from "@/feature/auth/mockTenantRegistry";
@@ -12,7 +12,6 @@ import type { OperationsTenant } from "@/feature/operations/types";
 import {
   getMockSubscriptionPlanPurchaseOption,
   getMockTenantActiveSubscriptionBillingCycle,
-  getMockTenantActiveSubscriptionContractCode,
 } from "@/feature/subscription/mockSubscriptionPlans";
 import type {
   MockSubscriptionBillingCycle,
@@ -24,7 +23,6 @@ import styles from "./OperationsBillingConsole.module.less";
 
 interface TenantPlanEditorState {
   billingCycle: MockSubscriptionBillingCycle;
-  contractCode: string;
   open: boolean;
   seatCount: number;
   tenantId?: string;
@@ -76,7 +74,6 @@ const getTenantSubscriptionStatus = (
 
 const createTenantPlanEditor = (tenantId?: string): TenantPlanEditorState => ({
   billingCycle: "monthly",
-  contractCode: "",
   open: Boolean(tenantId),
   seatCount: 1,
   tenantId,
@@ -106,14 +103,10 @@ export const OperationsBillingConsole = ({
   const lockedTenantBillingCycle = getMockTenantActiveSubscriptionBillingCycle(
     selectedTenantRecord?.snapshot,
   );
-  const lockedTenantContractCode = getMockTenantActiveSubscriptionContractCode(
-    selectedTenantRecord?.snapshot,
-  );
   const purchasePreview = tenantPlanEditor.tenantId
     ? getMockSubscriptionPlanPurchaseOption(
         {
           billingCycle: tenantPlanEditor.billingCycle,
-          contractCode: tenantPlanEditor.contractCode,
           seatCount: tenantPlanEditor.seatCount,
         },
         selectedTenantRecord?.snapshot,
@@ -128,14 +121,8 @@ export const OperationsBillingConsole = ({
     setTenantPlanEditor(current => ({
       ...current,
       billingCycle: lockedTenantBillingCycle,
-      contractCode: lockedTenantContractCode,
     }));
-  }, [
-    lockedTenantBillingCycle,
-    lockedTenantContractCode,
-    tenantPlanEditor.open,
-    tenantPlanEditor.tenantId,
-  ]);
+  }, [lockedTenantBillingCycle, tenantPlanEditor.open, tenantPlanEditor.tenantId]);
 
   const handleSubmitTenantPlan = (): void => {
     if (!tenantPlanEditor.tenantId || !purchasePreview) {
@@ -177,8 +164,6 @@ export const OperationsBillingConsole = ({
                 <th>席位</th>
                 <th>付费周期</th>
                 <th>最近订单</th>
-                <th>渠道码</th>
-                <th>负责人</th>
                 <th>到期时间</th>
                 <th>状态</th>
                 <th>操作</th>
@@ -211,8 +196,6 @@ export const OperationsBillingConsole = ({
                         "-"
                       )}
                     </td>
-                    <td>{latestOrder?.contractCode ?? "-"}</td>
-                    <td>{latestOrder?.ownerName ?? "-"}</td>
                     <td>{item.snapshot?.planExpiresAt ?? "-"}</td>
                     <td>
                       <span className={buildStatusClassName(subscriptionStatus.tone)}>
@@ -264,15 +247,11 @@ export const OperationsBillingConsole = ({
                 const nextBillingCycle = getMockTenantActiveSubscriptionBillingCycle(
                   nextRecord?.snapshot,
                 );
-                const nextContractCode = getMockTenantActiveSubscriptionContractCode(
-                  nextRecord?.snapshot,
-                );
 
                 setTenantPlanEditor(current => ({
                   ...current,
                   tenantId,
                   billingCycle: nextBillingCycle ?? current.billingCycle,
-                  contractCode: nextContractCode,
                 }));
               }}
             />
@@ -306,25 +285,10 @@ export const OperationsBillingConsole = ({
                   setTenantPlanEditor(current => ({
                     ...current,
                     billingCycle,
-                    contractCode: billingCycle === "monthly" ? "" : current.contractCode,
                   }))
                 }
               />
             </div>
-            {tenantPlanEditor.billingCycle === "yearly" ? (
-              <div className={styles.modalField}>
-                <span>渠道码</span>
-                <Input
-                  value={tenantPlanEditor.contractCode}
-                  onChange={event =>
-                    setTenantPlanEditor(current => ({
-                      ...current,
-                      contractCode: event.target.value,
-                    }))
-                  }
-                />
-              </div>
-            ) : null}
           </div>
           {purchasePreview ? (
             <div className={styles.previewPanel}>
@@ -346,19 +310,10 @@ export const OperationsBillingConsole = ({
                   <strong>{purchasePreview.prorationLabel}</strong>
                 </div>
               ) : null}
-              {purchasePreview.ownerName ? (
-                <div className={styles.previewRow}>
-                  <span>签约负责人</span>
-                  <strong>{purchasePreview.ownerName}</strong>
-                </div>
-              ) : null}
               <div className={styles.previewRow}>
                 <span>支付金额</span>
                 <strong>{formatAmount(purchasePreview.amount)}</strong>
               </div>
-              {purchasePreview.ruleMessage ? (
-                <div className={styles.previewHint}>{purchasePreview.ruleMessage}</div>
-              ) : null}
             </div>
           ) : null}
         </div>

@@ -57,7 +57,6 @@ export const SYSTEM_ACCESS_PERMISSION_IDS = {
   workspace: "system.workspace.access",
   admin: "system.admin.access",
   operations: "system.ops.access",
-  sales: "system.sales.access",
 } as const;
 
 export const OPERATIONS_PERMISSION_IDS = {
@@ -65,7 +64,6 @@ export const OPERATIONS_PERMISSION_IDS = {
   organizationManage: "ops.organization.manage",
   roleManage: "ops.role.manage",
   billingManage: "ops.billing.manage",
-  channelManage: "ops.channel.manage",
   pointsManage: "ops.points.manage",
   orderManage: "ops.order.manage",
   productManage: "ops.product.manage",
@@ -78,14 +76,9 @@ export const MANAGEMENT_PERMISSION_IDS = {
   dashboardView: "admin.dashboard.view",
   channelManage: "admin.channel.manage",
   pointsManage: "admin.points.manage",
-  salesManage: "admin.sales.manage",
   agentManage: "admin.agent.manage",
   organizationManage: "admin.organization.manage",
   roleManage: "admin.role.manage",
-} as const;
-
-export const DAGUAN_SALES_PERMISSION_IDS = {
-  generateContractCode: "sales.contractCode.generate",
 } as const;
 
 export const TENANT_PERMISSION_IDS = {
@@ -164,11 +157,6 @@ const MANAGEMENT_PERMISSION_MENUS: TenantRolePermissionMenu[] = [
   },
   {
     displayMode: "leaf",
-    title: "销售管理",
-    items: [{ id: MANAGEMENT_PERMISSION_IDS.salesManage, label: "销售管理" }],
-  },
-  {
-    displayMode: "leaf",
     title: "AI 专家管理",
     items: [{ id: MANAGEMENT_PERMISSION_IDS.agentManage, label: "AI 专家管理" }],
   },
@@ -220,11 +208,6 @@ const OPERATIONS_PERMISSION_MENUS: TenantRolePermissionMenu[] = [
   },
   {
     displayMode: "leaf",
-    title: "渠道管理",
-    items: [{ id: OPERATIONS_PERMISSION_IDS.channelManage, label: "渠道管理" }],
-  },
-  {
-    displayMode: "leaf",
     title: "订单中心",
     items: [{ id: OPERATIONS_PERMISSION_IDS.orderManage, label: "订单中心" }],
   },
@@ -237,13 +220,6 @@ const OPERATIONS_PERMISSION_MENUS: TenantRolePermissionMenu[] = [
     displayMode: "leaf",
     title: "运营配置",
     items: [{ id: OPERATIONS_PERMISSION_IDS.platformConfig, label: "运营配置" }],
-  },
-];
-
-const DAGUAN_SALES_PERMISSION_MENUS: TenantRolePermissionMenu[] = [
-  {
-    title: "大观销售",
-    items: [{ id: DAGUAN_SALES_PERMISSION_IDS.generateContractCode, label: "生成渠道码" }],
   },
 ];
 
@@ -263,10 +239,6 @@ export const TENANT_ROLE_PERMISSION_GROUPS: TenantRolePermissionGroup[] = [
     title: "运营管理平台",
     menus: OPERATIONS_PERMISSION_MENUS,
   },
-  {
-    title: "大观销售",
-    menus: DAGUAN_SALES_PERMISSION_MENUS,
-  },
 ];
 
 export const TENANT_ROLE_PERMISSION_IDS: string[] = TENANT_ROLE_PERMISSION_GROUPS.flatMap(group =>
@@ -280,7 +252,6 @@ export const SYSTEM_ACCESS_DERIVED_PERMISSION_IDS: Record<
   workspace: WORKSPACE_PERMISSION_MENUS.flatMap(menu => menu.items.map(item => item.id)),
   admin: MANAGEMENT_PERMISSION_MENUS.flatMap(menu => menu.items.map(item => item.id)),
   operations: OPERATIONS_PERMISSION_MENUS.flatMap(menu => menu.items.map(item => item.id)),
-  sales: DAGUAN_SALES_PERMISSION_MENUS.flatMap(menu => menu.items.map(item => item.id)),
 };
 
 const LEGACY_TENANT_PERMISSION_ID_MAPPINGS: Record<string, string> = {
@@ -347,7 +318,6 @@ export const TENANT_MEMBER_PERMISSION_IDS: string[] = [
   TENANT_PERMISSION_IDS.evolutionLabView,
   TENANT_PERMISSION_IDS.develop,
   TENANT_PERMISSION_IDS.agentPublishTenant,
-  DAGUAN_SALES_PERMISSION_IDS.generateContractCode,
 ];
 
 export const OPERATIONS_SUPER_ADMIN_PERMISSION_IDS: string[] = [

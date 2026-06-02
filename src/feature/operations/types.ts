@@ -13,7 +13,6 @@ export type OperationsPlatformTabKey =
   | "products"
   | "resources"
   | "points"
-  | "channels"
   | "orders"
   | "agents"
   | "platformConfig";
@@ -119,27 +118,6 @@ export interface OperationsSkillCenterCategoryOption {
   name: OperationsSkillCenterCategory;
   sortOrder: number;
   status: OperationsSkillCenterCategoryStatus;
-  updatedAt: string;
-}
-
-/**
- * 我的专区分类名称，由运营后台单独维护。
- */
-export type OperationsMyZoneCategory = string;
-
-/**
- * 我的专区分类状态。
- */
-export type OperationsMyZoneCategoryStatus = "active" | "inactive";
-
-/**
- * 我的专区分类配置项。
- */
-export interface OperationsMyZoneCategoryOption {
-  id: string;
-  name: OperationsMyZoneCategory;
-  sortOrder: number;
-  status: OperationsMyZoneCategoryStatus;
   updatedAt: string;
 }
 
@@ -574,6 +552,7 @@ export interface OperationsProduct {
   identityName?: string;
   identityDescription?: string;
   usageGuide?: string;
+  tags?: string[];
   price?: number;
   subscriptionPlans?: OperationsProductSubscriptionPlan[];
   supportsTrial: boolean;
@@ -614,6 +593,7 @@ export interface OperationsProductForm {
   identityName: string;
   identityDescription: string;
   usageGuide: string;
+  tags: string[];
   price?: number;
   subscriptionPlans: OperationsProductSubscriptionPlan[];
   supportsTrial: boolean;

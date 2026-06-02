@@ -13,8 +13,6 @@ import type {
   OperationsAgentPlazaCategory,
   OperationsAgentPlazaCategoryOption,
   OperationsAgentStoreZoneOption,
-  OperationsMyZoneCategory,
-  OperationsMyZoneCategoryOption,
   OperationsSkillCenterCategory,
   OperationsSkillCenterCategoryOption,
   OperationsProduct,
@@ -155,14 +153,6 @@ export const resolveOperationsTenantModuleLabels = (permissionIds: string[]): st
     moduleLabels.push("运营管理平台");
   }
 
-  if (
-    normalizedPermissionIds.some(permissionId =>
-      SYSTEM_ACCESS_DERIVED_PERMISSION_IDS.sales.includes(permissionId),
-    )
-  ) {
-    moduleLabels.push("大观销售");
-  }
-
   return moduleLabels;
 };
 
@@ -223,12 +213,6 @@ export const OPERATIONS_TAB_OPTIONS: Array<{
       OPERATIONS_PERMISSION_IDS.pointsManage,
       OPERATIONS_PERMISSION_IDS.billingManage,
     ],
-  },
-  {
-    key: "channels",
-    label: "渠道管理",
-    description: "维护渠道、关联租户、关联销售和渠道码。",
-    permissionIds: [OPERATIONS_PERMISSION_IDS.channelManage],
   },
   {
     key: "orders",
@@ -726,6 +710,7 @@ export const OPERATIONS_INITIAL_PRODUCTS: OperationsProduct[] = [
     linkedAgentId: "ops-agent-004",
     linkedAgentName: "商品运营素材助手",
     description: "该 AI专家 已通过商品化审核，请先完善免费试用策略后再上架。",
+    tags: ["商品运营", "素材生成", "增长"],
     subscriptionPlans: createDefaultAgentSubscriptionPlans(),
     supportsTrial: false,
     trialUnit: "day",
@@ -754,6 +739,7 @@ export const OPERATIONS_INITIAL_PRODUCTS: OperationsProduct[] = [
     linkedAgentId: "ops-agent-002",
     linkedAgentName: "客户对账核验助手",
     description: "面向付款核验与运营对账的标准化 Agent 商品。",
+    tags: ["对账", "核验", "财务协同"],
     subscriptionPlans: [
       {
         key: "month",
@@ -814,6 +800,7 @@ export const OPERATIONS_INITIAL_PRODUCTS: OperationsProduct[] = [
     linkedAgentId: "ops-agent-004",
     linkedAgentName: "商品运营素材助手",
     description: "面向电商和内容团队的增长型 AI 专家，支持素材流程和试用策略配置。",
+    tags: ["增长运营", "素材流程", "客服开通"],
     subscriptionPlans: [
       {
         key: "month",
@@ -875,6 +862,7 @@ export const OPERATIONS_INITIAL_PRODUCTS: OperationsProduct[] = [
     linkedAgentId: "ops-agent-005",
     linkedAgentName: "制度问答助手",
     description: "面向通用知识问答场景的免费 AI专家 商品，可直接领取开通。",
+    tags: ["知识问答", "制度检索", "免费"],
     price: 0,
     supportsTrial: false,
     trialUnit: "day",
@@ -1317,32 +1305,6 @@ export const OPERATIONS_INITIAL_SKILL_CENTER_CATEGORIES: OperationsSkillCenterCa
   },
 ];
 
-export const OPERATIONS_MY_ZONE_DEFAULT_CATEGORY: OperationsMyZoneCategory = "通用";
-
-export const OPERATIONS_INITIAL_MY_ZONE_CATEGORIES: OperationsMyZoneCategoryOption[] = [
-  {
-    id: "ops-my-zone-category-general",
-    name: "通用",
-    sortOrder: 10,
-    status: "active",
-    updatedAt: "2026-04-16 10:42",
-  },
-  {
-    id: "ops-my-zone-category-efficiency",
-    name: "效率工具",
-    sortOrder: 20,
-    status: "active",
-    updatedAt: "2026-04-16 10:42",
-  },
-  {
-    id: "ops-my-zone-category-team",
-    name: "团队共享",
-    sortOrder: 30,
-    status: "active",
-    updatedAt: "2026-04-16 10:42",
-  },
-];
-
 export const OPERATIONS_PRODUCT_BILLING_SCOPE_LABELS: Record<
   OperationsProductBillingScope,
   string
@@ -1721,6 +1683,7 @@ export const createEmptyOperationsProductForm = (): OperationsProductForm => ({
   identityName: "",
   identityDescription: "",
   usageGuide: "",
+  tags: [],
   price: 0,
   subscriptionPlans: createDefaultAgentSubscriptionPlans(),
   supportsTrial: false,

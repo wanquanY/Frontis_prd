@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Frontis AI · 多会话与上下文记忆机制业务流程图</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      min-width: 1500px;
+      background: #f3f6fb;
+      color: #071431;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    }
+    body { padding: 24px; }
+    .page { width: 1800px; margin: 0 auto; }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      gap: 24px;
+      margin-bottom: 16px;
+      padding: 20px 24px;
+      border-radius: 16px;
+      background: #071431;
+      color: #fff;
+      box-shadow: 0 16px 42px rgba(15, 23, 42, 0.18);
+    }
+    .header h1 { font-size: 24px; line-height: 32px; font-weight: 850; }
+    .header p { margin-top: 6px; max-width: 1160px; color: rgba(255,255,255,.74); font-size: 13px; line-height: 22px; }
+    .legend { display: flex; align-items: center; gap: 12px; color: rgba(255,255,255,.88); font-size: 12px; white-space: nowrap; }
+    .legend i { display: inline-block; width: 18px; height: 12px; margin-right: 5px; border: 1.5px solid #9ee7ff; vertical-align: middle; }
+    .legend .event { width: 13px; height: 13px; border-radius: 50%; border-color: #86efac; }
+    .legend .decision { width: 12px; height: 12px; border-color: #fde68a; transform: rotate(45deg); }
+    .panel { margin-bottom: 18px; border: 1px solid rgba(15,23,42,.09); border-radius: 18px; background: #fff; box-shadow: 0 12px 34px rgba(15,23,42,.1); overflow: hidden; }
+    .panelTitle { display: flex; align-items: baseline; justify-content: space-between; padding: 16px 20px; border-bottom: 1px solid #e6edf5; background: #fbfcff; }
+    .panelTitle h2 { font-size: 18px; line-height: 26px; font-weight: 850; }
+    .panelTitle span { color: #5b667a; font-size: 13px; line-height: 20px; }
+    .svgWrap { overflow-x: auto; background: #fff; }
+    svg { display: block; }
+    .laneA { fill: #fbfdff; }
+    .laneB { fill: #f7faff; }
+    .laneLine { stroke: #dce5ef; stroke-width: 1; }
+    .laneLabel { fill: #071431; font-size: 14px; font-weight: 850; }
+    .laneSub { fill: #5b667a; font-size: 11px; font-weight: 600; }
+    .start { fill: #ecfdf5; stroke: #16a34a; stroke-width: 2; }
+    .end { fill: #fff1f2; stroke: #e11d48; stroke-width: 2; }
+    .user { fill: #eff6ff; stroke: #2563eb; stroke-width: 1.8; }
+    .session { fill: #f0fdfa; stroke: #0f9f8f; stroke-width: 1.8; }
+    .memory { fill: #fff7ed; stroke: #d97706; stroke-width: 1.8; }
+    .me { fill: #ecfeff; stroke: #0891b2; stroke-width: 1.8; }
+    .expert { fill: #f8fafc; stroke: #475569; stroke-width: 1.8; }
+    .warn { fill: #fff7f7; stroke: #dc2626; stroke-width: 1.8; }
+    .decisionNode { fill: #fffbeb; stroke: #d97706; stroke-width: 1.8; }
+    .label { fill: #071431; font-size: 12px; font-weight: 800; text-anchor: middle; }
+    .small { fill: #526178; font-size: 10.5px; font-weight: 650; text-anchor: middle; }
+    .edge { stroke: #64748b; stroke-width: 1.7; fill: none; marker-end: url(#arrow); }
+    .edgeSoft { stroke: #94a3b8; stroke-width: 1.5; fill: none; marker-end: url(#arrowSoft); stroke-dasharray: 5 5; }
+    .edgeGreen { stroke: #16a34a; stroke-width: 1.8; fill: none; marker-end: url(#arrowGreen); }
+    .edgeText { fill: #475569; font-size: 10.5px; font-weight: 750; paint-order: stroke; stroke: #fff; stroke-width: 4px; stroke-linejoin: round; }
+    .note { padding: 12px 18px 16px; border-top: 1px solid #edf2f7; color: #334155; font-size: 13px; line-height: 22px; background: #fbfcff; }
+    .note strong { color: #071431; }
+  </style>
+</head>
+<body>
+<main class="page">
+  <header class="header">
+    <div>
+      <h1>Frontis AI · 多会话与上下文记忆机制业务流程图</h1>
+      <p>正确口径：用户点击“新任务”并在首页发送第一句话后，创建一个独立会话。不同会话上下文隔离；跨会话只共享已生效的长期偏好、企业规则、专家记忆、业务对象记忆和任务结论。记忆在交互后自动沉淀，用户和管理员事后管理；ME 调度 AI 专家属于当前会话内协作，不属于跨会话。</p>
+    </div>
+    <div class="legend"><span><i class="event"></i>开始/结束</span><span><i></i>动作</span><span><i class="decision"></i>判断</span></div>
+  </header>
+
+  <section class="panel">
+    <div class="panelTitle">
+      <h2>1. 主流程：用户主动创建新会话</h2>
+      <span>先创建会话和独立上下文，再召回可共享记忆，然后 ME 处理请求</span>
+    </div>
+    <div class="svgWrap">
+      <svg width="1800" height="820" viewBox="0 0 1800 820" role="img" aria-label="用户主动创建新会话主流程">
+        <defs>
+          <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L0,6 L9,3 z" fill="#64748b"/></marker>
+          <marker id="arrowSoft" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L0,6 L9,3 z" fill="#94a3b8"/></marker>
+          <marker id="arrowGreen" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L0,6 L9,3 z" fill="#16a34a"/></marker>
+        </defs>
+        <rect x="0" y="0" width="1800" height="820" fill="#fff"/>
+        <rect class="laneA" x="0" y="0" width="1800" height="118"/>
+        <rect class="laneB" x="0" y="118" width="1800" height="122"/>
+        <rect class="laneA" x="0" y="240" width="1800" height="122"/>
+        <rect class="laneB" x="0" y="362" width="1800" height="122"/>
+        <rect class="laneA" x="0" y="484" width="1800" height="124"/>
+        <rect class="laneB" x="0" y="608" width="1800" height="118"/>
+        <rect class="laneA" x="0" y="726" width="1800" height="94"/>
+        <line class="laneLine" x1="0" y1="118" x2="1800" y2="118"/>
+        <line class="laneLine" x1="0" y1="240" x2="1800" y2="240"/>
+        <line class="laneLine" x1="0" y1="362" x2="1800" y2="362"/>
+        <line class="laneLine" x1="0" y1="484" x2="1800" y2="484"/>
+        <line class="laneLine" x1="0" y1="608" x2="1800" y2="608"/>
+        <line class="laneLine" x1="0" y1="726" x2="1800" y2="726"/>
+        <line class="laneLine" x1="158" y1="0" x2="158" y2="820"/>
+
+        <text class="laneLabel" x="79" y="52" text-anchor="middle">用户</text>
+        <text class="laneSub" x="79" y="72" text-anchor="middle">主动发起</text>
+        <text class="laneLabel" x="79" y="174" text-anchor="middle">会话列表</text>
+        <text class="laneSub" x="79" y="194" text-anchor="middle">独立入口</text>
+        <text class="laneLabel" x="79" y="296" text-anchor="middle">会话上下文</text>
+        <text class="laneSub" x="79" y="316" text-anchor="middle">仅当前会话</text>
+        <text class="laneLabel" x="79" y="418" text-anchor="middle">跨会话记忆</text>
+        <text class="laneSub" x="79" y="438" text-anchor="middle">共享边界</text>
+        <text class="laneLabel" x="79" y="542" text-anchor="middle">ME</text>
+        <text class="laneSub" x="79" y="562" text-anchor="middle">处理请求</text>
+        <text class="laneLabel" x="79" y="668" text-anchor="middle">AI专家</text>
+        <text class="laneSub" x="79" y="688" text-anchor="middle">会话内协作</text>
+        <text class="laneLabel" x="79" y="780" text-anchor="middle">会话记录</text>
+
+        <circle class="start" cx="216" cy="59" r="22"/><text class="label" x="216" y="63">开始</text>
+        <rect class="user" x="286" y="28" width="138" height="62" rx="12"/><text class="label" x="355" y="54">点击新任务</text><text class="small" x="355" y="74">回到首页</text>
+        <rect class="user" x="484" y="28" width="150" height="62" rx="12"/><text class="label" x="559" y="54">发送第一句话</text><text class="small" x="559" y="74">新会话起点</text>
+
+        <rect class="session" x="694" y="148" width="160" height="62" rx="12"/><text class="label" x="774" y="174">创建独立会话</text><text class="small" x="774" y="194">标题取第一句话</text>
+        <rect class="session" x="924" y="148" width="160" height="62" rx="12"/><text class="label" x="1004" y="174">写入会话列表</text><text class="small" x="1004" y="194">左侧可再次进入</text>
+
+        <rect class="session" x="694" y="270" width="160" height="62" rx="12"/><text class="label" x="774" y="296">初始化上下文</text><text class="small" x="774" y="316">空白且独立</text>
+        <rect class="session" x="1382" y="270" width="160" height="62" rx="12"/><text class="label" x="1462" y="296">持续写入上下文</text><text class="small" x="1462" y="316">消息/文件/工具</text>
+
+        <rect class="memory" x="694" y="392" width="160" height="62" rx="12"/><text class="label" x="774" y="418">召回共享记忆</text><text class="small" x="774" y="438">用户/企业/对象</text>
+        <rect class="memory" x="924" y="392" width="166" height="62" rx="12"/><text class="label" x="1007" y="418">过滤隔离信息</text><text class="small" x="1007" y="438">其他会话原文不可用</text>
+
+        <rect class="me" x="924" y="514" width="166" height="62" rx="12"/><text class="label" x="1007" y="540">ME理解本轮</text><text class="small" x="1007" y="560">基于本会话+共享记忆</text>
+        <polygon class="decisionNode" points="1218,506 1278,545 1218,584 1158,545"/><text class="label" x="1218" y="539">需要</text><text class="label" x="1218" y="557">专家?</text>
+        <rect class="me" x="1382" y="514" width="160" height="62" rx="12"/><text class="label" x="1462" y="540">ME回复用户</text><text class="small" x="1462" y="560">基于当前会话</text>
+
+        <rect class="expert" x="1138" y="636" width="168" height="62" rx="12"/><text class="label" x="1222" y="662">专家上下文包</text><text class="small" x="1222" y="682">当前会话内协作</text>
+        <rect class="expert" x="1382" y="636" width="160" height="62" rx="12"/><text class="label" x="1462" y="662">专家返回结论</text><text class="small" x="1462" y="682">回到当前会话</text>
+
+        <rect class="session" x="1382" y="748" width="160" height="54" rx="12"/><text class="label" x="1462" y="770">保存会话记录</text><text class="small" x="1462" y="790">摘要/来源/结论</text>
+        <circle class="end" cx="1698" cy="179" r="24"/><text class="label" x="1698" y="183">结束</text>
+
+        <path class="edge" d="M238 59 H286"/>
+        <path class="edge" d="M424 59 H484"/>
+        <path class="edge" d="M634 59 C680 84 706 116 706 148"/>
+        <path class="edge" d="M854 179 H924"/>
+        <path class="edge" d="M774 210 V270"/>
+        <path class="edge" d="M774 332 V392"/>
+        <path class="edge" d="M854 423 H924"/>
+        <path class="edge" d="M1007 454 V514"/>
+        <path class="edge" d="M1090 545 H1158"/>
+        <path class="edgeGreen" d="M1278 545 H1382"/><text class="edgeText" x="1308" y="532">否</text>
+        <path class="edgeGreen" d="M1218 584 C1218 604 1222 616 1222 636"/><text class="edgeText" x="1240" y="614">是</text>
+        <path class="edge" d="M1306 667 H1382"/>
+        <path class="edge" d="M1462 636 V576"/>
+        <path class="edge" d="M1462 576 V636"/>
+        <path class="edge" d="M1542 545 C1596 520 1600 365 1542 315"/>
+        <path class="edge" d="M1542 301 C1618 286 1660 224 1678 201"/>
+        <path class="edge" d="M1542 545 V748"/>
+        <path class="edge" d="M1542 775 C1620 730 1700 530 1698 203"/>
+        <path class="edgeSoft" d="M1084 179 H1674"/><text class="edgeText" x="1234" y="166">会话已进入列表，可被用户再次点击进入</text>
+      </svg>
+    </div>
+    <div class="note"><strong>主流程口径：</strong>初始化上下文后先召回允许跨会话共享的记忆，再进入 ME 处理请求。专家调度属于当前会话内分支，专家结论回到当前会话。长期记忆默认由系统在交互后自动提炼；只有敏感、冲突、作用范围不清或个人内容升级企业共享时进入治理。</div>
+  </section>
+
+  <section class="panel">
+    <div class="panelTitle">
+      <h2>2. 自动沉淀与共享边界闭环</h2>
+      <span>先自动提炼，再按归属和风险决定生效或治理；会话原文始终隔离</span>
+    </div>
+    <div class="svgWrap">
+      <svg width="1800" height="650" viewBox="0 0 1800 650" role="img" aria-label="自动沉淀与共享边界闭环">
+        <defs><marker id="arrow2" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L0,6 L9,3 z" fill="#64748b"/></marker></defs>
+        <rect x="0" y="0" width="1800" height="650" fill="#fff"/>
+
+        <circle class="start" cx="78" cy="318" r="24"/><text class="label" x="78" y="322">开始</text>
+        <rect class="session" x="150" y="278" width="210" height="80" rx="16"/><text class="label" x="255" y="306">原会话产生信息</text><text class="small" x="255" y="328">偏好 / 纠错 / 已采纳结论</text><text class="small" x="255" y="346">会话原文仍属于原会话</text>
+        <rect class="me" x="430" y="278" width="210" height="80" rx="16"/><text class="label" x="535" y="306">交互后自动提炼</text><text class="small" x="535" y="328">不弹阻塞式确认</text><text class="small" x="535" y="346">生成结构化记忆</text>
+
+        <polygon class="decisionNode" points="760,270 835,318 760,366 685,318"/><text class="label" x="760" y="312">是否有</text><text class="label" x="760" y="330">长期价值?</text>
+        <rect class="warn" x="658" y="472" width="244" height="78" rx="16"/><text class="label" x="780" y="502">仅保留在原会话</text><text class="small" x="780" y="524">临时过程 / 未采纳方案</text>
+
+        <polygon class="decisionNode" points="1035,270 1110,318 1035,366 960,318"/><text class="label" x="1035" y="312">归属和</text><text class="label" x="1035" y="330">风险判断</text>
+        <rect class="memory" x="1200" y="54" width="236" height="74" rx="16"/><text class="label" x="1318" y="84">个人长期记忆</text><text class="small" x="1318" y="104">低风险自动生效，用户可管</text>
+        <rect class="memory" x="1200" y="184" width="236" height="74" rx="16"/><text class="label" x="1318" y="214">企业长期记忆</text><text class="small" x="1318" y="234">管理员来源生效，成员来源治理</text>
+        <rect class="memory" x="1200" y="314" width="236" height="74" rx="16"/><text class="label" x="1318" y="344">专家 / 对象记忆</text><text class="small" x="1318" y="364">按创建者和对象权限生效</text>
+        <rect class="warn" x="1200" y="484" width="236" height="74" rx="16"/><text class="label" x="1318" y="514">进入记忆治理</text><text class="small" x="1318" y="534">敏感 / 冲突 / 范围不清</text>
+
+        <rect class="memory" x="1515" y="248" width="210" height="80" rx="16"/><text class="label" x="1620" y="278">已生效记忆池</text><text class="small" x="1620" y="300">按用户 / 租户 / 对象权限</text><text class="small" x="1620" y="318">供新会话召回</text>
+        <rect class="user" x="1515" y="430" width="210" height="70" rx="16"/><text class="label" x="1620" y="460">用户新建会话</text><text class="small" x="1620" y="480">只召回已生效记忆</text>
+        <circle class="end" cx="1620" cy="590" r="24"/><text class="label" x="1620" y="594">结束</text>
+
+        <path class="edge" marker-end="url(#arrow2)" d="M102 318 H150"/>
+        <path class="edge" marker-end="url(#arrow2)" d="M360 318 H430"/>
+        <path class="edge" marker-end="url(#arrow2)" d="M640 318 H685"/>
+        <path class="edge" marker-end="url(#arrow2)" d="M760 366 V472"/>
+        <text class="edgeText" x="782" y="420">否</text>
+        <path class="edge" marker-end="url(#arrow2)" d="M835 318 H960"/>
+        <text class="edgeText" x="874" y="304">是</text>
+
+        <path class="edge" marker-end="url(#arrow2)" d="M1110 318 C1150 228 1168 96 1200 91"/>
+        <text class="edgeText" x="1148" y="168">个人低风险</text>
+        <path class="edge" marker-end="url(#arrow2)" d="M1110 318 C1150 282 1168 224 1200 221"/>
+        <text class="edgeText" x="1160" y="260">企业规则</text>
+        <path class="edge" marker-end="url(#arrow2)" d="M1110 318 H1200"/>
+        <text class="edgeText" x="1146" y="304">对象/专家</text>
+        <path class="edge" marker-end="url(#arrow2)" d="M1110 318 C1152 378 1168 512 1200 521"/>
+        <text class="edgeText" x="1162" y="438">高风险</text>
+
+        <path class="edge" marker-end="url(#arrow2)" d="M1436 91 C1490 128 1508 222 1515 288"/>
+        <path class="edge" marker-end="url(#arrow2)" d="M1436 221 C1474 234 1494 258 1515 288"/>
+        <path class="edge" marker-end="url(#arrow2)" d="M1436 351 C1474 338 1494 312 1515 288"/>
+        <path class="edgeSoft" marker-end="url(#arrow2)" d="M1436 521 C1496 502 1512 410 1515 328"/>
+        <text class="edgeText" x="1464" y="466">治理后生效</text>
+        <path class="edge" marker-end="url(#arrow2)" d="M1620 328 V430"/>
+        <path class="edge" marker-end="url(#arrow2)" d="M1620 500 V566"/>
+        <path class="edgeSoft" marker-end="url(#arrow2)" d="M902 511 C1056 584 1270 606 1596 590"/>
+        <text class="edgeText" x="1094" y="594">原会话隔离内容不进入新会话</text>
+      </svg>
+    </div>
+    <div class="note"><strong>闭环规则：</strong>个人长期记忆默认自动生效，用户可在“我的记忆”中编辑、停用或删除；企业长期记忆按来源和风险进入管理员治理后共享；专家记忆由专家创建者管理，业务对象记忆跟随对象权限。新会话只召回已生效且有权限的记忆，不能直接读取其他会话原文和临时过程。</div>
+  </section>
+
+  <section class="panel">
+    <div class="panelTitle">
+      <h2>3. 当前会话内：上下文增长后才触发压缩</h2>
+      <span>压缩不是新会话初始化动作，而是会话持续增长后的兜底机制</span>
+    </div>
+    <div class="svgWrap">
+      <svg width="1800" height="410" viewBox="0 0 1800 410" role="img" aria-label="当前会话上下文压缩流程">
+        <defs><marker id="arrow3" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L0,6 L9,3 z" fill="#64748b"/></marker></defs>
+        <rect x="0" y="0" width="1800" height="410" fill="#fff"/>
+        <circle class="start" cx="86" cy="206" r="22"/><text class="label" x="86" y="210">开始</text>
+        <rect class="session" x="150" y="174" width="168" height="64" rx="12"/><text class="label" x="234" y="200">进入当前会话</text><text class="small" x="234" y="220">用户点击列表</text>
+        <rect class="session" x="390" y="174" width="176" height="64" rx="12"/><text class="label" x="478" y="200">恢复本会话上下文</text><text class="small" x="478" y="220">摘要 + 最近消息</text>
+        <rect class="session" x="642" y="174" width="176" height="64" rx="12"/><text class="label" x="730" y="200">持续追加内容</text><text class="small" x="730" y="220">多轮消息/文件/工具</text>
+        <polygon class="decisionNode" points="940,166 1004,206 940,246 876,206"/><text class="label" x="940" y="200">接近</text><text class="label" x="940" y="218">上限?</text>
+        <rect class="warn" x="1100" y="72" width="176" height="64" rx="12"/><text class="label" x="1188" y="98">压缩当前会话</text><text class="small" x="1188" y="118">生成会话摘要</text>
+        <rect class="memory" x="1356" y="72" width="176" height="64" rx="12"/><text class="label" x="1444" y="98">保留历史来源</text><text class="small" x="1444" y="118">片段/记录可找回</text>
+        <rect class="me" x="1100" y="174" width="176" height="64" rx="12"/><text class="label" x="1188" y="200">继续当前会话</text><text class="small" x="1188" y="220">基于摘要和新输入</text>
+        <polygon class="decisionNode" points="1444,166 1508,206 1444,246 1380,206"/><text class="label" x="1444" y="200">追问</text><text class="label" x="1444" y="218">早期?</text>
+        <rect class="session" x="1568" y="174" width="168" height="64" rx="12"/><text class="label" x="1652" y="200">查本会话历史</text><text class="small" x="1652" y="220">摘要/片段/记录</text>
+        <circle class="end" cx="1748" cy="206" r="24"/><text class="label" x="1748" y="210">结束</text>
+        <path class="edge" marker-end="url(#arrow3)" d="M108 206 H150"/>
+        <path class="edge" marker-end="url(#arrow3)" d="M318 206 H390"/>
+        <path class="edge" marker-end="url(#arrow3)" d="M566 206 H642"/>
+        <path class="edge" marker-end="url(#arrow3)" d="M818 206 H876"/>
+        <path class="edge" marker-end="url(#arrow3)" d="M940 166 C986 104 1048 104 1100 104"/><text class="edgeText" x="1030" y="92">是</text>
+        <path class="edge" marker-end="url(#arrow3)" d="M1276 104 H1356"/>
+        <path class="edge" marker-end="url(#arrow3)" d="M1444 136 C1406 156 1328 178 1276 206"/>
+        <path class="edge" marker-end="url(#arrow3)" d="M1004 206 H1100"/><text class="edgeText" x="1044" y="194">否</text>
+        <path class="edge" marker-end="url(#arrow3)" d="M1276 206 H1380"/>
+        <path class="edge" marker-end="url(#arrow3)" d="M1508 206 H1568"/><text class="edgeText" x="1530" y="194">是</text>
+        <path class="edge" marker-end="url(#arrow3)" d="M1736 206 H1724"/>
+      </svg>
+    </div>
+    <div class="note"><strong>压缩规则：</strong>只压缩当前会话；压缩后的摘要只属于当前会话；跨会话只能通过已生效长期记忆、业务对象记忆和已采纳任务结论获取信息。</div>
+  </section>
+</main>
+</body>
+</html>

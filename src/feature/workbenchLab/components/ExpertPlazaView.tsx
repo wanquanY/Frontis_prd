@@ -8,7 +8,6 @@ import {
   FileTextOutlined,
   LineChartOutlined,
   ProfileOutlined,
-  SlidersOutlined,
   UploadOutlined,
   UserOutlined,
 } from "@ant-design/icons";
@@ -29,11 +28,7 @@ import {
   loadStoredAgentPlazaCategories,
   loadStoredAgentStoreZones,
 } from "@/feature/operations/agentPlazaCategoryStorage";
-import {
-  OPERATIONS_AGENT_PLAZA_DEFAULT_CATEGORY,
-  OPERATIONS_MY_ZONE_DEFAULT_CATEGORY,
-} from "@/feature/operations/mockData";
-import { loadStoredMyZoneCategories } from "@/feature/operations/myZoneCategoryStorage";
+import { OPERATIONS_AGENT_PLAZA_DEFAULT_CATEGORY } from "@/feature/operations/mockData";
 import {
   TENANT_PERMISSION_IDS,
   normalizeTenantRolePermissionIds,
@@ -48,8 +43,6 @@ import type {
   OperationsAgentStoreZoneOption,
   OperationsAgentSubmission,
   OperationsFulfillment,
-  OperationsMyZoneCategory,
-  OperationsMyZoneCategoryOption,
   OperationsProduct,
   OperationsProductDeliveryKind,
   OperationsServiceContactConfig,
@@ -60,14 +53,13 @@ import knowledgeGovernanceExpertAvatar from "@/assets/images/ai-experts/knowledg
 
 import styles from "./ExpertPlazaView.module.less";
 
-type TeamExpertFilter = "all" | "mine" | "teamShare";
+type TeamExpertFilter = "mine" | "teamShare";
 type StoreSystemCategoryKey = string;
 type SceneCategoryFilter = "all" | BusinessLineKey;
-type MyZoneCategoryFilter = OperationsMyZoneCategory;
 export type BusinessLineKey = OperationsAgentPlazaCategoryOption["name"];
 type AgentSourceType = "mine" | "teamShare" | "frontis";
 type ExpertPlazaMode = "store" | "team";
-type AgentDetailTab = "identity" | "tools" | "skills" | "growth" | "files";
+type AgentDetailTab = "identity" | "skills" | "growth" | "files";
 type AgentCoreFileKey = "soulMarkdown" | "memoryMarkdown" | "userMarkdown";
 
 interface AgentCapability {
@@ -80,12 +72,6 @@ interface AgentVersionItem {
   description: string;
   date: string;
   current?: boolean;
-}
-
-interface AgentToolItem {
-  name: string;
-  description: string;
-  enabled: boolean;
 }
 
 interface AgentEvolutionPoint {
@@ -163,7 +149,6 @@ export interface StoreAgentItem {
   versionLabel: string;
   businessLine: BusinessLineKey;
   businessLineLabel: string;
-  myZoneCategory?: OperationsMyZoneCategory;
   storeCategory?: StoreSystemCategoryKey;
   storeCategories?: StoreSystemCategoryKey[];
   sceneCategoriesByZone?: Record<StoreSystemCategoryKey, BusinessLineKey>;
@@ -175,6 +160,7 @@ export interface StoreAgentItem {
   submitterLabel: string;
   scopeLabel: string;
   updatedAt: string;
+  tags: string[];
   capabilities: AgentCapability[];
   versions: AgentVersionItem[];
   priceLabel?: string;
@@ -204,14 +190,12 @@ const ACTIVE_FULFILLMENT_STATUSES = new Set<OperationsFulfillment["status"]>([
 ]);
 
 const TEAM_EXPERT_FILTER_OPTIONS: Array<{ label: string; value: TeamExpertFilter }> = [
-  { label: "全部", value: "all" },
-  { label: "我的", value: "mine" },
+  { label: "我发布的", value: "mine" },
   { label: "团队共享", value: "teamShare" },
 ];
 
 const DEFAULT_DOMAIN_TONE = "linear-gradient(180deg, #dff4ff 0%, #eef8ff 100%)";
-const DEFAULT_PERSONAL_MY_ZONE_CATEGORY: OperationsMyZoneCategory = "效率工具";
-const TEAM_SHARED_MY_ZONE_CATEGORY: OperationsMyZoneCategory = "团队共享";
+const MAX_AGENT_CARD_TAG_COUNT = 3;
 
 const DOMAIN_TONE_MAP: Record<string, string> = {
   通用: DEFAULT_DOMAIN_TONE,
@@ -733,52 +717,26 @@ const getDeliveryLabel = (deliveryKind: OperationsProductDeliveryKind): string =
   return "设备交付";
 };
 
-const getVisibilityLabel = (agent: StoreAgentItem): string => {
-  if (agent.sourceType === "mine") {
-    return "我的";
-  }
-
-  if (agent.sourceType === "teamShare") {
-    return "团队共享";
-  }
-
-  return "商店";
-};
-
-const getCategoryLabel = (agent: StoreAgentItem): string => agent.businessLineLabel;
-
 const getAgentAvatarSrc = (agent: StoreAgentItem): string =>
   agent.avatarUrl ?? getAvatarUrl(agent.visualSeed);
 
-const getAgentStageLabel = (agent: StoreAgentItem): string => {
-  if (agent.sourceType === "frontis") {
-    return "平台专家";
-  }
+const normalizeAgentCardTags = (tags: string[] | undefined): string[] => {
+  const normalizedTags = (tags ?? []).map(tag => tag.trim()).filter(Boolean);
 
-  if (agent.sourceType === "teamShare") {
-    return "团队共享";
-  }
-
-  return "我的专家";
+  return Array.from(new Set(normalizedTags)).slice(0, MAX_AGENT_CARD_TAG_COUNT);
 };
 
-const getAgentTools = (agent: StoreAgentItem): AgentToolItem[] => [
-  {
-    name: "知识库检索",
-    description: `按「${agent.scene}」场景读取企业知识库、商品资料和历史任务上下文。`,
-    enabled: true,
-  },
-  {
-    name: "文件处理",
-    description: "支持上传文档解析、字段抽取、结构化摘要和结果回写。",
-    enabled: agent.techShape !== "触发型",
-  },
-  {
-    name: "任务与消息",
-    description: "可把处理结果沉淀为待办、通知或团队协作记录。",
-    enabled: agent.sourceType !== "frontis" || Boolean(agent.product),
-  },
-];
+const getCapabilityCardTags = (capabilities: AgentCapability[]): string[] =>
+  normalizeAgentCardTags(capabilities.map(capability => capability.name));
+
+const getProductCardTags = (
+  product: OperationsProduct,
+  capabilities: AgentCapability[],
+): string[] => {
+  const productTags = normalizeAgentCardTags(product.tags);
+
+  return productTags.length ? productTags : getCapabilityCardTags(capabilities);
+};
 
 const buildAgentEvolutionRecord = (agent: StoreAgentItem): AgentEvolutionRecord => {
   const capabilityNames = agent.capabilities.map(capability => capability.name);
@@ -974,7 +932,6 @@ const buildTeamSharedAgents = (
     versionLabel: item.versionLabel,
     businessLine: item.businessLine,
     businessLineLabel: item.businessLineLabel,
-    myZoneCategory: TEAM_SHARED_MY_ZONE_CATEGORY,
     summary: item.summary,
     scene: item.scene,
     techShape: item.techShape,
@@ -983,6 +940,7 @@ const buildTeamSharedAgents = (
     submitterLabel: item.submitterLabel,
     scopeLabel: item.submitterLabel.split("·")[0]?.trim() || item.submitterLabel,
     updatedAt: item.updatedAt,
+    tags: normalizeAgentCardTags([item.scene, item.businessLineLabel]),
     capabilities: item.capabilities,
     versions: item.versions,
     acquisitionLabel: "团队内直接使用",
@@ -1025,7 +983,6 @@ const buildMyAgents = (
       versionLabel: item.version,
       businessLine,
       businessLineLabel: getBusinessLineLabel(businessLine),
-      myZoneCategory: DEFAULT_PERSONAL_MY_ZONE_CATEGORY,
       summary: item.description,
       scene: item.tags[0] ?? "通用场景",
       techShape:
@@ -1044,6 +1001,7 @@ const buildMyAgents = (
       submitterLabel: currentUserName,
       scopeLabel: "我开发的 AI专家",
       updatedAt: item.publishTime,
+      tags: normalizeAgentCardTags(item.tags),
       capabilities: item.skills.map(skill => ({
         name: skill.skillName,
         description: `${skill.skillName} ${skill.version}`,
@@ -1128,6 +1086,12 @@ export const buildFrontisAgents = (
         OPERATIONS_AGENT_PLAZA_DEFAULT_CATEGORY;
       const businessLineLabel = getBusinessLineLabel(businessLine);
       const updatedAt = product.updatedAt || "刚刚";
+      const capabilities = blueprint?.capabilities ?? [
+        {
+          name: "标准开通",
+          description: "添加或试用后自动开通，立即可用。",
+        },
+      ];
 
       return {
         id: `frontis-${product.id}`,
@@ -1140,7 +1104,6 @@ export const buildFrontisAgents = (
         versionLabel: updatedAt,
         businessLine,
         businessLineLabel,
-        myZoneCategory: OPERATIONS_MY_ZONE_DEFAULT_CATEGORY,
         storeCategory: productStoreZones[0],
         storeCategories: productStoreZones,
         sceneCategoriesByZone,
@@ -1152,12 +1115,8 @@ export const buildFrontisAgents = (
         submitterLabel: "FrontisAI发布",
         scopeLabel: "平台商品化能力",
         updatedAt,
-        capabilities: blueprint?.capabilities ?? [
-          {
-            name: "标准开通",
-            description: "添加或试用后自动开通，立即可用。",
-          },
-        ],
+        tags: getProductCardTags(product, capabilities),
+        capabilities,
         versions: buildPlatformAgentVersions(product, updatedAt),
         priceLabel: getProductPriceLabel(product),
         trialLabel: getProductTrialLabel(product),
@@ -1191,10 +1150,7 @@ export const resolveLatestFulfillmentsByProductId = (
  */
 export const ExpertPlazaView = ({ mode = "store" }: ExpertPlazaViewProps): JSX.Element => {
   const { activeIdentity, session } = useMockAuth();
-  const [teamExpertFilter, setTeamExpertFilter] = useState<TeamExpertFilter>("all");
-  const [myZoneCategoryFilter, setMyZoneCategoryFilter] = useState<MyZoneCategoryFilter>(
-    OPERATIONS_MY_ZONE_DEFAULT_CATEGORY,
-  );
+  const [teamExpertFilter, setTeamExpertFilter] = useState<TeamExpertFilter>("mine");
   const [storeSystemCategory, setStoreSystemCategory] =
     useState<StoreSystemCategoryKey>("roleZone");
   const [storeSceneFilter, setStoreSceneFilter] = useState<SceneCategoryFilter>("all");
@@ -1225,9 +1181,6 @@ export const ExpertPlazaView = ({ mode = "store" }: ExpertPlazaViewProps): JSX.E
   const [agentPlazaCategories, setAgentPlazaCategories] = useState<
     OperationsAgentPlazaCategoryOption[]
   >(() => loadStoredAgentPlazaCategories());
-  const [myZoneCategories, setMyZoneCategories] = useState<OperationsMyZoneCategoryOption[]>(() =>
-    loadStoredMyZoneCategories(),
-  );
 
   const currentTenantId = activeIdentity?.tenantId ?? DEFAULT_TENANT_ID;
   const currentUserName = activeIdentity?.subjectName ?? session?.name ?? "当前用户";
@@ -1249,26 +1202,6 @@ export const ExpertPlazaView = ({ mode = "store" }: ExpertPlazaViewProps): JSX.E
     (tenantSnapshot?.hasAgentListingAccess ||
       currentPermissionIds.includes(TENANT_PERMISSION_IDS.agentPublishMarketplace) ||
       currentPermissionIds.includes(TENANT_PERMISSION_IDS.agentPublishPublic));
-
-  const teamExpertFilterOptions = useMemo(
-    () =>
-      TEAM_EXPERT_FILTER_OPTIONS.filter(item => {
-        if (item.value === "all") {
-          return true;
-        }
-
-        if (item.value === "mine") {
-          return canManageOwnPublishedAgents;
-        }
-
-        if (item.value === "teamShare") {
-          return isTeamEdition;
-        }
-
-        return false;
-      }),
-    [canManageOwnPublishedAgents, isTeamEdition],
-  );
 
   const storeSceneCategoryOptions = useMemo(
     () =>
@@ -1294,23 +1227,6 @@ export const ExpertPlazaView = ({ mode = "store" }: ExpertPlazaViewProps): JSX.E
         })),
     [agentStoreZones],
   );
-  const myZoneCategoryOptions = useMemo(
-    () =>
-      [...myZoneCategories]
-        .filter(category => category.status === "active")
-        .sort((leftItem, rightItem) => {
-          if (leftItem.sortOrder !== rightItem.sortOrder) {
-            return leftItem.sortOrder - rightItem.sortOrder;
-          }
-
-          return leftItem.updatedAt.localeCompare(rightItem.updatedAt);
-        })
-        .map(category => ({
-          label: category.name,
-          value: category.name,
-        })),
-    [myZoneCategories],
-  );
   const refreshStorefrontState = useCallback((): void => {
     setProducts(loadStoredOperationsProducts());
     setFulfillments(loadStoredOperationsFulfillments());
@@ -1318,7 +1234,6 @@ export const ExpertPlazaView = ({ mode = "store" }: ExpertPlazaViewProps): JSX.E
     setServiceContactConfig(loadOperationsServiceContactConfig());
     setAgentStoreZones(loadStoredAgentStoreZones());
     setAgentPlazaCategories(loadStoredAgentPlazaCategories());
-    setMyZoneCategories(loadStoredMyZoneCategories());
   }, []);
 
   useEffect(() => {
@@ -1341,30 +1256,10 @@ export const ExpertPlazaView = ({ mode = "store" }: ExpertPlazaViewProps): JSX.E
   }, []);
 
   useEffect(() => {
-    if (!teamExpertFilterOptions.length) {
-      return;
-    }
-
-    if (!teamExpertFilterOptions.some(item => item.value === teamExpertFilter)) {
-      setTeamExpertFilter(teamExpertFilterOptions[0].value);
-    }
-  }, [teamExpertFilter, teamExpertFilterOptions]);
-
-  useEffect(() => {
     if (!storeSceneCategoryOptions.some(item => item.value === storeSceneFilter)) {
       setStoreSceneFilter("all");
     }
   }, [storeSceneCategoryOptions, storeSceneFilter]);
-
-  useEffect(() => {
-    if (!myZoneCategoryOptions.length) {
-      return;
-    }
-
-    if (!myZoneCategoryOptions.some(item => item.value === myZoneCategoryFilter)) {
-      setMyZoneCategoryFilter(myZoneCategoryOptions[0].value);
-    }
-  }, [myZoneCategoryFilter, myZoneCategoryOptions]);
 
   useEffect(() => {
     if (!storeSystemCategoryOptions.length) {
@@ -1414,22 +1309,13 @@ export const ExpertPlazaView = ({ mode = "store" }: ExpertPlazaViewProps): JSX.E
     [expertListOverrides, workbenchAgentIds],
   );
 
-  const purchasedAgents = useMemo(
-    () =>
-      frontisAgents.filter(
-        agent =>
-          agent.sourceType === "frontis" && !shouldContactForAgent(agent) && isInExpertList(agent),
-      ),
-    [frontisAgents, isInExpertList],
-  );
-
   const filteredAgents = useMemo(() => {
     const candidateAgents =
       mode === "store"
         ? frontisAgents
         : isTeamEdition
-          ? [...teamSharedAgents, ...purchasedAgents, ...myAgents]
-          : [...purchasedAgents, ...myAgents];
+          ? [...myAgents, ...teamSharedAgents]
+          : myAgents;
 
     return candidateAgents.filter(agent => {
       if (removedMineAgentIds.has(agent.id)) {
@@ -1437,10 +1323,7 @@ export const ExpertPlazaView = ({ mode = "store" }: ExpertPlazaViewProps): JSX.E
       }
 
       if (mode === "team") {
-        const matchesSource = teamExpertFilter === "all" || agent.sourceType === teamExpertFilter;
-        const matchesCategory = agent.myZoneCategory === myZoneCategoryFilter;
-
-        return matchesSource && matchesCategory;
+        return agent.sourceType === teamExpertFilter;
       }
 
       if (!(agent.storeCategories ?? [agent.storeCategory]).includes(storeSystemCategory)) {
@@ -1458,22 +1341,16 @@ export const ExpertPlazaView = ({ mode = "store" }: ExpertPlazaViewProps): JSX.E
     isTeamEdition,
     mode,
     myAgents,
-    purchasedAgents,
     removedMineAgentIds,
     storeSceneFilter,
     storeSystemCategory,
     teamExpertFilter,
-    myZoneCategoryFilter,
     teamSharedAgents,
   ]);
 
   const contactModalInfo = useMemo<ContactModalInfo | null>(
     () => (contactAgent ? resolveContactModalInfo(contactAgent, serviceContactConfig) : null),
     [contactAgent, serviceContactConfig],
-  );
-  const detailAgentTools = useMemo(
-    () => (detailAgent ? getAgentTools(detailAgent) : []),
-    [detailAgent],
   );
   const detailAgentEvolutionRecord = useMemo(
     () => (detailAgent ? getAgentEvolutionRecord(detailAgent, isInExpertList(detailAgent)) : null),
@@ -1603,44 +1480,23 @@ export const ExpertPlazaView = ({ mode = "store" }: ExpertPlazaViewProps): JSX.E
       <div className={styles.toolbarCard}>
         <div className={styles.filterGroup}>
           {mode === "team" ? (
-            <>
-              <div className={styles.filterTabRow} role="tablist" aria-label="我的专区来源分类">
-                {teamExpertFilterOptions.map(option => (
-                  <button
-                    key={option.value}
-                    type="button"
-                    role="tab"
-                    aria-selected={teamExpertFilter === option.value}
-                    className={classNames(
-                      styles.filterTabButton,
-                      teamExpertFilter === option.value && styles.filterTabButtonActive,
-                    )}
-                    onClick={() => setTeamExpertFilter(option.value)}
-                  >
-                    {option.label}
-                  </button>
-                ))}
-              </div>
-              {myZoneCategoryOptions.length ? (
-                <div className={styles.filterTabRow} role="tablist" aria-label="我的专区分类">
-                  {myZoneCategoryOptions.map(option => (
-                    <button
-                      key={option.value}
-                      type="button"
-                      role="tab"
-                      aria-selected={myZoneCategoryFilter === option.value}
-                      className={classNames(
-                        styles.filterTabButton,
-                        myZoneCategoryFilter === option.value && styles.filterTabButtonActive,
-                      )}
-                      onClick={() => setMyZoneCategoryFilter(option.value)}
-                    >
-                      {option.label}
-                    </button>
-                  ))}
-                </div>
-              ) : null}
-            </>
+            <div className={styles.filterTabRow} role="tablist" aria-label="我的专区来源分类">
+              {TEAM_EXPERT_FILTER_OPTIONS.map(option => (
+                <button
+                  key={option.value}
+                  type="button"
+                  role="tab"
+                  aria-selected={teamExpertFilter === option.value}
+                  className={classNames(
+                    styles.filterTabButton,
+                    teamExpertFilter === option.value && styles.filterTabButtonActive,
+                  )}
+                  onClick={() => setTeamExpertFilter(option.value)}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
           ) : (
             <>
               <div className={styles.filterTabRow} role="tablist" aria-label="商店系统分类">
@@ -1684,40 +1540,33 @@ export const ExpertPlazaView = ({ mode = "store" }: ExpertPlazaViewProps): JSX.E
 
       <div className={styles.agentGrid}>
         {filteredAgents.map(agent => (
-          <article
-            key={agent.id}
-            className={styles.agentCard}
-            role="button"
-            tabIndex={0}
-            onClick={() => handleOpenAgentDetail(agent)}
-            onKeyDown={event => {
-              if (event.key === "Enter") {
-                handleOpenAgentDetail(agent);
-              }
-            }}
-          >
-            <header className={styles.cardHeader}>
-              <div className={styles.agentAvatar}>
-                <img alt={agent.name} src={getAgentAvatarSrc(agent)} />
-              </div>
-              <div className={styles.cardTitleBlock}>
-                <h3 className={styles.cardTitle}>{agent.name}</h3>
-                <p className={styles.agentDescription}>{agent.summary}</p>
-              </div>
-            </header>
-
-            <div className={styles.agentCapabilityStrip} aria-label="核心技能">
-              <span className={styles.capabilityLabel}>专长</span>
-              {agent.capabilities.slice(0, 3).map(capability => (
-                <span key={`${agent.id}-${capability.name}`}>{capability.name}</span>
-              ))}
-            </div>
-
-            <div
-              className={styles.cardFooter}
-              onClick={event => event.stopPropagation()}
-              onKeyDown={event => event.stopPropagation()}
+          <article key={agent.id} className={styles.agentCard}>
+            <button
+              type="button"
+              className={styles.agentCardMainButton}
+              onClick={() => handleOpenAgentDetail(agent)}
             >
+              <header className={styles.cardHeader}>
+                <div className={styles.agentAvatar}>
+                  <img alt={agent.name} src={getAgentAvatarSrc(agent)} />
+                </div>
+                <div className={styles.cardTitleBlock}>
+                  <h3 className={styles.cardTitle}>{agent.name}</h3>
+                  <p className={styles.agentDescription}>{agent.summary}</p>
+                </div>
+              </header>
+
+              <div className={styles.agentCapabilityStrip} aria-label="专家标签">
+                <span className={styles.capabilityLabel}>标签</span>
+                {(agent.tags.length ? agent.tags : getCapabilityCardTags(agent.capabilities)).map(
+                  tag => (
+                    <span key={`${agent.id}-${tag}`}>{tag}</span>
+                  ),
+                )}
+              </div>
+            </button>
+
+            <div className={styles.cardFooter}>
               {renderAgentActions(agent)}
             </div>
           </article>
@@ -1726,7 +1575,7 @@ export const ExpertPlazaView = ({ mode = "store" }: ExpertPlazaViewProps): JSX.E
 
       {!filteredAgents.length ? (
         <div className={styles.emptyState}>
-          {mode === "store" ? "当前分类下暂无可添加的 AI 专家。" : "当前分类下暂无我的专区。"}
+          {mode === "store" ? "当前分类下暂无可添加的 AI 专家。" : "当前来源下暂无我的专区。"}
         </div>
       ) : null}
 
@@ -1772,10 +1621,9 @@ export const ExpertPlazaView = ({ mode = "store" }: ExpertPlazaViewProps): JSX.E
         {detailAgent ? (
           <div className={styles.agentDetailPanel}>
             <div className={styles.agentDetailBody}>
-              <aside className={styles.agentDetailNav} role="tablist" aria-label="AI专家详情">
+              <div className={styles.agentDetailNav} role="tablist" aria-label="AI专家详情">
                 {[
                   { key: "identity", label: "身份", icon: <UserOutlined /> },
-                  { key: "tools", label: "工具", icon: <SlidersOutlined /> },
                   { key: "skills", label: "技能", count: detailAgent.capabilities.length },
                   { key: "growth", label: "进化", icon: <ProfileOutlined /> },
                   { key: "files", label: "核心文件", icon: <FileTextOutlined /> },
@@ -1793,7 +1641,7 @@ export const ExpertPlazaView = ({ mode = "store" }: ExpertPlazaViewProps): JSX.E
                     {item.count ? <em>{item.count}</em> : null}
                   </button>
                 ))}
-              </aside>
+              </div>
 
               <section className={styles.agentDetailContent}>
                 {detailTab === "identity" ? (
@@ -1886,25 +1734,6 @@ export const ExpertPlazaView = ({ mode = "store" }: ExpertPlazaViewProps): JSX.E
                       </section>
                     </div>
                   )
-                ) : detailTab === "tools" ? (
-                  <div className={styles.agentDetailList}>
-                    <div className={styles.agentDetailSectionHead}>
-                      <h3>工具</h3>
-                      <p>当前「{detailAgent.name}」可用工具</p>
-                    </div>
-                    {detailAgentTools.map(tool => (
-                      <article key={tool.name} className={styles.agentToolItem}>
-                        <div className={styles.agentToolIcon}>
-                          <SlidersOutlined />
-                        </div>
-                        <div>
-                          <strong>{tool.name}</strong>
-                          <span>{tool.description}</span>
-                        </div>
-                        <b>{tool.enabled ? "可用" : "不可用"}</b>
-                      </article>
-                    ))}
-                  </div>
                 ) : detailTab === "skills" ? (
                   <div className={styles.agentDetailList}>
                     <div className={styles.agentDetailSectionHead}>

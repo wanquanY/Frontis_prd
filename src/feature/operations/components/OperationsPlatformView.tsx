@@ -3,7 +3,6 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   AppstoreOutlined,
   ApartmentOutlined,
-  BranchesOutlined,
   CheckCircleOutlined,
   CreditCardOutlined,
   DatabaseOutlined,
@@ -60,7 +59,6 @@ import styles from "./OperationsPlatformView.module.less";
 import { OperationsOrganizationConsole } from "./OperationsOrganizationConsole";
 import { OperationsOrderCenterConsole } from "./OperationsOrderCenterConsole";
 import { OperationsPlatformConfigConsole } from "./OperationsPlatformConfigConsole";
-import { OperationsChannelConsole } from "./OperationsChannelConsole";
 import { OperationsPointsSubscriptionConsole } from "./OperationsPointsSubscriptionConsole";
 import { OperationsProductConsole } from "./OperationsProductConsole";
 import { OperationsResourceMeteringConsole } from "./OperationsResourceMeteringConsole";
@@ -125,7 +123,6 @@ const OPERATIONS_TAB_ICON_MAP: Record<OperationsPlatformTabKey, JSX.Element> = {
   products: <ShopOutlined />,
   resources: <DatabaseOutlined />,
   points: <CreditCardOutlined />,
-  channels: <BranchesOutlined />,
   orders: <FileTextOutlined />,
   agents: <RobotOutlined />,
   platformConfig: <SettingOutlined />,
@@ -158,7 +155,6 @@ const getTabKeyFromPath = (tabPath?: string): OperationsPlatformTabKey | null =>
     tabPath === "products" ||
     tabPath === "resources" ||
     tabPath === "points" ||
-    tabPath === "channels" ||
     tabPath === "orders" ||
     tabPath === "agents" ||
     tabPath === "platformConfig"
@@ -358,7 +354,6 @@ const TenantDetailConsole = ({
   onOpenSeatAllocation,
   onToggleStatus,
 }: TenantDetailConsoleProps): JSX.Element => {
-  const latestPointsLedger = tenantSnapshot?.pointsLedger[0] ?? null;
   const isPointsBillingTenant =
     tenant?.billingMode === "points" && tenantSnapshot?.billingMode === "points";
   const totalSeats = tenantSnapshot?.totalSeats ?? tenant?.seatCount ?? 0;
@@ -513,26 +508,6 @@ const TenantDetailConsole = ({
                       <span className={adminStyles.consoleInfoLabel}>积分余额</span>
                       <span className={adminStyles.consoleInfoValue}>
                         {tenantSnapshot.pointsBalance.toLocaleString("zh-CN")}
-                      </span>
-                    </div>
-                    <div className={adminStyles.consoleInfoRow}>
-                      <span className={adminStyles.consoleInfoLabel}>低余额阈值</span>
-                      <span className={adminStyles.consoleInfoValue}>
-                        {tenantSnapshot.lowBalanceThreshold.toLocaleString("zh-CN")}
-                      </span>
-                    </div>
-                    <div className={adminStyles.consoleInfoRow}>
-                      <span className={adminStyles.consoleInfoLabel}>本月消耗</span>
-                      <span className={adminStyles.consoleInfoValue}>
-                        {tenantSnapshot.monthlyUsedPoints.toLocaleString("zh-CN")}
-                      </span>
-                    </div>
-                    <div className={adminStyles.consoleInfoRow}>
-                      <span className={adminStyles.consoleInfoLabel}>最近流水</span>
-                      <span className={adminStyles.consoleInfoValue}>
-                        {latestPointsLedger
-                          ? `${latestPointsLedger.title} · ${latestPointsLedger.points > 0 ? "+" : ""}${latestPointsLedger.points.toLocaleString("zh-CN")}`
-                          : "-"}
                       </span>
                     </div>
                   </>
@@ -718,12 +693,9 @@ export const OperationsPlatformView = (): JSX.Element => {
     communityGroupConfig,
     createAgentPlazaCategory,
     createAgentStoreZone,
-    createMeteringProvider,
     createModelService,
-    createMyZoneCategory,
     createPointsPackage,
     createProduct,
-    createSalesChannelContractCode,
     createSubscriptionPlan,
     createSkillCenterCategory,
     createTenant,
@@ -731,7 +703,6 @@ export const OperationsPlatformView = (): JSX.Element => {
     emptyProductForm,
     meteringProviders,
     modelServices,
-    myZoneCategories,
     productStatusLabels,
     productTrialUnitLabels,
     productTrialUnitOptions,
@@ -741,7 +712,6 @@ export const OperationsPlatformView = (): JSX.Element => {
     registrationStrategy,
     rejectAgent,
     rechargeTenantPoints,
-    salesChannelContractCodes,
     serviceContactConfig,
     skillCenterCategories,
     subscriptionPlans,
@@ -749,12 +719,9 @@ export const OperationsPlatformView = (): JSX.Element => {
     tenants,
     updateAgentPlazaCategory,
     updateAgentStoreZone,
-    updateMeteringProvider,
     updateModelService,
-    updateMyZoneCategory,
     updateProduct,
     updateProductStatus,
-    updateSalesChannelContractCode,
     updateCommunityGroupConfig,
     updatePointsPackage,
     updateRegistrationStrategy,
@@ -815,7 +782,6 @@ export const OperationsPlatformView = (): JSX.Element => {
   );
   const canManageRoles = hasOperationsPermission(OPERATIONS_PERMISSION_IDS.roleManage);
   const canManageBilling = hasOperationsPermission(OPERATIONS_PERMISSION_IDS.billingManage);
-  const canManageChannels = hasOperationsPermission(OPERATIONS_PERMISSION_IDS.channelManage);
   const canManageOrders = hasOperationsPermission(OPERATIONS_PERMISSION_IDS.orderManage);
   const canManagePoints = hasOperationsPermission(OPERATIONS_PERMISSION_IDS.pointsManage);
   const canManageResources = hasOperationsPermission(OPERATIONS_PERMISSION_IDS.resourceManage);
@@ -1159,7 +1125,6 @@ export const OperationsPlatformView = (): JSX.Element => {
           products={products}
           serviceContactConfig={serviceContactConfig}
           skillCategories={skillCenterCategories}
-          myZoneCategories={myZoneCategories}
           subscriptionPlans={subscriptionPlans}
           tenants={tenants}
           onBackToProductList={handleBackToProductList}
@@ -1169,14 +1134,12 @@ export const OperationsPlatformView = (): JSX.Element => {
           onCreateSubscriptionPlan={createSubscriptionPlan}
           onCreateProduct={createProduct}
           onCreateSkillCategory={createSkillCenterCategory}
-          onCreateMyZoneCategory={createMyZoneCategory}
           onNavigateToProduct={handleOpenProductDetail}
           onToggleProductStatus={updateProductStatus}
           onUpdateServiceContactConfig={updateServiceContactConfig}
           onUpdateCategory={updateAgentPlazaCategory}
           onUpdateStoreZone={updateAgentStoreZone}
           onUpdateSkillCategory={updateSkillCenterCategory}
-          onUpdateMyZoneCategory={updateMyZoneCategory}
           onUpdatePointsPackage={updatePointsPackage}
           onUpdateProduct={updateProduct}
           onUpdateSubscriptionPlan={updateSubscriptionPlan}
@@ -1213,21 +1176,6 @@ export const OperationsPlatformView = (): JSX.Element => {
           tenants={tenants}
           onApplyTenantSubscriptionPlan={applyTenantSubscriptionPlan}
           onUpdateRegistrationStrategy={updateRegistrationStrategy}
-        />
-      );
-    }
-
-    if (activeTab === "channels") {
-      if (!canManageChannels) {
-        return <Empty description="当前角色暂无渠道管理权限" />;
-      }
-
-      return (
-        <OperationsChannelConsole
-          salesChannelContractCodes={salesChannelContractCodes}
-          tenants={tenants}
-          onCreateSalesChannelContractCode={createSalesChannelContractCode}
-          onUpdateSalesChannelContractCode={updateSalesChannelContractCode}
         />
       );
     }
@@ -1275,13 +1223,13 @@ export const OperationsPlatformView = (): JSX.Element => {
     activeTenant,
     activeTenantSnapshot,
     activeTab,
+    agentStoreZones,
     agentPlazaCategories,
     agentStatusLabels,
     agentSubmissions,
     applyTenantSubscriptionPlan,
     approvedAgents,
     canManageBilling,
-    canManageChannels,
     canManageOrders,
     canManagePoints,
     canManageResources,
@@ -1291,13 +1239,12 @@ export const OperationsPlatformView = (): JSX.Element => {
     canReviewAgent,
     communityGroupConfig,
     createAgentPlazaCategory,
-    createMeteringProvider,
+    createAgentStoreZone,
     createModelService,
-    createMyZoneCategory,
     createPointsPackage,
     createProduct,
-    createSalesChannelContractCode,
     createSkillCenterCategory,
+    createSubscriptionPlan,
     emptyProductForm,
     handleBackToProductList,
     handleBackToTenantList,
@@ -1311,7 +1258,6 @@ export const OperationsPlatformView = (): JSX.Element => {
     handleToggleTenantStatus,
     meteringProviders,
     modelServices,
-    myZoneCategories,
     productId,
     productStatusLabels,
     productTrialUnitLabels,
@@ -1320,7 +1266,6 @@ export const OperationsPlatformView = (): JSX.Element => {
     pointsUsageRecords,
     products,
     registrationStrategy,
-    salesChannelContractCodes,
     skillCenterCategories,
     serviceContactConfig,
     subscriptionPlans,
@@ -1328,14 +1273,12 @@ export const OperationsPlatformView = (): JSX.Element => {
     tenantStatusLabels,
     tenants,
     updateAgentPlazaCategory,
+    updateAgentStoreZone,
     updateCommunityGroupConfig,
-    updateMeteringProvider,
     updateModelService,
-    updateMyZoneCategory,
     updatePointsPackage,
     updateProduct,
     updateProductStatus,
-    updateSalesChannelContractCode,
     updateRegistrationStrategy,
     updateServiceContactConfig,
     updateSkillCenterCategory,

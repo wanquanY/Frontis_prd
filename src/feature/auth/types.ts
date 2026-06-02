@@ -4,8 +4,7 @@ export type MockAuthRole = FrontisWebRole;
 export type MockIdentityPlatform =
   | "enterpriseWorkspace"
   | "enterpriseAdmin"
-  | "operationsAdmin"
-  | "daguanSales";
+  | "operationsAdmin";
 
 /**
  * 统一用户的可选身份入口定义。
@@ -169,11 +168,6 @@ export interface MockTenantSubscriptionOrderItem {
   unitPrice?: number;
   originalAmount?: number;
   discountAmount?: number;
-  contractCode?: string;
-  customerTier?: "pro" | "enterprise";
-  channelName?: string;
-  ownerName?: string;
-  serviceLabel?: string;
   expiresAt?: string;
   prorationLabel?: string;
   purchaseMode?: "addSeats" | "renew";
