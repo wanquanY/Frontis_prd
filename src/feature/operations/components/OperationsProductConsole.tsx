@@ -389,7 +389,7 @@ export const OperationsProductConsole = ({
   );
   const activeCategoryScopeLabel =
     activeCategoryScope === "storeZone"
-      ? "专家商店专区"
+      ? "专家广场专区"
       : activeCategoryScope === "expertPlaza"
         ? "专区分类"
         : "技能中心分类";
@@ -1064,7 +1064,7 @@ export const OperationsProductConsole = ({
 
           <div className={styles.modalField}>
             <label className={styles.modalLabel} htmlFor={PRODUCT_FIELD_IDS.tags}>
-              商店卡片标签
+              专家广场卡片标签
             </label>
             <Select<string[]>
               id={PRODUCT_FIELD_IDS.tags}
@@ -1618,7 +1618,7 @@ const CategoryTreeList = ({
   <section className={adminStyles.consoleSection}>
     <div className={adminStyles.consoleSectionHeader}>
       <div className={adminStyles.consoleSectionHeaderMain}>
-        <h2 className={adminStyles.consoleSectionTitle}>专家商店分类</h2>
+        <h2 className={adminStyles.consoleSectionTitle}>专家广场分类</h2>
       </div>
     </div>
     {storeZones.length ? (

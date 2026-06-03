@@ -27,14 +27,32 @@
     }
     .header h1 { font-size: 24px; line-height: 32px; font-weight: 850; }
     .header p { margin-top: 6px; max-width: 1160px; color: rgba(255,255,255,.74); font-size: 13px; line-height: 22px; }
+    .headerActions { display: flex; align-items: center; gap: 16px; }
     .legend { display: flex; align-items: center; gap: 12px; color: rgba(255,255,255,.88); font-size: 12px; white-space: nowrap; }
     .legend i { display: inline-block; width: 18px; height: 12px; margin-right: 5px; border: 1.5px solid #9ee7ff; vertical-align: middle; }
     .legend .event { width: 13px; height: 13px; border-radius: 50%; border-color: #86efac; }
     .legend .decision { width: 12px; height: 12px; border-color: #fde68a; transform: rotate(45deg); }
     .panel { margin-bottom: 18px; border: 1px solid rgba(15,23,42,.09); border-radius: 18px; background: #fff; box-shadow: 0 12px 34px rgba(15,23,42,.1); overflow: hidden; }
-    .panelTitle { display: flex; align-items: baseline; justify-content: space-between; padding: 16px 20px; border-bottom: 1px solid #e6edf5; background: #fbfcff; }
+    .panelTitle { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 16px 20px; border-bottom: 1px solid #e6edf5; background: #fbfcff; }
+    .panelTitleText { display: flex; align-items: baseline; justify-content: space-between; flex: 1; gap: 18px; min-width: 0; }
     .panelTitle h2 { font-size: 18px; line-height: 26px; font-weight: 850; }
-    .panelTitle span { color: #5b667a; font-size: 13px; line-height: 20px; }
+    .panelTitle span { color: #5b667a; font-size: 13px; line-height: 20px; text-align: right; }
+    .exportBtn {
+      height: 34px;
+      padding: 0 14px;
+      border: 1px solid rgba(7,20,49,.14);
+      border-radius: 8px;
+      background: #fff;
+      color: #071431;
+      font-size: 13px;
+      font-weight: 750;
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(15,23,42,.08);
+      white-space: nowrap;
+    }
+    .exportBtn:hover { border-color: #10b8c7; color: #0891b2; }
+    .exportBtn.primary { border-color: #10b8c7; background: #10b8c7; color: #fff; }
+    .exportBtn.primary:hover { background: #0891b2; color: #fff; }
     .svgWrap { overflow-x: auto; background: #fff; }
     svg { display: block; }
     .laneA { fill: #fbfdff; }
@@ -53,9 +71,9 @@
     .decisionNode { fill: #fffbeb; stroke: #d97706; stroke-width: 1.8; }
     .label { fill: #071431; font-size: 12px; font-weight: 800; text-anchor: middle; }
     .small { fill: #526178; font-size: 10.5px; font-weight: 650; text-anchor: middle; }
-    .edge { stroke: #64748b; stroke-width: 1.7; fill: none; marker-end: url(#arrow); }
-    .edgeSoft { stroke: #94a3b8; stroke-width: 1.5; fill: none; marker-end: url(#arrowSoft); stroke-dasharray: 5 5; }
-    .edgeGreen { stroke: #16a34a; stroke-width: 1.8; fill: none; marker-end: url(#arrowGreen); }
+    .edge { stroke: #64748b; stroke-width: 1.7; fill: none; }
+    .edgeSoft { stroke: #94a3b8; stroke-width: 1.5; fill: none; stroke-dasharray: 5 5; }
+    .edgeGreen { stroke: #16a34a; stroke-width: 1.8; fill: none; }
     .edgeText { fill: #475569; font-size: 10.5px; font-weight: 750; paint-order: stroke; stroke: #fff; stroke-width: 4px; stroke-linejoin: round; }
     .note { padding: 12px 18px 16px; border-top: 1px solid #edf2f7; color: #334155; font-size: 13px; line-height: 22px; background: #fbfcff; }
     .note strong { color: #071431; }
@@ -68,13 +86,19 @@
       <h1>Frontis AI · 多会话与上下文记忆机制业务流程图</h1>
       <p>正确口径：用户点击“新任务”并在首页发送第一句话后，创建一个独立会话。不同会话上下文隔离；跨会话只共享已生效的长期偏好、企业规则、专家记忆、业务对象记忆和任务结论。记忆在交互后自动沉淀，用户和管理员事后管理；ME 调度 AI 专家属于当前会话内协作，不属于跨会话。</p>
     </div>
-    <div class="legend"><span><i class="event"></i>开始/结束</span><span><i></i>动作</span><span><i class="decision"></i>判断</span></div>
+    <div class="headerActions">
+      <div class="legend"><span><i class="event"></i>开始/结束</span><span><i></i>动作</span><span><i class="decision"></i>判断</span></div>
+      <button class="exportBtn primary" type="button" data-export-all>导出全部</button>
+    </div>
   </header>
 
-  <section class="panel">
+  <section class="panel" data-export-name="01-用户主动创建新会话">
     <div class="panelTitle">
-      <h2>1. 主流程：用户主动创建新会话</h2>
-      <span>先创建会话和独立上下文，再召回可共享记忆，然后 ME 处理请求</span>
+      <div class="panelTitleText">
+        <h2>1. 主流程：用户主动创建新会话</h2>
+        <span>先创建会话和独立上下文，再召回可共享记忆，然后 ME 处理请求</span>
+      </div>
+      <button class="exportBtn" type="button" data-export-panel>导出图片</button>
     </div>
     <div class="svgWrap">
       <svg width="1800" height="820" viewBox="0 0 1800 820" role="img" aria-label="用户主动创建新会话主流程">
@@ -160,10 +184,13 @@
     <div class="note"><strong>主流程口径：</strong>初始化上下文后先召回允许跨会话共享的记忆，再进入 ME 处理请求。专家调度属于当前会话内分支，专家结论回到当前会话。长期记忆默认由系统在交互后自动提炼；只有敏感、冲突、作用范围不清或个人内容升级企业共享时进入治理。</div>
   </section>
 
-  <section class="panel">
+  <section class="panel" data-export-name="02-自动沉淀与共享边界闭环">
     <div class="panelTitle">
-      <h2>2. 自动沉淀与共享边界闭环</h2>
-      <span>先自动提炼，再按归属和风险决定生效或治理；会话原文始终隔离</span>
+      <div class="panelTitleText">
+        <h2>2. 自动沉淀与共享边界闭环</h2>
+        <span>先自动提炼，再按归属和风险决定生效或治理；会话原文始终隔离</span>
+      </div>
+      <button class="exportBtn" type="button" data-export-panel>导出图片</button>
     </div>
     <div class="svgWrap">
       <svg width="1800" height="650" viewBox="0 0 1800 650" role="img" aria-label="自动沉淀与共享边界闭环">
@@ -218,10 +245,13 @@
     <div class="note"><strong>闭环规则：</strong>个人长期记忆默认自动生效，用户可在“我的记忆”中编辑、停用或删除；企业长期记忆按来源和风险进入管理员治理后共享；专家记忆由专家创建者管理，业务对象记忆跟随对象权限。新会话只召回已生效且有权限的记忆，不能直接读取其他会话原文和临时过程。</div>
   </section>
 
-  <section class="panel">
+  <section class="panel" data-export-name="03-当前会话上下文压缩流程">
     <div class="panelTitle">
-      <h2>3. 当前会话内：上下文增长后才触发压缩</h2>
-      <span>压缩不是新会话初始化动作，而是会话持续增长后的兜底机制</span>
+      <div class="panelTitleText">
+        <h2>3. 当前会话内：上下文增长后才触发压缩</h2>
+        <span>压缩不是新会话初始化动作，而是会话持续增长后的兜底机制</span>
+      </div>
+      <button class="exportBtn" type="button" data-export-panel>导出图片</button>
     </div>
     <div class="svgWrap">
       <svg width="1800" height="410" viewBox="0 0 1800 410" role="img" aria-label="当前会话上下文压缩流程">
@@ -254,5 +284,132 @@
     <div class="note"><strong>压缩规则：</strong>只压缩当前会话；压缩后的摘要只属于当前会话；跨会话只能通过已生效长期记忆、业务对象记忆和已采纳任务结论获取信息。</div>
   </section>
 </main>
+<script>
+  const EXPORT_STYLES = `
+    .laneA { fill: #fbfdff; }
+    .laneB { fill: #f7faff; }
+    .laneLine { stroke: #dce5ef; stroke-width: 1; }
+    .laneLabel { fill: #071431; font-size: 14px; font-weight: 850; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; }
+    .laneSub { fill: #5b667a; font-size: 11px; font-weight: 600; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; }
+    .start { fill: #ecfdf5; stroke: #16a34a; stroke-width: 2; }
+    .end { fill: #fff1f2; stroke: #e11d48; stroke-width: 2; }
+    .user { fill: #eff6ff; stroke: #2563eb; stroke-width: 1.8; }
+    .session { fill: #f0fdfa; stroke: #0f9f8f; stroke-width: 1.8; }
+    .memory { fill: #fff7ed; stroke: #d97706; stroke-width: 1.8; }
+    .me { fill: #ecfeff; stroke: #0891b2; stroke-width: 1.8; }
+    .expert { fill: #f8fafc; stroke: #475569; stroke-width: 1.8; }
+    .warn { fill: #fff7f7; stroke: #dc2626; stroke-width: 1.8; }
+    .decisionNode { fill: #fffbeb; stroke: #d97706; stroke-width: 1.8; }
+    .label { fill: #071431; font-size: 12px; font-weight: 800; text-anchor: middle; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; }
+    .small { fill: #526178; font-size: 10.5px; font-weight: 650; text-anchor: middle; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; }
+    .edge { stroke: #64748b; stroke-width: 1.7; fill: none; marker-end: url(#arrow); }
+    .edgeSoft { stroke: #94a3b8; stroke-width: 1.5; fill: none; marker-end: url(#arrowSoft); stroke-dasharray: 5 5; }
+    .edgeGreen { stroke: #16a34a; stroke-width: 1.8; fill: none; marker-end: url(#arrowGreen); }
+    .edgeText { fill: #475569; font-size: 10.5px; font-weight: 750; paint-order: stroke; stroke: #fff; stroke-width: 4px; stroke-linejoin: round; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; }
+  `;
+
+  function getSvgSize(svg) {
+    const viewBox = svg.getAttribute("viewBox");
+    if (viewBox) {
+      const [, , width, height] = viewBox.split(/\s+/).map(Number);
+      return { width, height };
+    }
+    return {
+      width: Number(svg.getAttribute("width")) || Math.ceil(svg.getBoundingClientRect().width),
+      height: Number(svg.getAttribute("height")) || Math.ceil(svg.getBoundingClientRect().height),
+    };
+  }
+
+  function applyExportMarkers(svg) {
+    const hasMarker = (id) => Boolean(svg.querySelector(`#${id}`));
+    const defaultMarker = hasMarker("arrow") ? "arrow" : hasMarker("arrow2") ? "arrow2" : "arrow3";
+    const softMarker = hasMarker("arrowSoft") ? "arrowSoft" : defaultMarker;
+    const greenMarker = hasMarker("arrowGreen") ? "arrowGreen" : defaultMarker;
+
+    svg.querySelectorAll(".edge").forEach((path) => {
+      if (!path.getAttribute("marker-end")) path.setAttribute("marker-end", `url(#${defaultMarker})`);
+    });
+    svg.querySelectorAll(".edgeSoft").forEach((path) => {
+      if (!path.getAttribute("marker-end")) path.setAttribute("marker-end", `url(#${softMarker})`);
+    });
+    svg.querySelectorAll(".edgeGreen").forEach((path) => {
+      if (!path.getAttribute("marker-end")) path.setAttribute("marker-end", `url(#${greenMarker})`);
+    });
+  }
+
+  async function exportSvgAsPng(panel) {
+    const svg = panel.querySelector("svg");
+    const name = panel.dataset.exportName || "Frontis-AI-流程图";
+    const { width, height } = getSvgSize(svg);
+    const clonedSvg = svg.cloneNode(true);
+    clonedSvg.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+    clonedSvg.setAttribute("width", String(width));
+    clonedSvg.setAttribute("height", String(height));
+    applyExportMarkers(clonedSvg);
+
+    const style = document.createElementNS("http://www.w3.org/2000/svg", "style");
+    style.textContent = EXPORT_STYLES;
+    clonedSvg.insertBefore(style, clonedSvg.firstChild);
+
+    const svgBlob = new Blob([new XMLSerializer().serializeToString(clonedSvg)], { type: "image/svg+xml;charset=utf-8" });
+    const url = URL.createObjectURL(svgBlob);
+    const image = new Image();
+    image.decoding = "async";
+
+    await new Promise((resolve, reject) => {
+      image.onload = resolve;
+      image.onerror = reject;
+      image.src = url;
+    });
+
+    const scale = 2;
+    const canvas = document.createElement("canvas");
+    canvas.width = width * scale;
+    canvas.height = height * scale;
+    const ctx = canvas.getContext("2d");
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+    URL.revokeObjectURL(url);
+
+    const pngBlob = await new Promise((resolve) => canvas.toBlob(resolve, "image/png", 1));
+    const downloadUrl = URL.createObjectURL(pngBlob);
+    const link = document.createElement("a");
+    link.href = downloadUrl;
+    link.download = `${name}.png`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(downloadUrl), 1000);
+  }
+
+  document.querySelectorAll("[data-export-panel]").forEach((button) => {
+    button.addEventListener("click", async () => {
+      button.disabled = true;
+      button.textContent = "导出中...";
+      try {
+        await exportSvgAsPng(button.closest(".panel"));
+      } finally {
+        button.disabled = false;
+        button.textContent = "导出图片";
+      }
+    });
+  });
+
+  document.querySelector("[data-export-all]").addEventListener("click", async (event) => {
+    const button = event.currentTarget;
+    button.disabled = true;
+    button.textContent = "导出中...";
+    try {
+      for (const panel of document.querySelectorAll(".panel")) {
+        await exportSvgAsPng(panel);
+        await new Promise((resolve) => setTimeout(resolve, 250));
+      }
+    } finally {
+      button.disabled = false;
+      button.textContent = "导出全部";
+    }
+  });
+</script>
 </body>
 </html>

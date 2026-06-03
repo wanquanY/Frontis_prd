@@ -441,29 +441,29 @@ const buildMetaAgentSeedSessions = (): DialogueSessionItem[] => {
     buildMetaAgentTopicSession({
       id: "dialogue-seed-metaagent-weekly-task-plan",
       title: "本周任务编排",
-      preview: "ME 已把本周原型调整拆成菜单、商店、详情和任务记录四条线。",
+      preview: "ME 已把本周原型调整拆成菜单、专家广场、详情和任务记录四条线。",
       time: "今天 20:12",
-      userContent: "帮我把这周要改的原型任务按优先级排一下，不要漏掉商店和新任务。",
+      userContent: "帮我把这周要改的原型任务按优先级排一下，不要漏掉专家广场和新任务。",
       assistantContent:
-        "我会按影响面排序：先稳定新任务入口和任务记录，再处理商店筛选与专家卡片，最后校准详情弹窗和技能文件预览。每条任务都绑定验收点，避免改完以后只解决局部视觉问题。",
+        "我会按影响面排序：先稳定新任务入口和任务记录，再处理专家广场筛选与专家卡片，最后校准详情弹窗和技能文件预览。每条任务都绑定验收点，避免改完以后只解决局部视觉问题。",
     }),
     buildMetaAgentTopicSession({
       id: "dialogue-seed-metaagent-store-experience",
-      title: "商店体验优化",
-      preview: "ME 汇总了商店分类、专家名片、技能详情和只读权限的调整口径。",
+      title: "专家广场体验优化",
+      preview: "ME 汇总了专家广场分类、专家名片、技能详情和只读权限的调整口径。",
       time: "今天 20:27",
-      userContent: "商店现在看起来还是乱，你帮我整理一下到底应该怎么改。",
+      userContent: "专家广场现在看起来还是乱，你帮我整理一下到底应该怎么改。",
       assistantContent:
-        "商店需要保持三个原则：筛选只保留真实分类，专家卡片呈现专业名片感，详情只读且不暴露平台内部字段。技能详情直接展示名称、描述和文件内容，不再堆类型、版本、依赖这类无效信息。",
+        "专家广场需要保持三个原则：筛选只保留真实分类，专家卡片呈现专业名片感，详情只读且不暴露平台内部字段。技能详情直接展示名称、描述和文件内容，不再堆类型、版本、依赖这类无效信息。",
     }),
     buildMetaAgentTopicSession({
       id: "dialogue-seed-metaagent-expert-detail-rules",
       title: "专家详情规则梳理",
-      preview: "ME 已明确商店专家只能查看，自己的专家才允许编辑和保存。",
+      preview: "ME 已明确专家广场专家只能查看，自己的专家才允许编辑和保存。",
       time: "今天 20:43",
-      userContent: "专家详情里面不要再出现那些没意义字段，商店里的也不能编辑。",
+      userContent: "专家详情里面不要再出现那些没意义字段，专家广场里的也不能编辑。",
       assistantContent:
-        "我会把详情权限分成两类：商店来源只提供查看和添加/联系入口；我的专区或自建专家才有编辑、保存、核心文件维护和进化记录。详情页内容保留名称、描述、能力、工具、技能和核心文件，去掉 L3、Runtime、模型、形态等内部字段。",
+        "我会把详情权限分成两类：专家广场来源只提供查看和添加/联系入口；企业专区或自建专家才有编辑、保存、核心文件维护和进化记录。详情页内容保留名称、描述、能力、工具、技能和核心文件，去掉 L3、Runtime、模型、形态等内部字段。",
     }),
     buildMetaAgentTopicSession({
       id: "dialogue-seed-metaagent-skill-file-preview",
@@ -542,7 +542,7 @@ const mapStoreAgentToEmployee = (agent: StoreAgentItem): EmployeeItem => ({
   connectionMode: "cloud",
   model: agent.model,
   summary: agent.summary,
-  lastAction: "已从商店添加，可由 ME 调度。",
+  lastAction: "已从专家广场添加，可由 ME 调度。",
   source: "coworker",
   visibility: "all",
   developerName: agent.submitterLabel,

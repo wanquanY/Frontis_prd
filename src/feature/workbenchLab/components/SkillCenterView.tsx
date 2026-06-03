@@ -666,7 +666,7 @@ export const SkillCenterView = ({
     setPrimaryTab("mcp");
     setActiveCategory("all");
     message.success(
-      mcpPublishForm.scope === "platform" ? "MCP 已上架到商店" : "MCP 已发布到我的专区",
+      mcpPublishForm.scope === "platform" ? "MCP 已上架到技能中心" : "MCP 已发布到企业专区",
     );
   }, [activeIdentity?.tenantName, mcpPublishForm]);
 
@@ -677,7 +677,7 @@ export const SkillCenterView = ({
 
     setSkillItems(current => current.filter(item => item.id !== skill.id));
     message.success(
-      skill.tab === "mcp" ? "已从我的专区删除该 MCP。" : "已从我的专区删除该 Skill。",
+      skill.tab === "mcp" ? "已从企业专区删除该 MCP。" : "已从企业专区删除该 Skill。",
     );
   }, []);
 
@@ -727,8 +727,8 @@ export const SkillCenterView = ({
           title={skill.tab === "mcp" ? "删除 MCP" : "删除 Skill"}
           description={
             skill.tab === "mcp"
-              ? "删除后，该 MCP 将不再显示在我的专区。"
-              : "删除后，该 Skill 将不再显示在我的专区。"
+              ? "删除后，该 MCP 将不再显示在企业专区。"
+              : "删除后，该 Skill 将不再显示在企业专区。"
           }
           okText="删除"
           cancelText="取消"

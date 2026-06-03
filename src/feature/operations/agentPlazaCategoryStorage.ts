@@ -174,7 +174,7 @@ export const loadStoredAgentPlazaCategories = (): OperationsAgentPlazaCategoryOp
   mergeStoredCategoriesWithPreset(readStoredAgentPlazaCategories() ?? []);
 
 /**
- * 读取运营后台专家商店专区配置。
+ * 读取运营后台专家广场专区配置。
  */
 export const loadStoredAgentStoreZones = (): OperationsAgentStoreZoneOption[] =>
   mergeStoredZonesWithPreset(readStoredAgentStoreZones() ?? []);
@@ -196,7 +196,7 @@ export const saveStoredAgentPlazaCategories = (
 };
 
 /**
- * 保存运营后台专家商店专区配置。
+ * 保存运营后台专家广场专区配置。
  */
 export const saveStoredAgentStoreZones = (zones: OperationsAgentStoreZoneOption[]): void => {
   if (typeof window === "undefined") {

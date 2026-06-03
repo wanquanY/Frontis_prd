@@ -68,7 +68,7 @@ export type OperationsAgentPlazaCategoryStatus = "active" | "inactive";
 export type OperationsAgentPlazaVisibility = "public" | "tenant";
 
 /**
- * 商品所属商店专区，由运营后台维护。
+ * 商品所属专家广场专区，由运营后台维护。
  */
 export type OperationsAgentStoreZone = string;
 
@@ -90,7 +90,7 @@ export interface OperationsAgentPlazaCategoryOption {
 }
 
 /**
- * 专家商店专区配置项。
+ * 专家广场专区配置项。
  */
 export interface OperationsAgentStoreZoneOption {
   id: OperationsAgentStoreZone;

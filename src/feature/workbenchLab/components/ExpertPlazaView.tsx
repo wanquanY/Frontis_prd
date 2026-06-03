@@ -1051,7 +1051,7 @@ export const resolveLatestFulfillmentsByProductId = (
     }, new Map<string, OperationsFulfillment>());
 
 /**
- * AI 专家入口原型页，按菜单拆分为商店与我的专区。
+ * AI 专家入口原型页，按菜单拆分为专家广场与企业专区。
  */
 export const ExpertPlazaView = ({ mode = "store" }: ExpertPlazaViewProps): JSX.Element => {
   const { activeIdentity, session } = useMockAuth();
@@ -1260,7 +1260,7 @@ export const ExpertPlazaView = ({ mode = "store" }: ExpertPlazaViewProps): JSX.E
     }
 
     setRemovedMineAgentIds(current => new Set([...current, agent.id]));
-    message.success("已从我的专区删除该 AI 专家。");
+    message.success("已从企业专区删除该 AI 专家。");
   }, []);
 
   const handleAddToWorkbench = useCallback((agent: StoreAgentItem): void => {
@@ -1316,7 +1316,7 @@ export const ExpertPlazaView = ({ mode = "store" }: ExpertPlazaViewProps): JSX.E
         {agent.sourceType === "mine" ? (
           <Popconfirm
             title="删除 AI 专家"
-            description="删除后，该 AI 专家将不再显示在我的专区。"
+            description="删除后，该 AI 专家将不再显示在企业专区。"
             okText="删除"
             cancelText="取消"
             okButtonProps={{ danger: true }}
@@ -1351,7 +1351,7 @@ export const ExpertPlazaView = ({ mode = "store" }: ExpertPlazaViewProps): JSX.E
       <div className={styles.toolbarCard}>
         <div className={styles.filterGroup}>
           {mode === "team" ? (
-            <div className={styles.filterTabRow} role="tablist" aria-label="我的专区来源分类">
+            <div className={styles.filterTabRow} role="tablist" aria-label="企业专区来源分类">
               {TEAM_EXPERT_FILTER_OPTIONS.map(option => (
                 <button
                   key={option.value}
@@ -1370,7 +1370,7 @@ export const ExpertPlazaView = ({ mode = "store" }: ExpertPlazaViewProps): JSX.E
             </div>
           ) : (
             <>
-              <div className={styles.filterTabRow} role="tablist" aria-label="商店系统分类">
+              <div className={styles.filterTabRow} role="tablist" aria-label="专家广场系统分类">
                 {storeSystemCategoryOptions.map(option => (
                   <button
                     key={option.value}
@@ -1387,7 +1387,7 @@ export const ExpertPlazaView = ({ mode = "store" }: ExpertPlazaViewProps): JSX.E
                   </button>
                 ))}
               </div>
-              <div className={styles.filterTabRow} role="tablist" aria-label="商店场景分类">
+              <div className={styles.filterTabRow} role="tablist" aria-label="专家广场场景分类">
                 {storeSceneCategoryOptions.map(option => (
                   <button
                     key={option.value}
@@ -1446,7 +1446,7 @@ export const ExpertPlazaView = ({ mode = "store" }: ExpertPlazaViewProps): JSX.E
 
       {!filteredAgents.length ? (
         <div className={styles.emptyState}>
-          {mode === "store" ? "当前分类下暂无可添加的 AI 专家。" : "当前来源下暂无我的专区。"}
+          {mode === "store" ? "当前分类下暂无可添加的 AI 专家。" : "当前来源下暂无企业专区专家。"}
         </div>
       ) : null}
 

@@ -148,7 +148,7 @@ const DEFAULT_WORKBENCH_TASK_RECORD_GROUPS: WorkbenchConversationNavGroup[] = [
       },
       {
         id: "dialogue-seed-metaagent-store-experience",
-        title: "商店体验优化",
+        title: "专家广场体验优化",
         updatedAt: "今天 20:27",
         active: false,
       },
@@ -266,7 +266,7 @@ const getUnifiedWorkbenchPath = (
 };
 
 /**
- * 统一用户端页面，聚合新任务、商店、我的专区与进化实验室。
+ * 统一用户端页面，聚合新任务、专家广场、企业专区与进化实验室。
  */
 export const UnifiedWorkbenchPage = ({ viewRole }: UnifiedWorkbenchPageProps): JSX.Element => {
   const location = useLocation();
