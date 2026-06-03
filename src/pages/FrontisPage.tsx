@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AppstoreOutlined, LogoutOutlined } from "@ant-design/icons";
 import type { MenuProps } from "antd";
-import { Button, Empty, Modal, message } from "antd";
+import { Empty, message } from "antd";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import type { AiCeoAgentHomeConfig, AiCeoHomeCaseItem } from "@/constants/aiCeoHome";
 import { AI_CEO_AGENT_HOME_CONFIGS, AI_CEO_DEFAULT_HOME_CONFIG } from "@/constants/aiCeoHome";
@@ -52,6 +52,7 @@ import {
   FRONTIS_COMPLETE_PRD_V430_DOCUMENT_CONTENT,
   FRONTIS_COMPLETE_PRD_V430_DOCUMENT_NAME,
 } from "@/mocks/documents/productManagerDocuments";
+import multiTopicMemoryFlowHtml from "../../Frontis AI · 多Topic会话与上下文记忆机制设计图.html?raw";
 import {
   buildMetaAgentCapabilityDemoArtifacts,
   buildMetaAgentHistoryMessages,
@@ -66,6 +67,7 @@ import {
   INITIAL_WORKSPACES,
 } from "@/mocks/mockData";
 import type { ArtifactItem } from "@/types/artifact";
+import type { Block } from "@/types/block";
 import type {
   DialogueScenarioFrame,
   DialogueScenarioMessageSnapshot,
@@ -76,7 +78,7 @@ import { hasUserInAccessScope } from "@/utils/organizationAccess";
 
 import { DialoguePrototypeView } from "./components/DialoguePrototypeView";
 import { MeOnboardingProfileModal } from "./components/MeOnboardingProfileModal";
-import { buildDialogueScenarioReplay, findDialogueScenario } from "./dialogueScenarioSimulation";
+import { findDialogueScenario } from "./dialogueScenarioSimulation";
 import type {
   DialogueGeneratedResultItem,
   DialogueSessionItem,
@@ -100,7 +102,6 @@ import {
   mapAiCeoHomeConfigForRole,
   mapDialogueSessionForRole,
   mapEmployeeForRole,
-  resolveAgentDisplayName,
 } from "./agentDisplay";
 import styles from "./FrontisPage.module.less";
 
@@ -146,6 +147,12 @@ const DEFAULT_WORKSPACE_AGENT_NAME = "ME";
 const EXPERT_TEAM_MAIN_AGENT_NAME = DEFAULT_WORKSPACE_AGENT_NAME;
 const META_AGENT_SCENARIO_TEAM_ID = "team-product";
 const META_AGENT_PRIMARY_SEED_SESSION_ID = "dialogue-seed-metaagent-collab";
+const META_AGENT_MEMORY_FLOW_SESSION_ID =
+  "dialogue-seed-metaagent-multi-topic-memory-flow";
+const META_AGENT_MEMORY_FLOW_ARTIFACT_SUFFIX = "multi-topic-memory-flow-html";
+const META_AGENT_MEMORY_FLOW_ARTIFACT_ID = `${META_AGENT_MEMORY_FLOW_SESSION_ID}-${META_AGENT_MEMORY_FLOW_ARTIFACT_SUFFIX}`;
+const META_AGENT_MEMORY_FLOW_ARTIFACT_NAME =
+  "Frontis AI · 多Topic会话与上下文记忆机制设计图.html";
 const META_AGENT_ONBOARDING_SESSION_ID = "dialogue-seed-metaagent-onboarding";
 const NEW_USER_ONBOARDING_TENANT_ID = "tenant-new-user-onboarding-demo";
 const EXPERT_TEAM_MAIN_AGENT_DESCRIPTION =
@@ -258,6 +265,85 @@ const buildMetaAgentTopicSession = ({
   ],
 });
 
+const createMetaAgentArtifactBlock = ({
+  artifactId,
+  format,
+  id,
+  title,
+}: {
+  artifactId: string;
+  format: "html" | "markdown";
+  id: string;
+  title: string;
+}): Block => ({
+  id,
+  kind: "artifact",
+  data: {
+    artifact_id: artifactId,
+    format,
+    kind: format,
+    status: "completed",
+    title,
+  },
+  actorName: DEFAULT_WORKSPACE_AGENT_NAME,
+  actorRole: "assistant",
+});
+
+const buildMetaAgentMemoryFlowSession = (): DialogueSessionItem => {
+  const time = "今天 21:48";
+  const assistantMessageId = `${META_AGENT_MEMORY_FLOW_SESSION_ID}-assistant-1`;
+  const assistantContent =
+    "已把《Frontis AI · 多Topic会话与上下文记忆机制设计图》放到本次对话成果中。你可以在右侧成果面板打开 HTML 预览，用它评审多 topic 分流、上下文组装、记忆沉淀和回溯引用的整体机制。";
+
+  return {
+    id: META_AGENT_MEMORY_FLOW_SESSION_ID,
+    employeeId: DEFAULT_CONVERSATION_EMPLOYEE_ID,
+    title: "多 Topic 与记忆机制设计图",
+    preview: "ME 已生成多 Topic 会话与上下文记忆机制设计图，可在右侧成果面板预览 HTML。",
+    updatedAt: time,
+    messages: [
+      {
+        id: `${META_AGENT_MEMORY_FLOW_SESSION_ID}-user-1`,
+        role: "user",
+        author: "你",
+        content:
+          "把多 topic 会话与上下文记忆机制整理成一张设计图，放到对话成果里，右侧能预览 HTML。",
+        timeLabel: time,
+      },
+      {
+        id: assistantMessageId,
+        role: "assistant",
+        author: DEFAULT_WORKSPACE_AGENT_NAME,
+        content: assistantContent,
+        timeLabel: time,
+        blocks: [
+          {
+            id: `${assistantMessageId}-message`,
+            kind: "message",
+            data: {
+              role: "assistant",
+            },
+            actorName: DEFAULT_WORKSPACE_AGENT_NAME,
+            actorRole: "assistant",
+            children: [
+              dialogueScenarioRuntimeHelpers.createTextBlock(
+                `${assistantMessageId}-summary`,
+                assistantContent,
+              ),
+              createMetaAgentArtifactBlock({
+                artifactId: META_AGENT_MEMORY_FLOW_ARTIFACT_ID,
+                format: "html",
+                id: `${assistantMessageId}-artifact`,
+                title: META_AGENT_MEMORY_FLOW_ARTIFACT_NAME,
+              }),
+            ],
+          },
+        ],
+      },
+    ],
+  };
+};
+
 const buildWorkbenchAgentTaskSession = ({
   agentName,
   assistantContent,
@@ -351,6 +437,7 @@ const buildMetaAgentSeedSessions = (): DialogueSessionItem[] => {
       updatedAt: "11:22",
       messages: flattenedMessages,
     },
+    buildMetaAgentMemoryFlowSession(),
     buildMetaAgentTopicSession({
       id: "dialogue-seed-metaagent-weekly-task-plan",
       title: "本周任务编排",
@@ -535,6 +622,19 @@ const createMetaAgentV430PrdArtifact = (): ArtifactItem =>
       FRONTIS_COMPLETE_PRD_V430_DOCUMENT_CONTENT,
     ),
   );
+
+const createMetaAgentMemoryFlowHtmlArtifact = (): ArtifactItem =>
+  dialogueScenarioRuntimeHelpers.createHtmlArtifact(
+    META_AGENT_MEMORY_FLOW_SESSION_ID,
+    META_AGENT_MEMORY_FLOW_ARTIFACT_SUFFIX,
+    META_AGENT_MEMORY_FLOW_ARTIFACT_NAME,
+    DEFAULT_WORKSPACE_AGENT_NAME,
+    "多 Topic 会话与上下文记忆机制设计图",
+    multiTopicMemoryFlowHtml,
+    "今天 21:48",
+    dialogueScenarioRuntimeHelpers.resolveTextArtifactSize(multiTopicMemoryFlowHtml),
+  );
+
 const NORMALIZED_INITIAL_DIALOGUE_ARTIFACTS: Record<string, ArtifactItem[]> = {
   ...INITIAL_DIALOGUE_ARTIFACTS,
   [META_AGENT_PRIMARY_SEED_SESSION_ID]: [
@@ -544,6 +644,7 @@ const NORMALIZED_INITIAL_DIALOGUE_ARTIFACTS: Record<string, ArtifactItem[]> = {
     ),
     createMetaAgentV430PrdArtifact(),
   ],
+  [META_AGENT_MEMORY_FLOW_SESSION_ID]: [createMetaAgentMemoryFlowHtmlArtifact()],
 };
 const NORMALIZED_INITIAL_DIALOGUE_RESULTS: Record<string, DialogueGeneratedResultItem[]> = {
   ...INITIAL_DIALOGUE_RESULTS,
@@ -596,138 +697,6 @@ interface CaseReplayState {
   results: DialogueGeneratedResultItem[];
   session: DialogueSessionItem;
 }
-
-const appendUniqueArtifacts = (target: ArtifactItem[], items: ArtifactItem[]): void => {
-  const existingKeys = new Set(
-    target.map(item => `${item.fileName}::${item.canonicalPath}::${item.mimeType}`),
-  );
-
-  items.forEach(item => {
-    const nextKey = `${item.fileName}::${item.canonicalPath}::${item.mimeType}`;
-    if (existingKeys.has(nextKey)) {
-      return;
-    }
-    target.push(item);
-    existingKeys.add(nextKey);
-  });
-};
-
-const appendUniqueResults = (
-  target: DialogueGeneratedResultItem[],
-  items: DialogueGeneratedResultItem[],
-): void => {
-  const existingIds = new Set(target.map(item => item.id));
-
-  items.forEach(item => {
-    if (existingIds.has(item.id)) {
-      return;
-    }
-    target.push(item);
-    existingIds.add(item.id);
-  });
-};
-
-const resolveCasePracticeQuestion = (item: AiCeoHomeCaseItem): string =>
-  item.replayScenarioQuestion?.trim() ||
-  item.messages.find(message => message.role === "user")?.content.trim() ||
-  item.title;
-
-const buildCaseReplayState = (
-  employee: EmployeeItem,
-  item: AiCeoHomeCaseItem,
-  viewRole: FrontisWebRole,
-): CaseReplayState => {
-  const replaySessionId = createId(`dialogue-case-${item.id}`);
-  const practiceQuestion = resolveCasePracticeQuestion(item);
-  const replay = item.replayScenarioQuestion
-    ? buildDialogueScenarioReplay(
-        resolveDialogueScenarioEmployeeId(employee),
-        item.replayScenarioQuestion,
-        replaySessionId,
-      )
-    : null;
-
-  if (!replay) {
-    const messages = item.messages.map(message => ({
-      id: `${replaySessionId}-${message.id}`,
-      role: message.role,
-      author:
-        message.role === "assistant"
-          ? resolveAgentDisplayName(employee.id, message.actor, viewRole)
-          : message.actor,
-      content: message.content,
-      timeLabel: "案例记录",
-    }));
-
-    return {
-      session: {
-        id: replaySessionId,
-        employeeId: employee.id,
-        title: item.title,
-        preview: item.summary,
-        updatedAt: "案例记录",
-        messages,
-      },
-      artifacts: [],
-      results: [],
-      openPanel: null,
-      practiceQuestion,
-    };
-  }
-
-  const artifacts: ArtifactItem[] = [];
-  const results: DialogueGeneratedResultItem[] = [];
-  let preview = item.summary;
-  const caseMessages = replay.rounds.flatMap((round, roundIndex) => {
-    round.frames.forEach(frame => {
-      if (frame.artifacts?.length) {
-        appendUniqueArtifacts(artifacts, frame.artifacts);
-      }
-
-      const nextResults = buildLiveDialogueResults(replaySessionId, frame);
-      if (nextResults.length) {
-        appendUniqueResults(results, nextResults);
-      }
-    });
-
-    const lastFrame = round.frames[round.frames.length - 1];
-    preview = lastFrame?.preview ?? preview;
-
-    return [
-      {
-        id: `${replaySessionId}-user-${roundIndex + 1}`,
-        role: "user" as const,
-        author: "你",
-        content: round.question,
-        timeLabel: round.updatedAt,
-      },
-      {
-        id: `${replaySessionId}-assistant-${roundIndex + 1}`,
-        role: "assistant" as const,
-        author: resolveAgentDisplayName(employee.id, round.agentName, viewRole),
-        content: lastFrame?.preview ?? item.summary,
-        timeLabel: round.updatedAt,
-        blocks: lastFrame?.blocks,
-        followupSuggestions: lastFrame?.followupSuggestions,
-      },
-    ];
-  });
-
-  return {
-    session: {
-      id: replaySessionId,
-      employeeId: employee.id,
-      title: item.title,
-      preview,
-      updatedAt: "案例记录",
-      messages: caseMessages,
-    },
-    artifacts,
-    results,
-    openPanel: results.length > 0 ? "results" : artifacts.length > 0 ? "artifacts" : null,
-    practiceQuestion,
-  };
-};
 
 const buildWorkspaceDefaultAgent = (
   employee: EmployeeItem,
@@ -2353,29 +2322,6 @@ const FrontisPage = ({
     setIsFeishuWorkspaceConnected(true);
     message.success("飞书已连接。");
   }, [isFeishuQrConfigured]);
-
-  const handleOpenHomeCase = useCallback(
-    (item: AiCeoHomeCaseItem): void => {
-      if (!activeEmployee) {
-        return;
-      }
-      const replayEmployee = activeEmployee.isExpertTeam
-        ? (activeExpertTeamMembers.find(
-            member => member.id === activeEmployee.expertTeamPrimaryMemberId,
-          ) ??
-          activeExpertTeamMembers[0] ??
-          activeEmployee)
-        : activeEmployee;
-      dialogueAttachments.forEach(revokeComposerAttachmentPreview);
-      setDialogueAttachments([]);
-      setDialogueInputValue("");
-      setSelectedSkillIds([]);
-      setActiveDialogueSessionId("");
-      setIsDialogueHomeActive(false);
-      setActiveCaseReplay(buildCaseReplayState(replayEmployee, item, viewRole));
-    },
-    [activeEmployee, activeExpertTeamMembers, dialogueAttachments, viewRole],
-  );
 
   const handleStartCasePractice = useCallback((): void => {
     if (!activeCaseReplay) {

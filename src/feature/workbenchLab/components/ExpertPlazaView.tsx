@@ -2,11 +2,9 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import {
   ArrowRightOutlined,
-  CheckCircleOutlined,
   CustomerServiceOutlined,
   DeleteOutlined,
   FileTextOutlined,
-  LineChartOutlined,
   ProfileOutlined,
   UploadOutlined,
   UserOutlined,
@@ -34,9 +32,7 @@ import {
   normalizeTenantRolePermissionIds,
 } from "@/constants/tenantRolePermissions";
 import {
-  loadWorkbenchAgentRecords,
   upsertWorkbenchAgentRecord,
-  WORKBENCH_AGENT_RECORDS_UPDATED_EVENT,
 } from "@/feature/workbenchLab/workbenchAgentsStorage";
 import type {
   OperationsAgentPlazaCategoryOption,
@@ -72,29 +68,6 @@ interface AgentVersionItem {
   description: string;
   date: string;
   current?: boolean;
-}
-
-interface AgentEvolutionPoint {
-  label: string;
-  value: number;
-}
-
-interface AgentEvolutionPathItem {
-  title: string;
-  description: string;
-  status: "done" | "active" | "locked";
-}
-
-interface AgentEvolutionEvidenceItem {
-  title: string;
-  description: string;
-  source: string;
-}
-
-interface AgentEvolutionRecord {
-  curve: AgentEvolutionPoint[];
-  path: AgentEvolutionPathItem[];
-  evidence: AgentEvolutionEvidenceItem[];
 }
 
 interface AgentCoreFile {
@@ -738,74 +711,6 @@ const getProductCardTags = (
   return productTags.length ? productTags : getCapabilityCardTags(capabilities);
 };
 
-const buildAgentEvolutionRecord = (agent: StoreAgentItem): AgentEvolutionRecord => {
-  const capabilityNames = agent.capabilities.map(capability => capability.name);
-  const primaryCapability = capabilityNames[0] ?? agent.scene;
-  const secondaryCapability = capabilityNames[1] ?? agent.businessLineLabel;
-  const updateLabel = agent.updatedAt || "最近";
-
-  return {
-    curve: [
-      { label: "第1周", value: 18 },
-      { label: "第2周", value: 28 },
-      { label: "第3周", value: 43 },
-      { label: "第4周", value: 61 },
-      { label: "第5周", value: 76 },
-      { label: "第6周", value: 88 },
-    ],
-    path: [
-      {
-        title: "身份稳定",
-        description: `围绕「${agent.scene}」形成稳定角色边界和响应口径。`,
-        status: "done",
-      },
-      {
-        title: "能力沉淀",
-        description: `${primaryCapability} 已形成可复用处理策略，覆盖高频任务。`,
-        status: "done",
-      },
-      {
-        title: "场景泛化",
-        description: `${secondaryCapability} 正在扩展到更多业务样例和异常分支。`,
-        status: "active",
-      },
-      {
-        title: "专家闭环",
-        description: "持续累积证据、复盘结论和团队反馈，形成可追溯进化记录。",
-        status: "locked",
-      },
-    ],
-    evidence: [
-      {
-        title: `${primaryCapability} 任务复盘`,
-        description: `最近一次任务沉淀了「${agent.scene}」场景下的判断规则。`,
-        source: `${updateLabel} · MEMORY.md`,
-      },
-      {
-        title: "使用反馈校准",
-        description: "根据团队反馈收敛输出边界，减少泛化回答。",
-        source: `${updateLabel} · USER.md`,
-      },
-      {
-        title: "核心文件更新",
-        description: "身份描述、能力说明和交付格式已同步到核心文件。",
-        source: `${updateLabel} · SOUL.md`,
-      },
-    ],
-  };
-};
-
-const getAgentEvolutionRecord = (
-  agent: StoreAgentItem,
-  isAddedToExpertList: boolean,
-): AgentEvolutionRecord | null => {
-  if (agent.sourceType === "frontis" && (shouldContactForAgent(agent) || !isAddedToExpertList)) {
-    return null;
-  }
-
-  return buildAgentEvolutionRecord(agent);
-};
-
 const getAgentCoreFiles = (agent: StoreAgentItem): AgentCoreFile[] => [
   {
     key: "soulMarkdown",
@@ -1171,10 +1076,6 @@ export const ExpertPlazaView = ({ mode = "store" }: ExpertPlazaViewProps): JSX.E
   const [detailTab, setDetailTab] = useState<AgentDetailTab>("identity");
   const [detailFileKey, setDetailFileKey] = useState<AgentCoreFileKey>("soulMarkdown");
   const [removedMineAgentIds, setRemovedMineAgentIds] = useState<Set<string>>(() => new Set());
-  const [expertListOverrides, setExpertListOverrides] = useState<Record<string, boolean>>({});
-  const [workbenchAgentIds, setWorkbenchAgentIds] = useState<Set<string>>(
-    () => new Set(loadWorkbenchAgentRecords().map(record => record.id)),
-  );
   const [agentStoreZones, setAgentStoreZones] = useState<OperationsAgentStoreZoneOption[]>(() =>
     loadStoredAgentStoreZones(),
   );
@@ -1241,21 +1142,6 @@ export const ExpertPlazaView = ({ mode = "store" }: ExpertPlazaViewProps): JSX.E
   }, [refreshStorefrontState]);
 
   useEffect(() => {
-    const handleWorkbenchAgentsUpdated = (): void => {
-      setWorkbenchAgentIds(new Set(loadWorkbenchAgentRecords().map(record => record.id)));
-    };
-
-    window.addEventListener(WORKBENCH_AGENT_RECORDS_UPDATED_EVENT, handleWorkbenchAgentsUpdated);
-
-    return () => {
-      window.removeEventListener(
-        WORKBENCH_AGENT_RECORDS_UPDATED_EVENT,
-        handleWorkbenchAgentsUpdated,
-      );
-    };
-  }, []);
-
-  useEffect(() => {
     if (!storeSceneCategoryOptions.some(item => item.value === storeSceneFilter)) {
       setStoreSceneFilter("all");
     }
@@ -1302,13 +1188,6 @@ export const ExpertPlazaView = ({ mode = "store" }: ExpertPlazaViewProps): JSX.E
     [currentTenantId, latestFulfillmentsByProductId, products],
   );
 
-  const isInExpertList = useCallback(
-    (agent: StoreAgentItem): boolean =>
-      expertListOverrides[agent.id] ??
-      (Boolean(agent.fulfillment) || workbenchAgentIds.has(agent.id)),
-    [expertListOverrides, workbenchAgentIds],
-  );
-
   const filteredAgents = useMemo(() => {
     const candidateAgents =
       mode === "store"
@@ -1352,10 +1231,6 @@ export const ExpertPlazaView = ({ mode = "store" }: ExpertPlazaViewProps): JSX.E
     () => (contactAgent ? resolveContactModalInfo(contactAgent, serviceContactConfig) : null),
     [contactAgent, serviceContactConfig],
   );
-  const detailAgentEvolutionRecord = useMemo(
-    () => (detailAgent ? getAgentEvolutionRecord(detailAgent, isInExpertList(detailAgent)) : null),
-    [detailAgent, isInExpertList],
-  );
   const detailAgentCoreFiles = useMemo(
     () => (detailAgent ? getAgentCoreFiles(detailAgent) : []),
     [detailAgent],
@@ -1389,7 +1264,7 @@ export const ExpertPlazaView = ({ mode = "store" }: ExpertPlazaViewProps): JSX.E
   }, []);
 
   const handleAddToWorkbench = useCallback((agent: StoreAgentItem): void => {
-    const nextRecords = upsertWorkbenchAgentRecord({
+    upsertWorkbenchAgentRecord({
       id: agent.id,
       name: agent.name,
       avatarUrl: agent.avatarUrl,
@@ -1403,10 +1278,6 @@ export const ExpertPlazaView = ({ mode = "store" }: ExpertPlazaViewProps): JSX.E
       skills: agent.capabilities.map(item => item.name),
     });
 
-    setWorkbenchAgentIds(new Set(nextRecords.map(record => record.id)));
-    if (agent.sourceType === "frontis") {
-      setExpertListOverrides(current => ({ ...current, [agent.id]: true }));
-    }
     message.success(`已添加「${agent.name}」到工作台，可单聊，也可由 ME 调度。`);
   }, []);
 
@@ -1751,86 +1622,10 @@ export const ExpertPlazaView = ({ mode = "store" }: ExpertPlazaViewProps): JSX.E
                     ))}
                   </div>
                 ) : detailTab === "growth" ? (
-                  detailAgentEvolutionRecord ? (
-                    <div className={styles.agentEvolutionPane}>
-                      <section className={styles.agentEvolutionCurve}>
-                        <div className={styles.agentDetailSectionHead}>
-                          <h3>进化曲线</h3>
-                          <p>基于任务沉淀、反馈校准和核心文件更新形成的阶段变化</p>
-                        </div>
-                        <div className={styles.evolutionChart} aria-label="进化曲线">
-                          <svg viewBox="0 0 360 140" role="img">
-                            <polyline points="16,102 82,90 148,72 214,51 280,33 344,18" />
-                            {detailAgentEvolutionRecord.curve.map((point, index) => (
-                              <circle
-                                key={point.label}
-                                cx={16 + index * 66}
-                                cy={124 - point.value * 1.2}
-                                r="4"
-                              />
-                            ))}
-                          </svg>
-                        </div>
-                        <div className={styles.evolutionCurveLegend}>
-                          {detailAgentEvolutionRecord.curve.map(point => (
-                            <span key={point.label}>
-                              <b>{point.label}</b>
-                              {point.value}
-                            </span>
-                          ))}
-                        </div>
-                      </section>
-
-                      <section className={styles.agentEvolutionBlock}>
-                        <div className={styles.agentDetailSectionHead}>
-                          <h3>进化路径</h3>
-                          <p>从身份稳定到专家闭环的关键节点</p>
-                        </div>
-                        <div className={styles.evolutionPathList}>
-                          {detailAgentEvolutionRecord.path.map(item => (
-                            <article
-                              key={item.title}
-                              className={classNames(
-                                styles.evolutionPathItem,
-                                item.status === "active" && styles.evolutionPathItemActive,
-                                item.status === "locked" && styles.evolutionPathItemLocked,
-                              )}
-                            >
-                              <CheckCircleOutlined />
-                              <div>
-                                <strong>{item.title}</strong>
-                                <span>{item.description}</span>
-                              </div>
-                            </article>
-                          ))}
-                        </div>
-                      </section>
-
-                      <section className={styles.agentEvolutionBlock}>
-                        <div className={styles.agentDetailSectionHead}>
-                          <h3>进化证据</h3>
-                          <p>来自核心文件、任务复盘和团队反馈的可追溯记录</p>
-                        </div>
-                        <div className={styles.evolutionEvidenceGrid}>
-                          {detailAgentEvolutionRecord.evidence.map(item => (
-                            <article key={item.title} className={styles.evolutionEvidenceItem}>
-                              <LineChartOutlined />
-                              <div>
-                                <strong>{item.title}</strong>
-                                <span>{item.description}</span>
-                                <em>{item.source}</em>
-                              </div>
-                            </article>
-                          ))}
-                        </div>
-                      </section>
-                    </div>
-                  ) : (
-                    <div className={styles.agentEvolutionEmpty}>
-                      <ProfileOutlined />
-                      <strong>暂无进化记录</strong>
-                    </div>
-                  )
+                  <div className={styles.agentEvolutionEmpty}>
+                    <ProfileOutlined />
+                    <strong>待杨涛补充设计</strong>
+                  </div>
                 ) : (
                   <div className={styles.agentFilesPane}>
                     <div className={styles.agentFileTabs}>
