@@ -579,7 +579,7 @@ export const MockLoginView = (): JSX.Element => {
                   size="large"
                   type="primary"
                   className={styles.primaryButton}
-                  disabled={!isValidMainlandPhone(phoneValue) || !agreeLegalAgreements}
+                  disabled={!isValidMainlandPhone(phoneValue)}
                 >
                   下一步
                 </Button>
