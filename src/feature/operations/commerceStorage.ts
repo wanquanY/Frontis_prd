@@ -99,29 +99,45 @@ const shouldUseAgentSubscriptionPlans = (product: OperationsProduct): boolean =>
   product.saleType === "paid" &&
   product.billingMode === "subscription";
 
+const normalizeAgentProductAcquisition = (product: OperationsProduct): OperationsProduct => {
+  if (product.supplyKind !== "agent") {
+    return product;
+  }
+
+  return {
+    ...product,
+    supportsTrial: false,
+    trialUnit: undefined,
+    trialValue: undefined,
+  };
+};
+
 const normalizeAgentSubscriptionProduct = (
   product: OperationsProduct,
   presetProduct?: OperationsProduct,
 ): OperationsProduct => {
+  const normalizedProduct = normalizeAgentProductAcquisition(product);
   const productWithContact: OperationsProduct = {
-    ...product,
+    ...normalizedProduct,
     plazaVisibility: "public",
     visibleTenantIds: [],
     visibleTenantNames: [],
-    billingScopes: product.billingScopes?.length ? [...product.billingScopes] : ["points"],
-    contactMode: product.contactMode ?? "disabled",
-    contactQrCodeValue: product.contactQrCodeValue?.trim() ?? "",
-    contactRemark: product.contactRemark?.trim() ?? "",
-    tags: product.tags ? [...product.tags] : [],
-    storeZones: product.storeZones?.length
-      ? [...product.storeZones]
-      : product.storeZone
-        ? [product.storeZone]
+    billingScopes: normalizedProduct.billingScopes?.length
+      ? [...normalizedProduct.billingScopes]
+      : ["points"],
+    contactMode: normalizedProduct.contactMode ?? "disabled",
+    contactQrCodeValue: normalizedProduct.contactQrCodeValue?.trim() ?? "",
+    contactRemark: normalizedProduct.contactRemark?.trim() ?? "",
+    tags: normalizedProduct.tags ? [...normalizedProduct.tags] : [],
+    storeZones: normalizedProduct.storeZones?.length
+      ? [...normalizedProduct.storeZones]
+      : normalizedProduct.storeZone
+        ? [normalizedProduct.storeZone]
         : [],
     plazaCategoryByZone:
-      product.plazaCategoryByZone ??
-      (product.storeZone && product.plazaCategory
-        ? { [product.storeZone]: product.plazaCategory }
+      normalizedProduct.plazaCategoryByZone ??
+      (normalizedProduct.storeZone && normalizedProduct.plazaCategory
+        ? { [normalizedProduct.storeZone]: normalizedProduct.plazaCategory }
         : {}),
   };
 
@@ -186,7 +202,10 @@ export const loadStoredOperationsProducts = (): OperationsProduct[] =>
  * 保存运营后台当前全部 AI 专家上架配置。
  */
 export const saveStoredOperationsProducts = (products: OperationsProduct[]): void => {
-  saveStoredList(OPERATIONS_PRODUCTS_STORAGE_KEY, products.map(cloneProduct));
+  saveStoredList(
+    OPERATIONS_PRODUCTS_STORAGE_KEY,
+    products.map(product => cloneProduct(normalizeAgentProductAcquisition(product))),
+  );
 };
 
 /**

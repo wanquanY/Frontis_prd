@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import { Input, InputNumber, Modal, Select, message } from "antd";
 import classNames from "classnames";
+import dayjs from "dayjs";
 
 import type {
   OperationsTenant,
@@ -9,7 +10,10 @@ import type {
   OperationsTenantSeatAllocationPayload,
 } from "@/feature/operations/types";
 import type { MockPointsPackageOption } from "@/feature/points/types";
-import type { MockSubscriptionPlanTemplate } from "@/feature/subscription/types";
+import type {
+  MockSubscriptionPlanSpec,
+  MockSubscriptionPlanTemplate,
+} from "@/feature/subscription/types";
 
 import styles from "./OperationsPlatformView.module.less";
 
@@ -42,6 +46,16 @@ interface SeatAllocationFormState {
   remark: string;
 }
 
+const resolveSeatAllocationExpiresAt = (
+  spec: MockSubscriptionPlanSpec | undefined,
+): string => {
+  if (!spec || spec.validityCount <= 0) {
+    return "";
+  }
+
+  return dayjs().add(spec.validityCount, spec.validityUnit).format("YYYY-MM-DD");
+};
+
 const createPointsRechargeForm = (
   packages: MockPointsPackageOption[],
 ): PointsRechargeFormState => ({
@@ -59,7 +73,7 @@ const createSeatAllocationForm = (
     planKey: firstPlan?.key ?? "",
     specKey: firstSpec?.key ?? "",
     seatCount: firstPlan?.seatCount ?? 1,
-    expiresAt: "长期有效",
+    expiresAt: resolveSeatAllocationExpiresAt(firstSpec),
     remark: "",
   };
 };
@@ -208,6 +222,17 @@ export const OperationsTenantSeatAllocationModal = ({
       planKey,
       specKey: nextSpec?.key ?? "",
       seatCount: nextPlan?.seatCount ?? current.seatCount,
+      expiresAt: resolveSeatAllocationExpiresAt(nextSpec),
+    }));
+  };
+
+  const handleChangeSpec = (specKey: string): void => {
+    const nextSpec = activeSpecs.find(item => item.key === specKey);
+
+    setForm(current => ({
+      ...current,
+      specKey,
+      expiresAt: resolveSeatAllocationExpiresAt(nextSpec),
     }));
   };
 
@@ -275,12 +300,7 @@ export const OperationsTenantSeatAllocationModal = ({
               value: item.key,
               label: item.title,
             }))}
-            onChange={specKey =>
-              setForm(current => ({
-                ...current,
-                specKey,
-              }))
-            }
+            onChange={handleChangeSpec}
           />
         </div>
         <div className={styles.modalField}>
@@ -294,18 +314,6 @@ export const OperationsTenantSeatAllocationModal = ({
               setForm(current => ({
                 ...current,
                 seatCount: value ?? 0,
-              }))
-            }
-          />
-        </div>
-        <div className={styles.modalField}>
-          <span className={styles.modalLabel}>到期时间</span>
-          <Input
-            value={form.expiresAt}
-            onChange={event =>
-              setForm(current => ({
-                ...current,
-                expiresAt: event.target.value,
               }))
             }
           />

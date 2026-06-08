@@ -173,6 +173,31 @@ export interface MockTenantSubscriptionOrderItem {
   purchaseMode?: "addSeats" | "renew";
 }
 
+export type MockTenantEntitlementGrantKind = "points" | "seats";
+
+export type MockTenantEntitlementGrantStatus = "active" | "revoked";
+
+export interface MockTenantEntitlementGrantItem {
+  id: string;
+  kind: MockTenantEntitlementGrantKind;
+  title: string;
+  description: string;
+  orderId: string;
+  orderNo: string;
+  points?: number;
+  seatCount?: number;
+  giftPoints?: number;
+  expiresAt?: string;
+  status: MockTenantEntitlementGrantStatus;
+  createdAt: string;
+  operatorUserId?: string;
+  operatorName?: string;
+  operatorRoleLabel?: string;
+  revokedAt?: string;
+  revokedBy?: string;
+  revokeReason?: string;
+}
+
 /**
  * 租户当前版本。
  */
@@ -236,6 +261,7 @@ export interface MockTenantManagementSnapshot {
   pointsUsageRecords: MockTenantPointsUsageRecordItem[];
   pointsOrders: MockTenantPointsOrderItem[];
   subscriptionOrders: MockTenantSubscriptionOrderItem[];
+  entitlementGrants?: MockTenantEntitlementGrantItem[];
 }
 
 /**

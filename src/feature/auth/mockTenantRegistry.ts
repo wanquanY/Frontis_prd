@@ -965,6 +965,10 @@ const mergeSnapshotWithPreset = (
       presetSnapshot.subscriptionOrders,
       storedSnapshot.subscriptionOrders ?? [],
     ),
+    entitlementGrants: mergeStoredItemsWithPreset(
+      presetSnapshot.entitlementGrants ?? [],
+      storedSnapshot.entitlementGrants ?? [],
+    ),
   });
 
 const isValidTenantSnapshot = (value: unknown): value is MockTenantManagementSnapshot =>
@@ -1043,6 +1047,7 @@ const cloneSnapshot = (snapshot: MockTenantManagementSnapshot): MockTenantManage
     pointsUsageRecords: (normalizedSnapshot.pointsUsageRecords ?? []).map(item => ({ ...item })),
     pointsOrders: (normalizedSnapshot.pointsOrders ?? []).map(item => ({ ...item })),
     subscriptionOrders: (normalizedSnapshot.subscriptionOrders ?? []).map(item => ({ ...item })),
+    entitlementGrants: (normalizedSnapshot.entitlementGrants ?? []).map(item => ({ ...item })),
   };
 };
 
@@ -1071,6 +1076,7 @@ const readStoredTenantSnapshots = (): MockTenantManagementSnapshot[] => {
         pointsUsageRecords: Array.isArray(item.pointsUsageRecords) ? item.pointsUsageRecords : [],
         pointsOrders: Array.isArray(item.pointsOrders) ? item.pointsOrders : [],
         subscriptionOrders: Array.isArray(item.subscriptionOrders) ? item.subscriptionOrders : [],
+        entitlementGrants: Array.isArray(item.entitlementGrants) ? item.entitlementGrants : [],
       }),
     );
   } catch {

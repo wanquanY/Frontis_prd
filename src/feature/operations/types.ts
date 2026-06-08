@@ -348,6 +348,19 @@ export interface OperationsTenantSeatAllocationPayload {
 }
 
 /**
+ * 运营后台撤销已发放的积分包或席位包。
+ */
+export interface OperationsTenantEntitlementRevokePayload {
+  grantId: string;
+  reason: string;
+}
+
+export interface OperationsTenantEntitlementRevokeResult {
+  success: boolean;
+  message: string;
+}
+
+/**
  * 运营后台租户成员对象。
  */
 export interface OperationsTenantMember {
@@ -457,11 +470,15 @@ export interface OperationsModelService {
   modelCode: string;
   modelName: string;
   inputCostPerMillion: number;
+  cacheCreationCostPerMillion: number;
+  cacheReadCostPerMillion: number;
   outputCostPerMillion: number;
   pricingMode: OperationsServicePricingMode;
   markupRate: number;
   grossMarginRate: number;
   inputSalePricePerMillion: number;
+  cacheCreationSalePricePerMillion: number;
+  cacheReadSalePricePerMillion: number;
   outputSalePricePerMillion: number;
   status: OperationsMeteringStatus;
   updatedAt: string;
@@ -475,11 +492,15 @@ export interface OperationsModelServiceForm {
   modelCode: string;
   modelName: string;
   inputCostPerMillion: number;
+  cacheCreationCostPerMillion: number;
+  cacheReadCostPerMillion: number;
   outputCostPerMillion: number;
   pricingMode: OperationsServicePricingMode;
   markupRate: number;
   grossMarginRate: number;
   inputSalePricePerMillion: number;
+  cacheCreationSalePricePerMillion: number;
+  cacheReadSalePricePerMillion: number;
   outputSalePricePerMillion: number;
   status: OperationsMeteringStatus;
 }
@@ -496,6 +517,9 @@ export interface OperationsPointsUsageRecord {
   providerName: string;
   modelName?: string;
   inputTokens?: number;
+  standardInputTokens?: number;
+  cacheCreationTokens?: number;
+  cacheReadTokens?: number;
   outputTokens?: number;
   unitCount?: number;
   unitLabel?: string;

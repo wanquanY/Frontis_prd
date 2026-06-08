@@ -182,7 +182,7 @@ export const SubscriptionPlanPaymentModal = ({
                 </div>
                 {plan.prorationLabel ? (
                   <div className={styles.summaryRow}>
-                    <span>计费周期</span>
+                    <span>折算规则</span>
                     <strong>{plan.prorationLabel}</strong>
                   </div>
                 ) : null}

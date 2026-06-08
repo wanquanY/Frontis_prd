@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ME 记忆系统 · 产品方案</title>
+<style>
+  :root {
+    --bg: #fafbfc; --surface: #ffffff; --border: #e8ecf1;
+    --text: #1a1d28; --sub: #5f6677; --muted: #9ca3b4;
+    --blue: #3568e5; --blue-bg: #eef2fd;
+    --orange: #e8782a; --orange-bg: #fef5ee;
+    --green: #0fa47f; --green-bg: #edfaf5;
+    --purple: #7356bf; --purple-bg: #f4f0fc;
+    --red: #e54545;
+    --radius: 8px;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "PingFang SC", "Noto Sans SC", sans-serif;
+    background: var(--bg); color: var(--text); font-size: 15px;
+    line-height: 1.6; -webkit-font-smoothing: antialiased;
+  }
+  .container { max-width: 900px; margin: 0 auto; padding: 0 32px; }
+
+  .sec { padding: 80px 0; }
+  .sec-alt { background: var(--surface); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+  .sec-label { font-size: 11px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--blue); margin-bottom: 8px; }
+  .sec-title { font-size: 30px; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 8px; }
+  .sec-desc { font-size: 14px; color: var(--sub); max-width: 520px; }
+
+  /* Header */
+  .header { text-align: center; padding: 100px 0 80px; }
+  .header h1 { font-size: 46px; font-weight: 800; letter-spacing: -1px; }
+  .header h1 .grad { background: linear-gradient(135deg, var(--blue), var(--purple)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  .header p { font-size: 17px; color: var(--sub); margin-top: 12px; }
+
+  /* === SVG diagrams === */
+  .diag { display: block; max-width: 100%; margin: 40px auto 0; }
+
+  /* === Compare === */
+  .cmp { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 32px; }
+  .cmp-col { padding: 28px; border-radius: var(--radius); }
+  .cmp-bad { background: #fef5f5; border: 1px solid #fcd5d5; }
+  .cmp-good { background: #f0faf5; border: 1px solid #c8ebdb; }
+  .cmp-col h4 { font-size: 15px; font-weight: 700; margin-bottom: 16px; }
+  .cmp-bad h4 { color: var(--red); }
+  .cmp-good h4 { color: var(--green); }
+  .cmp-step { padding: 7px 0; font-size: 13px; color: var(--sub); border-bottom: 1px solid rgba(0,0,0,0.05); display: flex; gap: 10px; }
+  .cmp-step:last-child { border: none; }
+  .cmp-step .nr { font-weight: 700; font-size: 11px; flex-shrink: 0; width: 18px; height: 18px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+  .cmp-bad .nr { background: #fde2e2; color: var(--red); }
+  .cmp-good .nr { background: #d6f5e8; color: var(--green); }
+
+  /* Developer cards */
+  .dev { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-top: 32px; }
+  .dev-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; text-align: center; }
+  .dev-card .ic { font-size: 28px; margin-bottom: 8px; }
+  .dev-card h5 { font-size: 13px; font-weight: 700; margin-bottom: 4px; }
+  .dev-card p { font-size: 11px; color: var(--muted); line-height: 1.5; }
+
+  /* Footer */
+  .ft { text-align: center; padding: 48px 0; border-top: 1px solid var(--border); color: var(--muted); font-size: 12px; }
+
+  @media (max-width: 768px) {
+    .cmp, .dev { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ====== Header ====== -->
+<div class="header">
+  <div class="container">
+    <div class="sec-label">Frontis AI · V0.8</div>
+    <h1>ME <span class="grad">记忆系统</span></h1>
+    <p>让 ME 从「每次初见」到「越来越了解你」——记住你的习惯、你的事、你的工作成果</p>
+  </div>
+</div>
+
+<!-- ====== 1. Architecture Overview ====== -->
+<div class="sec">
+  <div class="container">
+    <div class="sec-label">架构总览</div>
+    <div class="sec-title">四层记忆</div>
+    <div class="sec-desc">每层职责不同，存储方式不同，生效时机不同</div>
+  </div>
+
+  <svg class="diag" viewBox="0 0 900 500" xmlns="http://www.w3.org/2000/svg">
+    <!-- Center: ME -->
+    <ellipse cx="450" cy="240" rx="100" ry="55" fill="#eef2fd" stroke="#b8caf8" stroke-width="2"/>
+    <text x="450" y="236" text-anchor="middle" font-size="18" font-weight="800" fill="#3568e5">ME</text>
+    <text x="450" y="256" text-anchor="middle" font-size="11" fill="#5f6677">工作入口</text>
+
+    <!-- Layer 1: inside ME -->
+    <rect x="360" y="310" width="180" height="38" rx="19" fill="#f4f0fc" stroke="#d0c4f5" stroke-width="1.5"/>
+    <text x="450" y="334" text-anchor="middle" font-size="12" font-weight="700" fill="#7356bf">会话上下文</text>
+    <line x1="450" y1="295" x2="450" y2="310" stroke="#d0c4f5" stroke-width="1.5" marker-end="url(#pa)"/>
+
+    <!-- Layer 2: Preferences -->
+    <rect x="60" y="90" width="220" height="110" rx="12" fill="#eef2fd" stroke="#b8caf8" stroke-width="2"/>
+    <text x="170" y="120" text-anchor="middle" font-size="16" font-weight="800" fill="#3568e5">我的偏好</text>
+    <text x="170" y="144" text-anchor="middle" font-size="11" fill="#5f6677">回复风格 · 语言 · 格式</text>
+    <text x="170" y="164" text-anchor="middle" font-size="10" fill="#9ca3b4">偏好文件 ｜ 会话启动加载</text>
+    <line x1="280" y1="200" x2="350" y2="235" stroke="#b8caf8" stroke-width="1.5" marker-end="url(#ba)"/>
+
+    <!-- Layer 3: Facts -->
+    <rect x="620" y="90" width="220" height="110" rx="12" fill="#fef5ee" stroke="#f5cba8" stroke-width="2"/>
+    <text x="730" y="120" text-anchor="middle" font-size="16" font-weight="800" fill="#e8782a">我的事</text>
+    <text x="730" y="144" text-anchor="middle" font-size="11" fill="#5f6677">项目背景 · 决策 · 经验</text>
+    <text x="730" y="164" text-anchor="middle" font-size="10" fill="#9ca3b4">事实记忆文件 ｜ 会话启动加载</text>
+    <line x1="620" y1="200" x2="550" y2="235" stroke="#f5cba8" stroke-width="1.5" marker-end="url(#oa)"/>
+
+    <!-- Layer 4: Sandbox -->
+    <rect x="310" y="400" width="280" height="80" rx="12" fill="#edfaf5" stroke="#b2e5d4" stroke-width="2"/>
+    <text x="450" y="430" text-anchor="middle" font-size="16" font-weight="800" fill="#0fa47f">我的工作成果</text>
+    <text x="450" y="454" text-anchor="middle" font-size="11" fill="#5f6677">报告 · 分析 · 图表 — 沙盒文件系统</text>
+    <text x="450" y="472" text-anchor="middle" font-size="10" fill="#9ca3b4">ME 产出自动存入 ｜ 随时引用和更新</text>
+    <line x1="450" y1="348" x2="450" y2="400" stroke="#b2e5d4" stroke-width="1.5" marker-end="url(#ga)"/>
+
+    <!-- Legend -->
+    <rect x="310" y="34" width="10" height="10" rx="2" fill="#7356bf"/>
+    <text x="326" y="44" font-size="10" fill="#9ca3b4">会话内 / 实时</text>
+    <rect x="410" y="34" width="10" height="10" rx="2" fill="#3568e5"/>
+    <text x="426" y="44" font-size="10" fill="#9ca3b4">跨会话 / 自动加载</text>
+    <rect x="540" y="34" width="10" height="10" rx="2" fill="#0fa47f"/>
+    <text x="556" y="44" font-size="10" fill="#9ca3b4">跨会话 / 按需引用</text>
+
+    <defs>
+      <marker id="ba" markerWidth="6" markerHeight="5" refX="6" refY="2.5" orient="auto"><path d="M0,0 L6,2.5 L0,5 Z" fill="#b8caf8"/></marker>
+      <marker id="oa" markerWidth="6" markerHeight="5" refX="6" refY="2.5" orient="auto"><path d="M0,0 L6,2.5 L0,5 Z" fill="#f5cba8"/></marker>
+      <marker id="ga" markerWidth="6" markerHeight="5" refX="6" refY="2.5" orient="auto"><path d="M0,0 L6,2.5 L0,5 Z" fill="#b2e5d4"/></marker>
+      <marker id="pa" markerWidth="6" markerHeight="5" refX="6" refY="2.5" orient="auto"><path d="M0,0 L6,2.5 L0,5 Z" fill="#d0c4f5"/></marker>
+    </defs>
+  </svg>
+
+  <!-- Layer detail table -->
+  <div style="max-width:750px; margin:24px auto 0; padding:0 32px;">
+    <table style="width:100%; border-collapse:collapse; font-size:13px;">
+      <thead>
+        <tr style="border-bottom:2px solid var(--border);">
+          <th style="text-align:left; padding:8px 12px; color:var(--sub); font-weight:600;">记忆层</th>
+          <th style="text-align:left; padding:8px 12px; color:var(--sub); font-weight:600;">存什么</th>
+          <th style="text-align:left; padding:8px 12px; color:var(--sub); font-weight:600;">怎么存的</th>
+          <th style="text-align:left; padding:8px 12px; color:var(--sub); font-weight:600;">什么时候生效</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr style="border-bottom:1px solid var(--border);">
+          <td style="padding:10px 12px;"><span style="background:#f4f0fc; color:#7356bf; padding:2px 8px; border-radius:8px; font-weight:700; font-size:11px;">当前对话</span></td>
+          <td style="padding:10px 12px;">正在聊的话题、中间结果</td>
+          <td style="padding:10px 12px; color:var(--sub);">无需额外存储</td>
+          <td style="padding:10px 12px; color:var(--sub);">会话内实时</td>
+        </tr>
+        <tr style="border-bottom:1px solid var(--border);">
+          <td style="padding:10px 12px;"><span style="background:#eef2fd; color:#3568e5; padding:2px 8px; border-radius:8px; font-weight:700; font-size:11px;">我的偏好</span></td>
+          <td style="padding:10px 12px;">风格、语言、输出格式</td>
+          <td style="padding:10px 12px; color:var(--sub);">偏好文件</td>
+          <td style="padding:10px 12px; color:var(--sub);">每次开新会话自动加载</td>
+        </tr>
+        <tr style="border-bottom:1px solid var(--border);">
+          <td style="padding:10px 12px;"><span style="background:#fef5ee; color:#e8782a; padding:2px 8px; border-radius:8px; font-weight:700; font-size:11px;">我的事</span></td>
+          <td style="padding:10px 12px;">项目背景、决策、经验</td>
+          <td style="padding:10px 12px; color:var(--sub);">事实记忆文件</td>
+          <td style="padding:10px 12px; color:var(--sub);">每次开新会话自动加载</td>
+        </tr>
+        <tr>
+          <td style="padding:10px 12px;"><span style="background:#edfaf5; color:#0fa47f; padding:2px 8px; border-radius:8px; font-weight:700; font-size:11px;">工作成果</span></td>
+          <td style="padding:10px 12px;">报告、分析、图表文件</td>
+          <td style="padding:10px 12px; color:var(--sub);">沙盒文件系统</td>
+          <td style="padding:10px 12px; color:var(--sub);">用户引用时按需加载</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ====== 2. Cross-session Flow ====== -->
+<div class="sec sec-alt">
+  <div class="container">
+    <div class="sec-label">核心机制</div>
+    <div class="sec-title">一次对话 → 下次还记得</div>
+    <div class="sec-desc">ME 在对话中发现重要信息时自动写入记忆，下次会话自动生效</div>
+  </div>
+
+  <svg class="diag" viewBox="0 0 900 420" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="fb" markerWidth="6" markerHeight="5" refX="6" refY="2.5" orient="auto"><path d="M0,0 L6,2.5 L0,5 Z" fill="#3568e5"/></marker>
+      <marker id="fo" markerWidth="6" markerHeight="5" refX="6" refY="2.5" orient="auto"><path d="M0,0 L6,2.5 L0,5 Z" fill="#e8782a"/></marker>
+      <marker id="fg" markerWidth="6" markerHeight="5" refX="6" refY="2.5" orient="auto"><path d="M0,0 L6,2.5 L0,5 Z" fill="#0fa47f"/></marker>
+    </defs>
+
+    <!-- Session A -->
+    <rect x="30" y="40" width="360" height="170" rx="10" fill="#fff" stroke="var(--border)" stroke-width="1.5"/>
+    <rect x="30" y="40" width="360" height="36" rx="10" fill="#eef2fd"/>
+    <rect x="30" y="62" width="360" height="14" fill="#eef2fd"/>
+    <text x="210" y="64" text-anchor="middle" font-size="13" font-weight="700" fill="#3568e5">第一次对话</text>
+
+    <text x="50" y="96" font-size="12" fill="var(--text)">用户纠正 ME 的回复方式</text>
+    <text x="50" y="118" font-size="11" fill="var(--sub)">"以后回复简短一点，不要长篇大论"</text>
+
+    <text x="50" y="148" font-size="12" fill="var(--text)">讨论到项目背景信息</text>
+    <text x="50" y="170" font-size="11" fill="var(--sub)">"我们电商项目的核心指标是 GMV 和转化率"</text>
+
+    <text x="50" y="198" font-size="12" fill="var(--sub)">ME 生成了销售趋势分析图表 → 自动保存</text>
+
+    <!-- Memory files -->
+    <rect x="460" y="60" width="170" height="46" rx="8" fill="#eef2fd" stroke="#b8caf8" stroke-width="1.5"/>
+    <text x="545" y="80" text-anchor="middle" font-size="12" font-weight="700" fill="#3568e5">偏好文件</text>
+    <text x="545" y="96" text-anchor="middle" font-size="10" fill="#5f6677">回复风格：简洁</text>
+
+    <rect x="460" y="120" width="170" height="46" rx="8" fill="#fef5ee" stroke="#f5cba8" stroke-width="1.5"/>
+    <text x="545" y="140" text-anchor="middle" font-size="12" font-weight="700" fill="#e8782a">事实记忆文件</text>
+    <text x="545" y="156" text-anchor="middle" font-size="10" fill="#5f6677">电商项目 · 关注 GMV</text>
+
+    <rect x="460" y="180" width="170" height="46" rx="8" fill="#edfaf5" stroke="#b2e5d4" stroke-width="1.5"/>
+    <text x="545" y="200" text-anchor="middle" font-size="12" font-weight="700" fill="#0fa47f">沙盒</text>
+    <text x="545" y="216" text-anchor="middle" font-size="10" fill="#5f6677">销售趋势分析.png</text>
+
+    <!-- Write arrows -->
+    <line x1="390" y1="75" x2="460" y2="75" stroke="#3568e5" stroke-width="1" marker-end="url(#fb)" stroke-dasharray="4,2"/>
+    <line x1="390" y1="135" x2="460" y2="135" stroke="#e8782a" stroke-width="1" marker-end="url(#fo)" stroke-dasharray="4,2"/>
+    <line x1="390" y1="195" x2="460" y2="195" stroke="#0fa47f" stroke-width="1" marker-end="url(#fg)" stroke-dasharray="4,2"/>
+
+    <!-- Session B -->
+    <rect x="30" y="250" width="360" height="150" rx="10" fill="#fff" stroke="var(--border)" stroke-width="1.5"/>
+    <rect x="30" y="250" width="360" height="36" rx="10" fill="#f4f0fc"/>
+    <rect x="30" y="272" width="360" height="14" fill="#f4f0fc"/>
+    <text x="210" y="274" text-anchor="middle" font-size="13" font-weight="700" fill="#7356bf">几天后的新对话</text>
+
+    <text x="50" y="310" font-size="11" fill="var(--sub)">偏好 + 事实记忆自动加载到上下文</text>
+
+    <text x="50" y="340" font-size="12" fill="var(--text)">用户："看一下最近的销售数据"</text>
+    <text x="50" y="362" font-size="11" fill="var(--sub)">ME 知道关注 GMV 和转化率，回复简洁，用表格展示</text>
+
+    <text x="50" y="390" font-size="12" fill="var(--sub)">ME 从沙盒找到上次的图表，在此基础上更新</text>
+
+    <!-- Load arrows back -->
+    <line x1="460" y1="90" x2="390" y2="300" stroke="#3568e5" stroke-width="0.8" stroke-dasharray="2,4"/>
+    <line x1="460" y1="150" x2="390" y2="300" stroke="#e8782a" stroke-width="0.8" stroke-dasharray="2,4"/>
+
+    <!-- Note -->
+    <rect x="470" y="280" width="400" height="48" rx="8" fill="#f8f7fc" stroke="#ddd6f0" stroke-width="1" stroke-dasharray="4,2"/>
+    <text x="670" y="300" text-anchor="middle" font-size="11" font-weight="600" fill="#7356bf">会话启动时冻结快照注入</text>
+    <text x="670" y="316" text-anchor="middle" font-size="10" fill="#9ca3b4">中途写入只持久化到磁盘，不影响当前会话（下次生效）</text>
+  </svg>
+</div>
+
+<!-- ====== 3. Before vs After ====== -->
+<div class="sec">
+  <div class="container">
+    <div class="sec-label">体验对比</div>
+    <div class="sec-title">同一个场景，两种体验</div>
+    <div class="sec-desc">用户第二次打开 ME，想做同一类工作</div>
+
+    <div class="cmp">
+      <div class="cmp-col cmp-bad">
+        <h4>❌ 没有记忆的 ME</h4>
+        <div class="cmp-step"><span class="nr">1</span> 用户："帮我看一下最近的销售数据"</div>
+        <div class="cmp-step"><span class="nr">2</span> ME："请问看什么指标？数据源在哪？"</div>
+        <div class="cmp-step"><span class="nr">3</span> 用户重新描述口径、数据源…</div>
+        <div class="cmp-step"><span class="nr">4</span> ME 回复一长串分析文字</div>
+        <div class="cmp-step"><span class="nr">5</span> 用户："给我一个图表就好，不要写那么多"</div>
+        <div class="cmp-step" style="text-align:center; color:var(--red); font-weight:600; justify-content:center;">每次都是初见，反复告知同样的信息</div>
+      </div>
+      <div class="cmp-col cmp-good">
+        <h4>✅ 有记忆的 ME</h4>
+        <div class="cmp-step"><span class="nr">1</span> 用户："帮我看一下最近的销售数据"</div>
+        <div class="cmp-step"><span class="nr">2</span> ME 从记忆中得知：关注 GMV 和转化率、偏好简洁图表</div>
+        <div class="cmp-step"><span class="nr">3</span> ME 直接出图表，附一行关键数据解读</div>
+        <div class="cmp-step"><span class="nr">4</span> 用户看图表满意，开始下一步工作</div>
+        <div class="cmp-step"><span class="nr">5</span> 整个过程一句话搞定，无需补充说明</div>
+        <div class="cmp-step" style="text-align:center; color:var(--green); font-weight:600; justify-content:center;">ME 知道你是谁、你在做什么</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ====== 4. Writing Rules ====== -->
+<div class="sec sec-alt">
+  <div class="container">
+    <div class="sec-label">记忆怎么产生的</div>
+    <div class="sec-title">该记的 vs 不记的</div>
+    <div class="sec-desc">判断标准：这件事下次会话还会用到吗？</div>
+  </div>
+
+  <svg class="diag" viewBox="0 0 900 260" xmlns="http://www.w3.org/2000/svg">
+    <!-- Left: Will be remembered -->
+    <rect x="20" y="20" width="420" height="220" rx="12" fill="#edfaf5" stroke="#b2e5d4" stroke-width="2"/>
+    <text x="230" y="54" text-anchor="middle" font-size="15" font-weight="800" fill="#0fa47f">✓ 会被写入记忆</text>
+    <line x1="40" y1="64" x2="420" y2="64" stroke="#b2e5d4" stroke-width="1"/>
+
+    <rect x="35" y="76" width="390" height="32" rx="6" fill="rgba(15,164,127,0.06)"/>
+    <text x="230" y="97" text-anchor="middle" font-size="11" fill="#0fa47f">「以后回复简短一点」 → 写入简洁风格偏好</text>
+
+    <rect x="35" y="116" width="390" height="32" rx="6" fill="rgba(15,164,127,0.06)"/>
+    <text x="230" y="137" text-anchor="middle" font-size="11" fill="#0fa47f">「我是做电商的，主要关注转化率」 → 写入用户角色和关注指标</text>
+
+    <rect x="35" y="156" width="390" height="32" rx="6" fill="rgba(15,164,127,0.06)"/>
+    <text x="230" y="177" text-anchor="middle" font-size="11" fill="#0fa47f">「每周一帮我出销售周报」 → 写入固定工作习惯</text>
+
+    <rect x="35" y="196" width="390" height="32" rx="6" fill="rgba(15,164,127,0.06)"/>
+    <text x="230" y="217" text-anchor="middle" font-size="11" fill="#0fa47f">用户在对话中自然体现的偏好 → ME 自动写入</text>
+
+    <!-- Right: Will NOT be remembered -->
+    <rect x="460" y="20" width="420" height="220" rx="12" fill="#fef5f5" stroke="#fcd5d5" stroke-width="2"/>
+    <text x="670" y="54" text-anchor="middle" font-size="15" font-weight="800" fill="#e54545">✗ 不会被写入</text>
+    <line x1="480" y1="64" x2="860" y2="64" stroke="#fcd5d5" stroke-width="1"/>
+
+    <rect x="475" y="76" width="390" height="32" rx="6" fill="rgba(229,69,69,0.05)"/>
+    <text x="670" y="97" text-anchor="middle" font-size="11" fill="#e54545">用户和 ME 互相问候、闲聊</text>
+
+    <rect x="475" y="116" width="390" height="32" rx="6" fill="rgba(229,69,69,0.05)"/>
+    <text x="670" y="137" text-anchor="middle" font-size="11" fill="#e54545">一次性的任务，下次不会重复</text>
+
+    <rect x="475" y="156" width="390" height="32" rx="6" fill="rgba(229,69,69,0.05)"/>
+    <text x="670" y="177" text-anchor="middle" font-size="11" fill="#e54545">临时问题，无复用价值</text>
+
+    <rect x="475" y="196" width="390" height="32" rx="6" fill="rgba(229,69,69,0.05)"/>
+    <text x="670" y="217" text-anchor="middle" font-size="11" fill="#e54545">随口评论：「不错」「还行」</text>
+  </svg>
+</div>
+
+<!-- ====== 5. User Control ====== -->
+<div class="sec">
+  <div class="container">
+    <div class="sec-label">用户如何控制</div>
+    <div class="sec-title">全自动沉淀，对话中自然控制</div>
+    <div class="sec-desc">记忆的写入和更新由 ME 自动完成，用户只需在对话中用自然语言表达</div>
+  </div>
+
+  <svg class="diag" viewBox="0 0 900 280" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="ac" markerWidth="6" markerHeight="5" refX="6" refY="2.5" orient="auto"><path d="M0,0 L6,2.5 L0,5 Z" fill="#9ca3b4"/></marker>
+    </defs>
+
+    <!-- Big center: ME auto mechanism -->
+    <rect x="200" y="20" width="500" height="240" rx="16" fill="#f8f7fc" stroke="#ddd6f0" stroke-width="2"/>
+    <text x="450" y="60" text-anchor="middle" font-size="18" font-weight="800" fill="#7356bf">🧠 ME 自动记忆机制</text>
+    <text x="450" y="84" text-anchor="middle" font-size="13" fill="#5f6677">不需要用户打开设置页，不需要手动管理</text>
+
+    <!-- Flow items inside big box -->
+    <rect x="230" y="108" width="440" height="36" rx="8" fill="rgba(53,104,229,0.06)"/>
+    <text x="450" y="131" text-anchor="middle" font-size="12" fill="#3568e5">对话中 ME 发现偏好 / 关键事实 → 自动写入记忆文件</text>
+
+    <rect x="230" y="154" width="440" height="36" rx="8" fill="rgba(232,120,42,0.06)"/>
+    <text x="450" y="177" text-anchor="middle" font-size="12" fill="#e8782a">下次新会话 → 自动加载到上下文，无需用户重复告知</text>
+
+    <rect x="230" y="200" width="440" height="36" rx="8" fill="rgba(15,164,127,0.06)"/>
+    <text x="450" y="223" text-anchor="middle" font-size="12" fill="#0fa47f">ME 产出文件 → 自动存入沙盒 → 侧边栏「我的文件」可见</text>
+
+    <!-- Three small nodes on the right showing user actions -->
+    <rect x="740" y="108" width="140" height="36" rx="8" fill="#eef2fd" stroke="#b8caf8" stroke-width="1"/>
+    <text x="810" y="131" text-anchor="middle" font-size="10" fill="#3568e5">"记住这个"</text>
+    <line x1="700" y1="126" x2="740" y2="126" stroke="#9ca3b4" stroke-width="0.8" marker-end="url(#ac)"/>
+
+    <rect x="740" y="154" width="140" height="36" rx="8" fill="#fef5ee" stroke="#f5cba8" stroke-width="1"/>
+    <text x="810" y="177" text-anchor="middle" font-size="10" fill="#e8782a">"不用记这个了"</text>
+    <line x1="700" y1="172" x2="740" y2="172" stroke="#9ca3b4" stroke-width="0.8" marker-end="url(#ac)"/>
+
+    <rect x="740" y="200" width="140" height="36" rx="8" fill="#edfaf5" stroke="#b2e5d4" stroke-width="1"/>
+    <text x="810" y="223" text-anchor="middle" font-size="10" fill="#0fa47f">侧边栏查看文件</text>
+    <line x1="700" y1="218" x2="740" y2="218" stroke="#9ca3b4" stroke-width="0.8" marker-end="url(#ac)"/>
+  </svg>
+</div>
+
+<!-- ====== 6. Boundaries ====== -->
+<div class="sec sec-alt">
+  <div class="container">
+    <div class="sec-label">安全与边界</div>
+    <div class="sec-title">记忆的隐私保护</div>
+  </div>
+
+  <svg class="diag" viewBox="0 0 900 120" xmlns="http://www.w3.org/2000/svg">
+    <rect x="20" y="15" width="270" height="90" rx="10" fill="#edfaf5" stroke="#b2e5d4" stroke-width="1.5"/>
+    <text x="155" y="50" text-anchor="middle" font-size="15" font-weight="800" fill="#0fa47f">🔒 纯个人</text>
+    <text x="155" y="74" text-anchor="middle" font-size="11" fill="#5f6677">团队成员不可见</text>
+    <text x="155" y="92" text-anchor="middle" font-size="11" fill="#5f6677">管理员无权查看</text>
+
+    <rect x="315" y="15" width="270" height="90" rx="10" fill="#eef2fd" stroke="#b8caf8" stroke-width="1.5"/>
+    <text x="450" y="50" text-anchor="middle" font-size="15" font-weight="800" fill="#3568e5">🏢 按租户隔离</text>
+    <text x="450" y="74" text-anchor="middle" font-size="11" fill="#5f6677">换企业 / 租户后</text>
+    <text x="450" y="92" text-anchor="middle" font-size="11" fill="#5f6677">记忆各自独立</text>
+
+    <rect x="610" y="15" width="270" height="90" rx="10" fill="#fef5ee" stroke="#f5cba8" stroke-width="1.5"/>
+    <text x="745" y="50" text-anchor="middle" font-size="15" font-weight="800" fill="#e8782a">🗑️ 用户可控</text>
+    <text x="745" y="74" text-anchor="middle" font-size="11" fill="#5f6677">随时查看、编辑、删除</text>
+    <text x="745" y="92" text-anchor="middle" font-size="11" fill="#5f6677">支持一键重置</text>
+  </svg>
+</div>
+
+<!-- ====== 7. Dev Summary ====== -->
+<div class="sec">
+  <div class="container">
+    <div class="sec-label">技术要点</div>
+    <div class="sec-title">开发关注点</div>
+
+    <div class="dev">
+      <div class="dev-card">
+        <div class="ic">📁</div>
+        <h5>存储</h5>
+        <p>偏好文件 / 事实文件 / 会话DB 均在用户沙盒内</p>
+      </div>
+      <div class="dev-card">
+        <div class="ic">❄️</div>
+        <h5>冻结快照</h5>
+        <p>会话启动时加载到系统提示，中途写入只持久化磁盘</p>
+      </div>
+      <div class="dev-card">
+        <div class="ic">📏</div>
+        <h5>容量</h5>
+        <p>偏好约 500 tokens<br>事实约 800 tokens<br>超限阻断并提示</p>
+      </div>
+      <div class="dev-card">
+        <div class="ic">🛡️</div>
+        <h5>安全</h5>
+        <p>写入前扫描注入/泄露模式<br>可疑内容不入系统提示</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="ft">
+  <div class="container">Frontis AI · V0.8 · ME 记忆系统 · 产品方案</div>
+</div>
+
+</body>
+</html>

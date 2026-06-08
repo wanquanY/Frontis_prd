@@ -90,6 +90,11 @@
   line-height: 1;
 }
 
+.dialogueViewShareIcon {
+  font-size: 16px;
+  line-height: 1;
+}
+
 .dialogueViewPanelIcon {
   position: relative;
   width: 17px;
@@ -130,6 +135,409 @@
   gap: 14px;
   color: var(--text-secondary);
   cursor: pointer;
+}
+
+.dialogueShareSelectionBar {
+  width: min(700px, calc(100% - 32px));
+  min-height: 54px;
+  margin: 0 auto 6px;
+  padding: 8px 10px;
+  border: 1px solid var(--panelBorder);
+  border-radius: 12px;
+  background: var(--surface);
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.08);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 0 0 auto;
+}
+
+.dialogueShareSelectionButton,
+.dialogueShareSelectionPrimary,
+.dialogueShareSelectionCancel {
+  min-height: 36px;
+  border-radius: 9px;
+  border: 1px solid transparent;
+  background: transparent;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  cursor: pointer;
+  transition:
+    background 0.16s ease,
+    border-color 0.16s ease,
+    color 0.16s ease,
+    opacity 0.16s ease;
+}
+
+.dialogueShareSelectionButton {
+  padding: 0 10px;
+}
+
+.dialogueShareSelectionButton:hover,
+.dialogueShareSelectionCancel:hover {
+  background: color-mix(in srgb, var(--text) 5%, transparent);
+}
+
+.dialogueShareSelectionButtonActive {
+  color: #1677ff;
+}
+
+.dialogueShareSelectionCheck {
+  width: 22px;
+  height: 22px;
+  border: 1px solid color-mix(in srgb, var(--text) 18%, transparent);
+  border-radius: 50%;
+  background: var(--surface);
+  color: #ffffff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dialogueShareSelectionButtonActive .dialogueShareSelectionCheck {
+  border-color: #1677ff;
+  background: #1677ff;
+}
+
+.dialogueShareSelectionCount {
+  min-width: 0;
+  flex: 1;
+  color: var(--text-secondary);
+  font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dialogueShareSelectionPrimary {
+  padding: 0 14px;
+  background: #1677ff;
+  color: #ffffff;
+}
+
+.dialogueShareSelectionPrimary:hover:not(:disabled) {
+  background: #0958d9;
+}
+
+.dialogueShareSelectionPrimary:disabled {
+  cursor: not-allowed;
+  opacity: 0.42;
+}
+
+.dialogueShareSelectionCancel {
+  padding: 0 12px;
+  color: var(--text-secondary);
+}
+
+.dialogueShareModal :global(.ant-modal-content) {
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.dialogueShareModal :global(.ant-modal-body) {
+  padding: 0 24px 24px;
+}
+
+.dialogueShareModalBody {
+  display: grid;
+  grid-template-columns: minmax(260px, 320px) minmax(0, 1fr);
+  gap: 18px;
+}
+
+.dialogueShareLinkPanel {
+  min-width: 0;
+  padding: 16px;
+  border: 1px solid var(--panelBorder);
+  border-radius: 12px;
+  background: var(--surface);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.dialogueShareLinkHeader {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.dialogueShareLinkHeader h3 {
+  margin: 0;
+  color: var(--text);
+  font-size: 16px;
+  line-height: 24px;
+}
+
+.dialogueShareLinkHeader p {
+  margin: 2px 0 0;
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.dialogueShareLinkIcon {
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  background: color-mix(in srgb, #1677ff 10%, var(--surface));
+  color: #1677ff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+}
+
+.dialogueShareLinkBox {
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid var(--panelBorder);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--text) 3%, var(--surface));
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dialogueShareLinkBox > span {
+  min-width: 0;
+  flex: 1;
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 18px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dialogueShareLinkBox > button {
+  min-height: 32px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 8px;
+  background: #1677ff;
+  color: #ffffff;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: none;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.dialogueSharePreviewPage {
+  min-width: 0;
+  border: 1px solid var(--panelBorder);
+  border-radius: 12px;
+  background: #ffffff;
+  overflow: hidden;
+}
+
+.dialogueSharePreviewHeader {
+  min-height: 56px;
+  padding: 0 18px;
+  border-bottom: 1px solid var(--panelBorder);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.dialogueSharePreviewBrand {
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.dialogueSharePreviewBrand strong {
+  color: var(--text);
+  font-size: 15px;
+  line-height: 22px;
+}
+
+.dialogueSharePreviewBrand span {
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.dialogueSharePreviewEntry {
+  min-height: 34px;
+  padding: 0 12px;
+  border: 1px solid #1677ff;
+  border-radius: 9px;
+  background: #1677ff;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.dialogueSharePreviewBody {
+  min-height: 420px;
+  padding: 22px;
+  background: #f7f8fa;
+}
+
+.dialogueSharePreviewTitleGroup {
+  margin-bottom: 18px;
+}
+
+.dialogueSharePreviewTitleGroup h3 {
+  margin: 0;
+  color: var(--text);
+  font-size: 20px;
+  line-height: 30px;
+}
+
+.dialogueSharePreviewTitleGroup p {
+  margin: 4px 0 0;
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.dialogueShareArtifactPreview,
+.dialogueShareConversationPreview {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.dialogueShareArtifactCard {
+  min-height: 70px;
+  padding: 12px;
+  border: 1px solid var(--panelBorder);
+  border-radius: 10px;
+  background: #ffffff;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.dialogueShareArtifactIcon {
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  background: #f3f4f6;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  overflow: hidden;
+}
+
+.dialogueShareArtifactIcon img {
+  width: 30px;
+  height: 30px;
+  object-fit: contain;
+}
+
+.dialogueShareArtifactInfo {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.dialogueShareArtifactInfo strong,
+.dialogueShareArtifactInfo span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dialogueShareArtifactInfo strong {
+  color: var(--text);
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.dialogueShareArtifactInfo span {
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.dialogueShareArtifactCanvas {
+  border: 1px solid var(--panelBorder);
+  border-radius: 10px;
+  background: #ffffff;
+  overflow: hidden;
+}
+
+.dialogueShareArtifactCanvasHeader {
+  height: 34px;
+  padding: 0 12px;
+  border-bottom: 1px solid var(--panelBorder);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.dialogueShareArtifactCanvasHeader span {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #d1d5db;
+}
+
+.dialogueShareArtifactCanvasBody {
+  min-height: 190px;
+  padding: 28px 24px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 8px;
+}
+
+.dialogueShareArtifactCanvasBody span {
+  color: #1677ff;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
+.dialogueShareArtifactCanvasBody strong {
+  color: var(--text);
+  font-size: 18px;
+  line-height: 27px;
+}
+
+.dialogueShareArtifactCanvasBody p {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.dialogueShareConversationItem {
+  padding: 14px 16px;
+  border: 1px solid var(--panelBorder);
+  border-radius: 10px;
+  background: #ffffff;
+}
+
+.dialogueShareConversationItem strong {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--text);
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.dialogueShareConversationItem p {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 21px;
 }
 
 .outputPanel {

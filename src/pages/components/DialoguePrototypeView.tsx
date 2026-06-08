@@ -6,16 +6,19 @@ import {
   BarChartOutlined,
   CheckOutlined,
   CloseOutlined,
+  CopyOutlined,
   DatabaseOutlined,
   DownOutlined,
   FileTextOutlined,
   HistoryOutlined,
+  LinkOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
   MoreOutlined,
   PlusOutlined,
   CheckCircleOutlined,
   MessageOutlined,
+  ShareAltOutlined,
   StarOutlined,
   TrophyOutlined,
   UserOutlined,
@@ -32,14 +35,11 @@ import {
   type MouseEvent as ReactMouseEvent,
 } from "react";
 import type { InputRef, MenuProps } from "antd";
-import { Avatar, DatePicker, Dropdown, Input, Modal, Popover, QRCode } from "antd";
+import { Avatar, DatePicker, Dropdown, Input, Modal, Popover, QRCode, message } from "antd";
 import type { Block } from "@/types/block";
 import { resolveFileLogo } from "@/utils/fileLogo";
 
-import type {
-  AiCeoHomeSkillItem,
-  AiCeoSkillIconKey,
-} from "@/constants/aiCeoHome";
+import type { AiCeoHomeSkillItem, AiCeoSkillIconKey } from "@/constants/aiCeoHome";
 import { ArtifactPreviewPanel } from "@/feature/workspace/components/ArtifactPreviewPanel";
 import { WorkspaceChatPanel } from "@/feature/workspace/components/WorkspaceChatPanel";
 import { WorkspaceComposer } from "@/feature/workspace/components/WorkspaceComposer";
@@ -127,6 +127,21 @@ interface DialoguePrototypeViewProps {
   isFeishuConnected?: boolean;
   feishuQrCode?: string;
   viewerName: string;
+}
+
+interface ConversationSharePreviewItem {
+  actorName: string;
+  content: string;
+  id: string;
+}
+
+interface GeneratedShareState {
+  kind: "artifact" | "conversation";
+  title: string;
+  link: string;
+  description: string;
+  artifact?: ArtifactItem;
+  conversationItems?: ConversationSharePreviewItem[];
 }
 
 type MetaAgentTrajectoryTimeFilterKey =
@@ -342,6 +357,8 @@ const TEAM_MENTION_ALL_LABEL = "所有agent";
 const EXPERT_TEAM_MAIN_AGENT_NAME = "ME";
 const SKILL_BUTTON_FONT =
   '500 14px "PingFang SC", system-ui, -apple-system, "Segoe UI", Arial, sans-serif';
+const SHARE_LINK_FALLBACK_ORIGIN = "https://frontis.ai";
+const SHARE_PREVIEW_TEXT_MAX_LENGTH = 220;
 
 let skillMeasureContext: CanvasRenderingContext2D | null = null;
 
@@ -362,6 +379,56 @@ const measureSkillLabelWidth = (label: string): number => {
 const getSkillButtonWidth = (label: string, isSelected = false): number =>
   measureSkillLabelWidth(label) +
   (isSelected ? SELECTED_SKILL_BUTTON_BASE_WIDTH : SKILL_BUTTON_BASE_WIDTH);
+
+const normalizeShareToken = (value: string): string => {
+  const normalized = value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9\u4e00-\u9fa5]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+
+  return normalized || "frontis-share";
+};
+
+const buildPrototypeShareLink = (kind: GeneratedShareState["kind"], sourceId: string): string => {
+  const origin =
+    typeof window === "undefined" ? SHARE_LINK_FALLBACK_ORIGIN : window.location.origin;
+  return `${origin}/share/${kind}/${normalizeShareToken(sourceId)}`;
+};
+
+const getBlockStringData = (block: Block, key: string): string => {
+  const value = block.data[key];
+  return typeof value === "string" ? value.trim() : "";
+};
+
+const truncateSharePreviewText = (value: string): string => {
+  const normalized = value.replace(/\s+/g, " ").trim();
+  if (normalized.length <= SHARE_PREVIEW_TEXT_MAX_LENGTH) {
+    return normalized;
+  }
+  return `${normalized.slice(0, SHARE_PREVIEW_TEXT_MAX_LENGTH)}...`;
+};
+
+const collectBlockShareContent = (block: Block): string => {
+  const directContent = [
+    getBlockStringData(block, "content"),
+    getBlockStringData(block, "text"),
+    getBlockStringData(block, "summary"),
+    getBlockStringData(block, "title"),
+    getBlockStringData(block, "display_name"),
+    getBlockStringData(block, "file_name"),
+    getBlockStringData(block, "purpose"),
+  ]
+    .filter(Boolean)
+    .join("\n\n");
+
+  const childContent = (block.children ?? [])
+    .map(child => collectBlockShareContent(child))
+    .filter(Boolean)
+    .join("\n\n");
+
+  return [directContent, childContent].filter(Boolean).join("\n\n").trim();
+};
 
 const isMetaCoordinatorEmployee = (
   employee: EmployeeItem,
@@ -454,6 +521,11 @@ export const DialoguePrototypeView = ({
   const [historyFocusRequestKey, setHistoryFocusRequestKey] = useState<string>("");
   const [isMetaAgentTrajectoryOpen, setIsMetaAgentTrajectoryOpen] = useState<boolean>(false);
   const [isFeishuQrModalOpen, setIsFeishuQrModalOpen] = useState<boolean>(false);
+  const [isConversationShareSelecting, setIsConversationShareSelecting] = useState<boolean>(false);
+  const [selectedConversationShareBlockIds, setSelectedConversationShareBlockIds] = useState<
+    Set<string>
+  >(() => new Set());
+  const [generatedShare, setGeneratedShare] = useState<GeneratedShareState | null>(null);
   const [metaAgentTrajectorySearchValue, setMetaAgentTrajectorySearchValue] = useState<string>("");
   const [isMetaAgentTrajectoryTimeFilterOpen, setIsMetaAgentTrajectoryTimeFilterOpen] =
     useState<boolean>(false);
@@ -630,6 +702,35 @@ export const DialoguePrototypeView = ({
     [dialogueMessages],
   );
   const chatBlocks = useMemo(() => buildWorkspaceChatBlocks(dialogueMessages), [dialogueMessages]);
+  const shareableConversationBlocks = useMemo(
+    () =>
+      chatBlocks.filter(block => {
+        if (
+          block.kind === "text" &&
+          !(block.data as { content?: string }).content &&
+          !block.isStreaming
+        ) {
+          return false;
+        }
+        if (block.kind === "message") {
+          const hasChildren = block.children && block.children.length > 0;
+          if (!hasChildren && !block.isStreaming) {
+            return false;
+          }
+        }
+        return true;
+      }),
+    [chatBlocks],
+  );
+  const selectedConversationShareBlockIdList = useMemo(
+    () => Array.from(selectedConversationShareBlockIds),
+    [selectedConversationShareBlockIds],
+  );
+  const selectedConversationShareBlocks = useMemo(
+    () =>
+      shareableConversationBlocks.filter(block => selectedConversationShareBlockIds.has(block.id)),
+    [selectedConversationShareBlockIds, shareableConversationBlocks],
+  );
   const selectedSkillItems = useMemo(
     () => homeSkillItems.filter(item => selectedSkillIds.includes(item.id)),
     [homeSkillItems, selectedSkillIds],
@@ -1194,6 +1295,9 @@ export const DialoguePrototypeView = ({
     setPreferredArtifactId(undefined);
     setActiveResultId(null);
     setIsArtifactPreviewing(false);
+    setIsConversationShareSelecting(false);
+    setSelectedConversationShareBlockIds(new Set());
+    setGeneratedShare(null);
   }, [activeDialogueSession?.id]);
 
   useEffect(() => {
@@ -1689,6 +1793,155 @@ export const DialoguePrototypeView = ({
       ))}
     </div>
   );
+
+  const resolveSharePreviewActorName = useCallback(
+    (block: Block): string => {
+      if (block.actorRole === "user") {
+        return viewerName || "我";
+      }
+      if (block.actorId && dialogueActorAvatars[block.actorId]?.name) {
+        return dialogueActorAvatars[block.actorId].name;
+      }
+      if (block.actorName && dialogueActorAvatars[block.actorName]?.name) {
+        return dialogueActorAvatars[block.actorName].name;
+      }
+      if (block.actorName?.trim()) {
+        return block.actorName.trim();
+      }
+      return activeEmployee.name;
+    },
+    [activeEmployee.name, dialogueActorAvatars, viewerName],
+  );
+
+  const buildConversationSharePreviewItems = useCallback(
+    (blocks: Block[]): ConversationSharePreviewItem[] =>
+      blocks.map(block => {
+        const content = truncateSharePreviewText(collectBlockShareContent(block));
+        const fallbackContent =
+          block.kind === "artifact"
+            ? "成果文件"
+            : block.kind === "result_cards"
+              ? "结果卡片"
+              : "消息内容";
+
+        return {
+          actorName: resolveSharePreviewActorName(block),
+          content: content || fallbackContent,
+          id: block.id,
+        };
+      }),
+    [resolveSharePreviewActorName],
+  );
+
+  const handleStartConversationShare = useCallback((): void => {
+    if (!shareableConversationBlocks.length) {
+      message.warning("当前会话暂无可分享消息");
+      return;
+    }
+
+    setGeneratedShare(null);
+    setIsConversationShareSelecting(true);
+    setSelectedConversationShareBlockIds(new Set());
+  }, [shareableConversationBlocks.length]);
+
+  const handleCancelConversationShare = useCallback((): void => {
+    setIsConversationShareSelecting(false);
+    setSelectedConversationShareBlockIds(new Set());
+  }, []);
+
+  const handleToggleConversationShareBlock = useCallback((blockId: string): void => {
+    setSelectedConversationShareBlockIds(current => {
+      const next = new Set(current);
+      if (next.has(blockId)) {
+        next.delete(blockId);
+        return next;
+      }
+
+      next.add(blockId);
+      return next;
+    });
+  }, []);
+
+  const handleToggleSelectAllConversationShare = useCallback((): void => {
+    setSelectedConversationShareBlockIds(current => {
+      if (current.size === shareableConversationBlocks.length) {
+        return new Set();
+      }
+
+      return new Set(shareableConversationBlocks.map(block => block.id));
+    });
+  }, [shareableConversationBlocks]);
+
+  const handleGenerateConversationShareLink = useCallback((): void => {
+    if (!selectedConversationShareBlocks.length) {
+      message.warning("请先选择要分享的消息");
+      return;
+    }
+
+    const title = activeDialogueSession?.title?.trim() || `${activeEmployee.name} 对话分享`;
+    const link = buildPrototypeShareLink(
+      "conversation",
+      `${activeDialogueSession?.id ?? activeEmployee.id}-${selectedConversationShareBlocks.length}`,
+    );
+
+    setGeneratedShare({
+      kind: "conversation",
+      title,
+      link,
+      description: `已选择 ${selectedConversationShareBlocks.length} 条消息`,
+      conversationItems: buildConversationSharePreviewItems(selectedConversationShareBlocks),
+    });
+    setIsConversationShareSelecting(false);
+  }, [
+    activeDialogueSession?.id,
+    activeDialogueSession?.title,
+    activeEmployee.id,
+    activeEmployee.name,
+    buildConversationSharePreviewItems,
+    selectedConversationShareBlocks,
+  ]);
+
+  const handleShareArtifactFile = useCallback((file: ArtifactItem): void => {
+    setGeneratedShare({
+      kind: "artifact",
+      title: file.fileName,
+      link: buildPrototypeShareLink("artifact", file.id || file.artifactId || file.fileName),
+      description: `${file.producerName} · ${file.producedAt}`,
+      artifact: file,
+    });
+  }, []);
+
+  const handleCopyGeneratedShareLink = useCallback(async (): Promise<void> => {
+    if (!generatedShare?.link) {
+      return;
+    }
+
+    try {
+      if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(generatedShare.link);
+        message.success("分享链接已复制");
+        return;
+      }
+
+      if (typeof document !== "undefined") {
+        const input = document.createElement("textarea");
+        input.value = generatedShare.link;
+        input.setAttribute("readonly", "true");
+        input.style.position = "fixed";
+        input.style.left = "-9999px";
+        document.body.appendChild(input);
+        input.select();
+        document.execCommand("copy");
+        document.body.removeChild(input);
+        message.success("分享链接已复制");
+        return;
+      }
+
+      message.warning("请手动复制分享链接");
+    } catch {
+      message.warning("复制失败，请手动复制分享链接");
+    }
+  }, [generatedShare?.link]);
 
   const handleOpenArtifact = (block: Block): void => {
     const blockData =
@@ -2221,6 +2474,50 @@ export const DialoguePrototypeView = ({
       />
     </div>
   );
+  const selectedConversationShareCount = selectedConversationShareBlockIds.size;
+  const isAllConversationShareSelected =
+    shareableConversationBlocks.length > 0 &&
+    selectedConversationShareCount === shareableConversationBlocks.length;
+  const conversationShareSelectionNode = isConversationShareSelecting ? (
+    <div className={styles.dialogueShareSelectionBar} aria-label="对话分享选择栏">
+      <button
+        type="button"
+        className={classNames(styles.dialogueShareSelectionButton, {
+          [styles.dialogueShareSelectionButtonActive]: isAllConversationShareSelected,
+        })}
+        onClick={handleToggleSelectAllConversationShare}
+      >
+        <span className={styles.dialogueShareSelectionCheck} aria-hidden={true}>
+          {isAllConversationShareSelected ? <CheckOutlined /> : null}
+        </span>
+        <span>全选</span>
+      </button>
+      <span className={styles.dialogueShareSelectionCount}>
+        {selectedConversationShareCount > 0
+          ? `已选择 ${selectedConversationShareCount} 条`
+          : "选择要分享的消息"}
+      </span>
+      <button
+        type="button"
+        className={styles.dialogueShareSelectionPrimary}
+        disabled={selectedConversationShareCount === 0}
+        onClick={handleGenerateConversationShareLink}
+      >
+        <LinkOutlined />
+        <span>生成分享链接</span>
+      </button>
+      <button
+        type="button"
+        className={styles.dialogueShareSelectionCancel}
+        onClick={handleCancelConversationShare}
+      >
+        取消
+      </button>
+    </div>
+  ) : null;
+  const generatedShareFileLogo = generatedShare?.artifact
+    ? resolveFileLogo(generatedShare.artifact.fileName)
+    : null;
   const expertTeamMemberAvatars =
     shouldShowExpertTeamUi && activeExpertTeamMembers.length > 0 ? (
       <>
@@ -2666,13 +2963,17 @@ export const DialoguePrototypeView = ({
                   greeting="输入消息或上传文件，开始协作"
                   showMessageMeta={true}
                   collapseAssignedActorOutputs={isMetaAgentWorkspace}
+                  shareSelectionEnabled={isConversationShareSelecting}
+                  selectedShareBlockIds={selectedConversationShareBlockIdList}
+                  onToggleShareBlock={handleToggleConversationShareBlock}
                   onOpenArtifact={handleOpenArtifact}
                   onOpenResult={handleOpenResult}
                   onQuickActionSend={onQuickPromptSend}
                 />
               </div>
             </div>
-            {composerNode}
+            {conversationShareSelectionNode}
+            {isConversationShareSelecting ? null : composerNode}
           </>
         )}
       </section>
@@ -2694,6 +2995,23 @@ export const DialoguePrototypeView = ({
           ) : null}
           {!isHomeVisible ? (
             <>
+              <button
+                type="button"
+                className={classNames(styles.dialogueViewButton, styles.dialogueViewPanelButton, {
+                  [styles.dialogueViewButtonActive]: isConversationShareSelecting,
+                })}
+                aria-label={isConversationShareSelecting ? "取消对话分享" : "分享对话"}
+                aria-pressed={isConversationShareSelecting}
+                title={isConversationShareSelecting ? "取消分享选择" : "分享对话"}
+                onClick={
+                  isConversationShareSelecting
+                    ? handleCancelConversationShare
+                    : handleStartConversationShare
+                }
+                disabled={!shareableConversationBlocks.length && !isConversationShareSelecting}
+              >
+                <ShareAltOutlined className={styles.dialogueViewShareIcon} />
+              </button>
               {shouldShowWorkRecordEntry ? (
                 <button
                   type="button"
@@ -2750,6 +3068,96 @@ export const DialoguePrototypeView = ({
         </button>
       </Modal>
 
+      <Modal
+        className={styles.dialogueShareModal}
+        width={940}
+        centered
+        title={generatedShare?.kind === "artifact" ? "成果分享" : "对话分享"}
+        open={Boolean(generatedShare)}
+        footer={null}
+        onCancel={() => setGeneratedShare(null)}
+      >
+        {generatedShare ? (
+          <div className={styles.dialogueShareModalBody}>
+            <section className={styles.dialogueShareLinkPanel}>
+              <div className={styles.dialogueShareLinkHeader}>
+                <span className={styles.dialogueShareLinkIcon} aria-hidden={true}>
+                  <LinkOutlined />
+                </span>
+                <div>
+                  <h3>分享链接已生成</h3>
+                  <p>{generatedShare.description}</p>
+                </div>
+              </div>
+              <div className={styles.dialogueShareLinkBox}>
+                <span title={generatedShare.link}>{generatedShare.link}</span>
+                <button type="button" onClick={handleCopyGeneratedShareLink}>
+                  <CopyOutlined />
+                  <span>复制链接</span>
+                </button>
+              </div>
+            </section>
+
+            <section className={styles.dialogueSharePreviewPage} aria-label="分享页预览">
+              <header className={styles.dialogueSharePreviewHeader}>
+                <div className={styles.dialogueSharePreviewBrand}>
+                  <strong>Frontis Horizon</strong>
+                  <span>在线预览</span>
+                </div>
+                <button type="button" className={styles.dialogueSharePreviewEntry}>
+                  使用 Frontis AI 创建
+                </button>
+              </header>
+              <div className={styles.dialogueSharePreviewBody}>
+                <div className={styles.dialogueSharePreviewTitleGroup}>
+                  <h3>{generatedShare.title}</h3>
+                  <p>{generatedShare.description}</p>
+                </div>
+
+                {generatedShare.kind === "artifact" && generatedShare.artifact ? (
+                  <div className={styles.dialogueShareArtifactPreview}>
+                    <div className={styles.dialogueShareArtifactCard}>
+                      <span className={styles.dialogueShareArtifactIcon} aria-hidden={true}>
+                        {generatedShareFileLogo ? (
+                          <img src={generatedShareFileLogo.src} alt={generatedShareFileLogo.alt} />
+                        ) : null}
+                      </span>
+                      <span className={styles.dialogueShareArtifactInfo}>
+                        <strong>{generatedShare.artifact.fileName}</strong>
+                        <span>{`${generatedShare.artifact.fileSize} · ${generatedShare.artifact.taskName}`}</span>
+                      </span>
+                    </div>
+                    <div className={styles.dialogueShareArtifactCanvas}>
+                      <div className={styles.dialogueShareArtifactCanvasHeader}>
+                        <span />
+                        <span />
+                        <span />
+                      </div>
+                      <div className={styles.dialogueShareArtifactCanvasBody}>
+                        <span>{generatedShare.artifact.fileType.toUpperCase()}</span>
+                        <strong>{generatedShare.artifact.fileName}</strong>
+                        <p>{generatedShare.artifact.producerName}</p>
+                      </div>
+                    </div>
+                  </div>
+                ) : null}
+
+                {generatedShare.kind === "conversation" ? (
+                  <div className={styles.dialogueShareConversationPreview}>
+                    {(generatedShare.conversationItems ?? []).map(item => (
+                      <article key={item.id} className={styles.dialogueShareConversationItem}>
+                        <strong>{item.actorName}</strong>
+                        <p>{item.content}</p>
+                      </article>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+            </section>
+          </div>
+        ) : null}
+      </Modal>
+
       {shouldShowWorkRecordEntry && isDialogueHistoryOpen ? (
         <DialogueHistoryPanel
           sessions={dialogueSessions}
@@ -2793,6 +3201,7 @@ export const DialoguePrototypeView = ({
                 loading={false}
                 error=""
                 onDownloadFile={downloadArtifact}
+                onShareFile={handleShareArtifactFile}
                 resolveFileUrl={resolveArtifactUrl}
                 onPreviewStateChange={setIsArtifactPreviewing}
                 preferredFileId={preferredArtifactId}

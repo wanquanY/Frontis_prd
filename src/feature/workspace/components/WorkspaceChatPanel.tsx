@@ -10,6 +10,7 @@ import {
 } from "react";
 import classNames from "classnames";
 import { Spin } from "antd";
+import { CheckOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 import { XMarkdown } from "@ant-design/x-markdown";
 import type { Block, TextData } from "@/types/block";
@@ -188,6 +189,9 @@ export const WorkspaceChatPanel = ({
   showMessageMeta = false,
   collapseAssignedActorOutputs = false,
   showStreamingPlaceholder = true,
+  shareSelectionEnabled = false,
+  selectedShareBlockIds = [],
+  onToggleShareBlock,
 }: WorkspaceChatPanelProps): JSX.Element => {
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const blockListRef = useRef<HTMLDivElement | null>(null);
@@ -237,6 +241,10 @@ export const WorkspaceChatPanel = ({
         return true;
       }),
     [blocks],
+  );
+  const selectedShareBlockIdSet = useMemo(
+    () => new Set(selectedShareBlockIds),
+    [selectedShareBlockIds],
   );
 
   const copyContextMap = useMemo(() => {
@@ -750,6 +758,30 @@ export const WorkspaceChatPanel = ({
       );
     };
 
+    const renderShareSelectButton = (block: Block, isSelected: boolean): JSX.Element | null => {
+      if (!shareSelectionEnabled) {
+        return null;
+      }
+
+      return (
+        <button
+          type="button"
+          className={classNames(styles.shareSelectButton, {
+            [styles.shareSelectButtonSelected]: isSelected,
+          })}
+          disabled={!onToggleShareBlock}
+          aria-pressed={isSelected}
+          aria-label={isSelected ? "取消选择这条消息" : "选择这条消息"}
+          onClick={event => {
+            event.stopPropagation();
+            onToggleShareBlock?.(block.id);
+          }}
+        >
+          {isSelected ? <CheckOutlined /> : null}
+        </button>
+      );
+    };
+
     return visibleBlocks.map((block, index) => {
       const isUser = isUserBlock(block);
       const prevBlock = index > 0 ? visibleBlocks[index - 1] : undefined;
@@ -774,6 +806,11 @@ export const WorkspaceChatPanel = ({
         collapseAssignedActorOutputs && !isUser && isMemberActorName(actorName);
       const assignedOutputTaskTitle =
         assignedTaskTitle ?? (shouldCollapseAssignedOutput ? resolveFallbackTaskTitle(block) : "");
+      const isShareSelected = shareSelectionEnabled && selectedShareBlockIdSet.has(block.id);
+      const shareRowClassNames = {
+        [styles.shareSelectableRow]: shareSelectionEnabled,
+        [styles.shareSelectedRow]: isShareSelected,
+      };
 
       if (isUser) {
         rememberTaskDispatches(block);
@@ -784,9 +821,11 @@ export const WorkspaceChatPanel = ({
             ref={setBlockRowRef(block)}
             className={classNames(styles.userBlockRow, {
               [styles.focusedRow]: highlightBlockId === block.id,
+              ...shareRowClassNames,
             })}
             aria-label="用户消息"
           >
+            {renderShareSelectButton(block, isShareSelected)}
             {showMessageMeta && blockTime ? (
               <div
                 className={classNames(
@@ -846,10 +885,12 @@ export const WorkspaceChatPanel = ({
               styles.assignedOutputRow,
               {
                 [styles.focusedRow]: highlightBlockId === block.id,
+                ...shareRowClassNames,
               },
             )}
             aria-label={`${actorName} 输出`}
           >
+            {renderShareSelectButton(block, isShareSelected)}
             <section
               className={classNames(styles.assignedOutputPanel, {
                 [styles.assignedOutputPanelExpanded]: isAssignedOutputExpanded,
@@ -924,9 +965,11 @@ export const WorkspaceChatPanel = ({
             [styles.assistantBlockRowNoAvatar]: shouldHideActorAvatar(actorName, isUser),
             [styles.toolBlockLower]: lowerClass,
             [styles.focusedRow]: highlightBlockId === block.id,
+            ...shareRowClassNames,
           })}
           aria-label="智能体消息"
         >
+          {renderShareSelectButton(block, isShareSelected)}
           {shouldHideActorAvatar(actorName, isUser) ? null : (
             <div className={styles.assistantBlockAvatarSlot} aria-hidden={!shouldShowAvatar}>
               {shouldShowAvatar ? (
@@ -978,6 +1021,7 @@ export const WorkspaceChatPanel = ({
     onDownloadArtifact,
     onAddArtifactToKnowledge,
     onQuickActionSend,
+    onToggleShareBlock,
     isStreaming,
     actorAvatars,
     collapseAssignedActorOutputs,
@@ -990,6 +1034,8 @@ export const WorkspaceChatPanel = ({
     resolvedAssistantAvatarAlt,
     resolvedAssistantAvatarUrl,
     showMessageMeta,
+    selectedShareBlockIdSet,
+    shareSelectionEnabled,
     visibleBlocks,
   ]);
 

@@ -9,6 +9,7 @@ import { getMockTenantManagementSnapshot } from "@/feature/auth/mockTenantRegist
 
 const FrontisAdminPage = lazy(() => import("@/pages/FrontisAdminPage"));
 const IdentitySelectionPage = lazy(() => import("@/pages/identity/IdentitySelectionPage"));
+const LegalAgreementPage = lazy(() => import("@/pages/legal/LegalAgreementPage"));
 const LoginPage = lazy(() => import("@/pages/login/LoginPage"));
 const UnifiedWorkbenchPage = lazy(() => import("@/pages/unifiedWorkbench/UnifiedWorkbenchPage"));
 const UserManualPage = lazy(() => import("@/pages/UserManualPage"));
@@ -49,6 +50,7 @@ const App = (): JSX.Element => {
           <Route path="/" element={<Navigate replace to="/login" />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<Navigate replace to="/login" />} />
+          <Route path="/legal/:agreementSlug" element={<LegalAgreementPage />} />
           <Route path="/ops/login" element={<LegacyOperationsLoginRedirect />} />
           <Route path="/user-manual" element={<UserManualPage />} />
           <Route path="/select-tenant" element={<IdentitySelectionPage />} />

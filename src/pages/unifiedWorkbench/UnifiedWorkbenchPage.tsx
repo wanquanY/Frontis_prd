@@ -106,7 +106,7 @@ const TAB_ITEMS: UnifiedWorkbenchNavItem[] = [
   {
     key: "expertStudio",
     label: EXPERT_STUDIO_LABEL,
-    description: "以 ME 为入口创建多 topic 会话，并调度可用 AI 专家。",
+    description: "以 ME 为入口创建多 session 会话，并调度可用 AI 专家。",
     icon: <MessageOutlined />,
   },
   {

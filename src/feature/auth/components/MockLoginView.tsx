@@ -13,6 +13,7 @@ import {
   getTenantEntries,
   isMockAccountPasswordSetupRequired,
 } from "@/feature/auth/mockAccounts";
+import { LEGAL_AGREEMENT_PATHS } from "@/feature/auth/mockLegalAgreements";
 import { useMockAuth } from "@/feature/auth/hooks/useMockAuth";
 import { saveRegistrationOnboardingDraft } from "@/feature/auth/registrationFlowStorage";
 import { loadOperationsRegistrationStrategy } from "@/feature/operations/platformConfigStorage";
@@ -75,7 +76,7 @@ export const MockLoginView = (): JSX.Element => {
   const [countdown, setCountdown] = useState<number>(0);
   const [sentPhone, setSentPhone] = useState<string>("");
   const [selectedAccountId, setSelectedAccountId] = useState<string>();
-  const [agreeProtocol, setAgreeProtocol] = useState<boolean>(true);
+  const [agreeLegalAgreements, setAgreeLegalAgreements] = useState<boolean>(false);
   const [rememberLogin, setRememberLogin] = useState<boolean>(true);
   const registrationStrategy = useMemo(() => loadOperationsRegistrationStrategy(), []);
   const redirectPath = useMemo(() => {
@@ -179,22 +180,22 @@ export const MockLoginView = (): JSX.Element => {
     (event: FormEvent<HTMLFormElement>): void => {
       event.preventDefault();
 
-      if (!agreeProtocol) {
-        message.warning("请先阅读并同意服务协议与隐私政策。");
+      if (!agreeLegalAgreements) {
+        message.warning("请先阅读并同意用户协议和隐私协议。");
         return;
       }
 
       handleSendVerificationCode(true);
     },
-    [agreeProtocol, handleSendVerificationCode],
+    [agreeLegalAgreements, handleSendVerificationCode],
   );
 
   const handleSubmit = useCallback(
     (event: FormEvent<HTMLFormElement>): void => {
       event.preventDefault();
 
-      if (!agreeProtocol) {
-        message.warning("请先阅读并同意服务协议与隐私政策。");
+      if (!agreeLegalAgreements) {
+        message.warning("请先阅读并同意用户协议和隐私协议。");
         return;
       }
 
@@ -236,7 +237,7 @@ export const MockLoginView = (): JSX.Element => {
       navigate(result.redirectPath ?? "/login", { replace: true });
     },
     [
-      agreeProtocol,
+      agreeLegalAgreements,
       login,
       navigate,
       phoneValue,
@@ -251,8 +252,8 @@ export const MockLoginView = (): JSX.Element => {
     (event: FormEvent<HTMLFormElement>): void => {
       event.preventDefault();
 
-      if (!agreeProtocol) {
-        message.warning("请先阅读并同意服务协议与隐私政策。");
+      if (!agreeLegalAgreements) {
+        message.warning("请先阅读并同意用户协议和隐私协议。");
         return;
       }
 
@@ -275,7 +276,7 @@ export const MockLoginView = (): JSX.Element => {
 
       navigate(result.redirectPath ?? "/login", { replace: true });
     },
-    [agreeProtocol, loginByPassword, navigate, passwordValue, phoneValue, redirectPath],
+    [agreeLegalAgreements, loginByPassword, navigate, passwordValue, phoneValue, redirectPath],
   );
 
   const handlePresetAccountChange = useCallback(
@@ -578,7 +579,7 @@ export const MockLoginView = (): JSX.Element => {
                   size="large"
                   type="primary"
                   className={styles.primaryButton}
-                  disabled={!isValidMainlandPhone(phoneValue) || !agreeProtocol}
+                  disabled={!isValidMainlandPhone(phoneValue) || !agreeLegalAgreements}
                 >
                   下一步
                 </Button>
@@ -586,11 +587,33 @@ export const MockLoginView = (): JSX.Element => {
 
               <div className={styles.loginChecks}>
                 <Checkbox
-                  checked={agreeProtocol}
-                  onChange={event => setAgreeProtocol(event.target.checked)}
+                  checked={agreeLegalAgreements}
+                  onChange={event => setAgreeLegalAgreements(event.target.checked)}
                 >
-                  我已阅读并同意 <Link to="/user-manual">服务协议</Link> 和{" "}
-                  <Link to="/user-manual">隐私政策</Link>
+                  我已阅读并同意
+                  <a
+                    href={LEGAL_AGREEMENT_PATHS.userAgreement}
+                    target="_blank"
+                    rel="noreferrer"
+                    className={styles.agreementLink}
+                    onClick={event => {
+                      event.stopPropagation();
+                    }}
+                  >
+                    《用户协议》
+                  </a>
+                  和
+                  <a
+                    href={LEGAL_AGREEMENT_PATHS.privacyPolicy}
+                    target="_blank"
+                    rel="noreferrer"
+                    className={styles.agreementLink}
+                    onClick={event => {
+                      event.stopPropagation();
+                    }}
+                  >
+                    《隐私协议》
+                  </a>
                 </Checkbox>
                 <Checkbox
                   checked={rememberLogin}
@@ -694,6 +717,7 @@ export const MockLoginView = (): JSX.Element => {
           </div>
         </div>
       </Modal>
+
     </div>
   );
 };

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { Button, InputNumber, Modal } from "antd";
 import classNames from "classnames";
@@ -112,10 +112,32 @@ export const SubscriptionPlanModal = ({
     getActiveMockSubscriptionPlanTemplates()[0] ??
     getMockSubscriptionPlanTemplate("team-seat-package");
   const enabledSpecs = teamSeatPackage.specs.filter(item => item.enabled);
+  const lockedBillingSpec = lockedAddSeatBillingCycle
+    ? enabledSpecs.find(item => item.billingCycle === lockedAddSeatBillingCycle)
+    : null;
+  const visibleSpecs = lockedBillingSpec ? [lockedBillingSpec] : enabledSpecs;
   const defaultBillingCycle: MockSubscriptionBillingCycle =
     enabledSpecs[0]?.billingCycle ?? "monthly";
   const currentSeatCount = tenantSnapshot?.totalSeats ?? 1;
   const usedSeatCount = tenantSnapshot?.usedSeats ?? 1;
+  const purchaseModeAudience = isRenewMode
+    ? "按当前总席位统一续约，可选择月付或年付"
+    : lockedBillingSpec
+      ? "新增席位沿用当前有效周期，按剩余天数折算"
+      : isCurrentLite
+        ? "购买后开通团队协作"
+        : "购买团队席位";
+  const purchaseRuleHint = useMemo(() => {
+    if (isRenewMode) {
+      return "续约按当前总席位统一续费，可选择月付或年付；未到期时从当前统一到期日顺延，已过期时从支付成功日重新计算。";
+    }
+
+    if (lockedBillingSpec) {
+      return `当前团队已有有效席位，新增席位只能沿用「${lockedBillingSpec.title}」；支付金额按新增席位数和剩余服务天数折算，统一到期日不变。`;
+    }
+
+    return "首次购买团队席位可选择启用的月付或年付规格，支付成功后生成新的统一到期日。";
+  }, [isRenewMode, lockedBillingSpec]);
 
   useEffect(() => {
     if (!open) {
@@ -202,12 +224,10 @@ export const SubscriptionPlanModal = ({
           <span className={styles.planDot} aria-hidden={true} />
           <div className={styles.planHeader}>
             <h3 className={styles.planTitle}>{teamSeatPackage.title}</h3>
-            <span className={styles.planAudience}>
-              {isCurrentLite ? "购买后开通团队协作" : "增加或续费团队席位"}
-            </span>
+            <span className={styles.planAudience}>{purchaseModeAudience}</span>
           </div>
           <div className={styles.priceGrid}>
-            {enabledSpecs.map(spec => (
+            {visibleSpecs.map(spec => (
               <div key={spec.key}>
                 <span>{spec.title}</span>
                 <strong>
@@ -234,22 +254,28 @@ export const SubscriptionPlanModal = ({
             </div>
             <div className={styles.formField}>
               <span className={styles.fieldLabel}>购买规格</span>
-              <div className={styles.cycleSwitch}>
-                {enabledSpecs.map(spec => (
-                  <button
-                    key={spec.key}
-                    type="button"
-                    className={classNames(
-                      styles.cycleButton,
-                      billingCycle === spec.billingCycle && styles.cycleButtonActive,
-                    )}
-                    disabled={Boolean(lockedAddSeatBillingCycle)}
-                    onClick={() => handleSelectBillingCycle(spec.billingCycle)}
-                  >
-                    {spec.billingCycleLabel}
-                  </button>
-                ))}
-              </div>
+              {lockedBillingSpec ? (
+                <div className={styles.lockedCycleBox}>
+                  <strong>{lockedBillingSpec.billingCycleLabel}</strong>
+                  <span>新增席位不可切换其他规格</span>
+                </div>
+              ) : (
+                <div className={styles.cycleSwitch}>
+                  {enabledSpecs.map(spec => (
+                    <button
+                      key={spec.key}
+                      type="button"
+                      className={classNames(
+                        styles.cycleButton,
+                        billingCycle === spec.billingCycle && styles.cycleButtonActive,
+                      )}
+                      onClick={() => handleSelectBillingCycle(spec.billingCycle)}
+                    >
+                      {spec.billingCycleLabel}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 
@@ -277,7 +303,7 @@ export const SubscriptionPlanModal = ({
               </div>
               {purchasePreview.prorationLabel ? (
                 <div className={styles.previewRow}>
-                  <span>计费周期</span>
+                  <span>折算规则</span>
                   <strong>{purchasePreview.prorationLabel}</strong>
                 </div>
               ) : null}
@@ -295,6 +321,7 @@ export const SubscriptionPlanModal = ({
                 <span>支付金额</span>
                 <strong>¥{purchasePreview.amount.toLocaleString("zh-CN")}</strong>
               </div>
+              <div className={styles.previewHint}>{purchaseRuleHint}</div>
             </div>
           ) : null}
 

@@ -98,6 +98,16 @@ export interface WorkbenchAgentVersionItem {
   evalReport?: WorkbenchAgentEvalReport;
 }
 
+export type WorkbenchAgentDeleteBlockReason =
+  | "selfWorkbenchInstalled"
+  | "sharedWorkbenchInstalled"
+  | "activeProductListing";
+
+export interface WorkbenchAgentDeleteProtection {
+  reason: WorkbenchAgentDeleteBlockReason;
+  dependencyLabel: string;
+}
+
 export interface WorkbenchAgentItem {
   id: string;
   name: string;
@@ -113,6 +123,7 @@ export interface WorkbenchAgentItem {
   visibility: WorkbenchSkillVisibility;
   isSharedToMe?: boolean;
   isSharedByMe?: boolean;
+  deleteProtection?: WorkbenchAgentDeleteProtection;
   skills: WorkbenchAgentSkillRef[];
   versions: WorkbenchAgentVersionItem[];
   feedbackData: WorkbenchAgentFeedbackRow[];

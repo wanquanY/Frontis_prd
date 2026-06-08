@@ -550,20 +550,20 @@ const FrontisAdminPage = (): JSX.Element => {
       }
 
       if (tenantSnapshot.usedSeats >= tenantSnapshot.totalSeats) {
-        message.warning("当前成员名额不足，暂无法继续邀请成员。");
+        message.warning("当前有效席位额度不足，暂无法继续添加成员。");
         return false;
       }
 
       const result = inviteMockTenantMemberAccount(activeIdentity.tenantId, params);
 
       if (!result) {
-        message.warning("邀请失败，请确认手机号未注册且当前成员名额仍有余量。");
+        message.warning("添加失败，请确认手机号未注册且当前有效席位仍有余量。");
         return false;
       }
 
       setTenantSnapshot(result.snapshot);
       setUsers(result.snapshot.users);
-      message.success("成员已加入当前租户。");
+      message.success("成员已添加到当前租户。");
       return true;
     },
     [activeIdentity?.tenantId, tenantSnapshot],

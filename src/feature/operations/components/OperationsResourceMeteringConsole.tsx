@@ -58,12 +58,28 @@ const modelToForm = (model: OperationsModelService): OperationsModelServiceForm 
   modelCode: model.modelCode,
   modelName: model.modelName,
   inputCostPerMillion: model.inputCostPerMillion,
+  cacheCreationCostPerMillion: model.cacheCreationCostPerMillion,
+  cacheReadCostPerMillion: model.cacheReadCostPerMillion,
   outputCostPerMillion: model.outputCostPerMillion,
   pricingMode: "markup",
   markupRate: model.markupRate,
   grossMarginRate: model.grossMarginRate,
   inputSalePricePerMillion: calculateOperationsSalePrice(
     model.inputCostPerMillion,
+    "markup",
+    model.markupRate,
+    0,
+    0,
+  ),
+  cacheCreationSalePricePerMillion: calculateOperationsSalePrice(
+    model.cacheCreationCostPerMillion,
+    "markup",
+    model.markupRate,
+    0,
+    0,
+  ),
+  cacheReadSalePricePerMillion: calculateOperationsSalePrice(
+    model.cacheReadCostPerMillion,
     "markup",
     model.markupRate,
     0,
@@ -131,6 +147,20 @@ export const OperationsResourceMeteringConsole = ({
         0,
         0,
       ),
+      cacheCreation: calculateOperationsSalePrice(
+        modelEditor.form.cacheCreationCostPerMillion,
+        "markup",
+        modelEditor.form.markupRate,
+        0,
+        0,
+      ),
+      cacheRead: calculateOperationsSalePrice(
+        modelEditor.form.cacheReadCostPerMillion,
+        "markup",
+        modelEditor.form.markupRate,
+        0,
+        0,
+      ),
       output: calculateOperationsSalePrice(
         modelEditor.form.outputCostPerMillion,
         "markup",
@@ -140,6 +170,8 @@ export const OperationsResourceMeteringConsole = ({
       ),
     }),
     [
+      modelEditor.form.cacheCreationCostPerMillion,
+      modelEditor.form.cacheReadCostPerMillion,
       modelEditor.form.inputCostPerMillion,
       modelEditor.form.markupRate,
       modelEditor.form.outputCostPerMillion,
@@ -334,8 +366,7 @@ export const OperationsResourceMeteringConsole = ({
               <tr>
                 <th>模型名称</th>
                 <th>模型 ID</th>
-                <th>输入成本 / 百万 Tokens</th>
-                <th>输出成本 / 百万 Tokens</th>
+                <th>成本 / 百万 Tokens</th>
                 <th>销售策略</th>
                 <th>售价 / 百万 Tokens</th>
                 <th>状态</th>
@@ -348,14 +379,43 @@ export const OperationsResourceMeteringConsole = ({
                 <tr key={model.id}>
                   <td className={adminStyles.consoleHtmlTableStrong}>{model.modelName}</td>
                   <td>{model.modelCode}</td>
-                  <td>{formatOperationsCurrency(model.inputCostPerMillion)}</td>
-                  <td>{formatOperationsCurrency(model.outputCostPerMillion)}</td>
+                  <td>
+                    输入 {formatOperationsCurrency(model.inputCostPerMillion)}
+                    <br />
+                    Cache 写入 {formatOperationsCurrency(model.cacheCreationCostPerMillion)}
+                    <br />
+                    Cache 读取 {formatOperationsCurrency(model.cacheReadCostPerMillion)}
+                    <br />
+                    输出 {formatOperationsCurrency(model.outputCostPerMillion)}
+                  </td>
                   <td>倍率 {model.markupRate.toLocaleString("zh-CN")}x</td>
                   <td>
                     输入{" "}
                     {formatOperationsCurrency(
                       calculateOperationsSalePrice(
                         model.inputCostPerMillion,
+                        "markup",
+                        model.markupRate,
+                        0,
+                        0,
+                      ),
+                    )}
+                    <br />
+                    Cache 写入{" "}
+                    {formatOperationsCurrency(
+                      calculateOperationsSalePrice(
+                        model.cacheCreationCostPerMillion,
+                        "markup",
+                        model.markupRate,
+                        0,
+                        0,
+                      ),
+                    )}
+                    <br />
+                    Cache 读取{" "}
+                    {formatOperationsCurrency(
+                      calculateOperationsSalePrice(
+                        model.cacheReadCostPerMillion,
                         "markup",
                         model.markupRate,
                         0,
@@ -483,6 +543,34 @@ export const OperationsResourceMeteringConsole = ({
             />
           </div>
           <div className={styles.modalField}>
+            <span className={styles.modalLabel}>Cache 写入成本 / 百万 Tokens</span>
+            <InputNumber
+              className={styles.fullWidthInput}
+              min={0}
+              value={modelEditor.form.cacheCreationCostPerMillion}
+              onChange={value =>
+                setModelEditor(current => ({
+                  ...current,
+                  form: { ...current.form, cacheCreationCostPerMillion: Number(value ?? 0) },
+                }))
+              }
+            />
+          </div>
+          <div className={styles.modalField}>
+            <span className={styles.modalLabel}>Cache 读取成本 / 百万 Tokens</span>
+            <InputNumber
+              className={styles.fullWidthInput}
+              min={0}
+              value={modelEditor.form.cacheReadCostPerMillion}
+              onChange={value =>
+                setModelEditor(current => ({
+                  ...current,
+                  form: { ...current.form, cacheReadCostPerMillion: Number(value ?? 0) },
+                }))
+              }
+            />
+          </div>
+          <div className={styles.modalField}>
             <span className={styles.modalLabel}>输出成本 / 百万 Tokens</span>
             <InputNumber
               className={styles.fullWidthInput}
@@ -528,6 +616,12 @@ export const OperationsResourceMeteringConsole = ({
             <div className={adminStyles.consolePillRow}>
               <span className={adminStyles.consolePill}>
                 输入 {formatOperationsCurrency(modelPricePreview.input)}
+              </span>
+              <span className={adminStyles.consolePill}>
+                Cache 写入 {formatOperationsCurrency(modelPricePreview.cacheCreation)}
+              </span>
+              <span className={adminStyles.consolePill}>
+                Cache 读取 {formatOperationsCurrency(modelPricePreview.cacheRead)}
               </span>
               <span className={adminStyles.consolePill}>
                 输出 {formatOperationsCurrency(modelPricePreview.output)}

@@ -9,7 +9,7 @@ import {
   UploadOutlined,
   UserOutlined,
 } from "@ant-design/icons";
-import { Button, Empty, Modal, Popconfirm, QRCode, Tooltip, message } from "antd";
+import { Button, Empty, Modal, QRCode, Tooltip, message } from "antd";
 import classNames from "classnames";
 import dayjs from "dayjs";
 
@@ -17,6 +17,7 @@ import { useMockAuth } from "@/feature/auth/hooks/useMockAuth";
 import { getMockTenantManagementSnapshot } from "@/feature/auth/mockTenantRegistry";
 import { loadEnterpriseCommodityApplications } from "@/feature/workbenchLab/commodityApplications";
 import { WORKBENCH_AGENT_STORE_ITEMS } from "@/feature/workbenchLab/mockData";
+import type { WorkbenchAgentDeleteProtection } from "@/feature/workbenchLab/types";
 import {
   loadStoredOperationsFulfillments,
   loadStoredOperationsProducts,
@@ -136,10 +137,9 @@ export interface StoreAgentItem {
   tags: string[];
   capabilities: AgentCapability[];
   versions: AgentVersionItem[];
-  priceLabel?: string;
-  trialLabel?: string;
   acquisitionLabel: string;
   deliveryLabel: string;
+  deleteProtection?: WorkbenchAgentDeleteProtection;
   product?: OperationsProduct;
   fulfillment?: OperationsFulfillment | null;
   commodityApplication?: OperationsAgentSubmission | null;
@@ -154,6 +154,12 @@ interface ContactModalInfo {
   contactName: string;
   qrCodeValue: string;
   remark: string;
+}
+
+interface AgentDeleteDecision {
+  canDelete: boolean;
+  title: string;
+  description: string;
 }
 
 const DEFAULT_TENANT_ID = "tenant-enterprise-demo";
@@ -661,19 +667,6 @@ const getSceneCategoryOptions = (
     })),
 ];
 
-const getProductPriceLabel = (product: OperationsProduct): string =>
-  product.supportsTrial ? (getProductTrialLabel(product) ?? "免费试用") : "添加到工作台";
-
-const getProductTrialLabel = (product: OperationsProduct): string | undefined => {
-  if (!product.supportsTrial || !product.trialUnit || !product.trialValue) {
-    return undefined;
-  }
-
-  return product.trialUnit === "day"
-    ? `${product.trialValue}天试用`
-    : `${product.trialValue}次试用`;
-};
-
 const getDeliveryLabel = (deliveryKind: OperationsProductDeliveryKind): string => {
   if (deliveryKind === "softwareService") {
     return "添加后立即可用";
@@ -824,6 +817,41 @@ const resolveContactModalInfo = (
   };
 };
 
+const resolveMineAgentDeleteDecision = (agent: StoreAgentItem): AgentDeleteDecision => {
+  const protection = agent.deleteProtection;
+
+  if (!protection) {
+    return {
+      canDelete: true,
+      title: `确认删除「${agent.name}」？`,
+      description:
+        "删除后，该 AI 专家将不再显示在企业专区；已产生的历史会话和成果记录不会被删除。",
+    };
+  }
+
+  if (protection.reason === "selfWorkbenchInstalled") {
+    return {
+      canDelete: false,
+      title: "暂不能删除：已添加到工作台",
+      description: `「${agent.name}」是你自己开发的 AI 专家，当前已添加到${protection.dependencyLabel}。请先从工作台移除该专家，再回到企业专区删除。`,
+    };
+  }
+
+  if (protection.reason === "sharedWorkbenchInstalled") {
+    return {
+      canDelete: false,
+      title: "暂不能删除：团队成员正在使用",
+      description: `「${agent.name}」已共享给其他成员，且${protection.dependencyLabel}已添加到工作台。为避免影响成员正在使用的任务入口，请先取消共享或通知成员从工作台移除后再删除。`,
+    };
+  }
+
+  return {
+    canDelete: false,
+    title: "暂不能删除：商品仍在上架",
+    description: `「${agent.name}」已上架为专家广场商品「${protection.dependencyLabel}」。商品未下架前不能删除，请先在运营后台商品中心下架对应商品，再回到企业专区删除。`,
+  };
+};
+
 const buildTeamSharedAgents = (
   applicationsByAgentId: Map<string, OperationsAgentSubmission>,
 ): StoreAgentItem[] =>
@@ -919,6 +947,7 @@ const buildMyAgents = (
       })),
       acquisitionLabel: "我开发的 AI专家",
       deliveryLabel: "联系我们开通后可用",
+      deleteProtection: item.deleteProtection,
       commodityApplication: applicationsByAgentId.get(item.id) ?? null,
     };
   });
@@ -1023,8 +1052,6 @@ export const buildFrontisAgents = (
         tags: getProductCardTags(product, capabilities),
         capabilities,
         versions: buildPlatformAgentVersions(product, updatedAt),
-        priceLabel: getProductPriceLabel(product),
-        trialLabel: getProductTrialLabel(product),
         acquisitionLabel: getAcquisitionLabel(product),
         deliveryLabel: getDeliveryLabel(product.deliveryKind),
         product,
@@ -1157,6 +1184,12 @@ export const ExpertPlazaView = ({ mode = "store" }: ExpertPlazaViewProps): JSX.E
     }
   }, [storeSystemCategory, storeSystemCategoryOptions]);
 
+  useEffect(() => {
+    if (mode === "store" && detailTab === "growth") {
+      setDetailTab("identity");
+    }
+  }, [detailTab, mode]);
+
   const commodityApplicationsByAgentId = useMemo(
     () =>
       commodityApplications.reduce<Map<string, OperationsAgentSubmission>>((result, item) => {
@@ -1263,6 +1296,35 @@ export const ExpertPlazaView = ({ mode = "store" }: ExpertPlazaViewProps): JSX.E
     message.success("已从企业专区删除该 AI 专家。");
   }, []);
 
+  const handleRequestRemoveMineAgent = useCallback(
+    (agent: StoreAgentItem): void => {
+      if (agent.sourceType !== "mine") {
+        return;
+      }
+
+      const deleteDecision = resolveMineAgentDeleteDecision(agent);
+
+      if (!deleteDecision.canDelete) {
+        Modal.warning({
+          title: deleteDecision.title,
+          content: deleteDecision.description,
+          okText: "我知道了",
+        });
+        return;
+      }
+
+      Modal.confirm({
+        title: deleteDecision.title,
+        content: deleteDecision.description,
+        okText: "删除",
+        cancelText: "取消",
+        okButtonProps: { danger: true },
+        onOk: () => handleRemoveMineAgent(agent),
+      });
+    },
+    [handleRemoveMineAgent],
+  );
+
   const handleAddToWorkbench = useCallback((agent: StoreAgentItem): void => {
     upsertWorkbenchAgentRecord({
       id: agent.id,
@@ -1314,22 +1376,14 @@ export const ExpertPlazaView = ({ mode = "store" }: ExpertPlazaViewProps): JSX.E
     return (
       <>
         {agent.sourceType === "mine" ? (
-          <Popconfirm
-            title="删除 AI 专家"
-            description="删除后，该 AI 专家将不再显示在企业专区。"
-            okText="删除"
-            cancelText="取消"
-            okButtonProps={{ danger: true }}
-            onConfirm={() => handleRemoveMineAgent(agent)}
-          >
-            <Tooltip title="删除">
-              <Button
-                aria-label="删除"
-                className={styles.cardIconButton}
-                icon={<DeleteOutlined />}
-              />
-            </Tooltip>
-          </Popconfirm>
+          <Tooltip title="删除">
+            <Button
+              aria-label="删除"
+              className={styles.cardIconButton}
+              icon={<DeleteOutlined />}
+              onClick={() => handleRequestRemoveMineAgent(agent)}
+            />
+          </Tooltip>
         ) : null}
         {renderExpertListAction(agent)}
         {agent.sourceType === "mine" && canApplyForMarketplaceListing ? (
@@ -1496,7 +1550,9 @@ export const ExpertPlazaView = ({ mode = "store" }: ExpertPlazaViewProps): JSX.E
                 {[
                   { key: "identity", label: "身份", icon: <UserOutlined /> },
                   { key: "skills", label: "技能", count: detailAgent.capabilities.length },
-                  { key: "growth", label: "进化", icon: <ProfileOutlined /> },
+                  ...(mode === "team"
+                    ? [{ key: "growth", label: "进化", icon: <ProfileOutlined /> }]
+                    : []),
                   { key: "files", label: "核心文件", icon: <FileTextOutlined /> },
                 ].map(item => (
                   <button
@@ -1621,7 +1677,7 @@ export const ExpertPlazaView = ({ mode = "store" }: ExpertPlazaViewProps): JSX.E
                       </article>
                     ))}
                   </div>
-                ) : detailTab === "growth" ? (
+                ) : detailTab === "growth" && mode === "team" ? (
                   <div className={styles.agentEvolutionEmpty}>
                     <ProfileOutlined />
                     <strong>待杨涛补充设计</strong>

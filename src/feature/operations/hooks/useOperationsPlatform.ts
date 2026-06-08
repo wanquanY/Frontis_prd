@@ -10,7 +10,10 @@ import {
   getMockTenantManagementSnapshot,
   saveMockTenantManagementSnapshot,
 } from "@/feature/auth/mockTenantRegistry";
-import type { MockTenantManagementSnapshot } from "@/feature/auth/types";
+import type {
+  MockTenantEntitlementGrantItem,
+  MockTenantManagementSnapshot,
+} from "@/feature/auth/types";
 import {
   createMockPointsPackage,
   getMockPointsPackages,
@@ -61,8 +64,6 @@ import {
   OPERATIONS_PRODUCT_SALE_TYPE_OPTIONS,
   OPERATIONS_PRODUCT_STATUS_LABELS,
   OPERATIONS_PRODUCT_SUPPLY_KIND_LABELS,
-  OPERATIONS_PRODUCT_TRIAL_UNIT_LABELS,
-  OPERATIONS_PRODUCT_TRIAL_UNIT_OPTIONS,
   OPERATIONS_TENANT_STATUS_LABELS,
   createDefaultAgentSubscriptionPlans,
   createEmptyOperationsProductForm,
@@ -104,6 +105,8 @@ import type {
   OperationsServiceContactConfig,
   OperationsSkillCenterCategoryOption,
   OperationsTenant,
+  OperationsTenantEntitlementRevokePayload,
+  OperationsTenantEntitlementRevokeResult,
   OperationsTenantForm,
   OperationsTenantPointsRechargePayload,
   OperationsTenantSeatAllocationPayload,
@@ -143,14 +146,12 @@ interface UseOperationsPlatformResult {
   productStatusLabels: typeof OPERATIONS_PRODUCT_STATUS_LABELS;
   productSupplyKindLabels: typeof OPERATIONS_PRODUCT_SUPPLY_KIND_LABELS;
   productSaleTypeLabels: typeof OPERATIONS_PRODUCT_SALE_TYPE_LABELS;
-  productTrialUnitLabels: typeof OPERATIONS_PRODUCT_TRIAL_UNIT_LABELS;
   productDeliveryKindLabels: typeof OPERATIONS_PRODUCT_DELIVERY_KIND_LABELS;
   productBillingModeLabels: typeof OPERATIONS_PRODUCT_BILLING_MODE_LABELS;
   productMeteringUnitLabels: typeof OPERATIONS_PRODUCT_METERING_UNIT_LABELS;
   productBillingSpecLabels: typeof OPERATIONS_PRODUCT_BILLING_SPEC_LABELS;
   productDeliveryKindOptions: typeof OPERATIONS_PRODUCT_DELIVERY_KIND_OPTIONS;
   productSaleTypeOptions: typeof OPERATIONS_PRODUCT_SALE_TYPE_OPTIONS;
-  productTrialUnitOptions: typeof OPERATIONS_PRODUCT_TRIAL_UNIT_OPTIONS;
   productBillingModeOptions: typeof OPERATIONS_PRODUCT_BILLING_MODE_OPTIONS;
   productMeteringUnitOptions: typeof OPERATIONS_PRODUCT_METERING_UNIT_OPTIONS;
   productBillingSpecOptions: typeof OPERATIONS_PRODUCT_BILLING_SPEC_OPTIONS;
@@ -165,6 +166,10 @@ interface UseOperationsPlatformResult {
     tenantId: string,
     payload: OperationsTenantSeatAllocationPayload,
   ) => boolean;
+  revokeTenantEntitlement: (
+    tenantId: string,
+    payload: OperationsTenantEntitlementRevokePayload,
+  ) => OperationsTenantEntitlementRevokeResult;
   approveAgent: (submissionId: string) => void;
   rejectAgent: (submissionId: string, reason: string) => void;
   createProduct: (form: OperationsProductForm) => void;
@@ -254,6 +259,10 @@ const buildMeteringProviderId = (): string => `ops-metering-provider-${Date.now(
 const buildModelServiceId = (): string => `ops-model-service-${Date.now()}`;
 const DEFAULT_ADMIN_SEAT_COUNT = 1;
 
+const getTenantEntitlementGrants = (
+  snapshot: MockTenantManagementSnapshot,
+): MockTenantEntitlementGrantItem[] => snapshot.entitlementGrants ?? [];
+
 const buildAdminTenantMember = (adminName: string, adminPhone: string, addedAt: string) => ({
   id: buildTenantMemberId(),
   name: adminName.trim(),
@@ -333,6 +342,7 @@ const buildTenantSnapshotFromTenant = (tenant: OperationsTenant): MockTenantMana
     pointsUsageRecords: [],
     pointsOrders: [],
     subscriptionOrders: [],
+    entitlementGrants: [],
   };
 };
 
@@ -390,6 +400,8 @@ const buildModelServiceFromForm = (form: OperationsModelServiceForm): Operations
   modelCode: form.modelCode.trim(),
   modelName: form.modelName.trim(),
   inputCostPerMillion: form.inputCostPerMillion,
+  cacheCreationCostPerMillion: form.cacheCreationCostPerMillion,
+  cacheReadCostPerMillion: form.cacheReadCostPerMillion,
   outputCostPerMillion: form.outputCostPerMillion,
   pricingMode: form.pricingMode,
   markupRate: form.markupRate,
@@ -400,6 +412,20 @@ const buildModelServiceFromForm = (form: OperationsModelServiceForm): Operations
     form.markupRate,
     form.grossMarginRate,
     form.inputSalePricePerMillion,
+  ),
+  cacheCreationSalePricePerMillion: calculateOperationsSalePrice(
+    form.cacheCreationCostPerMillion,
+    form.pricingMode,
+    form.markupRate,
+    form.grossMarginRate,
+    form.cacheCreationSalePricePerMillion,
+  ),
+  cacheReadSalePricePerMillion: calculateOperationsSalePrice(
+    form.cacheReadCostPerMillion,
+    form.pricingMode,
+    form.markupRate,
+    form.grossMarginRate,
+    form.cacheReadSalePricePerMillion,
   ),
   outputSalePricePerMillion: calculateOperationsSalePrice(
     form.outputCostPerMillion,
@@ -470,7 +496,7 @@ const buildPendingProductFromSubmission = (
   meteringUnit: "duration",
   linkedAgentId: submission.id,
   linkedAgentName: submission.name,
-  description: "该 AI专家 已通过商品化审核，请完善获取方式和试用规则后再上架。",
+  description: "该 AI专家 已通过商品化审核，请完善获取方式和用户侧展示信息后再上架。",
   identityAvatarUrl: "",
   identityName: submission.name,
   identityDescription: submission.description,
@@ -509,6 +535,7 @@ const buildProductFromForm = (
       ? approvedSubmissions.find(item => item.id === form.linkedAgentId)
       : undefined;
   const useSubscriptionPlans = shouldUseSubscriptionPlans(form);
+  const supportsTrial = form.supplyKind === "agent" ? false : form.supportsTrial;
 
   return {
     id: buildProductId(),
@@ -533,9 +560,9 @@ const buildProductFromForm = (
     subscriptionPlans: useSubscriptionPlans
       ? normalizeSubscriptionPlans(form.subscriptionPlans)
       : undefined,
-    supportsTrial: form.supportsTrial,
-    trialUnit: form.supportsTrial ? form.trialUnit : undefined,
-    trialValue: form.supportsTrial ? form.trialValue : undefined,
+    supportsTrial,
+    trialUnit: supportsTrial ? form.trialUnit : undefined,
+    trialValue: supportsTrial ? form.trialValue : undefined,
     contactMode: form.contactMode,
     contactQrCodeValue: form.contactMode === "custom" ? form.contactQrCodeValue.trim() : "",
     contactRemark: form.contactMode === "custom" ? form.contactRemark.trim() : "",
@@ -796,6 +823,9 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
       const giftPoints = Math.max(Math.floor(payload.giftPoints), 0);
       const totalPoints = Math.max(basePoints + giftPoints, 1);
       const createdAt = formatTimestamp();
+      const orderId = `${tenantId}-ops-points-order-${timestamp}`;
+      const orderNo = `OPS-POINTS-${timestamp.toString().slice(-10)}`;
+      const grantId = `${tenantId}-ops-points-grant-${timestamp}`;
 
       saveMockTenantManagementSnapshot({
         ...matchedSnapshot,
@@ -814,8 +844,8 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
         ],
         pointsOrders: [
           {
-            id: `${tenantId}-ops-points-order-${timestamp}`,
-            orderNo: `OPS-POINTS-${timestamp.toString().slice(-10)}`,
+            id: orderId,
+            orderNo,
             packageId: payload.packageId,
             packageTitle: payload.packageTitle,
             packagePoints: basePoints,
@@ -834,6 +864,23 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
             paidAt: createdAt,
           },
           ...(matchedSnapshot.pointsOrders ?? []),
+        ],
+        entitlementGrants: [
+          {
+            id: grantId,
+            kind: "points",
+            title: payload.packageTitle,
+            description: payload.remark?.trim() || "运营通过内部积分包给租户充值。",
+            orderId,
+            orderNo,
+            points: totalPoints,
+            status: "active",
+            createdAt,
+            operatorUserId: currentOperatorUserId,
+            operatorName: currentOperatorName,
+            operatorRoleLabel: currentOperatorRoleLabel,
+          },
+          ...getTenantEntitlementGrants(matchedSnapshot),
         ],
       });
 
@@ -863,7 +910,11 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
 
       const timestamp = Date.now();
       const seatCount = Math.max(Math.floor(payload.seatCount), 1);
+      const giftPoints = Math.max(Math.floor(payload.giftPoints), 0);
       const createdAt = formatTimestamp();
+      const orderId = `${tenantId}-ops-seat-order-${timestamp}`;
+      const orderNo = `OPS-SEAT-${timestamp.toString().slice(-10)}`;
+      const grantId = `${tenantId}-ops-seat-grant-${timestamp}`;
       const nextTotalSeats = Math.max(
         matchedSnapshot.usedSeats,
         matchedSnapshot.totalSeats + seatCount,
@@ -879,15 +930,15 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
         teamPlanPackageId: payload.planKey,
         planExpiresAt: payload.expiresAt,
         invitePolicyLabel: `运营已分配 ${seatCount} 个席位，到期时间 ${payload.expiresAt}。`,
-        pointsBalance: matchedSnapshot.pointsBalance + Math.max(Math.floor(payload.giftPoints), 0),
+        pointsBalance: matchedSnapshot.pointsBalance + giftPoints,
         pointsLedger:
-          payload.giftPoints > 0
+          giftPoints > 0
             ? [
                 {
                   id: `${tenantId}-ops-seat-gift-points-${timestamp}`,
                   title: `${payload.specTitle}赠送积分`,
                   description: "运营通过内部席位包给租户分配席位时赠送。",
-                  points: Math.max(Math.floor(payload.giftPoints), 0),
+                  points: giftPoints,
                   direction: "income",
                   createdAt,
                   actorName: currentOperatorName,
@@ -897,13 +948,13 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
             : matchedSnapshot.pointsLedger,
         subscriptionOrders: [
           {
-            id: `${tenantId}-ops-seat-order-${timestamp}`,
-            orderNo: `OPS-SEAT-${timestamp.toString().slice(-10)}`,
+            id: orderId,
+            orderNo,
             planKey: payload.planKey,
             planTitle: payload.specTitle,
             amount: 0,
             seatCount,
-            billingCycleLabel: payload.expiresAt === "长期有效" ? "长期有效" : "线下合同周期",
+            billingCycleLabel: payload.specTitle,
             status: "paid",
             orderSourceLabel: "运营后台开通",
             paymentChannelLabel: "线下订单",
@@ -921,6 +972,25 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
             purchaseMode: "addSeats",
           },
           ...(matchedSnapshot.subscriptionOrders ?? []),
+        ],
+        entitlementGrants: [
+          {
+            id: grantId,
+            kind: "seats",
+            title: payload.specTitle,
+            description: payload.remark?.trim() || `运营给租户分配 ${seatCount} 个席位。`,
+            orderId,
+            orderNo,
+            seatCount,
+            giftPoints,
+            expiresAt: payload.expiresAt,
+            status: "active",
+            createdAt,
+            operatorUserId: currentOperatorUserId,
+            operatorName: currentOperatorName,
+            operatorRoleLabel: currentOperatorRoleLabel,
+          },
+          ...getTenantEntitlementGrants(matchedSnapshot),
         ],
       });
 
@@ -940,6 +1010,193 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
       return true;
     },
     [currentOperatorName, currentOperatorRoleLabel, currentOperatorUserId],
+  );
+
+  const revokeTenantEntitlement = useCallback(
+    (
+      tenantId: string,
+      payload: OperationsTenantEntitlementRevokePayload,
+    ): OperationsTenantEntitlementRevokeResult => {
+      const matchedSnapshot = getMockTenantManagementSnapshot(tenantId);
+
+      if (!matchedSnapshot) {
+        return { success: false, message: "未找到租户权益数据。" };
+      }
+
+      const revokeReason = payload.reason.trim();
+
+      if (!revokeReason) {
+        return { success: false, message: "请填写撤销原因。" };
+      }
+
+      const grants = getTenantEntitlementGrants(matchedSnapshot);
+      const matchedGrant = grants.find(item => item.id === payload.grantId);
+
+      if (!matchedGrant) {
+        return { success: false, message: "未找到可撤销的发放记录。" };
+      }
+
+      if (matchedGrant.status === "revoked") {
+        return { success: false, message: "该发放记录已撤销。" };
+      }
+
+      const timestamp = Date.now();
+      const revokedAt = formatTimestamp();
+      const nextGrants = grants.map(item =>
+        item.id === matchedGrant.id
+          ? {
+              ...item,
+              status: "revoked" as const,
+              revokedAt,
+              revokedBy: currentOperatorName,
+              revokeReason,
+            }
+          : item,
+      );
+
+      if (matchedGrant.kind === "points") {
+        const revokePoints = Math.max(Math.floor(matchedGrant.points ?? 0), 0);
+
+        if (revokePoints < 1) {
+          return { success: false, message: "该积分包没有可撤销的积分额度。" };
+        }
+
+        if (matchedSnapshot.pointsBalance < revokePoints) {
+          return { success: false, message: "当前积分余额不足，无法撤销该积分包。" };
+        }
+
+        saveMockTenantManagementSnapshot({
+          ...matchedSnapshot,
+          pointsBalance: matchedSnapshot.pointsBalance - revokePoints,
+          pointsLedger: [
+            {
+              id: `${tenantId}-ops-points-revoke-${timestamp}`,
+              title: `撤销${matchedGrant.title}`,
+              description: `撤销原因：${revokeReason}`,
+              points: revokePoints,
+              direction: "expense",
+              createdAt: revokedAt,
+              actorName: currentOperatorName,
+            },
+            ...(matchedSnapshot.pointsLedger ?? []),
+          ],
+          pointsOrders: (matchedSnapshot.pointsOrders ?? []).map(order =>
+            order.id === matchedGrant.orderId
+              ? {
+                  ...order,
+                  status: "closed",
+                }
+              : order,
+          ),
+          entitlementGrants: nextGrants,
+        });
+
+        setTenants(currentTenants =>
+          currentTenants.map(item =>
+            item.id === tenantId
+              ? {
+                  ...item,
+                  updatedAt: revokedAt,
+                }
+              : item,
+          ),
+        );
+
+        return { success: true, message: "积分包发放已撤销。" };
+      }
+
+      const revokeSeats = Math.max(Math.floor(matchedGrant.seatCount ?? 0), 0);
+      const giftPoints = Math.max(Math.floor(matchedGrant.giftPoints ?? 0), 0);
+      const nextTotalSeats = matchedSnapshot.totalSeats - revokeSeats;
+
+      if (revokeSeats < 1) {
+        return { success: false, message: "该席位包没有可撤销的席位额度。" };
+      }
+
+      if (nextTotalSeats < matchedSnapshot.usedSeats) {
+        return { success: false, message: "席位已被占用，无法撤销该席位包。" };
+      }
+
+      if (giftPoints > 0 && matchedSnapshot.pointsBalance < giftPoints) {
+        return { success: false, message: "席位包赠送积分已被消耗，无法撤销该席位包。" };
+      }
+
+      const activeSeatGrants = nextGrants.filter(
+        item => item.kind === "seats" && item.status === "active",
+      );
+      const latestActiveSeatGrant = activeSeatGrants[0];
+      const normalizedTotalSeats = Math.max(DEFAULT_ADMIN_SEAT_COUNT, nextTotalSeats);
+      const nextIncludedSeats = Math.max(
+        DEFAULT_ADMIN_SEAT_COUNT,
+        matchedSnapshot.includedSeats - revokeSeats,
+      );
+      const nextEdition = normalizedTotalSeats > DEFAULT_ADMIN_SEAT_COUNT ? "team" : "personal";
+      const nextPlanLabel =
+        latestActiveSeatGrant?.title ??
+        (normalizedTotalSeats > DEFAULT_ADMIN_SEAT_COUNT
+          ? matchedSnapshot.planLabel
+          : "默认管理员席位");
+      const nextPlanExpiresAt =
+        latestActiveSeatGrant?.expiresAt ??
+        (normalizedTotalSeats > DEFAULT_ADMIN_SEAT_COUNT
+          ? (matchedSnapshot.planExpiresAt ?? "长期有效")
+          : "长期有效");
+
+      saveMockTenantManagementSnapshot({
+        ...matchedSnapshot,
+        edition: nextEdition,
+        planLabel: nextPlanLabel,
+        includedSeats: nextIncludedSeats,
+        totalSeats: normalizedTotalSeats,
+        planExpiresAt: nextPlanExpiresAt,
+        invitePolicyLabel:
+          normalizedTotalSeats > DEFAULT_ADMIN_SEAT_COUNT
+            ? `运营已分配 ${normalizedTotalSeats - DEFAULT_ADMIN_SEAT_COUNT} 个席位，到期时间 ${nextPlanExpiresAt}。`
+            : "系统已为初始管理员开通 1 个长期有效席位。",
+        pointsBalance: matchedSnapshot.pointsBalance - giftPoints,
+        pointsLedger:
+          giftPoints > 0
+            ? [
+                {
+                  id: `${tenantId}-ops-seat-gift-points-revoke-${timestamp}`,
+                  title: `撤销${matchedGrant.title}赠送积分`,
+                  description: `撤销原因：${revokeReason}`,
+                  points: giftPoints,
+                  direction: "expense",
+                  createdAt: revokedAt,
+                  actorName: currentOperatorName,
+                },
+                ...(matchedSnapshot.pointsLedger ?? []),
+              ]
+            : matchedSnapshot.pointsLedger,
+        subscriptionOrders: (matchedSnapshot.subscriptionOrders ?? []).map(order =>
+          order.id === matchedGrant.orderId
+            ? {
+                ...order,
+                status: "closed",
+              }
+            : order,
+        ),
+        entitlementGrants: nextGrants,
+      });
+
+      setTenants(currentTenants =>
+        currentTenants.map(item =>
+          item.id === tenantId
+            ? {
+                ...item,
+                edition: nextEdition,
+                seatCount: normalizedTotalSeats,
+                expiresAt: nextPlanExpiresAt,
+                updatedAt: revokedAt,
+              }
+            : item,
+        ),
+      );
+
+      return { success: true, message: "席位包发放已撤销。" };
+    },
+    [currentOperatorName],
   );
 
   const approveAgent = useCallback(
@@ -1021,6 +1278,7 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
               ? approvedAgentSubmissions.find(agent => agent.id === form.linkedAgentId)
               : undefined;
           const useSubscriptionPlans = shouldUseSubscriptionPlans(form);
+          const supportsTrial = form.supplyKind === "agent" ? false : form.supportsTrial;
 
           return {
             ...item,
@@ -1045,9 +1303,9 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
             subscriptionPlans: useSubscriptionPlans
               ? normalizeSubscriptionPlans(form.subscriptionPlans)
               : undefined,
-            supportsTrial: form.supportsTrial,
-            trialUnit: form.supportsTrial ? form.trialUnit : undefined,
-            trialValue: form.supportsTrial ? form.trialValue : undefined,
+            supportsTrial,
+            trialUnit: supportsTrial ? form.trialUnit : undefined,
+            trialValue: supportsTrial ? form.trialValue : undefined,
             contactMode: form.contactMode,
             contactQrCodeValue: form.contactMode === "custom" ? form.contactQrCodeValue.trim() : "",
             contactRemark: form.contactMode === "custom" ? form.contactRemark.trim() : "",
@@ -1483,14 +1741,12 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
     productStatusLabels: OPERATIONS_PRODUCT_STATUS_LABELS,
     productSupplyKindLabels: OPERATIONS_PRODUCT_SUPPLY_KIND_LABELS,
     productSaleTypeLabels: OPERATIONS_PRODUCT_SALE_TYPE_LABELS,
-    productTrialUnitLabels: OPERATIONS_PRODUCT_TRIAL_UNIT_LABELS,
     productDeliveryKindLabels: OPERATIONS_PRODUCT_DELIVERY_KIND_LABELS,
     productBillingModeLabels: OPERATIONS_PRODUCT_BILLING_MODE_LABELS,
     productMeteringUnitLabels: OPERATIONS_PRODUCT_METERING_UNIT_LABELS,
     productBillingSpecLabels: OPERATIONS_PRODUCT_BILLING_SPEC_LABELS,
     productDeliveryKindOptions: OPERATIONS_PRODUCT_DELIVERY_KIND_OPTIONS,
     productSaleTypeOptions: OPERATIONS_PRODUCT_SALE_TYPE_OPTIONS,
-    productTrialUnitOptions: OPERATIONS_PRODUCT_TRIAL_UNIT_OPTIONS,
     productBillingModeOptions: OPERATIONS_PRODUCT_BILLING_MODE_OPTIONS,
     productMeteringUnitOptions: OPERATIONS_PRODUCT_METERING_UNIT_OPTIONS,
     productBillingSpecOptions: OPERATIONS_PRODUCT_BILLING_SPEC_OPTIONS,
@@ -1499,6 +1755,7 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
     updateTenantStatus,
     rechargeTenantPoints,
     allocateTenantSeats,
+    revokeTenantEntitlement,
     approveAgent,
     rejectAgent,
     createProduct,

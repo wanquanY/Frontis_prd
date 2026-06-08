@@ -1,5 +1,10 @@
 import { useCallback, useEffect, useMemo, useState, type ChangeEvent } from "react";
-import { ArrowLeftOutlined, DownloadOutlined, ExportOutlined } from "@ant-design/icons";
+import {
+  ArrowLeftOutlined,
+  DownloadOutlined,
+  ExportOutlined,
+  ShareAltOutlined,
+} from "@ant-design/icons";
 import { Spin } from "antd";
 import classNames from "classnames";
 
@@ -18,6 +23,7 @@ interface ArtifactPreviewPanelProps {
   loading?: boolean;
   error?: string;
   onDownloadFile?: (file: ArtifactItem) => void;
+  onShareFile?: (file: ArtifactItem) => void;
   resolveFileUrl?: (file: ArtifactItem) => Promise<string>;
   onPreviewStateChange?: (previewing: boolean) => void;
   preferredFileId?: string;
@@ -407,6 +413,7 @@ export const ArtifactPreviewPanel = ({
   loading = false,
   error,
   onDownloadFile,
+  onShareFile,
   resolveFileUrl,
   onPreviewStateChange,
   preferredFileId,
@@ -510,6 +517,11 @@ export const ArtifactPreviewPanel = ({
     if (!selectedFile || !onDownloadFile) return;
     onDownloadFile(selectedFile);
   }, [onDownloadFile, selectedFile]);
+
+  const handleShareFile = useCallback(() => {
+    if (!selectedFile || !onShareFile) return;
+    onShareFile(selectedFile);
+  }, [onShareFile, selectedFile]);
 
   const handleSwitchHtmlPreviewMode = useCallback((mode: HtmlPreviewMode) => {
     setHtmlPreviewMode(mode);
@@ -1009,6 +1021,16 @@ export const ArtifactPreviewPanel = ({
                 <ExportOutlined className={styles.previewHeaderIcon} />
               </button>
             ) : null}
+            <button
+              type="button"
+              className={styles.previewIconButton}
+              onClick={handleShareFile}
+              disabled={!onShareFile || selectedFile.isDeleted}
+              aria-label={`分享 ${selectedFile.fileName}`}
+              title="分享"
+            >
+              <ShareAltOutlined className={styles.previewHeaderIcon} />
+            </button>
             <button
               type="button"
               className={styles.previewIconButton}

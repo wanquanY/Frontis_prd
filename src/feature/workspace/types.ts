@@ -436,6 +436,12 @@ export interface WorkspaceChatPanelProps {
   collapseAssignedActorOutputs?: boolean;
   /** 是否展示流式占位（群聊场景通常关闭） */
   showStreamingPlaceholder?: boolean;
+  /** 是否进入消息分享选择模式 */
+  shareSelectionEnabled?: boolean;
+  /** 当前已选择分享的 block id 列表 */
+  selectedShareBlockIds?: string[];
+  /** 切换某条消息是否纳入分享 */
+  onToggleShareBlock?: (blockId: string) => void;
   /** 点击消息发送者名称后回填到输入框 */
   onActorNameClick?: (mentionLabel: string) => void;
   /** 点击消息快捷建议后直接发送 */

@@ -31,7 +31,11 @@ import { getMockTenantManagementSnapshot } from "@/feature/auth/mockTenantRegist
 import { useMockAuth } from "@/feature/auth/hooks/useMockAuth";
 import { useOperationsAuth } from "@/feature/operations/hooks/useOperationsAuth";
 import { useOperationsPlatform } from "@/feature/operations/hooks/useOperationsPlatform";
-import type { MockAuthSystemEntry, MockTenantManagementSnapshot } from "@/feature/auth/types";
+import type {
+  MockAuthSystemEntry,
+  MockTenantEntitlementGrantItem,
+  MockTenantManagementSnapshot,
+} from "@/feature/auth/types";
 import {
   OPERATIONS_DEFAULT_PATH,
   OPERATIONS_TAB_OPTIONS,
@@ -85,6 +89,13 @@ interface RejectEditorState {
   reason: string;
 }
 
+interface EntitlementRevokeEditorState {
+  open: boolean;
+  tenantId?: string;
+  grantId?: string;
+  reason: string;
+}
+
 type AgentFilterValue = "all" | OperationsAgentSubmission["status"];
 
 interface TenantConsoleProps {
@@ -106,6 +117,10 @@ interface TenantDetailConsoleProps {
   onEdit: (tenant: OperationsTenant) => void;
   onOpenPointsRecharge: (tenant: OperationsTenant) => void;
   onOpenSeatAllocation: (tenant: OperationsTenant) => void;
+  onOpenRevokeEntitlement: (
+    tenant: OperationsTenant,
+    grant: MockTenantEntitlementGrantItem,
+  ) => void;
   onToggleStatus: (tenant: OperationsTenant) => void;
 }
 
@@ -144,6 +159,7 @@ const OPERATIONS_TENANT_EDITION_LABELS: Record<OperationsTenantEdition, string> 
 };
 
 const REJECT_FIELD_ID = "operations-agent-reject-reason";
+const ENTITLEMENT_REVOKE_REASON_FIELD_ID = "operations-entitlement-revoke-reason";
 const OPERATIONS_TENANT_LIST_PATH = "/ops/tenants";
 const OPERATIONS_PRODUCT_LIST_PATH = "/ops/products";
 
@@ -228,6 +244,62 @@ const getAgentStatusClassName = (status: OperationsAgentSubmission["status"]): s
   }
 
   return buildStatusClassName("danger");
+};
+
+const getEntitlementGrantStatusClassName = (
+  status: MockTenantEntitlementGrantItem["status"],
+): string =>
+  status === "active" ? buildStatusClassName("success") : buildStatusClassName("danger");
+
+const getEntitlementGrantStatusLabel = (
+  status: MockTenantEntitlementGrantItem["status"],
+): string => (status === "active" ? "已生效" : "已撤销");
+
+const getEntitlementGrantKindLabel = (
+  kind: MockTenantEntitlementGrantItem["kind"],
+): string => (kind === "points" ? "积分包" : "席位包");
+
+const getEntitlementGrantContent = (grant: MockTenantEntitlementGrantItem): string => {
+  if (grant.kind === "points") {
+    return `${(grant.points ?? 0).toLocaleString("zh-CN")} 积分`;
+  }
+
+  const giftPoints =
+    grant.giftPoints && grant.giftPoints > 0 ? ` · 赠送 ${grant.giftPoints} 积分` : "";
+
+  return `${grant.seatCount ?? 0} 个席位 · 到期 ${grant.expiresAt ?? "-"}${giftPoints}`;
+};
+
+const getEntitlementGrantRevokeBlockReason = (
+  snapshot: MockTenantManagementSnapshot | null,
+  grant: MockTenantEntitlementGrantItem,
+): string | null => {
+  if (!snapshot) {
+    return "缺少租户权益数据。";
+  }
+
+  if (grant.status === "revoked") {
+    return "该发放记录已撤销。";
+  }
+
+  if (grant.kind === "points") {
+    const revokePoints = Math.max(Math.floor(grant.points ?? 0), 0);
+
+    return snapshot.pointsBalance >= revokePoints ? null : "当前积分余额不足，无法撤销该积分包。";
+  }
+
+  const revokeSeats = Math.max(Math.floor(grant.seatCount ?? 0), 0);
+  const giftPoints = Math.max(Math.floor(grant.giftPoints ?? 0), 0);
+
+  if (snapshot.totalSeats - revokeSeats < snapshot.usedSeats) {
+    return "席位已被占用，无法撤销该席位包。";
+  }
+
+  if (giftPoints > 0 && snapshot.pointsBalance < giftPoints) {
+    return "席位包赠送积分已被消耗，无法撤销该席位包。";
+  }
+
+  return null;
 };
 
 const TenantConsole = ({
@@ -352,6 +424,7 @@ const TenantDetailConsole = ({
   onEdit,
   onOpenPointsRecharge,
   onOpenSeatAllocation,
+  onOpenRevokeEntitlement,
   onToggleStatus,
 }: TenantDetailConsoleProps): JSX.Element => {
   const isPointsBillingTenant =
@@ -359,6 +432,7 @@ const TenantDetailConsole = ({
   const totalSeats = tenantSnapshot?.totalSeats ?? tenant?.seatCount ?? 0;
   const usedSeats = tenantSnapshot?.usedSeats ?? tenant?.members.length ?? 0;
   const allocatedSeatCount = Math.max(totalSeats - 1, 0);
+  const entitlementGrants = tenantSnapshot?.entitlementGrants ?? [];
 
   return (
     <div className={adminStyles.consolePage}>
@@ -529,6 +603,93 @@ const TenantDetailConsole = ({
                 ))}
               </div>
             </section>
+          </div>
+
+          <div className={styles.entitlementGrantSection}>
+            <div className={adminStyles.consoleSectionHeader}>
+              <div className={adminStyles.consoleSectionHeaderMain}>
+                <h2 className={adminStyles.consoleSectionTitle}>运营权益记录</h2>
+              </div>
+            </div>
+
+            {entitlementGrants.length ? (
+              <div className={adminStyles.consoleHtmlTableWrap}>
+                <table className={adminStyles.consoleHtmlTable}>
+                  <thead>
+                    <tr>
+                      <th>类型</th>
+                      <th>内容</th>
+                      <th>关联订单</th>
+                      <th>状态</th>
+                      <th>发放信息</th>
+                      <th>撤销信息</th>
+                      <th>操作</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {entitlementGrants.map(grant => {
+                      const blockReason = getEntitlementGrantRevokeBlockReason(
+                        tenantSnapshot,
+                        grant,
+                      );
+
+                      return (
+                        <tr key={grant.id}>
+                          <td>{getEntitlementGrantKindLabel(grant.kind)}</td>
+                          <td>
+                            <div className={styles.entitlementGrantContent}>
+                              <span>{grant.title}</span>
+                              <small>{getEntitlementGrantContent(grant)}</small>
+                            </div>
+                          </td>
+                          <td>{grant.orderNo}</td>
+                          <td>
+                            <span className={getEntitlementGrantStatusClassName(grant.status)}>
+                              {getEntitlementGrantStatusLabel(grant.status)}
+                            </span>
+                          </td>
+                          <td>
+                            <div className={styles.entitlementGrantMeta}>
+                              <span>{grant.operatorName ?? "-"}</span>
+                              <small>{grant.createdAt}</small>
+                            </div>
+                          </td>
+                          <td>
+                            {grant.status === "revoked" ? (
+                              <div className={styles.entitlementGrantMeta}>
+                                <span>{grant.revokedBy ?? "-"}</span>
+                                <small>{grant.revokedAt ?? "-"}</small>
+                              </div>
+                            ) : (
+                              "-"
+                            )}
+                          </td>
+                          <td>
+                            {canManageEntitlements && grant.status === "active" ? (
+                              <Button
+                                danger
+                                size="small"
+                                disabled={Boolean(blockReason)}
+                                title={blockReason ?? undefined}
+                                onClick={() => onOpenRevokeEntitlement(tenant, grant)}
+                              >
+                                撤销
+                              </Button>
+                            ) : (
+                              "-"
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className={styles.emptyWrap}>
+                <Empty description="暂无运营权益记录。" />
+              </div>
+            )}
           </div>
         </section>
       ) : (
@@ -704,14 +865,13 @@ export const OperationsPlatformView = (): JSX.Element => {
     meteringProviders,
     modelServices,
     productStatusLabels,
-    productTrialUnitLabels,
-    productTrialUnitOptions,
     pointsPackages,
     pointsUsageRecords,
     products,
     registrationStrategy,
     rejectAgent,
     rechargeTenantPoints,
+    revokeTenantEntitlement,
     serviceContactConfig,
     skillCenterCategories,
     subscriptionPlans,
@@ -739,6 +899,11 @@ export const OperationsPlatformView = (): JSX.Element => {
   });
   const [pointsRechargeTenantId, setPointsRechargeTenantId] = useState<string | null>(null);
   const [seatAllocationTenantId, setSeatAllocationTenantId] = useState<string | null>(null);
+  const [entitlementRevokeEditor, setEntitlementRevokeEditor] =
+    useState<EntitlementRevokeEditorState>({
+      open: false,
+      reason: "",
+    });
   const [agentReview, setAgentReview] = useState<AgentReviewState>({
     open: false,
   });
@@ -930,6 +1095,25 @@ export const OperationsPlatformView = (): JSX.Element => {
     setSeatAllocationTenantId(tenant.id);
   }, []);
 
+  const handleOpenRevokeEntitlement = useCallback(
+    (tenant: OperationsTenant, grant: MockTenantEntitlementGrantItem): void => {
+      setEntitlementRevokeEditor({
+        open: true,
+        tenantId: tenant.id,
+        grantId: grant.id,
+        reason: "",
+      });
+    },
+    [],
+  );
+
+  const handleCloseRevokeEntitlement = useCallback((): void => {
+    setEntitlementRevokeEditor({
+      open: false,
+      reason: "",
+    });
+  }, []);
+
   const handleSubmitTenant = useCallback((): void => {
     if (
       !tenantEditor.form.name.trim() ||
@@ -1037,6 +1221,28 @@ export const OperationsPlatformView = (): JSX.Element => {
     () => tenants.find(item => item.id === seatAllocationTenantId) ?? null,
     [seatAllocationTenantId, tenants],
   );
+  const activeRevokeTenant = useMemo<OperationsTenant | null>(
+    () => tenants.find(item => item.id === entitlementRevokeEditor.tenantId) ?? null,
+    [entitlementRevokeEditor.tenantId, tenants],
+  );
+  const activeRevokeSnapshot = useMemo<MockTenantManagementSnapshot | null>(
+    () => (activeRevokeTenant ? getMockTenantManagementSnapshot(activeRevokeTenant.id) : null),
+    [activeRevokeTenant],
+  );
+  const activeRevokeGrant = useMemo<MockTenantEntitlementGrantItem | null>(
+    () =>
+      activeRevokeSnapshot?.entitlementGrants?.find(
+        item => item.id === entitlementRevokeEditor.grantId,
+      ) ?? null,
+    [activeRevokeSnapshot, entitlementRevokeEditor.grantId],
+  );
+  const activeRevokeBlockReason = useMemo<string | null>(
+    () =>
+      activeRevokeGrant
+        ? getEntitlementGrantRevokeBlockReason(activeRevokeSnapshot, activeRevokeGrant)
+        : null,
+    [activeRevokeGrant, activeRevokeSnapshot],
+  );
   const activeTenantSnapshot = useMemo<MockTenantManagementSnapshot | null>(
     () => (activeTenant ? getMockTenantManagementSnapshot(activeTenant.id) : null),
     [activeTenant],
@@ -1045,6 +1251,47 @@ export const OperationsPlatformView = (): JSX.Element => {
     () => agentSubmissions.find(item => item.id === agentReview.submissionId) ?? null,
     [agentReview.submissionId, agentSubmissions],
   );
+  const handleSubmitRevokeEntitlement = useCallback((): void => {
+    if (
+      !entitlementRevokeEditor.tenantId ||
+      !entitlementRevokeEditor.grantId ||
+      !activeRevokeGrant
+    ) {
+      message.warning("未找到可撤销的发放记录。");
+      return;
+    }
+
+    if (!entitlementRevokeEditor.reason.trim()) {
+      message.warning("请填写撤销原因。");
+      return;
+    }
+
+    if (activeRevokeBlockReason) {
+      message.warning(activeRevokeBlockReason);
+      return;
+    }
+
+    const result = revokeTenantEntitlement(entitlementRevokeEditor.tenantId, {
+      grantId: entitlementRevokeEditor.grantId,
+      reason: entitlementRevokeEditor.reason,
+    });
+
+    if (!result.success) {
+      message.warning(result.message);
+      return;
+    }
+
+    message.success(result.message);
+    handleCloseRevokeEntitlement();
+  }, [
+    activeRevokeBlockReason,
+    activeRevokeGrant,
+    entitlementRevokeEditor.grantId,
+    entitlementRevokeEditor.reason,
+    entitlementRevokeEditor.tenantId,
+    handleCloseRevokeEntitlement,
+    revokeTenantEntitlement,
+  ]);
   const content = useMemo((): JSX.Element => {
     if (!visibleOperationsTabs.length) {
       return <Empty description="当前角色暂无运营管理权限" />;
@@ -1063,6 +1310,7 @@ export const OperationsPlatformView = (): JSX.Element => {
             onBack={handleBackToTenantList}
             onEdit={handleOpenEditTenant}
             onOpenPointsRecharge={handleOpenPointsRecharge}
+            onOpenRevokeEntitlement={handleOpenRevokeEntitlement}
             onOpenSeatAllocation={handleOpenSeatAllocation}
             onToggleStatus={handleToggleTenantStatus}
           />
@@ -1120,8 +1368,6 @@ export const OperationsPlatformView = (): JSX.Element => {
           productId={productId}
           productStatusLabels={productStatusLabels}
           pointsPackages={pointsPackages}
-          productTrialUnitLabels={productTrialUnitLabels}
-          productTrialUnitOptions={productTrialUnitOptions}
           products={products}
           serviceContactConfig={serviceContactConfig}
           skillCategories={skillCenterCategories}
@@ -1253,6 +1499,7 @@ export const OperationsPlatformView = (): JSX.Element => {
     handleOpenEditTenant,
     handleOpenPointsRecharge,
     handleOpenProductDetail,
+    handleOpenRevokeEntitlement,
     handleOpenSeatAllocation,
     handleOpenTenantDetail,
     handleToggleTenantStatus,
@@ -1260,8 +1507,6 @@ export const OperationsPlatformView = (): JSX.Element => {
     modelServices,
     productId,
     productStatusLabels,
-    productTrialUnitLabels,
-    productTrialUnitOptions,
     pointsPackages,
     pointsUsageRecords,
     products,
@@ -1570,6 +1815,68 @@ export const OperationsPlatformView = (): JSX.Element => {
         onCancel={() => setSeatAllocationTenantId(null)}
         onSubmit={allocateTenantSeats}
       />
+
+      <Modal
+        open={entitlementRevokeEditor.open}
+        title="撤销权益发放"
+        className={styles.fixedModal}
+        width={OPERATIONS_MODAL_WIDTHS.standard}
+        okText="确认撤销"
+        cancelText="取消"
+        okButtonProps={{ danger: true, disabled: Boolean(activeRevokeBlockReason) }}
+        onCancel={handleCloseRevokeEntitlement}
+        onOk={handleSubmitRevokeEntitlement}
+        destroyOnHidden
+      >
+        {activeRevokeTenant && activeRevokeGrant ? (
+          <div className={styles.revokeEntitlementBody}>
+            <div className={styles.revokeEntitlementSummary}>
+              <div>
+                <span>租户</span>
+                <strong>{activeRevokeTenant.name}</strong>
+              </div>
+              <div>
+                <span>类型</span>
+                <strong>{getEntitlementGrantKindLabel(activeRevokeGrant.kind)}</strong>
+              </div>
+              <div>
+                <span>内容</span>
+                <strong>{getEntitlementGrantContent(activeRevokeGrant)}</strong>
+              </div>
+              <div>
+                <span>关联订单</span>
+                <strong>{activeRevokeGrant.orderNo}</strong>
+              </div>
+            </div>
+
+            {activeRevokeBlockReason ? (
+              <div className={styles.revokeEntitlementBlocked}>{activeRevokeBlockReason}</div>
+            ) : null}
+
+            <div className={classNames(styles.modalField, styles.fullSpanField)}>
+              <label className={styles.modalLabel} htmlFor={ENTITLEMENT_REVOKE_REASON_FIELD_ID}>
+                撤销原因
+              </label>
+              <Input.TextArea
+                id={ENTITLEMENT_REVOKE_REASON_FIELD_ID}
+                rows={4}
+                value={entitlementRevokeEditor.reason}
+                maxLength={200}
+                showCount
+                placeholder="请输入撤销原因"
+                onChange={event =>
+                  setEntitlementRevokeEditor(currentState => ({
+                    ...currentState,
+                    reason: event.target.value,
+                  }))
+                }
+              />
+            </div>
+          </div>
+        ) : (
+          <Empty description="未找到可撤销的发放记录。" />
+        )}
+      </Modal>
 
       <Modal
         open={agentReview.open}

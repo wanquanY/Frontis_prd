@@ -1,7 +1,13 @@
 import { useCallback, useMemo, useState } from "react";
 
 import classNames from "classnames";
-import { CreditCardOutlined, DeleteOutlined, EditOutlined, PlusOutlined } from "@ant-design/icons";
+import {
+  CreditCardOutlined,
+  DeleteOutlined,
+  EditOutlined,
+  PlusOutlined,
+  SearchOutlined,
+} from "@ant-design/icons";
 import { Button, Input, Modal, Popconfirm, Select, message } from "antd";
 
 import { DEFAULT_TENANT_ROLE_IDS, type TenantRoleItem } from "@/constants/tenantRolePermissions";
@@ -187,6 +193,7 @@ export const OrganizationManagementView = ({
     roleId: DEFAULT_TENANT_ROLE_IDS.employee,
   });
   const [editingUserId, setEditingUserId] = useState("");
+  const [memberSearchKeyword, setMemberSearchKeyword] = useState("");
 
   /* ---------- 派生数据 ---------- */
   const flatDepts = useMemo(() => flattenDepartmentTree(departments), [departments]);
@@ -226,6 +233,13 @@ export const OrganizationManagementView = ({
   const isRootDept = selectedDept?.parentId === null;
   const canManageTeamSeats =
     tenantSnapshot?.edition === "team" && typeof onOpenSubscriptionManage === "function";
+  const totalEffectiveSeats = tenantSnapshot?.totalSeats ?? users.length;
+  const usedEffectiveSeats = tenantSnapshot?.usedSeats ?? users.length;
+  const remainingEffectiveSeats = Math.max(totalEffectiveSeats - usedEffectiveSeats, 0);
+  const tenantOwnerUserId = tenantSnapshot?.adminUserId ?? "";
+  const seatExpiresAt = tenantSnapshot?.planExpiresAt ?? "随当前订阅到期";
+  const canCreateUserBySeatRule =
+    Boolean(tenantSnapshot) && tenantSnapshot?.edition === "team" && remainingEffectiveSeats > 0;
 
   const deptOptions = useMemo(
     () =>
@@ -256,6 +270,49 @@ export const OrganizationManagementView = ({
     },
     [roleNameMap, roles],
   );
+  const getUserSeatInfo = useCallback(
+    (user: FrontisWebUserItem) => {
+      const isTenantOwner = tenantOwnerUserId === user.id;
+
+      if (isTenantOwner) {
+        return {
+          expiresLabel: "长期有效",
+          typeLabel: "长期免费",
+        };
+      }
+
+      return {
+        expiresLabel: tenantSnapshot?.planExpiresAt
+          ? `${tenantSnapshot.planExpiresAt} 到期`
+          : seatExpiresAt,
+        typeLabel: "",
+      };
+    },
+    [seatExpiresAt, tenantOwnerUserId, tenantSnapshot?.planExpiresAt],
+  );
+  const filteredDepartmentMembers = useMemo(() => {
+    const keyword = memberSearchKeyword.trim().toLowerCase();
+
+    if (!keyword) {
+      return departmentMembers;
+    }
+
+    return departmentMembers.filter(user => {
+      const searchText = [
+        user.name,
+        user.phone,
+        getUserRoleLabel(user),
+        getUserStatusLabel(user.status),
+        getUserSeatInfo(user).typeLabel,
+        getUserSeatInfo(user).expiresLabel,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+
+      return searchText.includes(keyword);
+    });
+  }, [departmentMembers, getUserRoleLabel, getUserSeatInfo, memberSearchKeyword]);
 
   /* ---------- 部门操作 ---------- */
   const handleOpenDeptCreate = useCallback((): void => {
@@ -344,6 +401,21 @@ export const OrganizationManagementView = ({
 
   /* ---------- 成员操作 ---------- */
   const handleOpenUserCreate = useCallback((): void => {
+    if (!tenantSnapshot) {
+      message.warning("当前账号未绑定租户，无法添加成员。");
+      return;
+    }
+
+    if (tenantSnapshot.edition !== "team") {
+      message.warning("当前租户仍是个人版，请先通过团队扩充购买席位。");
+      return;
+    }
+
+    if (remainingEffectiveSeats <= 0) {
+      message.warning("当前有效席位额度不足，暂无法继续添加成员。");
+      return;
+    }
+
     setEditingUserId("");
     setDraftUser({
       departmentId: selectedDept?.id ?? "",
@@ -352,7 +424,7 @@ export const OrganizationManagementView = ({
       roleId: roleOptions[0]?.value ?? DEFAULT_TENANT_ROLE_IDS.employee,
     });
     setIsUserCreateOpen(true);
-  }, [roleOptions, selectedDept]);
+  }, [remainingEffectiveSeats, roleOptions, selectedDept, tenantSnapshot]);
 
   const handleOpenUserEdit = useCallback(
     (user: FrontisWebUserItem): void => {
@@ -381,7 +453,7 @@ export const OrganizationManagementView = ({
       return;
     }
 
-    const hasInvited = onInviteTenantMember({
+    const hasAdded = onInviteTenantMember({
       departmentId: draftUser.departmentId || selectedDept?.id || "dept-default",
       inviterName:
         tenantSnapshot?.users.find(item => item.id === tenantSnapshot.adminUserId)?.name ??
@@ -392,12 +464,12 @@ export const OrganizationManagementView = ({
       roleIds: [draftUser.roleId],
     });
 
-    if (!hasInvited) {
+    if (!hasAdded) {
       return;
     }
 
     setIsUserCreateOpen(false);
-    message.success(`已邀请成员：${nextName}`);
+    message.success(`已添加成员：${nextName}`);
   }, [draftUser, onInviteTenantMember, selectedDept, tenantSnapshot]);
 
   const handleSubmitUserEdit = useCallback((): void => {
@@ -567,6 +639,22 @@ export const OrganizationManagementView = ({
           </div>
         </div>
 
+        <div className={adminStyles.consoleToolbar} style={{ marginTop: 16 }}>
+          <Input
+            allowClear
+            className={adminStyles.consoleInlineSearch}
+            placeholder="搜索姓名、手机号、角色"
+            prefix={<SearchOutlined />}
+            value={memberSearchKeyword}
+            onChange={event => setMemberSearchKeyword(event.target.value)}
+          />
+          <span className={adminStyles.consoleMetaTag}>
+            {memberSearchKeyword.trim()
+              ? `${filteredDepartmentMembers.length}/${departmentMembers.length} 人`
+              : `${departmentMembers.length} 人`}
+          </span>
+        </div>
+
         {/* 成员表 */}
         <div className={adminStyles.consoleHtmlTableWrap} style={{ marginTop: 16 }}>
           <table className={adminStyles.consoleHtmlTable}>
@@ -575,103 +663,133 @@ export const OrganizationManagementView = ({
                 <th>姓名</th>
                 <th>手机号</th>
                 <th>角色</th>
-                <th>状态</th>
+                <th>账号状态</th>
+                <th>席位类型</th>
+                <th>席位有效期</th>
                 <th>操作</th>
               </tr>
             </thead>
             <tbody>
-              {departmentMembers.length ? (
-                departmentMembers.map(user => (
-                  <tr key={user.id}>
-                    <td className={adminStyles.consoleHtmlTableStrong}>{user.name}</td>
-                    <td>{user.phone}</td>
-                    <td>
-                      <span className={adminStyles.consolePill}>{getUserRoleLabel(user)}</span>
-                    </td>
-                    <td>
-                      <span
-                        className={adminStyles.consolePill}
-                        style={{
-                          background:
-                            user.status === "active"
-                              ? "rgba(22, 163, 74, 0.12)"
-                              : "rgba(229, 72, 77, 0.12)",
-                          color: user.status === "active" ? "#17a34a" : "#e5484d",
-                        }}
-                      >
-                        {getUserStatusLabel(user.status)}
-                      </span>
-                    </td>
-                    <td>
-                      <div className={adminStyles.consoleActions}>
-                        {/* 设负责人 */}
-                        {canManageDepartments &&
-                          user.status === "active" &&
-                          selectedDept.leaderUserId !== user.id &&
-                          user.departmentId === selectedDept.id && (
-                            <Button size="small" onClick={() => handleSetLeader(user.id)}>
-                              设负责人
-                            </Button>
-                          )}
-                        {selectedDept.leaderUserId === user.id && (
-                          <span className={adminStyles.consolePill}>当前负责人</span>
+              {filteredDepartmentMembers.length ? (
+                filteredDepartmentMembers.map(user => {
+                  const seatInfo = getUserSeatInfo(user);
+
+                  return (
+                    <tr key={user.id}>
+                      <td className={adminStyles.consoleHtmlTableStrong}>{user.name}</td>
+                      <td>{user.phone}</td>
+                      <td>
+                        <span className={adminStyles.consolePill}>{getUserRoleLabel(user)}</span>
+                      </td>
+                      <td>
+                        <span
+                          className={adminStyles.consolePill}
+                          style={{
+                            background:
+                              user.status === "active"
+                                ? "rgba(22, 163, 74, 0.12)"
+                                : "rgba(229, 72, 77, 0.12)",
+                            color: user.status === "active" ? "#17a34a" : "#e5484d",
+                          }}
+                        >
+                          {getUserStatusLabel(user.status)}
+                        </span>
+                      </td>
+                      <td>
+                        {seatInfo.typeLabel ? (
+                          <span
+                            className={adminStyles.consolePill}
+                            style={{
+                              background: "rgba(22, 163, 74, 0.12)",
+                              color: "#17a34a",
+                            }}
+                          >
+                            {seatInfo.typeLabel}
+                          </span>
+                        ) : (
+                          <span className={adminStyles.consoleEmpty}>-</span>
                         )}
-                        {canEditMembers ? (
-                          <Button size="small" onClick={() => handleOpenUserEdit(user)}>
-                            编辑
-                          </Button>
-                        ) : null}
-                        {canChangeMemberStatus ? (
-                          <Button
-                            size="small"
-                            danger={user.status === "active"}
-                            onClick={() => {
-                              const nextStatus: FrontisUserStatus =
-                                user.status === "active" ? "disabled" : "active";
-                              onUpdateUserStatus(user.id, nextStatus);
-
-                              if (
-                                nextStatus === "disabled" &&
-                                selectedDept.leaderUserId === user.id
-                              ) {
-                                onSetDepartmentLeader(selectedDept.id, undefined);
-                              }
-
-                              message.success(
-                                `${user.name} 已${nextStatus === "active" ? "启用" : "停用"}`,
-                              );
-                            }}
-                          >
-                            {user.status === "active" ? "停用" : "启用"}
-                          </Button>
-                        ) : null}
-                        {canRemoveMembers ? (
-                          <Popconfirm
-                            title={`确认删除 ${user.name}？`}
-                            onConfirm={() => {
-                              if (selectedDept.leaderUserId === user.id) {
-                                onSetDepartmentLeader(selectedDept.id, undefined);
-                              }
-
-                              onRemoveUser(user.id);
-                              message.success(`${user.name} 已删除`);
-                            }}
-                            okText="确认"
-                            cancelText="取消"
-                          >
-                            <Button size="small" danger>
-                              删除
+                      </td>
+                      <td>
+                        <span className={adminStyles.consoleHtmlTableStrong}>
+                          {seatInfo.expiresLabel}
+                        </span>
+                      </td>
+                      <td>
+                        <div className={adminStyles.consoleActions}>
+                          {/* 设负责人 */}
+                          {canManageDepartments &&
+                            user.status === "active" &&
+                            selectedDept.leaderUserId !== user.id &&
+                            user.departmentId === selectedDept.id && (
+                              <Button size="small" onClick={() => handleSetLeader(user.id)}>
+                                设负责人
+                              </Button>
+                            )}
+                          {selectedDept.leaderUserId === user.id && (
+                            <span className={adminStyles.consolePill}>当前负责人</span>
+                          )}
+                          {canEditMembers ? (
+                            <Button size="small" onClick={() => handleOpenUserEdit(user)}>
+                              编辑
                             </Button>
-                          </Popconfirm>
-                        ) : null}
-                      </div>
-                    </td>
-                  </tr>
-                ))
+                          ) : null}
+                          {canChangeMemberStatus ? (
+                            <Button
+                              size="small"
+                              danger={user.status === "active"}
+                              onClick={() => {
+                                const nextStatus: FrontisUserStatus =
+                                  user.status === "active" ? "disabled" : "active";
+                                onUpdateUserStatus(user.id, nextStatus);
+
+                                if (
+                                  nextStatus === "disabled" &&
+                                  selectedDept.leaderUserId === user.id
+                                ) {
+                                  onSetDepartmentLeader(selectedDept.id, undefined);
+                                }
+
+                                message.success(
+                                  nextStatus === "active"
+                                    ? `${user.name} 已启用，可继续使用工作台能力。`
+                                    : `${user.name} 已禁用。`,
+                                );
+                              }}
+                            >
+                              {user.status === "active" ? "禁用" : "启用"}
+                            </Button>
+                          ) : null}
+                          {canRemoveMembers ? (
+                            <Popconfirm
+                              title={`确认移除 ${user.name}？`}
+                              onConfirm={() => {
+                                if (selectedDept.leaderUserId === user.id) {
+                                  onSetDepartmentLeader(selectedDept.id, undefined);
+                                }
+
+                                onRemoveUser(user.id);
+                                message.success(`${user.name} 已移除。`);
+                              }}
+                              okText="移除"
+                              cancelText="取消"
+                            >
+                              <Button size="small" danger>
+                                移除
+                              </Button>
+                            </Popconfirm>
+                          ) : null}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
               ) : (
                 <tr>
-                  <td colSpan={5}>
-                    <div className={adminStyles.consoleEmpty}>当前部门暂无直属成员</div>
+                  <td colSpan={7}>
+                    <div className={adminStyles.consoleEmpty}>
+                      {departmentMembers.length ? "没有匹配的成员" : "当前部门暂无直属成员"}
+                    </div>
                   </td>
                 </tr>
               )}
@@ -692,7 +810,7 @@ export const OrganizationManagementView = ({
           <div className={adminStyles.consoleActions}>
             {tenantSnapshot ? (
               <span className={adminStyles.consoleMetaTag}>
-                成员 {tenantSnapshot.usedSeats}/{tenantSnapshot.totalSeats}
+                有效席位 {usedEffectiveSeats}/{totalEffectiveSeats}
               </span>
             ) : null}
             {canManageTeamSeats ? (
@@ -713,12 +831,38 @@ export const OrganizationManagementView = ({
             ) : null}
             {onInviteTenantMember && canInviteMembers ? (
               <Button type="primary" icon={<PlusOutlined />} onClick={handleOpenUserCreate}>
-                邀请成员
+                添加成员
               </Button>
             ) : null}
           </div>
         </header>
       )}
+
+      {tenantSnapshot ? (
+        <div className={adminStyles.consoleSummaryStrip} style={{ marginBottom: 16 }}>
+          <div className={adminStyles.consoleSummaryItem}>
+            <span className={adminStyles.consoleSummaryLabel}>最大有效席位</span>
+            <span className={adminStyles.consoleSummaryValue}>{totalEffectiveSeats}</span>
+          </div>
+          <div className={adminStyles.consoleSummaryItem}>
+            <span className={adminStyles.consoleSummaryLabel}>已占用席位</span>
+            <span className={adminStyles.consoleSummaryValue}>{usedEffectiveSeats}</span>
+          </div>
+          <div className={adminStyles.consoleSummaryItem}>
+            <span className={adminStyles.consoleSummaryLabel}>可添加成员</span>
+            <span className={adminStyles.consoleSummaryValue}>{remainingEffectiveSeats}</span>
+          </div>
+          <div className={adminStyles.consoleSummaryItem}>
+            <span className={adminStyles.consoleSummaryLabel}>席位有效期</span>
+            <span
+              className={adminStyles.consoleSummaryValue}
+              style={{ fontSize: 16, lineHeight: "24px" }}
+            >
+              {seatExpiresAt}
+            </span>
+          </div>
+        </div>
+      ) : null}
 
       <div className={adminStyles.consoleSplitLayout}>
         {renderDepartmentTree()}
@@ -779,12 +923,13 @@ export const OrganizationManagementView = ({
         </div>
       </Modal>
 
-      {/* 邀请成员 */}
+      {/* 添加成员 */}
       <Modal
-        title="邀请成员加入租户"
+        title="添加成员加入租户"
         open={isUserCreateOpen}
-        okText="发送邀请"
+        okText="添加"
         cancelText="取消"
+        okButtonProps={{ disabled: !canCreateUserBySeatRule }}
         onCancel={() => {
           setIsUserCreateOpen(false);
           setEditingUserId("");

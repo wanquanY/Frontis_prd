@@ -23,7 +23,7 @@ interface TenantOverviewViewProps {
   tenantSnapshot: MockTenantManagementSnapshot;
 }
 
-type UsageRangeKey = "today" | "week" | "month" | "all" | "custom";
+type UsageRangeKey = "today" | "week" | "month" | "custom";
 type UsageDetailView = "members" | "agents" | "developers" | null;
 
 interface MemberUsageSummary {
@@ -56,6 +56,8 @@ interface DeveloperSummary {
 
 interface TokenTrendPoint {
   label: string;
+  showLabel: boolean;
+  showValue: boolean;
   value: number;
 }
 
@@ -63,26 +65,28 @@ const USAGE_RANGE_OPTIONS: Array<{ key: UsageRangeKey; label: string }> = [
   { key: "today", label: "今日" },
   { key: "week", label: "本周" },
   { key: "month", label: "本月" },
-  { key: "all", label: "全部" },
   { key: "custom", label: "自定义" },
 ];
 
 const DASHBOARD_RANK_LIMIT = 5;
 const MAX_VISIBLE_AGENT_TAG_COUNT = 3;
 const MAX_VISIBLE_MEMBER_TAG_COUNT = 3;
-const MOCK_TODAY = dayjs("2026-04-24 12:00");
+const MOCK_TODAY = dayjs("2026-04-24 18:00");
 const DEFAULT_CUSTOM_USAGE_RANGE: [Dayjs, Dayjs] = [
   MOCK_TODAY.subtract(6, "day").startOf("day"),
   MOCK_TODAY.endOf("day"),
 ];
 const { RangePicker } = DatePicker;
-const TREND_WEIGHTS: Record<UsageRangeKey, number[]> = {
-  today: [0.58, 0.72, 0.86, 1.05, 0.94, 1.18],
-  week: [0.68, 0.82, 0.76, 0.92, 1.08, 0.96, 1.18],
-  month: [0.72, 0.84, 0.91, 1.06, 1.14],
-  all: [0.58, 0.66, 0.8, 0.96, 1.08, 1.22],
-  custom: [0.62, 0.76, 0.9, 1.04, 1.16],
-};
+
+type TrendBucketUnit = "hour" | "day" | "week" | "month";
+
+interface TrendBucket {
+  endAt: Dayjs;
+  label: string;
+  showLabel: boolean;
+  showValue: boolean;
+  startAt: Dayjs;
+}
 
 const getTotalTokens = (record: MockTenantAgentUsageRecordItem): number =>
   record.inputTokens + record.outputTokens;
@@ -139,33 +143,59 @@ const parseMockOccurredAt = (occurredAt: string): Dayjs => {
   return MOCK_TODAY;
 };
 
+const getBusinessWeekStart = (date: Dayjs): Dayjs =>
+  date.startOf("day").subtract((date.day() + 6) % 7, "day");
+
+const isWithinRange = (date: Dayjs, startAt: Dayjs, endAt: Dayjs): boolean =>
+  !date.isBefore(startAt) && date.isBefore(endAt);
+
+const getUsageRangeBoundary = (
+  rangeKey: UsageRangeKey,
+  customRange: [Dayjs, Dayjs],
+): { startAt: Dayjs; endAt: Dayjs } => {
+  if (rangeKey === "custom") {
+    return {
+      startAt: customRange[0].startOf("day"),
+      endAt: customRange[1].endOf("day").add(1, "millisecond"),
+    };
+  }
+
+  if (rangeKey === "today") {
+    return {
+      startAt: MOCK_TODAY.startOf("day"),
+      endAt: MOCK_TODAY.startOf("hour").add(1, "hour"),
+    };
+  }
+
+  if (rangeKey === "week") {
+    return {
+      startAt: getBusinessWeekStart(MOCK_TODAY),
+      endAt: MOCK_TODAY.endOf("day").add(1, "millisecond"),
+    };
+  }
+
+  if (rangeKey === "month") {
+    return {
+      startAt: MOCK_TODAY.startOf("month"),
+      endAt: MOCK_TODAY.endOf("day").add(1, "millisecond"),
+    };
+  }
+
+  return {
+    startAt: MOCK_TODAY.startOf("month"),
+    endAt: MOCK_TODAY.endOf("day").add(1, "millisecond"),
+  };
+};
+
 const isAgentUsageRecordInRange = (
   record: MockTenantAgentUsageRecordItem,
   rangeKey: UsageRangeKey,
   customRange: [Dayjs, Dayjs],
 ): boolean => {
-  if (rangeKey === "all") {
-    return true;
-  }
-
   const occurredAt = parseMockOccurredAt(record.occurredAt);
+  const { startAt, endAt } = getUsageRangeBoundary(rangeKey, customRange);
 
-  if (rangeKey === "custom") {
-    return (
-      occurredAt.isAfter(customRange[0].startOf("day").subtract(1, "millisecond")) &&
-      occurredAt.isBefore(customRange[1].endOf("day").add(1, "millisecond"))
-    );
-  }
-
-  if (rangeKey === "today") {
-    return occurredAt.isSame(MOCK_TODAY, "day");
-  }
-
-  if (rangeKey === "month") {
-    return occurredAt.isSame(MOCK_TODAY, "month");
-  }
-
-  return occurredAt.isSame(MOCK_TODAY, "week") || occurredAt.isSame(MOCK_TODAY, "day");
+  return isWithinRange(occurredAt, startAt, endAt);
 };
 
 const buildMemberUsageSummaries = (
@@ -296,36 +326,102 @@ const buildDeveloperSummaries = (employees: EmployeeItem[]): DeveloperSummary[] 
     );
 };
 
-const buildMetricTrendPoints = (
-  totalMetric: number,
+const buildTrendBuckets = (
   rangeKey: UsageRangeKey,
-): TokenTrendPoint[] => {
-  const weights = TREND_WEIGHTS[rangeKey];
-  const averageValue = totalMetric / weights.length;
+  customRange: [Dayjs, Dayjs],
+  records: MockTenantAgentUsageRecordItem[],
+): TrendBucket[] => {
+  const { startAt, endAt } = getUsageRangeBoundary(rangeKey, customRange);
+  const rangeDays = Math.max(endAt.diff(startAt, "day"), 1);
+  const unit: TrendBucketUnit =
+    rangeKey === "today"
+      ? "hour"
+      : rangeKey === "custom" && rangeDays > 120
+        ? "month"
+        : rangeKey === "custom" && rangeDays > 45
+          ? "week"
+          : "day";
+  const buckets: TrendBucket[] = [];
+  let cursor =
+    unit === "hour"
+      ? startAt.startOf("hour")
+      : unit === "week"
+        ? getBusinessWeekStart(startAt)
+        : unit === "month"
+          ? startAt.startOf("month")
+          : startAt.startOf("day");
 
-  return weights.map((weight, index) => {
-    const pointDate =
-      rangeKey === "today"
-        ? MOCK_TODAY.subtract((weights.length - index - 1) * 2, "hour")
-        : rangeKey === "week"
-          ? MOCK_TODAY.subtract(weights.length - index - 1, "day")
-          : rangeKey === "month" || rangeKey === "custom"
-            ? MOCK_TODAY.subtract(weights.length - index - 1, "week")
-            : MOCK_TODAY.subtract(weights.length - index - 1, "month");
+  while (cursor.isBefore(endAt)) {
+    const bucketStartAt = unit === "week" && cursor.isBefore(startAt) ? startAt : cursor;
+    const rawBucketEndAt =
+      unit === "hour"
+        ? cursor.add(1, "hour")
+        : unit === "day"
+          ? cursor.add(1, "day")
+          : unit === "week"
+            ? cursor.add(1, "week")
+            : cursor.add(1, "month");
+    const bucketEndAt = rawBucketEndAt.isAfter(endAt) ? endAt : rawBucketEndAt;
+
+    buckets.push({
+      startAt: bucketStartAt,
+      endAt: bucketEndAt,
+      label:
+        unit === "hour"
+          ? bucketStartAt.format("HH:00")
+          : unit === "week"
+            ? `${bucketStartAt.format("M/D")}-${bucketEndAt.subtract(1, "day").format("M/D")}`
+            : unit === "month"
+              ? bucketStartAt.format("M月")
+              : bucketStartAt.format("M/D"),
+      showLabel: false,
+      showValue: false,
+    });
+
+    cursor = rawBucketEndAt;
+  }
+
+  const visibleInterval =
+    unit === "hour"
+      ? 4
+      : unit === "day" && buckets.length > 14
+        ? 7
+        : unit === "day" && buckets.length > 8
+          ? 3
+          : 1;
+  const lastIndex = buckets.length - 1;
+
+  return buckets.map((bucket, index) => {
+    const shouldShow = index === 0 || index === lastIndex || index % visibleInterval === 0;
 
     return {
-      label:
-        rangeKey === "today"
-          ? pointDate.format("HH:00")
-          : rangeKey === "week"
-            ? pointDate.format("M/D")
-            : rangeKey === "month"
-              ? `${pointDate.format("M/D")}周`
-              : pointDate.format("M月"),
-      value: Math.round(averageValue * weight),
+      ...bucket,
+      showLabel: shouldShow,
+      showValue: shouldShow,
     };
   });
 };
+
+const buildMetricTrendPoints = (
+  records: MockTenantAgentUsageRecordItem[],
+  billingMode: MockTenantBillingMode,
+  rangeKey: UsageRangeKey,
+  customRange: [Dayjs, Dayjs],
+): TokenTrendPoint[] =>
+  buildTrendBuckets(rangeKey, customRange, records).map(bucket => ({
+    label: bucket.label,
+    showLabel: bucket.showLabel,
+    showValue: bucket.showValue,
+    value: records.reduce((sum, record) => {
+      const occurredAt = parseMockOccurredAt(record.occurredAt);
+
+      if (!isWithinRange(occurredAt, bucket.startAt, bucket.endAt)) {
+        return sum;
+      }
+
+      return sum + getUsageMetricValue(record, billingMode);
+    }, 0),
+  }));
 
 const renderUsageBars = (
   summaries: Array<{ label: string; value: number }>,
@@ -412,12 +508,16 @@ const renderMetricTrendChart = (
         {linePoints.map(item => (
           <g key={item.label}>
             <circle className={styles.trendPoint} cx={item.x} cy={item.y} r="4" />
-            <text className={styles.trendValue} x={item.x} y={item.y - 10}>
-              {formatMetricValue(item.value, billingMode)}
-            </text>
-            <text className={styles.trendLabel} x={item.x} y={chartHeight - 10}>
-              {item.label}
-            </text>
+            {item.showValue ? (
+              <text className={styles.trendValue} x={item.x} y={item.y - 10}>
+                {formatMetricValue(item.value, billingMode)}
+              </text>
+            ) : null}
+            {item.showLabel ? (
+              <text className={styles.trendLabel} x={item.x} y={chartHeight - 10}>
+                {item.label}
+              </text>
+            ) : null}
           </g>
         ))}
       </svg>
@@ -711,8 +811,14 @@ export const TenantOverviewView = ({
     [filteredAgentUsageRecords],
   );
   const metricTrendPoints = useMemo(
-    () => buildMetricTrendPoints(totalUsageMetric, activeUsageRange),
-    [activeUsageRange, totalUsageMetric],
+    () =>
+      buildMetricTrendPoints(
+        filteredAgentUsageRecords,
+        billingMode,
+        activeUsageRange,
+        customUsageRange,
+      ),
+    [activeUsageRange, billingMode, customUsageRange, filteredAgentUsageRecords],
   );
   const maxMemberMetric = Math.max(...memberUsageSummaries.map(item => item.totalMetric), 0);
   const maxAgentMetric = Math.max(...agentUsageSummaries.map(item => item.totalMetric), 0);

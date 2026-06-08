@@ -46,7 +46,7 @@ import {
 import styles from "./OperationsPlatformView.module.less";
 
 type ProductConsoleTabKey = "delivery" | "pointsPackage" | "seatPackage" | "category" | "contact";
-type ProductAcquisitionMode = "freeAdd" | "trial" | "contactSupport";
+type ProductAcquisitionMode = "freeAdd" | "contactSupport";
 type CategoryManagementScope = "storeZone" | "expertPlaza" | "skillCenter";
 
 interface CatalogCategoryListItem {
@@ -82,11 +82,6 @@ export interface OperationsProductConsoleProps {
   productId?: string;
   productStatusLabels: Record<OperationsProduct["status"], string>;
   pointsPackages: MockPointsPackageOption[];
-  productTrialUnitLabels: Record<NonNullable<OperationsProduct["trialUnit"]>, string>;
-  productTrialUnitOptions: Array<{
-    value: NonNullable<OperationsProduct["trialUnit"]>;
-    label: string;
-  }>;
   products: OperationsProduct[];
   serviceContactConfig: OperationsServiceContactConfig;
   skillCategories: OperationsSkillCenterCategoryOption[];
@@ -149,7 +144,6 @@ const PRODUCT_ACQUISITION_MODE_OPTIONS: Array<{
   label: string;
 }> = [
   { value: "freeAdd", label: "免费使用" },
-  { value: "trial", label: "免费试用" },
   { value: "contactSupport", label: "联系客服" },
 ];
 
@@ -167,8 +161,6 @@ const PRODUCT_FIELD_IDS = {
   identityDescription: "operations-product-identity-description",
   usageGuide: "operations-product-usage-guide",
   tags: "operations-product-tags",
-  trialUnit: "operations-product-trial-unit",
-  trialValue: "operations-product-trial-value",
 } as const;
 
 const getProductZoneIds = (product: OperationsProduct): OperationsAgentStoreZone[] =>
@@ -240,17 +232,6 @@ const getSortedCatalogCategories = <TCategory extends CatalogCategoryListItem>(
     return leftItem.updatedAt.localeCompare(rightItem.updatedAt);
   });
 
-const getProductTrialLabel = (
-  product: OperationsProduct,
-  productTrialUnitLabels: Record<NonNullable<OperationsProduct["trialUnit"]>, string>,
-): string => {
-  if (!product.supportsTrial || !product.trialUnit || !product.trialValue) {
-    return "不支持试用";
-  }
-
-  return `${product.trialValue}${productTrialUnitLabels[product.trialUnit]}`;
-};
-
 const getProductVisibilityLabel = (product: OperationsProduct): string => {
   if (product.plazaVisibility !== "tenant") {
     return "全平台";
@@ -264,22 +245,14 @@ const getProductAcquisitionLabel = (product: OperationsProduct): string => {
     return "联系客服";
   }
 
-  if (product.supportsTrial) {
-    return "免费试用";
-  }
-
   return "免费使用";
 };
 
 const getProductAcquisitionMode = (
-  form: Pick<OperationsProductForm, "contactMode" | "supportsTrial">,
+  form: Pick<OperationsProductForm, "contactMode">,
 ): ProductAcquisitionMode => {
   if (form.contactMode !== "disabled") {
     return "contactSupport";
-  }
-
-  if (form.supportsTrial) {
-    return "trial";
   }
 
   return "freeAdd";
@@ -299,11 +272,9 @@ const applyProductAcquisitionMode = (
     };
   }
 
-  const shouldSupportTrial = mode === "trial";
-
   return {
     ...form,
-    supportsTrial: shouldSupportTrial,
+    supportsTrial: false,
     contactMode: "disabled",
     contactQrCodeValue: "",
     contactRemark: "",
@@ -321,8 +292,6 @@ export const OperationsProductConsole = ({
   productId,
   productStatusLabels,
   pointsPackages,
-  productTrialUnitLabels,
-  productTrialUnitOptions,
   products,
   serviceContactConfig,
   skillCategories,
@@ -510,7 +479,7 @@ export const OperationsProductConsole = ({
             product.subscriptionPlans?.map(item => ({
               ...item,
             })) ?? emptyProductForm.subscriptionPlans,
-          supportsTrial: product.supportsTrial,
+          supportsTrial: false,
           trialUnit: product.trialUnit ?? "day",
           trialValue: product.trialValue ?? 7,
           contactMode: product.contactMode ?? "disabled",
@@ -603,11 +572,6 @@ export const OperationsProductConsole = ({
       return;
     }
 
-    if (productEditor.form.supportsTrial && productEditor.form.trialValue <= 0) {
-      message.warning("请填写有效的试用规则。");
-      return;
-    }
-
     if (
       productEditor.form.plazaVisibility === "tenant" &&
       !productEditor.form.visibleTenantIds.length
@@ -638,6 +602,7 @@ export const OperationsProductConsole = ({
       identityName: productEditor.form.name.trim(),
       tags: normalizeProductTags(productEditor.form.tags),
       price: 0,
+      supportsTrial: false,
       billingScopes: ["points"],
       storeZone: productEditor.form.storeZones[0],
       plazaCategory: productEditor.form.plazaCategoryByZone[productEditor.form.storeZones[0]],
@@ -876,7 +841,6 @@ export const OperationsProductConsole = ({
           product={activeProduct}
           storeZoneLabelMap={storeZoneLabelMap}
           productStatusLabels={productStatusLabels}
-          productTrialUnitLabels={productTrialUnitLabels}
           onBack={onBackToProductList}
           onEdit={handleOpenEditProduct}
           onToggleStatus={handleToggleProductStatus}
@@ -941,7 +905,6 @@ export const OperationsProductConsole = ({
               products={filteredAgentProducts}
               storeZoneLabelMap={storeZoneLabelMap}
               productStatusLabels={productStatusLabels}
-              productTrialUnitLabels={productTrialUnitLabels}
               onNavigateToProduct={onNavigateToProduct}
             />
           ) : null}
@@ -1255,53 +1218,6 @@ export const OperationsProductConsole = ({
             />
           </div>
 
-          {productEditor.form.supportsTrial ? (
-            <>
-              <div className={styles.modalField}>
-                <label className={styles.modalLabel} htmlFor={PRODUCT_FIELD_IDS.trialUnit}>
-                  试用方式
-                </label>
-                <Select
-                  id={PRODUCT_FIELD_IDS.trialUnit}
-                  value={productEditor.form.trialUnit}
-                  options={productTrialUnitOptions}
-                  onChange={nextValue =>
-                    setProductEditor(currentState => ({
-                      ...currentState,
-                      form: {
-                        ...currentState.form,
-                        trialUnit: nextValue,
-                      },
-                    }))
-                  }
-                />
-              </div>
-
-              <div className={styles.modalField}>
-                <label className={styles.modalLabel} htmlFor={PRODUCT_FIELD_IDS.trialValue}>
-                  试用规则
-                </label>
-                <InputNumber
-                  id={PRODUCT_FIELD_IDS.trialValue}
-                  className={styles.fullWidthInput}
-                  min={1}
-                  precision={0}
-                  value={productEditor.form.trialValue}
-                  addonAfter={productTrialUnitLabels[productEditor.form.trialUnit]}
-                  onChange={nextValue =>
-                    setProductEditor(currentState => ({
-                      ...currentState,
-                      form: {
-                        ...currentState.form,
-                        trialValue: nextValue ?? 1,
-                      },
-                    }))
-                  }
-                />
-              </div>
-            </>
-          ) : null}
-
           <div className={`${styles.modalField} ${styles.modalFieldWide}`}>
             <label className={styles.modalLabel} htmlFor={PRODUCT_FIELD_IDS.identityAvatarUrl}>
               添加封面
@@ -1489,7 +1405,6 @@ export const OperationsProductConsole = ({
 interface ProductListProps {
   keyword: string;
   productStatusLabels: Record<OperationsProduct["status"], string>;
-  productTrialUnitLabels: Record<NonNullable<OperationsProduct["trialUnit"]>, string>;
   products: OperationsProduct[];
   storeZoneLabelMap: Map<string, string>;
   onNavigateToProduct: (productId: string) => void;
@@ -1498,7 +1413,6 @@ interface ProductListProps {
 const ProductList = ({
   keyword,
   productStatusLabels,
-  productTrialUnitLabels,
   products,
   storeZoneLabelMap,
   onNavigateToProduct,
@@ -1522,7 +1436,6 @@ const ProductList = ({
               <th>排序</th>
               <th>可见范围</th>
               <th>获取方式</th>
-              <th>试用规则</th>
               <th>上架状态</th>
               <th>更新时间</th>
               <th>操作</th>
@@ -1567,7 +1480,6 @@ const ProductList = ({
                 <td>{product.plazaSort ?? 0}</td>
                 <td>{getProductVisibilityLabel(product)}</td>
                 <td>{getProductAcquisitionLabel(product)}</td>
-                <td>{getProductTrialLabel(product, productTrialUnitLabels)}</td>
                 <td>
                   <span className={getProductStatusClassName(product.status)}>
                     {productStatusLabels[product.status]}
@@ -1866,7 +1778,6 @@ interface ProductDetailProps {
   product: OperationsProduct | null;
   storeZoneLabelMap: Map<string, string>;
   productStatusLabels: Record<OperationsProduct["status"], string>;
-  productTrialUnitLabels: Record<NonNullable<OperationsProduct["trialUnit"]>, string>;
   onBack: () => void;
   onEdit: (product: OperationsProduct) => void;
   onToggleStatus: (product: OperationsProduct) => void;
@@ -1876,7 +1787,6 @@ const ProductDetail = ({
   product,
   storeZoneLabelMap,
   productStatusLabels,
-  productTrialUnitLabels,
   onBack,
   onEdit,
   onToggleStatus,
@@ -1916,7 +1826,7 @@ const ProductDetail = ({
       <section className={adminStyles.consoleSection}>
         {product.status === "pendingProductization" ? (
           <div className={styles.alertBlock}>
-            该 AI专家 已通过审核，请先完善获取方式和试用规则后再上架。
+            该 AI专家 已通过审核，请先完善获取方式和用户侧展示信息后再上架。
           </div>
         ) : null}
         <div className={styles.detailGrid}>
@@ -1954,12 +1864,6 @@ const ProductDetail = ({
                 <span className={adminStyles.consoleInfoLabel}>获取方式</span>
                 <span className={adminStyles.consoleInfoValue}>
                   {getProductAcquisitionLabel(product)}
-                </span>
-              </div>
-              <div className={adminStyles.consoleInfoRow}>
-                <span className={adminStyles.consoleInfoLabel}>试用策略</span>
-                <span className={adminStyles.consoleInfoValue}>
-                  {getProductTrialLabel(product, productTrialUnitLabels)}
                 </span>
               </div>
               <div className={adminStyles.consoleInfoRow}>

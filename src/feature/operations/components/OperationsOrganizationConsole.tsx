@@ -300,7 +300,7 @@ export const OperationsOrganizationConsole = ({
       }
 
       if (tenantSnapshot.usedSeats >= tenantSnapshot.totalSeats) {
-        message.warning("当前席位不足，暂无法继续邀请成员。");
+        message.warning("当前有效席位额度不足，暂无法继续添加成员。");
         return false;
       }
 
@@ -310,13 +310,13 @@ export const OperationsOrganizationConsole = ({
       });
 
       if (!result) {
-        message.warning("邀请失败，请确认手机号未注册且当前席位仍有余量。");
+        message.warning("添加失败，请确认手机号未注册且当前有效席位仍有余量。");
         return false;
       }
 
       setTenantSnapshot(result.snapshot);
       setUsers(result.snapshot.users);
-      message.success("成员已加入组织，并会按所选角色获得权限。");
+      message.success("成员已添加到组织，并会按所选角色获得权限。");
       return true;
     },
     [session?.name, tenantSnapshot],

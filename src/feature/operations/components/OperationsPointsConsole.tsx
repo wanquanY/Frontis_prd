@@ -43,6 +43,10 @@ interface OperationsCustomerUsageSummary {
   tenantName: string;
   latestOccurredAt: string;
   costAmount: number;
+  standardInputTokens: number;
+  cacheCreationTokens: number;
+  cacheReadTokens: number;
+  outputTokens: number;
   points: number;
   recordCount: number;
   saleAmount: number;
@@ -77,6 +81,15 @@ const parseOperationsOccurredAt = (occurredAt: string): Dayjs => {
 
   return parsedValue.isValid() ? parsedValue : MOCK_TODAY;
 };
+
+const getUsageRecordCacheCreationTokens = (record: OperationsPointsUsageRecord): number =>
+  Math.max(Math.floor(record.cacheCreationTokens ?? 0), 0);
+
+const getUsageRecordCacheReadTokens = (record: OperationsPointsUsageRecord): number =>
+  Math.max(Math.floor(record.cacheReadTokens ?? 0), 0);
+
+const getUsageRecordStandardInputTokens = (record: OperationsPointsUsageRecord): number =>
+  Math.max(Math.floor(record.standardInputTokens ?? record.inputTokens ?? 0), 0);
 
 const isUsageRecordInRange = (
   record: OperationsPointsUsageRecord,
@@ -119,6 +132,19 @@ const buildCustomerUsageSummaries = (
         tenantName,
         latestOccurredAt: sortedRecords[0]?.occurredAt ?? "-",
         costAmount: tenantRecords.reduce((sum, record) => sum + record.costAmount, 0),
+        standardInputTokens: tenantRecords.reduce(
+          (sum, record) => sum + getUsageRecordStandardInputTokens(record),
+          0,
+        ),
+        cacheCreationTokens: tenantRecords.reduce(
+          (sum, record) => sum + getUsageRecordCacheCreationTokens(record),
+          0,
+        ),
+        cacheReadTokens: tenantRecords.reduce(
+          (sum, record) => sum + getUsageRecordCacheReadTokens(record),
+          0,
+        ),
+        outputTokens: tenantRecords.reduce((sum, record) => sum + (record.outputTokens ?? 0), 0),
         points: tenantRecords.reduce((sum, record) => sum + record.points, 0),
         recordCount: tenantRecords.length,
         saleAmount: tenantRecords.reduce((sum, record) => sum + record.saleAmount, 0),
@@ -232,6 +258,8 @@ export const OperationsPointsConsole = ({
             <tr>
               <th>客户 / 租户</th>
               <th>时间范围</th>
+              <th>输入 Tokens</th>
+              <th>输出 Tokens</th>
               <th>消耗积分</th>
               <th>计量金额</th>
               <th>成本</th>
@@ -247,6 +275,14 @@ export const OperationsPointsConsole = ({
                   <td className={adminStyles.consoleHtmlTableStrong}>{summary.tenantName}</td>
                   <td>{activeUsageRangeLabel}</td>
                   <td>
+                    正常 {summary.standardInputTokens.toLocaleString("zh-CN")}
+                    <br />
+                    Cache 写入 {summary.cacheCreationTokens.toLocaleString("zh-CN")}
+                    <br />
+                    Cache 读取 {summary.cacheReadTokens.toLocaleString("zh-CN")}
+                  </td>
+                  <td>{summary.outputTokens.toLocaleString("zh-CN")}</td>
+                  <td>
                     <span className={buildStatusClassName("danger")}>
                       -{formatOperationsPoints(summary.points)}
                     </span>
@@ -260,7 +296,7 @@ export const OperationsPointsConsole = ({
               ))
             ) : (
               <tr>
-                <td colSpan={7} className={platformStyles.emptyTableCell}>
+                <td colSpan={10} className={platformStyles.emptyTableCell}>
                   当前时间范围暂无客户消耗
                 </td>
               </tr>

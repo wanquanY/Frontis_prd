@@ -159,7 +159,7 @@
 .priceGrid {
   width: 100%;
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(156px, 1fr));
   border: 1px solid color-mix(in srgb, var(--border) 84%, transparent);
 }
 
@@ -252,6 +252,29 @@
 .cycleButtonActive {
   background: color-mix(in srgb, var(--primary) 12%, var(--surface));
   color: var(--primary);
+}
+
+.lockedCycleBox {
+  min-height: 32px;
+  padding: 8px 10px;
+  border: 1px solid color-mix(in srgb, var(--primary) 36%, var(--border));
+  background: color-mix(in srgb, var(--primary) 8%, var(--surface));
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.lockedCycleBox strong {
+  min-height: 0;
+  color: var(--primary);
+  font-size: 13px;
+  line-height: 18px;
+}
+
+.lockedCycleBox span {
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 18px;
 }
 
 .previewPanel {

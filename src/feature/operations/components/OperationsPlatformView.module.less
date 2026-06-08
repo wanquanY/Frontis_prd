@@ -79,6 +79,84 @@
   margin-top: 0;
 }
 
+.entitlementGrantSection {
+  margin-top: 20px;
+}
+
+.entitlementGrantContent,
+.entitlementGrantMeta {
+  display: inline-flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+
+  span {
+    color: var(--text);
+    font-size: 14px;
+    line-height: 22px;
+    font-weight: 700;
+  }
+
+  small {
+    color: var(--text-secondary);
+    font-size: 12px;
+    line-height: 18px;
+  }
+}
+
+.revokeEntitlementBody {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.revokeEntitlementSummary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid color-mix(in srgb, var(--text) 10%, var(--border));
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--text) 3%, var(--surface));
+
+  div {
+    min-width: 0;
+  }
+
+  span,
+  strong {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  span {
+    color: var(--text-secondary);
+    font-size: 12px;
+    line-height: 18px;
+  }
+
+  strong {
+    margin-top: 3px;
+    color: var(--text);
+    font-size: 14px;
+    line-height: 22px;
+    font-weight: 800;
+  }
+}
+
+.revokeEntitlementBlocked {
+  padding: 10px 12px;
+  border: 1px solid color-mix(in srgb, #ef4444 28%, var(--border));
+  border-radius: 8px;
+  background: color-mix(in srgb, #ef4444 8%, var(--surface));
+  color: #b91c1c;
+  font-size: 13px;
+  line-height: 20px;
+  font-weight: 700;
+}
+
 .detailBlockTitleReset {
   margin: 0;
 }

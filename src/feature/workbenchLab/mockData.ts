@@ -541,6 +541,10 @@ export const WORKBENCH_AGENT_STORE_ITEMS: WorkbenchAgentItem[] = [
     iconColor: "#434343",
     iconText: "合",
     visibility: "public",
+    deleteProtection: {
+      reason: "selfWorkbenchInstalled",
+      dependencyLabel: "当前账号工作台",
+    },
     skills: [
       { skillName: "合同审核流程", version: "1.0.0" },
       { skillName: "知识库问答", version: "2.0.0" },
@@ -698,6 +702,10 @@ export const WORKBENCH_AGENT_STORE_ITEMS: WorkbenchAgentItem[] = [
     iconColor: "#00f2fe",
     iconText: "排",
     visibility: "team",
+    deleteProtection: {
+      reason: "sharedWorkbenchInstalled",
+      dependencyLabel: "生产计划组 3 位成员",
+    },
     skills: [
       { skillName: "智能排班引擎", version: "1.4.0" },
       { skillName: "数据分析助手", version: "2.0.0" },
@@ -726,6 +734,81 @@ export const WORKBENCH_AGENT_STORE_ITEMS: WorkbenchAgentItem[] = [
         enterprise: "锐智制造",
       },
     ],
+  },
+  {
+    id: "agent-mine-003",
+    name: "客户复盘 Agent",
+    version: "1.1.0",
+    agentType: "metaagent",
+    category: "sales",
+    tags: ["复盘", "客户成功"],
+    description:
+      "面向客户成功团队的客户复盘 Agent，整合使用数据、服务记录和沟通纪要，输出续约风险、价值达成证据和下一步跟进计划。",
+    publisher: "陈蓝",
+    publishTime: "2026-04-08",
+    iconColor: "#1677ff",
+    iconText: "复",
+    visibility: "public",
+    deleteProtection: {
+      reason: "activeProductListing",
+      dependencyLabel: "客户复盘增长专家（专家广场上架中）",
+    },
+    skills: [
+      { skillName: "客户健康度分析", version: "1.1.0" },
+      { skillName: "续约风险识别", version: "1.0.0" },
+      { skillName: "会议纪要总结", version: "2.0.0" },
+    ],
+    versions: [
+      {
+        version: "1.1.0",
+        releaseNote: "新增续约风险分层和价值证据汇总。",
+        publishTime: "2026-04-08",
+      },
+      {
+        version: "1.0.0",
+        releaseNote: "初始版本，支持客户复盘摘要和行动计划生成。",
+        publishTime: "2026-03-18",
+      },
+    ],
+    feedbackData: [
+      {
+        id: "R-M201",
+        summary: "续约复盘行动项缺少责任人",
+        source: "人工标注",
+        rating: 3,
+        toolCallRounds: 2,
+        dialogueRounds: 5,
+        tokenUsage: 1320,
+        enterprise: "星澜服饰",
+      },
+    ],
+  },
+  {
+    id: "agent-mine-004",
+    name: "会议纪要 Agent",
+    version: "1.0.0",
+    agentType: "syngent",
+    category: "general",
+    tags: ["会议", "协同"],
+    description:
+      "个人会议纪要 Agent，支持把录音转写、聊天记录和会议材料整理成纪要、待办和风险提醒，适合个人工作流沉淀。",
+    publisher: "陈蓝",
+    publishTime: "2026-04-12",
+    iconColor: "#13c2c2",
+    iconText: "纪",
+    visibility: "private",
+    skills: [
+      { skillName: "会议纪要总结", version: "2.0.0" },
+      { skillName: "待办提取", version: "1.0.0" },
+    ],
+    versions: [
+      {
+        version: "1.0.0",
+        releaseNote: "初始版本，支持会议纪要与待办生成。",
+        publishTime: "2026-04-12",
+      },
+    ],
+    feedbackData: [],
   },
 ];
 

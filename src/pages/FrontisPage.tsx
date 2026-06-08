@@ -152,7 +152,7 @@ const META_AGENT_MEMORY_FLOW_SESSION_ID =
 const META_AGENT_MEMORY_FLOW_ARTIFACT_SUFFIX = "multi-topic-memory-flow-html";
 const META_AGENT_MEMORY_FLOW_ARTIFACT_ID = `${META_AGENT_MEMORY_FLOW_SESSION_ID}-${META_AGENT_MEMORY_FLOW_ARTIFACT_SUFFIX}`;
 const META_AGENT_MEMORY_FLOW_ARTIFACT_NAME =
-  "Frontis AI · 多Topic会话与上下文记忆机制设计图.html";
+  "Frontis AI · 多Session会话与上下文记忆机制设计图.html";
 const META_AGENT_ONBOARDING_SESSION_ID = "dialogue-seed-metaagent-onboarding";
 const NEW_USER_ONBOARDING_TENANT_ID = "tenant-new-user-onboarding-demo";
 const EXPERT_TEAM_MAIN_AGENT_DESCRIPTION =
@@ -293,13 +293,13 @@ const buildMetaAgentMemoryFlowSession = (): DialogueSessionItem => {
   const time = "今天 21:48";
   const assistantMessageId = `${META_AGENT_MEMORY_FLOW_SESSION_ID}-assistant-1`;
   const assistantContent =
-    "已把《Frontis AI · 多Topic会话与上下文记忆机制设计图》放到本次对话成果中。你可以在右侧成果面板打开 HTML 预览，用它评审多 topic 分流、上下文组装、记忆沉淀和回溯引用的整体机制。";
+    "已把《Frontis AI · 多Session会话与上下文记忆机制设计图》放到本次对话成果中。你可以在右侧成果面板打开 HTML 预览，用它评审多 session 分流、上下文组装、记忆沉淀和回溯引用的整体机制。";
 
   return {
     id: META_AGENT_MEMORY_FLOW_SESSION_ID,
     employeeId: DEFAULT_CONVERSATION_EMPLOYEE_ID,
-    title: "多 Topic 与记忆机制设计图",
-    preview: "ME 已生成多 Topic 会话与上下文记忆机制设计图，可在右侧成果面板预览 HTML。",
+    title: "多 Session 与记忆机制设计图",
+    preview: "ME 已生成多 session 会话与上下文记忆机制设计图，可在右侧成果面板预览 HTML。",
     updatedAt: time,
     messages: [
       {
@@ -307,7 +307,7 @@ const buildMetaAgentMemoryFlowSession = (): DialogueSessionItem => {
         role: "user",
         author: "你",
         content:
-          "把多 topic 会话与上下文记忆机制整理成一张设计图，放到对话成果里，右侧能预览 HTML。",
+          "把多 session 会话与上下文记忆机制整理成一张设计图，放到对话成果里，右侧能预览 HTML。",
         timeLabel: time,
       },
       {
@@ -629,7 +629,7 @@ const createMetaAgentMemoryFlowHtmlArtifact = (): ArtifactItem =>
     META_AGENT_MEMORY_FLOW_ARTIFACT_SUFFIX,
     META_AGENT_MEMORY_FLOW_ARTIFACT_NAME,
     DEFAULT_WORKSPACE_AGENT_NAME,
-    "多 Topic 会话与上下文记忆机制设计图",
+    "多 Session 会话与上下文记忆机制设计图",
     multiTopicMemoryFlowHtml,
     "今天 21:48",
     dialogueScenarioRuntimeHelpers.resolveTextArtifactSize(multiTopicMemoryFlowHtml),
