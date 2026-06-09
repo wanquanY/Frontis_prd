@@ -912,7 +912,7 @@ export const TenantOverviewView = ({
           <div className={adminStyles.consoleSummaryStrip}>
             <div className={adminStyles.consoleSummaryItem}>
               <span className={adminStyles.consoleSummaryLabel}>
-                {billingMode === "cost" ? "总成本" : "团队积分"}
+                {billingMode === "cost" ? "成本消耗" : "积分消耗"}
               </span>
               <span className={adminStyles.consoleSummaryValue}>
                 {formatMetricValue(totalUsageMetric, billingMode)}

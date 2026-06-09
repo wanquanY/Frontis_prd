@@ -10,11 +10,16 @@ import {
   QRCode,
   Select,
   Switch,
+  Tabs,
   message,
 } from "antd";
 import classNames from "classnames";
 
 import { OPERATIONS_AGENT_PLAZA_DEFAULT_CATEGORY } from "@/feature/operations/mockData";
+import {
+  MAX_AI_AGENT_SCENE_TAG_COUNT,
+  normalizeAiAgentSceneTags,
+} from "@/feature/operations/agentSceneTags";
 import type {
   OperationsAgentPlazaCategoryOption,
   OperationsAgentPlazaVisibility,
@@ -43,6 +48,12 @@ import {
   OperationsPointsPackagePanel,
   OperationsSeatPackagePanel,
 } from "./OperationsProductPackagePanels";
+import {
+  AgentSnapshotCoreFilesPanel,
+  AgentSnapshotDetailPanel,
+  AgentSnapshotSkillsPanel,
+  resolveProductReleaseSnapshot,
+} from "./OperationsAgentSnapshotPanels";
 import styles from "./OperationsPlatformView.module.less";
 
 type ProductConsoleTabKey = "delivery" | "pointsPackage" | "seatPackage" | "category" | "contact";
@@ -166,15 +177,9 @@ const PRODUCT_FIELD_IDS = {
 const getProductZoneIds = (product: OperationsProduct): OperationsAgentStoreZone[] =>
   product.storeZones?.length ? product.storeZones : product.storeZone ? [product.storeZone] : [];
 
-const MAX_PRODUCT_CARD_TAG_COUNT = 3;
+const normalizeProductSceneTags = (tags: string[]): string[] => normalizeAiAgentSceneTags(tags);
 
-const normalizeProductTags = (tags: string[]): string[] => {
-  const normalizedTags = tags.map(tag => tag.trim()).filter(Boolean);
-
-  return Array.from(new Set(normalizedTags)).slice(0, MAX_PRODUCT_CARD_TAG_COUNT);
-};
-
-const getProductTags = (product: OperationsProduct): string[] => normalizeProductTags(product.tags ?? []);
+const getProductSceneTags = (product: OperationsProduct): string[] => normalizeProductSceneTags(product.tags ?? []);
 
 const AGENT_PLAZA_CATEGORY_FIELD_IDS = {
   zoneId: "operations-agent-plaza-category-zone-id",
@@ -404,7 +409,7 @@ export const OperationsProductConsole = ({
           item.linkedAgentName ?? "",
           item.description,
           item.plazaCategory ?? "",
-          getProductTags(item).join(" "),
+          getProductSceneTags(item).join(" "),
           getProductZoneIds(item)
             .map(zoneId => storeZoneLabelMap.get(zoneId) ?? zoneId)
             .join(" "),
@@ -473,7 +478,7 @@ export const OperationsProductConsole = ({
           identityName: product.identityName ?? product.linkedAgentName ?? product.name,
           identityDescription: product.identityDescription ?? product.description,
           usageGuide: product.usageGuide ?? "",
-          tags: getProductTags(product),
+          tags: getProductSceneTags(product),
           price: 0,
           subscriptionPlans:
             product.subscriptionPlans?.map(item => ({
@@ -558,6 +563,13 @@ export const OperationsProductConsole = ({
       return;
     }
 
+    const normalizedSceneTags = normalizeProductSceneTags(productEditor.form.tags);
+
+    if (!normalizedSceneTags.length) {
+      message.warning("请至少填写 1 个场景标签。");
+      return;
+    }
+
     if (!productEditor.form.storeZones.length) {
       message.warning("请至少选择一个专区。");
       return;
@@ -600,7 +612,7 @@ export const OperationsProductConsole = ({
         productEditor.form.description.trim() ||
         productEditor.form.name.trim(),
       identityName: productEditor.form.name.trim(),
-      tags: normalizeProductTags(productEditor.form.tags),
+      tags: normalizedSceneTags,
       price: 0,
       supportsTrial: false,
       billingScopes: ["points"],
@@ -839,6 +851,7 @@ export const OperationsProductConsole = ({
       {productId ? (
         <ProductDetail
           product={activeProduct}
+          approvedAgents={approvedAgents}
           storeZoneLabelMap={storeZoneLabelMap}
           productStatusLabels={productStatusLabels}
           onBack={onBackToProductList}
@@ -992,19 +1005,27 @@ export const OperationsProductConsole = ({
                 value: item.id,
                 label: `${item.name} · ${item.version}`,
               }))}
-              onChange={nextValue =>
+              onChange={nextValue => {
+                const selectedAgent = approvedAgents.find(item => item.id === nextValue);
+
                 setProductEditor(currentState => ({
                   ...currentState,
                   form: {
                     ...currentState.form,
                     linkedAgentId: nextValue,
+                    name: currentState.form.name || selectedAgent?.name || "",
+                    identityName: currentState.form.identityName || selectedAgent?.name || "",
+                    identityAvatarUrl:
+                      currentState.form.identityAvatarUrl || selectedAgent?.avatarUrl || "",
                     identityDescription:
-                      currentState.form.identityDescription ||
-                      approvedAgents.find(item => item.id === nextValue)?.description ||
-                      "",
+                      currentState.form.identityDescription || selectedAgent?.description || "",
+                    usageGuide: currentState.form.usageGuide || selectedAgent?.usageGuide || "",
+                    tags: currentState.form.tags.length
+                      ? currentState.form.tags
+                      : normalizeProductSceneTags(selectedAgent?.sceneTags ?? []),
                   },
-                }))
-              }
+                }));
+              }}
             />
           </div>
 
@@ -1027,20 +1048,21 @@ export const OperationsProductConsole = ({
 
           <div className={styles.modalField}>
             <label className={styles.modalLabel} htmlFor={PRODUCT_FIELD_IDS.tags}>
-              专家广场卡片标签
+              场景标签
             </label>
             <Select<string[]>
               id={PRODUCT_FIELD_IDS.tags}
               mode="tags"
               value={productEditor.form.tags}
-              placeholder="输入标签后回车，最多 3 个"
+              placeholder="输入标签后回车，1-5 个，最多 5 个"
+              maxCount={MAX_AI_AGENT_SCENE_TAG_COUNT}
               tokenSeparators={["，", ","]}
               onChange={nextValue =>
                 setProductEditor(currentState => ({
                   ...currentState,
                   form: {
                     ...currentState.form,
-                    tags: normalizeProductTags(nextValue),
+                    tags: normalizeProductSceneTags(nextValue),
                   },
                 }))
               }
@@ -1220,7 +1242,7 @@ export const OperationsProductConsole = ({
 
           <div className={`${styles.modalField} ${styles.modalFieldWide}`}>
             <label className={styles.modalLabel} htmlFor={PRODUCT_FIELD_IDS.identityAvatarUrl}>
-              添加封面
+              商品头像
             </label>
             <input
               ref={productCoverInputRef}
@@ -1248,14 +1270,14 @@ export const OperationsProductConsole = ({
                 <img
                   className={styles.productCoverUploadImage}
                   src={productEditor.form.identityAvatarUrl}
-                  alt="商品封面预览"
+                  alt="商品头像预览"
                 />
               ) : (
                 <span className={styles.productCoverUploadEmpty}>
                   <span className={styles.productCoverUploadIcon}>
                     <UploadOutlined />
                   </span>
-                  <span className={styles.productCoverUploadPrimary}>点击上传封面</span>
+                  <span className={styles.productCoverUploadPrimary}>点击上传头像</span>
                   <span className={styles.productCoverUploadSecondary}>支持 PNG、JPG、WebP</span>
                 </span>
               )}
@@ -1274,7 +1296,7 @@ export const OperationsProductConsole = ({
                   }))
                 }
               >
-                移除封面
+                移除头像
               </Button>
             ) : null}
           </div>
@@ -1430,7 +1452,7 @@ const ProductList = ({
           <thead>
             <tr>
               <th>AI专家商品</th>
-              <th>标签</th>
+              <th>场景标签</th>
               <th>专区</th>
               <th>专区分类</th>
               <th>排序</th>
@@ -1454,9 +1476,9 @@ const ProductList = ({
                   </button>
                 </td>
                 <td>
-                  {getProductTags(product).length ? (
+                  {getProductSceneTags(product).length ? (
                     <div className={styles.pillRow}>
-                      {getProductTags(product).map(tag => (
+                      {getProductSceneTags(product).map(tag => (
                         <span key={`${product.id}-${tag}`} className={adminStyles.consoleStatusTag}>
                           {tag}
                         </span>
@@ -1776,6 +1798,7 @@ const ServiceContactConfigPanel = ({
 
 interface ProductDetailProps {
   product: OperationsProduct | null;
+  approvedAgents: OperationsAgentSubmission[];
   storeZoneLabelMap: Map<string, string>;
   productStatusLabels: Record<OperationsProduct["status"], string>;
   onBack: () => void;
@@ -1783,143 +1806,184 @@ interface ProductDetailProps {
   onToggleStatus: (product: OperationsProduct) => void;
 }
 
+const ProductInfoTab = ({
+  product,
+  storeZoneLabelMap,
+}: {
+  product: OperationsProduct;
+  storeZoneLabelMap: Map<string, string>;
+}): JSX.Element => (
+  <div className={styles.productTabGrid}>
+    <section className={adminStyles.detailBlock}>
+      <h3 className={adminStyles.detailBlockTitle}>商品配置</h3>
+      <div className={adminStyles.consoleRows}>
+        <div className={adminStyles.consoleInfoRow}>
+          <span className={adminStyles.consoleInfoLabel}>专区</span>
+          <span className={adminStyles.consoleInfoValue}>
+            {getProductZoneIds(product)
+              .map(zoneId => storeZoneLabelMap.get(zoneId) ?? zoneId)
+              .join("、")}
+          </span>
+        </div>
+        <div className={adminStyles.consoleInfoRow}>
+          <span className={adminStyles.consoleInfoLabel}>专区分类</span>
+          <span className={adminStyles.consoleInfoValue}>
+            {getProductZoneIds(product)
+              .map(zoneId => product.plazaCategoryByZone?.[zoneId] ?? product.plazaCategory)
+              .filter(Boolean)
+              .join("、") || OPERATIONS_AGENT_PLAZA_DEFAULT_CATEGORY}
+          </span>
+        </div>
+        <div className={adminStyles.consoleInfoRow}>
+          <span className={adminStyles.consoleInfoLabel}>排序</span>
+          <span className={adminStyles.consoleInfoValue}>{product.plazaSort ?? 0}</span>
+        </div>
+        <div className={adminStyles.consoleInfoRow}>
+          <span className={adminStyles.consoleInfoLabel}>可见范围</span>
+          <span className={adminStyles.consoleInfoValue}>{getProductVisibilityLabel(product)}</span>
+        </div>
+        <div className={adminStyles.consoleInfoRow}>
+          <span className={adminStyles.consoleInfoLabel}>获取方式</span>
+          <span className={adminStyles.consoleInfoValue}>
+            {getProductAcquisitionLabel(product)}
+          </span>
+        </div>
+        <div className={adminStyles.consoleInfoRow}>
+          <span className={adminStyles.consoleInfoLabel}>更新时间</span>
+          <span className={adminStyles.consoleInfoValue}>{product.updatedAt}</span>
+        </div>
+      </div>
+    </section>
+
+    <section className={adminStyles.detailBlock}>
+      <h3 className={adminStyles.detailBlockTitle}>专家广场展示信息</h3>
+      <div className={styles.productIdentityPreview}>
+        <div className={styles.productIdentityAvatar}>
+          {product.identityAvatarUrl ? (
+            <img src={product.identityAvatarUrl} alt={product.identityName ?? product.name} />
+          ) : (
+            <span>
+              {(product.identityName ?? product.linkedAgentName ?? product.name).slice(0, 1)}
+            </span>
+          )}
+        </div>
+        <div className={styles.productIdentityContent}>
+          <strong>{product.identityName || product.linkedAgentName || product.name}</strong>
+          <p>{product.identityDescription || product.description}</p>
+          {getProductSceneTags(product).length ? (
+            <div className={styles.pillRow}>
+              {getProductSceneTags(product).map(tag => (
+                <span key={`${product.id}-${tag}`} className={adminStyles.consoleStatusTag}>
+                  {tag}
+                </span>
+              ))}
+            </div>
+          ) : null}
+        </div>
+      </div>
+      <div className={styles.productUsageGuidePreview}>
+        <h4>使用指南</h4>
+        <p>{product.usageGuide || "暂未配置使用指南。"}</p>
+      </div>
+    </section>
+  </div>
+);
+
 const ProductDetail = ({
   product,
+  approvedAgents,
   storeZoneLabelMap,
   productStatusLabels,
   onBack,
   onEdit,
   onToggleStatus,
-}: ProductDetailProps): JSX.Element => (
-  <div className={adminStyles.consolePage}>
-    <header className={adminStyles.consoleHeader}>
-      <div className={adminStyles.consoleHeaderMain}>
-        <div className={adminStyles.consoleActions}>
-          <Button type="link" size="small" onClick={onBack}>
-            返回商品列表
-          </Button>
-        </div>
-        <h1 className={adminStyles.consoleTitle}>{product?.name ?? "商品详情"}</h1>
-        <p className={adminStyles.consoleSubtitle}>
-          {product
-            ? getProductAcquisitionLabel(product)
-            : "当前商品不存在或已被移除，请返回列表重新选择。"}
-        </p>
-      </div>
+}: ProductDetailProps): JSX.Element => {
+  const releaseSnapshot = product
+    ? resolveProductReleaseSnapshot(product, approvedAgents)
+    : null;
 
-      {product ? (
-        <div className={adminStyles.consoleActions}>
-          <span className={getProductStatusClassName(product.status)}>
-            {productStatusLabels[product.status]}
-          </span>
-          <Button onClick={() => onEdit(product)}>
-            {product.status === "pendingProductization" ? "完善配置" : "编辑配置"}
-          </Button>
-          <Button onClick={() => onToggleStatus(product)}>
-            {product.status === "active" ? "下架商品" : "上架商品"}
-          </Button>
+  return (
+    <div className={adminStyles.consolePage}>
+      <header className={adminStyles.consoleHeader}>
+        <div className={adminStyles.consoleHeaderMain}>
+          <div className={adminStyles.consoleActions}>
+            <Button type="link" size="small" onClick={onBack}>
+              返回商品列表
+            </Button>
+          </div>
+          <h1 className={adminStyles.consoleTitle}>{product?.name ?? "商品详情"}</h1>
+          <p className={adminStyles.consoleSubtitle}>
+            {product
+              ? getProductAcquisitionLabel(product)
+              : "当前商品不存在或已被移除，请返回列表重新选择。"}
+          </p>
         </div>
-      ) : null}
-    </header>
 
-    {product ? (
-      <section className={adminStyles.consoleSection}>
-        {product.status === "pendingProductization" ? (
-          <div className={styles.alertBlock}>
-            该 AI专家 已通过审核，请先完善获取方式和用户侧展示信息后再上架。
+        {product ? (
+          <div className={adminStyles.consoleActions}>
+            <span className={getProductStatusClassName(product.status)}>
+              {productStatusLabels[product.status]}
+            </span>
+            <Button onClick={() => onEdit(product)}>
+              {product.status === "pendingProductization" ? "完善配置" : "编辑配置"}
+            </Button>
+            <Button onClick={() => onToggleStatus(product)}>
+              {product.status === "active" ? "下架商品" : "上架商品"}
+            </Button>
           </div>
         ) : null}
-        <div className={styles.detailGrid}>
-          <section className={adminStyles.detailBlock}>
-            <h3 className={adminStyles.detailBlockTitle}>获取配置</h3>
-            <div className={adminStyles.consoleRows}>
-              <div className={adminStyles.consoleInfoRow}>
-                <span className={adminStyles.consoleInfoLabel}>专区</span>
-                <span className={adminStyles.consoleInfoValue}>
-                  {getProductZoneIds(product)
-                    .map(zoneId => storeZoneLabelMap.get(zoneId) ?? zoneId)
-                    .join("、")}
-                </span>
-              </div>
-              <div className={adminStyles.consoleInfoRow}>
-                <span className={adminStyles.consoleInfoLabel}>专区分类</span>
-                <span className={adminStyles.consoleInfoValue}>
-                  {getProductZoneIds(product)
-                    .map(zoneId => product.plazaCategoryByZone?.[zoneId] ?? product.plazaCategory)
-                    .filter(Boolean)
-                    .join("、") || OPERATIONS_AGENT_PLAZA_DEFAULT_CATEGORY}
-                </span>
-              </div>
-              <div className={adminStyles.consoleInfoRow}>
-                <span className={adminStyles.consoleInfoLabel}>排序</span>
-                <span className={adminStyles.consoleInfoValue}>{product.plazaSort ?? 0}</span>
-              </div>
-              <div className={adminStyles.consoleInfoRow}>
-                <span className={adminStyles.consoleInfoLabel}>可见范围</span>
-                <span className={adminStyles.consoleInfoValue}>
-                  {getProductVisibilityLabel(product)}
-                </span>
-              </div>
-              <div className={adminStyles.consoleInfoRow}>
-                <span className={adminStyles.consoleInfoLabel}>获取方式</span>
-                <span className={adminStyles.consoleInfoValue}>
-                  {getProductAcquisitionLabel(product)}
-                </span>
-              </div>
-              <div className={adminStyles.consoleInfoRow}>
-                <span className={adminStyles.consoleInfoLabel}>关联 AI专家</span>
-                <span className={adminStyles.consoleInfoValue}>
-                  {product.linkedAgentName ?? "未绑定 AI专家"}
-                </span>
-              </div>
-              <div className={adminStyles.consoleInfoRow}>
-                <span className={adminStyles.consoleInfoLabel}>更新时间</span>
-                <span className={adminStyles.consoleInfoValue}>{product.updatedAt}</span>
-              </div>
-            </div>
-          </section>
+      </header>
 
-          <section className={adminStyles.detailBlock}>
-            <h3 className={adminStyles.detailBlockTitle}>用户侧详情配置</h3>
-            <div className={styles.productIdentityPreview}>
-              <div className={styles.productIdentityAvatar}>
-                {product.identityAvatarUrl ? (
-                  <img src={product.identityAvatarUrl} alt={product.identityName ?? product.name} />
-                ) : (
-                  <span>
-                    {(product.identityName ?? product.linkedAgentName ?? product.name).slice(0, 1)}
-                  </span>
-                )}
-              </div>
-              <div className={styles.productIdentityContent}>
-                <strong>{product.identityName || product.linkedAgentName || product.name}</strong>
-                <p>{product.identityDescription || product.description}</p>
-                {getProductTags(product).length ? (
-                  <div className={styles.pillRow}>
-                    {getProductTags(product).map(tag => (
-                      <span key={`${product.id}-${tag}`} className={adminStyles.consoleStatusTag}>
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
-                ) : null}
-              </div>
+      {product && releaseSnapshot ? (
+        <section className={adminStyles.consoleSection}>
+          {product.status === "pendingProductization" ? (
+            <div className={styles.alertBlock}>
+              该 AI 专家已通过审核，请确认获取方式、可见范围和专区分类后再上架。
             </div>
-            <div className={styles.productUsageGuidePreview}>
-              <h4>使用指南</h4>
-              <p>{product.usageGuide || "暂未配置使用指南。"}</p>
-            </div>
-          </section>
-        </div>
-      </section>
-    ) : (
-      <section className={adminStyles.consoleSection}>
-        <div className={styles.emptyWrap}>
-          <Empty description="未找到该商品。">
-            <Button onClick={onBack}>返回商品列表</Button>
-          </Empty>
-        </div>
-      </section>
-    )}
-  </div>
-);
+          ) : null}
+          <Tabs
+            className={styles.productDetailTabs}
+            items={[
+              {
+                key: "product",
+                label: "商品信息",
+                children: (
+                  <ProductInfoTab product={product} storeZoneLabelMap={storeZoneLabelMap} />
+                ),
+              },
+              {
+                key: "agent",
+                label: "AI 专家详情",
+                children: (
+                  <AgentSnapshotDetailPanel
+                    snapshot={releaseSnapshot}
+                    title="绑定 AI 专家"
+                    note="商品信息可由运营编辑；本页只读展示已审核上架版本的 AI 专家基础信息快照。"
+                  />
+                ),
+              },
+              {
+                key: "skills",
+                label: "技能列表",
+                children: <AgentSnapshotSkillsPanel skills={releaseSnapshot.skills} />,
+              },
+              {
+                key: "files",
+                label: "核心文件",
+                children: <AgentSnapshotCoreFilesPanel coreFiles={releaseSnapshot.coreFiles} />,
+              },
+            ]}
+          />
+        </section>
+      ) : (
+        <section className={adminStyles.consoleSection}>
+          <div className={styles.emptyWrap}>
+            <Empty description="未找到该商品。">
+              <Button onClick={onBack}>返回商品列表</Button>
+            </Empty>
+          </div>
+        </section>
+      )}
+    </div>
+  );
+};

@@ -10,10 +10,7 @@ import {
   getMockTenantManagementSnapshot,
   saveMockTenantManagementSnapshot,
 } from "@/feature/auth/mockTenantRegistry";
-import type {
-  MockTenantEntitlementGrantItem,
-  MockTenantManagementSnapshot,
-} from "@/feature/auth/types";
+import type { MockTenantManagementSnapshot } from "@/feature/auth/types";
 import {
   createMockPointsPackage,
   getMockPointsPackages,
@@ -42,6 +39,10 @@ import {
   saveOperationsRegistrationStrategy,
   saveOperationsServiceContactConfig,
 } from "@/feature/operations/platformConfigStorage";
+import {
+  normalizeAiAgentSceneTags,
+  resolveAiAgentSceneTags,
+} from "@/feature/operations/agentSceneTags";
 import {
   loadStoredSkillCenterCategories,
   saveStoredSkillCenterCategories,
@@ -78,7 +79,9 @@ import {
 import {
   applyMockSubscriptionPlanToTenant,
   createMockSubscriptionPlanTemplate,
+  getMockSubscriptionPlanValidityLabel,
   getMockSubscriptionPlanTemplates,
+  getPrimaryMockSubscriptionPlanSpec,
   updateMockSubscriptionPlanTemplate,
 } from "@/feature/subscription/mockSubscriptionPlans";
 import type {
@@ -110,7 +113,24 @@ import type {
   OperationsTenantForm,
   OperationsTenantPointsRechargePayload,
   OperationsTenantSeatAllocationPayload,
+  OperationsTenantSeatRenewalPayload,
 } from "@/feature/operations/types";
+import {
+  addTenantSeatPackageValidity,
+  getLatestTenantActiveSeatExpiresAt,
+} from "@/feature/operations/tenantSeatEntitlementRules";
+import {
+  DEFAULT_OPERATIONS_ADMIN_SEAT_COUNT,
+  buildAdminTenantMember,
+  buildOperationsAgentPlazaCategoryId,
+  buildOperationsMeteringProviderId,
+  buildOperationsModelServiceId,
+  buildOperationsProductId,
+  buildOperationsSkillCenterCategoryId,
+  formatOperationsTimestamp,
+  getTenantEntitlementGrants,
+  syncAdminTenantMember,
+} from "@/feature/operations/operationsPlatformHookUtils";
 import { calculateOperationsSalePrice } from "@/feature/operations/serviceMeteringUtils";
 import { useOperationsAuthStore } from "@/store/operationsAuth";
 import {
@@ -166,6 +186,7 @@ interface UseOperationsPlatformResult {
     tenantId: string,
     payload: OperationsTenantSeatAllocationPayload,
   ) => boolean;
+  renewTenantSeats: (tenantId: string, payload: OperationsTenantSeatRenewalPayload) => boolean;
   revokeTenantEntitlement: (
     tenantId: string,
     payload: OperationsTenantEntitlementRevokePayload,
@@ -240,65 +261,6 @@ interface UseOperationsPlatformResult {
   ) => void;
 }
 
-const formatTimestamp = (): string => {
-  const currentDate = new Date();
-  const year = currentDate.getFullYear();
-  const month = `${currentDate.getMonth() + 1}`.padStart(2, "0");
-  const day = `${currentDate.getDate()}`.padStart(2, "0");
-  const hours = `${currentDate.getHours()}`.padStart(2, "0");
-  const minutes = `${currentDate.getMinutes()}`.padStart(2, "0");
-
-  return `${year}-${month}-${day} ${hours}:${minutes}`;
-};
-
-const buildTenantMemberId = (): string => `ops-tenant-member-${Date.now()}`;
-const buildProductId = (): string => `ops-product-${Date.now()}`;
-const buildAgentPlazaCategoryId = (): string => `ops-agent-plaza-category-${Date.now()}`;
-const buildSkillCenterCategoryId = (): string => `ops-skill-center-category-${Date.now()}`;
-const buildMeteringProviderId = (): string => `ops-metering-provider-${Date.now()}`;
-const buildModelServiceId = (): string => `ops-model-service-${Date.now()}`;
-const DEFAULT_ADMIN_SEAT_COUNT = 1;
-
-const getTenantEntitlementGrants = (
-  snapshot: MockTenantManagementSnapshot,
-): MockTenantEntitlementGrantItem[] => snapshot.entitlementGrants ?? [];
-
-const buildAdminTenantMember = (adminName: string, adminPhone: string, addedAt: string) => ({
-  id: buildTenantMemberId(),
-  name: adminName.trim(),
-  phone: adminPhone.trim(),
-  roleId: DEFAULT_TENANT_ROLE_IDS.enterpriseAdmin,
-  roleLabel: "初始管理员",
-  addedAt,
-});
-
-const syncAdminTenantMember = (
-  members: OperationsTenant["members"],
-  adminName: string,
-  adminPhone: string,
-  fallbackAddedAt: string,
-): OperationsTenant["members"] => {
-  const adminMemberIndex = members.findIndex(
-    item => item.phone === adminPhone.trim() || item.roleLabel.includes("管理员"),
-  );
-
-  if (adminMemberIndex < 0) {
-    return [buildAdminTenantMember(adminName, adminPhone, fallbackAddedAt), ...members];
-  }
-
-  return members.map((item, index) =>
-    index === adminMemberIndex
-      ? {
-          ...item,
-          name: adminName.trim(),
-          phone: adminPhone.trim(),
-          roleId: item.roleId ?? DEFAULT_TENANT_ROLE_IDS.enterpriseAdmin,
-          roleLabel: "初始管理员",
-        }
-      : item,
-  );
-};
-
 const buildTenantSnapshotFromTenant = (tenant: OperationsTenant): MockTenantManagementSnapshot => {
   const adminUser = {
     id: `${tenant.id}-admin-user`,
@@ -326,7 +288,7 @@ const buildTenantSnapshotFromTenant = (tenant: OperationsTenant): MockTenantMana
     billingMode: tenant.billingMode,
     edition: "personal",
     planLabel: "默认管理员席位",
-    includedSeats: DEFAULT_ADMIN_SEAT_COUNT,
+    includedSeats: DEFAULT_OPERATIONS_ADMIN_SEAT_COUNT,
     extraSeatCount: 0,
     planExpiresAt: "长期有效",
     hasAgentListingAccess: tenant.hasAgentListingAccess,
@@ -334,8 +296,8 @@ const buildTenantSnapshotFromTenant = (tenant: OperationsTenant): MockTenantMana
     lowBalanceThreshold: 5000,
     monthlyUsedPoints: 0,
     pointsBalance: 0,
-    totalSeats: DEFAULT_ADMIN_SEAT_COUNT,
-    usedSeats: DEFAULT_ADMIN_SEAT_COUNT,
+    totalSeats: DEFAULT_OPERATIONS_ADMIN_SEAT_COUNT,
+    usedSeats: DEFAULT_OPERATIONS_ADMIN_SEAT_COUNT,
     users: [adminUser],
     agentUsageRecords: [],
     pointsLedger: [],
@@ -347,7 +309,7 @@ const buildTenantSnapshotFromTenant = (tenant: OperationsTenant): MockTenantMana
 };
 
 const buildTenantFromForm = (form: OperationsTenantForm): OperationsTenant => {
-  const createdAt = formatTimestamp();
+  const createdAt = formatOperationsTimestamp();
   const adminPermissionIds = normalizeTenantRolePermissionIds(form.adminPermissionIds);
   const moduleLabels = resolveOperationsTenantModuleLabels(adminPermissionIds);
   const hasOperationsConsoleAccess = moduleLabels.some(label => label.includes("运营"));
@@ -370,7 +332,7 @@ const buildTenantFromForm = (form: OperationsTenantForm): OperationsTenant => {
     adminRoleLabel: "初始管理员",
     hasAgentListingAccess,
     hasOperationsConsoleAccess,
-    seatCount: DEFAULT_ADMIN_SEAT_COUNT,
+    seatCount: DEFAULT_OPERATIONS_ADMIN_SEAT_COUNT,
     effectiveAt: createdAt,
     expiresAt: "长期有效",
     moduleLabels,
@@ -384,18 +346,18 @@ const buildTenantFromForm = (form: OperationsTenantForm): OperationsTenant => {
 const buildMeteringProviderFromForm = (
   form: OperationsMeteringProviderForm,
 ): OperationsMeteringProvider => ({
-  id: buildMeteringProviderId(),
+  id: buildOperationsMeteringProviderId(),
   name: form.name.trim(),
   providerKind: form.providerKind,
   baseUrl: form.baseUrl.trim(),
   billingCurrency: form.billingCurrency.trim() || "CNY",
   credentialStatusLabel: form.credentialStatusLabel.trim(),
   status: form.status,
-  updatedAt: formatTimestamp(),
+  updatedAt: formatOperationsTimestamp(),
 });
 
 const buildModelServiceFromForm = (form: OperationsModelServiceForm): OperationsModelService => ({
-  id: buildModelServiceId(),
+  id: buildOperationsModelServiceId(),
   providerId: form.providerId,
   modelCode: form.modelCode.trim(),
   modelName: form.modelName.trim(),
@@ -435,7 +397,7 @@ const buildModelServiceFromForm = (form: OperationsModelServiceForm): Operations
     form.outputSalePricePerMillion,
   ),
   status: form.status,
-  updatedAt: formatTimestamp(),
+  updatedAt: formatOperationsTimestamp(),
 });
 
 interface SortableOperationsCategory {
@@ -484,24 +446,39 @@ const normalizeSubscriptionPlans = (
 const shouldUseSubscriptionPlans = (form: OperationsProductForm): boolean =>
   form.saleType === "paid" && form.billingMode === "subscription" && form.supplyKind === "agent";
 
+const normalizeSubmissionSceneTags = (
+  sceneTags: string[] | undefined,
+  fallbackTag: string,
+): string[] => resolveAiAgentSceneTags(sceneTags, [fallbackTag]);
+
+const getSubmissionSourceAgentId = (submission: OperationsAgentSubmission): string =>
+  submission.sourceAgentId ?? submission.id;
+
+const getProductLinkedAgentSourceId = (product: OperationsProduct): string | undefined =>
+  product.linkedAgentSourceId ?? product.linkedAgentId;
+
 const buildPendingProductFromSubmission = (
   submission: OperationsAgentSubmission,
 ): OperationsProduct => ({
-  id: buildProductId(),
-  name: submission.proposedProductName?.trim() || `${submission.name} 标准版`,
+  id: buildOperationsProductId(),
+  name: submission.proposedProductName?.trim() || submission.name,
   supplyKind: "agent",
   deliveryKind: "softwareService",
   saleType: "free",
   billingMode: "subscription",
   meteringUnit: "duration",
   linkedAgentId: submission.id,
+  linkedAgentSourceId: getSubmissionSourceAgentId(submission),
   linkedAgentName: submission.name,
-  description: "该 AI专家 已通过商品化审核，请完善获取方式和用户侧展示信息后再上架。",
-  identityAvatarUrl: "",
+  description: submission.description,
+  identityAvatarUrl: submission.avatarUrl ?? "",
   identityName: submission.name,
   identityDescription: submission.description,
-  usageGuide: "",
-  tags: [submission.plazaCategory ?? OPERATIONS_AGENT_PLAZA_DEFAULT_CATEGORY],
+  usageGuide: submission.usageGuide?.trim() || "",
+  tags: normalizeSubmissionSceneTags(
+    submission.sceneTags,
+    submission.plazaCategory ?? OPERATIONS_AGENT_PLAZA_DEFAULT_CATEGORY,
+  ),
   subscriptionPlans: createDefaultAgentSubscriptionPlans(),
   supportsTrial: false,
   trialUnit: "day",
@@ -523,7 +500,7 @@ const buildPendingProductFromSubmission = (
   plazaStatus: submission.plazaStatus ?? "offline",
   plazaSort: 0,
   billingScopes: ["points"],
-  updatedAt: formatTimestamp(),
+  updatedAt: formatOperationsTimestamp(),
 });
 
 const buildProductFromForm = (
@@ -538,7 +515,7 @@ const buildProductFromForm = (
   const supportsTrial = form.supplyKind === "agent" ? false : form.supportsTrial;
 
   return {
-    id: buildProductId(),
+    id: buildOperationsProductId(),
     name: form.name.trim(),
     supplyKind: form.supplyKind,
     deliveryKind: form.deliveryKind,
@@ -547,6 +524,9 @@ const buildProductFromForm = (
     meteringUnit: form.meteringUnit,
     billingSpec: useSubscriptionPlans ? undefined : form.billingSpec,
     linkedAgentId: linkedSubmission?.id,
+    linkedAgentSourceId: linkedSubmission
+      ? getSubmissionSourceAgentId(linkedSubmission)
+      : undefined,
     linkedAgentName: linkedSubmission?.name,
     resourcePoolId: undefined,
     resourcePoolName: undefined,
@@ -577,7 +557,7 @@ const buildProductFromForm = (
     plazaStatus: form.plazaStatus,
     plazaSort: form.plazaSort,
     billingScopes: form.billingScopes,
-    updatedAt: formatTimestamp(),
+    updatedAt: formatOperationsTimestamp(),
   };
 };
 
@@ -605,12 +585,17 @@ const normalizeAgentSubmission = (
   submission: OperationsAgentSubmission,
 ): OperationsAgentSubmission => ({
   id: submission.id,
+  sourceAgentId: submission.sourceAgentId,
+  applicationKind: submission.applicationKind,
   name: submission.name,
   version: submission.version,
   submitter: normalizeSubmissionSubmitter(submission.submitter),
   submittedAt: submission.submittedAt,
   status: submission.status,
   description: submission.description,
+  avatarUrl: submission.avatarUrl,
+  usageGuide: submission.usageGuide?.trim() || undefined,
+  sceneTags: normalizeAiAgentSceneTags(submission.sceneTags),
   proposedProductName: submission.proposedProductName,
   submitReason: submission.submitReason,
   targetCustomers: submission.targetCustomers,
@@ -623,6 +608,8 @@ const normalizeAgentSubmission = (
   visibleTenantNames: submission.visibleTenantNames,
   plazaStatus: submission.plazaStatus,
   plazaUpdatedAt: submission.plazaUpdatedAt,
+  skills: submission.skills,
+  coreFiles: submission.coreFiles,
 });
 
 const buildInitialAgentSubmissions = (): OperationsAgentSubmission[] => {
@@ -786,7 +773,7 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
                 form.adminPhone,
                 item.createdAt,
               ),
-              updatedAt: formatTimestamp(),
+              updatedAt: formatOperationsTimestamp(),
             }
           : item,
       ),
@@ -801,7 +788,7 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
             ? {
                 ...item,
                 status,
-                updatedAt: formatTimestamp(),
+                updatedAt: formatOperationsTimestamp(),
               }
             : item,
         ),
@@ -822,7 +809,7 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
       const basePoints = Math.max(Math.floor(payload.points), 0);
       const giftPoints = Math.max(Math.floor(payload.giftPoints), 0);
       const totalPoints = Math.max(basePoints + giftPoints, 1);
-      const createdAt = formatTimestamp();
+      const createdAt = formatOperationsTimestamp();
       const orderId = `${tenantId}-ops-points-order-${timestamp}`;
       const orderNo = `OPS-POINTS-${timestamp.toString().slice(-10)}`;
       const grantId = `${tenantId}-ops-points-grant-${timestamp}`;
@@ -903,15 +890,31 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
   const allocateTenantSeats = useCallback(
     (tenantId: string, payload: OperationsTenantSeatAllocationPayload): boolean => {
       const matchedSnapshot = getMockTenantManagementSnapshot(tenantId);
+      const selectedPlan = subscriptionPlans.find(
+        item =>
+          item.key === payload.planKey && item.scope === "internal" && item.status === "active",
+      );
+      const selectedSpec = selectedPlan ? getPrimaryMockSubscriptionPlanSpec(selectedPlan) : null;
 
-      if (!matchedSnapshot) {
+      if (!matchedSnapshot || !selectedPlan || !selectedSpec) {
         return false;
       }
 
       const timestamp = Date.now();
       const seatCount = Math.max(Math.floor(payload.seatCount), 1);
-      const giftPoints = Math.max(Math.floor(payload.giftPoints), 0);
-      const createdAt = formatTimestamp();
+      const giftPoints = Math.max(Math.floor(selectedSpec.giftPoints), 0);
+      const createdAt = formatOperationsTimestamp();
+      const currentExpiresAt = getLatestTenantActiveSeatExpiresAt(matchedSnapshot);
+      const expiresAt =
+        currentExpiresAt ??
+        addTenantSeatPackageValidity(
+          createdAt.slice(0, 10),
+          selectedSpec.validityCount,
+          selectedSpec.validityUnit,
+        );
+      const planTitle = selectedPlan.title;
+      const validityLabel = getMockSubscriptionPlanValidityLabel(selectedPlan);
+      const originalAmount = selectedSpec.priceAmount * seatCount;
       const orderId = `${tenantId}-ops-seat-order-${timestamp}`;
       const orderNo = `OPS-SEAT-${timestamp.toString().slice(-10)}`;
       const grantId = `${tenantId}-ops-seat-grant-${timestamp}`;
@@ -924,19 +927,19 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
       saveMockTenantManagementSnapshot({
         ...matchedSnapshot,
         edition: "team",
-        planLabel: payload.planTitle,
+        planLabel: planTitle,
         includedSeats: nextIncludedSeats,
         totalSeats: nextTotalSeats,
-        teamPlanPackageId: payload.planKey,
-        planExpiresAt: payload.expiresAt,
-        invitePolicyLabel: `运营已分配 ${seatCount} 个席位，到期时间 ${payload.expiresAt}。`,
+        teamPlanPackageId: selectedPlan.key,
+        planExpiresAt: expiresAt,
+        invitePolicyLabel: `运营已分配 ${seatCount} 个席位，到期时间 ${expiresAt}。`,
         pointsBalance: matchedSnapshot.pointsBalance + giftPoints,
         pointsLedger:
           giftPoints > 0
             ? [
                 {
                   id: `${tenantId}-ops-seat-gift-points-${timestamp}`,
-                  title: `${payload.specTitle}赠送积分`,
+                  title: `${planTitle}赠送积分`,
                   description: "运营通过内部席位包给租户分配席位时赠送。",
                   points: giftPoints,
                   direction: "income",
@@ -950,11 +953,11 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
           {
             id: orderId,
             orderNo,
-            planKey: payload.planKey,
-            planTitle: payload.specTitle,
-            amount: 0,
+            planKey: selectedPlan.key,
+            planTitle,
+            amount: originalAmount,
             seatCount,
-            billingCycleLabel: payload.specTitle,
+            billingCycleLabel: validityLabel,
             status: "paid",
             orderSourceLabel: "运营后台开通",
             paymentChannelLabel: "线下订单",
@@ -964,11 +967,11 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
             operatorRoleLabel: currentOperatorRoleLabel,
             createdAt,
             paidAt: createdAt,
-            billingCycle: payload.specKey,
-            unitPrice: 0,
-            originalAmount: 0,
+            billingCycle: selectedSpec.key,
+            unitPrice: selectedSpec.priceAmount,
+            originalAmount,
             discountAmount: 0,
-            expiresAt: payload.expiresAt,
+            expiresAt,
             purchaseMode: "addSeats",
           },
           ...(matchedSnapshot.subscriptionOrders ?? []),
@@ -977,13 +980,17 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
           {
             id: grantId,
             kind: "seats",
-            title: payload.specTitle,
-            description: payload.remark?.trim() || `运营给租户分配 ${seatCount} 个席位。`,
+            title: planTitle,
+            description:
+              payload.remark?.trim() ||
+              `运营给租户分配 ${seatCount} 个席位，到期时间 ${expiresAt}。`,
             orderId,
             orderNo,
             seatCount,
+            seatAction: "allocation",
             giftPoints,
-            expiresAt: payload.expiresAt,
+            expiresAt,
+            afterExpiresAt: expiresAt,
             status: "active",
             createdAt,
             operatorUserId: currentOperatorUserId,
@@ -1001,6 +1008,7 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
                 ...item,
                 edition: "team",
                 seatCount: nextTotalSeats,
+                expiresAt,
                 updatedAt: createdAt,
               }
             : item,
@@ -1009,7 +1017,141 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
 
       return true;
     },
-    [currentOperatorName, currentOperatorRoleLabel, currentOperatorUserId],
+    [currentOperatorName, currentOperatorRoleLabel, currentOperatorUserId, subscriptionPlans],
+  );
+
+  const renewTenantSeats = useCallback(
+    (tenantId: string, payload: OperationsTenantSeatRenewalPayload): boolean => {
+      const matchedSnapshot = getMockTenantManagementSnapshot(tenantId);
+      const selectedPlan = subscriptionPlans.find(
+        item =>
+          item.key === payload.planKey && item.scope === "internal" && item.status === "active",
+      );
+      const selectedSpec = selectedPlan ? getPrimaryMockSubscriptionPlanSpec(selectedPlan) : null;
+
+      if (!matchedSnapshot || !selectedPlan || !selectedSpec) {
+        return false;
+      }
+
+      const currentExpiresAt = getLatestTenantActiveSeatExpiresAt(matchedSnapshot);
+      const renewedSeatCount = Math.max(
+        matchedSnapshot.totalSeats,
+        matchedSnapshot.usedSeats,
+        DEFAULT_OPERATIONS_ADMIN_SEAT_COUNT,
+      );
+
+      if (!currentExpiresAt || renewedSeatCount <= DEFAULT_OPERATIONS_ADMIN_SEAT_COUNT) {
+        return false;
+      }
+
+      const timestamp = Date.now();
+      const createdAt = formatOperationsTimestamp();
+      const planTitle = selectedPlan.title;
+      const validityLabel = getMockSubscriptionPlanValidityLabel(selectedPlan);
+      const giftPoints = Math.max(Math.floor(selectedSpec.giftPoints), 0);
+      const expiresAt = addTenantSeatPackageValidity(
+        currentExpiresAt,
+        selectedSpec.validityCount,
+        selectedSpec.validityUnit,
+      );
+      const originalAmount = selectedSpec.priceAmount * renewedSeatCount;
+      const orderId = `${tenantId}-ops-seat-renewal-order-${timestamp}`;
+      const orderNo = `OPS-RENEW-${timestamp.toString().slice(-10)}`;
+      const grantId = `${tenantId}-ops-seat-renewal-${timestamp}`;
+
+      saveMockTenantManagementSnapshot({
+        ...matchedSnapshot,
+        edition: "team",
+        planLabel: planTitle,
+        teamPlanPackageId: selectedPlan.key,
+        planExpiresAt: expiresAt,
+        invitePolicyLabel: `运营已续约 ${renewedSeatCount} 个席位，到期时间 ${expiresAt}。`,
+        pointsBalance: matchedSnapshot.pointsBalance + giftPoints,
+        pointsLedger:
+          giftPoints > 0
+            ? [
+                {
+                  id: `${tenantId}-ops-seat-renewal-gift-points-${timestamp}`,
+                  title: `${planTitle}续约赠送积分`,
+                  description: "运营通过内部席位包给租户续约席位时赠送。",
+                  points: giftPoints,
+                  direction: "income",
+                  createdAt,
+                  actorName: currentOperatorName,
+                },
+                ...(matchedSnapshot.pointsLedger ?? []),
+              ]
+            : matchedSnapshot.pointsLedger,
+        subscriptionOrders: [
+          {
+            id: orderId,
+            orderNo,
+            planKey: selectedPlan.key,
+            planTitle,
+            amount: originalAmount,
+            seatCount: renewedSeatCount,
+            billingCycleLabel: validityLabel,
+            status: "paid",
+            orderSourceLabel: "运营后台席位续约",
+            paymentChannelLabel: "线下订单",
+            purchaserName: "-",
+            operatorUserId: currentOperatorUserId,
+            operatorName: currentOperatorName,
+            operatorRoleLabel: currentOperatorRoleLabel,
+            createdAt,
+            paidAt: createdAt,
+            billingCycle: selectedSpec.key,
+            unitPrice: selectedSpec.priceAmount,
+            originalAmount,
+            discountAmount: 0,
+            expiresAt,
+            purchaseMode: "renew",
+          },
+          ...(matchedSnapshot.subscriptionOrders ?? []),
+        ],
+        entitlementGrants: [
+          {
+            id: grantId,
+            kind: "seats",
+            title: planTitle,
+            description:
+              payload.remark?.trim() ||
+              `运营给租户 ${renewedSeatCount} 个有效席位续约，从 ${currentExpiresAt} 顺延至 ${expiresAt}。`,
+            orderId,
+            orderNo,
+            seatCount: renewedSeatCount,
+            seatAction: "renewal",
+            giftPoints,
+            expiresAt,
+            beforeExpiresAt: currentExpiresAt,
+            afterExpiresAt: expiresAt,
+            status: "active",
+            createdAt,
+            operatorUserId: currentOperatorUserId,
+            operatorName: currentOperatorName,
+            operatorRoleLabel: currentOperatorRoleLabel,
+          },
+          ...getTenantEntitlementGrants(matchedSnapshot),
+        ],
+      });
+
+      setTenants(currentTenants =>
+        currentTenants.map(item =>
+          item.id === tenantId
+            ? {
+                ...item,
+                edition: "team",
+                seatCount: renewedSeatCount,
+                expiresAt,
+                updatedAt: createdAt,
+              }
+            : item,
+        ),
+      );
+
+      return true;
+    },
+    [currentOperatorName, currentOperatorRoleLabel, currentOperatorUserId, subscriptionPlans],
   );
 
   const revokeTenantEntitlement = useCallback(
@@ -1041,7 +1183,7 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
       }
 
       const timestamp = Date.now();
-      const revokedAt = formatTimestamp();
+      const revokedAt = formatOperationsTimestamp();
       const nextGrants = grants.map(item =>
         item.id === matchedGrant.id
           ? {
@@ -1105,6 +1247,10 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
         return { success: true, message: "积分包发放已撤销。" };
       }
 
+      if (matchedGrant.seatAction === "renewal") {
+        return { success: false, message: "席位续约记录不在发放撤销范围内。" };
+      }
+
       const revokeSeats = Math.max(Math.floor(matchedGrant.seatCount ?? 0), 0);
       const giftPoints = Math.max(Math.floor(matchedGrant.giftPoints ?? 0), 0);
       const nextTotalSeats = matchedSnapshot.totalSeats - revokeSeats;
@@ -1125,20 +1271,30 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
         item => item.kind === "seats" && item.status === "active",
       );
       const latestActiveSeatGrant = activeSeatGrants[0];
-      const normalizedTotalSeats = Math.max(DEFAULT_ADMIN_SEAT_COUNT, nextTotalSeats);
+      const normalizedTotalSeats = Math.max(DEFAULT_OPERATIONS_ADMIN_SEAT_COUNT, nextTotalSeats);
       const nextIncludedSeats = Math.max(
-        DEFAULT_ADMIN_SEAT_COUNT,
+        DEFAULT_OPERATIONS_ADMIN_SEAT_COUNT,
         matchedSnapshot.includedSeats - revokeSeats,
       );
-      const nextEdition = normalizedTotalSeats > DEFAULT_ADMIN_SEAT_COUNT ? "team" : "personal";
+      const nextEdition =
+        normalizedTotalSeats > DEFAULT_OPERATIONS_ADMIN_SEAT_COUNT ? "team" : "personal";
       const nextPlanLabel =
         latestActiveSeatGrant?.title ??
-        (normalizedTotalSeats > DEFAULT_ADMIN_SEAT_COUNT
+        (normalizedTotalSeats > DEFAULT_OPERATIONS_ADMIN_SEAT_COUNT
           ? matchedSnapshot.planLabel
           : "默认管理员席位");
+      const latestActiveSeatExpiresAt =
+        normalizedTotalSeats > DEFAULT_OPERATIONS_ADMIN_SEAT_COUNT
+          ? getLatestTenantActiveSeatExpiresAt({
+              ...matchedSnapshot,
+              entitlementGrants: nextGrants,
+              totalSeats: normalizedTotalSeats,
+            })
+          : null;
       const nextPlanExpiresAt =
+        latestActiveSeatExpiresAt ??
         latestActiveSeatGrant?.expiresAt ??
-        (normalizedTotalSeats > DEFAULT_ADMIN_SEAT_COUNT
+        (normalizedTotalSeats > DEFAULT_OPERATIONS_ADMIN_SEAT_COUNT
           ? (matchedSnapshot.planExpiresAt ?? "长期有效")
           : "长期有效");
 
@@ -1150,8 +1306,8 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
         totalSeats: normalizedTotalSeats,
         planExpiresAt: nextPlanExpiresAt,
         invitePolicyLabel:
-          normalizedTotalSeats > DEFAULT_ADMIN_SEAT_COUNT
-            ? `运营已分配 ${normalizedTotalSeats - DEFAULT_ADMIN_SEAT_COUNT} 个席位，到期时间 ${nextPlanExpiresAt}。`
+          normalizedTotalSeats > DEFAULT_OPERATIONS_ADMIN_SEAT_COUNT
+            ? `运营已分配 ${normalizedTotalSeats - DEFAULT_OPERATIONS_ADMIN_SEAT_COUNT} 个席位，到期时间 ${nextPlanExpiresAt}。`
             : "系统已为初始管理员开通 1 个长期有效席位。",
         pointsBalance: matchedSnapshot.pointsBalance - giftPoints,
         pointsLedger:
@@ -1201,8 +1357,23 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
 
   const approveAgent = useCallback(
     (submissionId: string): void => {
-      const reviewedAt = formatTimestamp();
+      const reviewedAt = formatOperationsTimestamp();
       const approvedSubmission = agentSubmissions.find(item => item.id === submissionId) ?? null;
+      const reviewedSubmission = approvedSubmission
+        ? {
+            ...approvedSubmission,
+            status: "approved" as const,
+            rejectReason: undefined,
+            lastReviewedAt: reviewedAt,
+            plazaCategory:
+              approvedSubmission.plazaCategory ?? OPERATIONS_AGENT_PLAZA_DEFAULT_CATEGORY,
+            plazaVisibility: approvedSubmission.plazaVisibility ?? "public",
+            visibleTenantIds: approvedSubmission.visibleTenantIds ?? [],
+            visibleTenantNames: approvedSubmission.visibleTenantNames ?? [],
+            plazaStatus: approvedSubmission.plazaStatus ?? "offline",
+            plazaUpdatedAt: approvedSubmission.plazaUpdatedAt ?? reviewedAt,
+          }
+        : null;
 
       setAgentSubmissions(currentSubmissions =>
         currentSubmissions.map(item =>
@@ -1223,23 +1394,38 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
         ),
       );
 
-      if (!approvedSubmission) {
+      if (!reviewedSubmission) {
         return;
       }
 
       setProducts(currentProducts => {
-        if (currentProducts.some(item => item.linkedAgentId === submissionId)) {
-          return currentProducts;
+        const sourceAgentId = getSubmissionSourceAgentId(reviewedSubmission);
+        const existingProduct = currentProducts.find(
+          item => getProductLinkedAgentSourceId(item) === sourceAgentId,
+        );
+
+        if (existingProduct) {
+          return currentProducts.map(item =>
+            item.id === existingProduct.id
+              ? {
+                  ...item,
+                  linkedAgentId: reviewedSubmission.id,
+                  linkedAgentSourceId: sourceAgentId,
+                  linkedAgentName: reviewedSubmission.name,
+                  updatedAt: reviewedAt,
+                }
+              : item,
+          );
         }
 
-        return [buildPendingProductFromSubmission(approvedSubmission), ...currentProducts];
+        return [buildPendingProductFromSubmission(reviewedSubmission), ...currentProducts];
       });
     },
     [agentSubmissions],
   );
 
   const rejectAgent = useCallback((submissionId: string, reason: string): void => {
-    const reviewedAt = formatTimestamp();
+    const reviewedAt = formatOperationsTimestamp();
 
     setAgentSubmissions(currentSubmissions =>
       currentSubmissions.map(item =>
@@ -1290,6 +1476,9 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
             meteringUnit: form.meteringUnit,
             billingSpec: useSubscriptionPlans ? undefined : form.billingSpec,
             linkedAgentId: linkedSubmission?.id,
+            linkedAgentSourceId: linkedSubmission
+              ? getSubmissionSourceAgentId(linkedSubmission)
+              : undefined,
             linkedAgentName: linkedSubmission?.name,
             resourcePoolId: undefined,
             resourcePoolName: undefined,
@@ -1320,7 +1509,7 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
             plazaStatus: form.plazaStatus,
             plazaSort: form.plazaSort,
             billingScopes: form.billingScopes,
-            updatedAt: formatTimestamp(),
+            updatedAt: formatOperationsTimestamp(),
           };
         }),
       );
@@ -1337,7 +1526,7 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
                 ...item,
                 status,
                 plazaStatus: status === "active" ? "online" : "offline",
-                updatedAt: formatTimestamp(),
+                updatedAt: formatOperationsTimestamp(),
               }
             : item,
         ),
@@ -1439,7 +1628,7 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
                 ...item,
                 edition: nextSnapshot.edition,
                 seatCount: nextSnapshot.totalSeats,
-                updatedAt: formatTimestamp(),
+                updatedAt: formatOperationsTimestamp(),
               }
             : item,
         ),
@@ -1462,7 +1651,7 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
         contactName: config.contactName.trim(),
         qrCodeValue: config.qrCodeValue.trim(),
         remarkTemplate: config.remarkTemplate.trim(),
-        updatedAt: formatTimestamp(),
+        updatedAt: formatOperationsTimestamp(),
       });
     },
     [],
@@ -1480,7 +1669,7 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
         groupName: config.groupName.trim(),
         qrCodeValue: config.qrCodeValue.trim(),
         description: config.description.trim(),
-        updatedAt: formatTimestamp(),
+        updatedAt: formatOperationsTimestamp(),
       });
     },
     [],
@@ -1506,7 +1695,7 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
         initialPermissionIds: config.initialPermissionIds
           ? [...config.initialPermissionIds]
           : currentStrategy.initialPermissionIds,
-        updatedAt: formatTimestamp(),
+        updatedAt: formatOperationsTimestamp(),
       }));
     },
     [],
@@ -1514,13 +1703,13 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
 
   const createAgentPlazaCategory = useCallback(
     (payload: Pick<OperationsAgentPlazaCategoryOption, "zoneId" | "name" | "sortOrder">): void => {
-      const updatedAt = formatTimestamp();
+      const updatedAt = formatOperationsTimestamp();
 
       setAgentPlazaCategories(currentCategories =>
         sortCategoryOptions([
           ...currentCategories,
           {
-            id: buildAgentPlazaCategoryId(),
+            id: buildOperationsAgentPlazaCategoryId(),
             zoneId: payload.zoneId,
             name: payload.name.trim(),
             sortOrder: payload.sortOrder,
@@ -1546,7 +1735,7 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
         return;
       }
 
-      const updatedAt = formatTimestamp();
+      const updatedAt = formatOperationsTimestamp();
       const nextName = updates.name?.trim() || currentCategory.name;
       const hasRenamed = nextName !== currentCategory.name;
 
@@ -1607,7 +1796,7 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
 
   const createAgentStoreZone = useCallback(
     (payload: Pick<OperationsAgentStoreZoneOption, "name" | "sortOrder">): void => {
-      const updatedAt = formatTimestamp();
+      const updatedAt = formatOperationsTimestamp();
 
       setAgentStoreZones(currentZones =>
         sortCategoryOptions([
@@ -1630,7 +1819,7 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
       zoneId: string,
       updates: Partial<Pick<OperationsAgentStoreZoneOption, "name" | "sortOrder" | "status">>,
     ): void => {
-      const updatedAt = formatTimestamp();
+      const updatedAt = formatOperationsTimestamp();
 
       setAgentStoreZones(currentZones =>
         sortCategoryOptions(
@@ -1655,13 +1844,13 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
 
   const createSkillCenterCategory = useCallback(
     (payload: Pick<OperationsSkillCenterCategoryOption, "name" | "sortOrder">): void => {
-      const updatedAt = formatTimestamp();
+      const updatedAt = formatOperationsTimestamp();
 
       setSkillCenterCategories(currentCategories =>
         sortCategoryOptions([
           ...currentCategories,
           {
-            id: buildSkillCenterCategoryId(),
+            id: buildOperationsSkillCenterCategoryId(),
             name: payload.name.trim(),
             sortOrder: payload.sortOrder,
             status: "active",
@@ -1684,7 +1873,7 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
         return;
       }
 
-      const updatedAt = formatTimestamp();
+      const updatedAt = formatOperationsTimestamp();
       const nextName = updates.name?.trim() || currentCategory.name;
 
       setSkillCenterCategories(currentCategories =>
@@ -1755,6 +1944,7 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
     updateTenantStatus,
     rechargeTenantPoints,
     allocateTenantSeats,
+    renewTenantSeats,
     revokeTenantEntitlement,
     approveAgent,
     rejectAgent,

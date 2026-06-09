@@ -1,5 +1,9 @@
 export interface WorkbenchAgentRecord {
   id: string;
+  installSource?: "expertPlazaProduct" | "enterpriseAgent";
+  productId?: string;
+  enterpriseAgentId?: string;
+  agentReleaseId?: string;
   name: string;
   avatarUrl?: string;
   visualSeed: string;
@@ -76,6 +80,10 @@ const normalizeRecords = (value: unknown): WorkbenchAgentRecord[] => {
 
       return {
         id: record.id,
+        installSource: record.installSource,
+        productId: record.productId,
+        enterpriseAgentId: record.enterpriseAgentId,
+        agentReleaseId: record.agentReleaseId,
         name: record.name,
         avatarUrl: record.avatarUrl,
         visualSeed: record.visualSeed || record.id,
@@ -120,6 +128,13 @@ export const upsertWorkbenchAgentRecord = (
     record,
     ...currentRecords.filter(currentRecord => currentRecord.id !== record.id),
   ];
+
+  saveWorkbenchAgentRecords(nextRecords);
+  return nextRecords;
+};
+
+export const removeWorkbenchAgentRecord = (recordId: string): WorkbenchAgentRecord[] => {
+  const nextRecords = loadWorkbenchAgentRecords().filter(record => record.id !== recordId);
 
   saveWorkbenchAgentRecords(nextRecords);
   return nextRecords;

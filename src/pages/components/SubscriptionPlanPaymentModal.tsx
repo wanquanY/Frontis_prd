@@ -157,8 +157,8 @@ export const SubscriptionPlanPaymentModal = ({
                   <strong>{plan.planLabel}</strong>
                 </div>
                 <div className={styles.summaryRow}>
-                  <span>计费周期</span>
-                  <strong>{plan.billingCycle === "monthly" ? "按月支付" : "按年支付"}</strong>
+                  <span>席位包</span>
+                  <strong>{plan.planLabel}</strong>
                 </div>
                 <div className={styles.summaryRow}>
                   <span>席位单价</span>
@@ -173,7 +173,7 @@ export const SubscriptionPlanPaymentModal = ({
                   <strong>{plan.giftPoints.toLocaleString("zh-CN")}，永久有效</strong>
                 </div>
                 <div className={styles.summaryRow}>
-                  <span>有效周期</span>
+                  <span>有效时间</span>
                   <strong>{plan.billingCycleLabel}</strong>
                 </div>
                 <div className={styles.summaryRow}>

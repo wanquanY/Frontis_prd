@@ -218,7 +218,6 @@
 }
 
 .navConversationHeading,
-.navConversationGroupTitle,
 .navConversationEmpty {
   color: var(--text-secondary);
 }
@@ -242,59 +241,6 @@
   scrollbar-gutter: stable;
 }
 
-.navConversationGroup {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.navConversationGroupTitle {
-  width: 100%;
-  min-height: 26px;
-  padding: 0 4px;
-  border: 0;
-  border-radius: 6px;
-  background: transparent;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12px;
-  line-height: 18px;
-  font-weight: 600;
-  text-align: left;
-  cursor: pointer;
-  transition:
-    background 160ms ease,
-    color 160ms ease;
-
-  &:hover {
-    background: color-mix(in srgb, var(--text) 5%, transparent);
-    color: var(--text);
-  }
-}
-
-.navConversationGroupName {
-  min-width: 0;
-  flex: 1;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.navConversationGroupCaret {
-  width: 7px;
-  height: 7px;
-  flex-shrink: 0;
-  border-right: 1.5px solid currentColor;
-  border-bottom: 1.5px solid currentColor;
-  transform: rotate(45deg) translateY(-1px);
-  transition: transform 160ms ease;
-}
-
-.navConversationGroupCaretCollapsed {
-  transform: rotate(-45deg);
-}
-
 .navConversationSession {
   width: 100%;
   min-height: 36px;
@@ -315,6 +261,29 @@
   }
 }
 
+.navConversationSessionAvatar {
+  width: 26px;
+  height: 26px;
+  margin-left: 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--primary) 10%, var(--surface));
+  color: var(--primary);
+  display: inline-flex;
+  flex: 0 0 26px;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1;
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+}
+
 .navConversationSessionActive {
   background: color-mix(in srgb, var(--text) 6%, transparent);
 }
@@ -323,7 +292,7 @@
   min-width: 0;
   flex: 1;
   align-self: stretch;
-  padding: 6px 0 6px 10px;
+  padding: 6px 0;
   border: 0;
   background: transparent;
   color: inherit;
@@ -403,23 +372,6 @@
   font-weight: 500;
   white-space: nowrap;
   transition: opacity 160ms ease;
-}
-
-.navConversationToggleButton {
-  width: fit-content;
-  max-width: 100%;
-  padding: 2px 4px;
-  border: 0;
-  background: transparent;
-  color: var(--primary);
-  font-size: 12px;
-  line-height: 18px;
-  font-weight: 600;
-  cursor: pointer;
-
-  &:hover {
-    text-decoration: underline;
-  }
 }
 
 .navConversationEmpty {

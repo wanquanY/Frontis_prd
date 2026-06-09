@@ -442,6 +442,8 @@ export interface WorkspaceChatPanelProps {
   selectedShareBlockIds?: string[];
   /** 切换某条消息是否纳入分享 */
   onToggleShareBlock?: (blockId: string) => void;
+  /** 点击消息底部分享入口后进入消息勾选模式 */
+  onStartShareSelection?: () => void;
   /** 点击消息发送者名称后回填到输入框 */
   onActorNameClick?: (mentionLabel: string) => void;
   /** 点击消息快捷建议后直接发送 */

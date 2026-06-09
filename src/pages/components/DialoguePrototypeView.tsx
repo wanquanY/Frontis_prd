@@ -10,15 +10,15 @@ import {
   DatabaseOutlined,
   DownOutlined,
   FileTextOutlined,
-  HistoryOutlined,
   LinkOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
+  MinusOutlined,
   MoreOutlined,
   PlusOutlined,
   CheckCircleOutlined,
   MessageOutlined,
-  ShareAltOutlined,
+  SearchOutlined,
   StarOutlined,
   TrophyOutlined,
   UserOutlined,
@@ -67,7 +67,6 @@ import {
   groupConversationEmployees,
   resolveArtifactUrl,
 } from "../utils";
-import { DialogueHistoryPanel } from "./DialogueHistoryPanel";
 import { DialogueInsightPanel } from "./DialogueInsightPanel";
 import { buildDialogueInsightTasks } from "./dialogueInsightPanelUtils";
 import { DialogueResultPanel } from "./DialogueResultPanel";
@@ -96,6 +95,7 @@ interface DialoguePrototypeViewProps {
   caseReplayOpenPanel?: "artifacts" | "results" | null;
   homeSkillItems: AiCeoHomeSkillItem[];
   meSchedulableExperts?: EmployeeItem[];
+  addableExpertPickerOptions?: Record<AddableExpertPickerSource, AddableExpertPickerOption[]>;
   isHomeVisible: boolean;
   isCaseReplayMode?: boolean;
   isDialogueResponding: boolean;
@@ -109,6 +109,7 @@ interface DialoguePrototypeViewProps {
   onClearMetaAgentTrajectory: () => void;
   onFeishuConnect?: () => void;
   onRemoveEmployee?: (employeeId: string) => void;
+  onAddSchedulableExpert?: (agentId: string) => void;
   onRemoveDialogueSession: (sessionId: string) => void;
   onRenameDialogueSession: (sessionId: string, title: string) => void;
   onEmployeeSelect: (employeeId: string) => void;
@@ -128,6 +129,28 @@ interface DialoguePrototypeViewProps {
   feishuQrCode?: string;
   viewerName: string;
 }
+
+export type AddableExpertPickerSource = "expertPlaza" | "enterprise";
+type AddableExpertPickerStatus = "unadded" | "added";
+
+export interface AddableExpertPickerOption {
+  id: string;
+  source: AddableExpertPickerSource;
+  name: string;
+  description: string;
+  avatarUrl?: string;
+  isAdded: boolean;
+  sourceLabel: string;
+  tags?: string[];
+}
+
+const ADDABLE_EXPERT_PICKER_STATUSES: Array<{
+  key: AddableExpertPickerStatus;
+  label: string;
+}> = [
+  { key: "unadded", label: "未添加" },
+  { key: "added", label: "已添加" },
+];
 
 interface ConversationSharePreviewItem {
   actorName: string;
@@ -469,6 +492,7 @@ export const DialoguePrototypeView = ({
   caseReplayOpenPanel,
   homeSkillItems,
   meSchedulableExperts = [],
+  addableExpertPickerOptions = { expertPlaza: [], enterprise: [] },
   isHomeVisible,
   isCaseReplayMode = false,
   isDialogueResponding,
@@ -482,6 +506,7 @@ export const DialoguePrototypeView = ({
   onClearMetaAgentTrajectory,
   onFeishuConnect,
   onRemoveEmployee,
+  onAddSchedulableExpert,
   onRemoveDialogueSession,
   onRenameDialogueSession,
   onEmployeeSelect,
@@ -516,11 +541,14 @@ export const DialoguePrototypeView = ({
   const [sidePanelMode, setSidePanelMode] = useState<"artifacts" | "results" | null>(null);
   const [preferredArtifactId, setPreferredArtifactId] = useState<string>();
   const [activeResultId, setActiveResultId] = useState<string | null>(null);
-  const [isDialogueHistoryOpen, setIsDialogueHistoryOpen] = useState<boolean>(false);
-  const [historyFocusBlockId, setHistoryFocusBlockId] = useState<string>("");
-  const [historyFocusRequestKey, setHistoryFocusRequestKey] = useState<string>("");
   const [isMetaAgentTrajectoryOpen, setIsMetaAgentTrajectoryOpen] = useState<boolean>(false);
   const [isFeishuQrModalOpen, setIsFeishuQrModalOpen] = useState<boolean>(false);
+  const [isAddExpertPickerOpen, setIsAddExpertPickerOpen] = useState<boolean>(false);
+  const [addExpertPickerSource, setAddExpertPickerSource] =
+    useState<AddableExpertPickerSource>("expertPlaza");
+  const [addExpertPickerStatus, setAddExpertPickerStatus] =
+    useState<AddableExpertPickerStatus>("unadded");
+  const [addExpertSearchValue, setAddExpertSearchValue] = useState<string>("");
   const [isConversationShareSelecting, setIsConversationShareSelecting] = useState<boolean>(false);
   const [selectedConversationShareBlockIds, setSelectedConversationShareBlockIds] = useState<
     Set<string>
@@ -572,26 +600,25 @@ export const DialoguePrototypeView = ({
     [allEmployees, defaultAgentIds],
   );
   const canRemoveEmployee = Boolean(onRemoveEmployee) && allEmployees.length > 1;
-  const dialogueSessionGroups = useMemo(() => {
+  const dialogueSessionRecords = useMemo(() => {
     const employeeMap = new Map(allEmployees.map(employee => [employee.id, employee]));
-    const sessionsByEmployee = new Map<string, DialogueSessionItem[]>();
 
-    allDialogueSessions.forEach(session => {
-      if (!employeeMap.has(session.employeeId)) {
-        return;
-      }
+    return allDialogueSessions
+      .map(session => {
+        const employee = employeeMap.get(session.employeeId);
 
-      const employeeSessions = sessionsByEmployee.get(session.employeeId) ?? [];
-      employeeSessions.push(session);
-      sessionsByEmployee.set(session.employeeId, employeeSessions);
-    });
+        if (!employee) {
+          return null;
+        }
 
-    return allEmployees
-      .map(employee => ({
-        employee,
-        sessions: sessionsByEmployee.get(employee.id) ?? [],
-      }))
-      .filter(group => group.sessions.length > 0);
+        return {
+          employee,
+          session,
+        };
+      })
+      .filter(
+        (item): item is { employee: EmployeeItem; session: DialogueSessionItem } => item !== null,
+      );
   }, [allDialogueSessions, allEmployees]);
   const shouldShowAgentSidebar = !hideAgentSidebar && !hideInternalSidebar;
   const shouldShowMetaAgentTrajectory =
@@ -616,6 +643,32 @@ export const DialoguePrototypeView = ({
 
     return Array.from(expertMap.values());
   }, [homeMeEmployee.id, meSchedulableExperts]);
+  const canAddSchedulableExperts = Boolean(onAddSchedulableExpert);
+  const addableExpertCount =
+    addableExpertPickerOptions.expertPlaza.length + addableExpertPickerOptions.enterprise.length;
+  const currentSourceExpertCount = addableExpertPickerOptions[addExpertPickerSource]?.length ?? 0;
+  const visibleAddableExpertOptions = useMemo(() => {
+    const keyword = addExpertSearchValue.trim().toLowerCase();
+    const sourceOptions = (addableExpertPickerOptions[addExpertPickerSource] ?? []).filter(
+      option => option.isAdded === (addExpertPickerStatus === "added"),
+    );
+
+    if (!keyword) {
+      return sourceOptions;
+    }
+
+    return sourceOptions.filter(option =>
+      [option.name, option.description, option.sourceLabel, ...(option.tags ?? [])]
+        .join(" ")
+        .toLowerCase()
+        .includes(keyword),
+    );
+  }, [
+    addExpertPickerSource,
+    addExpertPickerStatus,
+    addExpertSearchValue,
+    addableExpertPickerOptions,
+  ]);
   const handleOpenFeishuQrModal = useCallback((): void => {
     if (isFeishuConnected) {
       return;
@@ -627,10 +680,8 @@ export const DialoguePrototypeView = ({
     onFeishuConnect?.();
     setIsFeishuQrModalOpen(false);
   }, [onFeishuConnect]);
-  const resolvedFocusBlockId = focusBlockId?.trim() || historyFocusBlockId;
-  const resolvedFocusRequestKey = focusBlockId?.trim()
-    ? `external:${focusBlockId.trim()}`
-    : historyFocusRequestKey;
+  const resolvedFocusBlockId = focusBlockId?.trim() || "";
+  const resolvedFocusRequestKey = focusBlockId?.trim() ? `external:${focusBlockId.trim()}` : "";
   const clampSidePanelWidth = useCallback(
     (width: number): number => {
       if (!Number.isFinite(width)) {
@@ -756,7 +807,6 @@ export const DialoguePrototypeView = ({
     !isHomeVisible &&
     !isSidePanelVisible &&
     dialogueInsightTasks.length > 0;
-  const shouldShowWorkRecordEntry = isMetaAgentWorkspace && !isHomeVisible && !isSidePanelVisible;
   const { visibleSkillItems, overflowSkillItems } = useMemo(() => {
     if (selectedSkillItems.length > 0) {
       return {
@@ -1188,30 +1238,7 @@ export const DialoguePrototypeView = ({
     setPreferredArtifactId(undefined);
     setActiveResultId(null);
     setIsArtifactPreviewing(false);
-    setIsDialogueHistoryOpen(false);
   }, [isHomeVisible]);
-
-  useEffect(() => {
-    if (!isSidePanelVisible) {
-      return;
-    }
-
-    setIsDialogueHistoryOpen(false);
-  }, [isSidePanelVisible]);
-
-  useEffect(() => {
-    if (shouldShowWorkRecordEntry || !isDialogueHistoryOpen) {
-      return;
-    }
-
-    setIsDialogueHistoryOpen(false);
-  }, [isDialogueHistoryOpen, shouldShowWorkRecordEntry]);
-
-  useEffect(() => {
-    setIsDialogueHistoryOpen(false);
-    setHistoryFocusBlockId("");
-    setHistoryFocusRequestKey("");
-  }, [activeEmployee.id]);
 
   useEffect(() => {
     if (shouldShowMetaAgentTrajectory) {
@@ -1999,19 +2026,6 @@ export const DialoguePrototypeView = ({
     setSidePanelMode("results");
   };
 
-  const handleLocateDialogueHistoryMessage = (sessionId: string, anchorBlockId: string): void => {
-    if (!anchorBlockId.trim()) {
-      return;
-    }
-
-    if (sessionId !== activeDialogueSession?.id) {
-      onDialogueSessionSelect(sessionId);
-    }
-
-    setHistoryFocusBlockId(anchorBlockId);
-    setHistoryFocusRequestKey(`${sessionId}:${anchorBlockId}:${Date.now()}`);
-  };
-
   const handleSidePanelResizeStart = (event: ReactMouseEvent<HTMLDivElement>): void => {
     if (isStackedLayout) {
       return;
@@ -2320,7 +2334,7 @@ export const DialoguePrototypeView = ({
 
   const renderOutputTaskPanel = (): JSX.Element => {
     if (!metaAgentTrajectoryItems.length) {
-      return <div className={styles.outputPanelEmpty}>当前还没有任务记录。</div>;
+      return <div className={styles.outputPanelEmpty}>当前还没有对话记录。</div>;
     }
 
     return (
@@ -2751,94 +2765,90 @@ export const DialoguePrototypeView = ({
 
                   {showDialogueSessionMenu ? (
                     <div className={styles.dialogueSessionSection}>
-                      <div className={styles.dialogueSessionHeading}>会话记录</div>
+                      <div className={styles.dialogueSessionHeading}>对话记录</div>
                       <div className={styles.dialogueSessionList}>
-                        {dialogueSessionGroups.length > 0 ? (
-                          dialogueSessionGroups.map(group => (
-                            <div key={group.employee.id} className={styles.dialogueSwitcherGroup}>
-                              <div className={styles.dialogueSwitcherGroupTitle}>
-                                {group.employee.name}
-                              </div>
-                              {group.sessions.map(item => (
-                                <div
-                                  key={item.id}
-                                  className={classNames(styles.dialogueSessionItem, {
-                                    [styles.dialogueSessionItemActive]:
-                                      item.id === activeDialogueSession?.id,
-                                  })}
-                                >
-                                  {editingSessionId === item.id ? (
-                                    <div className={styles.dialogueSessionEditor}>
-                                      <Input
-                                        ref={sessionTitleInputRef}
-                                        size="small"
-                                        value={editingSessionTitle}
-                                        placeholder="输入会话名称"
-                                        onClick={event => event.stopPropagation()}
-                                        onChange={event =>
-                                          setEditingSessionTitle(event.target.value)
-                                        }
-                                        onPressEnter={() => handleSubmitRenameSession()}
-                                      />
-                                      <div className={styles.dialogueSessionEditorActions}>
-                                        <button
-                                          type="button"
-                                          className={styles.dialogueSessionEditorButton}
-                                          aria-label="保存会话名称"
-                                          onClick={handleSubmitRenameSession}
-                                        >
-                                          <CheckOutlined />
-                                        </button>
-                                        <button
-                                          type="button"
-                                          className={styles.dialogueSessionEditorButton}
-                                          aria-label="取消重命名"
-                                          onClick={handleCancelRenameSession}
-                                        >
-                                          <CloseOutlined />
-                                        </button>
-                                      </div>
-                                    </div>
-                                  ) : (
-                                    <>
-                                      <button
-                                        type="button"
-                                        className={styles.dialogueSessionMainButton}
-                                        onClick={() => onDialogueSessionSelect(item.id)}
-                                      >
-                                        <span className={styles.dialogueSessionContent}>
-                                          <span className={styles.dialogueSessionTitle}>
-                                            {item.title}
-                                          </span>
-                                          <span className={styles.dialogueSessionTime}>
-                                            {item.updatedAt}
-                                          </span>
-                                        </span>
-                                      </button>
-                                      <Dropdown
-                                        menu={{
-                                          items: getDialogueSessionMenuItems(item.id, item.title),
-                                        }}
-                                        trigger={["click"]}
-                                      >
-                                        <button
-                                          type="button"
-                                          className={styles.dialogueSessionMenuButton}
-                                          aria-label="会话操作"
-                                          onClick={handleMenuButtonClick}
-                                          onKeyDown={handleMenuButtonKeyDown}
-                                        >
-                                          <MoreOutlined />
-                                        </button>
-                                      </Dropdown>
-                                    </>
-                                  )}
+                        {dialogueSessionRecords.length > 0 ? (
+                          dialogueSessionRecords.map(({ employee, session: item }) => (
+                            <div
+                              key={item.id}
+                              className={classNames(styles.dialogueSessionItem, {
+                                [styles.dialogueSessionItemActive]:
+                                  item.id === activeDialogueSession?.id,
+                              })}
+                            >
+                              {editingSessionId === item.id ? (
+                                <div className={styles.dialogueSessionEditor}>
+                                  <Input
+                                    ref={sessionTitleInputRef}
+                                    size="small"
+                                    value={editingSessionTitle}
+                                    placeholder="输入对话名称"
+                                    onClick={event => event.stopPropagation()}
+                                    onChange={event => setEditingSessionTitle(event.target.value)}
+                                    onPressEnter={() => handleSubmitRenameSession()}
+                                  />
+                                  <div className={styles.dialogueSessionEditorActions}>
+                                    <button
+                                      type="button"
+                                      className={styles.dialogueSessionEditorButton}
+                                      aria-label="保存对话名称"
+                                      onClick={handleSubmitRenameSession}
+                                    >
+                                      <CheckOutlined />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      className={styles.dialogueSessionEditorButton}
+                                      aria-label="取消重命名"
+                                      onClick={handleCancelRenameSession}
+                                    >
+                                      <CloseOutlined />
+                                    </button>
+                                  </div>
                                 </div>
-                              ))}
+                              ) : (
+                                <>
+                                  <span className={styles.dialogueSessionAvatar}>
+                                    <Avatar src={employee.avatarUrl} size={28}>
+                                      {getAvatarText(employee.name)}
+                                    </Avatar>
+                                  </span>
+                                  <button
+                                    type="button"
+                                    className={styles.dialogueSessionMainButton}
+                                    onClick={() => onDialogueSessionSelect(item.id)}
+                                  >
+                                    <span className={styles.dialogueSessionContent}>
+                                      <span className={styles.dialogueSessionTitle}>
+                                        {item.title}
+                                      </span>
+                                      <span className={styles.dialogueSessionTime}>
+                                        {item.updatedAt}
+                                      </span>
+                                    </span>
+                                  </button>
+                                  <Dropdown
+                                    menu={{
+                                      items: getDialogueSessionMenuItems(item.id, item.title),
+                                    }}
+                                    trigger={["click"]}
+                                  >
+                                    <button
+                                      type="button"
+                                      className={styles.dialogueSessionMenuButton}
+                                      aria-label="对话操作"
+                                      onClick={handleMenuButtonClick}
+                                      onKeyDown={handleMenuButtonKeyDown}
+                                    >
+                                      <MoreOutlined />
+                                    </button>
+                                  </Dropdown>
+                                </>
+                              )}
                             </div>
                           ))
                         ) : (
-                          <div className={styles.dialogueSessionEmpty}>暂无历史会话</div>
+                          <div className={styles.dialogueSessionEmpty}>暂无历史对话</div>
                         )}
                       </div>
                     </div>
@@ -2903,33 +2913,51 @@ export const DialoguePrototypeView = ({
                 </button>
               </section>
 
-              {homeDispatchExperts.length > 0 ? (
+              {homeDispatchExperts.length > 0 || canAddSchedulableExperts ? (
                 <section className={styles.dialogueHomeDispatchPanel} aria-label="可调度 AI 专家">
-                  <div className={styles.dialogueHomeDispatchHeader}>可调度 AI 专家</div>
-                  <div className={styles.dialogueHomeDispatchList}>
-                    {homeDispatchExperts.map(expert => (
+                  <div className={styles.dialogueHomeDispatchHeader}>
+                    <span>可调度 AI 专家</span>
+                    {canAddSchedulableExperts ? (
                       <button
-                        key={expert.id}
                         type="button"
-                        className={classNames(styles.dialogueHomeDispatchItem, {
-                          [styles.dialogueHomeDispatchItemActive]: expert.id === activeEmployee.id,
-                        })}
-                        title={`和${expert.name}单独对话`}
-                        onClick={() => onEmployeeSelect(expert.id)}
+                        className={styles.dialogueHomeDispatchAddButton}
+                        aria-label="添加 AI 专家"
+                        title="添加 AI 专家"
+                        onClick={() => setIsAddExpertPickerOpen(true)}
                       >
-                        <div className={styles.dialogueHomeDispatchAvatar}>
-                          {expert.avatarUrl ? (
-                            <img alt={expert.name} src={expert.avatarUrl} />
-                          ) : (
-                            <span>{getAvatarText(expert.name)}</span>
-                          )}
-                        </div>
-                        <strong>{expert.name}</strong>
-                        {expert.id === activeEmployee.id ? (
-                          <CheckOutlined className={styles.dialogueHomeDispatchCheck} />
-                        ) : null}
+                        <PlusOutlined />
                       </button>
-                    ))}
+                    ) : null}
+                  </div>
+                  <div className={styles.dialogueHomeDispatchList}>
+                    {homeDispatchExperts.length > 0 ? (
+                      homeDispatchExperts.map(expert => (
+                        <button
+                          key={expert.id}
+                          type="button"
+                          className={classNames(styles.dialogueHomeDispatchItem, {
+                            [styles.dialogueHomeDispatchItemActive]:
+                              expert.id === activeEmployee.id,
+                          })}
+                          title={`和${expert.name}单独对话`}
+                          onClick={() => onEmployeeSelect(expert.id)}
+                        >
+                          <div className={styles.dialogueHomeDispatchAvatar}>
+                            {expert.avatarUrl ? (
+                              <img alt={expert.name} src={expert.avatarUrl} />
+                            ) : (
+                              <span>{getAvatarText(expert.name)}</span>
+                            )}
+                          </div>
+                          <strong>{expert.name}</strong>
+                          {expert.id === activeEmployee.id ? (
+                            <CheckOutlined className={styles.dialogueHomeDispatchCheck} />
+                          ) : null}
+                        </button>
+                      ))
+                    ) : (
+                      <div className={styles.dialogueHomeDispatchEmpty}>暂无可调度专家</div>
+                    )}
                   </div>
                 </section>
               ) : null}
@@ -2966,6 +2994,9 @@ export const DialoguePrototypeView = ({
                   shareSelectionEnabled={isConversationShareSelecting}
                   selectedShareBlockIds={selectedConversationShareBlockIdList}
                   onToggleShareBlock={handleToggleConversationShareBlock}
+                  onStartShareSelection={
+                    isConversationShareSelecting ? undefined : handleStartConversationShare
+                  }
                   onOpenArtifact={handleOpenArtifact}
                   onOpenResult={handleOpenResult}
                   onQuickActionSend={onQuickPromptSend}
@@ -2994,60 +3025,140 @@ export const DialoguePrototypeView = ({
             </button>
           ) : null}
           {!isHomeVisible ? (
-            <>
-              <button
-                type="button"
-                className={classNames(styles.dialogueViewButton, styles.dialogueViewPanelButton, {
-                  [styles.dialogueViewButtonActive]: isConversationShareSelecting,
+            <button
+              type="button"
+              className={classNames(styles.dialogueViewButton, styles.dialogueViewPanelButton, {
+                [styles.dialogueViewButtonActive]: isArtifactPanelVisible,
+              })}
+              aria-label={isArtifactPanelVisible ? "收起成果列表" : "展开成果列表"}
+              aria-pressed={isArtifactPanelVisible}
+              title={isArtifactPanelVisible ? "收起成果列表" : "展开成果列表"}
+              onClick={handleToggleArtifactsPanel}
+              disabled={!hasArtifactPanel}
+            >
+              <span
+                className={classNames(styles.dialogueViewPanelIcon, {
+                  [styles.dialogueViewPanelIconCollapsed]: isArtifactPanelVisible,
                 })}
-                aria-label={isConversationShareSelecting ? "取消对话分享" : "分享对话"}
-                aria-pressed={isConversationShareSelecting}
-                title={isConversationShareSelecting ? "取消分享选择" : "分享对话"}
-                onClick={
-                  isConversationShareSelecting
-                    ? handleCancelConversationShare
-                    : handleStartConversationShare
-                }
-                disabled={!shareableConversationBlocks.length && !isConversationShareSelecting}
-              >
-                <ShareAltOutlined className={styles.dialogueViewShareIcon} />
-              </button>
-              {shouldShowWorkRecordEntry ? (
-                <button
-                  type="button"
-                  className={classNames(styles.dialogueViewButton, styles.dialogueViewPanelButton, {
-                    [styles.dialogueViewButtonActive]: isDialogueHistoryOpen,
-                  })}
-                  aria-label={isDialogueHistoryOpen ? "关闭工作记录" : "打开工作记录"}
-                  aria-pressed={isDialogueHistoryOpen}
-                  title={isDialogueHistoryOpen ? "关闭工作记录" : "工作记录"}
-                  onClick={() => setIsDialogueHistoryOpen(current => !current)}
-                >
-                  <HistoryOutlined className={styles.dialogueViewHistoryIcon} />
-                </button>
-              ) : null}
-              <button
-                type="button"
-                className={classNames(styles.dialogueViewButton, styles.dialogueViewPanelButton, {
-                  [styles.dialogueViewButtonActive]: isArtifactPanelVisible,
-                })}
-                aria-label={isArtifactPanelVisible ? "收起成果列表" : "展开成果列表"}
-                aria-pressed={isArtifactPanelVisible}
-                title={isArtifactPanelVisible ? "收起成果列表" : "展开成果列表"}
-                onClick={handleToggleArtifactsPanel}
-                disabled={!hasArtifactPanel}
-              >
-                <span
-                  className={classNames(styles.dialogueViewPanelIcon, {
-                    [styles.dialogueViewPanelIconCollapsed]: isArtifactPanelVisible,
-                  })}
-                  aria-hidden={true}
-                />
-              </button>
-            </>
+                aria-hidden={true}
+              />
+            </button>
           ) : null}
         </div>
       ) : null}
+
+      <Modal
+        className={styles.meExpertPickerModal}
+        width={760}
+        centered
+        title="添加专家"
+        open={isAddExpertPickerOpen}
+        footer={null}
+        onCancel={() => setIsAddExpertPickerOpen(false)}
+      >
+        <div className={styles.meExpertPickerBody}>
+          <div className={styles.meExpertPickerToolbar}>
+            <div className={styles.meExpertPickerFilterStack}>
+              <div className={styles.meExpertPickerTabs} role="tablist" aria-label="专家来源">
+                {(
+                  [
+                    ["enterprise", "企业专区"],
+                    ["expertPlaza", "专家广场"],
+                  ] as const
+                ).map(([source, label]) => (
+                  <button
+                    key={source}
+                    type="button"
+                    role="tab"
+                    aria-selected={addExpertPickerSource === source}
+                    className={classNames(styles.meExpertPickerTab, {
+                      [styles.meExpertPickerTabActive]: addExpertPickerSource === source,
+                    })}
+                    onClick={() => setAddExpertPickerSource(source)}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+
+              <div className={styles.meExpertPickerStatusTabs} aria-label="添加状态筛选">
+                {ADDABLE_EXPERT_PICKER_STATUSES.map(status => (
+                  <button
+                    key={status.key}
+                    type="button"
+                    aria-pressed={addExpertPickerStatus === status.key}
+                    className={classNames(styles.meExpertPickerStatusTab, {
+                      [styles.meExpertPickerStatusTabActive]: addExpertPickerStatus === status.key,
+                    })}
+                    onClick={() => setAddExpertPickerStatus(status.key)}
+                  >
+                    {status.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <Input
+              className={styles.meExpertPickerSearch}
+              value={addExpertSearchValue}
+              placeholder="请输入内容"
+              allowClear
+              suffix={<SearchOutlined />}
+              onChange={event => setAddExpertSearchValue(event.target.value)}
+            />
+          </div>
+
+          <div className={styles.meExpertPickerList}>
+            {visibleAddableExpertOptions.length > 0 ? (
+              visibleAddableExpertOptions.map(option => (
+                <article key={option.id} className={styles.meExpertPickerItem}>
+                  <Avatar src={option.avatarUrl} size={48} className={styles.meExpertPickerAvatar}>
+                    {getAvatarText(option.name)}
+                  </Avatar>
+                  <div className={styles.meExpertPickerItemBody}>
+                    <div className={styles.meExpertPickerItemHeader}>
+                      <strong>{option.name}</strong>
+                      <span>{option.sourceLabel}</span>
+                    </div>
+                    <p>{option.description}</p>
+                    {option.tags?.length ? (
+                      <div className={styles.meExpertPickerTags}>
+                        {option.tags.map(tag => (
+                          <span key={tag}>{tag}</span>
+                        ))}
+                      </div>
+                    ) : null}
+                  </div>
+                  <button
+                    type="button"
+                    className={classNames(styles.meExpertPickerAddButton, {
+                      [styles.meExpertPickerRemoveButton]: option.isAdded,
+                    })}
+                    aria-label={option.isAdded ? `移除${option.name}` : `添加${option.name}`}
+                    title={option.isAdded ? "移除" : "添加"}
+                    onClick={() => {
+                      if (option.isAdded) {
+                        onRemoveEmployee?.(option.id);
+                      } else {
+                        onAddSchedulableExpert?.(option.id);
+                      }
+                    }}
+                  >
+                    {option.isAdded ? <MinusOutlined /> : <PlusOutlined />}
+                  </button>
+                </article>
+              ))
+            ) : (
+              <div className={styles.meExpertPickerEmpty}>
+                {addExpertSearchValue.trim()
+                  ? `当前搜索下暂无${addExpertPickerStatus === "added" ? "已添加" : "未添加"}专家。`
+                  : addableExpertCount > 0 && currentSourceExpertCount > 0
+                    ? `当前来源暂无${addExpertPickerStatus === "added" ? "已添加" : "未添加"}专家。`
+                    : "当前没有可展示的专家。"}
+              </div>
+            )}
+          </div>
+        </div>
+      </Modal>
 
       <Modal
         className={styles.feishuQrModal}
@@ -3157,14 +3268,6 @@ export const DialoguePrototypeView = ({
           </div>
         ) : null}
       </Modal>
-
-      {shouldShowWorkRecordEntry && isDialogueHistoryOpen ? (
-        <DialogueHistoryPanel
-          sessions={dialogueSessions}
-          onClose={() => setIsDialogueHistoryOpen(false)}
-          onLocateMessage={handleLocateDialogueHistoryMessage}
-        />
-      ) : null}
 
       {shouldShowDialogueInsightPanel ? (
         <DialogueInsightPanel tasks={dialogueInsightTasks} />

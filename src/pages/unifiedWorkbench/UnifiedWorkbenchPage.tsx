@@ -43,7 +43,7 @@ import {
 } from "@/constants/brand";
 import { AccountDropdownPanel } from "@/pages/components/AccountDropdownPanel";
 import type {
-  WorkbenchConversationNavGroup,
+  WorkbenchConversationNavSession,
   WorkbenchConversationNavState,
 } from "@/pages/FrontisPage";
 import {
@@ -129,94 +129,80 @@ const TAB_ITEMS: UnifiedWorkbenchNavItem[] = [
   },
 ];
 
-const DEFAULT_WORKBENCH_TASK_RECORD_GROUPS: WorkbenchConversationNavGroup[] = [
+const DEFAULT_WORKBENCH_CONVERSATION_RECORDS: WorkbenchConversationNavSession[] = [
   {
-    employeeId: "employee-writer",
-    employeeName: "ME",
-    sessions: [
-      {
-        id: "dialogue-seed-metaagent-collab",
-        title: "ME 持续对话",
-        updatedAt: "11:22",
-        active: false,
-      },
-      {
-        id: "dialogue-seed-metaagent-weekly-task-plan",
-        title: "本周任务编排",
-        updatedAt: "今天 20:12",
-        active: false,
-      },
-      {
-        id: "dialogue-seed-metaagent-store-experience",
-        title: "专家广场体验优化",
-        updatedAt: "今天 20:27",
-        active: false,
-      },
-      {
-        id: "dialogue-seed-metaagent-expert-detail-rules",
-        title: "专家详情规则梳理",
-        updatedAt: "今天 20:43",
-        active: false,
-      },
-      {
-        id: "dialogue-seed-metaagent-skill-file-preview",
-        title: "技能文件预览校准",
-        updatedAt: "今天 21:01",
-        active: false,
-      },
-      {
-        id: "dialogue-seed-metaagent-task-record-menu",
-        title: "任务记录菜单调整",
-        updatedAt: "今天 21:18",
-        active: false,
-      },
-      {
-        id: "dialogue-seed-metaagent-evolution-data",
-        title: "进化数据口径复盘",
-        updatedAt: "今天 21:36",
-        active: false,
-      },
-    ],
+    id: "dialogue-seed-metaagent-collab",
+    title: "ME 持续对话",
+    updatedAt: "11:22",
+    active: false,
+    avatarName: "ME",
   },
   {
-    employeeId: "team-shared-sales-script",
-    employeeName: "销售话术助手",
-    sessions: [
-      {
-        id: "dialogue-seed-sales-script-intent",
-        title: "客户异议话术整理",
-        updatedAt: "今天 20:18",
-        active: false,
-      },
-    ],
+    id: "dialogue-seed-metaagent-weekly-task-plan",
+    title: "本周任务编排",
+    updatedAt: "今天 20:12",
+    active: false,
+    avatarName: "ME",
   },
   {
-    employeeId: "team-shared-opportunity",
-    employeeName: "商机跟进提醒",
-    sessions: [
-      {
-        id: "dialogue-seed-opportunity-stalled",
-        title: "重点商机停滞预警",
-        updatedAt: "今天 20:36",
-        active: false,
-      },
-    ],
+    id: "dialogue-seed-sales-script-intent",
+    title: "客户异议话术整理",
+    updatedAt: "今天 20:18",
+    active: false,
+    avatarName: "销售话术助手",
   },
   {
-    employeeId: "team-shared-delivery",
-    employeeName: "项目交付助手",
-    sessions: [
-      {
-        id: "dialogue-seed-delivery-weekly-risk",
-        title: "本周交付风险周报",
-        updatedAt: "今天 20:52",
-        active: false,
-      },
-    ],
+    id: "dialogue-seed-metaagent-store-experience",
+    title: "专家广场体验优化",
+    updatedAt: "今天 20:27",
+    active: false,
+    avatarName: "ME",
+  },
+  {
+    id: "dialogue-seed-opportunity-stalled",
+    title: "重点商机停滞预警",
+    updatedAt: "今天 20:36",
+    active: false,
+    avatarName: "商机跟进提醒",
+  },
+  {
+    id: "dialogue-seed-metaagent-expert-detail-rules",
+    title: "专家详情规则梳理",
+    updatedAt: "今天 20:43",
+    active: false,
+    avatarName: "ME",
+  },
+  {
+    id: "dialogue-seed-delivery-weekly-risk",
+    title: "本周交付风险周报",
+    updatedAt: "今天 20:52",
+    active: false,
+    avatarName: "项目交付助手",
+  },
+  {
+    id: "dialogue-seed-metaagent-skill-file-preview",
+    title: "技能文件预览校准",
+    updatedAt: "今天 21:01",
+    active: false,
+    avatarName: "ME",
+  },
+  {
+    id: "dialogue-seed-metaagent-task-record-menu",
+    title: "对话记录菜单调整",
+    updatedAt: "今天 21:18",
+    active: false,
+    avatarName: "ME",
+  },
+  {
+    id: "dialogue-seed-metaagent-evolution-data",
+    title: "进化数据口径复盘",
+    updatedAt: "今天 21:36",
+    active: false,
+    avatarName: "ME",
   },
 ];
 
-const formatTaskRecordTime = (updatedAt: string): string => {
+const formatConversationRecordTime = (updatedAt: string): string => {
   const normalizedTime = updatedAt.trim();
 
   if (!normalizedTime) {
@@ -290,20 +276,13 @@ export const UnifiedWorkbenchPage = ({ viewRole }: UnifiedWorkbenchPageProps): J
   const [expertStudioResetKey, setExpertStudioResetKey] = useState<number>(0);
   const [conversationNavState, setConversationNavState] =
     useState<WorkbenchConversationNavState | null>(null);
-  const [fallbackTaskRecordGroups, setFallbackTaskRecordGroups] = useState<
-    WorkbenchConversationNavGroup[]
-  >(() => DEFAULT_WORKBENCH_TASK_RECORD_GROUPS);
+  const [fallbackConversationRecords, setFallbackConversationRecords] = useState<
+    WorkbenchConversationNavSession[]
+  >(() => DEFAULT_WORKBENCH_CONVERSATION_RECORDS);
   const [pendingConversationSessionId, setPendingConversationSessionId] = useState<string | null>(
     null,
   );
   const [pendingWorkbenchAgentId, setPendingWorkbenchAgentId] = useState<string | null>(null);
-  const [expandedConversationGroupIds, setExpandedConversationGroupIds] = useState<
-    Record<string, boolean>
-  >({});
-  const [collapsedConversationGroupIds, setCollapsedConversationGroupIds] = useState<
-    Record<string, boolean>
-  >({});
-
   const routeTab = useMemo<UnifiedWorkbenchTabKey | null>(
     () => getTabKeyFromPath(tabPath),
     [tabPath],
@@ -618,12 +597,11 @@ export const UnifiedWorkbenchPage = ({ viewRole }: UnifiedWorkbenchPageProps): J
     (sessionId: string, title: string): void => {
       let nextTitle = title;
       Modal.confirm({
-        title: "重命名任务",
+        title: "重命名对话",
         icon: null,
         content: (
           <Input
             defaultValue={title}
-            autoFocus={true}
             maxLength={30}
             onChange={event => {
               nextTitle = event.target.value;
@@ -635,20 +613,17 @@ export const UnifiedWorkbenchPage = ({ viewRole }: UnifiedWorkbenchPageProps): J
         onOk: () => {
           const normalizedTitle = nextTitle.trim();
           if (!normalizedTitle) {
-            message.warning("任务名称不能为空。");
+            message.warning("对话名称不能为空。");
             return Promise.reject();
           }
 
           if (conversationNavState) {
             conversationNavState.onRenameSession(sessionId, normalizedTitle);
           } else {
-            setFallbackTaskRecordGroups(currentGroups =>
-              currentGroups.map(group => ({
-                ...group,
-                sessions: group.sessions.map(session =>
-                  session.id === sessionId ? { ...session, title: normalizedTitle } : session,
-                ),
-              })),
+            setFallbackConversationRecords(currentRecords =>
+              currentRecords.map(session =>
+                session.id === sessionId ? { ...session, title: normalizedTitle } : session,
+              ),
             );
           }
 
@@ -662,8 +637,8 @@ export const UnifiedWorkbenchPage = ({ viewRole }: UnifiedWorkbenchPageProps): J
   const handleRemoveConversationSession = useCallback(
     (sessionId: string): void => {
       Modal.confirm({
-        title: "删除任务",
-        content: "删除后，该任务记录不可恢复。",
+        title: "删除对话",
+        content: "删除后，该对话记录不可恢复。",
         okText: "删除",
         okButtonProps: { danger: true },
         cancelText: "取消",
@@ -673,13 +648,8 @@ export const UnifiedWorkbenchPage = ({ viewRole }: UnifiedWorkbenchPageProps): J
             return;
           }
 
-          setFallbackTaskRecordGroups(currentGroups =>
-            currentGroups
-              .map(group => ({
-                ...group,
-                sessions: group.sessions.filter(session => session.id !== sessionId),
-              }))
-              .filter(group => group.sessions.length > 0),
+          setFallbackConversationRecords(currentRecords =>
+            currentRecords.filter(session => session.id !== sessionId),
           );
         },
       });
@@ -704,7 +674,7 @@ export const UnifiedWorkbenchPage = ({ viewRole }: UnifiedWorkbenchPageProps): J
     [activeTab, conversationNavState, navigate, viewRole],
   );
 
-  const visibleTaskRecordGroups = conversationNavState?.groups ?? fallbackTaskRecordGroups;
+  const visibleConversationRecords = conversationNavState?.sessions ?? fallbackConversationRecords;
   const featureAccountName = activeIdentity?.subjectName ?? session?.name ?? "当前账号";
   const activeContent = useMemo((): JSX.Element => {
     if (activeTab === "expertStudio") {
@@ -811,123 +781,75 @@ export const UnifiedWorkbenchPage = ({ viewRole }: UnifiedWorkbenchPageProps): J
             ))}
 
             {!isSidebarCollapsed ? (
-              <section className={styles.navConversationPanel} aria-label="任务记录">
-                <div className={styles.navConversationHeading}>任务记录</div>
+              <section className={styles.navConversationPanel} aria-label="对话记录">
+                <div className={styles.navConversationHeading}>对话记录</div>
                 <div className={styles.navConversationList}>
-                  {visibleTaskRecordGroups.length ? (
-                    visibleTaskRecordGroups.map(group => {
-                      const isExpanded = Boolean(expandedConversationGroupIds[group.employeeId]);
-                      const isGroupCollapsed = Boolean(
-                        collapsedConversationGroupIds[group.employeeId],
-                      );
-                      const visibleSessions = isExpanded
-                        ? group.sessions
-                        : group.sessions.slice(0, 5);
-                      const hasMoreSessions = group.sessions.length > 5;
+                  {visibleConversationRecords.length ? (
+                    visibleConversationRecords.map(session => {
+                      const displayTitle = truncateConversationNavTitle(session.title);
 
                       return (
-                        <div key={group.employeeId} className={styles.navConversationGroup}>
+                        <div
+                          key={session.id}
+                          className={classNames(styles.navConversationSession, {
+                            [styles.navConversationSessionActive]: session.active,
+                          })}
+                        >
+                          <span className={styles.navConversationSessionAvatar}>
+                            {session.avatarUrl ? (
+                              <img alt={session.avatarName} src={session.avatarUrl} />
+                            ) : (
+                              session.avatarName.slice(0, 1)
+                            )}
+                          </span>
                           <button
                             type="button"
-                            className={styles.navConversationGroupTitle}
-                            aria-expanded={!isGroupCollapsed}
-                            onClick={() =>
-                              setCollapsedConversationGroupIds(current => ({
-                                ...current,
-                                [group.employeeId]: !isGroupCollapsed,
-                              }))
-                            }
+                            className={styles.navConversationSessionMain}
+                            title={session.title}
+                            onClick={() => handleSelectConversationSession(session.id)}
                           >
-                            <span className={styles.navConversationGroupName}>
-                              {group.employeeName}
+                            <span className={styles.navConversationSessionTitle}>
+                              {displayTitle}
                             </span>
-                            <span
-                              className={classNames(styles.navConversationGroupCaret, {
-                                [styles.navConversationGroupCaretCollapsed]: isGroupCollapsed,
-                              })}
-                            />
                           </button>
-                          {isGroupCollapsed
-                            ? null
-                            : visibleSessions.map(session => {
-                                const displayTitle = truncateConversationNavTitle(session.title);
-
-                                return (
-                                  <div
-                                    key={session.id}
-                                    className={classNames(styles.navConversationSession, {
-                                      [styles.navConversationSessionActive]: session.active,
-                                    })}
-                                  >
-                                    <button
-                                      type="button"
-                                      className={styles.navConversationSessionMain}
-                                      title={session.title}
-                                      onClick={() => handleSelectConversationSession(session.id)}
-                                    >
-                                      <span className={styles.navConversationSessionTitle}>
-                                        {displayTitle}
-                                      </span>
-                                    </button>
-                                    <div className={styles.navConversationSessionTrailing}>
-                                      <span className={styles.navConversationSessionTime}>
-                                        {formatTaskRecordTime(session.updatedAt)}
-                                      </span>
-                                      <Dropdown
-                                        trigger={["click"]}
-                                        menu={{
-                                          items: [
-                                            {
-                                              key: "rename",
-                                              label: "重命名",
-                                              onClick: () =>
-                                                handleRenameConversationSession(
-                                                  session.id,
-                                                  session.title,
-                                                ),
-                                            },
-                                            {
-                                              key: "delete",
-                                              label: "删除",
-                                              danger: true,
-                                              onClick: () =>
-                                                handleRemoveConversationSession(session.id),
-                                            },
-                                          ],
-                                        }}
-                                      >
-                                        <button
-                                          type="button"
-                                          className={styles.navConversationSessionAction}
-                                          aria-label="任务操作"
-                                          onClick={event => event.stopPropagation()}
-                                        >
-                                          <MoreOutlined />
-                                        </button>
-                                      </Dropdown>
-                                    </div>
-                                  </div>
-                                );
-                              })}
-                          {!isGroupCollapsed && hasMoreSessions ? (
-                            <button
-                              type="button"
-                              className={styles.navConversationToggleButton}
-                              onClick={() =>
-                                setExpandedConversationGroupIds(current => ({
-                                  ...current,
-                                  [group.employeeId]: !isExpanded,
-                                }))
-                              }
+                          <div className={styles.navConversationSessionTrailing}>
+                            <span className={styles.navConversationSessionTime}>
+                              {formatConversationRecordTime(session.updatedAt)}
+                            </span>
+                            <Dropdown
+                              trigger={["click"]}
+                              menu={{
+                                items: [
+                                  {
+                                    key: "rename",
+                                    label: "重命名",
+                                    onClick: () =>
+                                      handleRenameConversationSession(session.id, session.title),
+                                  },
+                                  {
+                                    key: "delete",
+                                    label: "删除",
+                                    danger: true,
+                                    onClick: () => handleRemoveConversationSession(session.id),
+                                  },
+                                ],
+                              }}
                             >
-                              {isExpanded ? "收起" : `展开更多 ${group.sessions.length - 5} 条`}
-                            </button>
-                          ) : null}
+                              <button
+                                type="button"
+                                className={styles.navConversationSessionAction}
+                                aria-label="对话操作"
+                                onClick={event => event.stopPropagation()}
+                              >
+                                <MoreOutlined />
+                              </button>
+                            </Dropdown>
+                          </div>
                         </div>
                       );
                     })
                   ) : (
-                    <div className={styles.navConversationEmpty}>暂无历史任务</div>
+                    <div className={styles.navConversationEmpty}>暂无对话记录</div>
                   )}
                 </div>
               </section>

@@ -10,11 +10,13 @@ import type {
 } from "@/feature/auth/types";
 import type { OperationsTenant } from "@/feature/operations/types";
 import {
+  getActiveMockSubscriptionPlanTemplates,
+  getMockSubscriptionPlanTemplate,
   getMockSubscriptionPlanPurchaseOption,
-  getMockTenantActiveSubscriptionBillingCycle,
+  getMockTenantActiveSubscriptionPlanKey,
 } from "@/feature/subscription/mockSubscriptionPlans";
 import type {
-  MockSubscriptionBillingCycle,
+  MockSubscriptionPlanKey,
   MockSubscriptionPlanPurchaseOption,
 } from "@/feature/subscription/types";
 import adminStyles from "@/pages/components/FrontisAdminViews.module.less";
@@ -22,8 +24,8 @@ import adminStyles from "@/pages/components/FrontisAdminViews.module.less";
 import styles from "./OperationsBillingConsole.module.less";
 
 interface TenantPlanEditorState {
-  billingCycle: MockSubscriptionBillingCycle;
   open: boolean;
+  planKey?: MockSubscriptionPlanKey;
   seatCount: number;
   tenantId?: string;
 }
@@ -73,7 +75,6 @@ const getTenantSubscriptionStatus = (
 };
 
 const createTenantPlanEditor = (tenantId?: string): TenantPlanEditorState => ({
-  billingCycle: "monthly",
   open: Boolean(tenantId),
   seatCount: 1,
   tenantId,
@@ -100,13 +101,20 @@ export const OperationsBillingConsole = ({
   const selectedTenantRecord = tenantBillingRecords.find(
     item => item.tenant.id === tenantPlanEditor.tenantId,
   );
-  const lockedTenantBillingCycle = getMockTenantActiveSubscriptionBillingCycle(
+  const activeSeatPackages = getActiveMockSubscriptionPlanTemplates();
+  const visibleSeatPackages =
+    activeSeatPackages.length > 0
+      ? activeSeatPackages
+      : [getMockSubscriptionPlanTemplate("team-monthly-seat-package")];
+  const lockedTenantPlanKey = getMockTenantActiveSubscriptionPlanKey(
     selectedTenantRecord?.snapshot,
   );
+  const defaultPlanKey = visibleSeatPackages[0]?.key;
+  const selectedPlanKey = lockedTenantPlanKey ?? tenantPlanEditor.planKey ?? defaultPlanKey;
   const purchasePreview = tenantPlanEditor.tenantId
     ? getMockSubscriptionPlanPurchaseOption(
         {
-          billingCycle: tenantPlanEditor.billingCycle,
+          planKey: selectedPlanKey,
           seatCount: tenantPlanEditor.seatCount,
         },
         selectedTenantRecord?.snapshot,
@@ -114,15 +122,15 @@ export const OperationsBillingConsole = ({
     : null;
 
   useEffect(() => {
-    if (!tenantPlanEditor.open || !lockedTenantBillingCycle) {
+    if (!tenantPlanEditor.open || !lockedTenantPlanKey) {
       return;
     }
 
     setTenantPlanEditor(current => ({
       ...current,
-      billingCycle: lockedTenantBillingCycle,
+      planKey: lockedTenantPlanKey,
     }));
-  }, [lockedTenantBillingCycle, tenantPlanEditor.open, tenantPlanEditor.tenantId]);
+  }, [lockedTenantPlanKey, tenantPlanEditor.open, tenantPlanEditor.tenantId]);
 
   const handleSubmitTenantPlan = (): void => {
     if (!tenantPlanEditor.tenantId || !purchasePreview) {
@@ -162,7 +170,7 @@ export const OperationsBillingConsole = ({
                 <th>租户</th>
                 <th>当前计划</th>
                 <th>席位</th>
-                <th>付费周期</th>
+                <th>有效时间</th>
                 <th>最近订单</th>
                 <th>到期时间</th>
                 <th>状态</th>
@@ -244,14 +252,12 @@ export const OperationsBillingConsole = ({
               }))}
               onChange={tenantId => {
                 const nextRecord = tenantBillingRecords.find(item => item.tenant.id === tenantId);
-                const nextBillingCycle = getMockTenantActiveSubscriptionBillingCycle(
-                  nextRecord?.snapshot,
-                );
+                const nextPlanKey = getMockTenantActiveSubscriptionPlanKey(nextRecord?.snapshot);
 
                 setTenantPlanEditor(current => ({
                   ...current,
                   tenantId,
-                  billingCycle: nextBillingCycle ?? current.billingCycle,
+                  planKey: nextPlanKey ?? current.planKey ?? defaultPlanKey,
                 }));
               }}
             />
@@ -273,18 +279,18 @@ export const OperationsBillingConsole = ({
               />
             </div>
             <div className={styles.modalField}>
-              <span>计费周期</span>
-              <Select<MockSubscriptionBillingCycle>
-                value={tenantPlanEditor.billingCycle}
-                disabled={Boolean(lockedTenantBillingCycle)}
-                options={[
-                  { value: "monthly", label: "按月支付" },
-                  { value: "yearly", label: "按年支付" },
-                ]}
-                onChange={billingCycle =>
+              <span>席位包</span>
+              <Select<MockSubscriptionPlanKey>
+                value={selectedPlanKey}
+                disabled={Boolean(lockedTenantPlanKey)}
+                options={visibleSeatPackages.map(item => ({
+                  value: item.key,
+                  label: item.title,
+                }))}
+                onChange={planKey =>
                   setTenantPlanEditor(current => ({
                     ...current,
-                    billingCycle,
+                    planKey,
                   }))
                 }
               />
@@ -306,7 +312,7 @@ export const OperationsBillingConsole = ({
               </div>
               {purchasePreview.prorationLabel ? (
                 <div className={styles.previewRow}>
-                  <span>计费周期</span>
+                  <span>折算规则</span>
                   <strong>{purchasePreview.prorationLabel}</strong>
                 </div>
               ) : null}

@@ -1,4 +1,7 @@
-import type { MockTenantManagementSnapshot } from "@/feature/auth/types";
+import type {
+  MockTenantManagementSnapshot,
+  MockTenantSubscriptionOrderItem,
+} from "@/feature/auth/types";
 import {
   getMockTenantManagementSnapshot,
   saveMockTenantManagementSnapshot,
@@ -19,12 +22,12 @@ import type {
   MockSubscriptionValidityUnit,
 } from "./types";
 
-const MOCK_SUBSCRIPTION_PLAN_STORAGE_KEY = "frontis.mock.team-seat-packages.v2";
+const MOCK_SUBSCRIPTION_PLAN_STORAGE_KEY = "frontis.mock.team-seat-packages.v3";
 const MOCK_SUBSCRIPTION_TODAY = "2026-05-25";
-const PRO_MONTHLY_SEAT_PRICE = 39;
-const PRO_YEARLY_SEAT_PRICE = 399;
-const TEAM_SEAT_PACKAGE_KEY = "team-seat-package";
+const TEAM_MONTHLY_SEAT_PACKAGE_KEY = "team-monthly-seat-package";
+const TEAM_YEARLY_SEAT_PACKAGE_KEY = "team-yearly-seat-package";
 const INTERNAL_SEAT_PACKAGE_KEY = "internal-offline-seat-package";
+const PRIMARY_SEAT_SPEC_KEY = "seat-package-main";
 const MONTHLY_SEAT_SPEC_KEY = "monthly-seat-package";
 const YEARLY_SEAT_SPEC_KEY = "yearly-seat-package";
 const LEGACY_INTERNAL_SEAT_BILLING_CYCLE = ["internal", "free"].join("-");
@@ -34,6 +37,7 @@ const LEGACY_SUBSCRIPTION_PLAN_KEYS = new Set([
   "pro-monthly",
   "pro-yearly",
   "enterprise-contract-yearly",
+  "team-seat-package",
 ]);
 
 type CreateMockSubscriptionPlanPayload = MockSubscriptionPlanTemplateInput;
@@ -45,12 +49,13 @@ interface DateParts {
 }
 
 const VALIDITY_UNIT_LABELS: Record<MockSubscriptionValidityUnit, string> = {
+  day: "天",
   month: "月",
   year: "年",
 };
 
 /**
- * 格式化订阅包有效期展示文案。
+ * 格式化席位包有效时间展示文案。
  */
 export const formatMockSubscriptionValidity = (
   validityCount: number,
@@ -64,32 +69,102 @@ const formatSeatUnitPrice = (
 ): string =>
   `¥${Math.max(priceAmount, 0).toLocaleString("zh-CN")} / 席 / ${VALIDITY_UNIT_LABELS[validityUnit]}`;
 
+const createSeatPackageSpec = (
+  title: string,
+  priceAmount: number,
+  giftPoints: number,
+  validityCount: number,
+  validityUnit: MockSubscriptionValidityUnit,
+): MockSubscriptionPlanSpec => ({
+  key: PRIMARY_SEAT_SPEC_KEY,
+  title,
+  billingCycle: PRIMARY_SEAT_SPEC_KEY,
+  billingCycleLabel: formatMockSubscriptionValidity(validityCount, validityUnit),
+  enabled: true,
+  priceAmount,
+  giftPoints,
+  validityCount,
+  validityUnit,
+  contractPriceEnabled: false,
+  contractPriceAmount: 0,
+});
+
 const createPresetSubscriptionPlanSpecs = (): MockSubscriptionPlanSpec[] => [
+  createSeatPackageSpec("月席位包", 199, 0, 1, "month"),
+];
+
+const createMonthlySeatPackageSpecs = (): MockSubscriptionPlanSpec[] => [
+  createSeatPackageSpec("月席位包", 199, 0, 1, "month"),
+];
+
+const createYearlySeatPackageSpecs = (): MockSubscriptionPlanSpec[] => [
+  createSeatPackageSpec("年席位包", 1999, 0, 1, "year"),
+];
+
+const createInternalSeatPackageSpecs = (): MockSubscriptionPlanSpec[] => [
+  createSeatPackageSpec("线下合同席位包 15 个月", 0, 5000, 15, "month"),
+];
+
+const PRESET_SUBSCRIPTION_PLANS: MockSubscriptionPlanTemplate[] = [
   {
-    key: MONTHLY_SEAT_SPEC_KEY,
-    title: "月付席位包",
-    billingCycle: "monthly",
-    billingCycleLabel: "按月支付",
-    enabled: true,
-    priceAmount: PRO_MONTHLY_SEAT_PRICE,
-    giftPoints: 1000,
-    validityCount: 1,
-    validityUnit: "month",
-    contractPriceEnabled: false,
-    contractPriceAmount: 0,
+    key: TEAM_MONTHLY_SEAT_PACKAGE_KEY,
+    sequence: "01",
+    title: "月席位包",
+    seatCount: 1,
+    monthlyEnabled: true,
+    yearlyEnabled: false,
+    contractYearlyEnabled: false,
+    monthlyPriceAmount: 199,
+    yearlyPriceAmount: 0,
+    contractYearlyPriceAmount: 0,
+    monthlyGiftPoints: 0,
+    yearlyGiftPoints: 0,
+    monthlyValidityCount: 1,
+    yearlyValidityCount: 1,
+    specs: createMonthlySeatPackageSpecs(),
+    scope: "public",
+    status: "active",
+    updatedAt: "2026-05-25 10:00",
   },
   {
-    key: YEARLY_SEAT_SPEC_KEY,
-    title: "年付席位包",
-    billingCycle: "yearly",
-    billingCycleLabel: "按年支付",
-    enabled: true,
-    priceAmount: PRO_YEARLY_SEAT_PRICE,
-    giftPoints: 12000,
-    validityCount: 1,
-    validityUnit: "year",
-    contractPriceEnabled: false,
-    contractPriceAmount: 0,
+    key: TEAM_YEARLY_SEAT_PACKAGE_KEY,
+    sequence: "02",
+    title: "年席位包",
+    seatCount: 1,
+    monthlyEnabled: true,
+    yearlyEnabled: false,
+    contractYearlyEnabled: false,
+    monthlyPriceAmount: 1999,
+    yearlyPriceAmount: 1999,
+    contractYearlyPriceAmount: 0,
+    monthlyGiftPoints: 0,
+    yearlyGiftPoints: 0,
+    monthlyValidityCount: 12,
+    yearlyValidityCount: 1,
+    specs: createYearlySeatPackageSpecs(),
+    scope: "public",
+    status: "active",
+    updatedAt: "2026-05-25 10:05",
+  },
+  {
+    key: INTERNAL_SEAT_PACKAGE_KEY,
+    sequence: "03",
+    title: "线下合同席位包 15 个月",
+    seatCount: 1,
+    monthlyEnabled: true,
+    yearlyEnabled: false,
+    contractYearlyEnabled: false,
+    monthlyPriceAmount: 0,
+    yearlyPriceAmount: 0,
+    contractYearlyPriceAmount: 0,
+    monthlyGiftPoints: 5000,
+    yearlyGiftPoints: 0,
+    monthlyValidityCount: 15,
+    yearlyValidityCount: 1,
+    specs: createInternalSeatPackageSpecs(),
+    scope: "internal",
+    status: "active",
+    updatedAt: "2026-05-25 10:10",
   },
 ];
 
@@ -103,6 +178,27 @@ const getMockSubscriptionPlanSpecs = (
   plan.specs.length > 0
     ? plan.specs.map(cloneSubscriptionPlanSpec)
     : createPresetSubscriptionPlanSpecs();
+
+export const getPrimaryMockSubscriptionPlanSpec = (
+  plan: MockSubscriptionPlanTemplate,
+): MockSubscriptionPlanSpec => {
+  const specs = getMockSubscriptionPlanSpecs(plan);
+  const fallbackSpec = createPresetSubscriptionPlanSpecs()[0];
+
+  if (!fallbackSpec) {
+    throw new Error("Missing preset subscription plan spec.");
+  }
+
+  return specs.find(item => item.enabled) ?? specs[0] ?? fallbackSpec;
+};
+
+export const getMockSubscriptionPlanValidityLabel = (
+  plan: MockSubscriptionPlanTemplate,
+): string => {
+  const spec = getPrimaryMockSubscriptionPlanSpec(plan);
+
+  return formatMockSubscriptionValidity(spec.validityCount, spec.validityUnit);
+};
 
 /**
  * 根据团队席位包配置生成运营侧展示信息。
@@ -125,84 +221,11 @@ export const buildMockSubscriptionPlanBenefitTexts = (
   >,
 ): string[] => [
   `${plan.seatCount} 个席位单位`,
-  ...plan.specs.flatMap(spec =>
-    spec.enabled
-      ? [
-          `${spec.title} ${formatSeatUnitPrice(spec.priceAmount, spec.validityUnit)}`,
-          `${spec.title}赠送 ${spec.giftPoints.toLocaleString("zh-CN")} 积分`,
-        ]
-      : [],
-  ),
-];
+  ...plan.specs.slice(0, 1).map(spec => {
+    const validityLabel = formatMockSubscriptionValidity(spec.validityCount, spec.validityUnit);
 
-const PRESET_SUBSCRIPTION_PLANS: MockSubscriptionPlanTemplate[] = [
-  {
-    key: TEAM_SEAT_PACKAGE_KEY,
-    sequence: "01",
-    title: "团队席位包",
-    seatCount: 1,
-    monthlyEnabled: true,
-    yearlyEnabled: true,
-    contractYearlyEnabled: false,
-    monthlyPriceAmount: PRO_MONTHLY_SEAT_PRICE,
-    yearlyPriceAmount: PRO_YEARLY_SEAT_PRICE,
-    contractYearlyPriceAmount: 0,
-    monthlyGiftPoints: 1000,
-    yearlyGiftPoints: 12000,
-    monthlyValidityCount: 1,
-    yearlyValidityCount: 1,
-    specs: createPresetSubscriptionPlanSpecs(),
-    scope: "public",
-    status: "active",
-    updatedAt: "2026-05-25 10:00",
-  },
-  {
-    key: INTERNAL_SEAT_PACKAGE_KEY,
-    sequence: "02",
-    title: "线下合同席位包",
-    seatCount: 1,
-    monthlyEnabled: true,
-    yearlyEnabled: true,
-    contractYearlyEnabled: false,
-    monthlyPriceAmount: 0,
-    yearlyPriceAmount: 0,
-    contractYearlyPriceAmount: 0,
-    monthlyGiftPoints: 0,
-    yearlyGiftPoints: 0,
-    monthlyValidityCount: 1,
-    yearlyValidityCount: 1,
-    specs: [
-      {
-        key: `${INTERNAL_SEAT_PACKAGE_KEY}-monthly`,
-        title: "月付席位包",
-        billingCycle: "monthly",
-        billingCycleLabel: "按月支付",
-        enabled: true,
-        priceAmount: 0,
-        giftPoints: 0,
-        validityCount: 1,
-        validityUnit: "month",
-        contractPriceEnabled: false,
-        contractPriceAmount: 0,
-      },
-      {
-        key: `${INTERNAL_SEAT_PACKAGE_KEY}-yearly`,
-        title: "年付席位包",
-        billingCycle: "yearly",
-        billingCycleLabel: "按年支付",
-        enabled: true,
-        priceAmount: 0,
-        giftPoints: 0,
-        validityCount: 1,
-        validityUnit: "year",
-        contractPriceEnabled: false,
-        contractPriceAmount: 0,
-      },
-    ],
-    scope: "internal",
-    status: "active",
-    updatedAt: "2026-05-29 10:00",
-  },
+    return `每席 ¥${Math.max(spec.priceAmount, 0).toLocaleString("zh-CN")} / ${validityLabel}，赠送 ${spec.giftPoints.toLocaleString("zh-CN")} 积分`;
+  }),
 ];
 
 const cloneSubscriptionPlan = (
@@ -250,7 +273,8 @@ const readPlanScope = (
 const readValidityUnit = (
   value: unknown,
   fallback: MockSubscriptionValidityUnit,
-): MockSubscriptionValidityUnit => (value === "year" || value === "month" ? value : fallback);
+): MockSubscriptionValidityUnit =>
+  value === "day" || value === "month" || value === "year" ? value : fallback;
 
 const buildLegacyPlanSpecs = (
   plan: Pick<
@@ -269,9 +293,9 @@ const buildLegacyPlanSpecs = (
 ): MockSubscriptionPlanSpec[] => [
   {
     key: MONTHLY_SEAT_SPEC_KEY,
-    title: "月付席位包",
+    title: "1 个月席位包",
     billingCycle: "monthly",
-    billingCycleLabel: "按月支付",
+    billingCycleLabel: "1 个月",
     enabled: plan.monthlyEnabled,
     priceAmount: plan.monthlyPriceAmount,
     giftPoints: plan.monthlyGiftPoints,
@@ -282,9 +306,9 @@ const buildLegacyPlanSpecs = (
   },
   {
     key: YEARLY_SEAT_SPEC_KEY,
-    title: "年付席位包",
+    title: "12 个月席位包",
     billingCycle: "yearly",
-    billingCycleLabel: "按年支付",
+    billingCycleLabel: "12 个月",
     enabled: plan.yearlyEnabled,
     priceAmount: plan.yearlyPriceAmount,
     giftPoints: plan.yearlyGiftPoints,
@@ -582,6 +606,13 @@ const addYears = (dateValue: string, yearCount: number): string => {
   return formatDate(currentDate);
 };
 
+const addDays = (dateValue: string, dayCount: number): string => {
+  const currentDate = toDate(dateValue);
+  currentDate.setDate(currentDate.getDate() + dayCount);
+
+  return formatDate(currentDate);
+};
+
 const getDaysBetween = (startDateValue: string, endDateValue: string): number => {
   const startDate = toDate(startDateValue);
   const endDate = toDate(endDateValue);
@@ -593,8 +624,32 @@ const getDaysBetween = (startDateValue: string, endDateValue: string): number =>
 const isDateAfter = (leftDateValue: string | undefined, rightDateValue: string): boolean =>
   Boolean(leftDateValue) && getDaysBetween(rightDateValue, leftDateValue ?? rightDateValue) > 0;
 
-const getLatestPaidSubscriptionOrder = (tenantSnapshot?: MockTenantManagementSnapshot | null) =>
-  tenantSnapshot?.subscriptionOrders.find(order => order.status === "paid") ?? null;
+const getOrderTimeRank = (order: MockTenantSubscriptionOrderItem): number | null => {
+  const dateValue = (order.paidAt ?? order.createdAt).trim().replace(" ", "T");
+  const timestamp = Date.parse(dateValue);
+
+  return Number.isFinite(timestamp) ? timestamp : null;
+};
+
+const getLatestPaidSubscriptionOrder = (
+  tenantSnapshot?: MockTenantManagementSnapshot | null,
+): MockTenantSubscriptionOrderItem | null =>
+  (tenantSnapshot?.subscriptionOrders ?? [])
+    .filter(order => order.status === "paid")
+    .reduce<MockTenantSubscriptionOrderItem | null>((latestOrder, currentOrder) => {
+      if (!latestOrder) {
+        return currentOrder;
+      }
+
+      const latestRank = getOrderTimeRank(latestOrder);
+      const currentRank = getOrderTimeRank(currentOrder);
+
+      if (latestRank === null || currentRank === null) {
+        return latestOrder;
+      }
+
+      return currentRank > latestRank ? currentOrder : latestOrder;
+    }, null);
 
 export const getMockTenantActiveSubscriptionBillingCycle = (
   tenantSnapshot?: MockTenantManagementSnapshot | null,
@@ -606,16 +661,32 @@ export const getMockTenantActiveSubscriptionBillingCycle = (
   return getLatestPaidSubscriptionOrder(tenantSnapshot)?.billingCycle ?? null;
 };
 
+export const getMockTenantActiveSubscriptionPlanKey = (
+  tenantSnapshot?: MockTenantManagementSnapshot | null,
+): MockSubscriptionPlanKey | null => {
+  if (!isDateAfter(tenantSnapshot?.planExpiresAt, MOCK_SUBSCRIPTION_TODAY)) {
+    return null;
+  }
+
+  return (
+    getLatestPaidSubscriptionOrder(tenantSnapshot)?.planKey ??
+    tenantSnapshot?.teamPlanPackageId ??
+    null
+  );
+};
+
 const getPlanBillingConfig = (
   plan: MockSubscriptionPlanTemplate,
-  billingCycle: MockSubscriptionBillingCycle,
+  billingCycle?: MockSubscriptionBillingCycle,
 ): {
   giftPoints: number;
   priceAmount: number;
   validityCount: number;
   validityUnit: MockSubscriptionValidityUnit;
 } => {
-  const matchedSpec = getPrimarySpecByBillingCycle(plan, billingCycle);
+  const matchedSpec = billingCycle
+    ? getPrimarySpecByBillingCycle(plan, billingCycle)
+    : getPrimaryMockSubscriptionPlanSpec(plan);
 
   if (matchedSpec) {
     return {
@@ -639,23 +710,31 @@ const getPlanCycleDays = (
 ): number => {
   const cycleCount = Math.max(plan.validityCount, 1);
 
+  if (plan.validityUnit === "day") {
+    return cycleCount;
+  }
+
   return plan.validityUnit === "month" ? cycleCount * 30 : cycleCount * 365;
 };
 
 const getDefaultExpiresAt = (
   plan: Pick<ReturnType<typeof getPlanBillingConfig>, "validityCount" | "validityUnit">,
 ): string =>
-  plan.validityUnit === "month"
-    ? addMonths(MOCK_SUBSCRIPTION_TODAY, Math.max(plan.validityCount, 1))
-    : addYears(MOCK_SUBSCRIPTION_TODAY, Math.max(plan.validityCount, 1));
+  plan.validityUnit === "day"
+    ? addDays(MOCK_SUBSCRIPTION_TODAY, Math.max(plan.validityCount, 1))
+    : plan.validityUnit === "month"
+      ? addMonths(MOCK_SUBSCRIPTION_TODAY, Math.max(plan.validityCount, 1))
+      : addYears(MOCK_SUBSCRIPTION_TODAY, Math.max(plan.validityCount, 1));
 
 const addPlanValidity = (
   dateValue: string,
   plan: Pick<ReturnType<typeof getPlanBillingConfig>, "validityCount" | "validityUnit">,
 ): string =>
-  plan.validityUnit === "month"
-    ? addMonths(dateValue, Math.max(plan.validityCount, 1))
-    : addYears(dateValue, Math.max(plan.validityCount, 1));
+  plan.validityUnit === "day"
+    ? addDays(dateValue, Math.max(plan.validityCount, 1))
+    : plan.validityUnit === "month"
+      ? addMonths(dateValue, Math.max(plan.validityCount, 1))
+      : addYears(dateValue, Math.max(plan.validityCount, 1));
 
 const getAlignedExpiryInfo = (
   plan: Pick<ReturnType<typeof getPlanBillingConfig>, "validityCount" | "validityUnit">,
@@ -697,27 +776,30 @@ const getAlignedExpiryInfo = (
   };
 };
 
-const getConfiguredSubscriptionPlan = (): MockSubscriptionPlanTemplate =>
-  getActiveMockSubscriptionPlanTemplates()[0] ??
-  cloneSubscriptionPlan(PRESET_SUBSCRIPTION_PLANS[0]);
+const getConfiguredSubscriptionPlan = (
+  planKey?: MockSubscriptionPlanKey,
+): MockSubscriptionPlanTemplate => {
+  const activePlans = getActiveMockSubscriptionPlanTemplates();
 
-/**
- * 读取订阅策略摘要。
- */
-export const getMockSubscriptionPricingPolicy = (): {
-  proMonthlySeatPrice: number;
-  proYearlySeatPrice: number;
-} => {
-  const packageTemplate = getConfiguredSubscriptionPlan();
+  if (planKey) {
+    const matchedActivePlan = activePlans.find(item => item.key === planKey);
 
-  return {
-    proMonthlySeatPrice: packageTemplate.monthlyPriceAmount,
-    proYearlySeatPrice: packageTemplate.yearlyPriceAmount,
-  };
+    if (matchedActivePlan) {
+      return matchedActivePlan;
+    }
+
+    const matchedAnyPlan = getMockSubscriptionPlanTemplates().find(item => item.key === planKey);
+
+    if (matchedAnyPlan) {
+      return matchedAnyPlan;
+    }
+  }
+
+  return activePlans[0] ?? cloneSubscriptionPlan(PRESET_SUBSCRIPTION_PLANS[0]);
 };
 
 /**
- * 读取订阅包配置。
+ * 读取席位包配置。
  */
 export const getMockSubscriptionPlanTemplates = (): MockSubscriptionPlanTemplate[] => {
   const storedPlans = readStoredSubscriptionPlans();
@@ -745,7 +827,7 @@ export const getMockSubscriptionPlanTemplates = (): MockSubscriptionPlanTemplate
 };
 
 /**
- * 新建订阅包配置。
+ * 新建席位包配置。
  */
 export const createMockSubscriptionPlanTemplate = (
   payload: CreateMockSubscriptionPlanPayload,
@@ -784,7 +866,7 @@ export const createMockSubscriptionPlanTemplate = (
 };
 
 /**
- * 更新订阅包配置。
+ * 更新席位包配置。
  */
 export const updateMockSubscriptionPlanTemplate = (
   planKey: MockSubscriptionPlanKey,
@@ -829,7 +911,7 @@ export const updateMockSubscriptionPlanTemplate = (
 };
 
 /**
- * 读取当前用户侧可展示的订阅包。
+ * 读取当前用户侧可展示的席位包。
  */
 export const getActiveMockSubscriptionPlanTemplates = (): MockSubscriptionPlanTemplate[] =>
   getMockSubscriptionPlanTemplates().filter(
@@ -837,7 +919,7 @@ export const getActiveMockSubscriptionPlanTemplates = (): MockSubscriptionPlanTe
   );
 
 /**
- * 读取单个订阅包配置。
+ * 读取单个席位包配置。
  */
 export const getMockSubscriptionPlanTemplate = (
   planKey: MockSubscriptionPlanKey,
@@ -853,13 +935,18 @@ export const getMockSubscriptionPlanPurchaseOption = (
   tenantSnapshot?: MockTenantManagementSnapshot | null,
 ): MockSubscriptionPlanPurchaseOption | null => {
   const purchaseMode = input.purchaseMode ?? "addSeats";
-  const selectedPlan = getConfiguredSubscriptionPlan();
+  const activePlanKey =
+    purchaseMode === "addSeats" ? getMockTenantActiveSubscriptionPlanKey(tenantSnapshot) : null;
   const activeBillingCycle =
     purchaseMode === "addSeats"
       ? getMockTenantActiveSubscriptionBillingCycle(tenantSnapshot)
       : null;
-  const effectiveBillingCycle = activeBillingCycle ?? input.billingCycle;
-  const selectedSpec = getPrimarySpecByBillingCycle(selectedPlan, effectiveBillingCycle);
+  const selectedPlan = getConfiguredSubscriptionPlan(activePlanKey ?? input.planKey);
+  const requestedBillingCycle = activeBillingCycle ?? input.billingCycle;
+  const selectedSpec =
+    (requestedBillingCycle
+      ? getPrimarySpecByBillingCycle(selectedPlan, requestedBillingCycle)
+      : null) ?? getPrimaryMockSubscriptionPlanSpec(selectedPlan);
 
   if (!selectedSpec?.enabled) {
     return null;
@@ -870,7 +957,8 @@ export const getMockSubscriptionPlanPurchaseOption = (
       ? Math.max(Math.floor(tenantSnapshot?.totalSeats ?? input.seatCount), 1)
       : Math.max(Math.floor(input.seatCount), 1);
   const normalizedInput: MockSubscriptionPlanPurchaseInput = {
-    billingCycle: effectiveBillingCycle,
+    billingCycle: selectedSpec.billingCycle,
+    planKey: selectedPlan.key,
     purchaseMode,
     seatCount,
   };
@@ -878,7 +966,7 @@ export const getMockSubscriptionPlanPurchaseOption = (
   const expiryInfo = getAlignedExpiryInfo(cycleConfig, tenantSnapshot, purchaseMode);
   const originalAmount = Math.ceil(cycleConfig.priceAmount * seatCount * expiryInfo.prorationRate);
   const amount = Math.ceil(cycleConfig.priceAmount * seatCount * expiryInfo.prorationRate);
-  const planLabel = selectedSpec.title;
+  const planLabel = selectedPlan.title;
   const validityLabel = formatMockSubscriptionValidity(
     cycleConfig.validityCount,
     cycleConfig.validityUnit,
@@ -887,7 +975,7 @@ export const getMockSubscriptionPlanPurchaseOption = (
   return {
     planKey: selectedPlan.key as MockSelfServeSubscriptionPlanKey,
     planLabel,
-    billingCycle: normalizedInput.billingCycle,
+    billingCycle: normalizedInput.billingCycle ?? selectedSpec.billingCycle,
     billingCycleLabel: validityLabel,
     discountAmount: 0,
     expiresAt: expiryInfo.expiresAt,

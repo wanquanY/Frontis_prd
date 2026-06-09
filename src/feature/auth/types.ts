@@ -1,10 +1,7 @@
 import type { FrontisUserRole, FrontisWebRole, FrontisWebUserItem } from "@/pages/types";
 
 export type MockAuthRole = FrontisWebRole;
-export type MockIdentityPlatform =
-  | "enterpriseWorkspace"
-  | "enterpriseAdmin"
-  | "operationsAdmin";
+export type MockIdentityPlatform = "enterpriseWorkspace" | "enterpriseAdmin" | "operationsAdmin";
 
 /**
  * 统一用户的可选身份入口定义。
@@ -177,6 +174,8 @@ export type MockTenantEntitlementGrantKind = "points" | "seats";
 
 export type MockTenantEntitlementGrantStatus = "active" | "revoked";
 
+export type MockTenantSeatEntitlementAction = "allocation" | "renewal";
+
 export interface MockTenantEntitlementGrantItem {
   id: string;
   kind: MockTenantEntitlementGrantKind;
@@ -186,8 +185,11 @@ export interface MockTenantEntitlementGrantItem {
   orderNo: string;
   points?: number;
   seatCount?: number;
+  seatAction?: MockTenantSeatEntitlementAction;
   giftPoints?: number;
   expiresAt?: string;
+  beforeExpiresAt?: string;
+  afterExpiresAt?: string;
   status: MockTenantEntitlementGrantStatus;
   createdAt: string;
   operatorUserId?: string;

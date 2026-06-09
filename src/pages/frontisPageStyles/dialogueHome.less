@@ -90,11 +90,6 @@
   line-height: 1;
 }
 
-.dialogueViewShareIcon {
-  font-size: 16px;
-  line-height: 1;
-}
-
 .dialogueViewPanelIcon {
   position: relative;
   width: 17px;
@@ -1934,11 +1929,36 @@
 
 .dialogueHomeDispatchHeader {
   display: flex;
-  justify-content: flex-start;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
   color: var(--text-secondary);
   font-size: 12px;
   line-height: 18px;
   font-weight: 700;
+}
+
+.dialogueHomeDispatchAddButton {
+  width: 24px;
+  height: 24px;
+  border: 0;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--text) 7%, transparent);
+  color: var(--text-secondary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition:
+    background 0.16s ease,
+    color 0.16s ease,
+    transform 0.16s ease;
+
+  &:hover {
+    background: #050505;
+    color: #ffffff;
+    transform: translateY(-1px);
+  }
 }
 
 .dialogueHomeDispatchList {
@@ -1987,6 +2007,16 @@
   }
 }
 
+.dialogueHomeDispatchEmpty {
+  min-height: 38px;
+  padding: 9px 10px;
+  border: 1px dashed var(--panelBorder);
+  border-radius: 12px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 18px;
+}
+
 .dialogueHomeDispatchItemActive {
   border-color: color-mix(in srgb, var(--primary) 42%, var(--panelBorder));
   background: color-mix(in srgb, var(--primary) 12%, var(--surface));
@@ -2019,7 +2049,7 @@
 }
 
 .meExpertPickerModal {
-  height: min(720px, calc(100vh - 64px));
+  height: min(660px, calc(100vh - 64px));
   max-height: calc(100vh - 64px);
   overflow: hidden;
   padding-bottom: 0;
@@ -2037,16 +2067,16 @@
   :global(.ant-modal-header) {
     flex: 0 0 auto;
     margin: 0;
-    padding: 24px 24px 14px;
-    border-bottom: 1px solid var(--border);
+    padding: 22px 28px 8px;
+    border-bottom: 0;
   }
 
   :global(.ant-modal-body) {
     flex: 1 1 auto;
     min-height: 0;
-    overflow-y: auto;
+    overflow: hidden;
     overscroll-behavior: contain;
-    padding: 18px 24px;
+    padding: 18px 28px 26px;
   }
 
   :global(.ant-modal-footer) {
@@ -2079,12 +2109,226 @@
 }
 
 .meExpertPickerEmpty {
-  padding: 22px 12px;
+  padding: 28px 12px;
   border: 1px dashed var(--border);
   border-radius: 12px;
   color: var(--text-secondary);
   font-size: 13px;
   text-align: center;
+}
+
+.meExpertPickerBody {
+  min-height: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.meExpertPickerToolbar {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.meExpertPickerFilterStack {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.meExpertPickerTabs {
+  display: inline-flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.meExpertPickerTab {
+  min-height: 38px;
+  padding: 0 10px;
+  border: 0;
+  border-bottom: 3px solid transparent;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    border-color 0.16s ease,
+    color 0.16s ease;
+
+  &:hover {
+    color: var(--text);
+  }
+}
+
+.meExpertPickerTabActive {
+  border-bottom-color: var(--primary);
+  color: var(--primary);
+}
+
+.meExpertPickerStatusTabs {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.meExpertPickerStatusTab {
+  min-width: 64px;
+  height: 34px;
+  padding: 0 16px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #ffffff;
+  color: var(--text-secondary);
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    background 0.16s ease,
+    border-color 0.16s ease,
+    color 0.16s ease;
+
+  &:hover {
+    border-color: color-mix(in srgb, var(--primary) 36%, var(--border));
+    color: var(--primary);
+  }
+}
+
+.meExpertPickerStatusTabActive {
+  border-color: var(--primary);
+  background: color-mix(in srgb, var(--primary) 10%, #ffffff);
+  color: var(--primary);
+}
+
+.meExpertPickerSearch {
+  width: min(280px, 42%);
+  flex: 0 0 auto;
+
+  :global(.ant-input-affix-wrapper),
+  &:global(.ant-input-affix-wrapper) {
+    border-radius: 8px;
+  }
+}
+
+.meExpertPickerList {
+  min-height: 0;
+  flex: 1;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-right: 4px;
+}
+
+.meExpertPickerItem {
+  min-height: 96px;
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr) 54px;
+  align-items: center;
+  gap: 18px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.meExpertPickerAvatar {
+  background: color-mix(in srgb, var(--primary) 10%, var(--surface));
+  color: var(--primary);
+  font-weight: 800;
+}
+
+.meExpertPickerItemBody {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+
+  p {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: 13px;
+    line-height: 20px;
+  }
+}
+
+.meExpertPickerItemHeader {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  strong {
+    min-width: 0;
+    overflow: hidden;
+    color: var(--text);
+    font-size: 16px;
+    line-height: 24px;
+    font-weight: 800;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  span {
+    flex: 0 0 auto;
+    padding: 2px 7px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--text) 6%, transparent);
+    color: var(--text-secondary);
+    font-size: 11px;
+    line-height: 16px;
+    font-weight: 700;
+  }
+}
+
+.meExpertPickerTags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+
+  span {
+    padding: 2px 7px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--primary) 8%, transparent);
+    color: var(--primary);
+    font-size: 11px;
+    line-height: 16px;
+    font-weight: 700;
+  }
+}
+
+.meExpertPickerAddButton {
+  width: 42px;
+  height: 42px;
+  border: 0;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--text) 7%, transparent);
+  color: var(--text-secondary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 20px;
+  transition:
+    background 0.16s ease,
+    color 0.16s ease,
+    transform 0.16s ease;
+
+  &:hover {
+    background: #050505;
+    color: #ffffff;
+    transform: translateY(-1px);
+  }
+}
+
+.meExpertPickerRemoveButton {
+  background: #050505;
+  color: #ffffff;
+
+  &:hover {
+    background: color-mix(in srgb, #050505 86%, #ffffff);
+  }
 }
 
 .dialoguePracticeSection {

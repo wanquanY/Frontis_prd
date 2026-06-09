@@ -1,17 +1,17 @@
 import type { MockTenantPointsOrderStatus } from "@/feature/auth/types";
 
 /**
- * 平台订阅计划标识，支持预置计划和运营后台自定义计划。
+ * 平台席位包标识，支持预置席位包和运营后台自定义席位包。
  */
 export type MockSubscriptionPlanKey = string;
 
 /**
- * 支持用户侧自助支付的订阅计划标识。
+ * 支持用户侧自助支付的席位包标识。
  */
 export type MockSelfServeSubscriptionPlanKey = string;
 
 /**
- * 订阅计划状态。
+ * 席位包状态。
  */
 export type MockSubscriptionPlanStatus = "active" | "inactive";
 
@@ -21,12 +21,12 @@ export type MockSubscriptionPlanStatus = "active" | "inactive";
 export type MockSubscriptionPlanScope = "public" | "internal";
 
 /**
- * 订阅包有效周期单位。
+ * 席位包有效时间单位。
  */
-export type MockSubscriptionValidityUnit = "month" | "year";
+export type MockSubscriptionValidityUnit = "day" | "month" | "year";
 
 /**
- * 席位包规格周期标识。预置规格使用 monthly/yearly，运营可扩展自定义策略。
+ * 席位包规格兼容标识。新席位包只有一个主规格，历史订单仍可能保留旧标识。
  */
 export type MockSubscriptionBillingCycle = string;
 
@@ -106,13 +106,14 @@ export type MockSubscriptionPlanTemplateInput = Pick<
 export type MockSubscriptionPurchaseMode = "addSeats" | "renew";
 
 export interface MockSubscriptionPlanPurchaseInput {
-  billingCycle: MockSubscriptionBillingCycle;
+  billingCycle?: MockSubscriptionBillingCycle;
+  planKey?: MockSubscriptionPlanKey;
   purchaseMode?: MockSubscriptionPurchaseMode;
   seatCount: number;
 }
 
 /**
- * 用户侧自助购买订阅计划时使用的支付快照。
+ * 用户侧自助购买席位包时使用的支付快照。
  */
 export interface MockSubscriptionPlanPurchaseOption {
   planKey: MockSelfServeSubscriptionPlanKey;

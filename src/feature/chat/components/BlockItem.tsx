@@ -32,6 +32,7 @@ import {
   QuestionCircleOutlined,
   RobotOutlined,
   SearchOutlined,
+  ShareAltOutlined,
   ThunderboltOutlined,
   ToolOutlined,
 } from "@ant-design/icons";
@@ -146,6 +147,8 @@ interface BlockItemProps {
     showCopy?: boolean;
     copyText?: string;
   };
+  /** 点击消息底部分享入口后进入对话分享选择模式。 */
+  onStartShareSelection?: () => void;
 }
 
 interface BlockCopyContext {
@@ -416,6 +419,7 @@ export function BlockItem({
   onQuickActionSend,
   quickActionDisabled = false,
   copyContext,
+  onStartShareSelection,
 }: BlockItemProps) {
   const isUser = block.actorRole === "user" || (block.data as { role?: string }).role === "user";
 
@@ -428,10 +432,17 @@ export function BlockItem({
           copyContext={copyContext}
           onQuickActionSend={onQuickActionSend}
           quickActionDisabled={quickActionDisabled}
+          onStartShareSelection={onStartShareSelection}
         />
       );
     case "user_input":
-      return <TextBlock block={block} isUser={true} />;
+      return (
+        <TextBlock
+          block={block}
+          isUser={true}
+          onStartShareSelection={onStartShareSelection}
+        />
+      );
     case "thinking":
       return <ThinkingBlock block={block} />;
     case "plan":
@@ -481,6 +492,7 @@ export function BlockItem({
           onQuickActionSend={onQuickActionSend}
           quickActionDisabled={quickActionDisabled}
           copyContext={copyContext}
+          onStartShareSelection={onStartShareSelection}
         />
       );
     default:
@@ -500,6 +512,7 @@ function MessageBlock({
   onQuickActionSend,
   quickActionDisabled = false,
   copyContext,
+  onStartShareSelection,
 }: {
   block: Block;
   onHITLRespond?: (payload: HITLRespondPayload) => void;
@@ -511,6 +524,7 @@ function MessageBlock({
   onQuickActionSend?: (prompt: string) => void;
   quickActionDisabled?: boolean;
   copyContext?: BlockCopyContext;
+  onStartShareSelection?: () => void;
 }) {
   const orderedChildren = useMemo(() => {
     const children = block.children || [];
@@ -597,10 +611,21 @@ function MessageBlock({
   const messageFeedbackAction = messageCopyText ? (
     <AssistantFeedbackAction blockId={block.id} />
   ) : null;
+  const messageShareAction = onStartShareSelection ? (
+    <button
+      type="button"
+      className={styles.messageFeedbackTrigger}
+      onClick={onStartShareSelection}
+    >
+      <ShareAltOutlined />
+      <span>分享</span>
+    </button>
+  ) : null;
   const messageActions =
-    messageCopyActions || messageFeedbackAction ? (
+    messageCopyActions || messageFeedbackAction || messageShareAction ? (
       <div className={styles.assistantInlineActions}>
         {messageCopyActions}
+        {messageShareAction}
         {messageFeedbackAction}
       </div>
     ) : null;
@@ -693,12 +718,14 @@ function TextBlock({
   copyContext,
   onQuickActionSend,
   quickActionDisabled = false,
+  onStartShareSelection,
 }: {
   block: Block;
   isUser: boolean;
   copyContext?: BlockCopyContext;
   onQuickActionSend?: (prompt: string) => void;
   quickActionDisabled?: boolean;
+  onStartShareSelection?: () => void;
 }) {
   const data = block.data as unknown as TextData;
   const content = data.content || "";
@@ -754,16 +781,37 @@ function TextBlock({
   const copyActions = shouldShowCopy ? <Actions items={actionItems(content)} /> : null;
   const feedbackAction =
     !isUser && shouldShowCopy ? <AssistantFeedbackAction blockId={block.id} /> : null;
+  const shareAction = onStartShareSelection ? (
+    <button
+      type="button"
+      className={styles.messageFeedbackTrigger}
+      onClick={onStartShareSelection}
+    >
+      <ShareAltOutlined />
+      <span>分享</span>
+    </button>
+  ) : null;
   const assistantFooterActions =
-    copyActions || feedbackAction ? (
+    copyActions || feedbackAction || shareAction ? (
       <div className={styles.assistantInlineActions}>
         {copyActions}
+        {shareAction}
         {feedbackAction}
       </div>
     ) : null;
   const shouldShowProcessButton = typeof processCount === "number" && processCount > 0;
   const hasAssistantResultActions =
-    Boolean(copyActions) || Boolean(feedbackAction) || shouldShowProcessButton;
+    Boolean(copyActions) ||
+    Boolean(feedbackAction) ||
+    Boolean(shareAction) ||
+    shouldShowProcessButton;
+  const userFooterActions =
+    copyActions || shareAction ? (
+      <div className={styles.assistantInlineActions}>
+        {copyActions}
+        {shareAction}
+      </div>
+    ) : null;
 
   const handleOpenResultAttachment = useCallback((attachment: MessageAttachment) => {
     const targetUrl = attachment.url?.trim() || attachment.thumb_url?.trim() || "";
@@ -890,7 +938,7 @@ function TextBlock({
               ))}
             </span>
           }
-          footer={<Actions items={actionItems(displayContent)} />}
+          footer={userFooterActions}
           footerPlacement="outer-end"
         />
       ) : (

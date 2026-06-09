@@ -47,6 +47,8 @@ export type OperationsTenantBillingMode = "points" | "cost";
  */
 export type OperationsAgentApprovalStatus = "pending" | "approved" | "rejected";
 
+export type OperationsAgentSubmissionKind = "initialListing" | "versionUpdate";
+
 /**
  * AI专家商品上架状态。
  */
@@ -341,7 +343,24 @@ export interface OperationsTenantSeatAllocationPayload {
   planTitle: string;
   specKey: string;
   specTitle: string;
+  validityLabel: string;
   seatCount: number;
+  expiresAt: string;
+  giftPoints: number;
+  remark?: string;
+}
+
+/**
+ * 运营后台基于内部席位包给租户全部有效席位续约。
+ */
+export interface OperationsTenantSeatRenewalPayload {
+  planKey: string;
+  planTitle: string;
+  specKey: string;
+  specTitle: string;
+  validityLabel: string;
+  seatCount: number;
+  currentExpiresAt: string;
   expiresAt: string;
   giftPoints: number;
   remark?: string;
@@ -535,12 +554,17 @@ export interface OperationsPointsUsageRecord {
  */
 export interface OperationsAgentSubmission {
   id: string;
+  sourceAgentId?: string;
+  applicationKind?: OperationsAgentSubmissionKind;
   name: string;
   version: string;
   submitter: string;
   submittedAt: string;
   status: OperationsAgentApprovalStatus;
   description: string;
+  avatarUrl?: string;
+  usageGuide?: string;
+  sceneTags?: string[];
   proposedProductName?: string;
   submitReason?: string;
   targetCustomers?: string;
@@ -553,6 +577,30 @@ export interface OperationsAgentSubmission {
   visibleTenantNames?: string[];
   plazaStatus?: OperationsAgentPlazaStatus;
   plazaUpdatedAt?: string;
+  skills?: OperationsAgentSnapshotSkill[];
+  coreFiles?: OperationsAgentSnapshotCoreFile[];
+}
+
+/**
+ * AI 专家上架版本快照中的技能。
+ */
+export interface OperationsAgentSnapshotSkill {
+  id: string;
+  name: string;
+  description: string;
+  typeLabel: string;
+}
+
+/**
+ * AI 专家上架版本快照中的核心文件。
+ */
+export interface OperationsAgentSnapshotCoreFile {
+  id: string;
+  name: string;
+  fileType: string;
+  updatedAt: string;
+  description: string;
+  content: string;
 }
 
 /**
@@ -568,6 +616,7 @@ export interface OperationsProduct {
   meteringUnit: OperationsProductMeteringUnit;
   billingSpec?: OperationsProductBillingSpec;
   linkedAgentId?: string;
+  linkedAgentSourceId?: string;
   linkedAgentName?: string;
   resourcePoolId?: string;
   resourcePoolName?: string;

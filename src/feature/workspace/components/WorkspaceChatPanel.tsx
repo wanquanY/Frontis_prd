@@ -192,6 +192,7 @@ export const WorkspaceChatPanel = ({
   shareSelectionEnabled = false,
   selectedShareBlockIds = [],
   onToggleShareBlock,
+  onStartShareSelection,
 }: WorkspaceChatPanelProps): JSX.Element => {
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const blockListRef = useRef<HTMLDivElement | null>(null);
@@ -851,6 +852,7 @@ export const WorkspaceChatPanel = ({
               onToolExpand={handleToolExpand}
               onDownloadArtifact={onDownloadArtifact}
               onAddArtifactToKnowledge={onAddArtifactToKnowledge}
+              onStartShareSelection={onStartShareSelection}
             />
           </div>
         );
@@ -949,6 +951,7 @@ export const WorkspaceChatPanel = ({
                     onQuickActionSend={onQuickActionSend}
                     quickActionDisabled={isStreaming}
                     copyContext={copyContextMap[block.id]}
+                    onStartShareSelection={onStartShareSelection}
                   />
                 </div>
               ) : null}
@@ -1007,6 +1010,7 @@ export const WorkspaceChatPanel = ({
               onQuickActionSend={onQuickActionSend}
               quickActionDisabled={isStreaming}
               copyContext={copyContextMap[block.id]}
+              onStartShareSelection={onStartShareSelection}
             />
           </div>
         </div>
@@ -1022,6 +1026,7 @@ export const WorkspaceChatPanel = ({
     onAddArtifactToKnowledge,
     onQuickActionSend,
     onToggleShareBlock,
+    onStartShareSelection,
     isStreaming,
     actorAvatars,
     collapseAssignedActorOutputs,

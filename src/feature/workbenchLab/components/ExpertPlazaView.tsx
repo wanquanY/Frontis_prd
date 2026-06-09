@@ -4,10 +4,9 @@ import {
   ArrowRightOutlined,
   CustomerServiceOutlined,
   DeleteOutlined,
-  FileTextOutlined,
+  MinusCircleOutlined,
   ProfileOutlined,
   UploadOutlined,
-  UserOutlined,
 } from "@ant-design/icons";
 import { Button, Empty, Modal, QRCode, Tooltip, message } from "antd";
 import classNames from "classnames";
@@ -15,7 +14,10 @@ import dayjs from "dayjs";
 
 import { useMockAuth } from "@/feature/auth/hooks/useMockAuth";
 import { getMockTenantManagementSnapshot } from "@/feature/auth/mockTenantRegistry";
-import { loadEnterpriseCommodityApplications } from "@/feature/workbenchLab/commodityApplications";
+import {
+  loadEnterpriseCommodityApplications,
+  saveEnterpriseCommodityApplications,
+} from "@/feature/workbenchLab/commodityApplications";
 import { WORKBENCH_AGENT_STORE_ITEMS } from "@/feature/workbenchLab/mockData";
 import type { WorkbenchAgentDeleteProtection } from "@/feature/workbenchLab/types";
 import {
@@ -33,10 +35,15 @@ import {
   normalizeTenantRolePermissionIds,
 } from "@/constants/tenantRolePermissions";
 import {
+  loadWorkbenchAgentRecords,
+  removeWorkbenchAgentRecord,
   upsertWorkbenchAgentRecord,
+  WORKBENCH_AGENT_RECORDS_UPDATED_EVENT,
 } from "@/feature/workbenchLab/workbenchAgentsStorage";
 import type {
   OperationsAgentPlazaCategoryOption,
+  OperationsAgentSnapshotCoreFile,
+  OperationsAgentSnapshotSkill,
   OperationsAgentStoreZoneOption,
   OperationsAgentSubmission,
   OperationsFulfillment,
@@ -44,11 +51,13 @@ import type {
   OperationsProductDeliveryKind,
   OperationsServiceContactConfig,
 } from "@/feature/operations/types";
+import { resolveAiAgentSceneTags } from "@/feature/operations/agentSceneTags";
 import { getAvatarUrl } from "@/pages/utils";
 import commerceGrowthExpertAvatar from "@/assets/images/ai-experts/commerce-growth-expert.png";
 import knowledgeGovernanceExpertAvatar from "@/assets/images/ai-experts/knowledge-governance-expert.png";
 
 import styles from "./ExpertPlazaView.module.less";
+import { MarketplaceListingApplicationModal } from "./MarketplaceListingApplicationModal";
 
 type TeamExpertFilter = "mine" | "teamShare";
 type StoreSystemCategoryKey = string;
@@ -162,6 +171,16 @@ interface AgentDeleteDecision {
   description: string;
 }
 
+export interface MarketplaceListingApplicationForm {
+  submitReason: string;
+}
+
+interface MarketplaceListingApplicationEditorState {
+  open: boolean;
+  agentId?: string;
+  form: MarketplaceListingApplicationForm;
+}
+
 const DEFAULT_TENANT_ID = "tenant-enterprise-demo";
 const ACTIVE_FULFILLMENT_STATUSES = new Set<OperationsFulfillment["status"]>([
   "active",
@@ -173,15 +192,10 @@ const TEAM_EXPERT_FILTER_OPTIONS: Array<{ label: string; value: TeamExpertFilter
   { label: "团队共享", value: "teamShare" },
 ];
 
-const DEFAULT_DOMAIN_TONE = "linear-gradient(180deg, #dff4ff 0%, #eef8ff 100%)";
-const MAX_AGENT_CARD_TAG_COUNT = 3;
+const MARKETPLACE_LISTING_SCOPE_LABEL = "申请发布到专家广场";
 
-const DOMAIN_TONE_MAP: Record<string, string> = {
-  通用: DEFAULT_DOMAIN_TONE,
-  销售: "linear-gradient(180deg, #fff1d7 0%, #fff8eb 100%)",
-  生产: "linear-gradient(180deg, #e3f7ef 0%, #f4fcf8 100%)",
-  供应链: "linear-gradient(180deg, #ede9fe 0%, #f5f3ff 100%)",
-  办公协同: "linear-gradient(180deg, #e6f0ff 0%, #f5f8ff 100%)",
+const EMPTY_MARKETPLACE_LISTING_APPLICATION_FORM: MarketplaceListingApplicationForm = {
+  submitReason: "",
 };
 
 const TEAM_SHARED_AGENTS: TeamSharedAgentTemplate[] = [
@@ -645,9 +659,6 @@ const FRONTIS_AGENT_BLUEPRINTS: Record<string, PlatformAgentBlueprint> = {
 const getBusinessLineLabel = (line: BusinessLineKey): string =>
   line.trim() || OPERATIONS_AGENT_PLAZA_DEFAULT_CATEGORY;
 
-export const getAgentStoreDomainTone = (line: BusinessLineKey): string =>
-  DOMAIN_TONE_MAP[line] ?? DEFAULT_DOMAIN_TONE;
-
 const getSceneCategoryOptions = (
   categories: OperationsAgentPlazaCategoryOption[],
 ): Array<{ label: string; value: SceneCategoryFilter }> => [
@@ -683,26 +694,24 @@ const getDeliveryLabel = (deliveryKind: OperationsProductDeliveryKind): string =
   return "设备交付";
 };
 
-const getAgentAvatarSrc = (agent: StoreAgentItem): string =>
+export const getAgentAvatarSrc = (agent: StoreAgentItem): string =>
   agent.avatarUrl ?? getAvatarUrl(agent.visualSeed);
 
-const normalizeAgentCardTags = (tags: string[] | undefined): string[] => {
-  const normalizedTags = (tags ?? []).map(tag => tag.trim()).filter(Boolean);
-
-  return Array.from(new Set(normalizedTags)).slice(0, MAX_AGENT_CARD_TAG_COUNT);
-};
-
-const getCapabilityCardTags = (capabilities: AgentCapability[]): string[] =>
-  normalizeAgentCardTags(capabilities.map(capability => capability.name));
-
-const getProductCardTags = (
+const getProductSceneTags = (
   product: OperationsProduct,
-  capabilities: AgentCapability[],
-): string[] => {
-  const productTags = normalizeAgentCardTags(product.tags);
+  fallbackTags: readonly (string | undefined)[],
+): string[] => resolveAiAgentSceneTags(product.tags, fallbackTags);
 
-  return productTags.length ? productTags : getCapabilityCardTags(capabilities);
-};
+const getAgentSceneTags = (agent: StoreAgentItem): string[] =>
+  resolveAiAgentSceneTags(agent.tags, [agent.scene, agent.businessLineLabel]);
+
+const buildMarketplaceListingReleaseId = (agent: StoreAgentItem): string =>
+  `${agent.id}__${agent.versionLabel.trim().replace(/[^a-zA-Z0-9]+/g, "-") || "version"}`;
+
+const isSameMarketplaceListingVersion = (
+  agent: StoreAgentItem,
+  application?: OperationsAgentSubmission | null,
+): boolean => application?.version === agent.versionLabel;
 
 const getAgentCoreFiles = (agent: StoreAgentItem): AgentCoreFile[] => [
   {
@@ -778,6 +787,104 @@ const getAgentUsageGuide = (agent: StoreAgentItem): string => {
   ].join("\n\n");
 };
 
+const buildMarketplaceListingApplicationForm = (
+  agent: StoreAgentItem,
+  application?: OperationsAgentSubmission | null,
+): MarketplaceListingApplicationForm => ({
+  submitReason:
+    application?.submitReason?.trim() ||
+    `该 AI 专家已在企业内部用于${agent.scene}场景，申请上架到专家广场供更多租户复用。`,
+});
+
+const buildMarketplaceListingSnapshotSkills = (
+  agent: StoreAgentItem,
+): OperationsAgentSnapshotSkill[] =>
+  agent.capabilities.map((capability, index) => ({
+    id: `${agent.id}-skill-${index + 1}`,
+    name: capability.name,
+    description: capability.description,
+    typeLabel: "专家技能",
+  }));
+
+const buildMarketplaceListingSnapshotCoreFiles = (
+  agent: StoreAgentItem,
+  updatedAt: string,
+): OperationsAgentSnapshotCoreFile[] =>
+  getAgentCoreFiles(agent).map(file => ({
+    id: `${agent.id}-${file.key}`,
+    name: file.name,
+    fileType:
+      file.key === "soulMarkdown"
+        ? "身份与边界"
+        : file.key === "memoryMarkdown"
+          ? "长期上下文"
+          : "交互约束",
+    updatedAt,
+    description: file.description,
+    content: file.content,
+  }));
+
+const buildMarketplaceListingApplication = ({
+  agent,
+  form,
+  applicationKind,
+  submitter,
+  submittedAt,
+}: {
+  agent: StoreAgentItem;
+  form: MarketplaceListingApplicationForm;
+  applicationKind: OperationsAgentSubmission["applicationKind"];
+  submitter: string;
+  submittedAt: string;
+}): OperationsAgentSubmission => ({
+  id: buildMarketplaceListingReleaseId(agent),
+  sourceAgentId: agent.id,
+  applicationKind,
+  name: agent.name,
+  version: agent.versionLabel,
+  submitter,
+  submittedAt,
+  status: "pending",
+  description: agent.summary,
+  avatarUrl: getAgentAvatarSrc(agent),
+  usageGuide: getAgentUsageGuide(agent),
+  sceneTags: getAgentSceneTags(agent),
+  submitReason: form.submitReason.trim(),
+  currentScopeLabel: MARKETPLACE_LISTING_SCOPE_LABEL,
+  rejectReason: undefined,
+  lastReviewedAt: undefined,
+  plazaCategory: agent.businessLine,
+  plazaVisibility: "public",
+  visibleTenantIds: [],
+  visibleTenantNames: [],
+  plazaStatus: "offline",
+  skills: buildMarketplaceListingSnapshotSkills(agent),
+  coreFiles: buildMarketplaceListingSnapshotCoreFiles(agent, submittedAt),
+});
+
+const getMarketplaceListingActionTitle = (
+  agent: StoreAgentItem,
+  application?: OperationsAgentSubmission | null,
+): string => {
+  if (application?.status === "pending") {
+    return isSameMarketplaceListingVersion(agent, application)
+      ? "修改上架申请"
+      : "提交当前版本上架";
+  }
+
+  if (application?.status === "rejected") {
+    return isSameMarketplaceListingVersion(agent, application)
+      ? "重新申请上架"
+      : "申请当前版本上架";
+  }
+
+  if (application?.status === "approved") {
+    return isSameMarketplaceListingVersion(agent, application) ? "已通过上架审批" : "申请版本更新";
+  }
+
+  return "申请上架";
+};
+
 const getAcquisitionLabel = (product: OperationsProduct): string => {
   if (product.contactMode && product.contactMode !== "disabled") {
     return "联系我们";
@@ -824,8 +931,7 @@ const resolveMineAgentDeleteDecision = (agent: StoreAgentItem): AgentDeleteDecis
     return {
       canDelete: true,
       title: `确认删除「${agent.name}」？`,
-      description:
-        "删除后，该 AI 专家将不再显示在企业专区；已产生的历史会话和成果记录不会被删除。",
+      description: "删除后，该 AI 专家将不再显示在企业专区；已产生的历史会话和成果记录不会被删除。",
     };
   }
 
@@ -852,7 +958,7 @@ const resolveMineAgentDeleteDecision = (agent: StoreAgentItem): AgentDeleteDecis
   };
 };
 
-const buildTeamSharedAgents = (
+export const buildTeamSharedAgents = (
   applicationsByAgentId: Map<string, OperationsAgentSubmission>,
 ): StoreAgentItem[] =>
   TEAM_SHARED_AGENTS.map(item => ({
@@ -873,7 +979,7 @@ const buildTeamSharedAgents = (
     submitterLabel: item.submitterLabel,
     scopeLabel: item.submitterLabel.split("·")[0]?.trim() || item.submitterLabel,
     updatedAt: item.updatedAt,
-    tags: normalizeAgentCardTags([item.scene, item.businessLineLabel]),
+    tags: resolveAiAgentSceneTags([item.scene, item.businessLineLabel]),
     capabilities: item.capabilities,
     versions: item.versions,
     acquisitionLabel: "团队内直接使用",
@@ -899,7 +1005,7 @@ const mapWorkbenchCategoryToBusinessLine = (
   return OPERATIONS_AGENT_PLAZA_DEFAULT_CATEGORY;
 };
 
-const buildMyAgents = (
+export const buildMyAgents = (
   currentUserName: string,
   applicationsByAgentId: Map<string, OperationsAgentSubmission>,
 ): StoreAgentItem[] =>
@@ -934,7 +1040,7 @@ const buildMyAgents = (
       submitterLabel: currentUserName,
       scopeLabel: "我开发的 AI专家",
       updatedAt: item.publishTime,
-      tags: normalizeAgentCardTags(item.tags),
+      tags: resolveAiAgentSceneTags(item.tags, [businessLine]),
       capabilities: item.skills.map(skill => ({
         name: skill.skillName,
         description: `${skill.skillName} ${skill.version}`,
@@ -1023,7 +1129,7 @@ export const buildFrontisAgents = (
       const capabilities = blueprint?.capabilities ?? [
         {
           name: "标准开通",
-          description: "添加或试用后自动开通，立即可用。",
+          description: "添加后自动开通，立即可用。",
         },
       ];
 
@@ -1049,7 +1155,11 @@ export const buildFrontisAgents = (
         submitterLabel: "FrontisAI发布",
         scopeLabel: "平台商品化能力",
         updatedAt,
-        tags: getProductCardTags(product, capabilities),
+        tags: getProductSceneTags(product, [
+          blueprint?.scene,
+          product.plazaCategory,
+          businessLineLabel,
+        ]),
         capabilities,
         versions: buildPlatformAgentVersions(product, updatedAt),
         acquisitionLabel: getAcquisitionLabel(product),
@@ -1100,9 +1210,17 @@ export const ExpertPlazaView = ({ mode = "store" }: ExpertPlazaViewProps): JSX.E
   );
   const [contactAgent, setContactAgent] = useState<StoreAgentItem | null>(null);
   const [detailAgent, setDetailAgent] = useState<StoreAgentItem | null>(null);
+  const [marketplaceListingApplicationEditor, setMarketplaceListingApplicationEditor] =
+    useState<MarketplaceListingApplicationEditorState>({
+      open: false,
+      form: EMPTY_MARKETPLACE_LISTING_APPLICATION_FORM,
+    });
   const [detailTab, setDetailTab] = useState<AgentDetailTab>("identity");
   const [detailFileKey, setDetailFileKey] = useState<AgentCoreFileKey>("soulMarkdown");
   const [removedMineAgentIds, setRemovedMineAgentIds] = useState<Set<string>>(() => new Set());
+  const [workbenchAgentRecords, setWorkbenchAgentRecords] = useState(() =>
+    loadWorkbenchAgentRecords(),
+  );
   const [agentStoreZones, setAgentStoreZones] = useState<OperationsAgentStoreZoneOption[]>(() =>
     loadStoredAgentStoreZones(),
   );
@@ -1190,10 +1308,31 @@ export const ExpertPlazaView = ({ mode = "store" }: ExpertPlazaViewProps): JSX.E
     }
   }, [detailTab, mode]);
 
+  useEffect(() => {
+    const handleWorkbenchAgentsUpdated = (): void => {
+      setWorkbenchAgentRecords(loadWorkbenchAgentRecords());
+    };
+
+    window.addEventListener(WORKBENCH_AGENT_RECORDS_UPDATED_EVENT, handleWorkbenchAgentsUpdated);
+
+    return () => {
+      window.removeEventListener(
+        WORKBENCH_AGENT_RECORDS_UPDATED_EVENT,
+        handleWorkbenchAgentsUpdated,
+      );
+    };
+  }, []);
+
   const commodityApplicationsByAgentId = useMemo(
     () =>
       commodityApplications.reduce<Map<string, OperationsAgentSubmission>>((result, item) => {
-        result.set(item.id, item);
+        const sourceAgentId = item.sourceAgentId ?? item.id;
+        const currentItem = result.get(sourceAgentId);
+
+        if (!currentItem || item.submittedAt.localeCompare(currentItem.submittedAt) > 0) {
+          result.set(sourceAgentId, item);
+        }
+
         return result;
       }, new Map<string, OperationsAgentSubmission>()),
     [commodityApplications],
@@ -1215,10 +1354,39 @@ export const ExpertPlazaView = ({ mode = "store" }: ExpertPlazaViewProps): JSX.E
         : [],
     [canManageOwnPublishedAgents, commodityApplicationsByAgentId, currentUserName],
   );
+  const marketplaceListingApplicationAgent = useMemo(
+    () =>
+      marketplaceListingApplicationEditor.agentId
+        ? (myAgents.find(item => item.id === marketplaceListingApplicationEditor.agentId) ?? null)
+        : null,
+    [marketplaceListingApplicationEditor.agentId, myAgents],
+  );
+  const marketplaceListingApplicationSceneTags = useMemo(
+    () =>
+      marketplaceListingApplicationAgent
+        ? getAgentSceneTags(marketplaceListingApplicationAgent)
+        : [],
+    [marketplaceListingApplicationAgent],
+  );
+  const marketplaceListingApplicationUsageGuide = useMemo(
+    () =>
+      marketplaceListingApplicationAgent
+        ? getAgentUsageGuide(marketplaceListingApplicationAgent)
+        : "",
+    [marketplaceListingApplicationAgent],
+  );
 
   const frontisAgents = useMemo(
     () => buildFrontisAgents(products, currentTenantId, latestFulfillmentsByProductId),
     [currentTenantId, latestFulfillmentsByProductId, products],
+  );
+  const workbenchAgentIdSet = useMemo(
+    () => new Set(workbenchAgentRecords.map(record => record.id)),
+    [workbenchAgentRecords],
+  );
+  const isAgentInWorkbench = useCallback(
+    (agent: StoreAgentItem): boolean => workbenchAgentIdSet.has(agent.id),
+    [workbenchAgentIdSet],
   );
 
   const filteredAgents = useMemo(() => {
@@ -1326,8 +1494,14 @@ export const ExpertPlazaView = ({ mode = "store" }: ExpertPlazaViewProps): JSX.E
   );
 
   const handleAddToWorkbench = useCallback((agent: StoreAgentItem): void => {
-    upsertWorkbenchAgentRecord({
+    const isExpertPlazaProduct = agent.sourceType === "frontis" && Boolean(agent.product);
+
+    const nextRecords = upsertWorkbenchAgentRecord({
       id: agent.id,
+      installSource: isExpertPlazaProduct ? "expertPlazaProduct" : "enterpriseAgent",
+      productId: agent.product?.id,
+      enterpriseAgentId: isExpertPlazaProduct ? undefined : agent.id,
+      agentReleaseId: agent.product?.linkedAgentId || agent.commodityApplication?.id,
       name: agent.name,
       avatarUrl: agent.avatarUrl,
       visualSeed: agent.visualSeed,
@@ -1340,22 +1514,126 @@ export const ExpertPlazaView = ({ mode = "store" }: ExpertPlazaViewProps): JSX.E
       skills: agent.capabilities.map(item => item.name),
     });
 
-    message.success(`已添加「${agent.name}」到工作台，可单聊，也可由 ME 调度。`);
+    message.success(
+      `已添加「${agent.name}」${isExpertPlazaProduct ? "商品版" : "企业内部版"}到工作台，可单聊，也可由 ME 调度。`,
+    );
+
+    setWorkbenchAgentRecords(nextRecords);
   }, []);
 
-  const handleApplyForMarketplaceListing = useCallback((agent: StoreAgentItem): void => {
-    message.success(`已提交「${agent.name}」上架申请。`);
+  const handleRemoveFromWorkbench = useCallback((agent: StoreAgentItem): void => {
+    const nextRecords = removeWorkbenchAgentRecord(agent.id);
+
+    setWorkbenchAgentRecords(nextRecords);
+    message.success(`已从工作台移除「${agent.name}」，可重新添加。`);
   }, []);
 
-  const renderExpertListAction = (agent: StoreAgentItem): JSX.Element => (
-    <Button
-      className={`${styles.cardActionButton} ${styles.cardActionButtonPrimary}`}
-      icon={<ArrowRightOutlined />}
-      onClick={() => handleAddToWorkbench(agent)}
-    >
-      添加到工作台
-    </Button>
+  const handleOpenMarketplaceListingApplication = useCallback((agent: StoreAgentItem): void => {
+    if (agent.sourceType !== "mine") {
+      return;
+    }
+
+    if (
+      agent.commodityApplication?.status === "approved" &&
+      isSameMarketplaceListingVersion(agent, agent.commodityApplication)
+    ) {
+      message.info(`「${agent.name}」已通过上架审批，无需重复申请。`);
+      return;
+    }
+
+    setMarketplaceListingApplicationEditor({
+      open: true,
+      agentId: agent.id,
+      form: buildMarketplaceListingApplicationForm(agent, agent.commodityApplication),
+    });
+  }, []);
+
+  const handleCloseMarketplaceListingApplication = useCallback((): void => {
+    setMarketplaceListingApplicationEditor({
+      open: false,
+      form: EMPTY_MARKETPLACE_LISTING_APPLICATION_FORM,
+    });
+  }, []);
+
+  const handleChangeMarketplaceListingApplicationForm = useCallback(
+    (field: keyof MarketplaceListingApplicationForm, value: string): void => {
+      setMarketplaceListingApplicationEditor(currentEditor => ({
+        ...currentEditor,
+        form: {
+          ...currentEditor.form,
+          [field]: value,
+        },
+      }));
+    },
+    [],
   );
+
+  const handleSubmitMarketplaceListingApplication = useCallback((): void => {
+    if (!marketplaceListingApplicationAgent) {
+      message.warning("未找到可提交的 AI 专家。");
+      return;
+    }
+
+    const normalizedForm: MarketplaceListingApplicationForm = {
+      submitReason: marketplaceListingApplicationEditor.form.submitReason.trim(),
+    };
+
+    if (!normalizedForm.submitReason) {
+      message.warning("请填写上架理由。");
+      return;
+    }
+
+    const submittedAt = dayjs().format("YYYY-MM-DD HH:mm");
+    const applicationKind: OperationsAgentSubmission["applicationKind"] =
+      marketplaceListingApplicationAgent.commodityApplication?.status === "approved"
+        ? "versionUpdate"
+        : "initialListing";
+    const nextApplication = buildMarketplaceListingApplication({
+      agent: marketplaceListingApplicationAgent,
+      form: normalizedForm,
+      applicationKind,
+      submitter: currentUserName,
+      submittedAt,
+    });
+    const nextApplications = [
+      nextApplication,
+      ...commodityApplications.filter(item => item.id !== nextApplication.id),
+    ];
+
+    setCommodityApplications(nextApplications);
+    saveEnterpriseCommodityApplications(nextApplications);
+    handleCloseMarketplaceListingApplication();
+    message.success(
+      applicationKind === "versionUpdate"
+        ? `已提交「${marketplaceListingApplicationAgent.name}」版本更新上架申请。`
+        : `已提交「${marketplaceListingApplicationAgent.name}」上架申请。`,
+    );
+  }, [
+    commodityApplications,
+    currentUserName,
+    handleCloseMarketplaceListingApplication,
+    marketplaceListingApplicationAgent,
+    marketplaceListingApplicationEditor.form.submitReason,
+  ]);
+
+  const renderExpertListAction = (agent: StoreAgentItem): JSX.Element => {
+    const addedToWorkbench = isAgentInWorkbench(agent);
+
+    return (
+      <Button
+        className={classNames(
+          styles.cardActionButton,
+          addedToWorkbench ? styles.cardActionButtonSecondary : styles.cardActionButtonPrimary,
+        )}
+        icon={addedToWorkbench ? <MinusCircleOutlined /> : <ArrowRightOutlined />}
+        onClick={() =>
+          addedToWorkbench ? handleRemoveFromWorkbench(agent) : handleAddToWorkbench(agent)
+        }
+      >
+        {addedToWorkbench ? "移除工作台" : "添加到工作台"}
+      </Button>
+    );
+  };
 
   const renderAgentActions = (agent: StoreAgentItem): JSX.Element => {
     const shouldContact = agent.sourceType === "frontis" && shouldContactForAgent(agent);
@@ -1387,16 +1665,44 @@ export const ExpertPlazaView = ({ mode = "store" }: ExpertPlazaViewProps): JSX.E
         ) : null}
         {renderExpertListAction(agent)}
         {agent.sourceType === "mine" && canApplyForMarketplaceListing ? (
-          <Tooltip title="申请上架">
+          <Tooltip title={getMarketplaceListingActionTitle(agent, agent.commodityApplication)}>
             <Button
-              aria-label="申请上架"
+              aria-label={getMarketplaceListingActionTitle(agent, agent.commodityApplication)}
               className={styles.cardIconButton}
               icon={<UploadOutlined />}
-              onClick={() => handleApplyForMarketplaceListing(agent)}
+              onClick={() => handleOpenMarketplaceListingApplication(agent)}
             />
           </Tooltip>
         ) : null}
       </>
+    );
+  };
+
+  const renderAgentDetailPrimaryAction = (agent: StoreAgentItem): JSX.Element => {
+    const shouldContact = agent.sourceType === "frontis" && shouldContactForAgent(agent);
+    const addedToWorkbench = isAgentInWorkbench(agent);
+    const actionLabel = shouldContact
+      ? "联系我们"
+      : addedToWorkbench
+        ? "移除工作台"
+        : "添加到工作台";
+
+    return (
+      <Button
+        className={classNames(
+          styles.agentDetailPrimaryButton,
+          !shouldContact && addedToWorkbench && styles.agentDetailSecondaryButton,
+        )}
+        onClick={() =>
+          shouldContact
+            ? handleContactAgent(agent)
+            : addedToWorkbench
+              ? handleRemoveFromWorkbench(agent)
+              : handleAddToWorkbench(agent)
+        }
+      >
+        {actionLabel}
+      </Button>
     );
   };
 
@@ -1481,19 +1787,15 @@ export const ExpertPlazaView = ({ mode = "store" }: ExpertPlazaViewProps): JSX.E
                 </div>
               </header>
 
-              <div className={styles.agentCapabilityStrip} aria-label="专家标签">
-                <span className={styles.capabilityLabel}>标签</span>
-                {(agent.tags.length ? agent.tags : getCapabilityCardTags(agent.capabilities)).map(
-                  tag => (
-                    <span key={`${agent.id}-${tag}`}>{tag}</span>
-                  ),
-                )}
+              <div className={styles.agentCapabilityStrip} aria-label="场景标签">
+                <span className={styles.capabilityLabel}>场景标签</span>
+                {getAgentSceneTags(agent).map(tag => (
+                  <span key={`${agent.id}-${tag}`}>{tag}</span>
+                ))}
               </div>
             </button>
 
-            <div className={styles.cardFooter}>
-              {renderAgentActions(agent)}
-            </div>
+            <div className={styles.cardFooter}>{renderAgentActions(agent)}</div>
           </article>
         ))}
       </div>
@@ -1503,6 +1805,22 @@ export const ExpertPlazaView = ({ mode = "store" }: ExpertPlazaViewProps): JSX.E
           {mode === "store" ? "当前分类下暂无可添加的 AI 专家。" : "当前来源下暂无企业专区专家。"}
         </div>
       ) : null}
+
+      <MarketplaceListingApplicationModal
+        open={marketplaceListingApplicationEditor.open}
+        agent={marketplaceListingApplicationAgent}
+        agentAvatarSrc={
+          marketplaceListingApplicationAgent
+            ? getAgentAvatarSrc(marketplaceListingApplicationAgent)
+            : ""
+        }
+        form={marketplaceListingApplicationEditor.form}
+        sceneTags={marketplaceListingApplicationSceneTags}
+        usageGuide={marketplaceListingApplicationUsageGuide}
+        onCancel={handleCloseMarketplaceListingApplication}
+        onChange={handleChangeMarketplaceListingApplicationForm}
+        onSubmit={handleSubmitMarketplaceListingApplication}
+      />
 
       <Modal
         open={Boolean(contactAgent)}
@@ -1545,15 +1863,28 @@ export const ExpertPlazaView = ({ mode = "store" }: ExpertPlazaViewProps): JSX.E
       >
         {detailAgent ? (
           <div className={styles.agentDetailPanel}>
+            <header className={styles.agentDetailHeader}>
+              <h2>专家介绍</h2>
+              <div className={styles.agentDetailHero}>
+                <div className={styles.agentDetailHeroAvatar}>
+                  <img alt={detailAgent.name} src={getAgentAvatarSrc(detailAgent)} />
+                </div>
+                <div className={styles.agentDetailHeroText}>
+                  <h3>{detailAgent.name}</h3>
+                  <p>{detailAgent.summary}</p>
+                </div>
+                <div className={styles.agentDetailHeroAction}>
+                  {renderAgentDetailPrimaryAction(detailAgent)}
+                </div>
+              </div>
+            </header>
             <div className={styles.agentDetailBody}>
               <div className={styles.agentDetailNav} role="tablist" aria-label="AI专家详情">
                 {[
-                  { key: "identity", label: "身份", icon: <UserOutlined /> },
+                  { key: "identity", label: "身份" },
                   { key: "skills", label: "技能", count: detailAgent.capabilities.length },
-                  ...(mode === "team"
-                    ? [{ key: "growth", label: "进化", icon: <ProfileOutlined /> }]
-                    : []),
-                  { key: "files", label: "核心文件", icon: <FileTextOutlined /> },
+                  ...(mode === "team" ? [{ key: "growth", label: "进化" }] : []),
+                  { key: "files", label: "核心文件" },
                 ].map(item => (
                   <button
                     key={item.key}
@@ -1563,7 +1894,6 @@ export const ExpertPlazaView = ({ mode = "store" }: ExpertPlazaViewProps): JSX.E
                     className={detailTab === item.key ? styles.agentDetailNavActive : ""}
                     onClick={() => setDetailTab(item.key as AgentDetailTab)}
                   >
-                    {"icon" in item ? item.icon : <ProfileOutlined />}
                     <span>{item.label}</span>
                     {item.count ? <em>{item.count}</em> : null}
                   </button>
@@ -1572,95 +1902,12 @@ export const ExpertPlazaView = ({ mode = "store" }: ExpertPlazaViewProps): JSX.E
 
               <section className={styles.agentDetailContent}>
                 {detailTab === "identity" ? (
-                  detailAgent.sourceType === "mine" ? (
-                    <div className={styles.agentIdentityPane}>
-                      <div className={styles.agentIdentityForm}>
-                        <label className={styles.agentDetailField}>
-                          <span>
-                            名称 <b>*</b>
-                          </span>
-                          <div>{detailAgent.name}</div>
-                        </label>
-
-                        <label className={styles.agentDetailField}>
-                          <span>
-                            卡片简述 <b>*</b>
-                          </span>
-                          <p>{detailAgent.summary}</p>
-                        </label>
-
-                        <div className={styles.agentAvatarEditor}>
-                          <div className={styles.agentDetailSectionTitle}>头像</div>
-                          <div className={styles.agentAvatarLine}>
-                            <div className={styles.agentAvatarLarge}>
-                              <img alt={detailAgent.name} src={getAgentAvatarSrc(detailAgent)} />
-                            </div>
-                            <div className={styles.agentAvatarMeta}>
-                              <strong>我的专家</strong>
-                              <span>支持 PNG、JPG、WebP，最大 2MB</span>
-                            </div>
-                          </div>
-                        </div>
-
-                        <section className={styles.agentDetailBlock}>
-                          <h3>基础信息</h3>
-                          <dl className={styles.agentInfoGrid}>
-                            <div>
-                              <dt>场景</dt>
-                              <dd>{detailAgent.scene}</dd>
-                            </div>
-                            <div>
-                              <dt>可见范围</dt>
-                              <dd>{detailAgent.scopeLabel}</dd>
-                            </div>
-                            <div>
-                              <dt>业务线</dt>
-                              <dd>{detailAgent.businessLineLabel}</dd>
-                            </div>
-                            <div>
-                              <dt>最近更新</dt>
-                              <dd>{detailAgent.updatedAt}</dd>
-                            </div>
-                          </dl>
-                        </section>
-                      </div>
-
-                      <aside className={styles.agentDetailPreview}>
-                        <div className={styles.agentPreviewCard}>
-                          <div
-                            className={styles.agentPreviewCover}
-                            style={{
-                              background: getAgentStoreDomainTone(detailAgent.businessLine),
-                            }}
-                          />
-                          <div className={styles.agentPreviewAvatar}>
-                            <img alt={detailAgent.name} src={getAgentAvatarSrc(detailAgent)} />
-                          </div>
-                          <h3>{detailAgent.name}</h3>
-                          <p>{detailAgent.summary}</p>
-                        </div>
-                      </aside>
+                  <section className={styles.agentReadOnlyBlock}>
+                    <h3>使用指南</h3>
+                    <div className={styles.agentUsageGuideContent}>
+                      {getAgentUsageGuide(detailAgent)}
                     </div>
-                  ) : (
-                    <div className={styles.agentReadOnlyProfile}>
-                      <section className={styles.agentReadOnlyHero}>
-                        <div className={styles.agentReadOnlyAvatar}>
-                          <img alt={detailAgent.name} src={getAgentAvatarSrc(detailAgent)} />
-                        </div>
-                        <div>
-                          <h3>{detailAgent.name}</h3>
-                          <p>{detailAgent.summary}</p>
-                        </div>
-                      </section>
-
-                      <section className={styles.agentReadOnlyBlock}>
-                        <h3>使用指南</h3>
-                        <div className={styles.agentUsageGuideContent}>
-                          {getAgentUsageGuide(detailAgent)}
-                        </div>
-                      </section>
-                    </div>
-                  )
+                  </section>
                 ) : detailTab === "skills" ? (
                   <div className={styles.agentDetailList}>
                     <div className={styles.agentDetailSectionHead}>

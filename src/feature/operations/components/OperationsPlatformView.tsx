@@ -31,6 +31,12 @@ import { getMockTenantManagementSnapshot } from "@/feature/auth/mockTenantRegist
 import { useMockAuth } from "@/feature/auth/hooks/useMockAuth";
 import { useOperationsAuth } from "@/feature/operations/hooks/useOperationsAuth";
 import { useOperationsPlatform } from "@/feature/operations/hooks/useOperationsPlatform";
+import {
+  getLatestTenantActiveSeatExpiresAt,
+  getTenantEntitlementRevokeBlockReason,
+  getTenantSeatGrantContent,
+  getTenantSeatGrantKindLabel,
+} from "@/feature/operations/tenantSeatEntitlementRules";
 import type {
   MockAuthSystemEntry,
   MockTenantEntitlementGrantItem,
@@ -60,6 +66,7 @@ import adminStyles from "@/pages/components/FrontisAdminViews.module.less";
 import shellStyles from "@/pages/FrontisPage.module.less";
 
 import styles from "./OperationsPlatformView.module.less";
+import { AgentSubmissionReviewTabs } from "./OperationsAgentSnapshotPanels";
 import { OperationsOrganizationConsole } from "./OperationsOrganizationConsole";
 import { OperationsOrderCenterConsole } from "./OperationsOrderCenterConsole";
 import { OperationsPlatformConfigConsole } from "./OperationsPlatformConfigConsole";
@@ -69,6 +76,7 @@ import { OperationsResourceMeteringConsole } from "./OperationsResourceMeteringC
 import {
   OperationsTenantPointsRechargeModal,
   OperationsTenantSeatAllocationModal,
+  OperationsTenantSeatRenewalModal,
 } from "./OperationsTenantEntitlementModals";
 
 interface TenantEditorState {
@@ -117,6 +125,7 @@ interface TenantDetailConsoleProps {
   onEdit: (tenant: OperationsTenant) => void;
   onOpenPointsRecharge: (tenant: OperationsTenant) => void;
   onOpenSeatAllocation: (tenant: OperationsTenant) => void;
+  onOpenSeatRenewal: (tenant: OperationsTenant) => void;
   onOpenRevokeEntitlement: (
     tenant: OperationsTenant,
     grant: MockTenantEntitlementGrantItem,
@@ -185,7 +194,7 @@ const OPERATIONS_MODAL_WIDTHS = {
   compact: 560,
   standard: 720,
   large: 880,
-  review: 760,
+  review: 920,
 } as const;
 
 const PERMISSION_LABEL_MAP = new Map<string, string>(
@@ -246,6 +255,9 @@ const getAgentStatusClassName = (status: OperationsAgentSubmission["status"]): s
   return buildStatusClassName("danger");
 };
 
+const getAgentSubmissionKindLabel = (submission: OperationsAgentSubmission): string =>
+  submission.applicationKind === "versionUpdate" ? "版本更新" : "首次上架";
+
 const getEntitlementGrantStatusClassName = (
   status: MockTenantEntitlementGrantItem["status"],
 ): string =>
@@ -254,53 +266,6 @@ const getEntitlementGrantStatusClassName = (
 const getEntitlementGrantStatusLabel = (
   status: MockTenantEntitlementGrantItem["status"],
 ): string => (status === "active" ? "已生效" : "已撤销");
-
-const getEntitlementGrantKindLabel = (
-  kind: MockTenantEntitlementGrantItem["kind"],
-): string => (kind === "points" ? "积分包" : "席位包");
-
-const getEntitlementGrantContent = (grant: MockTenantEntitlementGrantItem): string => {
-  if (grant.kind === "points") {
-    return `${(grant.points ?? 0).toLocaleString("zh-CN")} 积分`;
-  }
-
-  const giftPoints =
-    grant.giftPoints && grant.giftPoints > 0 ? ` · 赠送 ${grant.giftPoints} 积分` : "";
-
-  return `${grant.seatCount ?? 0} 个席位 · 到期 ${grant.expiresAt ?? "-"}${giftPoints}`;
-};
-
-const getEntitlementGrantRevokeBlockReason = (
-  snapshot: MockTenantManagementSnapshot | null,
-  grant: MockTenantEntitlementGrantItem,
-): string | null => {
-  if (!snapshot) {
-    return "缺少租户权益数据。";
-  }
-
-  if (grant.status === "revoked") {
-    return "该发放记录已撤销。";
-  }
-
-  if (grant.kind === "points") {
-    const revokePoints = Math.max(Math.floor(grant.points ?? 0), 0);
-
-    return snapshot.pointsBalance >= revokePoints ? null : "当前积分余额不足，无法撤销该积分包。";
-  }
-
-  const revokeSeats = Math.max(Math.floor(grant.seatCount ?? 0), 0);
-  const giftPoints = Math.max(Math.floor(grant.giftPoints ?? 0), 0);
-
-  if (snapshot.totalSeats - revokeSeats < snapshot.usedSeats) {
-    return "席位已被占用，无法撤销该席位包。";
-  }
-
-  if (giftPoints > 0 && snapshot.pointsBalance < giftPoints) {
-    return "席位包赠送积分已被消耗，无法撤销该席位包。";
-  }
-
-  return null;
-};
 
 const TenantConsole = ({
   canCreate,
@@ -424,6 +389,7 @@ const TenantDetailConsole = ({
   onEdit,
   onOpenPointsRecharge,
   onOpenSeatAllocation,
+  onOpenSeatRenewal,
   onOpenRevokeEntitlement,
   onToggleStatus,
 }: TenantDetailConsoleProps): JSX.Element => {
@@ -433,6 +399,8 @@ const TenantDetailConsole = ({
   const usedSeats = tenantSnapshot?.usedSeats ?? tenant?.members.length ?? 0;
   const allocatedSeatCount = Math.max(totalSeats - 1, 0);
   const entitlementGrants = tenantSnapshot?.entitlementGrants ?? [];
+  const currentSeatExpiresAt = getLatestTenantActiveSeatExpiresAt(tenantSnapshot);
+  const canRenewSeats = Boolean(currentSeatExpiresAt) && totalSeats > 1;
 
   return (
     <div className={adminStyles.consolePage}>
@@ -472,9 +440,19 @@ const TenantDetailConsole = ({
                   基础信息
                 </h3>
                 {canManageEntitlements ? (
-                  <Button size="small" onClick={() => onOpenSeatAllocation(tenant)}>
-                    分配席位
-                  </Button>
+                  <div className={adminStyles.consoleActions}>
+                    <Button size="small" onClick={() => onOpenSeatAllocation(tenant)}>
+                      分配席位
+                    </Button>
+                    <Button
+                      size="small"
+                      disabled={!canRenewSeats}
+                      title={canRenewSeats ? undefined : "当前租户没有可续约的有效团队席位"}
+                      onClick={() => onOpenSeatRenewal(tenant)}
+                    >
+                      席位续约
+                    </Button>
+                  </div>
                 ) : null}
               </div>
               <div className={adminStyles.consoleRows}>
@@ -628,18 +606,18 @@ const TenantDetailConsole = ({
                   </thead>
                   <tbody>
                     {entitlementGrants.map(grant => {
-                      const blockReason = getEntitlementGrantRevokeBlockReason(
+                      const blockReason = getTenantEntitlementRevokeBlockReason(
                         tenantSnapshot,
                         grant,
                       );
 
                       return (
                         <tr key={grant.id}>
-                          <td>{getEntitlementGrantKindLabel(grant.kind)}</td>
+                          <td>{getTenantSeatGrantKindLabel(grant)}</td>
                           <td>
                             <div className={styles.entitlementGrantContent}>
                               <span>{grant.title}</span>
-                              <small>{getEntitlementGrantContent(grant)}</small>
+                              <small>{getTenantSeatGrantContent(grant)}</small>
                             </div>
                           </td>
                           <td>{grant.orderNo}</td>
@@ -767,6 +745,7 @@ const AgentConsole = ({
                 <tr>
                   <th>AI专家</th>
                   <th>版本</th>
+                  <th>申请类型</th>
                   <th>提审人</th>
                   <th>状态</th>
                   <th>提审时间</th>
@@ -787,6 +766,7 @@ const AgentConsole = ({
                       </button>
                     </td>
                     <td>{submission.version}</td>
+                    <td>{getAgentSubmissionKindLabel(submission)}</td>
                     <td>{submission.submitter}</td>
                     <td>
                       <span className={getAgentStatusClassName(submission.status)}>
@@ -871,6 +851,7 @@ export const OperationsPlatformView = (): JSX.Element => {
     registrationStrategy,
     rejectAgent,
     rechargeTenantPoints,
+    renewTenantSeats,
     revokeTenantEntitlement,
     serviceContactConfig,
     skillCenterCategories,
@@ -899,6 +880,7 @@ export const OperationsPlatformView = (): JSX.Element => {
   });
   const [pointsRechargeTenantId, setPointsRechargeTenantId] = useState<string | null>(null);
   const [seatAllocationTenantId, setSeatAllocationTenantId] = useState<string | null>(null);
+  const [seatRenewalTenantId, setSeatRenewalTenantId] = useState<string | null>(null);
   const [entitlementRevokeEditor, setEntitlementRevokeEditor] =
     useState<EntitlementRevokeEditorState>({
       open: false,
@@ -1095,6 +1077,10 @@ export const OperationsPlatformView = (): JSX.Element => {
     setSeatAllocationTenantId(tenant.id);
   }, []);
 
+  const handleOpenSeatRenewal = useCallback((tenant: OperationsTenant): void => {
+    setSeatRenewalTenantId(tenant.id);
+  }, []);
+
   const handleOpenRevokeEntitlement = useCallback(
     (tenant: OperationsTenant, grant: MockTenantEntitlementGrantItem): void => {
       setEntitlementRevokeEditor({
@@ -1153,13 +1139,19 @@ export const OperationsPlatformView = (): JSX.Element => {
 
   const handleApproveAgent = useCallback(
     (submissionId: string): void => {
+      const reviewSubmission = agentSubmissions.find(item => item.id === submissionId);
+
       approveAgent(submissionId);
-      message.success("AI专家审核已通过，可在商品中心继续完善商品信息。");
+      message.success(
+        reviewSubmission?.applicationKind === "versionUpdate"
+          ? "AI专家版本更新审核已通过，原商品已更新绑定版本快照。"
+          : "AI专家审核已通过，可在商品中心继续完善商品信息。",
+      );
       setAgentReview({
         open: false,
       });
     },
-    [approveAgent],
+    [agentSubmissions, approveAgent],
   );
 
   const handleOpenRejectAgent = useCallback((submission: OperationsAgentSubmission): void => {
@@ -1221,6 +1213,18 @@ export const OperationsPlatformView = (): JSX.Element => {
     () => tenants.find(item => item.id === seatAllocationTenantId) ?? null,
     [seatAllocationTenantId, tenants],
   );
+  const seatRenewalTenant = useMemo<OperationsTenant | null>(
+    () => tenants.find(item => item.id === seatRenewalTenantId) ?? null,
+    [seatRenewalTenantId, tenants],
+  );
+  const seatAllocationTenantSnapshot = useMemo<MockTenantManagementSnapshot | null>(
+    () => (seatAllocationTenant ? getMockTenantManagementSnapshot(seatAllocationTenant.id) : null),
+    [seatAllocationTenant],
+  );
+  const seatRenewalTenantSnapshot = useMemo<MockTenantManagementSnapshot | null>(
+    () => (seatRenewalTenant ? getMockTenantManagementSnapshot(seatRenewalTenant.id) : null),
+    [seatRenewalTenant],
+  );
   const activeRevokeTenant = useMemo<OperationsTenant | null>(
     () => tenants.find(item => item.id === entitlementRevokeEditor.tenantId) ?? null,
     [entitlementRevokeEditor.tenantId, tenants],
@@ -1239,7 +1243,7 @@ export const OperationsPlatformView = (): JSX.Element => {
   const activeRevokeBlockReason = useMemo<string | null>(
     () =>
       activeRevokeGrant
-        ? getEntitlementGrantRevokeBlockReason(activeRevokeSnapshot, activeRevokeGrant)
+        ? getTenantEntitlementRevokeBlockReason(activeRevokeSnapshot, activeRevokeGrant)
         : null,
     [activeRevokeGrant, activeRevokeSnapshot],
   );
@@ -1312,6 +1316,7 @@ export const OperationsPlatformView = (): JSX.Element => {
             onOpenPointsRecharge={handleOpenPointsRecharge}
             onOpenRevokeEntitlement={handleOpenRevokeEntitlement}
             onOpenSeatAllocation={handleOpenSeatAllocation}
+            onOpenSeatRenewal={handleOpenSeatRenewal}
             onToggleStatus={handleToggleTenantStatus}
           />
         );
@@ -1501,6 +1506,7 @@ export const OperationsPlatformView = (): JSX.Element => {
     handleOpenProductDetail,
     handleOpenRevokeEntitlement,
     handleOpenSeatAllocation,
+    handleOpenSeatRenewal,
     handleOpenTenantDetail,
     handleToggleTenantStatus,
     meteringProviders,
@@ -1811,9 +1817,19 @@ export const OperationsPlatformView = (): JSX.Element => {
       <OperationsTenantSeatAllocationModal
         open={Boolean(seatAllocationTenantId)}
         tenant={seatAllocationTenant}
+        tenantSnapshot={seatAllocationTenantSnapshot}
         subscriptionPlans={subscriptionPlans}
         onCancel={() => setSeatAllocationTenantId(null)}
         onSubmit={allocateTenantSeats}
+      />
+
+      <OperationsTenantSeatRenewalModal
+        open={Boolean(seatRenewalTenantId)}
+        tenant={seatRenewalTenant}
+        tenantSnapshot={seatRenewalTenantSnapshot}
+        subscriptionPlans={subscriptionPlans}
+        onCancel={() => setSeatRenewalTenantId(null)}
+        onSubmit={renewTenantSeats}
       />
 
       <Modal
@@ -1837,11 +1853,11 @@ export const OperationsPlatformView = (): JSX.Element => {
               </div>
               <div>
                 <span>类型</span>
-                <strong>{getEntitlementGrantKindLabel(activeRevokeGrant.kind)}</strong>
+                <strong>{getTenantSeatGrantKindLabel(activeRevokeGrant)}</strong>
               </div>
               <div>
                 <span>内容</span>
-                <strong>{getEntitlementGrantContent(activeRevokeGrant)}</strong>
+                <strong>{getTenantSeatGrantContent(activeRevokeGrant)}</strong>
               </div>
               <div>
                 <span>关联订单</span>
@@ -1927,72 +1943,7 @@ export const OperationsPlatformView = (): JSX.Element => {
                 {activeReviewSubmission.version} · {activeReviewSubmission.submitter}
               </span>
             </div>
-
-            <section className={adminStyles.detailBlock}>
-              <h3 className={adminStyles.detailBlockTitle}>审核信息</h3>
-              <div className={adminStyles.consoleRows}>
-                <div className={adminStyles.consoleInfoRow}>
-                  <span className={adminStyles.consoleInfoLabel}>提审人</span>
-                  <span className={adminStyles.consoleInfoValue}>
-                    {activeReviewSubmission.submitter}
-                  </span>
-                </div>
-                <div className={adminStyles.consoleInfoRow}>
-                  <span className={adminStyles.consoleInfoLabel}>提审时间</span>
-                  <span className={adminStyles.consoleInfoValue}>
-                    {activeReviewSubmission.submittedAt}
-                  </span>
-                </div>
-                <div className={adminStyles.consoleInfoRow}>
-                  <span className={adminStyles.consoleInfoLabel}>版本</span>
-                  <span className={adminStyles.consoleInfoValue}>
-                    {activeReviewSubmission.version}
-                  </span>
-                </div>
-                {activeReviewSubmission.proposedProductName ? (
-                  <div className={adminStyles.consoleInfoRow}>
-                    <span className={adminStyles.consoleInfoLabel}>拟上架名称</span>
-                    <span className={adminStyles.consoleInfoValue}>
-                      {activeReviewSubmission.proposedProductName}
-                    </span>
-                  </div>
-                ) : null}
-                <div className={adminStyles.consoleInfoRow}>
-                  <span className={adminStyles.consoleInfoLabel}>最近处理</span>
-                  <span className={adminStyles.consoleInfoValue}>
-                    {activeReviewSubmission.lastReviewedAt ?? "待处理"}
-                  </span>
-                </div>
-                <div className={adminStyles.consoleInfoRow}>
-                  <span className={adminStyles.consoleInfoLabel}>当前发布范围</span>
-                  <span className={adminStyles.consoleInfoValue}>
-                    {activeReviewSubmission.currentScopeLabel ?? "未设置"}
-                  </span>
-                </div>
-              </div>
-            </section>
-
-            <section className={adminStyles.detailBlock}>
-              <h3 className={adminStyles.detailBlockTitle}>上架说明</h3>
-              <p className={styles.detailParagraph}>{activeReviewSubmission.description}</p>
-              {activeReviewSubmission.submitReason ? (
-                <div className={styles.reviewMetaBlock}>
-                  <span className={styles.reviewMetaLabel}>申请理由</span>
-                  <p className={styles.detailParagraph}>{activeReviewSubmission.submitReason}</p>
-                </div>
-              ) : null}
-              {activeReviewSubmission.targetCustomers ? (
-                <div className={styles.reviewMetaBlock}>
-                  <span className={styles.reviewMetaLabel}>适用客户</span>
-                  <p className={styles.detailParagraph}>{activeReviewSubmission.targetCustomers}</p>
-                </div>
-              ) : null}
-              {activeReviewSubmission.rejectReason ? (
-                <div className={styles.alertBlock}>
-                  驳回原因：{activeReviewSubmission.rejectReason}
-                </div>
-              ) : null}
-            </section>
+            <AgentSubmissionReviewTabs submission={activeReviewSubmission} />
           </div>
         ) : (
           <div className={styles.emptyWrap}>
