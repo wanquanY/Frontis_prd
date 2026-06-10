@@ -453,9 +453,9 @@ const buildMetaAgentSeedSessions = (): DialogueSessionItem[] => {
       title: "本周任务编排",
       preview: "ME 已把本周原型调整拆成菜单、专家广场、详情和对话记录四条线。",
       time: "今天 20:12",
-      userContent: "帮我把这周要改的原型任务按优先级排一下，不要漏掉专家广场和新任务。",
+      userContent: "帮我把这周要改的原型任务按优先级排一下，不要漏掉专家广场和新对话。",
       assistantContent:
-        "我会按影响面排序：先稳定新任务入口和对话记录，再处理专家广场筛选与专家卡片，最后校准详情弹窗和技能文件预览。每条任务都绑定验收点，避免改完以后只解决局部视觉问题。",
+        "我会按影响面排序：先稳定新对话入口和对话记录，再处理专家广场筛选与专家卡片，最后校准详情弹窗和技能文件预览。每条任务都绑定验收点，避免改完以后只解决局部视觉问题。",
     }),
     buildMetaAgentTopicSession({
       id: "dialogue-seed-metaagent-store-experience",
@@ -489,9 +489,9 @@ const buildMetaAgentSeedSessions = (): DialogueSessionItem[] => {
       title: "对话记录菜单调整",
       preview: "ME 已把对话记录移动到最左侧菜单，并统一平铺展示 ME 和 AI 专家会话。",
       time: "今天 21:18",
-      userContent: "对话记录要放到最左侧菜单栏，而且新任务不要自动进入历史对话。",
+      userContent: "对话记录要放到最左侧菜单栏，而且新对话不要自动进入历史对话。",
       assistantContent:
-        "左侧菜单会常驻对话记录，ME 和 AI 专家的会话统一平铺展示。点击新任务只回到首页，只有点击某条对话记录才进入具体会话。",
+        "左侧菜单会常驻对话记录，ME 和 AI 专家的会话统一平铺展示。点击新对话只回到首页，只有点击某条对话记录才进入具体会话。",
     }),
     buildMetaAgentTopicSession({
       id: "dialogue-seed-metaagent-evolution-data",
@@ -602,7 +602,7 @@ const mapWorkbenchRecordToEmployee = (record: WorkbenchAgentRecord): EmployeeIte
   connectionMode: "cloud",
   model: record.model,
   summary: record.summary,
-  lastAction: "已添加到工作台，可在新任务中使用。",
+  lastAction: "已添加到工作台，可在新对话中使用。",
   source: "coworker",
   visibility: "all",
   developerName: record.developerName,
@@ -1833,12 +1833,12 @@ const FrontisPage = ({
       }
 
       if (employeeId === DEFAULT_CONVERSATION_EMPLOYEE_ID) {
-        message.warning("ME 是新任务默认入口，不能移除。");
+        message.warning("ME 是新对话默认入口，不能移除。");
         return;
       }
 
       if (conversationEmployees.length <= 1) {
-        message.warning("新任务至少保留一个可调度 AI 专家。");
+        message.warning("新对话至少保留一个可调度 AI 专家。");
         return;
       }
 
@@ -1863,7 +1863,7 @@ const FrontisPage = ({
         setIsDialogueHomeActive(false);
       }
 
-      message.success(`${targetEmployee.name} 已从新任务可调度专家中移除。`);
+      message.success(`${targetEmployee.name} 已从新对话可调度专家中移除。`);
     },
     [activeEmployeeId, conversationEmployees, dialogueSessions, workspaceMode],
   );

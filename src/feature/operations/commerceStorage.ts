@@ -196,7 +196,9 @@ const mergeStoredProductsWithPreset = (
 export const loadStoredOperationsProducts = (): OperationsProduct[] =>
   mergeStoredProductsWithPreset(
     loadStoredList(OPERATIONS_PRODUCTS_STORAGE_KEY, isValidProduct) ?? [],
-  ).map(cloneProduct);
+  )
+    .filter(product => product.status !== "pendingProductization")
+    .map(cloneProduct);
 
 /**
  * 保存运营后台当前全部 AI 专家上架配置。
@@ -204,7 +206,9 @@ export const loadStoredOperationsProducts = (): OperationsProduct[] =>
 export const saveStoredOperationsProducts = (products: OperationsProduct[]): void => {
   saveStoredList(
     OPERATIONS_PRODUCTS_STORAGE_KEY,
-    products.map(product => cloneProduct(normalizeAgentProductAcquisition(product))),
+    products
+      .filter(product => product.status !== "pendingProductization")
+      .map(product => cloneProduct(normalizeAgentProductAcquisition(product))),
   );
 };
 

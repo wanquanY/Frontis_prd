@@ -713,6 +713,11 @@ const isSameMarketplaceListingVersion = (
   application?: OperationsAgentSubmission | null,
 ): boolean => application?.version === agent.versionLabel;
 
+const shouldShowMarketplaceVersionUpdateHint = (agent: StoreAgentItem): boolean =>
+  agent.sourceType === "mine" &&
+  agent.commodityApplication?.status === "approved" &&
+  !isSameMarketplaceListingVersion(agent, agent.commodityApplication);
+
 const getAgentCoreFiles = (agent: StoreAgentItem): AgentCoreFile[] => [
   {
     key: "soulMarkdown",
@@ -890,7 +895,7 @@ const getAcquisitionLabel = (product: OperationsProduct): string => {
     return "联系我们";
   }
 
-  return "添加后在新任务中使用";
+  return "添加后在新对话中使用";
 };
 
 export const shouldContactForAgent = (agent: StoreAgentItem): boolean =>
@@ -1361,21 +1366,6 @@ export const ExpertPlazaView = ({ mode = "store" }: ExpertPlazaViewProps): JSX.E
         : null,
     [marketplaceListingApplicationEditor.agentId, myAgents],
   );
-  const marketplaceListingApplicationSceneTags = useMemo(
-    () =>
-      marketplaceListingApplicationAgent
-        ? getAgentSceneTags(marketplaceListingApplicationAgent)
-        : [],
-    [marketplaceListingApplicationAgent],
-  );
-  const marketplaceListingApplicationUsageGuide = useMemo(
-    () =>
-      marketplaceListingApplicationAgent
-        ? getAgentUsageGuide(marketplaceListingApplicationAgent)
-        : "",
-    [marketplaceListingApplicationAgent],
-  );
-
   const frontisAgents = useMemo(
     () => buildFrontisAgents(products, currentTenantId, latestFulfillmentsByProductId),
     [currentTenantId, latestFulfillmentsByProductId, products],
@@ -1793,6 +1783,12 @@ export const ExpertPlazaView = ({ mode = "store" }: ExpertPlazaViewProps): JSX.E
                   <span key={`${agent.id}-${tag}`}>{tag}</span>
                 ))}
               </div>
+
+              {shouldShowMarketplaceVersionUpdateHint(agent) ? (
+                <div className={styles.marketplaceVersionHint}>
+                  旧版本已通过上架审批，当前版本需重新申请
+                </div>
+              ) : null}
             </button>
 
             <div className={styles.cardFooter}>{renderAgentActions(agent)}</div>
@@ -1809,14 +1805,7 @@ export const ExpertPlazaView = ({ mode = "store" }: ExpertPlazaViewProps): JSX.E
       <MarketplaceListingApplicationModal
         open={marketplaceListingApplicationEditor.open}
         agent={marketplaceListingApplicationAgent}
-        agentAvatarSrc={
-          marketplaceListingApplicationAgent
-            ? getAgentAvatarSrc(marketplaceListingApplicationAgent)
-            : ""
-        }
         form={marketplaceListingApplicationEditor.form}
-        sceneTags={marketplaceListingApplicationSceneTags}
-        usageGuide={marketplaceListingApplicationUsageGuide}
         onCancel={handleCloseMarketplaceListingApplication}
         onChange={handleChangeMarketplaceListingApplicationForm}
         onSubmit={handleSubmitMarketplaceListingApplication}

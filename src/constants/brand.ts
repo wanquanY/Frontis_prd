@@ -29,9 +29,9 @@ export const PRODUCT_LOGO_URL = "https://go.frontis.top/workspace/logo.svg";
 export const MA_WORKBENCH_LABEL = "ME";
 
 /**
- * 一级导航中新任务入口文案。
+ * 一级导航中新对话入口文案。
  */
-export const EXPERT_STUDIO_LABEL = "新任务";
+export const EXPERT_STUDIO_LABEL = "新对话";
 
 /**
  * 一级导航中专家广场文案。

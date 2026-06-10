@@ -457,52 +457,6 @@ const getSubmissionSourceAgentId = (submission: OperationsAgentSubmission): stri
 const getProductLinkedAgentSourceId = (product: OperationsProduct): string | undefined =>
   product.linkedAgentSourceId ?? product.linkedAgentId;
 
-const buildPendingProductFromSubmission = (
-  submission: OperationsAgentSubmission,
-): OperationsProduct => ({
-  id: buildOperationsProductId(),
-  name: submission.proposedProductName?.trim() || submission.name,
-  supplyKind: "agent",
-  deliveryKind: "softwareService",
-  saleType: "free",
-  billingMode: "subscription",
-  meteringUnit: "duration",
-  linkedAgentId: submission.id,
-  linkedAgentSourceId: getSubmissionSourceAgentId(submission),
-  linkedAgentName: submission.name,
-  description: submission.description,
-  identityAvatarUrl: submission.avatarUrl ?? "",
-  identityName: submission.name,
-  identityDescription: submission.description,
-  usageGuide: submission.usageGuide?.trim() || "",
-  tags: normalizeSubmissionSceneTags(
-    submission.sceneTags,
-    submission.plazaCategory ?? OPERATIONS_AGENT_PLAZA_DEFAULT_CATEGORY,
-  ),
-  subscriptionPlans: createDefaultAgentSubscriptionPlans(),
-  supportsTrial: false,
-  trialUnit: "day",
-  trialValue: 7,
-  contactMode: "disabled",
-  contactQrCodeValue: "",
-  contactRemark: "",
-  storeZone: submission.plazaCategory === "通用" ? "roleZone" : "industryExpert",
-  storeZones: [submission.plazaCategory === "通用" ? "roleZone" : "industryExpert"],
-  status: "pendingProductization",
-  plazaCategory: OPERATIONS_AGENT_PLAZA_DEFAULT_CATEGORY,
-  plazaCategoryByZone: {
-    [submission.plazaCategory === "通用" ? "roleZone" : "industryExpert"]:
-      OPERATIONS_AGENT_PLAZA_DEFAULT_CATEGORY,
-  },
-  plazaVisibility: "public",
-  visibleTenantIds: [],
-  visibleTenantNames: [],
-  plazaStatus: submission.plazaStatus ?? "offline",
-  plazaSort: 0,
-  billingScopes: ["points"],
-  updatedAt: formatOperationsTimestamp(),
-});
-
 const buildProductFromForm = (
   form: OperationsProductForm,
   approvedSubmissions: OperationsAgentSubmission[],
@@ -546,7 +500,7 @@ const buildProductFromForm = (
     contactMode: form.contactMode,
     contactQrCodeValue: form.contactMode === "custom" ? form.contactQrCodeValue.trim() : "",
     contactRemark: form.contactMode === "custom" ? form.contactRemark.trim() : "",
-    status: form.plazaStatus === "online" ? "active" : "draft",
+    status: form.plazaStatus === "online" ? "active" : "inactive",
     storeZone: form.storeZone,
     storeZones: form.storeZones,
     plazaCategory: form.plazaCategory,
@@ -596,9 +550,7 @@ const normalizeAgentSubmission = (
   avatarUrl: submission.avatarUrl,
   usageGuide: submission.usageGuide?.trim() || undefined,
   sceneTags: normalizeAiAgentSceneTags(submission.sceneTags),
-  proposedProductName: submission.proposedProductName,
   submitReason: submission.submitReason,
-  targetCustomers: submission.targetCustomers,
   currentScopeLabel: submission.currentScopeLabel,
   rejectReason: submission.rejectReason,
   lastReviewedAt: submission.lastReviewedAt,
@@ -1408,17 +1360,30 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
           return currentProducts.map(item =>
             item.id === existingProduct.id
               ? {
-                  ...item,
-                  linkedAgentId: reviewedSubmission.id,
-                  linkedAgentSourceId: sourceAgentId,
-                  linkedAgentName: reviewedSubmission.name,
-                  updatedAt: reviewedAt,
-                }
-              : item,
+                ...item,
+                linkedAgentId: reviewedSubmission.id,
+                linkedAgentSourceId: sourceAgentId,
+                linkedAgentName: reviewedSubmission.name,
+                name: reviewedSubmission.name,
+                description: reviewedSubmission.description,
+                identityAvatarUrl: reviewedSubmission.avatarUrl ?? "",
+                identityName: reviewedSubmission.name,
+                identityDescription: reviewedSubmission.description,
+                usageGuide: reviewedSubmission.usageGuide?.trim() || "",
+                tags: normalizeSubmissionSceneTags(
+                  reviewedSubmission.sceneTags,
+                  reviewedSubmission.plazaCategory ?? OPERATIONS_AGENT_PLAZA_DEFAULT_CATEGORY,
+                ),
+                contactMode: "disabled",
+                contactQrCodeValue: "",
+                contactRemark: "",
+                updatedAt: reviewedAt,
+              }
+            : item,
           );
         }
 
-        return [buildPendingProductFromSubmission(reviewedSubmission), ...currentProducts];
+        return currentProducts;
       });
     },
     [agentSubmissions],
@@ -1475,11 +1440,11 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
             billingMode: form.billingMode,
             meteringUnit: form.meteringUnit,
             billingSpec: useSubscriptionPlans ? undefined : form.billingSpec,
-            linkedAgentId: linkedSubmission?.id,
+            linkedAgentId: linkedSubmission?.id ?? item.linkedAgentId,
             linkedAgentSourceId: linkedSubmission
               ? getSubmissionSourceAgentId(linkedSubmission)
-              : undefined,
-            linkedAgentName: linkedSubmission?.name,
+              : item.linkedAgentSourceId,
+            linkedAgentName: linkedSubmission?.name ?? item.linkedAgentName,
             resourcePoolId: undefined,
             resourcePoolName: undefined,
             description: form.description.trim(),

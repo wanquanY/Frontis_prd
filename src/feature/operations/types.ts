@@ -565,9 +565,7 @@ export interface OperationsAgentSubmission {
   avatarUrl?: string;
   usageGuide?: string;
   sceneTags?: string[];
-  proposedProductName?: string;
   submitReason?: string;
-  targetCustomers?: string;
   currentScopeLabel?: string;
   rejectReason?: string;
   lastReviewedAt?: string;

@@ -328,18 +328,13 @@ export const AgentSnapshotCoreFilesPanel = ({
   </section>
 );
 
-const AgentSubmissionReviewInfoPanel = ({
+const AgentSubmissionDetailPanel = ({
   snapshot,
 }: {
   snapshot: OperationsAgentReleaseSnapshot;
 }): JSX.Element => (
   <div className={styles.modalDetailStack}>
-    <section className={adminStyles.detailBlock}>
-      <h3 className={adminStyles.detailBlockTitle}>基础信息</h3>
-      <AgentSnapshotIdentity snapshot={snapshot} />
-      <AgentSnapshotBaseInfo snapshot={snapshot} />
-    </section>
-
+    <AgentSnapshotDetailPanel snapshot={snapshot} />
     <section className={adminStyles.detailBlock}>
       <h3 className={adminStyles.detailBlockTitle}>上架理由</h3>
       <p className={styles.detailParagraph}>{snapshot.submitReason || "未填写上架理由。"}</p>
@@ -362,14 +357,9 @@ export const AgentSubmissionReviewTabs = ({
       className={styles.productDetailTabs}
       items={[
         {
-          key: "review",
-          label: "审核信息",
-          children: <AgentSubmissionReviewInfoPanel snapshot={snapshot} />,
-        },
-        {
           key: "agent",
           label: "AI 专家详情",
-          children: <AgentSnapshotDetailPanel snapshot={snapshot} />,
+          children: <AgentSubmissionDetailPanel snapshot={snapshot} />,
         },
         {
           key: "skills",

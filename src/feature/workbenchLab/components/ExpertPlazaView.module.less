@@ -295,6 +295,23 @@
   }
 }
 
+.marketplaceVersionHint {
+  display: inline-flex;
+  max-width: 100%;
+  margin-top: 10px;
+  padding: 5px 8px;
+  overflow: hidden;
+  border: 1px solid rgba(245, 158, 11, 0.28);
+  border-radius: 6px;
+  background: rgba(245, 158, 11, 0.1);
+  color: #b54708;
+  font-size: 11px;
+  font-weight: 900;
+  line-height: 16px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .capabilityLabel {
   padding: 0 !important;
   background: transparent !important;
@@ -453,148 +470,6 @@
 .listingApplicationBody {
   display: grid;
   gap: 16px;
-}
-
-.listingApplicationAlert {
-  padding: 10px 12px;
-  border: 1px solid rgba(240, 68, 56, 0.24);
-  border-radius: 8px;
-  background: rgba(240, 68, 56, 0.08);
-  color: #b42318;
-  font-size: 13px;
-  font-weight: 800;
-  line-height: 20px;
-}
-
-.listingApplicationSnapshot {
-  display: grid;
-  gap: 14px;
-  padding: 14px;
-  border: 1px solid #e4e7ec;
-  border-radius: 10px;
-  background: #ffffff;
-}
-
-.listingApplicationSectionTitle {
-  margin: 0;
-  color: #182230;
-  font-size: 14px;
-  font-weight: 900;
-  line-height: 22px;
-}
-
-.listingApplicationHero {
-  display: grid;
-  grid-template-columns: 64px minmax(0, 1fr);
-  gap: 14px;
-  align-items: start;
-}
-
-.listingApplicationAvatar {
-  width: 64px;
-  height: 64px;
-  overflow: hidden;
-  border: 1px solid #d0d5dd;
-  border-radius: 50%;
-  background: #f8fafc;
-
-  img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-  }
-}
-
-.listingApplicationHeroText {
-  min-width: 0;
-
-  strong {
-    display: block;
-    color: #182230;
-    font-size: 17px;
-    font-weight: 900;
-    line-height: 24px;
-  }
-}
-
-.listingApplicationMetaGrid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
-
-  div {
-    min-width: 0;
-    padding: 10px 12px;
-    border-radius: 8px;
-    background: #f8fafc;
-  }
-
-  span,
-  strong {
-    display: block;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  span {
-    color: #667085;
-    font-size: 12px;
-    font-weight: 800;
-    line-height: 18px;
-  }
-
-  strong {
-    margin-top: 4px;
-    color: #182230;
-    font-size: 13px;
-    font-weight: 900;
-    line-height: 20px;
-  }
-}
-
-.listingApplicationInfoBlock {
-  min-width: 0;
-  padding: 10px 12px;
-  border-radius: 8px;
-  background: #f8fafc;
-
-  > span {
-    display: block;
-    margin-bottom: 6px;
-    color: #667085;
-    font-size: 12px;
-    font-weight: 800;
-    line-height: 18px;
-  }
-
-  p {
-    margin: 0;
-    color: #182230;
-    font-size: 13px;
-    font-weight: 700;
-    line-height: 21px;
-    white-space: pre-wrap;
-  }
-}
-
-.listingApplicationTagRow {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-
-  span {
-    display: inline-flex;
-    align-items: center;
-    min-height: 24px;
-    padding: 2px 8px;
-    border-radius: 999px;
-    background: rgba(6, 182, 212, 0.1);
-    color: #0891b2;
-    font-size: 12px;
-    font-weight: 900;
-    line-height: 18px;
-  }
 }
 
 .listingApplicationForm {
@@ -1378,8 +1253,4 @@
     padding: 22px;
   }
 
-  .listingApplicationHero,
-  .listingApplicationMetaGrid {
-    grid-template-columns: 1fr;
-  }
 }

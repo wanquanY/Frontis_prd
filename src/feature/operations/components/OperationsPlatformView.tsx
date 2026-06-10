@@ -1145,7 +1145,7 @@ export const OperationsPlatformView = (): JSX.Element => {
       message.success(
         reviewSubmission?.applicationKind === "versionUpdate"
           ? "AI专家版本更新审核已通过，原商品已更新绑定版本快照。"
-          : "AI专家审核已通过，可在商品中心继续完善商品信息。",
+          : "AI专家审核已通过，可在商品中心新建 AI专家商品时选择绑定。",
       );
       setAgentReview({
         open: false,

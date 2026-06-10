@@ -584,15 +584,15 @@ export const OPERATIONS_INITIAL_AGENT_SUBMISSIONS: OperationsAgentSubmission[] =
     version: "v1.3.0",
     submitter: "张三",
     submittedAt: "2026-04-16 13:20",
-    status: "pending",
+    status: "approved",
     avatarUrl: commerceGrowthExpertAvatar,
     currentScopeLabel: "已发布到专家广场",
     submitReason: "该 AI 专家已在租户内稳定使用，申请进入专家广场供更多租户直接使用。",
-    targetCustomers: "零售连锁、门店经营分析团队",
     description: "面向零售客户的经营复盘 Agent，支持日报总结、异常门店识别和行动建议输出。",
     usageGuide:
       "上传门店日报、销售流水或异常指标后，说明复盘周期和关注门店；专家会先识别经营波动，再输出异常原因、行动建议和待人工确认事项。",
     sceneTags: ["零售经营", "经营复盘", "门店分析"],
+    lastReviewedAt: "2026-04-16 15:05",
   },
   {
     id: "ops-agent-002",
@@ -606,7 +606,6 @@ export const OPERATIONS_INITIAL_AGENT_SUBMISSIONS: OperationsAgentSubmission[] =
     avatarUrl: knowledgeGovernanceExpertAvatar,
     currentScopeLabel: "已发布到专家广场",
     submitReason: "租户内部验证完成，希望进入专家广场，供更多财务场景租户复用。",
-    targetCustomers: "财务共享中心、对账运营团队",
     description: "自动核对客户付款凭证与订单金额，辅助运营完成到账核验。",
     usageGuide:
       "上传客户付款凭证、订单明细和结算流水，指定核验时间范围；专家会输出差异项、疑似原因和后续处理建议。",
@@ -638,7 +637,6 @@ export const OPERATIONS_INITIAL_AGENT_SUBMISSIONS: OperationsAgentSubmission[] =
     avatarUrl: knowledgeGovernanceExpertAvatar,
     currentScopeLabel: "已发布到专家广场",
     submitReason: "本版本补充了异常差异归因和多订单合并核验能力，申请更新专家广场现有商品版本。",
-    targetCustomers: "财务共享中心、对账运营团队",
     description: "自动核对客户付款凭证与订单金额，支持差异归因和批量对账复核。",
     usageGuide:
       "上传客户付款凭证、订单明细和结算流水，指定核验时间范围；专家会输出差异项、疑似原因、批量复核结果和后续处理建议。",
@@ -666,7 +664,6 @@ export const OPERATIONS_INITIAL_AGENT_SUBMISSIONS: OperationsAgentSubmission[] =
     avatarUrl: knowledgeGovernanceExpertAvatar,
     currentScopeLabel: "已发布到专家广场",
     submitReason: "希望进入专家广场，对外提供巡检与告警能力。",
-    targetCustomers: "设备运维、巡检团队",
     description: "面向交付运维场景，识别设备在线状态、异常告警和建议修复动作。",
     usageGuide:
       "导入设备在线记录、巡检表或告警日志，补充设备范围和处理时限；专家会归纳异常类型、影响范围和建议修复顺序。",
@@ -684,7 +681,6 @@ export const OPERATIONS_INITIAL_AGENT_SUBMISSIONS: OperationsAgentSubmission[] =
     avatarUrl: commerceGrowthExpertAvatar,
     currentScopeLabel: "已发布到专家广场",
     submitReason: "申请进入专家广场，面向电商运营租户统一开放使用。",
-    targetCustomers: "电商运营、内容团队",
     description: "生成商品卖点、详情页文案和推广素材建议，适合内容团队快速复用。",
     usageGuide:
       "输入商品基础信息、目标客群和渠道要求后，专家会生成卖点提炼、详情页结构和推广素材建议，输出前会标注需人工确认的商品事实。",
@@ -714,7 +710,6 @@ export const OPERATIONS_INITIAL_AGENT_SUBMISSIONS: OperationsAgentSubmission[] =
     avatarUrl: knowledgeGovernanceExpertAvatar,
     currentScopeLabel: "已发布到专家广场",
     submitReason: "适合作为平台通用 AI专家 上架给全部租户体验。",
-    targetCustomers: "行政、HR、运营支持团队",
     description: "基于制度库和流程说明回答员工常见问题，适合做平台通用免费专家。",
     usageGuide:
       "接入制度文件或粘贴流程说明后，用户可直接提问；专家会基于已授权制度内容回答，并在依据不足时提示补充材料。",
@@ -906,35 +901,6 @@ export const OPERATIONS_INITIAL_MODEL_SERVICES: OperationsModelService[] = [
 ];
 
 export const OPERATIONS_INITIAL_PRODUCTS: OperationsProduct[] = [
-  {
-    id: "ops-product-001",
-    name: "商品运营素材助手",
-    supplyKind: "agent",
-    deliveryKind: "softwareService",
-    saleType: "free",
-    billingMode: "subscription",
-    meteringUnit: "duration",
-    linkedAgentId: "ops-agent-004",
-    linkedAgentName: "商品运营素材助手",
-    description: "该 AI 专家已通过商品化审核，请确认获取方式、可见范围和专区分类后再上架。",
-    tags: ["商品运营", "素材生成", "增长"],
-    subscriptionPlans: createDefaultAgentSubscriptionPlans(),
-    supportsTrial: false,
-    trialUnit: "day",
-    trialValue: 7,
-    contactMode: "disabled",
-    contactQrCodeValue: "",
-    contactRemark: "",
-    status: "pendingProductization",
-    plazaCategory: "通用",
-    plazaVisibility: "public",
-    visibleTenantIds: [],
-    visibleTenantNames: [],
-    plazaStatus: "offline",
-    plazaSort: 20,
-    billingScopes: ["points", "cost"],
-    updatedAt: "2026-04-16 15:12",
-  },
   {
     id: "ops-product-002",
     name: "对账核验标准版",

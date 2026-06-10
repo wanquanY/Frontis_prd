@@ -252,7 +252,7 @@ const getUnifiedWorkbenchPath = (
 };
 
 /**
- * 统一用户端页面，聚合新任务、专家广场、企业专区与进化实验室。
+ * 统一用户端页面，聚合新对话、专家广场、企业专区与进化实验室。
  */
 export const UnifiedWorkbenchPage = ({ viewRole }: UnifiedWorkbenchPageProps): JSX.Element => {
   const location = useLocation();

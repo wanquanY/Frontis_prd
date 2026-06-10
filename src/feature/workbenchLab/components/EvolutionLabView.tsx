@@ -529,10 +529,7 @@ interface PublishFormState {
 }
 
 interface CommodityApplicationFormState {
-  proposedProductName: string;
   reason: string;
-  targetCustomers: string;
-  notes: string;
 }
 
 const DEFAULT_PUBLISH_FORM: PublishFormState = {
@@ -548,11 +545,15 @@ const DEFAULT_PUBLISH_FORM: PublishFormState = {
 };
 
 const DEFAULT_COMMODITY_APPLICATION_FORM: CommodityApplicationFormState = {
-  proposedProductName: "",
   reason: "",
-  targetCustomers: "",
-  notes: "",
 };
+
+const parsePublishTags = (tags: string): string[] =>
+  tags
+    .split(/[，,]/)
+    .map(tag => tag.trim())
+    .filter(Boolean)
+    .slice(0, 5);
 
 const PLATFORM_PUBLIC_VISIBILITY = "platformPublic";
 const TENANT_PUBLIC_VISIBILITY = "public";
@@ -1706,18 +1707,12 @@ export const EvolutionLabView = ({
       return;
     }
 
-    const agentName = publishForm.name.trim() || selectedWorkspace?.name || "未命名 AI专家";
-
     setPublishPage("commodity");
     setPublishType("agent");
     setPublishSuccess(false);
     setCommodityApplicationSuccess(false);
-    setCommodityApplicationForm(currentForm => ({
-      ...currentForm,
-      proposedProductName: currentForm.proposedProductName.trim() || `${agentName} 标准版`,
-    }));
     setIsRightPanelCollapsed(false);
-  }, [canSubmitAgentListing, publishForm.name, selectedWorkspace?.name]);
+  }, [canSubmitAgentListing]);
 
   const handleSubmitCommodityApplication = useCallback(() => {
     if (!canSubmitAgentListing) {
@@ -1726,13 +1721,7 @@ export const EvolutionLabView = ({
     }
 
     const agentName = publishForm.name.trim() || selectedWorkspace?.name || "未命名 AI专家";
-    const proposedProductName = commodityApplicationForm.proposedProductName.trim();
     const submitReason = commodityApplicationForm.reason.trim();
-
-    if (!proposedProductName) {
-      message.warning("请填写专家广场展示名");
-      return;
-    }
 
     if (!submitReason) {
       message.warning("请填写申请理由");
@@ -1746,13 +1735,10 @@ export const EvolutionLabView = ({
       submitter: `${currentUserName} - ${currentTenantName}`,
       submittedAt: formatCurrentTimestamp(),
       status: "pending" as const,
-      proposedProductName,
       submitReason,
-      targetCustomers: commodityApplicationForm.targetCustomers.trim() || undefined,
       currentScopeLabel: "已发布到专家广场",
-      description:
-        commodityApplicationForm.notes.trim() ||
-        "该 AI 专家已发布到专家广场，当前按企业内权限范围可见可用。平台公开申请审核通过后，可进一步扩大到更多租户可见。",
+      description: publishForm.description.trim() || "该 AI 专家已发布到企业专区。",
+      sceneTags: parsePublishTags(publishForm.tags),
     };
     const currentApplications = loadEnterpriseCommodityApplications();
 
@@ -1760,14 +1746,13 @@ export const EvolutionLabView = ({
     setCommodityApplicationSuccess(true);
     message.success(`已提交「${agentName}」的平台公开申请`);
   }, [
-    commodityApplicationForm.notes,
-    commodityApplicationForm.proposedProductName,
     commodityApplicationForm.reason,
-    commodityApplicationForm.targetCustomers,
     currentTenantName,
     currentUserName,
     canSubmitAgentListing,
+    publishForm.description,
     publishForm.name,
+    publishForm.tags,
     publishForm.version,
     selectedVersion,
     selectedWorkspace?.name,
@@ -4011,77 +3996,18 @@ export const EvolutionLabView = ({
           ) : (
             <div className={styles.publishFormArea}>
               <div className={styles.publishFormSection}>
-                <div className={styles.publishNoticeCard}>
-                  <div className={styles.publishNoticeTitle}>当前发布范围</div>
-                  <div className={styles.publishNoticeText}>
-                    {canSubmitAgentListing
-                      ? "该 AI 专家发布到专家广场后，将按当前权限范围在本企业内可见可用。只有平台公开申请审核通过后，平台运营才会将其纳入平台公开范围。"
-                      : "当前角色没有专家广场平台公开申请权限，可继续开发、自用和发布到企业内专家广场，暂不能提交平台公开申请。"}
-                  </div>
-                </div>
-              </div>
-              <div className={styles.publishFormSection}>
-                <h4 className={styles.publishSectionTitle}>平台公开申请信息</h4>
-                <div className={styles.publishFormRow}>
-                  <label className={styles.publishFormLabel}>AI专家名称</label>
-                  <Input
-                    value={publishForm.name || selectedWorkspace?.name || "未命名 AI专家"}
-                    disabled
-                  />
-                </div>
                 <div className={styles.publishFormRow}>
                   <label className={styles.publishFormLabel}>
-                    专家广场展示名 <span className={styles.publishRequired}>*</span>
-                  </label>
-                  <Input
-                    value={commodityApplicationForm.proposedProductName}
-                    maxLength={200}
-                    placeholder="请输入专家广场展示名"
-                    onChange={event =>
-                      updateCommodityApplicationForm({
-                        proposedProductName: event.target.value,
-                      })
-                    }
-                  />
-                </div>
-                <div className={styles.publishFormRow}>
-                  <label className={styles.publishFormLabel}>
-                    申请理由 <span className={styles.publishRequired}>*</span>
+                    上架理由 <span className={styles.publishRequired}>*</span>
                   </label>
                   <Input.TextArea
                     value={commodityApplicationForm.reason}
                     maxLength={1000}
                     rows={4}
                     showCount
-                    placeholder="说明为什么需要进入专家广场平台公开，以及面向其他租户的价值。"
+                    placeholder="说明为什么申请上架到专家广场。"
                     onChange={event =>
                       updateCommodityApplicationForm({ reason: event.target.value })
-                    }
-                  />
-                </div>
-                <div className={styles.publishFormRow}>
-                  <label className={styles.publishFormLabel}>适用客户</label>
-                  <Input
-                    value={commodityApplicationForm.targetCustomers}
-                    maxLength={200}
-                    placeholder="例如：零售连锁、财务共享中心、销售团队"
-                    onChange={event =>
-                      updateCommodityApplicationForm({
-                        targetCustomers: event.target.value,
-                      })
-                    }
-                  />
-                </div>
-                <div className={styles.publishFormRow}>
-                  <label className={styles.publishFormLabel}>补充说明</label>
-                  <Input.TextArea
-                    value={commodityApplicationForm.notes}
-                    maxLength={1000}
-                    rows={3}
-                    showCount
-                    placeholder="补充运营审核时需要关注的上架信息。"
-                    onChange={event =>
-                      updateCommodityApplicationForm({ notes: event.target.value })
                     }
                   />
                 </div>
