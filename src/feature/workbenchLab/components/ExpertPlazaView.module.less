@@ -98,6 +98,41 @@
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent-cyan) 16%, transparent);
 }
 
+.searchBox {
+  flex: 0 0 320px;
+  width: min(320px, 32vw);
+  min-width: 240px;
+  margin-left: auto;
+}
+
+.searchInput {
+  width: 100%;
+  height: 36px;
+  border-color: #d8e1ec;
+  border-radius: 10px;
+  background: #ffffff;
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 700;
+  box-shadow: none;
+
+  :global(.ant-input) {
+    color: var(--text-primary);
+    font-size: 13px;
+    font-weight: 700;
+  }
+
+  :global(.ant-input::placeholder) {
+    color: var(--text-tertiary);
+    font-weight: 600;
+  }
+}
+
+.searchIcon {
+  color: var(--text-tertiary);
+  font-size: 14px;
+}
+
 .agentGrid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(344px, 1fr));
@@ -1165,6 +1200,13 @@
     width: 100%;
   }
 
+  .searchBox {
+    width: 100%;
+    min-width: 0;
+    margin-left: 0;
+    flex-basis: auto;
+  }
+
   .agentDetailHero {
     grid-template-columns: 86px minmax(0, 1fr);
     gap: 18px;
@@ -1252,5 +1294,4 @@
   .agentDetailContent {
     padding: 22px;
   }
-
 }

@@ -6,9 +6,10 @@ import {
   DeleteOutlined,
   MinusCircleOutlined,
   ProfileOutlined,
+  SearchOutlined,
   UploadOutlined,
 } from "@ant-design/icons";
-import { Button, Empty, Modal, QRCode, Tooltip, message } from "antd";
+import { Button, Empty, Input, Modal, QRCode, Tooltip, message } from "antd";
 import classNames from "classnames";
 import dayjs from "dayjs";
 
@@ -705,6 +706,38 @@ const getProductSceneTags = (
 const getAgentSceneTags = (agent: StoreAgentItem): string[] =>
   resolveAiAgentSceneTags(agent.tags, [agent.scene, agent.businessLineLabel]);
 
+const normalizeAgentSearchValue = (value: string): string => value.trim().toLowerCase();
+
+const doesAgentMatchSearch = (agent: StoreAgentItem, normalizedKeyword: string): boolean => {
+  if (!normalizedKeyword) {
+    return true;
+  }
+
+  const capabilityTexts = agent.capabilities.flatMap(capability => [
+    capability.name,
+    capability.description,
+  ]);
+  const searchableText = [
+    agent.name,
+    agent.expertTitle,
+    agent.audienceLabel,
+    agent.businessLine,
+    agent.businessLineLabel,
+    agent.summary,
+    agent.scene,
+    agent.scopeLabel,
+    agent.submitterLabel,
+    agent.updatedAt,
+    ...agent.tags,
+    ...getAgentSceneTags(agent),
+    ...capabilityTexts,
+  ]
+    .join(" ")
+    .toLowerCase();
+
+  return searchableText.includes(normalizedKeyword);
+};
+
 const buildMarketplaceListingReleaseId = (agent: StoreAgentItem): string =>
   `${agent.id}__${agent.versionLabel.trim().replace(/[^a-zA-Z0-9]+/g, "-") || "version"}`;
 
@@ -1201,6 +1234,7 @@ export const ExpertPlazaView = ({ mode = "store" }: ExpertPlazaViewProps): JSX.E
   const [storeSystemCategory, setStoreSystemCategory] =
     useState<StoreSystemCategoryKey>("roleZone");
   const [storeSceneFilter, setStoreSceneFilter] = useState<SceneCategoryFilter>("all");
+  const [searchKeyword, setSearchKeyword] = useState<string>("");
   const [products, setProducts] = useState<OperationsProduct[]>(() =>
     loadStoredOperationsProducts(),
   );
@@ -1314,6 +1348,10 @@ export const ExpertPlazaView = ({ mode = "store" }: ExpertPlazaViewProps): JSX.E
   }, [detailTab, mode]);
 
   useEffect(() => {
+    setSearchKeyword("");
+  }, [mode]);
+
+  useEffect(() => {
     const handleWorkbenchAgentsUpdated = (): void => {
       setWorkbenchAgentRecords(loadWorkbenchAgentRecords());
     };
@@ -1378,6 +1416,10 @@ export const ExpertPlazaView = ({ mode = "store" }: ExpertPlazaViewProps): JSX.E
     (agent: StoreAgentItem): boolean => workbenchAgentIdSet.has(agent.id),
     [workbenchAgentIdSet],
   );
+  const normalizedSearchKeyword = useMemo(
+    () => normalizeAgentSearchValue(searchKeyword),
+    [searchKeyword],
+  );
 
   const filteredAgents = useMemo(() => {
     const candidateAgents =
@@ -1393,7 +1435,10 @@ export const ExpertPlazaView = ({ mode = "store" }: ExpertPlazaViewProps): JSX.E
       }
 
       if (mode === "team") {
-        return agent.sourceType === teamExpertFilter;
+        return (
+          agent.sourceType === teamExpertFilter &&
+          doesAgentMatchSearch(agent, normalizedSearchKeyword)
+        );
       }
 
       if (!(agent.storeCategories ?? [agent.storeCategory]).includes(storeSystemCategory)) {
@@ -1401,9 +1446,10 @@ export const ExpertPlazaView = ({ mode = "store" }: ExpertPlazaViewProps): JSX.E
       }
 
       return (
-        storeSceneFilter === "all" ||
-        agent.sceneCategoriesByZone?.[storeSystemCategory] === storeSceneFilter ||
-        agent.businessLine === storeSceneFilter
+        (storeSceneFilter === "all" ||
+          agent.sceneCategoriesByZone?.[storeSystemCategory] === storeSceneFilter ||
+          agent.businessLine === storeSceneFilter) &&
+        doesAgentMatchSearch(agent, normalizedSearchKeyword)
       );
     });
   }, [
@@ -1411,6 +1457,7 @@ export const ExpertPlazaView = ({ mode = "store" }: ExpertPlazaViewProps): JSX.E
     isTeamEdition,
     mode,
     myAgents,
+    normalizedSearchKeyword,
     removedMineAgentIds,
     storeSceneFilter,
     storeSystemCategory,
@@ -1757,6 +1804,16 @@ export const ExpertPlazaView = ({ mode = "store" }: ExpertPlazaViewProps): JSX.E
             </>
           )}
         </div>
+        <div className={styles.searchBox}>
+          <Input
+            allowClear
+            className={styles.searchInput}
+            prefix={<SearchOutlined className={styles.searchIcon} />}
+            placeholder={mode === "store" ? "搜索专家广场" : "搜索企业专区"}
+            value={searchKeyword}
+            onChange={event => setSearchKeyword(event.target.value)}
+          />
+        </div>
       </div>
 
       <div className={styles.agentGrid}>
@@ -1798,7 +1855,11 @@ export const ExpertPlazaView = ({ mode = "store" }: ExpertPlazaViewProps): JSX.E
 
       {!filteredAgents.length ? (
         <div className={styles.emptyState}>
-          {mode === "store" ? "当前分类下暂无可添加的 AI 专家。" : "当前来源下暂无企业专区专家。"}
+          {normalizedSearchKeyword
+            ? "当前搜索下暂无匹配的 AI 专家。"
+            : mode === "store"
+              ? "当前分类下暂无可添加的 AI 专家。"
+              : "当前来源下暂无企业专区专家。"}
         </div>
       ) : null}
 
