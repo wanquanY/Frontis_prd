@@ -27,10 +27,7 @@ interface OperationsPointsConsoleProps {
     patch: Partial<
       Pick<
         OperationsRegistrationStrategy,
-        | "defaultGiftPoints"
-        | "pointsPerCny"
-        | "minimumDeductPoints"
-        | "roundingUnit"
+        "defaultGiftPoints" | "pointsPerCny" | "minimumDeductPoints" | "roundingUnit"
       >
     >,
   ) => void;
@@ -44,8 +41,7 @@ interface OperationsCustomerUsageSummary {
   latestOccurredAt: string;
   costAmount: number;
   standardInputTokens: number;
-  cacheCreationTokens: number;
-  cacheReadTokens: number;
+  cacheTokens: number;
   outputTokens: number;
   points: number;
   recordCount: number;
@@ -82,11 +78,8 @@ const parseOperationsOccurredAt = (occurredAt: string): Dayjs => {
   return parsedValue.isValid() ? parsedValue : MOCK_TODAY;
 };
 
-const getUsageRecordCacheCreationTokens = (record: OperationsPointsUsageRecord): number =>
-  Math.max(Math.floor(record.cacheCreationTokens ?? 0), 0);
-
-const getUsageRecordCacheReadTokens = (record: OperationsPointsUsageRecord): number =>
-  Math.max(Math.floor(record.cacheReadTokens ?? 0), 0);
+const getUsageRecordCacheTokens = (record: OperationsPointsUsageRecord): number =>
+  Math.max(Math.floor(record.cacheTokens ?? 0), 0);
 
 const getUsageRecordStandardInputTokens = (record: OperationsPointsUsageRecord): number =>
   Math.max(Math.floor(record.standardInputTokens ?? record.inputTokens ?? 0), 0);
@@ -136,12 +129,8 @@ const buildCustomerUsageSummaries = (
           (sum, record) => sum + getUsageRecordStandardInputTokens(record),
           0,
         ),
-        cacheCreationTokens: tenantRecords.reduce(
-          (sum, record) => sum + getUsageRecordCacheCreationTokens(record),
-          0,
-        ),
-        cacheReadTokens: tenantRecords.reduce(
-          (sum, record) => sum + getUsageRecordCacheReadTokens(record),
+        cacheTokens: tenantRecords.reduce(
+          (sum, record) => sum + getUsageRecordCacheTokens(record),
           0,
         ),
         outputTokens: tenantRecords.reduce((sum, record) => sum + (record.outputTokens ?? 0), 0),
@@ -277,9 +266,7 @@ export const OperationsPointsConsole = ({
                   <td>
                     正常 {summary.standardInputTokens.toLocaleString("zh-CN")}
                     <br />
-                    Cache 写入 {summary.cacheCreationTokens.toLocaleString("zh-CN")}
-                    <br />
-                    Cache 读取 {summary.cacheReadTokens.toLocaleString("zh-CN")}
+                    缓存 {summary.cacheTokens.toLocaleString("zh-CN")}
                   </td>
                   <td>{summary.outputTokens.toLocaleString("zh-CN")}</td>
                   <td>

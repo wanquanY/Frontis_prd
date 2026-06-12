@@ -7,13 +7,13 @@ import type {
   OperationsMeteringProviderKind,
   OperationsMeteringStatus,
   OperationsModelMeteringProtocol,
-  OperationsModelProtocolCostConfig,
+  OperationsModelRegion,
   OperationsModelService,
   OperationsServicePricingMode,
 } from "@/feature/operations/types";
 
 const OPERATIONS_METERING_PROVIDERS_STORAGE_KEY = "frontis.operations.metering-providers";
-const OPERATIONS_MODEL_SERVICES_STORAGE_KEY = "frontis.operations.model-services.v4";
+const OPERATIONS_MODEL_SERVICES_STORAGE_KEY = "frontis.operations.model-services.v7";
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null;
@@ -35,6 +35,9 @@ const isPricingMode = (value: unknown): value is OperationsServicePricingMode =>
 const isModelMeteringProtocol = (value: unknown): value is OperationsModelMeteringProtocol =>
   value === "openai" || value === "claude";
 
+const isModelRegion = (value: unknown): value is OperationsModelRegion =>
+  value === "domestic" || value === "overseas";
+
 const isValidProvider = (value: unknown): value is OperationsMeteringProvider => {
   if (!isRecord(value)) {
     return false;
@@ -52,38 +55,6 @@ const isValidProvider = (value: unknown): value is OperationsMeteringProvider =>
   );
 };
 
-const isValidProtocolConfig = (value: unknown): value is OperationsModelProtocolCostConfig => {
-  if (!isRecord(value)) {
-    return false;
-  }
-
-  if (!isModelMeteringProtocol(value.protocol)) {
-    return false;
-  }
-
-  if (value.protocol === "openai") {
-    return (
-      isNumber(value.inputCostPerMillion) &&
-      isNumber(value.cachedInputCostPerMillion) &&
-      isNumber(value.outputCostPerMillion) &&
-      isNumber(value.inputSalePricePerMillion) &&
-      isNumber(value.cachedInputSalePricePerMillion) &&
-      isNumber(value.outputSalePricePerMillion)
-    );
-  }
-
-  return (
-    isNumber(value.inputCostPerMillion) &&
-    isNumber(value.cacheCreationCostPerMillion) &&
-    isNumber(value.cacheReadCostPerMillion) &&
-    isNumber(value.outputCostPerMillion) &&
-    isNumber(value.inputSalePricePerMillion) &&
-    isNumber(value.cacheCreationSalePricePerMillion) &&
-    isNumber(value.cacheReadSalePricePerMillion) &&
-    isNumber(value.outputSalePricePerMillion)
-  );
-};
-
 const isValidModelService = (value: unknown): value is OperationsModelService => {
   if (!isRecord(value)) {
     return false;
@@ -91,14 +62,21 @@ const isValidModelService = (value: unknown): value is OperationsModelService =>
 
   return (
     isString(value.id) &&
-    isString(value.providerId) &&
     isString(value.modelCode) &&
     isString(value.modelName) &&
-    Array.isArray(value.protocolConfigs) &&
-    value.protocolConfigs.every(isValidProtocolConfig) &&
+    isModelRegion(value.modelRegion) &&
+    isString(value.modelValue) &&
+    isModelMeteringProtocol(value.interfaceFormat) &&
+    isNumber(value.inputCostPerMillion) &&
+    isNumber(value.cacheCostPerMillion) &&
+    isNumber(value.outputCostPerMillion) &&
     isPricingMode(value.pricingMode) &&
     isNumber(value.markupRate) &&
     isNumber(value.grossMarginRate) &&
+    isNumber(value.inputSalePricePerMillion) &&
+    isNumber(value.cacheSalePricePerMillion) &&
+    isNumber(value.outputSalePricePerMillion) &&
+    isNumber(value.sortOrder) &&
     isMeteringStatus(value.status) &&
     isString(value.updatedAt)
   );
@@ -156,43 +134,23 @@ const cloneProvider = (item: OperationsMeteringProvider): OperationsMeteringProv
   ...item,
 });
 
-const cloneProtocolConfig = (
-  item: OperationsModelProtocolCostConfig,
-): OperationsModelProtocolCostConfig => {
-  if (item.protocol === "openai") {
-    return {
-      protocol: item.protocol,
-      inputCostPerMillion: item.inputCostPerMillion,
-      cachedInputCostPerMillion: item.cachedInputCostPerMillion,
-      outputCostPerMillion: item.outputCostPerMillion,
-      inputSalePricePerMillion: item.inputSalePricePerMillion,
-      cachedInputSalePricePerMillion: item.cachedInputSalePricePerMillion,
-      outputSalePricePerMillion: item.outputSalePricePerMillion,
-    };
-  }
-
-  return {
-    protocol: item.protocol,
-    inputCostPerMillion: item.inputCostPerMillion,
-    cacheCreationCostPerMillion: item.cacheCreationCostPerMillion,
-    cacheReadCostPerMillion: item.cacheReadCostPerMillion,
-    outputCostPerMillion: item.outputCostPerMillion,
-    inputSalePricePerMillion: item.inputSalePricePerMillion,
-    cacheCreationSalePricePerMillion: item.cacheCreationSalePricePerMillion,
-    cacheReadSalePricePerMillion: item.cacheReadSalePricePerMillion,
-    outputSalePricePerMillion: item.outputSalePricePerMillion,
-  };
-};
-
 const cloneModelService = (item: OperationsModelService): OperationsModelService => ({
   id: item.id,
-  providerId: item.providerId,
   modelCode: item.modelCode,
   modelName: item.modelName,
-  protocolConfigs: item.protocolConfigs.map(cloneProtocolConfig),
+  modelRegion: item.modelRegion,
+  modelValue: item.modelValue,
+  interfaceFormat: item.interfaceFormat,
+  inputCostPerMillion: item.inputCostPerMillion,
+  cacheCostPerMillion: item.cacheCostPerMillion,
+  outputCostPerMillion: item.outputCostPerMillion,
   pricingMode: item.pricingMode,
   markupRate: item.markupRate,
   grossMarginRate: item.grossMarginRate,
+  inputSalePricePerMillion: item.inputSalePricePerMillion,
+  cacheSalePricePerMillion: item.cacheSalePricePerMillion,
+  outputSalePricePerMillion: item.outputSalePricePerMillion,
+  sortOrder: item.sortOrder,
   status: item.status,
   updatedAt: item.updatedAt,
 });
@@ -205,19 +163,23 @@ const mergeStoredModelServiceConfig = (
     return cloneModelService(presetItem);
   }
 
-  const storedConfigByProtocol = new Map(
-    storedItem.protocolConfigs.map(config => [config.protocol, config]),
-  );
-
   return cloneModelService({
     ...presetItem,
+    modelCode: storedItem.modelCode,
     modelName: storedItem.modelName,
-    protocolConfigs: presetItem.protocolConfigs.map(presetConfig =>
-      cloneProtocolConfig(storedConfigByProtocol.get(presetConfig.protocol) ?? presetConfig),
-    ),
+    modelRegion: storedItem.modelRegion,
+    modelValue: storedItem.modelValue,
+    interfaceFormat: storedItem.interfaceFormat,
+    inputCostPerMillion: storedItem.inputCostPerMillion,
+    cacheCostPerMillion: storedItem.cacheCostPerMillion,
+    outputCostPerMillion: storedItem.outputCostPerMillion,
     pricingMode: storedItem.pricingMode,
     markupRate: storedItem.markupRate,
     grossMarginRate: storedItem.grossMarginRate,
+    inputSalePricePerMillion: storedItem.inputSalePricePerMillion,
+    cacheSalePricePerMillion: storedItem.cacheSalePricePerMillion,
+    outputSalePricePerMillion: storedItem.outputSalePricePerMillion,
+    sortOrder: storedItem.sortOrder,
     status: storedItem.status,
     updatedAt: storedItem.updatedAt,
   });
@@ -247,16 +209,28 @@ export const saveStoredOperationsMeteringProviders = (
  * 读取运营后台大模型资源。
  */
 export const loadStoredOperationsModelServices = (): OperationsModelService[] => {
-  const storedMap = new Map(
-    (loadStoredList(OPERATIONS_MODEL_SERVICES_STORAGE_KEY, isValidModelService) ?? []).map(item => [
-      item.id,
-      item,
-    ]),
-  );
+  const storedItems =
+    loadStoredList(OPERATIONS_MODEL_SERVICES_STORAGE_KEY, isValidModelService) ?? [];
+  const presetMap = new Map(OPERATIONS_INITIAL_MODEL_SERVICES.map(item => [item.id, item]));
+  const mergedPresetIds = new Set<string>();
 
-  return OPERATIONS_INITIAL_MODEL_SERVICES.map(presetItem =>
-    mergeStoredModelServiceConfig(presetItem, storedMap.get(presetItem.id)),
-  );
+  const storedMergedItems = storedItems.map(storedItem => {
+    const presetItem = presetMap.get(storedItem.id);
+
+    if (!presetItem) {
+      return cloneModelService(storedItem);
+    }
+
+    mergedPresetIds.add(presetItem.id);
+
+    return mergeStoredModelServiceConfig(presetItem, storedItem);
+  });
+
+  const missingPresetItems = OPERATIONS_INITIAL_MODEL_SERVICES.filter(
+    presetItem => !mergedPresetIds.has(presetItem.id),
+  ).map(cloneModelService);
+
+  return [...storedMergedItems, ...missingPresetItems];
 };
 
 /**

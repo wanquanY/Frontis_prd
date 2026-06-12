@@ -356,86 +356,41 @@ const buildMeteringProviderFromForm = (
   updatedAt: formatOperationsTimestamp(),
 });
 
-const buildModelProtocolConfigFromForm = (
-  form: OperationsModelServiceForm,
-): OperationsModelService["protocolConfigs"] =>
-  form.protocolConfigs.map(config => {
-    if (config.protocol === "openai") {
-      return {
-        protocol: config.protocol,
-        inputCostPerMillion: config.inputCostPerMillion,
-        cachedInputCostPerMillion: config.cachedInputCostPerMillion,
-        outputCostPerMillion: config.outputCostPerMillion,
-        inputSalePricePerMillion: calculateOperationsSalePrice(
-          config.inputCostPerMillion,
-          form.pricingMode,
-          form.markupRate,
-          form.grossMarginRate,
-          config.inputSalePricePerMillion,
-        ),
-        cachedInputSalePricePerMillion: calculateOperationsSalePrice(
-          config.cachedInputCostPerMillion,
-          form.pricingMode,
-          form.markupRate,
-          form.grossMarginRate,
-          config.cachedInputSalePricePerMillion,
-        ),
-        outputSalePricePerMillion: calculateOperationsSalePrice(
-          config.outputCostPerMillion,
-          form.pricingMode,
-          form.markupRate,
-          form.grossMarginRate,
-          config.outputSalePricePerMillion,
-        ),
-      };
-    }
-
-    return {
-      protocol: config.protocol,
-      inputCostPerMillion: config.inputCostPerMillion,
-      cacheCreationCostPerMillion: config.cacheCreationCostPerMillion,
-      cacheReadCostPerMillion: config.cacheReadCostPerMillion,
-      outputCostPerMillion: config.outputCostPerMillion,
-      inputSalePricePerMillion: calculateOperationsSalePrice(
-        config.inputCostPerMillion,
-        form.pricingMode,
-        form.markupRate,
-        form.grossMarginRate,
-        config.inputSalePricePerMillion,
-      ),
-      cacheCreationSalePricePerMillion: calculateOperationsSalePrice(
-        config.cacheCreationCostPerMillion,
-        form.pricingMode,
-        form.markupRate,
-        form.grossMarginRate,
-        config.cacheCreationSalePricePerMillion,
-      ),
-      cacheReadSalePricePerMillion: calculateOperationsSalePrice(
-        config.cacheReadCostPerMillion,
-        form.pricingMode,
-        form.markupRate,
-        form.grossMarginRate,
-        config.cacheReadSalePricePerMillion,
-      ),
-      outputSalePricePerMillion: calculateOperationsSalePrice(
-        config.outputCostPerMillion,
-        form.pricingMode,
-        form.markupRate,
-        form.grossMarginRate,
-        config.outputSalePricePerMillion,
-      ),
-    };
-  });
-
 const buildModelServiceFromForm = (form: OperationsModelServiceForm): OperationsModelService => ({
   id: buildOperationsModelServiceId(),
-  providerId: form.providerId,
   modelCode: form.modelCode.trim(),
   modelName: form.modelName.trim(),
-  protocolConfigs: buildModelProtocolConfigFromForm(form),
+  modelRegion: form.modelRegion,
+  modelValue: form.modelValue.trim(),
+  interfaceFormat: form.interfaceFormat,
+  inputCostPerMillion: form.inputCostPerMillion,
+  cacheCostPerMillion: form.cacheCostPerMillion,
+  outputCostPerMillion: form.outputCostPerMillion,
   pricingMode: form.pricingMode,
   markupRate: form.markupRate,
   grossMarginRate: form.grossMarginRate,
+  inputSalePricePerMillion: calculateOperationsSalePrice(
+    form.inputCostPerMillion,
+    form.pricingMode,
+    form.markupRate,
+    form.grossMarginRate,
+    form.inputSalePricePerMillion,
+  ),
+  cacheSalePricePerMillion: calculateOperationsSalePrice(
+    form.cacheCostPerMillion,
+    form.pricingMode,
+    form.markupRate,
+    form.grossMarginRate,
+    form.cacheSalePricePerMillion,
+  ),
+  outputSalePricePerMillion: calculateOperationsSalePrice(
+    form.outputCostPerMillion,
+    form.pricingMode,
+    form.markupRate,
+    form.grossMarginRate,
+    form.outputSalePricePerMillion,
+  ),
+  sortOrder: form.sortOrder,
   status: form.status,
   updatedAt: formatOperationsTimestamp(),
 });
@@ -1400,26 +1355,26 @@ export const useOperationsPlatform = (): UseOperationsPlatformResult => {
           return currentProducts.map(item =>
             item.id === existingProduct.id
               ? {
-                ...item,
-                linkedAgentId: reviewedSubmission.id,
-                linkedAgentSourceId: sourceAgentId,
-                linkedAgentName: reviewedSubmission.name,
-                name: reviewedSubmission.name,
-                description: reviewedSubmission.description,
-                identityAvatarUrl: reviewedSubmission.avatarUrl ?? "",
-                identityName: reviewedSubmission.name,
-                identityDescription: reviewedSubmission.description,
-                usageGuide: reviewedSubmission.usageGuide?.trim() || "",
-                tags: normalizeSubmissionSceneTags(
-                  reviewedSubmission.sceneTags,
-                  reviewedSubmission.plazaCategory ?? OPERATIONS_AGENT_PLAZA_DEFAULT_CATEGORY,
-                ),
-                contactMode: "disabled",
-                contactQrCodeValue: "",
-                contactRemark: "",
-                updatedAt: reviewedAt,
-              }
-            : item,
+                  ...item,
+                  linkedAgentId: reviewedSubmission.id,
+                  linkedAgentSourceId: sourceAgentId,
+                  linkedAgentName: reviewedSubmission.name,
+                  name: reviewedSubmission.name,
+                  description: reviewedSubmission.description,
+                  identityAvatarUrl: reviewedSubmission.avatarUrl ?? "",
+                  identityName: reviewedSubmission.name,
+                  identityDescription: reviewedSubmission.description,
+                  usageGuide: reviewedSubmission.usageGuide?.trim() || "",
+                  tags: normalizeSubmissionSceneTags(
+                    reviewedSubmission.sceneTags,
+                    reviewedSubmission.plazaCategory ?? OPERATIONS_AGENT_PLAZA_DEFAULT_CATEGORY,
+                  ),
+                  contactMode: "disabled",
+                  contactQrCodeValue: "",
+                  contactRemark: "",
+                  updatedAt: reviewedAt,
+                }
+              : item,
           );
         }
 

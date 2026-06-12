@@ -6,24 +6,20 @@ import type {
 
 export interface OperationsModelTokenUsageInput {
   standardInputTokens: number;
-  cacheCreationTokens?: number;
-  cacheReadTokens?: number;
+  cacheTokens?: number;
   outputTokens: number;
 }
 
 export interface OperationsModelTokenBillingResult {
   standardInputTokens: number;
-  cacheCreationTokens: number;
-  cacheReadTokens: number;
+  cacheTokens: number;
   outputTokens: number;
   standardInputCostAmount: number;
-  cacheCreationCostAmount: number;
-  cacheReadCostAmount: number;
+  cacheCostAmount: number;
   outputCostAmount: number;
   costAmount: number;
   standardInputSaleAmount: number;
-  cacheCreationSaleAmount: number;
-  cacheReadSaleAmount: number;
+  cacheSaleAmount: number;
   outputSaleAmount: number;
   saleAmount: number;
   marginAmount: number;
@@ -77,75 +73,58 @@ export const convertOperationsSaleToPoints = (
 };
 
 /**
- * 按供应商适配器归一化后的四个计费桶计算模型调用成本、售价和积分。
+ * 按供应商适配器归一化后的三个计费桶计算模型调用成本、售价和积分。
  */
 export const calculateOperationsModelTokenBilling = (
   usage: OperationsModelTokenUsageInput,
   modelService: Pick<
     OperationsModelBillingUnitPriceConfig,
     | "inputCostPerMillion"
-    | "cacheCreationCostPerMillion"
-    | "cacheReadCostPerMillion"
+    | "cacheCostPerMillion"
     | "outputCostPerMillion"
     | "inputSalePricePerMillion"
-    | "cacheCreationSalePricePerMillion"
-    | "cacheReadSalePricePerMillion"
+    | "cacheSalePricePerMillion"
     | "outputSalePricePerMillion"
   >,
   registrationStrategy: OperationsRegistrationStrategy,
 ): OperationsModelTokenBillingResult => {
   const standardInputTokens = Math.max(Math.floor(usage.standardInputTokens), 0);
-  const cacheCreationTokens = Math.max(Math.floor(usage.cacheCreationTokens ?? 0), 0);
-  const cacheReadTokens = Math.max(Math.floor(usage.cacheReadTokens ?? 0), 0);
+  const cacheTokens = Math.max(Math.floor(usage.cacheTokens ?? 0), 0);
   const outputTokens = Math.max(Math.floor(usage.outputTokens), 0);
 
   const standardInputCostAmount = calculateTokenAmount(
     standardInputTokens,
     modelService.inputCostPerMillion,
   );
-  const cacheCreationCostAmount = calculateTokenAmount(
-    cacheCreationTokens,
-    modelService.cacheCreationCostPerMillion,
-  );
-  const cacheReadCostAmount = calculateTokenAmount(
-    cacheReadTokens,
-    modelService.cacheReadCostPerMillion,
-  );
+  const cacheCostAmount = calculateTokenAmount(cacheTokens, modelService.cacheCostPerMillion);
   const outputCostAmount = calculateTokenAmount(outputTokens, modelService.outputCostPerMillion);
   const costAmount = normalizeOperationsMoney(
-    standardInputCostAmount + cacheCreationCostAmount + cacheReadCostAmount + outputCostAmount,
+    standardInputCostAmount + cacheCostAmount + outputCostAmount,
   );
 
   const standardInputSaleAmount = calculateTokenAmount(
     standardInputTokens,
     modelService.inputSalePricePerMillion,
   );
-  const cacheCreationSaleAmount = calculateTokenAmount(
-    cacheCreationTokens,
-    modelService.cacheCreationSalePricePerMillion,
+  const cacheSaleAmount = calculateTokenAmount(cacheTokens, modelService.cacheSalePricePerMillion);
+  const outputSaleAmount = calculateTokenAmount(
+    outputTokens,
+    modelService.outputSalePricePerMillion,
   );
-  const cacheReadSaleAmount = calculateTokenAmount(
-    cacheReadTokens,
-    modelService.cacheReadSalePricePerMillion,
-  );
-  const outputSaleAmount = calculateTokenAmount(outputTokens, modelService.outputSalePricePerMillion);
   const saleAmount = normalizeOperationsMoney(
-    standardInputSaleAmount + cacheCreationSaleAmount + cacheReadSaleAmount + outputSaleAmount,
+    standardInputSaleAmount + cacheSaleAmount + outputSaleAmount,
   );
 
   return {
     standardInputTokens,
-    cacheCreationTokens,
-    cacheReadTokens,
+    cacheTokens,
     outputTokens,
     standardInputCostAmount,
-    cacheCreationCostAmount,
-    cacheReadCostAmount,
+    cacheCostAmount,
     outputCostAmount,
     costAmount,
     standardInputSaleAmount,
-    cacheCreationSaleAmount,
-    cacheReadSaleAmount,
+    cacheSaleAmount,
     outputSaleAmount,
     saleAmount,
     marginAmount: normalizeOperationsMoney(saleAmount - costAmount),

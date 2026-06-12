@@ -764,32 +764,32 @@
 
 #### 3.3.1 目标
 
-- 大模型计量支持普通输入、Cache 写入、Cache 读取、输出四类 tokens。
-- 按供应商 usage 口径归一化后再计费，避免 cached tokens 重复按普通输入计费。
+- 大模型计量支持普通输入、缓存、输出三类 tokens。
+- 按接口格式归一化 usage 后再计费，避免 cached tokens 重复按普通输入计费。
 - 资源中心模型被停用或删除后，系统需阻断绑定该模型的 AI 专家继续对话，避免调用已不可用模型。
 
 #### 3.3.2 任务拆解
 
 ##### 任务一：模型资源配置
 
-- 模型清单由系统预置，不支持运营随意新增、删除模型，也不支持运营修改模型 ID、服务商和支持协议集合。
-- 同一个系统预置模型可同时维护 OpenAI 兼容和 Claude 兼容两套协议成本配置。
-- 运营仅配置模型显示名称、启用状态、成本倍率，以及实际支持协议对应的成本单价。
-- OpenAI 兼容协议配置普通输入、缓存命中输入和输出成本，不展示也不配置 Cache 写入字段。
-- Claude 兼容协议配置普通输入、Cache 写入、Cache 读取和输出成本。
-- 计量单价由对应协议的成本单价乘以成本倍率生成，不单独人工录入。
-- 系统调用模型时需记录模型 ID 和实际调用协议；计费、对账和积分扣减按实际调用协议读取对应协议成本配置。
+- 模型清单支持运营新增和配置模型，不做删除入口。
+- 模型配置包含模型名称、模型 ID、模型区域、模型值、接口格式、启用状态、普通输入成本、缓存成本、输出成本、成本倍率和排序。
+- 模型区域只支持国内模型和国外模型。
+- 接口格式为单选，只支持 OpenAI 和 Claude；不同模型按自身接口格式完成运行时调用适配。
+- 计量单价由对应成本单价乘以成本倍率生成，不单独人工录入。
+- 系统调用模型时需记录模型 ID 和接口格式；计费、对账和积分扣减按接口格式完成 usage 归一化后，统一读取该模型的三类成本配置。
 
 ##### 任务二：usage 归一化
 
-- 服务商原始 usage 字段不得直接进入计费公式。
-- 供应商适配器需先归一化为普通输入 tokens、Cache 写入 tokens、Cache 读取 tokens、输出 tokens。
-- 总输入 tokens 仅用于对账展示，等于三类输入 tokens 之和。
+- 模型调用返回的原始 usage 字段不得直接进入计费公式。
+- OpenAI / Claude 接口适配器需先归一化为普通输入 tokens、缓存 tokens、输出 tokens。
+- OpenAI 的 cached tokens、Claude 的 cache creation 和 cache read tokens 均归入缓存 tokens。
+- 总输入 tokens 仅用于对账展示，等于普通输入 tokens 和缓存 tokens 之和。
 
 ##### 任务三：金额与积分计算
 
-- 四类 tokens 分别乘以对应单价后汇总成本金额。
-- 四类 tokens 分别乘以对应计量单价后汇总计量金额。
+- 三类 tokens 分别乘以对应单价后汇总成本金额。
+- 三类 tokens 分别乘以对应计量单价后汇总计量金额。
 - 积分扣减基于计量金额、积分汇率、最小扣减和取整单位计算。
 
 ##### 任务四：异常处理
@@ -806,35 +806,32 @@
 - 已存在的历史对话、成果文件、用量记录和计费记录保持可查看，不因模型停用或删除而清理。
 - 开发者更新 AI 专家绑定模型并重新发布新版本后，该 AI 专家恢复新对话能力。
 
-#### 3.3.3 供应商 usage 适配口径
+#### 3.3.3 接口格式 usage 适配口径
 
 - OpenAI Chat Completions / Responses：
   - `prompt_tokens` 或 `input_tokens` 为总输入。
-  - `prompt_tokens_details.cached_tokens` 或 `input_tokens_details.cached_tokens` 为 Cache 读取。
-  - 普通输入 tokens = 总输入 tokens - Cache 读取 tokens。
-  - OpenAI 当前不返回独立 Cache 写入 tokens，Cache 写入 tokens 记为 0。
+  - `prompt_tokens_details.cached_tokens` 或 `input_tokens_details.cached_tokens` 为缓存 tokens。
+  - 普通输入 tokens = 总输入 tokens - 缓存 tokens。
 - Anthropic Claude Messages：
   - `input_tokens` 为普通输入 tokens。
-  - `cache_creation_input_tokens` 为 Cache 写入 tokens。
-  - `cache_read_input_tokens` 为 Cache 读取 tokens。
+  - `cache_creation_input_tokens` + `cache_read_input_tokens` 为缓存 tokens。
   - 不得用 `input_tokens` 再扣减 Cache 字段。
 - DeepSeek Chat Completions：
   - `prompt_cache_miss_tokens` 为普通输入 tokens。
-  - `prompt_cache_hit_tokens` 为 Cache 读取 tokens。
-  - Cache 写入 tokens 记为 0。
+  - `prompt_cache_hit_tokens` 为缓存 tokens。
 - 阿里云百炼 DashScope OpenAI 兼容接口：
   - Chat Completions 未返回缓存字段时，`prompt_tokens` 计入普通输入 tokens。
   - Responses 返回 `input_tokens_details.cached_tokens` 时，按 OpenAI 口径处理。
-- 本地部署或无缓存字段供应商：
+- 本地部署或无缓存字段接口：
   - 输入 tokens 全部计入普通输入 tokens。
-  - Cache 写入和 Cache 读取 tokens 均为 0。
+  - 缓存 tokens 为 0。
 
 #### 3.3.4 计算公式
 
-- 总输入 tokens = 普通输入 tokens + Cache 写入 tokens + Cache 读取 tokens。
-- 当服务商返回的总输入 tokens 已包含 Cache 写入 tokens 和 Cache 读取 tokens 时，普通输入 tokens = 总输入 tokens - Cache 写入 tokens - Cache 读取 tokens。
-- 本次计量金额 = （普通输入 tokens × 普通输入单价 + Cache 写入 tokens × Cache 写入单价 + Cache 读取 tokens × Cache 读取单价 + 输出 tokens × 输出单价）÷ 1,000,000。
-- 本次成本金额使用同样公式，但使用四类成本单价。
+- 总输入 tokens = 普通输入 tokens + 缓存 tokens。
+- 当接口返回的总输入 tokens 已包含缓存 tokens 时，普通输入 tokens = 总输入 tokens - 缓存 tokens。
+- 本次计量金额 = （普通输入 tokens × 普通输入单价 + 缓存 tokens × 缓存单价 + 输出 tokens × 输出单价）÷ 1,000,000。
+- 本次成本金额使用同样公式，但使用三类成本单价。
 - 扣减积分 = 本次计量金额 × 积分汇率，再按取整单位和最小扣减积分处理。
 
 #### 3.3.5 业务示例
@@ -842,13 +839,13 @@
 ##### 示例一：OpenAI
 
 - OpenAI 返回总输入 100,000，cached 40,000，输出 20,000。
-- 平台归一化为普通输入 60,000，Cache 读取 40,000，Cache 写入 0，输出 20,000。
-- Cache 读取按 Cache 读取单价计费，不再按普通输入单价重复计费。
+- 平台归一化为普通输入 60,000，缓存 40,000，输出 20,000。
+- 缓存 tokens 按缓存单价计费，不再按普通输入单价重复计费。
 
 ##### 示例二：Anthropic
 
 - Anthropic 返回 input 30,000，cache creation 10,000，cache read 50,000，output 15,000。
-- 平台归一化为普通输入 30,000，Cache 写入 10,000，Cache 读取 50,000，输出 15,000。
+- 平台归一化为普通输入 30,000，缓存 60,000，输出 15,000。
 - 不再用 input 30,000 扣减 Cache 字段。
 
 ##### 示例三：绑定模型被停用
@@ -867,10 +864,9 @@
 
 #### 3.3.7 流程与原型截图标记
 
-- 图 MTR-01 / 标记 A：系统预置模型配置表单。
-- 图 MTR-01 / 标记 B：OpenAI 兼容协议的普通输入、缓存命中输入、输出成本字段。
-- 图 MTR-01 / 标记 C：Claude 兼容协议的普通输入、Cache 写入、Cache 读取、输出成本字段。
-- 图 MTR-02 / 标记 A：按协议分组的计量价预览。
+- 图 MTR-01 / 标记 A：新增模型和配置模型表单。
+- 图 MTR-01 / 标记 B：普通输入成本、缓存成本、输出成本字段。
+- 图 MTR-02 / 标记 A：三类计量价预览。
 - 图 MTR-03 / 标记 A：消耗对账列表中的输入 tokens 拆分。
 - 图 MTR-03 / 标记 B：输出 tokens、计量金额、成本金额和扣减积分。
 - 图 MTR-04 / 标记 A：usage 适配异常记录。

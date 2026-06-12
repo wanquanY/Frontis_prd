@@ -454,52 +454,17 @@ export type OperationsServicePricingMode = "markup" | "grossMargin" | "manual";
  */
 export type OperationsModelMeteringProtocol = "openai" | "claude";
 
-/**
- * OpenAI 兼容协议计量配置。
- */
-export interface OperationsOpenAIProtocolCostConfig {
-  protocol: "openai";
-  inputCostPerMillion: number;
-  cachedInputCostPerMillion: number;
-  outputCostPerMillion: number;
-  inputSalePricePerMillion: number;
-  cachedInputSalePricePerMillion: number;
-  outputSalePricePerMillion: number;
-}
+export type OperationsModelRegion = "domestic" | "overseas";
 
 /**
- * Claude 兼容协议计量配置。
- */
-export interface OperationsClaudeProtocolCostConfig {
-  protocol: "claude";
-  inputCostPerMillion: number;
-  cacheCreationCostPerMillion: number;
-  cacheReadCostPerMillion: number;
-  outputCostPerMillion: number;
-  inputSalePricePerMillion: number;
-  cacheCreationSalePricePerMillion: number;
-  cacheReadSalePricePerMillion: number;
-  outputSalePricePerMillion: number;
-}
-
-/**
- * 大模型单协议计量配置。
- */
-export type OperationsModelProtocolCostConfig =
-  | OperationsOpenAIProtocolCostConfig
-  | OperationsClaudeProtocolCostConfig;
-
-/**
- * 归一化后的四类计费桶单价。
+ * 归一化后的模型计费桶单价。
  */
 export interface OperationsModelBillingUnitPriceConfig {
   inputCostPerMillion: number;
-  cacheCreationCostPerMillion: number;
-  cacheReadCostPerMillion: number;
+  cacheCostPerMillion: number;
   outputCostPerMillion: number;
   inputSalePricePerMillion: number;
-  cacheCreationSalePricePerMillion: number;
-  cacheReadSalePricePerMillion: number;
+  cacheSalePricePerMillion: number;
   outputSalePricePerMillion: number;
 }
 
@@ -539,13 +504,21 @@ export interface OperationsMeteringProviderForm {
  */
 export interface OperationsModelService {
   id: string;
-  providerId: string;
   modelCode: string;
   modelName: string;
-  protocolConfigs: OperationsModelProtocolCostConfig[];
+  modelRegion: OperationsModelRegion;
+  modelValue: string;
+  interfaceFormat: OperationsModelMeteringProtocol;
+  inputCostPerMillion: number;
+  cacheCostPerMillion: number;
+  outputCostPerMillion: number;
   pricingMode: OperationsServicePricingMode;
   markupRate: number;
   grossMarginRate: number;
+  inputSalePricePerMillion: number;
+  cacheSalePricePerMillion: number;
+  outputSalePricePerMillion: number;
+  sortOrder: number;
   status: OperationsMeteringStatus;
   updatedAt: string;
 }
@@ -554,13 +527,21 @@ export interface OperationsModelService {
  * 大模型计费配置表单。
  */
 export interface OperationsModelServiceForm {
-  providerId: string;
   modelCode: string;
   modelName: string;
-  protocolConfigs: OperationsModelProtocolCostConfig[];
+  modelRegion: OperationsModelRegion;
+  modelValue: string;
+  interfaceFormat: OperationsModelMeteringProtocol;
+  inputCostPerMillion: number;
+  cacheCostPerMillion: number;
+  outputCostPerMillion: number;
   pricingMode: OperationsServicePricingMode;
   markupRate: number;
   grossMarginRate: number;
+  inputSalePricePerMillion: number;
+  cacheSalePricePerMillion: number;
+  outputSalePricePerMillion: number;
+  sortOrder: number;
   status: OperationsMeteringStatus;
 }
 
@@ -577,8 +558,7 @@ export interface OperationsPointsUsageRecord {
   modelName?: string;
   inputTokens?: number;
   standardInputTokens?: number;
-  cacheCreationTokens?: number;
-  cacheReadTokens?: number;
+  cacheTokens?: number;
   outputTokens?: number;
   unitCount?: number;
   unitLabel?: string;
