@@ -834,7 +834,6 @@ export const OperationsPlatformView = (): JSX.Element => {
     communityGroupConfig,
     createAgentPlazaCategory,
     createAgentStoreZone,
-    createModelService,
     createPointsPackage,
     createProduct,
     createSubscriptionPlan,
@@ -1407,7 +1406,6 @@ export const OperationsPlatformView = (): JSX.Element => {
         <OperationsResourceMeteringConsole
           meteringProviders={meteringProviders}
           modelServices={modelServices}
-          onCreateModelService={createModelService}
           onUpdateModelService={updateModelService}
         />
       );
@@ -1491,7 +1489,6 @@ export const OperationsPlatformView = (): JSX.Element => {
     communityGroupConfig,
     createAgentPlazaCategory,
     createAgentStoreZone,
-    createModelService,
     createPointsPackage,
     createProduct,
     createSkillCenterCategory,

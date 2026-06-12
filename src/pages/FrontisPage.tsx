@@ -30,6 +30,7 @@ import {
 } from "@/feature/auth/mockTenantRegistry";
 import type { MockAuthSystemEntry } from "@/feature/auth/types";
 import { useOperationsAuth } from "@/feature/operations/hooks/useOperationsAuth";
+import type { OperationsProduct } from "@/feature/operations/types";
 import { useMeOnboardingProfileModal } from "@/feature/workspace/hooks/useMeOnboardingProfileModal";
 import {
   clearRegistrationOnboardingDraft,
@@ -170,6 +171,14 @@ const EXPERT_TEAM_MAIN_AGENT_DESCRIPTION =
 const PRODUCT_TEAM_COLLAB_QUESTION = "帮我把这个需求拆成核心模块、边界和依赖关系。";
 const PRODUCT_TEAM_RISK_QUESTION = "这版方案上线前，架构层面最需要提前规避哪些风险？";
 const META_AGENT_ONBOARDING_QUICK_PROMPT = "请根据我的信息生成公司宣传材料";
+const WORKBENCH_PRODUCT_OFFLINE_MESSAGE = "已下架不可继续对话，可以查看历史对话数据";
+
+const getWorkbenchRecordSourceKey = (record: WorkbenchAgentRecord): string =>
+  record.agentId ||
+  record.agentReleaseId ||
+  record.enterpriseAgentId ||
+  record.productId ||
+  record.id;
 
 const resolveFirstSentenceTitle = (content: string): string => {
   const normalizedContent = content.replace(/\s+/g, " ").trim();
@@ -430,6 +439,17 @@ const WORKBENCH_AGENT_SEED_SESSIONS: DialogueSessionItem[] = [
     assistantContent:
       "本周主要风险集中在三个方面：两个项目验收材料滞后，一个项目测试资源与上线窗口冲突，一个客户的关键确认人本周无法参与评审。建议今天先锁定验收材料责任人，明天上午同步资源排期，周五前完成客户确认人替代方案。",
   }),
+  buildWorkbenchAgentTaskSession({
+    id: "dialogue-seed-product-renewal-health",
+    employeeId: "frontis-ops-product-010",
+    agentName: "客户成功续约专家",
+    title: "客户健康度续约复盘",
+    preview: "客户成功续约专家已整理续约风险、关键阻塞点和下一步跟进动作。",
+    time: "今天 20:24",
+    userContent: "帮我复盘一下 A 客户续约风险，重点看健康度和最近沟通记录。",
+    assistantContent:
+      "A 客户当前续约风险为中高：近 30 天核心功能使用下降，采购负责人两次提到预算收紧，业务负责人仍认可价值。建议先补一份使用成效复盘，再由客户成功负责人约业务侧确认下一季度目标，避免直接进入价格拉扯。",
+  }),
 ];
 
 const buildMetaAgentSeedSessions = (): DialogueSessionItem[] => {
@@ -591,30 +611,63 @@ const buildWorkbenchAgentRecordFromStoreAgent = (agent: StoreAgentItem): Workben
   };
 };
 
-const mapWorkbenchRecordToEmployee = (record: WorkbenchAgentRecord): EmployeeItem => ({
-  id: record.id,
-  name: record.name,
-  avatarUrl: record.avatarUrl || getAvatarUrl(record.visualSeed),
-  role: record.role,
-  portalRoles: ["admin", "employee"],
-  status: "online",
-  workspaceId: "workspace-cloud",
-  connectionMode: "cloud",
-  model: record.model,
-  summary: record.summary,
-  lastAction: "已添加到工作台，可在新对话中使用。",
-  source: "coworker",
-  visibility: "all",
-  developerName: record.developerName,
-  subAgentModel: record.model,
-  agentId: record.agentId,
-  runtimeAgentId: record.runtimeAgentId,
-  accessScopeSubjects: [],
-  boundMembers: [],
-  welcomeMessage: `我是${record.name}，${record.summary}`,
-  systemPrompt: `你是${record.name}，${record.summary}`,
-  skills: record.skills,
-});
+const isWorkbenchProductRecordUnavailable = (
+  record: WorkbenchAgentRecord,
+  products: OperationsProduct[],
+): boolean => {
+  if (record.installSource !== "expertPlazaProduct") {
+    return false;
+  }
+
+  if (!record.productId) {
+    return true;
+  }
+
+  const linkedProduct = products.find(product => product.id === record.productId);
+
+  return (
+    !linkedProduct || linkedProduct.status !== "active" || linkedProduct.plazaStatus === "offline"
+  );
+};
+
+const mapWorkbenchRecordToEmployee = (
+  record: WorkbenchAgentRecord,
+  products: OperationsProduct[],
+  sourceMarkerLabel?: string,
+): EmployeeItem => {
+  const isProductOffline = isWorkbenchProductRecordUnavailable(record, products);
+
+  return {
+    id: record.id,
+    name: record.name,
+    avatarUrl: record.avatarUrl || getAvatarUrl(record.visualSeed),
+    role: record.role,
+    portalRoles: ["admin", "employee"],
+    status: isProductOffline ? "offline" : "online",
+    availabilityState: isProductOffline ? "productOffline" : "available",
+    availabilityLabel: isProductOffline ? "已下架" : undefined,
+    availabilityMessage: isProductOffline ? WORKBENCH_PRODUCT_OFFLINE_MESSAGE : undefined,
+    sourceMarkerLabel,
+    workspaceId: "workspace-cloud",
+    connectionMode: "cloud",
+    model: record.model,
+    summary: record.summary,
+    lastAction: isProductOffline
+      ? WORKBENCH_PRODUCT_OFFLINE_MESSAGE
+      : "已添加到工作台，可在新对话中使用。",
+    source: "coworker",
+    visibility: "all",
+    developerName: record.developerName,
+    subAgentModel: record.model,
+    agentId: record.agentId,
+    runtimeAgentId: record.runtimeAgentId,
+    accessScopeSubjects: [],
+    boundMembers: [],
+    welcomeMessage: `我是${record.name}，${record.summary}`,
+    systemPrompt: `你是${record.name}，${record.summary}`,
+    skills: record.skills,
+  };
+};
 
 const buildInitialDialogueSessions = (
   viewRole: FrontisWebRole,
@@ -1249,10 +1302,40 @@ const FrontisPage = ({
     () => directAddableAgentStoreItems.map(mapStoreAgentToEmployee),
     [directAddableAgentStoreItems],
   );
-  const workbenchEmployees = useMemo(
-    () => workbenchAgentRecords.map(mapWorkbenchRecordToEmployee),
-    [workbenchAgentRecords],
-  );
+  const workbenchEmployees = useMemo(() => {
+    const sourceMap = workbenchAgentRecords.reduce<
+      Map<string, Set<WorkbenchAgentRecord["installSource"]>>
+    >((result, record) => {
+      const sourceKey = getWorkbenchRecordSourceKey(record);
+      const currentSources = result.get(sourceKey) ?? new Set();
+
+      if (record.installSource) {
+        currentSources.add(record.installSource);
+      }
+      result.set(sourceKey, currentSources);
+      return result;
+    }, new Map());
+
+    const duplicatedExpertPlazaSourceKeys = new Set(
+      Array.from(sourceMap.entries())
+        .filter(
+          ([, sources]) => sources.has("enterpriseAgent") && sources.has("expertPlazaProduct"),
+        )
+        .map(([sourceKey]) => sourceKey),
+    );
+
+    return workbenchAgentRecords.map(record => {
+      const shouldMarkExpertPlazaSource =
+        record.installSource === "expertPlazaProduct" &&
+        duplicatedExpertPlazaSourceKeys.has(getWorkbenchRecordSourceKey(record));
+
+      return mapWorkbenchRecordToEmployee(
+        record,
+        agentStoreProducts,
+        shouldMarkExpertPlazaSource ? "来自专家广场" : undefined,
+      );
+    });
+  }, [agentStoreProducts, workbenchAgentRecords]);
   const employees = useMemo(
     () =>
       Array.from(
@@ -1386,6 +1469,13 @@ const FrontisPage = ({
       }),
     [currentUser, roleVisibleEmployees, tenantUsers, viewRole, workbenchAgentIds],
   );
+  const availableAssignedConversationEmployees = useMemo(
+    () =>
+      assignedConversationEmployees.filter(
+        employee => employee.availabilityState !== "productOffline",
+      ),
+    [assignedConversationEmployees],
+  );
   const expertStudioAssignedEmployees = useMemo(
     () =>
       workspaceMode === "expertStudio"
@@ -1416,7 +1506,7 @@ const FrontisPage = ({
     const defaultAgent = buildWorkspaceDefaultAgent(
       defaultEmployee,
       defaultWorkspace,
-      assignedConversationEmployees,
+      availableAssignedConversationEmployees,
       currentUser?.id,
       currentUser?.name,
     );
@@ -1426,7 +1516,7 @@ const FrontisPage = ({
     currentUser?.assignedWorkspaceIds,
     currentUser?.id,
     currentUser?.name,
-    assignedConversationEmployees,
+    availableAssignedConversationEmployees,
     roleVisibleEmployees,
     workspaces,
   ]);
@@ -1460,9 +1550,41 @@ const FrontisPage = ({
       null,
     [activeEmployeeId, conversationEmployees],
   );
+  const activeEmployeeUnavailableMessage = activeEmployee?.availabilityMessage?.trim() ?? "";
   const visibleConversationEmployeeIds = useMemo(
     () => new Set(conversationEmployees.map(employee => employee.id)),
     [conversationEmployees],
+  );
+  const workbenchEmployeeById = useMemo(
+    () => new Map(workbenchEmployees.map(employee => [employee.id, employee] as const)),
+    [workbenchEmployees],
+  );
+  const installedOfflineExpertPlazaPickerOptions = useMemo<AddableExpertPickerOption[]>(
+    () =>
+      workbenchAgentRecords.reduce<AddableExpertPickerOption[]>((result, record) => {
+        if (record.installSource !== "expertPlazaProduct") {
+          return result;
+        }
+
+        const employee = workbenchEmployeeById.get(record.id);
+
+        if (!employee || employee.availabilityState !== "productOffline") {
+          return result;
+        }
+
+        result.push({
+          id: record.id,
+          source: "expertPlaza" as const,
+          name: employee.name,
+          description: employee.summary,
+          avatarUrl: employee.avatarUrl,
+          isAdded: true,
+          statusLabel: employee.availabilityLabel,
+          tags: employee.skills?.slice(0, 3),
+        });
+        return result;
+      }, []),
+    [workbenchAgentRecords, workbenchEmployeeById],
   );
   const addableExpertPickerOptions = useMemo((): Record<
     AddableExpertPickerOption["source"],
@@ -1478,17 +1600,24 @@ const FrontisPage = ({
       description: agent.summary,
       avatarUrl: getAgentAvatarSrc(agent),
       isAdded: visibleConversationEmployeeIds.has(agent.id),
-      sourceLabel: source === "expertPlaza" ? EXPERT_PLAZA_LABEL : "企业专区",
       tags: agent.tags.slice(0, 3),
     });
 
     return {
-      expertPlaza: directAddableAgentStoreItems.map(agent =>
-        mapAgentToPickerOption(agent, "expertPlaza"),
+      expertPlaza: [
+        ...directAddableAgentStoreItems.map(agent => mapAgentToPickerOption(agent, "expertPlaza")),
+        ...installedOfflineExpertPlazaPickerOptions,
+      ],
+      enterprise: enterpriseZoneAgentItems.map(agent =>
+        mapAgentToPickerOption(agent, "enterprise"),
       ),
-      enterprise: enterpriseZoneAgentItems.map(agent => mapAgentToPickerOption(agent, "enterprise")),
     };
-  }, [directAddableAgentStoreItems, enterpriseZoneAgentItems, visibleConversationEmployeeIds]);
+  }, [
+    directAddableAgentStoreItems,
+    enterpriseZoneAgentItems,
+    installedOfflineExpertPlazaPickerOptions,
+    visibleConversationEmployeeIds,
+  ]);
   const addableExpertStoreItemById = useMemo(() => {
     const result = new Map<string, StoreAgentItem>();
 
@@ -1801,6 +1930,9 @@ const FrontisPage = ({
       setActiveEmployeeId(employeeId);
       const nextEmployee =
         conversationEmployeeDirectory.find(item => item.id === employeeId) ?? null;
+      if (nextEmployee?.availabilityMessage) {
+        message.warning(nextEmployee.availabilityMessage);
+      }
       const nextEmployeeSessions = dialogueSessions.filter(item => item.employeeId === employeeId);
       const nextIsMetaAgent = isMetaAgentEmployee(nextEmployee);
       const nextHomeActive =
@@ -1898,6 +2030,13 @@ const FrontisPage = ({
   const handleSelectDialogueSession = useCallback(
     (sessionId: string): void => {
       const targetSession = dialogueSessions.find(item => item.id === sessionId);
+      const targetEmployee = targetSession
+        ? conversationEmployeeDirectory.find(item => item.id === targetSession.employeeId)
+        : null;
+
+      if (targetEmployee?.availabilityMessage) {
+        message.warning(targetEmployee.availabilityMessage);
+      }
 
       if (targetSession?.employeeId && targetSession.employeeId !== activeEmployeeId) {
         setActiveEmployeeId(targetSession.employeeId);
@@ -2105,6 +2244,10 @@ const FrontisPage = ({
   const commitDialogue = useCallback(
     (rawInput: string, createNewSession = false): void => {
       if (!activeEmployee) return;
+      if (activeEmployee.availabilityMessage) {
+        message.warning(activeEmployee.availabilityMessage);
+        return;
+      }
       const content = rawInput.trim();
       if (!content && dialogueAttachments.length === 0) return;
       const teamRouting = resolveExpertTeamDialogueRouting(
@@ -2639,6 +2782,7 @@ const FrontisPage = ({
           dialoguePlaceholder={dialoguePlaceholder}
           dialogueAttachments={dialogueAttachments}
           dialogueInputValue={dialogueInputValue}
+          dialogueUnavailableMessage={activeEmployeeUnavailableMessage}
           dialogueMessages={dialogueMessages}
           allDialogueSessions={dialogueSessions}
           dialogueSessions={employeeDialogueSessions}

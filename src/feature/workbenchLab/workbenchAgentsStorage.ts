@@ -44,6 +44,37 @@ const DEFAULT_WORKBENCH_AGENT_RECORDS: WorkbenchAgentRecord[] = [
     skills: ["商机时效监控", "跟进行动建议"],
   },
   {
+    id: "enterprise-renewal-agent",
+    installSource: "enterpriseAgent",
+    enterpriseAgentId: "enterprise-renewal-agent",
+    name: "客户成功续约专家",
+    visualSeed: "enterprise-客户成功续约专家",
+    role: "续约跟进 · 分析型",
+    model: "Claude Sonnet 4.6",
+    summary:
+      "围绕客户健康度、使用深度和历史沟通，生成续约风险判断、下一步跟进动作和关键联系人协同建议。",
+    developerName: "客户成功团队",
+    agentId: "agent-renewal-shared-source",
+    runtimeAgentId: "rt-enterprise-renewal-agent",
+    skills: ["续约风险识别", "客户健康度诊断", "跟进策略制定"],
+  },
+  {
+    id: "frontis-ops-product-010",
+    installSource: "expertPlazaProduct",
+    productId: "ops-product-010",
+    agentReleaseId: "ops-agent-010",
+    name: "客户成功续约专家",
+    visualSeed: "frontis-客户成功续约专家",
+    role: "续约跟进 · 分析型",
+    model: "Claude Sonnet 4.6",
+    summary:
+      "围绕客户健康度、使用深度和历史沟通，生成续约风险判断、下一步跟进动作和关键联系人协同建议。",
+    developerName: "FrontisAI发布",
+    agentId: "agent-renewal-shared-source",
+    runtimeAgentId: "rt-frontis-ops-product-010",
+    skills: ["续约风险识别", "客户健康度诊断", "跟进策略制定"],
+  },
+  {
     id: "team-shared-delivery",
     name: "项目交付助手",
     visualSeed: "team-shared-delivery",
@@ -58,7 +89,7 @@ const DEFAULT_WORKBENCH_AGENT_RECORDS: WorkbenchAgentRecord[] = [
   },
 ];
 
-const WORKBENCH_AGENT_RECORDS_STORAGE_KEY = "frontis.workbenchAgentRecords.v2";
+const WORKBENCH_AGENT_RECORDS_STORAGE_KEY = "frontis.workbenchAgentRecords.v5";
 
 export const WORKBENCH_AGENT_RECORDS_UPDATED_EVENT = "frontis:workbench-agent-records-updated";
 

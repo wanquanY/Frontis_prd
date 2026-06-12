@@ -6,12 +6,14 @@ import type {
   OperationsMeteringProvider,
   OperationsMeteringProviderKind,
   OperationsMeteringStatus,
+  OperationsModelMeteringProtocol,
+  OperationsModelProtocolCostConfig,
   OperationsModelService,
   OperationsServicePricingMode,
 } from "@/feature/operations/types";
 
 const OPERATIONS_METERING_PROVIDERS_STORAGE_KEY = "frontis.operations.metering-providers";
-const OPERATIONS_MODEL_SERVICES_STORAGE_KEY = "frontis.operations.model-services";
+const OPERATIONS_MODEL_SERVICES_STORAGE_KEY = "frontis.operations.model-services.v4";
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null;
@@ -30,6 +32,9 @@ const isProviderKind = (value: unknown): value is OperationsMeteringProviderKind
 const isPricingMode = (value: unknown): value is OperationsServicePricingMode =>
   value === "markup" || value === "grossMargin" || value === "manual";
 
+const isModelMeteringProtocol = (value: unknown): value is OperationsModelMeteringProtocol =>
+  value === "openai" || value === "claude";
+
 const isValidProvider = (value: unknown): value is OperationsMeteringProvider => {
   if (!isRecord(value)) {
     return false;
@@ -47,6 +52,38 @@ const isValidProvider = (value: unknown): value is OperationsMeteringProvider =>
   );
 };
 
+const isValidProtocolConfig = (value: unknown): value is OperationsModelProtocolCostConfig => {
+  if (!isRecord(value)) {
+    return false;
+  }
+
+  if (!isModelMeteringProtocol(value.protocol)) {
+    return false;
+  }
+
+  if (value.protocol === "openai") {
+    return (
+      isNumber(value.inputCostPerMillion) &&
+      isNumber(value.cachedInputCostPerMillion) &&
+      isNumber(value.outputCostPerMillion) &&
+      isNumber(value.inputSalePricePerMillion) &&
+      isNumber(value.cachedInputSalePricePerMillion) &&
+      isNumber(value.outputSalePricePerMillion)
+    );
+  }
+
+  return (
+    isNumber(value.inputCostPerMillion) &&
+    isNumber(value.cacheCreationCostPerMillion) &&
+    isNumber(value.cacheReadCostPerMillion) &&
+    isNumber(value.outputCostPerMillion) &&
+    isNumber(value.inputSalePricePerMillion) &&
+    isNumber(value.cacheCreationSalePricePerMillion) &&
+    isNumber(value.cacheReadSalePricePerMillion) &&
+    isNumber(value.outputSalePricePerMillion)
+  );
+};
+
 const isValidModelService = (value: unknown): value is OperationsModelService => {
   if (!isRecord(value)) {
     return false;
@@ -57,13 +94,11 @@ const isValidModelService = (value: unknown): value is OperationsModelService =>
     isString(value.providerId) &&
     isString(value.modelCode) &&
     isString(value.modelName) &&
-    isNumber(value.inputCostPerMillion) &&
-    isNumber(value.outputCostPerMillion) &&
+    Array.isArray(value.protocolConfigs) &&
+    value.protocolConfigs.every(isValidProtocolConfig) &&
     isPricingMode(value.pricingMode) &&
     isNumber(value.markupRate) &&
     isNumber(value.grossMarginRate) &&
-    isNumber(value.inputSalePricePerMillion) &&
-    isNumber(value.outputSalePricePerMillion) &&
     isMeteringStatus(value.status) &&
     isString(value.updatedAt)
   );
@@ -121,26 +156,72 @@ const cloneProvider = (item: OperationsMeteringProvider): OperationsMeteringProv
   ...item,
 });
 
+const cloneProtocolConfig = (
+  item: OperationsModelProtocolCostConfig,
+): OperationsModelProtocolCostConfig => {
+  if (item.protocol === "openai") {
+    return {
+      protocol: item.protocol,
+      inputCostPerMillion: item.inputCostPerMillion,
+      cachedInputCostPerMillion: item.cachedInputCostPerMillion,
+      outputCostPerMillion: item.outputCostPerMillion,
+      inputSalePricePerMillion: item.inputSalePricePerMillion,
+      cachedInputSalePricePerMillion: item.cachedInputSalePricePerMillion,
+      outputSalePricePerMillion: item.outputSalePricePerMillion,
+    };
+  }
+
+  return {
+    protocol: item.protocol,
+    inputCostPerMillion: item.inputCostPerMillion,
+    cacheCreationCostPerMillion: item.cacheCreationCostPerMillion,
+    cacheReadCostPerMillion: item.cacheReadCostPerMillion,
+    outputCostPerMillion: item.outputCostPerMillion,
+    inputSalePricePerMillion: item.inputSalePricePerMillion,
+    cacheCreationSalePricePerMillion: item.cacheCreationSalePricePerMillion,
+    cacheReadSalePricePerMillion: item.cacheReadSalePricePerMillion,
+    outputSalePricePerMillion: item.outputSalePricePerMillion,
+  };
+};
+
 const cloneModelService = (item: OperationsModelService): OperationsModelService => ({
   id: item.id,
   providerId: item.providerId,
   modelCode: item.modelCode,
   modelName: item.modelName,
-  inputCostPerMillion: item.inputCostPerMillion,
-  cacheCreationCostPerMillion: item.cacheCreationCostPerMillion ?? item.inputCostPerMillion,
-  cacheReadCostPerMillion: item.cacheReadCostPerMillion ?? item.inputCostPerMillion,
-  outputCostPerMillion: item.outputCostPerMillion,
+  protocolConfigs: item.protocolConfigs.map(cloneProtocolConfig),
   pricingMode: item.pricingMode,
   markupRate: item.markupRate,
   grossMarginRate: item.grossMarginRate,
-  inputSalePricePerMillion: item.inputSalePricePerMillion,
-  cacheCreationSalePricePerMillion:
-    item.cacheCreationSalePricePerMillion ?? item.inputSalePricePerMillion,
-  cacheReadSalePricePerMillion: item.cacheReadSalePricePerMillion ?? item.inputSalePricePerMillion,
-  outputSalePricePerMillion: item.outputSalePricePerMillion,
   status: item.status,
   updatedAt: item.updatedAt,
 });
+
+const mergeStoredModelServiceConfig = (
+  presetItem: OperationsModelService,
+  storedItem?: OperationsModelService,
+): OperationsModelService => {
+  if (!storedItem) {
+    return cloneModelService(presetItem);
+  }
+
+  const storedConfigByProtocol = new Map(
+    storedItem.protocolConfigs.map(config => [config.protocol, config]),
+  );
+
+  return cloneModelService({
+    ...presetItem,
+    modelName: storedItem.modelName,
+    protocolConfigs: presetItem.protocolConfigs.map(presetConfig =>
+      cloneProtocolConfig(storedConfigByProtocol.get(presetConfig.protocol) ?? presetConfig),
+    ),
+    pricingMode: storedItem.pricingMode,
+    markupRate: storedItem.markupRate,
+    grossMarginRate: storedItem.grossMarginRate,
+    status: storedItem.status,
+    updatedAt: storedItem.updatedAt,
+  });
+};
 
 /**
  * 读取运营后台资源供应商。
@@ -165,11 +246,18 @@ export const saveStoredOperationsMeteringProviders = (
 /**
  * 读取运营后台大模型资源。
  */
-export const loadStoredOperationsModelServices = (): OperationsModelService[] =>
-  mergeStoredWithPreset(
-    loadStoredList(OPERATIONS_MODEL_SERVICES_STORAGE_KEY, isValidModelService) ?? [],
-    OPERATIONS_INITIAL_MODEL_SERVICES,
-  ).map(cloneModelService);
+export const loadStoredOperationsModelServices = (): OperationsModelService[] => {
+  const storedMap = new Map(
+    (loadStoredList(OPERATIONS_MODEL_SERVICES_STORAGE_KEY, isValidModelService) ?? []).map(item => [
+      item.id,
+      item,
+    ]),
+  );
+
+  return OPERATIONS_INITIAL_MODEL_SERVICES.map(presetItem =>
+    mergeStoredModelServiceConfig(presetItem, storedMap.get(presetItem.id)),
+  );
+};
 
 /**
  * 保存运营后台大模型资源。

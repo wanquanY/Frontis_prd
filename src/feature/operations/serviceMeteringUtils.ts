@@ -1,5 +1,5 @@
 import type {
-  OperationsModelService,
+  OperationsModelBillingUnitPriceConfig,
   OperationsRegistrationStrategy,
   OperationsServicePricingMode,
 } from "@/feature/operations/types";
@@ -82,7 +82,7 @@ export const convertOperationsSaleToPoints = (
 export const calculateOperationsModelTokenBilling = (
   usage: OperationsModelTokenUsageInput,
   modelService: Pick<
-    OperationsModelService,
+    OperationsModelBillingUnitPriceConfig,
     | "inputCostPerMillion"
     | "cacheCreationCostPerMillion"
     | "cacheReadCostPerMillion"

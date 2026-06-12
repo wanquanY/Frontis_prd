@@ -42,6 +42,7 @@ export type StatusTone =
  * 用户侧 AI 专家状态。
  */
 export type EmployeeStatus = "online" | "running" | "idle" | "exception" | "offline";
+export type EmployeeAvailabilityState = "available" | "productOffline";
 
 /**
  * AI 员工连接模式。
@@ -138,6 +139,12 @@ export interface EmployeeItem {
   /** 可见端范围。 */
   portalRoles: FrontisWebRole[];
   status: EmployeeStatus;
+  /** 当前用户侧使用可用性，区别于运行状态。 */
+  availabilityState?: EmployeeAvailabilityState;
+  availabilityLabel?: string;
+  availabilityMessage?: string;
+  /** 工作台专家列表中的来源提示，仅在同一底层专家存在多来源实例时展示。 */
+  sourceMarkerLabel?: string;
   workspaceId: string;
   connectionMode: ConnectionMode;
   model: string;

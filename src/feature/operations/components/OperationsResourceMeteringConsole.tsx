@@ -1,13 +1,9 @@
 import { useMemo, useState } from "react";
 
-import { PlusOutlined } from "@ant-design/icons";
 import { Button, Empty, Input, InputNumber, Modal, Select, message } from "antd";
 import classNames from "classnames";
 
-import {
-  OPERATIONS_METERING_STATUS_LABELS,
-  createEmptyOperationsModelServiceForm,
-} from "@/feature/operations/mockData";
+import { OPERATIONS_METERING_STATUS_LABELS } from "@/feature/operations/mockData";
 import {
   calculateOperationsSalePrice,
   formatOperationsCurrency,
@@ -15,6 +11,8 @@ import {
 import type {
   OperationsMeteringProvider,
   OperationsMeteringStatus,
+  OperationsModelMeteringProtocol,
+  OperationsModelProtocolCostConfig,
   OperationsModelService,
   OperationsModelServiceForm,
 } from "@/feature/operations/types";
@@ -25,27 +23,85 @@ import styles from "./OperationsPlatformView.module.less";
 interface OperationsResourceMeteringConsoleProps {
   meteringProviders: OperationsMeteringProvider[];
   modelServices: OperationsModelService[];
-  onCreateModelService: (form: OperationsModelServiceForm) => void;
   onUpdateModelService: (modelId: string, form: OperationsModelServiceForm) => void;
 }
 
 interface ModelEditorState {
   form: OperationsModelServiceForm;
-  mode: "create" | "edit";
   modelId?: string;
   open: boolean;
-}
-
-interface ModelTestState {
-  loading: boolean;
-  message: string;
-  status: "idle" | "success" | "error";
 }
 
 const METERING_STATUS_OPTIONS: Array<{ value: OperationsMeteringStatus; label: string }> = [
   { value: "active", label: OPERATIONS_METERING_STATUS_LABELS.active },
   { value: "inactive", label: OPERATIONS_METERING_STATUS_LABELS.inactive },
 ];
+
+const METERING_PROTOCOL_LABELS: Record<OperationsModelMeteringProtocol, string> = {
+  openai: "OpenAI 兼容",
+  claude: "Claude 兼容",
+};
+
+const METERING_PROTOCOL_ORDER: OperationsModelMeteringProtocol[] = ["openai", "claude"];
+
+type ProtocolCostField =
+  | "inputCostPerMillion"
+  | "cachedInputCostPerMillion"
+  | "cacheCreationCostPerMillion"
+  | "cacheReadCostPerMillion"
+  | "outputCostPerMillion";
+
+const createEmptyProtocolConfig = (
+  protocol: OperationsModelMeteringProtocol,
+): OperationsModelProtocolCostConfig => {
+  if (protocol === "openai") {
+    return {
+      protocol,
+      inputCostPerMillion: 0,
+      cachedInputCostPerMillion: 0,
+      outputCostPerMillion: 0,
+      inputSalePricePerMillion: 0,
+      cachedInputSalePricePerMillion: 0,
+      outputSalePricePerMillion: 0,
+    };
+  }
+
+  return {
+    protocol,
+    inputCostPerMillion: 0,
+    cacheCreationCostPerMillion: 0,
+    cacheReadCostPerMillion: 0,
+    outputCostPerMillion: 0,
+    inputSalePricePerMillion: 0,
+    cacheCreationSalePricePerMillion: 0,
+    cacheReadSalePricePerMillion: 0,
+    outputSalePricePerMillion: 0,
+  };
+};
+
+const normalizeProtocolConfigs = (
+  protocolConfigs: OperationsModelProtocolCostConfig[],
+): OperationsModelProtocolCostConfig[] => {
+  const configByProtocol = new Map(protocolConfigs.map(config => [config.protocol, config]));
+
+  return METERING_PROTOCOL_ORDER.map(protocol => {
+    const fallbackConfig = createEmptyProtocolConfig(protocol);
+    const storedConfig = configByProtocol.get(protocol);
+
+    return storedConfig ? { ...fallbackConfig, ...storedConfig } : fallbackConfig;
+  });
+};
+
+const createEmptyModelEditorForm = (): OperationsModelServiceForm => ({
+  providerId: "",
+  modelCode: "",
+  modelName: "",
+  protocolConfigs: METERING_PROTOCOL_ORDER.map(createEmptyProtocolConfig),
+  pricingMode: "markup",
+  markupRate: 1.3,
+  grossMarginRate: 30,
+  status: "active",
+});
 
 const buildStatusClassName = (status: OperationsMeteringStatus): string =>
   classNames(adminStyles.consoleStatusTag, {
@@ -57,73 +113,129 @@ const modelToForm = (model: OperationsModelService): OperationsModelServiceForm 
   providerId: model.providerId,
   modelCode: model.modelCode,
   modelName: model.modelName,
-  inputCostPerMillion: model.inputCostPerMillion,
-  cacheCreationCostPerMillion: model.cacheCreationCostPerMillion,
-  cacheReadCostPerMillion: model.cacheReadCostPerMillion,
-  outputCostPerMillion: model.outputCostPerMillion,
+  protocolConfigs: normalizeProtocolConfigs(model.protocolConfigs).map(config =>
+    calculateProtocolPricePreview(config, model.markupRate),
+  ),
   pricingMode: "markup",
   markupRate: model.markupRate,
   grossMarginRate: model.grossMarginRate,
-  inputSalePricePerMillion: calculateOperationsSalePrice(
-    model.inputCostPerMillion,
-    "markup",
-    model.markupRate,
-    0,
-    0,
-  ),
-  cacheCreationSalePricePerMillion: calculateOperationsSalePrice(
-    model.cacheCreationCostPerMillion,
-    "markup",
-    model.markupRate,
-    0,
-    0,
-  ),
-  cacheReadSalePricePerMillion: calculateOperationsSalePrice(
-    model.cacheReadCostPerMillion,
-    "markup",
-    model.markupRate,
-    0,
-    0,
-  ),
-  outputSalePricePerMillion: calculateOperationsSalePrice(
-    model.outputCostPerMillion,
-    "markup",
-    model.markupRate,
-    0,
-    0,
-  ),
   status: model.status,
 });
 
-const createModelForm = (providerId: string): OperationsModelServiceForm => ({
-  ...createEmptyOperationsModelServiceForm(),
-  providerId,
-});
+const calculateProtocolPricePreview = (
+  config: OperationsModelProtocolCostConfig,
+  markupRate: number,
+): OperationsModelProtocolCostConfig => {
+  if (config.protocol === "openai") {
+    return {
+      ...config,
+      inputSalePricePerMillion: calculateOperationsSalePrice(
+        config.inputCostPerMillion,
+        "markup",
+        markupRate,
+        0,
+        0,
+      ),
+      cachedInputSalePricePerMillion: calculateOperationsSalePrice(
+        config.cachedInputCostPerMillion,
+        "markup",
+        markupRate,
+        0,
+        0,
+      ),
+      outputSalePricePerMillion: calculateOperationsSalePrice(
+        config.outputCostPerMillion,
+        "markup",
+        markupRate,
+        0,
+        0,
+      ),
+    };
+  }
+
+  return {
+    ...config,
+    inputSalePricePerMillion: calculateOperationsSalePrice(
+      config.inputCostPerMillion,
+      "markup",
+      markupRate,
+      0,
+      0,
+    ),
+    cacheCreationSalePricePerMillion: calculateOperationsSalePrice(
+      config.cacheCreationCostPerMillion,
+      "markup",
+      markupRate,
+      0,
+      0,
+    ),
+    cacheReadSalePricePerMillion: calculateOperationsSalePrice(
+      config.cacheReadCostPerMillion,
+      "markup",
+      markupRate,
+      0,
+      0,
+    ),
+    outputSalePricePerMillion: calculateOperationsSalePrice(
+      config.outputCostPerMillion,
+      "markup",
+      markupRate,
+      0,
+      0,
+    ),
+  };
+};
+
+const updateProtocolCostConfig = (
+  config: OperationsModelProtocolCostConfig,
+  field: ProtocolCostField,
+  value: number,
+): OperationsModelProtocolCostConfig => {
+  if (config.protocol === "openai") {
+    if (
+      field === "inputCostPerMillion" ||
+      field === "cachedInputCostPerMillion" ||
+      field === "outputCostPerMillion"
+    ) {
+      return { ...config, [field]: value };
+    }
+
+    return config;
+  }
+
+  if (
+    field === "inputCostPerMillion" ||
+    field === "cacheCreationCostPerMillion" ||
+    field === "cacheReadCostPerMillion" ||
+    field === "outputCostPerMillion"
+  ) {
+    return { ...config, [field]: value };
+  }
+
+  return config;
+};
 
 /**
- * 运营后台资源池控制台，维护模型资源和对应成本售价。
+ * 运营后台资源池控制台，维护系统预置模型的成本和计量价。
  */
 export const OperationsResourceMeteringConsole = ({
   meteringProviders,
   modelServices,
-  onCreateModelService,
   onUpdateModelService,
 }: OperationsResourceMeteringConsoleProps): JSX.Element => {
   const [keyword, setKeyword] = useState<string>("");
   const [modelEditor, setModelEditor] = useState<ModelEditorState>({
-    form: createModelForm(""),
-    mode: "create",
+    form: createEmptyModelEditorForm(),
     open: false,
   });
-  const [modelTest, setModelTest] = useState<ModelTestState>({
-    loading: false,
-    message: "",
-    status: "idle",
-  });
 
-  const largeModelProviders = useMemo(
-    () => meteringProviders.filter(provider => provider.providerKind === "largeModel"),
+  const providerNameById = useMemo(
+    () => new Map(meteringProviders.map(provider => [provider.id, provider.name])),
     [meteringProviders],
+  );
+  const currentEditingModel = useMemo(
+    () => modelServices.find(model => model.id === modelEditor.modelId),
+    [modelEditor.modelId, modelServices],
   );
   const filteredModels = useMemo(() => {
     const normalizedKeyword = keyword.trim().toLowerCase();
@@ -133,188 +245,74 @@ export const OperationsResourceMeteringConsole = ({
     }
 
     return modelServices.filter(model => {
-      const searchText = [model.modelName, model.modelCode].join(" ").toLowerCase();
+      const searchText = [
+        model.modelName,
+        model.modelCode,
+        providerNameById.get(model.providerId) ?? "",
+        ...normalizeProtocolConfigs(model.protocolConfigs).map(
+          config => METERING_PROTOCOL_LABELS[config.protocol],
+        ),
+      ]
+        .join(" ")
+        .toLowerCase();
 
       return searchText.includes(normalizedKeyword);
     });
-  }, [keyword, modelServices]);
-  const modelPricePreview = useMemo(
-    () => ({
-      input: calculateOperationsSalePrice(
-        modelEditor.form.inputCostPerMillion,
-        "markup",
-        modelEditor.form.markupRate,
-        0,
-        0,
-      ),
-      cacheCreation: calculateOperationsSalePrice(
-        modelEditor.form.cacheCreationCostPerMillion,
-        "markup",
-        modelEditor.form.markupRate,
-        0,
-        0,
-      ),
-      cacheRead: calculateOperationsSalePrice(
-        modelEditor.form.cacheReadCostPerMillion,
-        "markup",
-        modelEditor.form.markupRate,
-        0,
-        0,
-      ),
-      output: calculateOperationsSalePrice(
-        modelEditor.form.outputCostPerMillion,
-        "markup",
-        modelEditor.form.markupRate,
-        0,
-        0,
-      ),
-    }),
-    [
-      modelEditor.form.cacheCreationCostPerMillion,
-      modelEditor.form.cacheReadCostPerMillion,
-      modelEditor.form.inputCostPerMillion,
-      modelEditor.form.markupRate,
-      modelEditor.form.outputCostPerMillion,
-    ],
-  );
-  const resetModelTest = (): void => {
-    setModelTest({
-      loading: false,
-      message: "",
-      status: "idle",
-    });
-  };
+  }, [keyword, modelServices, providerNameById]);
 
   const validateModelForm = (): boolean => {
-    if (!modelEditor.form.providerId) {
-      message.warning("请先配置大模型服务商。");
+    if (!modelEditor.modelId) {
+      message.warning("请选择模型。");
       return false;
     }
 
     if (!modelEditor.form.modelName.trim()) {
-      message.warning("请填写模型名称。");
+      message.warning("请填写显示名称。");
       return false;
     }
 
-    if (!modelEditor.form.modelCode.trim()) {
-      message.warning("请填写模型 ID。");
+    if (modelEditor.form.markupRate < 1) {
+      message.warning("成本倍率不能小于 1。");
       return false;
     }
 
-    const hasDuplicateModel = modelServices.some(model => {
-      const isSameRecord = modelEditor.mode === "edit" && model.id === modelEditor.modelId;
-
-      return (
-        !isSameRecord &&
-        model.providerId === modelEditor.form.providerId &&
-        model.modelCode.trim().toLowerCase() === modelEditor.form.modelCode.trim().toLowerCase()
-      );
-    });
-
-    if (hasDuplicateModel) {
-      message.warning("该服务商下已存在相同模型 ID。");
+    if (normalizeProtocolConfigs(modelEditor.form.protocolConfigs).length !== METERING_PROTOCOL_ORDER.length) {
+      message.warning("请补全协议成本配置。");
       return false;
     }
 
     return true;
   };
 
-  const handleOpenCreateModel = (): void => {
-    const defaultProviderId =
-      largeModelProviders.find(provider => provider.status === "active")?.id ??
-      largeModelProviders[0]?.id ??
-      "";
-
-    if (!defaultProviderId) {
-      message.warning("请先配置大模型服务商。");
-      return;
-    }
-
-    setModelEditor({
-      form: createModelForm(defaultProviderId),
-      mode: "create",
-      open: true,
-    });
-    resetModelTest();
+  const handleProtocolCostChange = (
+    protocol: OperationsModelMeteringProtocol,
+    field: ProtocolCostField,
+    value: number,
+  ): void => {
+    setModelEditor(current => ({
+      ...current,
+      form: {
+        ...current.form,
+        protocolConfigs: normalizeProtocolConfigs(current.form.protocolConfigs).map(config =>
+          config.protocol === protocol ? updateProtocolCostConfig(config, field, value) : config,
+        ),
+      },
+    }));
   };
 
   const handleOpenEditModel = (model: OperationsModelService): void => {
     setModelEditor({
       form: modelToForm(model),
-      mode: "edit",
       modelId: model.id,
       open: true,
     });
-    resetModelTest();
   };
 
   const handleCloseModelEditor = (): void => {
     setModelEditor({
-      form: createModelForm(""),
-      mode: "create",
+      form: createEmptyModelEditorForm(),
       open: false,
     });
-    resetModelTest();
-  };
-
-  const handleTestModel = (): void => {
-    if (!validateModelForm()) {
-      return;
-    }
-
-    const selectedProvider = largeModelProviders.find(
-      provider => provider.id === modelEditor.form.providerId,
-    );
-
-    if (!selectedProvider) {
-      setModelTest({
-        loading: false,
-        message: "测试失败：未找到模型服务商。",
-        status: "error",
-      });
-      return;
-    }
-
-    setModelTest({
-      loading: true,
-      message: "正在测试模型调用...",
-      status: "idle",
-    });
-
-    window.setTimeout(() => {
-      if (selectedProvider.status !== "active") {
-        setModelTest({
-          loading: false,
-          message: "测试失败：模型服务商已停用。",
-          status: "error",
-        });
-        return;
-      }
-
-      if (!selectedProvider.baseUrl.trim()) {
-        setModelTest({
-          loading: false,
-          message: "测试失败：模型服务商 Base URL 未配置。",
-          status: "error",
-        });
-        return;
-      }
-
-      if (!selectedProvider.credentialStatusLabel.trim()) {
-        setModelTest({
-          loading: false,
-          message: "测试失败：模型服务商凭证状态未配置。",
-          status: "error",
-        });
-        return;
-      }
-
-      setModelTest({
-        loading: false,
-        message: `测试通过：${modelEditor.form.modelName.trim()} 可正常调用。`,
-        status: "success",
-      });
-    }, 720);
   };
 
   const handleConfirmModel = (): void => {
@@ -322,21 +320,138 @@ export const OperationsResourceMeteringConsole = ({
       return;
     }
 
-    if (modelEditor.mode === "edit" && modelEditor.modelId) {
-      onUpdateModelService(modelEditor.modelId, {
-        ...modelEditor.form,
-        pricingMode: "markup",
-      });
-      message.success("模型资源已更新。");
-    } else {
-      onCreateModelService({
-        ...modelEditor.form,
-        pricingMode: "markup",
-      });
-      message.success("模型资源已添加。");
+    const editingModelId = modelEditor.modelId;
+
+    if (!editingModelId) {
+      return;
     }
 
+    onUpdateModelService(editingModelId, {
+      ...modelEditor.form,
+      protocolConfigs: normalizeProtocolConfigs(modelEditor.form.protocolConfigs),
+      pricingMode: "markup",
+    });
+    message.success("模型配置已更新。");
+
     handleCloseModelEditor();
+  };
+
+  const renderProtocolCostEditor = (
+    config: OperationsModelProtocolCostConfig,
+  ): JSX.Element => {
+    const preview = calculateProtocolPricePreview(config, modelEditor.form.markupRate);
+
+    return (
+      <section key={config.protocol} className={styles.modelProtocolCostCard}>
+        <div className={styles.modelProtocolCostHeader}>
+          <strong>{METERING_PROTOCOL_LABELS[config.protocol]}</strong>
+        </div>
+        <div className={styles.modelProtocolCostGrid}>
+          <div className={styles.modalField}>
+            <span className={styles.modalLabel}>普通输入成本 / 百万 Tokens</span>
+            <InputNumber
+              className={styles.fullWidthInput}
+              min={0}
+              value={config.inputCostPerMillion}
+              onChange={value =>
+                handleProtocolCostChange(
+                  config.protocol,
+                  "inputCostPerMillion",
+                  Number(value ?? 0),
+                )
+              }
+            />
+          </div>
+          {config.protocol === "openai" ? (
+            <div className={styles.modalField}>
+              <span className={styles.modalLabel}>缓存命中输入成本 / 百万 Tokens</span>
+              <InputNumber
+                className={styles.fullWidthInput}
+                min={0}
+                value={config.cachedInputCostPerMillion}
+                onChange={value =>
+                  handleProtocolCostChange(
+                    config.protocol,
+                    "cachedInputCostPerMillion",
+                    Number(value ?? 0),
+                  )
+                }
+              />
+            </div>
+          ) : (
+            <>
+              <div className={styles.modalField}>
+                <span className={styles.modalLabel}>Cache 写入成本 / 百万 Tokens</span>
+                <InputNumber
+                  className={styles.fullWidthInput}
+                  min={0}
+                  value={config.cacheCreationCostPerMillion}
+                  onChange={value =>
+                    handleProtocolCostChange(
+                      config.protocol,
+                      "cacheCreationCostPerMillion",
+                      Number(value ?? 0),
+                    )
+                  }
+                />
+              </div>
+              <div className={styles.modalField}>
+                <span className={styles.modalLabel}>Cache 读取成本 / 百万 Tokens</span>
+                <InputNumber
+                  className={styles.fullWidthInput}
+                  min={0}
+                  value={config.cacheReadCostPerMillion}
+                  onChange={value =>
+                    handleProtocolCostChange(
+                      config.protocol,
+                      "cacheReadCostPerMillion",
+                      Number(value ?? 0),
+                    )
+                  }
+                />
+              </div>
+            </>
+          )}
+          <div className={styles.modalField}>
+            <span className={styles.modalLabel}>输出成本 / 百万 Tokens</span>
+            <InputNumber
+              className={styles.fullWidthInput}
+              min={0}
+              value={config.outputCostPerMillion}
+              onChange={value =>
+                handleProtocolCostChange(
+                  config.protocol,
+                  "outputCostPerMillion",
+                  Number(value ?? 0),
+                )
+              }
+            />
+          </div>
+        </div>
+        <div className={adminStyles.consolePillRow}>
+          <span className={adminStyles.consolePill}>
+            普通输入 {formatOperationsCurrency(preview.inputSalePricePerMillion)}
+          </span>
+          {preview.protocol === "openai" ? (
+            <span className={adminStyles.consolePill}>
+              缓存命中输入 {formatOperationsCurrency(preview.cachedInputSalePricePerMillion)}
+            </span>
+          ) : (
+            <>
+              <span className={adminStyles.consolePill}>
+                Cache 写入 {formatOperationsCurrency(preview.cacheCreationSalePricePerMillion)}
+              </span>
+              <span className={adminStyles.consolePill}>
+                Cache 读取 {formatOperationsCurrency(preview.cacheReadSalePricePerMillion)}
+              </span>
+            </>
+          )}
+          <span className={adminStyles.consolePill}>
+            输出 {formatOperationsCurrency(preview.outputSalePricePerMillion)}
+          </span>
+        </div>
+      </section>
+    );
   };
 
   const renderModelProviders = (): JSX.Element => (
@@ -349,13 +464,10 @@ export const OperationsResourceMeteringConsole = ({
           <Input
             allowClear
             className={adminStyles.consoleInlineSearch}
-            placeholder="搜索模型名称或模型 ID"
+            placeholder="搜索模型名称、模型 ID 或服务商"
             value={keyword}
             onChange={event => setKeyword(event.target.value)}
           />
-          <Button type="primary" icon={<PlusOutlined />} onClick={handleOpenCreateModel}>
-            添加模型
-          </Button>
         </div>
       </div>
 
@@ -366,9 +478,7 @@ export const OperationsResourceMeteringConsole = ({
               <tr>
                 <th>模型名称</th>
                 <th>模型 ID</th>
-                <th>成本 / 百万 Tokens</th>
-                <th>销售策略</th>
-                <th>售价 / 百万 Tokens</th>
+                <th>支持协议</th>
                 <th>状态</th>
                 <th>最近更新</th>
                 <th>操作</th>
@@ -377,62 +487,21 @@ export const OperationsResourceMeteringConsole = ({
             <tbody>
               {filteredModels.map(model => (
                 <tr key={model.id}>
-                  <td className={adminStyles.consoleHtmlTableStrong}>{model.modelName}</td>
+                  <td>
+                    <div className={adminStyles.consoleHtmlTableStrong}>{model.modelName}</div>
+                    <div className={adminStyles.consoleSectionMeta}>
+                      {providerNameById.get(model.providerId) ?? "未配置服务商"}
+                    </div>
+                  </td>
                   <td>{model.modelCode}</td>
                   <td>
-                    输入 {formatOperationsCurrency(model.inputCostPerMillion)}
-                    <br />
-                    Cache 写入 {formatOperationsCurrency(model.cacheCreationCostPerMillion)}
-                    <br />
-                    Cache 读取 {formatOperationsCurrency(model.cacheReadCostPerMillion)}
-                    <br />
-                    输出 {formatOperationsCurrency(model.outputCostPerMillion)}
-                  </td>
-                  <td>倍率 {model.markupRate.toLocaleString("zh-CN")}x</td>
-                  <td>
-                    输入{" "}
-                    {formatOperationsCurrency(
-                      calculateOperationsSalePrice(
-                        model.inputCostPerMillion,
-                        "markup",
-                        model.markupRate,
-                        0,
-                        0,
-                      ),
-                    )}
-                    <br />
-                    Cache 写入{" "}
-                    {formatOperationsCurrency(
-                      calculateOperationsSalePrice(
-                        model.cacheCreationCostPerMillion,
-                        "markup",
-                        model.markupRate,
-                        0,
-                        0,
-                      ),
-                    )}
-                    <br />
-                    Cache 读取{" "}
-                    {formatOperationsCurrency(
-                      calculateOperationsSalePrice(
-                        model.cacheReadCostPerMillion,
-                        "markup",
-                        model.markupRate,
-                        0,
-                        0,
-                      ),
-                    )}
-                    <br />
-                    输出{" "}
-                    {formatOperationsCurrency(
-                      calculateOperationsSalePrice(
-                        model.outputCostPerMillion,
-                        "markup",
-                        model.markupRate,
-                        0,
-                        0,
-                      ),
-                    )}
+                    <div className={adminStyles.consolePillRow}>
+                      {normalizeProtocolConfigs(model.protocolConfigs).map(config => (
+                        <span key={config.protocol} className={adminStyles.consolePill}>
+                          {METERING_PROTOCOL_LABELS[config.protocol]}
+                        </span>
+                      ))}
+                    </div>
                   </td>
                   <td>
                     <span className={buildStatusClassName(model.status)}>
@@ -471,115 +540,49 @@ export const OperationsResourceMeteringConsole = ({
       <Modal
         destroyOnHidden
         open={modelEditor.open}
-        title={modelEditor.mode === "edit" ? "配置模型" : "添加模型"}
+        title="配置模型"
         width={920}
         onCancel={handleCloseModelEditor}
         footer={
-          <div className={styles.modelEditorFooter}>
-            <div className={styles.modelEditorTestResult}>
-              {modelTest.status !== "idle" || modelTest.message ? (
-                <span
-                  className={classNames(adminStyles.consoleStatusTag, {
-                    [adminStyles.consoleStatusTagSuccess]: modelTest.status === "success",
-                    [adminStyles.consoleStatusTagWarning]:
-                      modelTest.status === "idle" || modelTest.status === "error",
-                  })}
-                >
-                  {modelTest.message}
-                </span>
-              ) : null}
-            </div>
-            <div className={styles.modelEditorFooterActions}>
-              <Button loading={modelTest.loading} onClick={handleTestModel}>
-                测试模型
-              </Button>
-              <Button onClick={handleCloseModelEditor}>取消</Button>
-              <Button type="primary" onClick={handleConfirmModel}>
-                确定
-              </Button>
-            </div>
+          <div className={styles.modelEditorFooterActions}>
+            <Button onClick={handleCloseModelEditor}>取消</Button>
+            <Button type="primary" onClick={handleConfirmModel}>
+              确定
+            </Button>
           </div>
         }
       >
         <div className={styles.formGrid}>
-          <div className={styles.modalField}>
-            <span className={styles.modalLabel}>模型 ID</span>
-            <Input
-              value={modelEditor.form.modelCode}
-              placeholder="例如 gpt-4.1"
-              onChange={event => {
-                setModelEditor(current => ({
-                  ...current,
-                  form: { ...current.form, modelCode: event.target.value },
-                }));
-                resetModelTest();
-              }}
-            />
+          <div className={styles.modelSystemFields}>
+            <div className={styles.modelSystemField}>
+              <span className={styles.modelSystemFieldLabel}>服务商</span>
+              <strong>
+                {providerNameById.get(modelEditor.form.providerId) ??
+                  currentEditingModel?.providerId ??
+                  "-"}
+              </strong>
+            </div>
+            <div className={styles.modelSystemField}>
+              <span className={styles.modelSystemFieldLabel}>模型 ID</span>
+              <strong>{modelEditor.form.modelCode || "-"}</strong>
+            </div>
+            <div className={styles.modelSystemField}>
+              <span className={styles.modelSystemFieldLabel}>支持协议</span>
+              <strong>
+                {normalizeProtocolConfigs(modelEditor.form.protocolConfigs)
+                  .map(config => METERING_PROTOCOL_LABELS[config.protocol])
+                  .join(" / ")}
+              </strong>
+            </div>
           </div>
           <div className={styles.modalField}>
-            <span className={styles.modalLabel}>模型名称</span>
+            <span className={styles.modalLabel}>显示名称</span>
             <Input
               value={modelEditor.form.modelName}
               onChange={event =>
                 setModelEditor(current => ({
                   ...current,
                   form: { ...current.form, modelName: event.target.value },
-                }))
-              }
-            />
-          </div>
-          <div className={styles.modalField}>
-            <span className={styles.modalLabel}>输入成本 / 百万 Tokens</span>
-            <InputNumber
-              className={styles.fullWidthInput}
-              min={0}
-              value={modelEditor.form.inputCostPerMillion}
-              onChange={value =>
-                setModelEditor(current => ({
-                  ...current,
-                  form: { ...current.form, inputCostPerMillion: Number(value ?? 0) },
-                }))
-              }
-            />
-          </div>
-          <div className={styles.modalField}>
-            <span className={styles.modalLabel}>Cache 写入成本 / 百万 Tokens</span>
-            <InputNumber
-              className={styles.fullWidthInput}
-              min={0}
-              value={modelEditor.form.cacheCreationCostPerMillion}
-              onChange={value =>
-                setModelEditor(current => ({
-                  ...current,
-                  form: { ...current.form, cacheCreationCostPerMillion: Number(value ?? 0) },
-                }))
-              }
-            />
-          </div>
-          <div className={styles.modalField}>
-            <span className={styles.modalLabel}>Cache 读取成本 / 百万 Tokens</span>
-            <InputNumber
-              className={styles.fullWidthInput}
-              min={0}
-              value={modelEditor.form.cacheReadCostPerMillion}
-              onChange={value =>
-                setModelEditor(current => ({
-                  ...current,
-                  form: { ...current.form, cacheReadCostPerMillion: Number(value ?? 0) },
-                }))
-              }
-            />
-          </div>
-          <div className={styles.modalField}>
-            <span className={styles.modalLabel}>输出成本 / 百万 Tokens</span>
-            <InputNumber
-              className={styles.fullWidthInput}
-              min={0}
-              value={modelEditor.form.outputCostPerMillion}
-              onChange={value =>
-                setModelEditor(current => ({
-                  ...current,
-                  form: { ...current.form, outputCostPerMillion: Number(value ?? 0) },
                 }))
               }
             />
@@ -611,23 +614,7 @@ export const OperationsResourceMeteringConsole = ({
               }
             />
           </div>
-          <div className={classNames(styles.modalField, styles.modalFieldWide)}>
-            <span className={styles.modalLabel}>售价预览</span>
-            <div className={adminStyles.consolePillRow}>
-              <span className={adminStyles.consolePill}>
-                输入 {formatOperationsCurrency(modelPricePreview.input)}
-              </span>
-              <span className={adminStyles.consolePill}>
-                Cache 写入 {formatOperationsCurrency(modelPricePreview.cacheCreation)}
-              </span>
-              <span className={adminStyles.consolePill}>
-                Cache 读取 {formatOperationsCurrency(modelPricePreview.cacheRead)}
-              </span>
-              <span className={adminStyles.consolePill}>
-                输出 {formatOperationsCurrency(modelPricePreview.output)}
-              </span>
-            </div>
-          </div>
+          {normalizeProtocolConfigs(modelEditor.form.protocolConfigs).map(renderProtocolCostEditor)}
         </div>
       </Modal>
     </div>

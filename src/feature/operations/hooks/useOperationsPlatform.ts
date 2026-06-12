@@ -356,46 +356,86 @@ const buildMeteringProviderFromForm = (
   updatedAt: formatOperationsTimestamp(),
 });
 
+const buildModelProtocolConfigFromForm = (
+  form: OperationsModelServiceForm,
+): OperationsModelService["protocolConfigs"] =>
+  form.protocolConfigs.map(config => {
+    if (config.protocol === "openai") {
+      return {
+        protocol: config.protocol,
+        inputCostPerMillion: config.inputCostPerMillion,
+        cachedInputCostPerMillion: config.cachedInputCostPerMillion,
+        outputCostPerMillion: config.outputCostPerMillion,
+        inputSalePricePerMillion: calculateOperationsSalePrice(
+          config.inputCostPerMillion,
+          form.pricingMode,
+          form.markupRate,
+          form.grossMarginRate,
+          config.inputSalePricePerMillion,
+        ),
+        cachedInputSalePricePerMillion: calculateOperationsSalePrice(
+          config.cachedInputCostPerMillion,
+          form.pricingMode,
+          form.markupRate,
+          form.grossMarginRate,
+          config.cachedInputSalePricePerMillion,
+        ),
+        outputSalePricePerMillion: calculateOperationsSalePrice(
+          config.outputCostPerMillion,
+          form.pricingMode,
+          form.markupRate,
+          form.grossMarginRate,
+          config.outputSalePricePerMillion,
+        ),
+      };
+    }
+
+    return {
+      protocol: config.protocol,
+      inputCostPerMillion: config.inputCostPerMillion,
+      cacheCreationCostPerMillion: config.cacheCreationCostPerMillion,
+      cacheReadCostPerMillion: config.cacheReadCostPerMillion,
+      outputCostPerMillion: config.outputCostPerMillion,
+      inputSalePricePerMillion: calculateOperationsSalePrice(
+        config.inputCostPerMillion,
+        form.pricingMode,
+        form.markupRate,
+        form.grossMarginRate,
+        config.inputSalePricePerMillion,
+      ),
+      cacheCreationSalePricePerMillion: calculateOperationsSalePrice(
+        config.cacheCreationCostPerMillion,
+        form.pricingMode,
+        form.markupRate,
+        form.grossMarginRate,
+        config.cacheCreationSalePricePerMillion,
+      ),
+      cacheReadSalePricePerMillion: calculateOperationsSalePrice(
+        config.cacheReadCostPerMillion,
+        form.pricingMode,
+        form.markupRate,
+        form.grossMarginRate,
+        config.cacheReadSalePricePerMillion,
+      ),
+      outputSalePricePerMillion: calculateOperationsSalePrice(
+        config.outputCostPerMillion,
+        form.pricingMode,
+        form.markupRate,
+        form.grossMarginRate,
+        config.outputSalePricePerMillion,
+      ),
+    };
+  });
+
 const buildModelServiceFromForm = (form: OperationsModelServiceForm): OperationsModelService => ({
   id: buildOperationsModelServiceId(),
   providerId: form.providerId,
   modelCode: form.modelCode.trim(),
   modelName: form.modelName.trim(),
-  inputCostPerMillion: form.inputCostPerMillion,
-  cacheCreationCostPerMillion: form.cacheCreationCostPerMillion,
-  cacheReadCostPerMillion: form.cacheReadCostPerMillion,
-  outputCostPerMillion: form.outputCostPerMillion,
+  protocolConfigs: buildModelProtocolConfigFromForm(form),
   pricingMode: form.pricingMode,
   markupRate: form.markupRate,
   grossMarginRate: form.grossMarginRate,
-  inputSalePricePerMillion: calculateOperationsSalePrice(
-    form.inputCostPerMillion,
-    form.pricingMode,
-    form.markupRate,
-    form.grossMarginRate,
-    form.inputSalePricePerMillion,
-  ),
-  cacheCreationSalePricePerMillion: calculateOperationsSalePrice(
-    form.cacheCreationCostPerMillion,
-    form.pricingMode,
-    form.markupRate,
-    form.grossMarginRate,
-    form.cacheCreationSalePricePerMillion,
-  ),
-  cacheReadSalePricePerMillion: calculateOperationsSalePrice(
-    form.cacheReadCostPerMillion,
-    form.pricingMode,
-    form.markupRate,
-    form.grossMarginRate,
-    form.cacheReadSalePricePerMillion,
-  ),
-  outputSalePricePerMillion: calculateOperationsSalePrice(
-    form.outputCostPerMillion,
-    form.pricingMode,
-    form.markupRate,
-    form.grossMarginRate,
-    form.outputSalePricePerMillion,
-  ),
   status: form.status,
   updatedAt: formatOperationsTimestamp(),
 });

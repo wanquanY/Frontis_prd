@@ -2007,6 +2007,37 @@
   }
 }
 
+.dialogueHomeDispatchItemUnavailable {
+  border-color: color-mix(in srgb, var(--text) 12%, var(--panelBorder));
+  background: color-mix(in srgb, var(--text) 4%, var(--surface));
+  box-shadow: none;
+
+  &:hover {
+    border-color: color-mix(in srgb, var(--text) 18%, var(--panelBorder));
+    background: color-mix(in srgb, var(--text) 5%, var(--surface));
+    box-shadow: none;
+  }
+}
+
+.dialogueHomeDispatchIdentity {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+
+  em {
+    flex: 0 0 auto;
+    padding: 1px 5px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--text) 8%, transparent);
+    color: var(--text-secondary);
+    font-size: 10px;
+    line-height: 14px;
+    font-style: normal;
+    font-weight: 700;
+  }
+}
+
 .dialogueHomeDispatchEmpty {
   min-height: 38px;
   padding: 9px 10px;
@@ -2046,6 +2077,18 @@
     height: 100%;
     object-fit: cover;
   }
+}
+
+.dialogueUnavailableNotice {
+  margin: 0 0 8px;
+  padding: 8px 10px;
+  border: 1px solid color-mix(in srgb, var(--text) 10%, var(--panelBorder));
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--text) 4%, var(--surface));
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 18px;
+  font-weight: 650;
 }
 
 .meExpertPickerModal {
@@ -2269,17 +2312,18 @@
     text-overflow: ellipsis;
     white-space: nowrap;
   }
+}
 
-  span {
-    flex: 0 0 auto;
-    padding: 2px 7px;
-    border-radius: 999px;
-    background: color-mix(in srgb, var(--text) 6%, transparent);
-    color: var(--text-secondary);
-    font-size: 11px;
-    line-height: 16px;
-    font-weight: 700;
-  }
+.meExpertPickerStatusLabel {
+  flex: 0 0 auto;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--text) 8%, transparent);
+  color: var(--text-secondary);
+  font-size: 11px;
+  line-height: 16px;
+  font-style: normal;
+  font-weight: 700;
 }
 
 .meExpertPickerTags {

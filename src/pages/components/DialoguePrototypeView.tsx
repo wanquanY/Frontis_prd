@@ -87,6 +87,7 @@ interface DialoguePrototypeViewProps {
   dialoguePlaceholder: string;
   dialogueAttachments: WorkspaceComposerAttachmentItem[];
   dialogueInputValue: string;
+  dialogueUnavailableMessage?: string;
   dialogueMessages: ChatMessage[];
   allDialogueSessions: DialogueSessionItem[];
   dialogueSessions: DialogueSessionItem[];
@@ -140,7 +141,7 @@ export interface AddableExpertPickerOption {
   description: string;
   avatarUrl?: string;
   isAdded: boolean;
-  sourceLabel: string;
+  statusLabel?: string;
   tags?: string[];
 }
 
@@ -484,6 +485,7 @@ export const DialoguePrototypeView = ({
   dialoguePlaceholder,
   dialogueAttachments,
   dialogueInputValue,
+  dialogueUnavailableMessage,
   dialogueMessages,
   allDialogueSessions,
   dialogueSessions,
@@ -658,7 +660,7 @@ export const DialoguePrototypeView = ({
     }
 
     return sourceOptions.filter(option =>
-      [option.name, option.description, option.sourceLabel, ...(option.tags ?? [])]
+      [option.name, option.description, option.statusLabel, ...(option.tags ?? [])]
         .join(" ")
         .toLowerCase()
         .includes(keyword),
@@ -791,6 +793,7 @@ export const DialoguePrototypeView = ({
     [homeSkillItems, selectedSkillIds],
   );
   const shouldShowComposerSkillBar =
+    !dialogueUnavailableMessage &&
     !activeEmployee.isExpertTeam &&
     (selectedSkillItems.length > 0 || availableSkillItems.length > 0);
   const dialogueInsightTasks = useMemo(
@@ -1766,8 +1769,14 @@ export const DialoguePrototypeView = ({
                   type="button"
                   className={classNames(styles.dialogueSwitcherItem, {
                     [styles.dialogueSwitcherItemActive]: item.id === activeEmployee.id,
+                    [styles.dialogueSwitcherItemUnavailable]:
+                      item.availabilityState === "productOffline",
                   })}
-                  title={item.name}
+                  title={
+                    item.availabilityMessage
+                      ? `${item.name}：${item.availabilityMessage}`
+                      : item.name
+                  }
                   onClick={() => {
                     onEmployeeSelect(item.id);
                     setIsEmployeeSwitcherOpen(false);
@@ -1793,6 +1802,11 @@ export const DialoguePrototypeView = ({
                     <span className={styles.dialogueSwitcherItemName} title={item.name}>
                       {item.name}
                     </span>
+                    {item.availabilityLabel ? (
+                      <span className={styles.dialogueSwitcherItemStatus}>
+                        {item.availabilityLabel}
+                      </span>
+                    ) : null}
                   </span>
                 </button>
                 {canRemoveEmployee ? (
@@ -2402,10 +2416,13 @@ export const DialoguePrototypeView = ({
     </div>
   ) : (
     <div className={styles.composerWrap}>
+      {dialogueUnavailableMessage ? (
+        <div className={styles.dialogueUnavailableNotice}>{dialogueUnavailableMessage}</div>
+      ) : null}
       <WorkspaceComposer
         rootClassName={styles.synclawComposer}
         value={dialogueInputValue}
-        placeholder={dialoguePlaceholder}
+        placeholder={dialogueUnavailableMessage || dialoguePlaceholder}
         mentionOptions={activeEmployee.isExpertTeam ? [] : expertTeamMentionOptions}
         attachments={dialogueAttachments}
         onRemoveAttachment={onRemoveAttachment}
@@ -2467,6 +2484,8 @@ export const DialoguePrototypeView = ({
           ) : null
         }
         sending={isDialogueResponding}
+        disabled={Boolean(dialogueUnavailableMessage)}
+        sendDisabled={Boolean(dialogueUnavailableMessage)}
         showModelSelector={false}
         modelLabel={activeEmployee.model}
         selectedModelId={WORKSPACE_MODEL_OPTIONS[0]?.id ?? 1}
@@ -2938,8 +2957,14 @@ export const DialoguePrototypeView = ({
                           className={classNames(styles.dialogueHomeDispatchItem, {
                             [styles.dialogueHomeDispatchItemActive]:
                               expert.id === activeEmployee.id,
+                            [styles.dialogueHomeDispatchItemUnavailable]:
+                              expert.availabilityState === "productOffline",
                           })}
-                          title={`和${expert.name}单独对话`}
+                          title={
+                            expert.availabilityMessage
+                              ? `${expert.name}：${expert.availabilityMessage}`
+                              : `和${expert.name}单独对话`
+                          }
                           onClick={() => onEmployeeSelect(expert.id)}
                         >
                           <div className={styles.dialogueHomeDispatchAvatar}>
@@ -2949,7 +2974,11 @@ export const DialoguePrototypeView = ({
                               <span>{getAvatarText(expert.name)}</span>
                             )}
                           </div>
-                          <strong>{expert.name}</strong>
+                          <span className={styles.dialogueHomeDispatchIdentity}>
+                            <strong>{expert.name}</strong>
+                            {expert.sourceMarkerLabel ? <em>{expert.sourceMarkerLabel}</em> : null}
+                            {expert.availabilityLabel ? <em>{expert.availabilityLabel}</em> : null}
+                          </span>
                           {expert.id === activeEmployee.id ? (
                             <CheckOutlined className={styles.dialogueHomeDispatchCheck} />
                           ) : null}
@@ -3117,7 +3146,9 @@ export const DialoguePrototypeView = ({
                   <div className={styles.meExpertPickerItemBody}>
                     <div className={styles.meExpertPickerItemHeader}>
                       <strong>{option.name}</strong>
-                      <span>{option.sourceLabel}</span>
+                      {option.statusLabel ? (
+                        <em className={styles.meExpertPickerStatusLabel}>{option.statusLabel}</em>
+                      ) : null}
                     </div>
                     <p>{option.description}</p>
                     {option.tags?.length ? (

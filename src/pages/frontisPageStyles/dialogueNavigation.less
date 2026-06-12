@@ -653,6 +653,10 @@
   background: color-mix(in srgb, var(--primary) 8%, var(--surface));
 }
 
+.dialogueSwitcherItemUnavailable {
+  color: var(--text-secondary);
+}
+
 .dialogueSwitcherItemEditing {
   cursor: default;
 }
@@ -764,6 +768,19 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.dialogueSwitcherItemStatus {
+  width: fit-content;
+  max-width: 100%;
+  margin-top: 2px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--text) 8%, transparent);
+  color: var(--text-secondary);
+  font-size: 11px;
+  line-height: 16px;
+  font-weight: 700;
 }
 
 .dialogueSessionPreview,

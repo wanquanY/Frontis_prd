@@ -741,6 +741,96 @@
   gap: 8px;
 }
 
+.modelSystemFields {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.modelSystemField {
+  min-width: 0;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--text) 3%, var(--surface));
+}
+
+.modelSystemFieldLabel {
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.modelSystemField strong {
+  overflow: hidden;
+  color: var(--text);
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.modelProtocolSummaryList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.modelProtocolSummaryItem {
+  min-width: 180px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 12px;
+  row-gap: 2px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.modelProtocolSummaryItem strong {
+  grid-column: 1 / -1;
+  color: var(--text);
+  font-size: 13px;
+  line-height: 20px;
+  font-weight: 700;
+}
+
+.modelProtocolCostCard {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--text) 2%, var(--surface));
+}
+
+.modelProtocolCostHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.modelProtocolCostHeader strong {
+  color: var(--text);
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 700;
+}
+
+.modelProtocolCostGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
 .statusSwitchRow {
   display: flex;
   align-items: center;
@@ -1160,6 +1250,8 @@
 
 @media (max-width: 960px) {
   .formGrid,
+  .modelSystemFields,
+  .modelProtocolCostGrid,
   .snapshotInfoGrid {
     grid-template-columns: 1fr;
   }
