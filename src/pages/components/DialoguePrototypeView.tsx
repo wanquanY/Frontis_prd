@@ -153,19 +153,12 @@ const ADDABLE_EXPERT_PICKER_STATUSES: Array<{
   { key: "added", label: "已添加" },
 ];
 
-interface ConversationSharePreviewItem {
-  actorName: string;
-  content: string;
-  id: string;
-}
-
 interface GeneratedShareState {
   kind: "artifact" | "conversation";
   title: string;
   link: string;
   description: string;
   artifact?: ArtifactItem;
-  conversationItems?: ConversationSharePreviewItem[];
 }
 
 type MetaAgentTrajectoryTimeFilterKey =
@@ -382,7 +375,6 @@ const EXPERT_TEAM_MAIN_AGENT_NAME = "ME";
 const SKILL_BUTTON_FONT =
   '500 14px "PingFang SC", system-ui, -apple-system, "Segoe UI", Arial, sans-serif';
 const SHARE_LINK_FALLBACK_ORIGIN = "https://frontis.ai";
-const SHARE_PREVIEW_TEXT_MAX_LENGTH = 220;
 
 let skillMeasureContext: CanvasRenderingContext2D | null = null;
 
@@ -418,40 +410,6 @@ const buildPrototypeShareLink = (kind: GeneratedShareState["kind"], sourceId: st
   const origin =
     typeof window === "undefined" ? SHARE_LINK_FALLBACK_ORIGIN : window.location.origin;
   return `${origin}/share/${kind}/${normalizeShareToken(sourceId)}`;
-};
-
-const getBlockStringData = (block: Block, key: string): string => {
-  const value = block.data[key];
-  return typeof value === "string" ? value.trim() : "";
-};
-
-const truncateSharePreviewText = (value: string): string => {
-  const normalized = value.replace(/\s+/g, " ").trim();
-  if (normalized.length <= SHARE_PREVIEW_TEXT_MAX_LENGTH) {
-    return normalized;
-  }
-  return `${normalized.slice(0, SHARE_PREVIEW_TEXT_MAX_LENGTH)}...`;
-};
-
-const collectBlockShareContent = (block: Block): string => {
-  const directContent = [
-    getBlockStringData(block, "content"),
-    getBlockStringData(block, "text"),
-    getBlockStringData(block, "summary"),
-    getBlockStringData(block, "title"),
-    getBlockStringData(block, "display_name"),
-    getBlockStringData(block, "file_name"),
-    getBlockStringData(block, "purpose"),
-  ]
-    .filter(Boolean)
-    .join("\n\n");
-
-  const childContent = (block.children ?? [])
-    .map(child => collectBlockShareContent(child))
-    .filter(Boolean)
-    .join("\n\n");
-
-  return [directContent, childContent].filter(Boolean).join("\n\n").trim();
 };
 
 const isMetaCoordinatorEmployee = (
@@ -1835,45 +1793,6 @@ export const DialoguePrototypeView = ({
     </div>
   );
 
-  const resolveSharePreviewActorName = useCallback(
-    (block: Block): string => {
-      if (block.actorRole === "user") {
-        return viewerName || "我";
-      }
-      if (block.actorId && dialogueActorAvatars[block.actorId]?.name) {
-        return dialogueActorAvatars[block.actorId].name;
-      }
-      if (block.actorName && dialogueActorAvatars[block.actorName]?.name) {
-        return dialogueActorAvatars[block.actorName].name;
-      }
-      if (block.actorName?.trim()) {
-        return block.actorName.trim();
-      }
-      return activeEmployee.name;
-    },
-    [activeEmployee.name, dialogueActorAvatars, viewerName],
-  );
-
-  const buildConversationSharePreviewItems = useCallback(
-    (blocks: Block[]): ConversationSharePreviewItem[] =>
-      blocks.map(block => {
-        const content = truncateSharePreviewText(collectBlockShareContent(block));
-        const fallbackContent =
-          block.kind === "artifact"
-            ? "成果文件"
-            : block.kind === "result_cards"
-              ? "结果卡片"
-              : "消息内容";
-
-        return {
-          actorName: resolveSharePreviewActorName(block),
-          content: content || fallbackContent,
-          id: block.id,
-        };
-      }),
-    [resolveSharePreviewActorName],
-  );
-
   const handleStartConversationShare = useCallback((): void => {
     if (!shareableConversationBlocks.length) {
       message.warning("当前会话暂无可分享消息");
@@ -1930,7 +1849,6 @@ export const DialoguePrototypeView = ({
       title,
       link,
       description: `已选择 ${selectedConversationShareBlocks.length} 条消息`,
-      conversationItems: buildConversationSharePreviewItems(selectedConversationShareBlocks),
     });
     setIsConversationShareSelecting(false);
   }, [
@@ -1938,7 +1856,6 @@ export const DialoguePrototypeView = ({
     activeDialogueSession?.title,
     activeEmployee.id,
     activeEmployee.name,
-    buildConversationSharePreviewItems,
     selectedConversationShareBlocks,
   ]);
 
@@ -2548,9 +2465,6 @@ export const DialoguePrototypeView = ({
       </button>
     </div>
   ) : null;
-  const generatedShareFileLogo = generatedShare?.artifact
-    ? resolveFileLogo(generatedShare.artifact.fileName)
-    : null;
   const expertTeamMemberAvatars =
     shouldShowExpertTeamUi && activeExpertTeamMembers.length > 0 ? (
       <>
@@ -3212,7 +3126,7 @@ export const DialoguePrototypeView = ({
 
       <Modal
         className={styles.dialogueShareModal}
-        width={940}
+        width={560}
         centered
         title={generatedShare?.kind === "artifact" ? "成果分享" : "对话分享"}
         open={Boolean(generatedShare)}
@@ -3237,63 +3151,6 @@ export const DialoguePrototypeView = ({
                   <CopyOutlined />
                   <span>复制链接</span>
                 </button>
-              </div>
-            </section>
-
-            <section className={styles.dialogueSharePreviewPage} aria-label="分享页预览">
-              <header className={styles.dialogueSharePreviewHeader}>
-                <div className={styles.dialogueSharePreviewBrand}>
-                  <strong>Frontis Horizon</strong>
-                  <span>在线预览</span>
-                </div>
-                <button type="button" className={styles.dialogueSharePreviewEntry}>
-                  使用 Frontis AI 创建
-                </button>
-              </header>
-              <div className={styles.dialogueSharePreviewBody}>
-                <div className={styles.dialogueSharePreviewTitleGroup}>
-                  <h3>{generatedShare.title}</h3>
-                  <p>{generatedShare.description}</p>
-                </div>
-
-                {generatedShare.kind === "artifact" && generatedShare.artifact ? (
-                  <div className={styles.dialogueShareArtifactPreview}>
-                    <div className={styles.dialogueShareArtifactCard}>
-                      <span className={styles.dialogueShareArtifactIcon} aria-hidden={true}>
-                        {generatedShareFileLogo ? (
-                          <img src={generatedShareFileLogo.src} alt={generatedShareFileLogo.alt} />
-                        ) : null}
-                      </span>
-                      <span className={styles.dialogueShareArtifactInfo}>
-                        <strong>{generatedShare.artifact.fileName}</strong>
-                        <span>{`${generatedShare.artifact.fileSize} · ${generatedShare.artifact.taskName}`}</span>
-                      </span>
-                    </div>
-                    <div className={styles.dialogueShareArtifactCanvas}>
-                      <div className={styles.dialogueShareArtifactCanvasHeader}>
-                        <span />
-                        <span />
-                        <span />
-                      </div>
-                      <div className={styles.dialogueShareArtifactCanvasBody}>
-                        <span>{generatedShare.artifact.fileType.toUpperCase()}</span>
-                        <strong>{generatedShare.artifact.fileName}</strong>
-                        <p>{generatedShare.artifact.producerName}</p>
-                      </div>
-                    </div>
-                  </div>
-                ) : null}
-
-                {generatedShare.kind === "conversation" ? (
-                  <div className={styles.dialogueShareConversationPreview}>
-                    {(generatedShare.conversationItems ?? []).map(item => (
-                      <article key={item.id} className={styles.dialogueShareConversationItem}>
-                        <strong>{item.actorName}</strong>
-                        <p>{item.content}</p>
-                      </article>
-                    ))}
-                  </div>
-                ) : null}
               </div>
             </section>
           </div>

@@ -241,6 +241,115 @@
   }
 }
 
+.messageToolSequenceGrouped {
+  max-width: 800px;
+  margin: 0 auto;
+  width: 100%;
+  gap: 0;
+  border: 1px solid #dde3ee;
+  border-radius: 10px;
+  background: #f8fafc;
+  overflow: hidden;
+}
+
+.messageToolSequenceExpanded {
+  background: #fff;
+}
+
+.messageToolSequenceRunning {
+  border-color: #c7d2fe;
+  background: #f7f8ff;
+}
+
+.messageToolSequenceFailed {
+  border-color: #fecaca;
+  background: #fff7f7;
+}
+
+.messageToolSequenceSummary {
+  width: 100%;
+  min-height: 48px;
+  padding: 10px 12px;
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) auto 20px;
+  gap: 10px;
+  align-items: center;
+  border: none;
+  background: transparent;
+  color: @text-primary;
+  text-align: left;
+  cursor: pointer;
+}
+
+.messageToolSequenceIcon {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #eef2ff;
+  color: @accent-indigo;
+  flex: none;
+}
+
+.messageToolSequenceText {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.messageToolSequenceTitle {
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 600;
+  color: @text-primary;
+}
+
+.messageToolSequenceMeta,
+.messageToolSequenceNames,
+.messageToolSequenceError {
+  font-size: 12px;
+  line-height: 16px;
+  color: @text-secondary;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.messageToolSequenceError {
+  color: #b42318;
+}
+
+.messageToolSequenceStatus {
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: #fff;
+  border: 1px solid #d8dee8;
+  font-size: 12px;
+  line-height: 16px;
+  color: @text-secondary;
+  white-space: nowrap;
+}
+
+.messageToolSequenceChevron {
+  color: @text-muted;
+  font-size: 12px;
+  transition: transform 0.18s ease;
+}
+
+.messageToolSequenceChevronExpanded {
+  transform: rotate(180deg);
+}
+
+.messageToolSequenceBody {
+  padding: 4px 12px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
 // ============ 文本消息 ============
 .textBlock {
   display: flex;

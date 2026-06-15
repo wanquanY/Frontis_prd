@@ -94,6 +94,7 @@ const TAB_SEGMENTS: Record<UnifiedWorkbenchTabKey, string> = {
   teamExperts: "team-experts",
 };
 const MOBILE_WORKBENCH_BREAKPOINT = 900;
+const LEADEEP_MOBILE_DOWNLOAD_QR_VALUE = "https://frontis.ai/download/leadeep?source=web-user-card";
 const truncateConversationNavTitle = (title: string): string => {
   const normalizedTitle = title.trim();
 
@@ -129,7 +130,25 @@ const TAB_ITEMS: UnifiedWorkbenchNavItem[] = [
   },
 ];
 
+const CHANNEL_BOUND_CONVERSATION_RECORDS: WorkbenchConversationNavSession[] = [
+  {
+    id: "dialogue-seed-leadeep-mobile-binding",
+    title: "Leadeep 问策绑定会话",
+    updatedAt: "刚刚",
+    active: false,
+    avatarName: "L",
+  },
+  {
+    id: "dialogue-seed-feishu-binding",
+    title: "飞书绑定会话",
+    updatedAt: "今天 10:08",
+    active: false,
+    avatarName: "飞",
+  },
+];
+
 const DEFAULT_WORKBENCH_CONVERSATION_RECORDS: WorkbenchConversationNavSession[] = [
+  ...CHANNEL_BOUND_CONVERSATION_RECORDS,
   {
     id: "dialogue-seed-metaagent-collab",
     title: "ME 持续对话",
@@ -201,6 +220,46 @@ const DEFAULT_WORKBENCH_CONVERSATION_RECORDS: WorkbenchConversationNavSession[] 
     avatarName: "ME",
   },
 ];
+
+interface BoundConversationChannelBadge {
+  label: string;
+  tone: "leadeep" | "feishu";
+}
+
+const getBoundConversationChannelBadge = (
+  session: WorkbenchConversationNavSession,
+): BoundConversationChannelBadge | null => {
+  if (session.id.includes("leadeep") || session.title.includes("Leadeep")) {
+    return {
+      label: "Leadeep",
+      tone: "leadeep",
+    };
+  }
+
+  if (session.id.includes("feishu") || session.title.includes("飞书")) {
+    return {
+      label: "飞书",
+      tone: "feishu",
+    };
+  }
+
+  return null;
+};
+
+const ensureChannelBoundConversationRecords = (
+  sessions: WorkbenchConversationNavSession[],
+): WorkbenchConversationNavSession[] => {
+  const existingSessionIds = new Set(sessions.map(session => session.id));
+  const missingChannelSessions = CHANNEL_BOUND_CONVERSATION_RECORDS.filter(
+    session => !existingSessionIds.has(session.id),
+  );
+
+  if (!missingChannelSessions.length) {
+    return sessions;
+  }
+
+  return [...missingChannelSessions, ...sessions];
+};
 
 const formatConversationRecordTime = (updatedAt: string): string => {
   const normalizedTime = updatedAt.trim();
@@ -674,7 +733,13 @@ export const UnifiedWorkbenchPage = ({ viewRole }: UnifiedWorkbenchPageProps): J
     [activeTab, conversationNavState, navigate, viewRole],
   );
 
-  const visibleConversationRecords = conversationNavState?.sessions ?? fallbackConversationRecords;
+  const visibleConversationRecords = useMemo(
+    () =>
+      ensureChannelBoundConversationRecords(
+        conversationNavState?.sessions ?? fallbackConversationRecords,
+      ),
+    [conversationNavState?.sessions, fallbackConversationRecords],
+  );
   const featureAccountName = activeIdentity?.subjectName ?? session?.name ?? "当前账号";
   const activeContent = useMemo((): JSX.Element => {
     if (activeTab === "expertStudio") {
@@ -787,6 +852,7 @@ export const UnifiedWorkbenchPage = ({ viewRole }: UnifiedWorkbenchPageProps): J
                   {visibleConversationRecords.length ? (
                     visibleConversationRecords.map(session => {
                       const displayTitle = truncateConversationNavTitle(session.title);
+                      const channelBadge = getBoundConversationChannelBadge(session);
 
                       return (
                         <div
@@ -809,7 +875,21 @@ export const UnifiedWorkbenchPage = ({ viewRole }: UnifiedWorkbenchPageProps): J
                             onClick={() => handleSelectConversationSession(session.id)}
                           >
                             <span className={styles.navConversationSessionTitle}>
-                              {displayTitle}
+                              <span className={styles.navConversationSessionName}>
+                                {displayTitle}
+                              </span>
+                              {channelBadge ? (
+                                <span
+                                  className={classNames(styles.navConversationSessionBadge, {
+                                    [styles.navConversationSessionBadgeLeadeep]:
+                                      channelBadge.tone === "leadeep",
+                                    [styles.navConversationSessionBadgeFeishu]:
+                                      channelBadge.tone === "feishu",
+                                  })}
+                                >
+                                  {channelBadge.label}
+                                </span>
+                              ) : null}
                             </span>
                           </button>
                           <div className={styles.navConversationSessionTrailing}>
@@ -879,6 +959,12 @@ export const UnifiedWorkbenchPage = ({ viewRole }: UnifiedWorkbenchPageProps): J
                       ? () => setIsSubscriptionPlanModalOpen(true)
                       : undefined
                   }
+                  mobileDownload={{
+                    description: "手机扫码下载 Leadeep App，登录后进入已开放权限的租户身份。",
+                    enabled: true,
+                    qrCodeValue: LEADEEP_MOBILE_DOWNLOAD_QR_VALUE,
+                    title: "扫码下载移动端",
+                  }}
                   pointsBalance={isTenantPointsBilling ? tenantSnapshot?.pointsBalance : undefined}
                 />
               )}

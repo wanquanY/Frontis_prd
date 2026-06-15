@@ -194,6 +194,15 @@ export const OrganizationManagementView = ({
   });
   const [editingUserId, setEditingUserId] = useState("");
   const [memberSearchKeyword, setMemberSearchKeyword] = useState("");
+  const [leadeepEnabledUserIds, setLeadeepEnabledUserIds] = useState<Set<string>>(
+    () =>
+      new Set(
+        users
+          .filter(user => user.status === "active")
+          .slice(0, 3)
+          .map(user => user.id),
+      ),
+  );
 
   /* ---------- 派生数据 ---------- */
   const flatDepts = useMemo(() => flattenDepartmentTree(departments), [departments]);
@@ -221,6 +230,13 @@ export const OrganizationManagementView = ({
   const directMembers = useMemo(
     () => users.filter(user => user.departmentId === selectedDept?.id),
     [selectedDept, users],
+  );
+  const departmentLeadeepEnabledCount = useMemo(
+    () =>
+      departmentMembers.filter(
+        user => user.status === "active" && leadeepEnabledUserIds.has(user.id),
+      ).length,
+    [departmentMembers, leadeepEnabledUserIds],
   );
 
   const leaderUser = useMemo(
@@ -305,6 +321,7 @@ export const OrganizationManagementView = ({
         getUserStatusLabel(user.status),
         getUserSeatInfo(user).typeLabel,
         getUserSeatInfo(user).expiresLabel,
+        leadeepEnabledUserIds.has(user.id) ? "Leadeep 已开放" : "Leadeep 未开放",
       ]
         .filter(Boolean)
         .join(" ")
@@ -312,7 +329,13 @@ export const OrganizationManagementView = ({
 
       return searchText.includes(keyword);
     });
-  }, [departmentMembers, getUserRoleLabel, getUserSeatInfo, memberSearchKeyword]);
+  }, [
+    departmentMembers,
+    getUserRoleLabel,
+    getUserSeatInfo,
+    leadeepEnabledUserIds,
+    memberSearchKeyword,
+  ]);
 
   /* ---------- 部门操作 ---------- */
   const handleOpenDeptCreate = useCallback((): void => {
@@ -516,6 +539,27 @@ export const OrganizationManagementView = ({
     [onSetDepartmentLeader, selectedDept, users],
   );
 
+  const handleToggleLeadeepAccess = useCallback((user: FrontisWebUserItem): void => {
+    if (user.status !== "active") {
+      message.warning("成员状态异常，不能开放 Leadeep 权限。");
+      return;
+    }
+
+    setLeadeepEnabledUserIds(current => {
+      const next = new Set(current);
+
+      if (next.has(user.id)) {
+        next.delete(user.id);
+        message.success(`${user.name} 的 Leadeep 权限已关闭。`);
+      } else {
+        next.add(user.id);
+        message.success(`${user.name} 已开放 Leadeep 权限，可在用户卡片扫码下载移动端。`);
+      }
+
+      return next;
+    });
+  }, []);
+
   /* ---------- 部门树左侧 ---------- */
   const renderDepartmentTree = (): JSX.Element => (
     <div className={adminStyles.consoleSidebar}>
@@ -629,6 +673,15 @@ export const OrganizationManagementView = ({
             </span>
           </div>
           <div className={adminStyles.consoleSummaryItem}>
+            <span className={adminStyles.consoleSummaryLabel}>Leadeep 已开放</span>
+            <span
+              className={adminStyles.consoleSummaryValue}
+              style={{ fontSize: 16, lineHeight: "24px" }}
+            >
+              {departmentLeadeepEnabledCount}
+            </span>
+          </div>
+          <div className={adminStyles.consoleSummaryItem}>
             <span className={adminStyles.consoleSummaryLabel}>下级部门</span>
             <span
               className={adminStyles.consoleSummaryValue}
@@ -664,6 +717,7 @@ export const OrganizationManagementView = ({
                 <th>手机号</th>
                 <th>角色</th>
                 <th>账号状态</th>
+                <th>Leadeep 权限</th>
                 <th>席位类型</th>
                 <th>席位有效期</th>
                 <th>操作</th>
@@ -680,6 +734,19 @@ export const OrganizationManagementView = ({
                       <td>{user.phone}</td>
                       <td>
                         <span className={adminStyles.consolePill}>{getUserRoleLabel(user)}</span>
+                      </td>
+                      <td>
+                        <span
+                          className={adminStyles.consolePill}
+                          style={{
+                            background: leadeepEnabledUserIds.has(user.id)
+                              ? "rgba(15, 159, 143, 0.12)"
+                              : "rgba(100, 113, 132, 0.12)",
+                            color: leadeepEnabledUserIds.has(user.id) ? "#0f9f8f" : "#647184",
+                          }}
+                        >
+                          {leadeepEnabledUserIds.has(user.id) ? "已开放" : "未开放"}
+                        </span>
                       </td>
                       <td>
                         <span
@@ -737,6 +804,15 @@ export const OrganizationManagementView = ({
                           {canChangeMemberStatus ? (
                             <Button
                               size="small"
+                              disabled={user.status !== "active"}
+                              onClick={() => handleToggleLeadeepAccess(user)}
+                            >
+                              {leadeepEnabledUserIds.has(user.id) ? "关闭 Leadeep" : "开放 Leadeep"}
+                            </Button>
+                          ) : null}
+                          {canChangeMemberStatus ? (
+                            <Button
+                              size="small"
                               danger={user.status === "active"}
                               onClick={() => {
                                 const nextStatus: FrontisUserStatus =
@@ -748,6 +824,14 @@ export const OrganizationManagementView = ({
                                   selectedDept.leaderUserId === user.id
                                 ) {
                                   onSetDepartmentLeader(selectedDept.id, undefined);
+                                }
+
+                                if (nextStatus === "disabled") {
+                                  setLeadeepEnabledUserIds(current => {
+                                    const next = new Set(current);
+                                    next.delete(user.id);
+                                    return next;
+                                  });
                                 }
 
                                 message.success(
@@ -786,7 +870,7 @@ export const OrganizationManagementView = ({
                 })
               ) : (
                 <tr>
-                  <td colSpan={7}>
+                  <td colSpan={8}>
                     <div className={adminStyles.consoleEmpty}>
                       {departmentMembers.length ? "没有匹配的成员" : "当前部门暂无直属成员"}
                     </div>

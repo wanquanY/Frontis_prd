@@ -357,9 +357,38 @@
   font-size: 13px;
   line-height: 20px;
   font-weight: 650;
+  display: flex;
+  align-items: center;
+  gap: 6px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.navConversationSessionName {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.navConversationSessionBadge {
+  min-height: 18px;
+  padding: 0 6px;
+  border-radius: 999px;
+  flex: 0 0 auto;
+  font-size: 10px;
+  line-height: 18px;
+  font-weight: 800;
+}
+
+.navConversationSessionBadgeLeadeep {
+  background: color-mix(in srgb, var(--primary) 10%, var(--surface));
+  color: var(--primary);
+}
+
+.navConversationSessionBadgeFeishu {
+  background: color-mix(in srgb, #2f6fed 10%, var(--surface));
+  color: #2f6fed;
 }
 
 .navConversationSessionTime {

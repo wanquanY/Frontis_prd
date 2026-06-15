@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import type { ReactNode } from "react";
 
-import { CreditCardOutlined, QrcodeOutlined } from "@ant-design/icons";
+import { CreditCardOutlined, MobileOutlined, QrcodeOutlined } from "@ant-design/icons";
 import { QRCode } from "antd";
 
 import { loadOperationsCommunityGroupConfig } from "@/feature/operations/platformConfigStorage";
@@ -11,6 +11,12 @@ import styles from "./AccountDropdownPanel.module.less";
 interface AccountDropdownPanelProps {
   accountName: string;
   menu: ReactNode;
+  mobileDownload?: {
+    description: string;
+    enabled: boolean;
+    qrCodeValue: string;
+    title: string;
+  };
   onOpenRecharge?: () => void;
   onOpenSubscription?: () => void;
   pointsBalance?: number;
@@ -22,6 +28,7 @@ interface AccountDropdownPanelProps {
 export const AccountDropdownPanel = ({
   accountName,
   menu,
+  mobileDownload,
   onOpenRecharge,
   onOpenSubscription,
   pointsBalance,
@@ -29,6 +36,8 @@ export const AccountDropdownPanel = ({
   const communityGroupConfig = useMemo(() => loadOperationsCommunityGroupConfig(), []);
   const shouldShowCommunityEntry =
     communityGroupConfig.enabled && Boolean(communityGroupConfig.qrCodeValue.trim());
+  const shouldShowMobileDownload =
+    Boolean(mobileDownload?.enabled) && Boolean(mobileDownload?.qrCodeValue.trim());
 
   return (
     <div className={styles.panel}>
@@ -55,6 +64,25 @@ export const AccountDropdownPanel = ({
           <CreditCardOutlined className={styles.subscriptionButtonIcon} />
           <span>团队扩充</span>
         </button>
+      ) : null}
+
+      {shouldShowMobileDownload && mobileDownload ? (
+        <div className={styles.qrEntry}>
+          <button type="button" className={styles.qrButton} aria-haspopup="dialog">
+            <MobileOutlined className={styles.qrButtonIcon} />
+            <span>下载移动端</span>
+          </button>
+          <div className={styles.qrPopover} role="dialog" aria-label="Leadeep 移动端下载二维码">
+            <div className={styles.qrPopoverHeader}>
+              <span className={styles.qrPopoverEyebrow}>Leadeep 移动端</span>
+              <strong className={styles.qrPopoverTitle}>{mobileDownload.title}</strong>
+              <span className={styles.qrPopoverDescription}>{mobileDownload.description}</span>
+            </div>
+            <div className={styles.qrBox}>
+              <QRCode value={mobileDownload.qrCodeValue.trim()} size={164} bordered={false} />
+            </div>
+          </div>
+        </div>
       ) : null}
 
       {shouldShowCommunityEntry ? (

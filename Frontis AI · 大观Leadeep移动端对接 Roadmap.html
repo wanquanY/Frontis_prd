@@ -1,0 +1,541 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>大观 × Leadeep 移动端对接 Roadmap</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+
+      :root {
+        --ink: #17202f;
+        --muted: #637083;
+        --line: #dce4ee;
+        --page: #eef3f8;
+        --panel: #ffffff;
+        --frontis: #0f9f8f;
+        --leadeep: #6f57d8;
+        --hold: #c76b2c;
+        --risk: #c2415d;
+      }
+
+      body {
+        margin: 0;
+        min-width: 1360px;
+        background: var(--page);
+        color: var(--ink);
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei",
+          sans-serif;
+        letter-spacing: 0;
+      }
+
+      .page {
+        width: 1360px;
+        margin: 0 auto;
+        padding: 26px 28px 32px;
+      }
+
+      .hero {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 24px;
+        align-items: center;
+        padding: 22px 26px;
+        border: 1px solid rgba(23, 32, 47, 0.08);
+        border-radius: 8px;
+        background: #17202f;
+        color: #fff;
+        box-shadow: 0 14px 34px rgba(23, 32, 47, 0.16);
+      }
+
+      h1 {
+        margin: 0;
+        font-size: 28px;
+        line-height: 1.25;
+        font-weight: 850;
+      }
+
+      .subtitle {
+        margin: 8px 0 0;
+        max-width: 900px;
+        color: rgba(255, 255, 255, 0.76);
+        font-size: 14px;
+        line-height: 1.7;
+      }
+
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        height: 34px;
+        padding: 0 13px;
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.08);
+        color: rgba(255, 255, 255, 0.86);
+        font-size: 13px;
+        font-weight: 760;
+        white-space: nowrap;
+      }
+
+      .summary {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 12px;
+        margin-top: 16px;
+      }
+
+      .summaryItem {
+        min-height: 86px;
+        padding: 14px 16px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--panel);
+      }
+
+      .summaryItem strong {
+        display: block;
+        margin-bottom: 5px;
+        font-size: 14px;
+      }
+
+      .summaryItem span {
+        display: block;
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.55;
+      }
+
+      .roadmap {
+        margin-top: 18px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--panel);
+        overflow: hidden;
+        box-shadow: 0 12px 30px rgba(23, 32, 47, 0.1);
+      }
+
+      .timeline {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        position: relative;
+        padding: 24px 22px 18px;
+        gap: 16px;
+        border-bottom: 1px solid var(--line);
+        background: #fbfcfe;
+      }
+
+      .timeline::before {
+        content: "";
+        position: absolute;
+        left: 104px;
+        right: 104px;
+        top: 54px;
+        height: 3px;
+        background: linear-gradient(90deg, #0f9f8f, #6f57d8, #c76b2c, #c2415d);
+        opacity: 0.7;
+      }
+
+      .stageTop {
+        position: relative;
+        z-index: 1;
+        min-height: 126px;
+        padding: 16px 16px 14px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #fff;
+      }
+
+      .stageTop::before {
+        content: "";
+        position: absolute;
+        top: 23px;
+        left: 16px;
+        width: 14px;
+        height: 14px;
+        border: 4px solid #fff;
+        border-radius: 50%;
+        box-shadow: 0 0 0 2px currentColor;
+        background: currentColor;
+      }
+
+      .stageTop.v1 {
+        color: var(--frontis);
+      }
+      .stageTop.v2 {
+        color: var(--leadeep);
+      }
+      .stageTop.v3 {
+        color: var(--hold);
+      }
+      .stageTop.v4 {
+        color: var(--risk);
+      }
+
+      .stageCode {
+        margin-left: 30px;
+        font-size: 12px;
+        font-weight: 850;
+        letter-spacing: 0.5px;
+      }
+
+      .stageName {
+        margin: 10px 0 8px;
+        color: var(--ink);
+        font-size: 18px;
+        font-weight: 850;
+        line-height: 1.35;
+      }
+
+      .stageGoal {
+        margin: 0;
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.6;
+      }
+
+      .matrix {
+        display: grid;
+        grid-template-columns: 132px repeat(4, 1fr);
+      }
+
+      .laneLabel {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 148px;
+        padding: 16px;
+        border-right: 1px solid var(--line);
+        border-bottom: 1px solid var(--line);
+        background: #f7f9fc;
+        text-align: center;
+        font-size: 16px;
+        font-weight: 850;
+      }
+
+      .cell {
+        min-height: 148px;
+        padding: 14px 16px;
+        border-right: 1px solid var(--line);
+        border-bottom: 1px solid var(--line);
+        background: #fff;
+      }
+
+      .cell:nth-child(5n) {
+        border-right: 0;
+      }
+
+      .laneTitle {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 10px;
+        font-size: 13px;
+        font-weight: 850;
+      }
+
+      .dot {
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+        background: currentColor;
+      }
+
+      .frontis {
+        color: var(--frontis);
+      }
+      .leadeep {
+        color: var(--leadeep);
+      }
+      .hold {
+        color: var(--hold);
+      }
+
+      ul {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      li {
+        position: relative;
+        margin: 0 0 7px;
+        padding-left: 14px;
+        color: #2d3748;
+        font-size: 12px;
+        line-height: 1.48;
+      }
+
+      li::before {
+        content: "";
+        position: absolute;
+        top: 8px;
+        left: 0;
+        width: 5px;
+        height: 5px;
+        border-radius: 50%;
+        background: currentColor;
+        opacity: 0.75;
+      }
+
+      .decisionStrip {
+        display: grid;
+        grid-template-columns: 1.1fr 1fr 1fr;
+        gap: 12px;
+        padding: 16px 18px 18px;
+        background: #fbfcfe;
+      }
+
+      .decision {
+        padding: 14px 16px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #fff;
+      }
+
+      .decision h3 {
+        margin: 0 0 7px;
+        font-size: 14px;
+        line-height: 1.4;
+      }
+
+      .decision p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.55;
+      }
+
+      .footer {
+        display: flex;
+        justify-content: space-between;
+        gap: 16px;
+        margin-top: 12px;
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.5;
+      }
+
+      @media print {
+        body {
+          min-width: 0;
+          background: #fff;
+        }
+        .page {
+          width: 100%;
+          padding: 0;
+        }
+        .hero,
+        .roadmap,
+        .summaryItem {
+          box-shadow: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="page">
+      <header class="hero">
+        <div>
+          <h1>大观 × Leadeep 移动端对接 Roadmap</h1>
+          <p class="subtitle">
+            把 Leadeep App
+            作为大观移动端入口，大观统一承接租户身份、会话、文件、记忆与迁移资产；先打通可用闭环，再做迁移和统一记忆，最后升级为多渠道
+            ME。
+          </p>
+        </div>
+        <span class="badge">无具体日期 · 按上线阶段拆分</span>
+      </header>
+
+      <section class="summary" aria-label="核心口径">
+        <div class="summaryItem">
+          <strong>产品定位</strong>
+          <span>不是第二个 App；是现有 Leadeep App 内的大观移动端工作区。</span>
+        </div>
+        <div class="summaryItem">
+          <strong>身份底座</strong>
+          <span>Leadeep C 端账号必须映射到大观 User / Tenant / Member。</span>
+        </div>
+        <div class="summaryItem">
+          <strong>一期目标</strong>
+          <span>企业开通、App 进入、固定 session、Web/App 双向同步。</span>
+        </div>
+        <div class="summaryItem">
+          <strong>长期方向</strong>
+          <span>Web、Leadeep、飞书共用同一套 ME 会话、文件和记忆治理。</span>
+        </div>
+      </section>
+
+      <section class="roadmap" aria-label="Roadmap">
+        <div class="timeline">
+          <article class="stageTop v1">
+            <div class="stageCode">V1</div>
+            <h2 class="stageName">轻量打通</h2>
+            <p class="stageGoal">
+              让开通用户能在 App 进入大观 Leadeep，并和 Web 同一会话双向同步。
+            </p>
+          </article>
+          <article class="stageTop v2">
+            <div class="stageCode">V2</div>
+            <h2 class="stageName">存量迁移</h2>
+            <p class="stageGoal">解决老用户接入大观后历史文件、知识库和关键会话资产断裂。</p>
+          </article>
+          <article class="stageTop v3">
+            <div class="stageCode">V3</div>
+            <h2 class="stageName">统一记忆</h2>
+            <p class="stageGoal">
+              Web 与 App 共用个人偏好、目标、任务结论、文件索引和专家调用偏好。
+            </p>
+          </article>
+          <article class="stageTop v4">
+            <div class="stageCode">V4</div>
+            <h2 class="stageName">多渠道统一</h2>
+            <p class="stageGoal">把 Web、Leadeep、飞书收敛为同一个 ME 多入口协作体系。</p>
+          </article>
+        </div>
+
+        <div class="matrix">
+          <div class="laneLabel">大观侧</div>
+          <div class="cell">
+            <div class="laneTitle frontis"><span class="dot"></span>开通 + 绑定</div>
+            <ul class="frontis">
+              <li>企业后台开通 Leadeep</li>
+              <li>User / Tenant / Member 映射</li>
+              <li>创建固定 leadeep_mobile session</li>
+              <li>提供消息读写与增量同步</li>
+            </ul>
+          </div>
+          <div class="cell">
+            <div class="laneTitle frontis"><span class="dot"></span>迁移 + 校验</div>
+            <ul class="frontis">
+              <li>迁移任务与迁移范围</li>
+              <li>历史会话归档可查</li>
+              <li>文件进入统一文件服务</li>
+              <li>迁移日志、失败重试、结果校验</li>
+            </ul>
+          </div>
+          <div class="cell">
+            <div class="laneTitle frontis"><span class="dot"></span>记忆主数据</div>
+            <ul class="frontis">
+              <li>个人记忆与目标记忆</li>
+              <li>任务结论与文件索引</li>
+              <li>专家调用偏好</li>
+              <li>记忆来源、范围、编辑、停用</li>
+            </ul>
+          </div>
+          <div class="cell">
+            <div class="laneTitle frontis"><span class="dot"></span>企业级治理</div>
+            <ul class="frontis">
+              <li>企业知识库进入企业后台</li>
+              <li>Web 输入框统一选文件/知识</li>
+              <li>多端 source_channel 与端能力</li>
+              <li>权限、审计、离职/停用策略</li>
+            </ul>
+          </div>
+
+          <div class="laneLabel">Leadeep 侧</div>
+          <div class="cell">
+            <div class="laneTitle leadeep"><span class="dot"></span>App 承载</div>
+            <ul class="leadeep">
+              <li>保留现有 App 主体验</li>
+              <li>登录后识别大观绑定身份</li>
+              <li>展示大观 Leadeep 入口</li>
+              <li>消息写入/读取大观 session</li>
+            </ul>
+          </div>
+          <div class="cell">
+            <div class="laneTitle leadeep"><span class="dot"></span>源数据提供</div>
+            <ul class="leadeep">
+              <li>历史会话导出/读取接口</li>
+              <li>文件与知识库导出</li>
+              <li>迁移结果状态展示</li>
+              <li>失败或部分成功明确提示</li>
+            </ul>
+          </div>
+          <div class="cell">
+            <div class="laneTitle leadeep"><span class="dot"></span>记忆消费</div>
+            <ul class="leadeep">
+              <li>调用大观记忆召回结果</li>
+              <li>展示已记住/使用了记忆</li>
+              <li>支持纠错或跳转管理</li>
+              <li>携带移动端来源与可用能力</li>
+            </ul>
+          </div>
+          <div class="cell">
+            <div class="laneTitle leadeep"><span class="dot"></span>统一入口</div>
+            <ul class="leadeep">
+              <li>知识库入口切到大观数据源</li>
+              <li>展示多渠道会话状态</li>
+              <li>按租户权限控制可见范围</li>
+              <li>保持一个 App 主体与能力开关</li>
+            </ul>
+          </div>
+
+          <div class="laneLabel">暂不做 / 边界</div>
+          <div class="cell">
+            <div class="laneTitle hold"><span class="dot"></span>V1 边界</div>
+            <ul class="hold">
+              <li>不做 Web 端知识库选择</li>
+              <li>不做企业级知识治理</li>
+              <li>不做多个 Leadeep topic</li>
+              <li>不做飞书同步与全量迁移</li>
+            </ul>
+          </div>
+          <div class="cell">
+            <div class="laneTitle hold"><span class="dot"></span>迁移边界</div>
+            <ul class="hold">
+              <li>历史原文可归档，不进长期记忆</li>
+              <li>不做黑盒一次性脚本迁移</li>
+              <li>迁移范围必须可配置</li>
+              <li>失败项必须可追踪和重试</li>
+            </ul>
+          </div>
+          <div class="cell">
+            <div class="laneTitle hold"><span class="dot"></span>记忆边界</div>
+            <ul class="hold">
+              <li>会话原文仍按 session 隔离</li>
+              <li>企业规则不由普通成员直接全员生效</li>
+              <li>文件索引不替代文件本体</li>
+              <li>专家公共记忆进入治理</li>
+            </ul>
+          </div>
+          <div class="cell">
+            <div class="laneTitle hold"><span class="dot"></span>工程边界</div>
+            <ul class="hold">
+              <li>不新建大观专属 App</li>
+              <li>不长期维护双分支</li>
+              <li>大观规则不下沉到 App 侧重复维护</li>
+              <li>飞书作为后续渠道接入</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="decisionStrip">
+          <div class="decision">
+            <h3>先解决什么</h3>
+            <p>
+              先把“企业开通 + 身份映射 + 固定会话 + 双向消息同步”跑通，满足首批领导和标杆客户可用。
+            </p>
+          </div>
+          <div class="decision">
+            <h3>最大风险</h3>
+            <p>
+              如果大观和 Leadeep 各维护一套数据再互相同步，会快速变成补偿层；主数据必须收敛到大观。
+            </p>
+          </div>
+          <div class="decision">
+            <h3>评审抓手</h3>
+            <p>每个版本只看三件事：用户是否能进入、历史是否不断裂、记忆和文件是否按权限共享。</p>
+          </div>
+        </div>
+      </section>
+
+      <footer class="footer">
+        <span>来源：2026-06-11 大观与 Leadeep 移动端对接会议整理</span>
+        <span>口径：Roadmap 不绑定具体日期，只表达上线阶段和双方职责</span>
+      </footer>
+    </main>
+  </body>
+</html>

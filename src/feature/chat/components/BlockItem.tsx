@@ -3,7 +3,7 @@
  * 渲染单个 Block，根据 kind 类型显示不同的 UI
  */
 
-import { useEffect, useMemo, useRef, useState, useCallback } from "react";
+import { useEffect, useMemo, useRef, useState, useCallback, type ReactNode } from "react";
 import classNames from "classnames";
 import { Bubble, Actions } from "@ant-design/x";
 import { Input, InputNumber, Select, DatePicker, Switch, Rate, message } from "antd";
@@ -180,6 +180,8 @@ const MESSAGE_TOOL_SEQUENCE_KINDS = new Set([
   "tool_result",
 ]);
 
+type ToolSequenceStatus = "running" | "failed" | "completed" | "pending";
+
 const TOOL_DISPLAY_NAME_MAP: Record<string, string> = {
   exec: "执行命令",
   bash: "执行命令",
@@ -205,6 +207,67 @@ const resolveToolDisplayName = (rawName?: string): string => {
   const normalizedName = typeof rawName === "string" ? rawName.trim() : "";
   if (!normalizedName) return "工具";
   return TOOL_DISPLAY_NAME_MAP[normalizedName.toLowerCase()] || normalizedName;
+};
+
+const resolveToolSequenceItemName = (block: Block): string => {
+  if (TOOL_CONTAINER_KINDS.has(block.kind)) {
+    const data = block.data as Partial<ToolUseData>;
+    return resolveToolDisplayName(data.display_name || data.name);
+  }
+
+  return "工具输出";
+};
+
+const resolveToolSequenceStatus = (block: Block): ToolSequenceStatus => {
+  if (block.isStreaming) return "running";
+
+  if (TOOL_CONTAINER_KINDS.has(block.kind)) {
+    const data = block.data as Partial<ToolUseData>;
+    const stage = typeof data.stage === "string" ? data.stage.trim().toLowerCase() : "";
+    const rawStatus =
+      typeof data.status === "string" && data.status.trim()
+        ? data.status.trim().toLowerCase()
+        : stage === "start"
+          ? "running"
+          : stage === "end"
+            ? "completed"
+            : stage === "error"
+              ? "failed"
+              : "pending";
+
+    if (rawStatus === "running") return "running";
+    if (rawStatus === "failed" || rawStatus === "error") return "failed";
+    if (["success", "completed", "done", "succeeded"].includes(rawStatus)) return "completed";
+    return "pending";
+  }
+
+  if (block.kind === "tool_result") {
+    const data = block.data as Partial<ToolResultData>;
+    return data.is_error === true ? "failed" : "completed";
+  }
+
+  return "pending";
+};
+
+const resolveToolSequenceElapsedTime = (block: Block): number | null => {
+  const data = block.data as Record<string, unknown>;
+  const elapsedTime = data.elapsed_time;
+  return typeof elapsedTime === "number" && Number.isFinite(elapsedTime) ? elapsedTime : null;
+};
+
+const resolveToolSequenceFailureSummary = (block: Block): string => {
+  if (TOOL_CONTAINER_KINDS.has(block.kind)) {
+    const data = block.data as Partial<ToolUseData>;
+    return typeof data.error === "string" ? data.error.trim() : "";
+  }
+
+  if (block.kind === "tool_result") {
+    const data = block.data as Partial<ToolResultData>;
+    if (data.is_error !== true || typeof data.content !== "string") return "";
+    return data.content.trim().split("\n")[0] || "";
+  }
+
+  return "";
 };
 
 const normalizeToolKeyword = (value?: string): string =>
@@ -645,32 +708,157 @@ function MessageBlock({
     <div className={styles.messageBlock}>
       {orderedSegments.length ? (
         <div className={styles.messageActivityGroup}>
-          {orderedSegments.map((segment, segmentIndex) => (
-            <div
-              key={`${segment.type}-${segment.children[0]?.id || segmentIndex}`}
-              className={segment.type === "tool-sequence" ? styles.messageToolSequence : undefined}
-            >
-              {segment.children.map(child => (
-                <BlockItem
-                  key={child.id}
-                  block={child}
-                  onHITLRespond={onHITLRespond}
-                  onOpenArtifact={onOpenArtifact}
-                  onOpenResult={onOpenResult}
-                  onToolExpand={onToolExpand}
-                  onDownloadArtifact={onDownloadArtifact}
-                  onAddArtifactToKnowledge={onAddArtifactToKnowledge}
-                  onQuickActionSend={onQuickActionSend}
-                  quickActionDisabled={quickActionDisabled}
-                  copyContext={childCopyContextMap[child.id] ?? copyContext}
-                />
-              ))}
-            </div>
-          ))}
+          {orderedSegments.map((segment, segmentIndex) => {
+            const segmentKey = `${segment.type}-${segment.children[0]?.id || segmentIndex}`;
+            const renderSegmentChild = (child: Block) => (
+              <BlockItem
+                key={child.id}
+                block={child}
+                onHITLRespond={onHITLRespond}
+                onOpenArtifact={onOpenArtifact}
+                onOpenResult={onOpenResult}
+                onToolExpand={onToolExpand}
+                onDownloadArtifact={onDownloadArtifact}
+                onAddArtifactToKnowledge={onAddArtifactToKnowledge}
+                onQuickActionSend={onQuickActionSend}
+                quickActionDisabled={quickActionDisabled}
+                copyContext={childCopyContextMap[child.id] ?? copyContext}
+              />
+            );
+
+            if (segment.type === "tool-sequence" && segment.children.length > 1) {
+              return (
+                <ToolSequenceGroup
+                  key={segmentKey}
+                  blocks={segment.children}
+                  onExpand={onToolExpand}
+                >
+                  {segment.children.map(renderSegmentChild)}
+                </ToolSequenceGroup>
+              );
+            }
+
+            return (
+              <div
+                key={segmentKey}
+                className={
+                  segment.type === "tool-sequence" ? styles.messageToolSequence : undefined
+                }
+              >
+                {segment.children.map(renderSegmentChild)}
+              </div>
+            );
+          })}
         </div>
       ) : null}
       {messageActions ? <div className={styles.messageActions}>{messageActions}</div> : null}
       {messageQuickActions}
+    </div>
+  );
+}
+
+function ToolSequenceGroup({
+  blocks,
+  children,
+  onExpand,
+}: {
+  blocks: Block[];
+  children: ReactNode;
+  onExpand?: () => void;
+}) {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const summary = useMemo(() => {
+    const statuses = blocks.map(resolveToolSequenceStatus);
+    const runningCount = statuses.filter(status => status === "running").length;
+    const failedCount = statuses.filter(status => status === "failed").length;
+    const completedCount = statuses.filter(status => status === "completed").length;
+    const pendingCount = statuses.filter(status => status === "pending").length;
+    const containerBlocks = blocks.filter(block => TOOL_CONTAINER_KINDS.has(block.kind));
+    const toolCount = containerBlocks.length || blocks.length;
+    const names = Array.from(new Set(containerBlocks.map(resolveToolSequenceItemName))).slice(0, 3);
+    const elapsedSeconds = blocks
+      .map(resolveToolSequenceElapsedTime)
+      .filter((value): value is number => value !== null)
+      .reduce((total, value) => total + value, 0);
+    const failureSummary = blocks.map(resolveToolSequenceFailureSummary).find(Boolean) || "";
+    const status: ToolSequenceStatus =
+      runningCount > 0 ? "running" : failedCount > 0 ? "failed" : completedCount > 0 ? "completed" : "pending";
+
+    return {
+      toolCount,
+      completedCount,
+      failedCount,
+      runningCount,
+      pendingCount,
+      names,
+      elapsedSeconds,
+      failureSummary,
+      status,
+    };
+  }, [blocks]);
+
+  const statusLabel =
+    summary.status === "running"
+      ? "执行中"
+      : summary.status === "failed"
+        ? "部分失败"
+        : summary.status === "completed"
+          ? "已完成"
+          : "等待中";
+  const detailParts = [
+    `${summary.toolCount} 个工具`,
+    summary.completedCount ? `${summary.completedCount} 个成功` : "",
+    summary.failedCount ? `${summary.failedCount} 个失败` : "",
+    summary.runningCount ? `${summary.runningCount} 个执行中` : "",
+    summary.pendingCount ? `${summary.pendingCount} 个等待` : "",
+    summary.elapsedSeconds > 0 ? `${summary.elapsedSeconds.toFixed(1)}s` : "",
+  ].filter(Boolean);
+
+  return (
+    <div
+      className={classNames(styles.messageToolSequence, styles.messageToolSequenceGrouped, {
+        [styles.messageToolSequenceExpanded]: isExpanded,
+        [styles.messageToolSequenceFailed]: summary.status === "failed",
+        [styles.messageToolSequenceRunning]: summary.status === "running",
+      })}
+    >
+      <button
+        type="button"
+        className={styles.messageToolSequenceSummary}
+        onClick={() => {
+          const nextExpanded = !isExpanded;
+          if (nextExpanded) onExpand?.();
+          setIsExpanded(nextExpanded);
+        }}
+        aria-expanded={isExpanded}
+      >
+        <span className={styles.messageToolSequenceIcon}>
+          {summary.status === "running" ? (
+            <LoadingOutlined />
+          ) : summary.status === "failed" ? (
+            <CloseCircleFilled />
+          ) : (
+            <ToolOutlined />
+          )}
+        </span>
+        <span className={styles.messageToolSequenceText}>
+          <span className={styles.messageToolSequenceTitle}>工具调用组</span>
+          <span className={styles.messageToolSequenceMeta}>{detailParts.join(" · ")}</span>
+          {summary.names.length ? (
+            <span className={styles.messageToolSequenceNames}>{summary.names.join("、")}</span>
+          ) : null}
+          {summary.failureSummary ? (
+            <span className={styles.messageToolSequenceError}>{summary.failureSummary}</span>
+          ) : null}
+        </span>
+        <span className={styles.messageToolSequenceStatus}>{statusLabel}</span>
+        <DownOutlined
+          className={classNames(styles.messageToolSequenceChevron, {
+            [styles.messageToolSequenceChevronExpanded]: isExpanded,
+          })}
+        />
+      </button>
+      {isExpanded ? <div className={styles.messageToolSequenceBody}>{children}</div> : null}
     </div>
   );
 }

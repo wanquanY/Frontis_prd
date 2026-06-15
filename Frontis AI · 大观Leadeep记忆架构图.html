@@ -1,0 +1,1074 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>大观 × Leadeep 多端会话记忆旅程图</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+
+      :root {
+        --ink: #17202f;
+        --muted: #647184;
+        --soft: #f5f7fb;
+        --page: #edf3f8;
+        --panel: #ffffff;
+        --line: #d8e2ee;
+        --web: #2f63d7;
+        --lead: #0f9f8f;
+        --feishu: #6b55d8;
+        --memory: #c56a2e;
+        --danger: #c2415d;
+        --green: #24865f;
+      }
+
+      body {
+        margin: 0;
+        min-width: 1440px;
+        background: var(--page);
+        color: var(--ink);
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei",
+          sans-serif;
+      }
+
+      .page {
+        width: 1440px;
+        margin: 0 auto;
+        padding: 26px 28px 34px;
+      }
+
+      .hero {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 24px;
+        align-items: center;
+        padding: 23px 26px;
+        border-radius: 8px;
+        background: #17202f;
+        color: #fff;
+        box-shadow: 0 14px 34px rgba(23, 32, 47, 0.16);
+      }
+
+      h1 {
+        margin: 0;
+        font-size: 28px;
+        line-height: 1.25;
+        font-weight: 850;
+      }
+
+      .subtitle {
+        margin: 8px 0 0;
+        max-width: 1060px;
+        color: rgba(255, 255, 255, 0.76);
+        font-size: 14px;
+        line-height: 1.7;
+      }
+
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        height: 34px;
+        padding: 0 13px;
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.08);
+        color: rgba(255, 255, 255, 0.88);
+        font-size: 13px;
+        font-weight: 760;
+        white-space: nowrap;
+      }
+
+      .board {
+        margin-top: 16px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--panel);
+        box-shadow: 0 12px 30px rgba(23, 32, 47, 0.1);
+        overflow: hidden;
+      }
+
+      .sectionTitle {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 18px;
+        padding: 16px 20px;
+        border-bottom: 1px solid var(--line);
+        background: #fbfcfe;
+      }
+
+      .sectionTitle h2 {
+        margin: 0;
+        font-size: 18px;
+        line-height: 1.4;
+      }
+
+      .sectionTitle span {
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .mechanism {
+        padding: 20px 22px 22px;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .topology {
+        display: grid;
+        grid-template-columns: 1fr 1.4fr 1fr;
+        gap: 14px;
+        align-items: stretch;
+      }
+
+      .endpoint,
+      .hub,
+      .asset {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #fff;
+      }
+
+      .endpoint {
+        min-height: 168px;
+        padding: 15px 16px;
+        position: relative;
+      }
+
+      .endpoint::before,
+      .hub::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        border-radius: 8px 8px 0 0;
+        background: var(--web);
+      }
+
+      .endpoint.lead::before {
+        background: var(--lead);
+      }
+
+      .endpoint.feishu::before {
+        background: var(--feishu);
+      }
+
+      .hub {
+        position: relative;
+        padding: 16px 18px;
+        background: #f8fbff;
+      }
+
+      .label {
+        color: var(--muted);
+        font-size: 11px;
+        font-weight: 850;
+        letter-spacing: 0.4px;
+      }
+
+      .endpoint h3,
+      .hub h3,
+      .asset h3 {
+        margin: 8px 0 8px;
+        font-size: 16px;
+        line-height: 1.35;
+      }
+
+      .endpoint p,
+      .hub p,
+      .asset p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.58;
+      }
+
+      .sessionStack {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+        margin-top: 12px;
+      }
+
+      .sessionPill {
+        min-height: 50px;
+        padding: 8px 9px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #fff;
+        font-size: 11px;
+        line-height: 1.35;
+        font-weight: 760;
+      }
+
+      .sessionPill strong {
+        display: block;
+        margin-bottom: 3px;
+        color: var(--web);
+      }
+
+      .binding {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        margin-top: 12px;
+      }
+
+      .bindBox {
+        padding: 9px 10px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #fff;
+        font-size: 12px;
+        line-height: 1.45;
+        font-weight: 760;
+      }
+
+      .bindBox.lead {
+        color: var(--lead);
+      }
+
+      .bindBox.feishu {
+        color: var(--feishu);
+      }
+
+      .assetRow {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 12px;
+        margin-top: 14px;
+      }
+
+      .asset {
+        padding: 13px 14px;
+        background: #fbfcfe;
+      }
+
+      .asset h3 {
+        font-size: 14px;
+      }
+
+      .journeyMap {
+        border-top: 1px solid var(--line);
+      }
+
+      .journeyCanvas {
+        padding: 18px 20px 20px;
+        border-top: 1px solid var(--line);
+        background: #fff;
+      }
+
+      .railRow {
+        display: grid;
+        grid-template-columns: 150px repeat(5, 1fr);
+        gap: 12px;
+        align-items: center;
+      }
+
+      .railRow + .railRow {
+        margin-top: 14px;
+      }
+
+      .railName {
+        min-height: 76px;
+        padding: 13px 12px;
+        border-radius: 8px;
+        color: #fff;
+        font-size: 13px;
+        line-height: 1.35;
+        font-weight: 850;
+      }
+
+      .railName span {
+        display: block;
+        margin-top: 6px;
+        color: rgba(255, 255, 255, 0.78);
+        font-size: 11px;
+        font-weight: 700;
+      }
+
+      .railName.web {
+        background: var(--web);
+      }
+
+      .railName.lead {
+        background: var(--lead);
+      }
+
+      .railName.feishu {
+        background: var(--feishu);
+      }
+
+      .railNode {
+        min-height: 76px;
+        padding: 11px 12px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #fbfcfe;
+        position: relative;
+      }
+
+      .railNode:not(:last-child)::after {
+        content: "";
+        position: absolute;
+        top: 37px;
+        right: -17px;
+        width: 20px;
+        height: 2px;
+        background: #9aa9bc;
+        z-index: 2;
+      }
+
+      .railNode:not(:last-child)::before {
+        content: "";
+        position: absolute;
+        top: 32px;
+        right: -18px;
+        width: 10px;
+        height: 10px;
+        border-top: 2px solid #9aa9bc;
+        border-right: 2px solid #9aa9bc;
+        transform: rotate(45deg);
+        z-index: 3;
+      }
+
+      .railNode h4 {
+        margin: 0 0 6px;
+        font-size: 13px;
+        line-height: 1.35;
+      }
+
+      .railNode p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 11px;
+        line-height: 1.45;
+      }
+
+      .railNode strong {
+        color: var(--ink);
+      }
+
+      .journeyHeader,
+      .journeyRow {
+        display: grid;
+        grid-template-columns: 168px 1fr 1fr 1fr 1fr 1fr;
+      }
+
+      .journeyHeader > div,
+      .journeyLabel,
+      .stageCell {
+        border-right: 1px solid var(--line);
+        border-bottom: 1px solid var(--line);
+      }
+
+      .journeyHeader > div:last-child,
+      .stageCell:last-child {
+        border-right: 0;
+      }
+
+      .journeyHeader > div {
+        padding: 12px 10px;
+        background: #f7f9fc;
+        font-size: 12px;
+        line-height: 1.35;
+        font-weight: 850;
+        text-align: center;
+      }
+
+      .journeyLabel {
+        padding: 14px 13px;
+        background: #fbfcfe;
+      }
+
+      .laneTag {
+        display: inline-flex;
+        align-items: center;
+        min-height: 25px;
+        padding: 0 9px;
+        border-radius: 999px;
+        color: #fff;
+        font-size: 12px;
+        font-weight: 850;
+      }
+
+      .laneTag.web {
+        background: var(--web);
+      }
+
+      .laneTag.lead {
+        background: var(--lead);
+      }
+
+      .laneTag.feishu {
+        background: var(--feishu);
+      }
+
+      .persona {
+        margin: 9px 0 0;
+        font-size: 13px;
+        line-height: 1.45;
+        font-weight: 850;
+      }
+
+      .goal {
+        margin-top: 7px;
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.55;
+      }
+
+      .stageCell {
+        min-height: 142px;
+        padding: 12px 12px 13px;
+        font-size: 12px;
+        line-height: 1.48;
+      }
+
+      .stageCell h4 {
+        margin: 0 0 8px;
+        font-size: 13px;
+        line-height: 1.4;
+      }
+
+      .stageCell p {
+        margin: 0;
+        color: var(--muted);
+      }
+
+      .chip {
+        display: inline-flex;
+        align-items: center;
+        margin: 8px 6px 0 0;
+        min-height: 24px;
+        padding: 0 8px;
+        border-radius: 999px;
+        background: #f1f4f8;
+        color: var(--ink);
+        font-size: 11px;
+        font-weight: 800;
+      }
+
+      .chip.sync {
+        background: rgba(36, 134, 95, 0.1);
+        color: var(--green);
+      }
+
+      .chip.memory {
+        background: rgba(197, 106, 46, 0.12);
+        color: var(--memory);
+      }
+
+      .chip.block {
+        background: rgba(194, 65, 93, 0.1);
+        color: var(--danger);
+      }
+
+      .emotion {
+        margin-top: 9px;
+        height: 5px;
+        border-radius: 999px;
+        background: linear-gradient(90deg, #c2415d, #c56a2e, #24865f);
+      }
+
+      .matrix {
+        display: grid;
+        grid-template-columns: 180px repeat(4, 1fr);
+        border-top: 1px solid var(--line);
+      }
+
+      .matrixHeader,
+      .rowLabel,
+      .matrixCell {
+        border-right: 1px solid var(--line);
+        border-bottom: 1px solid var(--line);
+      }
+
+      .matrixHeader:nth-child(5n),
+      .matrixCell:nth-child(5n) {
+        border-right: 0;
+      }
+
+      .matrixHeader {
+        padding: 13px 12px;
+        background: #f7f9fc;
+        font-size: 13px;
+        font-weight: 850;
+        text-align: center;
+      }
+
+      .rowLabel {
+        display: flex;
+        align-items: center;
+        min-height: 82px;
+        padding: 13px 14px;
+        background: #f7f9fc;
+        font-size: 13px;
+        font-weight: 850;
+      }
+
+      .matrixCell {
+        min-height: 82px;
+        padding: 12px 13px;
+        font-size: 12px;
+        line-height: 1.5;
+      }
+
+      .status {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        margin-bottom: 7px;
+        font-size: 12px;
+        font-weight: 850;
+      }
+
+      .status::before {
+        content: "";
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: currentColor;
+      }
+
+      .yes {
+        color: var(--green);
+      }
+
+      .shared {
+        color: var(--feishu);
+      }
+
+      .isolated {
+        color: var(--memory);
+      }
+
+      .no {
+        color: var(--danger);
+      }
+
+      .rules {
+        display: grid;
+        grid-template-columns: 1.2fr 1fr 1fr;
+        gap: 14px;
+        padding: 18px 20px;
+        background: #fbfcfe;
+      }
+
+      .ruleCard {
+        padding: 15px 16px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #fff;
+      }
+
+      .ruleCard h3 {
+        margin: 0 0 8px;
+        font-size: 15px;
+        line-height: 1.4;
+      }
+
+      .ruleCard p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.6;
+      }
+
+      .footer {
+        display: flex;
+        justify-content: space-between;
+        gap: 16px;
+        margin-top: 12px;
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.5;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="page">
+      <header class="hero">
+        <div>
+          <h1>大观 × Leadeep 多端会话记忆旅程图</h1>
+          <p class="subtitle">
+            用三条用户旅程表达产品机制：Web 负责多会话创建与版本工作；Leadeep 问策和飞书都只是绑定到
+            Web 的指定会话。两者唯一差异是页面展示的对话记录同步方向：Leadeep 与 Web
+            双向同步；飞书只从飞书同步到 Web，Web 续聊不回写飞书。
+          </p>
+        </div>
+        <span class="badge">三端旅程 · 会话记忆机制</span>
+      </header>
+
+      <section class="board">
+        <div class="sectionTitle">
+          <h2>1. 机制总览：三端不是三套会话，而是围绕 Web 会话主干</h2>
+          <span>先看拓扑，再看三条用户旅程</span>
+        </div>
+
+        <div class="mechanism">
+          <div class="topology">
+            <article class="endpoint lead">
+              <div class="label">移动端入口</div>
+              <h3>Leadeep 问策</h3>
+              <p>
+                用户在手机上追问业务内容、查看历史、生成文件。它不管理多会话，只进入一个绑定的 Web
+                会话。
+              </p>
+              <div class="binding">
+                <div class="bindBox lead">绑定：Web Session L</div>
+                <div class="bindBox lead">同步：双向聊天记录</div>
+              </div>
+            </article>
+
+            <article class="hub">
+              <div class="label">会话主干</div>
+              <h3>大观 Web 多会话</h3>
+              <p>
+                Web
+                是创建、切换、管理会话的主入口。用户可以按版本、项目、任务开多个会话；外部入口只绑定其中某一个会话。
+              </p>
+              <div class="sessionStack">
+                <div class="sessionPill"><strong>PRD V1.0</strong>版本会话</div>
+                <div class="sessionPill"><strong>PRD V1.1</strong>版本会话</div>
+                <div class="sessionPill"><strong>Session L</strong>Leadeep 绑定</div>
+                <div class="sessionPill"><strong>Session F</strong>飞书绑定</div>
+                <div class="sessionPill"><strong>项目复盘</strong>普通会话</div>
+                <div class="sessionPill"><strong>竞品分析</strong>普通会话</div>
+              </div>
+            </article>
+
+            <article class="endpoint feishu">
+              <div class="label">消息端绑定入口</div>
+              <h3>飞书对话</h3>
+              <p>
+                飞书对话绑定到一个指定 Web
+                会话。飞书端不创建大观新会话；页面展示的对话记录只单向进入 Web。
+              </p>
+              <div class="binding">
+                <div class="bindBox feishu">绑定：Web Session F</div>
+                <div class="bindBox feishu">同步：飞书记录入 Web</div>
+              </div>
+            </article>
+          </div>
+
+          <div class="assetRow">
+            <article class="asset">
+              <div class="label">唯一差异</div>
+              <h3>页面展示的对话记录方向</h3>
+              <p>
+                Leadeep 与 Web Session L 双向同步；飞书消息进入 Web Session F，Web 续聊不回飞书。
+              </p>
+            </article>
+            <article class="asset">
+              <div class="label">跨会话共享</div>
+              <h3>长期个人记忆</h3>
+              <p>用户偏好、稳定目标、被采纳结论可被新会话和绑定入口召回。</p>
+            </article>
+            <article class="asset">
+              <div class="label">跨会话共享</div>
+              <h3>文件线索与产物索引</h3>
+              <p>PRD 文件、输出文档、版本资料形成索引；需要时按权限定位和引用。</p>
+            </article>
+            <article class="asset">
+              <div class="label">全端生效</div>
+              <h3>Agent 配置文件</h3>
+              <p>ME 人设、专家能力、工具策略在 Web、Leadeep、飞书绑定会话中一致生效。</p>
+            </article>
+          </div>
+        </div>
+
+        <div class="sectionTitle">
+          <h2>2. 三条用户旅程：每条旅程对应一个端的核心使用方式</h2>
+          <span>先看三条轨道总图，再看下方阶段拆解</span>
+        </div>
+
+        <div class="journeyCanvas">
+          <div class="railRow">
+            <div class="railName web">
+              Web 端主旅程
+              <span>按版本组织工作</span>
+            </div>
+            <div class="railNode">
+              <h4>版本启动</h4>
+              <p>产品经理在电脑上开始 <strong>PRD V1.1</strong></p>
+            </div>
+            <div class="railNode">
+              <h4>新建版本会话</h4>
+              <p>每个版本一个 Web 会话，原文互相隔离</p>
+            </div>
+            <div class="railNode">
+              <h4>ME 辅助产出</h4>
+              <p>写 PRD、页面清单、验收标准</p>
+            </div>
+            <div class="railNode">
+              <h4>沉淀资产</h4>
+              <p>目标、结论、文件线索进入长期记忆</p>
+            </div>
+            <div class="railNode">
+              <h4>后续复用</h4>
+              <p>新会话可召回资产，不读取旧原文</p>
+            </div>
+          </div>
+
+          <div class="railRow">
+            <div class="railName lead">
+              Leadeep 端旅程
+              <span>移动追问与产物输出</span>
+            </div>
+            <div class="railNode">
+              <h4>离开电脑</h4>
+              <p>出差路上想追问某个版本 PRD</p>
+            </div>
+            <div class="railNode">
+              <h4>进入问策</h4>
+              <p>只进入 <strong>Web Session L</strong>，不新建会话</p>
+            </div>
+            <div class="railNode">
+              <h4>召回 Web 资产</h4>
+              <p>用长期记忆、PRD 文件线索、Agent 配置回答</p>
+            </div>
+            <div class="railNode">
+              <h4>同步到 Web</h4>
+              <p>手机问答、引用文件、输出文档进入绑定会话</p>
+            </div>
+            <div class="railNode">
+              <h4>Web 续聊回手机</h4>
+              <p>同一绑定会话内聊天记录双向同步</p>
+            </div>
+          </div>
+
+          <div class="railRow">
+            <div class="railName feishu">
+              飞书端旅程
+              <span>单向记录同步</span>
+            </div>
+            <div class="railNode">
+              <h4>飞书内对话</h4>
+              <p>用户在飞书里向 ME 提问或继续业务对话</p>
+            </div>
+            <div class="railNode">
+              <h4>绑定会话</h4>
+              <p>飞书消息进入 <strong>Web Session F</strong></p>
+            </div>
+            <div class="railNode">
+              <h4>使用同一能力</h4>
+              <p>同样使用长期记忆、文件线索和 Agent 配置</p>
+            </div>
+            <div class="railNode">
+              <h4>单向同步到 Web</h4>
+              <p>飞书对话记录在 Web 页面可见</p>
+            </div>
+            <div class="railNode">
+              <h4>Web 续聊不回飞书</h4>
+              <p>Web 在该会话新增的记录只留在 Web</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="journeyMap">
+          <div class="journeyHeader">
+            <div>旅程 / 角色目标</div>
+            <div>触发场景</div>
+            <div>用户动作</div>
+            <div>ME / 系统响应</div>
+            <div>同步与记忆结果</div>
+            <div>体验机会</div>
+          </div>
+
+          <div class="journeyRow">
+            <div class="journeyLabel">
+              <span class="laneTag web">Web 端旅程</span>
+              <div class="persona">产品经理：按版本持续写 PRD</div>
+              <div class="goal">
+                目标：每个版本有独立上下文，同时复用已沉淀的长期记忆和文件线索。
+              </div>
+            </div>
+            <div class="stageCell">
+              <h4>版本启动</h4>
+              <p>在公司电脑上开始 V1.1 需求设计，需要继承 V1.0 结论，但不想把旧聊天全部混进来。</p>
+              <span class="chip">电脑 Web</span>
+            </div>
+            <div class="stageCell">
+              <h4>新建版本会话</h4>
+              <p>为 V1.1 单独开会话，上传资料、写 PRD、让 ME 生成页面清单和验收标准。</p>
+              <span class="chip">新建会话</span>
+              <span class="chip">上传文件</span>
+            </div>
+            <div class="stageCell">
+              <h4>引用沉淀信息</h4>
+              <p>ME 可召回用户偏好、历史版本目标、已采纳结论和相关 PRD 文件索引。</p>
+              <span class="chip memory">长期记忆</span>
+              <span class="chip memory">文件线索</span>
+            </div>
+            <div class="stageCell">
+              <h4>形成可复用资产</h4>
+              <p>
+                V1.1 的关键目标、最终决策、输出文件进入长期记忆和文件索引；会话原文仍留在 V1.1。
+              </p>
+              <span class="chip sync">沉淀</span>
+              <span class="chip block">原文隔离</span>
+            </div>
+            <div class="stageCell">
+              <h4>降低多版本混乱</h4>
+              <p>
+                会话列表应突出版本、文件、最近产物和绑定入口，帮助用户知道“我现在在哪个会话工作”。
+              </p>
+              <div class="emotion"></div>
+            </div>
+          </div>
+
+          <div class="journeyRow">
+            <div class="journeyLabel">
+              <span class="laneTag lead">Leadeep 旅程</span>
+              <div class="persona">出差中的产品经理：手机追问 PRD</div>
+              <div class="goal">
+                目标：不在手机重新找资料，直接问 ME，并把移动端结果同步回 Web。
+              </div>
+            </div>
+            <div class="stageCell">
+              <h4>离开电脑</h4>
+              <p>用户在路上想确认 V1.1 的定价策略、权限边界或某份 PRD 的具体内容。</p>
+              <span class="chip">手机 App</span>
+            </div>
+            <div class="stageCell">
+              <h4>打开 Leadeep 问策</h4>
+              <p>用户直接提问“V1.1 的权限边界是什么？”Leadeep 自动进入绑定的 Web Session L。</p>
+              <span class="chip">固定绑定</span>
+              <span class="chip block">不新建会话</span>
+            </div>
+            <div class="stageCell">
+              <h4>找回 Web 资产</h4>
+              <p>ME 根据个人长期记忆、PRD 文件索引和 Agent 配置定位此前 Web 中的版本资料。</p>
+              <span class="chip memory">记忆召回</span>
+              <span class="chip memory">文件引用</span>
+            </div>
+            <div class="stageCell">
+              <h4>双端同步</h4>
+              <p>
+                手机提问、ME 回复、引用文件、输出文档同步到 Web Session L；Web 续聊也回到 Leadeep。
+              </p>
+              <span class="chip sync">聊天记录双向</span>
+              <span class="chip sync">产物同步</span>
+            </div>
+            <div class="stageCell">
+              <h4>形成连续工作感</h4>
+              <p>移动端不需要复杂会话管理，但必须让用户清楚当前进入的是哪个大观会话。</p>
+              <div class="emotion"></div>
+            </div>
+          </div>
+
+          <div class="journeyRow">
+            <div class="journeyLabel">
+              <span class="laneTag feishu">飞书旅程</span>
+              <div class="persona">飞书用户：在飞书里使用 ME</div>
+              <div class="goal">
+                目标：飞书对话记录能在 Web 绑定会话中展示；Web 续聊不反向同步到飞书。
+              </div>
+            </div>
+            <div class="stageCell">
+              <h4>飞书内发起对话</h4>
+              <p>用户在飞书里向 ME 提问，或在飞书里继续已有业务对话。</p>
+              <span class="chip">飞书对话</span>
+            </div>
+            <div class="stageCell">
+              <h4>进入绑定会话</h4>
+              <p>飞书入口绑定 Web Session F，飞书端不创建大观新会话。</p>
+              <span class="chip">绑定会话</span>
+              <span class="chip block">不创建会话</span>
+            </div>
+            <div class="stageCell">
+              <h4>使用同一套能力</h4>
+              <p>飞书绑定会话同样使用长期个人记忆、文件线索和 Agent 配置。</p>
+              <span class="chip memory">长期记忆</span>
+              <span class="chip memory">文件线索</span>
+            </div>
+            <div class="stageCell">
+              <h4>单向同步到 Web</h4>
+              <p>飞书里的页面对话记录同步到 Web Session F；Web 页面展示这部分飞书记录。</p>
+              <span class="chip sync">飞书 → Web</span>
+              <span class="chip block">非双向</span>
+            </div>
+            <div class="stageCell">
+              <h4>Web 续聊不回飞书</h4>
+              <p>用户在 Web Session F 里新增的对话记录，只在 Web 展示，不同步回飞书。</p>
+              <div class="emotion"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="sectionTitle">
+          <h2>3. 多会话下哪些同步，哪些隔离</h2>
+          <span>表格用于补充规则边界；上方旅程用于讲清楚用户价值</span>
+        </div>
+
+        <div class="matrix">
+          <div class="matrixHeader">对象 / 能力</div>
+          <div class="matrixHeader">普通 Web 会话</div>
+          <div class="matrixHeader">Leadeep 绑定会话</div>
+          <div class="matrixHeader">飞书绑定会话</div>
+          <div class="matrixHeader">其他 Web 会话</div>
+
+          <div class="rowLabel">页面显示的聊天记录</div>
+          <div class="matrixCell">
+            <div class="status isolated">会话内独立</div>
+            只展示当前 Web 会话自己的消息。
+          </div>
+          <div class="matrixCell">
+            <div class="status yes">绑定内同步</div>
+            Web 与 Leadeep 问策双向显示同一份聊天记录。
+          </div>
+          <div class="matrixCell">
+            <div class="status yes">单向入 Web</div>
+            飞书对话记录进入绑定 Web 会话；Web 续聊不回写飞书。
+          </div>
+          <div class="matrixCell">
+            <div class="status isolated">不串线</div>
+            不显示 Leadeep / 飞书绑定会话的聊天记录。
+          </div>
+
+          <div class="rowLabel">当前会话短期上下文</div>
+          <div class="matrixCell">
+            <div class="status isolated">会话隔离</div>
+            只包含本会话里的问题、文件、阶段结论。
+          </div>
+          <div class="matrixCell">
+            <div class="status yes">绑定内共用</div>
+            Leadeep 问策与绑定 Web 会话共用当前任务上下文。
+          </div>
+          <div class="matrixCell">
+            <div class="status yes">绑定内共用</div>
+            飞书与绑定 Web 会话共用当前飞书任务上下文。
+          </div>
+          <div class="matrixCell">
+            <div class="status isolated">会话隔离</div>
+            其他 Web 会话不会读取绑定会话原文。
+          </div>
+
+          <div class="rowLabel">对话沉淀的任务记忆</div>
+          <div class="matrixCell">
+            <div class="status shared">可沉淀</div>
+            被用户采纳的结论可沉淀为长期个人记忆。
+          </div>
+          <div class="matrixCell">
+            <div class="status yes">同步沉淀</div>
+            Leadeep 绑定会话产生的任务结论，在 Web 同一会话下同步生效。
+          </div>
+          <div class="matrixCell">
+            <div class="status yes">同步沉淀</div>
+            飞书绑定会话产生的任务记忆，在 Web 同一会话下同步生效。
+          </div>
+          <div class="matrixCell">
+            <div class="status shared">跨会话可用</div>
+            只有已沉淀的长期记忆可被新会话召回。
+          </div>
+
+          <div class="rowLabel">长期个人记忆</div>
+          <div class="matrixCell">
+            <div class="status shared">跨会话共享</div>
+            个人偏好、目标、稳定纠错按用户维度生效。
+          </div>
+          <div class="matrixCell">
+            <div class="status shared">跨端共享</div>
+            Leadeep 问策可使用同一套个人长期记忆。
+          </div>
+          <div class="matrixCell">
+            <div class="status shared">跨端共享</div>
+            飞书绑定会话可使用同一套个人长期记忆。
+          </div>
+          <div class="matrixCell">
+            <div class="status shared">跨会话共享</div>
+            新会话可召回已生效长期记忆，但不读旧会话原文。
+          </div>
+
+          <div class="rowLabel">Agent 配置文件</div>
+          <div class="matrixCell">
+            <div class="status shared">全局生效</div>
+            ME 人设、可调专家、工具策略按当前用户和租户生效。
+          </div>
+          <div class="matrixCell">
+            <div class="status shared">同步生效</div>
+            Leadeep 问策读取同一套 ME / Agent 配置。
+          </div>
+          <div class="matrixCell">
+            <div class="status shared">同步生效</div>
+            飞书绑定会话读取同一套 ME / Agent 配置。
+          </div>
+          <div class="matrixCell">
+            <div class="status shared">同步生效</div>
+            配置更新后，后续新轮次按最新配置执行。
+          </div>
+
+          <div class="rowLabel">文件与产物线索</div>
+          <div class="matrixCell">
+            <div class="status isolated">默认归属当前会话</div>
+            当前会话上传和产出的文件先归当前会话。
+          </div>
+          <div class="matrixCell">
+            <div class="status yes">绑定内可见</div>
+            Leadeep 绑定会话里的文件和产物线索在 Web 同一会话可见。
+          </div>
+          <div class="matrixCell">
+            <div class="status yes">绑定内可见</div>
+            飞书传入的文件和记录进入 Web 绑定会话的文件线索。
+          </div>
+          <div class="matrixCell">
+            <div class="status shared">只共享索引</div>
+            其他会话只可通过长期文件线索定位，不直接继承文件上下文。
+          </div>
+
+          <div class="rowLabel">新建会话能力</div>
+          <div class="matrixCell">
+            <div class="status yes">允许</div>
+            Web 是多会话主入口，可创建新任务会话。
+          </div>
+          <div class="matrixCell">
+            <div class="status no">不允许</div>
+            Leadeep App 只进入绑定问策会话，不创建大观新会话。
+          </div>
+          <div class="matrixCell">
+            <div class="status no">不允许</div>
+            飞书只进入绑定会话，不创建大观新会话。
+          </div>
+          <div class="matrixCell">
+            <div class="status yes">允许</div>
+            其他 Web 会话只能从 Web 端创建。
+          </div>
+        </div>
+
+        <div class="rules">
+          <article class="ruleCard">
+            <h3>核心判断</h3>
+            <p>
+              Leadeep 和飞书不是独立会话体系，只是进入大观 Web
+              指定会话的入口；两者唯一差异是页面展示的对话记录同步方向。
+            </p>
+          </article>
+          <article class="ruleCard">
+            <h3>同步方向</h3>
+            <p>
+              Leadeep 与 Web 绑定会话双向同步页面聊天记录；飞书只把飞书对话记录同步到 Web，Web
+              续聊不回飞书。
+            </p>
+          </article>
+          <article class="ruleCard">
+            <h3>其他能力一致</h3>
+            <p>
+              长期个人记忆、文件线索、任务记忆和 Agent
+              配置按同一套绑定会话机制生效，不再为飞书另设一套规则。
+            </p>
+          </article>
+        </div>
+      </section>
+
+      <footer class="footer">
+        <span>来源：2026-06-11 大观与 Leadeep 移动端对接会议，以及 ME 多会话记忆机制讨论</span>
+        <span>口径：Web 是会话主干；Leadeep 问策和飞书绑定到 Web 指定会话</span>
+      </footer>
+    </main>
+  </body>
+</html>
