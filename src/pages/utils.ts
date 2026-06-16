@@ -60,17 +60,52 @@ export const getExpertTeamScenarioLabel = (summary: string, fallbackName: string
   return normalizedLabel || fallbackName.trim() || "当前业务场景";
 };
 
-/**
- * 生成在线随机头像地址。
- */
-export const getAvatarUrl = (seed: string): string =>
-  `https://api.dicebear.com/9.x/notionists/svg?seed=${encodeURIComponent(seed)}`;
+const OPEN_GALLERY_PERSON_AVATARS = [
+  "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=160&h=160&q=82",
+  "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=160&h=160&q=82",
+  "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=160&h=160&q=82",
+  "https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=160&h=160&q=82",
+  "https://images.unsplash.com/photo-1527980965255-d3b416303d12?auto=format&fit=crop&w=160&h=160&q=82",
+  "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=160&h=160&q=82",
+  "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=160&h=160&q=82",
+  "https://images.unsplash.com/photo-1547425260-76bcadfb4f2c?auto=format&fit=crop&w=160&h=160&q=82",
+  "https://images.unsplash.com/photo-1552058544-f2b08422138a?auto=format&fit=crop&w=160&h=160&q=82",
+  "https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&w=160&h=160&q=82",
+] as const;
+
+const OPEN_GALLERY_AGENT_AVATARS = [
+  "https://images.unsplash.com/photo-1677442136019-21780ecad995?auto=format&fit=crop&w=160&h=160&q=82",
+  "https://images.unsplash.com/photo-1674027444485-cec3da58eef4?auto=format&fit=crop&w=160&h=160&q=82",
+  "https://images.unsplash.com/photo-1633419461186-7d40a38105ec?auto=format&fit=crop&w=160&h=160&q=82",
+  "https://images.unsplash.com/photo-1620712943543-bcc4688e7485?auto=format&fit=crop&w=160&h=160&q=82",
+  "https://images.unsplash.com/photo-1660165458059-57cfb6cc87e5?auto=format&fit=crop&w=160&h=160&q=82",
+  "https://images.unsplash.com/photo-1675557009875-436f71457475?auto=format&fit=crop&w=160&h=160&q=82",
+] as const;
+
+const hashAvatarSeed = (seed: string): number => {
+  let hash = 0;
+  for (const char of seed) {
+    hash = (hash * 31 + (char.codePointAt(0) ?? 0)) >>> 0;
+  }
+  return hash;
+};
+
+const pickOpenGalleryAvatar = (seed: string, avatars: readonly string[]): string => {
+  const hash = hashAvatarSeed(seed.trim() || "Frontis AI");
+  return avatars[hash % avatars.length];
+};
 
 /**
- * 生成专家团默认主 agent 的差异化头像地址。
+ * 生成开放图库 mock 头像地址。
+ */
+export const getAvatarUrl = (seed: string): string =>
+  pickOpenGalleryAvatar(seed, OPEN_GALLERY_PERSON_AVATARS);
+
+/**
+ * 生成 ME / Agent 开放图库头像地址。
  */
 export const getMetaagentAvatarUrl = (seed: string): string =>
-  `https://api.dicebear.com/9.x/bottts-neutral/svg?seed=${encodeURIComponent(seed)}`;
+  pickOpenGalleryAvatar(seed, OPEN_GALLERY_AGENT_AVATARS);
 
 /**
  * PRD 默认 AI 专家头像预设。

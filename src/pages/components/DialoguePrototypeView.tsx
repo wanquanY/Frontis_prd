@@ -502,7 +502,6 @@ export const DialoguePrototypeView = ({
   const [preferredArtifactId, setPreferredArtifactId] = useState<string>();
   const [activeResultId, setActiveResultId] = useState<string | null>(null);
   const [isMetaAgentTrajectoryOpen, setIsMetaAgentTrajectoryOpen] = useState<boolean>(false);
-  const [isFeishuQrModalOpen, setIsFeishuQrModalOpen] = useState<boolean>(false);
   const [isAddExpertPickerOpen, setIsAddExpertPickerOpen] = useState<boolean>(false);
   const [addExpertPickerSource, setAddExpertPickerSource] =
     useState<AddableExpertPickerSource>("expertPlaza");
@@ -629,16 +628,8 @@ export const DialoguePrototypeView = ({
     addExpertSearchValue,
     addableExpertPickerOptions,
   ]);
-  const handleOpenFeishuQrModal = useCallback((): void => {
-    if (isFeishuConnected) {
-      return;
-    }
-
-    setIsFeishuQrModalOpen(true);
-  }, [isFeishuConnected]);
   const handleConfirmFeishuConnection = useCallback((): void => {
     onFeishuConnect?.();
-    setIsFeishuQrModalOpen(false);
   }, [onFeishuConnect]);
   const resolvedFocusBlockId = focusBlockId?.trim() || "";
   const resolvedFocusRequestKey = focusBlockId?.trim() ? `external:${focusBlockId.trim()}` : "";
@@ -2755,9 +2746,25 @@ export const DialoguePrototypeView = ({
                                       <span className={styles.dialogueSessionTitle}>
                                         {item.title}
                                       </span>
-                                      <span className={styles.dialogueSessionTime}>
-                                        {item.updatedAt}
-                                      </span>
+                                      {item.channelConnectionStatusLabel ? (
+                                        <span
+                                          className={classNames(
+                                            styles.dialogueSessionConnectionBadge,
+                                            {
+                                              [styles.dialogueSessionConnectionBadgeConnected]:
+                                                item.channelConnectionStatus === "connected",
+                                              [styles.dialogueSessionConnectionBadgeDisconnected]:
+                                                item.channelConnectionStatus === "disconnected",
+                                            },
+                                          )}
+                                        >
+                                          {item.channelConnectionStatusLabel}
+                                        </span>
+                                      ) : (
+                                        <span className={styles.dialogueSessionTime}>
+                                          {item.updatedAt}
+                                        </span>
+                                      )}
                                     </span>
                                   </button>
                                   <Dropdown
@@ -2955,17 +2962,35 @@ export const DialoguePrototypeView = ({
       {showFeishuConnectAction || !isHomeVisible ? (
         <div className={styles.dialogueTopRightActions}>
           {showFeishuConnectAction ? (
-            <button
-              type="button"
-              className={classNames(styles.dialogueViewButton, styles.feishuConnectButton, {
-                [styles.feishuConnectButtonConnected]: isFeishuConnected,
-              })}
-              disabled={isFeishuConnected}
-              onClick={handleOpenFeishuQrModal}
+            <Popover
+              trigger={isFeishuConnected ? [] : ["hover"]}
+              placement="bottomRight"
+              arrow={false}
+              content={
+                <button
+                  type="button"
+                  className={styles.feishuQrCard}
+                  onClick={handleConfirmFeishuConnection}
+                >
+                  <QRCode
+                    value={feishuQrCode || "https://applink.feishu.cn/client/bot/open"}
+                    size={188}
+                  />
+                  <span>扫码绑定后在飞书上跟 ME 对话</span>
+                </button>
+              }
             >
-              {isFeishuConnected ? <CheckCircleOutlined /> : <MessageOutlined />}
-              <span>{isFeishuConnected ? "已连接" : "扫码连接飞书"}</span>
-            </button>
+              <button
+                type="button"
+                className={classNames(styles.dialogueViewButton, styles.feishuConnectButton, {
+                  [styles.feishuConnectButtonConnected]: isFeishuConnected,
+                })}
+                disabled={isFeishuConnected}
+              >
+                {isFeishuConnected ? <CheckCircleOutlined /> : <MessageOutlined />}
+                <span>{isFeishuConnected ? "飞书已绑定" : "连接飞书"}</span>
+              </button>
+            </Popover>
           ) : null}
           {!isHomeVisible ? (
             <button
@@ -3103,25 +3128,6 @@ export const DialoguePrototypeView = ({
             )}
           </div>
         </div>
-      </Modal>
-
-      <Modal
-        className={styles.feishuQrModal}
-        width={420}
-        centered
-        title="扫码连接飞书"
-        open={isFeishuQrModalOpen}
-        footer={null}
-        onCancel={() => setIsFeishuQrModalOpen(false)}
-      >
-        <button
-          type="button"
-          className={styles.feishuQrCard}
-          onClick={handleConfirmFeishuConnection}
-        >
-          <QRCode value={feishuQrCode || "https://applink.feishu.cn/client/bot/open"} size={220} />
-          <span>点击二维码模拟扫码连接</span>
-        </button>
       </Modal>
 
       <Modal

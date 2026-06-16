@@ -130,7 +130,7 @@ export const SubscriptionPlanPaymentModal = ({
   return (
     <Modal
       centered
-      destroyOnClose
+      destroyOnHidden
       footer={null}
       onCancel={onCancel}
       open={open}

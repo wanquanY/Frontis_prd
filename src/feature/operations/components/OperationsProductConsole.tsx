@@ -151,6 +151,7 @@ const PRODUCT_FIELD_IDS = {
   category: "operations-product-category",
   visibility: "operations-product-visibility",
   visibleTenants: "operations-product-visible-tenants",
+  contactMode: "operations-product-contact-mode",
   status: "operations-product-status",
   plazaSort: "operations-product-plaza-sort",
   linkedAgentId: "operations-product-linked-agent",
@@ -500,9 +501,9 @@ export const OperationsProductConsole = ({
           supportsTrial: false,
           trialUnit: product.trialUnit ?? "day",
           trialValue: product.trialValue ?? 7,
-          contactMode: "disabled",
-          contactQrCodeValue: "",
-          contactRemark: "",
+          contactMode: product.contactMode === "custom" ? "platformDefault" : (product.contactMode ?? "disabled"),
+          contactQrCodeValue: product.contactQrCodeValue ?? "",
+          contactRemark: product.contactRemark ?? "",
           storeZone: product.storeZones?.[0] ?? product.storeZone ?? "roleZone",
           storeZones: getProductZoneIds(product),
           plazaCategory: product.plazaCategory ?? OPERATIONS_AGENT_PLAZA_DEFAULT_CATEGORY,
@@ -625,9 +626,9 @@ export const OperationsProductConsole = ({
       plazaCategory: productEditor.form.plazaCategoryByZone[productEditor.form.storeZones[0]],
       plazaSort: productEditor.form.plazaSort,
       name: releaseSnapshot.agentName,
-      contactMode: "disabled",
-      contactQrCodeValue: "",
-      contactRemark: "",
+      contactMode: productEditor.form.contactMode,
+      contactQrCodeValue: productEditor.form.contactQrCodeValue,
+      contactRemark: productEditor.form.contactRemark,
       visibleTenantIds:
         productEditor.form.plazaVisibility === "tenant" ? productEditor.form.visibleTenantIds : [],
       visibleTenantNames,
@@ -1153,6 +1154,29 @@ export const OperationsProductConsole = ({
               />
             </div>
           ) : null}
+
+          <div className={styles.modalField}>
+            <label className={styles.modalLabel} htmlFor={PRODUCT_FIELD_IDS.contactMode}>
+              获取方式
+            </label>
+            <Select
+              id={PRODUCT_FIELD_IDS.contactMode}
+              value={productEditor.form.contactMode}
+              options={[
+                { value: "disabled", label: "免费使用" },
+                { value: "platformDefault", label: "联系客服" },
+              ]}
+              onChange={nextValue =>
+                setProductEditor(currentState => ({
+                  ...currentState,
+                  form: {
+                    ...currentState.form,
+                    contactMode: nextValue,
+                  },
+                }))
+              }
+            />
+          </div>
 
           <div className={styles.modalField}>
             <label className={styles.modalLabel} htmlFor={PRODUCT_FIELD_IDS.status}>

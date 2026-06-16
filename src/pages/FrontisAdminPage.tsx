@@ -10,6 +10,7 @@ import {
   MenuUnfoldOutlined,
   RobotOutlined,
   AppstoreOutlined,
+  LinkOutlined,
   SafetyCertificateOutlined,
   TeamOutlined,
 } from "@ant-design/icons";
@@ -53,6 +54,7 @@ import { getUserPermissionIds, hasAnyPermission, hasPermission } from "@/utils/t
 
 import { AccountDropdownPanel } from "./components/AccountDropdownPanel";
 import { AgentStoreView } from "./components/agentStore/AgentStoreView";
+import { ChannelManagementView } from "./components/ChannelManagementView";
 import { hasUserAccessToExpert } from "./components/agentStore/utils";
 import { OrganizationManagementView } from "./components/OrganizationManagementView";
 import { RoleManagementView } from "./components/RoleManagementView";
@@ -142,6 +144,13 @@ const FRONTIS_ADMIN_TABS: FrontisWebTabItem[] = [
     roles: ["admin"],
   },
   {
+    key: "channels",
+    label: "Channel 管理",
+    icon: <LinkOutlined />,
+    permissionIds: [MANAGEMENT_PERMISSION_IDS.channelManage],
+    roles: ["admin"],
+  },
+  {
     key: "roleManagement",
     label: "角色管理",
     icon: <SafetyCertificateOutlined />,
@@ -191,12 +200,18 @@ const createTenantRolesWithIdentityPermissions = (
 
   const identityRoleIds = new Set(getUserFallbackRoleIds(matchedUser));
   const normalizedPermissionIds = normalizeTenantRolePermissionIds(identity.permissionIds);
+  const resolvedPermissionIds =
+    matchedUser.role === "enterpriseAdmin" &&
+    normalizedPermissionIds.includes(MANAGEMENT_PERMISSION_IDS.organizationManage) &&
+    !normalizedPermissionIds.includes(MANAGEMENT_PERMISSION_IDS.channelManage)
+      ? [...normalizedPermissionIds, MANAGEMENT_PERMISSION_IDS.channelManage]
+      : normalizedPermissionIds;
 
   return roles.map(role =>
     identityRoleIds.has(role.id)
       ? {
           ...role,
-          permissionIds: normalizedPermissionIds,
+          permissionIds: resolvedPermissionIds,
         }
       : role,
   );
@@ -932,6 +947,10 @@ const FrontisAdminPage = (): JSX.Element => {
       );
     }
 
+    if (activeTabKey === "channels") {
+      return <ChannelManagementView />;
+    }
+
     return (
       <AgentStoreView
         currentUserName={currentUser?.name}
@@ -1030,7 +1049,7 @@ const FrontisAdminPage = (): JSX.Element => {
                 trigger={["click"]}
                 open={isAccountMenuOpen}
                 onOpenChange={setIsAccountMenuOpen}
-                dropdownRender={menu => (
+                popupRender={menu => (
                   <AccountDropdownPanel
                     accountName={currentUser?.name ?? "未登录"}
                     menu={menu}

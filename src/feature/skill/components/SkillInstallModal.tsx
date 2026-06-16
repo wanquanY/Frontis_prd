@@ -158,7 +158,7 @@ export const SkillInstallModal = ({
       open={open}
       title={skill ? `安装「${skill.name}」到 AI员工` : "安装到 AI员工"}
       width={640}
-      destroyOnClose
+      destroyOnHidden
       onCancel={onCancel}
       footer={[
         <Button key="cancel" onClick={onCancel}>

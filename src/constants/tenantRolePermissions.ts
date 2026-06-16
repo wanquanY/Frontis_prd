@@ -167,6 +167,11 @@ const MANAGEMENT_PERMISSION_MENUS: TenantRolePermissionMenu[] = [
   },
   {
     displayMode: "leaf",
+    title: "Channel 管理",
+    items: [{ id: MANAGEMENT_PERMISSION_IDS.channelManage, label: "Channel 管理" }],
+  },
+  {
+    displayMode: "leaf",
     title: "角色管理",
     items: [{ id: MANAGEMENT_PERMISSION_IDS.roleManage, label: "角色管理" }],
   },

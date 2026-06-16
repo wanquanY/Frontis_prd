@@ -949,7 +949,7 @@ export const UnifiedWorkbenchPage = ({ viewRole }: UnifiedWorkbenchPageProps): J
               trigger={["click"]}
               open={isAccountMenuOpen}
               onOpenChange={setIsAccountMenuOpen}
-              dropdownRender={menu => (
+              popupRender={menu => (
                 <AccountDropdownPanel
                   accountName={featureAccountName}
                   menu={menu}

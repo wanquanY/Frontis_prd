@@ -480,16 +480,7 @@ const buildMetaAgentSeedSessions = (): DialogueSessionItem[] => {
       assistantContent:
         "V0.8 的口径是：企业后台由管理员为状态正常的成员开放 Leadeep 移动端权限；成员获得权限后，Web 左下角用户卡片出现“下载移动端”按钮，hover 展示二维码。手机扫码下载 Leadeep 后，登录对应企业身份即可使用问策。用户在问策里的对话会自动同步到 Web 端对应的 ME 会话，Web 和 Leadeep 展示同一份聊天记录，用户回到电脑后可以继续从这里接着问。",
     }),
-    buildMetaAgentTopicSession({
-      id: FEISHU_BOUND_SESSION_ID,
-      title: "飞书同步会话",
-      preview: "飞书侧对话记录已同步到 Web 端，可在 Web 查看和继续分析。",
-      time: "今天 10:08",
-      userContent:
-        "飞书里刚同步过来一段客户会议记录，帮我看一下里面有哪些需求要进入大观 Leadeep 打通的新增项。",
-      assistantContent:
-        "这段飞书记录里应补充进入新增需求：交叉用户如果已经在 Leadeep 使用并存在已结算余额，开通大观并完成企业身份确认后，需要把 Leadeep 余额同步到大观计费体系。口径是按人民币结算金额折算，大观积分汇率为 1 元 = 100 积分，例如 Leadeep 余额结算后为 100 元，则自动充值为 10000 大观积分，并生成“Leadeep 余额迁移”充值流水。飞书仍只负责把这段记录同步到 Web 对应会话，Web 续聊不回写飞书。",
-    }),
+    buildFeishuBoundSession(),
     {
       id: META_AGENT_PRIMARY_SEED_SESSION_ID,
       employeeId: DEFAULT_CONVERSATION_EMPLOYEE_ID,
@@ -555,6 +546,50 @@ const buildMetaAgentSeedSessions = (): DialogueSessionItem[] => {
     }),
   ];
 };
+
+const buildFeishuBoundSession = (): DialogueSessionItem => ({
+  id: FEISHU_BOUND_SESSION_ID,
+  employeeId: DEFAULT_CONVERSATION_EMPLOYEE_ID,
+  title: "飞书同步会话",
+  preview: "飞书侧已同步客户会议记录和需求补充，可在 Web 查看和继续分析。",
+  updatedAt: "刚刚",
+  messages: [
+    {
+      id: `${FEISHU_BOUND_SESSION_ID}-user-1`,
+      role: "user",
+      author: "你 · 飞书",
+      content:
+        "我在客户群里刚聊到大观和 Leadeep 打通，客户问普通员工是不是也能用移动端，以及飞书是不是要先由管理员配置。",
+      timeLabel: "刚刚",
+    },
+    {
+      id: `${FEISHU_BOUND_SESSION_ID}-assistant-1`,
+      role: "assistant",
+      author: DEFAULT_WORKSPACE_AGENT_NAME,
+      content:
+        "可以这样回复客户：普通员工可以使用移动端 Leadeep，但前提是企业管理员已在企业后台为正常成员开放 Leadeep 权限。飞书侧需要先由企业管理员在 Channel 管理里配置飞书应用，包括 App ID、App Secret 和应用二维码。配置完成后，租户成员在工作台首页右上角扫码绑定飞书，就可以在飞书里和 ME 对话。",
+      timeLabel: "刚刚",
+    },
+    {
+      id: `${FEISHU_BOUND_SESSION_ID}-user-2`,
+      role: "user",
+      author: "你 · 飞书",
+      content:
+        "再帮我整理一下这个会议里要进入 PRD 的点，重点区分历史记录同步和记忆机制，不要混在一起。",
+      timeLabel: "刚刚",
+    },
+    {
+      id: `${FEISHU_BOUND_SESSION_ID}-assistant-2`,
+      role: "assistant",
+      author: DEFAULT_WORKSPACE_AGENT_NAME,
+      content:
+        "需要进入 PRD 的点分三层：\n\n1. 飞书绑定：企业管理员在 Channel 管理完成飞书应用配置后，成员在工作台首页右上角扫码绑定。\n2. 历史记录同步：飞书侧对话记录单向同步到 Web 端飞书会话；Web 在该会话下继续对话，不回写飞书。\n3. 统一记忆机制：飞书、Leadeep 和 Web 共用同一套 ME 记忆、文件线索和 Agent 配置机制。记忆是背后的 Agent 工作机制，不等同于页面历史记录。",
+      timeLabel: "刚刚",
+    },
+  ],
+  channelConnectionStatus: "connected",
+  channelConnectionStatusLabel: "飞书",
+});
 
 const INITIAL_META_AGENT_SEED_SESSIONS = buildMetaAgentSeedSessions();
 const NORMALIZED_INITIAL_DIALOGUE_SESSIONS = [
@@ -1709,7 +1744,8 @@ const FrontisPage = ({
     [activeEmployee, conversationEmployeeDirectory],
   );
   const isMetaAgentDialogue = useMemo(() => isMetaAgentEmployee(activeEmployee), [activeEmployee]);
-  const shouldShowFeishuConnectAction = workspaceMode === "metaAgent" && isFeishuQrConfigured;
+  const shouldShowFeishuConnectAction =
+    workspaceMode === "metaAgent" && isFeishuQrConfigured && !isFeishuWorkspaceConnected;
 
   const employeeDialogueSessions = useMemo(
     () =>
@@ -1732,13 +1768,14 @@ const FrontisPage = ({
     }
 
     return (
-      employeeDialogueSessions.find(item => item.id === activeDialogueSessionId) ??
+      dialogueSessions.find(item => item.id === activeDialogueSessionId) ??
       employeeDialogueSessions[0] ??
       null
     );
   }, [
     activeCaseReplay,
     activeDialogueSessionId,
+    dialogueSessions,
     employeeDialogueSessions,
     isDialogueHomeActive,
     workspaceMode,
@@ -1910,7 +1947,7 @@ const FrontisPage = ({
     if (workspaceMode === "expertStudio") {
       if (
         activeDialogueSessionId &&
-        employeeDialogueSessions.some(item => item.id === activeDialogueSessionId)
+        dialogueSessions.some(item => item.id === activeDialogueSessionId)
       ) {
         return;
       }
@@ -1926,11 +1963,17 @@ const FrontisPage = ({
       }
       return;
     }
-    if (employeeDialogueSessions.some(item => item.id === activeDialogueSessionId)) {
+    if (dialogueSessions.some(item => item.id === activeDialogueSessionId)) {
       return;
     }
     setActiveDialogueSessionId(employeeDialogueSessions[0].id);
-  }, [activeDialogueSessionId, employeeDialogueSessions, isDialogueHomeActive, workspaceMode]);
+  }, [
+    activeDialogueSessionId,
+    dialogueSessions,
+    employeeDialogueSessions,
+    isDialogueHomeActive,
+    workspaceMode,
+  ]);
 
   useEffect(() => {
     latestDialogueAttachmentsRef.current = dialogueAttachments;
@@ -2126,7 +2169,12 @@ const FrontisPage = ({
       setDialogueInputValue("");
       setSelectedSkillIds([]);
     },
-    [activeEmployeeId, dialogueAttachments, dialogueSessions],
+    [
+      activeEmployeeId,
+      conversationEmployeeDirectory,
+      dialogueAttachments,
+      dialogueSessions,
+    ],
   );
 
   const handleCreateDialogueSession = useCallback((): void => {
@@ -2675,7 +2723,7 @@ const FrontisPage = ({
     }
 
     setIsFeishuWorkspaceConnected(true);
-    message.success("飞书已连接。");
+    message.success("飞书已绑定。");
   }, [isFeishuQrConfigured]);
 
   const handleStartCasePractice = useCallback((): void => {

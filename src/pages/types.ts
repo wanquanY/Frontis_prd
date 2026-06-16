@@ -14,6 +14,7 @@ export type FrontisWebTabKey =
   | "group"
   | "automation"
   | "overview"
+  | "channels"
   | "points"
   | "store"
   | "organization"
@@ -205,6 +206,8 @@ export interface DialogueSessionItem {
   preview: string;
   updatedAt: string;
   messages: ChatMessage[];
+  channelConnectionStatus?: "connected" | "disconnected";
+  channelConnectionStatusLabel?: string;
 }
 
 /**

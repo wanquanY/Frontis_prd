@@ -191,7 +191,7 @@ export const SubscriptionPlanModal = ({
       footer={null}
       width={980}
       centered
-      destroyOnClose
+      destroyOnHidden
       className={styles.planModal}
       onCancel={onClose}
     >

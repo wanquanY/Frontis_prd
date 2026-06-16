@@ -319,8 +319,6 @@ export const OrganizationManagementView = ({
         user.phone,
         getUserRoleLabel(user),
         getUserStatusLabel(user.status),
-        getUserSeatInfo(user).typeLabel,
-        getUserSeatInfo(user).expiresLabel,
         leadeepEnabledUserIds.has(user.id) ? "Leadeep 已开放" : "Leadeep 未开放",
       ]
         .filter(Boolean)
@@ -332,7 +330,6 @@ export const OrganizationManagementView = ({
   }, [
     departmentMembers,
     getUserRoleLabel,
-    getUserSeatInfo,
     leadeepEnabledUserIds,
     memberSearchKeyword,
   ]);
@@ -718,35 +715,17 @@ export const OrganizationManagementView = ({
                 <th>角色</th>
                 <th>账号状态</th>
                 <th>Leadeep 权限</th>
-                <th>席位类型</th>
-                <th>席位有效期</th>
                 <th>操作</th>
               </tr>
             </thead>
             <tbody>
               {filteredDepartmentMembers.length ? (
-                filteredDepartmentMembers.map(user => {
-                  const seatInfo = getUserSeatInfo(user);
-
-                  return (
+                filteredDepartmentMembers.map(user => (
                     <tr key={user.id}>
                       <td className={adminStyles.consoleHtmlTableStrong}>{user.name}</td>
                       <td>{user.phone}</td>
                       <td>
                         <span className={adminStyles.consolePill}>{getUserRoleLabel(user)}</span>
-                      </td>
-                      <td>
-                        <span
-                          className={adminStyles.consolePill}
-                          style={{
-                            background: leadeepEnabledUserIds.has(user.id)
-                              ? "rgba(15, 159, 143, 0.12)"
-                              : "rgba(100, 113, 132, 0.12)",
-                            color: leadeepEnabledUserIds.has(user.id) ? "#0f9f8f" : "#647184",
-                          }}
-                        >
-                          {leadeepEnabledUserIds.has(user.id) ? "已开放" : "未开放"}
-                        </span>
                       </td>
                       <td>
                         <span
@@ -763,23 +742,16 @@ export const OrganizationManagementView = ({
                         </span>
                       </td>
                       <td>
-                        {seatInfo.typeLabel ? (
-                          <span
-                            className={adminStyles.consolePill}
-                            style={{
-                              background: "rgba(22, 163, 74, 0.12)",
-                              color: "#17a34a",
-                            }}
-                          >
-                            {seatInfo.typeLabel}
-                          </span>
-                        ) : (
-                          <span className={adminStyles.consoleEmpty}>-</span>
-                        )}
-                      </td>
-                      <td>
-                        <span className={adminStyles.consoleHtmlTableStrong}>
-                          {seatInfo.expiresLabel}
+                        <span
+                          className={adminStyles.consolePill}
+                          style={{
+                            background: leadeepEnabledUserIds.has(user.id)
+                              ? "rgba(15, 159, 143, 0.12)"
+                              : "rgba(100, 113, 132, 0.12)",
+                            color: leadeepEnabledUserIds.has(user.id) ? "#0f9f8f" : "#647184",
+                          }}
+                        >
+                          {leadeepEnabledUserIds.has(user.id) ? "已开放" : "未开放"}
                         </span>
                       </td>
                       <td>
@@ -866,8 +838,7 @@ export const OrganizationManagementView = ({
                         </div>
                       </td>
                     </tr>
-                  );
-                })
+                  ))
               ) : (
                 <tr>
                   <td colSpan={8}>

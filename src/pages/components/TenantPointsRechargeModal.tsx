@@ -188,7 +188,7 @@ export const TenantPointsRechargeModal = ({
   return (
     <Modal
       centered
-      destroyOnClose
+      destroyOnHidden
       footer={null}
       onCancel={onCancel}
       open={open}

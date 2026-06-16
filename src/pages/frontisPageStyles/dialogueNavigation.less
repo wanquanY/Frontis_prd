@@ -892,6 +892,27 @@
   transition: opacity 160ms ease;
 }
 
+.dialogueSessionConnectionBadge {
+  flex: 0 0 auto;
+  margin-left: 8px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  white-space: nowrap;
+  font-size: 11px;
+  line-height: 16px;
+  font-weight: 700;
+}
+
+.dialogueSessionConnectionBadgeConnected {
+  background: color-mix(in srgb, var(--primary) 12%, var(--surface));
+  color: var(--primary);
+}
+
+.dialogueSessionConnectionBadgeDisconnected {
+  background: color-mix(in srgb, var(--text-secondary) 12%, var(--surface));
+  color: var(--text-secondary);
+}
+
 .dialogueSessionMenuButton {
   position: absolute;
   top: 50%;
