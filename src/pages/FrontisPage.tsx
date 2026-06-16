@@ -472,23 +472,23 @@ const buildMetaAgentSeedSessions = (): DialogueSessionItem[] => {
   return [
     buildMetaAgentTopicSession({
       id: LEADEEP_BOUND_SESSION_ID,
-      title: "Leadeep 问策绑定会话",
+      title: "Leadeep 问策同步会话",
       preview: "Leadeep 移动端已同步本次出差问策记录，可继续查看和追问 PRD 内容。",
       time: "刚刚",
       userContent:
         "我现在在出差路上，用 Leadeep 问策查一下 V0.8 需求列表里移动端下载入口和权限开放的口径。",
       assistantContent:
-        "V0.8 的口径是：企业后台由管理员为状态正常的成员开放 Leadeep 移动端权限；成员获得权限后，Web 左下角用户卡片出现“下载移动端”按钮，hover 展示二维码。手机扫码下载 Leadeep 后，登录进入对应租户身份，并绑定到 Web 端的 Leadeep 会话。这个会话在 Web 与 Leadeep 之间展示同一份聊天记录，用户回到电脑后可以继续从这里接着问。",
+        "V0.8 的口径是：企业后台由管理员为状态正常的成员开放 Leadeep 移动端权限；成员获得权限后，Web 左下角用户卡片出现“下载移动端”按钮，hover 展示二维码。手机扫码下载 Leadeep 后，登录对应企业身份即可使用问策。用户在问策里的对话会自动同步到 Web 端对应的 ME 会话，Web 和 Leadeep 展示同一份聊天记录，用户回到电脑后可以继续从这里接着问。",
     }),
     buildMetaAgentTopicSession({
       id: FEISHU_BOUND_SESSION_ID,
-      title: "飞书绑定会话",
+      title: "飞书同步会话",
       preview: "飞书侧对话记录已同步到 Web 端，可在 Web 查看和继续分析。",
       time: "今天 10:08",
       userContent:
-        "飞书里刚同步过来一段客户会议记录，帮我看一下里面有哪些需求要进入大观 Leadeep 打通的待确认项。",
+        "飞书里刚同步过来一段客户会议记录，帮我看一下里面有哪些需求要进入大观 Leadeep 打通的新增项。",
       assistantContent:
-        "这段飞书记录里应进入待确认的问题有三类：第一，移动端 Leadeep 权限是否占用席位、积分或订阅权益；第二，同一手机号存在多个租户身份时，App 默认进入策略和用户选择体验；第三，飞书同步到 Web 后，Web 里继续对话产生的内容是否只留在 Web 端会话内。当前产品口径是飞书对话记录进入 Web 绑定会话展示，Web 端继续对话不回写飞书。",
+        "这段飞书记录里应补充进入新增需求：交叉用户如果已经在 Leadeep 使用并存在已结算余额，开通大观并完成企业身份确认后，需要把 Leadeep 余额同步到大观计费体系。口径是按人民币结算金额折算，大观积分汇率为 1 元 = 100 积分，例如 Leadeep 余额结算后为 100 元，则自动充值为 10000 大观积分，并生成“Leadeep 余额迁移”充值流水。飞书仍只负责把这段记录同步到 Web 对应会话，Web 续聊不回写飞书。",
     }),
     {
       id: META_AGENT_PRIMARY_SEED_SESSION_ID,

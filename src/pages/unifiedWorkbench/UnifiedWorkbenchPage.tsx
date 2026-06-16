@@ -133,14 +133,14 @@ const TAB_ITEMS: UnifiedWorkbenchNavItem[] = [
 const CHANNEL_BOUND_CONVERSATION_RECORDS: WorkbenchConversationNavSession[] = [
   {
     id: "dialogue-seed-leadeep-mobile-binding",
-    title: "Leadeep 问策绑定会话",
+    title: "Leadeep 问策同步会话",
     updatedAt: "刚刚",
     active: false,
     avatarName: "L",
   },
   {
     id: "dialogue-seed-feishu-binding",
-    title: "飞书绑定会话",
+    title: "飞书同步会话",
     updatedAt: "今天 10:08",
     active: false,
     avatarName: "飞",
@@ -960,7 +960,7 @@ export const UnifiedWorkbenchPage = ({ viewRole }: UnifiedWorkbenchPageProps): J
                       : undefined
                   }
                   mobileDownload={{
-                    description: "手机扫码下载 Leadeep App，登录后进入已开放权限的租户身份。",
+                    description: "手机扫码下载 Leadeep App，登录后进入已开放权限的企业身份。",
                     enabled: true,
                     qrCodeValue: LEADEEP_MOBILE_DOWNLOAD_QR_VALUE,
                     title: "扫码下载移动端",

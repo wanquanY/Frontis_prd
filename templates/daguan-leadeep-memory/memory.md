@@ -1,52 +1,41 @@
 # memory.md
 
-## 文件定义
+## 稳定偏好
 
-`memory.md` 定义当前用户使用当前 Agent 时可跨会话召回的长期记忆。它保存的是经过确认、纠正或可追溯的记忆条目，不保存完整聊天历史，也不替代页面历史记录。
+- 王晨要求产品文档避免技术字段化表达，重点写清楚用户能做什么、系统给什么反馈、页面怎么呈现。
+- 王晨不接受把 PRD 写成概念说明书，需求要能被设计、研发、测试继续执行。
+- 王晨希望文档结构简洁，不要 Roadmap、验收标准、待确认问题等当前不需要的部分。
 
-## 作用范围
+## 已确认产品规则
 
-- tenant_id:
-- user_id:
-- member_id:
-- agent_id:
-- memory_version:
-- updated_at:
+- 大观 Web 是 ME 多会话主入口。
+- Leadeep 问策是移动端对话入口，用户在问策里对话时自动同步到 Web 端对应 ME 会话。
+- Leadeep 与 Web 的历史记录双向同步。
+- 飞书与 Web 的历史记录只单向同步：飞书到 Web，Web 续聊不回写飞书。
+- Web 会话列表只展示来源标签：Leadeep 或飞书，不展示同步方向。
+- 用户点击 Leadeep 或飞书同步会话后，进入正常聊天记录页，体验和普通会话一致。
+- 统一记忆机制与历史记录同步是两层能力：历史记录负责页面呈现，记忆机制负责 Agent 背后的理解、召回和上下文组织。
 
-## 记忆条目
+## 文件与资产规则
 
-### MEM-0001
+- PRD、需求列表、原型说明、会议纪要和 Leadeep 输出文件都可以形成文件线索。
+- 文件线索可帮助 ME 在新会话或 Leadeep 问策中找到此前产出的 PRD 文件。
+- 文件线索不等于文件全文默认进入上下文；回答前仍需判断用户意图和文件权限。
 
-- type: preference / goal / correction / task_conclusion / object_fact / expert_preference
-- scope: user / tenant_member / project / object / session_candidate
-- agent_scope:
-- source_channel: web / leadeep / feishu / migration
-- source_session_id:
-- source_message_id:
-- content:
-- evidence:
-- confidence: high / medium / low
-- status: candidate / active / disabled / deleted
-- created_at:
-- updated_at:
-- expires_at:
+## 迁移规则
 
-## 记忆类型定义
+- 只迁移交叉用户资产：原先下载并使用过 Leadeep，后来又开通大观的用户。
+- 交叉用户迁移范围包含 Leadeep 历史会话、文件型知识、产物资产和已结算余额。
+- Leadeep 已结算余额按 `1 元 = 100 大观积分` 折算到大观积分余额。
+- 示例：Leadeep 已结算余额 100 元，开通大观后自动充值 10000 大观积分。
 
-| 类型              | 定义                     | 示例                                        |
-| ----------------- | ------------------------ | ------------------------------------------- |
-| preference        | 用户稳定偏好             | 用户偏好先给结论再给拆解                    |
-| goal              | 用户长期目标或阶段目标   | 用户正在推进 V1.1 PRD 评审                  |
-| correction        | 用户明确纠正过的信息     | 用户指出“问策”不是“问测”                    |
-| task_conclusion   | 被采纳的任务结论         | V1 只做 Leadeep 绑定会话，不做 App 内多会话 |
-| object_fact       | 与业务对象相关的稳定事实 | 某 PRD 文件是 V1.1 定价方案主文档           |
-| expert_preference | 专家或工具调用偏好       | 产品问题优先调用 PRD 专家                   |
+## 最近可复用结论
 
-## 更新规则
-
-- 记忆只在当前 `tenant_id + user_id + member_id + agent_id` 下默认生效。
-- 候选记忆进入 `candidate` 后，需满足确认规则才能变为 `active`。
-- 用户纠正后，旧记忆不得静默保留为生效状态。
-- 历史聊天原文不能整体写入 `memory.md`。
-- 交叉用户迁移时，只迁移关键摘要、文件线索和可解释的记忆条目。
-- 不同 Agent 之间默认不共享长期记忆；跨 Agent 复制必须有明确授权、来源记录和审计记录。
+- Agent 配置文件示例应模拟真实使用后的内容。
+- `Agent.md` 应像一个真实 Agent 的工作设定。
+- `user.md` 应像当前用户画像。
+- `memory.md` 应像长期记忆条目。
+- `session.md` 应像某个具体会话的当前任务状态。
+- `file-index.md` 应像真实可召回文件清单。
+- `team.md` 应像工作台已添加专家清单。
+- `agent-config.md` 应像当前 Agent 的实际能力开关和渠道策略。

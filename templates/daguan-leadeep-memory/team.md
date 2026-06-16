@@ -1,63 +1,54 @@
 # team.md
 
-## 文件定义
+当前 ME 工作台已添加的专家团队如下。ME 在回答王晨的问题时，可以先根据问题类型选择专家，再读取对应专家详情配置。
 
-`team.md` 定义当前用户使用当前 ME / Agent 时，工作台中已添加专家的团队清单。它记录专家 ID、能力画像摘要、适用场景、工作台状态和专家详情配置引用。
+## PRD 专家
 
-`team.md` 不是专家详情配置本体。查看专家的完整能力配置、工具权限、提示词、模型策略或参数时，必须通过 `expert_id` 读取专家详情配置。
+- 专家 ID：expert-prd-001
+- 状态：已添加
+- 能力画像：擅长把零散讨论整理成 PRD、需求列表、用户故事、业务规则和研发可执行任务。
+- 适合处理：
+  - PRD 结构重组
+  - 需求边界澄清
+  - 用户旅程梳理
+  - 页面与交互规则整理
+- 不适合处理：
+  - 纯视觉风格设计
+  - 未确认商业策略的最终拍板
+- 详情配置引用：experts/expert-prd-001/config
 
-## 隔离范围
+## 原型专家
 
-- tenant_id:
-- user_id:
-- member_id:
-- agent_id:
-- workspace_id:
-- team_version:
-- updated_at:
-- updated_by:
+- 专家 ID：expert-prototype-002
+- 状态：已添加
+- 能力画像：擅长把 PRD 中的功能规则落到可交互原型，包括会话列表、聊天详情、弹窗、标签和状态反馈。
+- 适合处理：
+  - Web 会话列表来源标签
+  - Leadeep 会话详情
+  - 分享弹窗去预览
+  - 移动端下载二维码入口
+- 不适合处理：
+  - 后端接口设计
+  - 积分结算规则最终定价
+- 详情配置引用：experts/expert-prototype-002/config
 
-## 专家条目
+## 记忆机制专家
 
-### EXPERT-0001
+- 专家 ID：expert-memory-003
+- 状态：已添加
+- 能力画像：擅长区分历史记录、长期记忆、文件线索、会话短期上下文和 Agent 配置。
+- 适合处理：
+  - 多会话记忆机制
+  - Leadeep 与 Web 历史记录同步
+  - 飞书到 Web 单向同步
+  - 文件线索如何跨会话召回
+- 不适合处理：
+  - 把记忆机制写成数据库字段表
+  - 直接生成工程存储结构
+- 详情配置引用：experts/expert-memory-003/config
 
-- expert_id:
-- expert_name:
-- expert_type: built_in / tenant_custom / user_custom / imported
-- workspace_status: active / disabled / removed
-- capability_profile:
-  - primary_capabilities:
-  - supported_tasks:
-  - input_requirements:
-  - output_types:
-  - best_for:
-  - not_suitable_for:
-- detail_config_ref:
-- added_at:
-- added_by:
-- last_config_synced_at:
-- removed_at:
-- remove_reason:
+## 最近团队变更
 
-## 同步规则
-
-- 用户或管理员向 ME 工作台添加专家时，系统自动在 `team.md` 中新增专家条目。
-- 用户或管理员从 ME 工作台移除专家时，系统同步更新 `workspace_status` 为 `removed`，或按产品规则从列表中移除。
-- 专家详情配置发生变更时，`team.md` 只同步能力画像摘要、状态和详情引用，不复制专家详情配置全文。
-- `team.md` 只对当前 `tenant_id + user_id + member_id + agent_id` 生效，不同 Agent 默认拥有不同专家团队。
-- Agent 运行时可读取 `team.md` 判断当前工作台有哪些专家可用，再通过 `expert_id` 获取专家详情配置。
-
-## 专家详情查看规则
-
-| 场景                 | 处理方式                                              |
-| -------------------- | ----------------------------------------------------- |
-| 用户查看专家详情     | 通过 `expert_id` 打开专家详情配置                     |
-| Agent 需要调用专家   | 先检查 `workspace_status`，再读取 `detail_config_ref` |
-| 专家已从工作台移除   | 不再参与推荐和调用                                    |
-| 专家详情配置不可访问 | 提示专家配置不可用，并记录异常                        |
-
-## 变更记录
-
-| 时间 | 事件 | expert_id | 操作人 | 结果 |
-| ---- | ---- | --------- | ------ | ---- |
-|      |      |           |        |      |
+- 已添加 `expert-memory-003`，用于统一记忆机制设计。
+- 若从工作台移除某个专家，ME 后续不再主动调用该专家。
+- 专家详情配置不写入本文件，只保留专家 ID、能力画像和详情引用。
