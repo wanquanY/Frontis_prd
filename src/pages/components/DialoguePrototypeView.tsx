@@ -35,11 +35,19 @@ import {
   type MouseEvent as ReactMouseEvent,
 } from "react";
 import type { InputRef, MenuProps } from "antd";
-import { Avatar, DatePicker, Dropdown, Input, Modal, Popover, QRCode, message } from "antd";
+import { Avatar, Dropdown, Input, Modal, Popover, QRCode, message } from "antd";
 import type { Block } from "@/types/block";
 import { resolveFileLogo } from "@/utils/fileLogo";
 
 import type { AiCeoHomeSkillItem, AiCeoSkillIconKey } from "@/constants/aiCeoHome";
+import {
+  createArtifactShareSnapshot,
+  isArtifactShareFileSupported,
+  normalizeShareToken,
+  revokeSharePreviewSnapshot,
+  saveSharePreviewSnapshot,
+  type SharePreviewKind,
+} from "@/feature/share/sharePreviewStorage";
 import { ArtifactPreviewPanel } from "@/feature/workspace/components/ArtifactPreviewPanel";
 import { WorkspaceChatPanel } from "@/feature/workspace/components/WorkspaceChatPanel";
 import { WorkspaceComposer } from "@/feature/workspace/components/WorkspaceComposer";
@@ -154,10 +162,12 @@ const ADDABLE_EXPERT_PICKER_STATUSES: Array<{
 ];
 
 interface GeneratedShareState {
-  kind: "artifact" | "conversation";
+  kind: "artifact";
   title: string;
   link: string;
   description: string;
+  token?: string;
+  artifactId?: string;
   artifact?: ArtifactItem;
 }
 
@@ -396,20 +406,10 @@ const getSkillButtonWidth = (label: string, isSelected = false): number =>
   measureSkillLabelWidth(label) +
   (isSelected ? SELECTED_SKILL_BUTTON_BASE_WIDTH : SKILL_BUTTON_BASE_WIDTH);
 
-const normalizeShareToken = (value: string): string => {
-  const normalized = value
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9\u4e00-\u9fa5]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-
-  return normalized || "frontis-share";
-};
-
-const buildPrototypeShareLink = (kind: GeneratedShareState["kind"], sourceId: string): string => {
+const buildPrototypeShareLink = (kind: SharePreviewKind, token: string): string => {
   const origin =
     typeof window === "undefined" ? SHARE_LINK_FALLBACK_ORIGIN : window.location.origin;
-  return `${origin}/share/${kind}/${normalizeShareToken(sourceId)}`;
+  return `${origin}/share/${kind}/${token}`;
 };
 
 const isMetaCoordinatorEmployee = (
@@ -508,11 +508,10 @@ export const DialoguePrototypeView = ({
   const [addExpertPickerStatus, setAddExpertPickerStatus] =
     useState<AddableExpertPickerStatus>("unadded");
   const [addExpertSearchValue, setAddExpertSearchValue] = useState<string>("");
-  const [isConversationShareSelecting, setIsConversationShareSelecting] = useState<boolean>(false);
-  const [selectedConversationShareBlockIds, setSelectedConversationShareBlockIds] = useState<
-    Set<string>
-  >(() => new Set());
   const [generatedShare, setGeneratedShare] = useState<GeneratedShareState | null>(null);
+  const [sharedArtifactStates, setSharedArtifactStates] = useState<Record<string, GeneratedShareState>>(
+    {},
+  );
   const [metaAgentTrajectorySearchValue, setMetaAgentTrajectorySearchValue] = useState<string>("");
   const [isMetaAgentTrajectoryTimeFilterOpen, setIsMetaAgentTrajectoryTimeFilterOpen] =
     useState<boolean>(false);
@@ -704,35 +703,6 @@ export const DialoguePrototypeView = ({
     [dialogueMessages],
   );
   const chatBlocks = useMemo(() => buildWorkspaceChatBlocks(dialogueMessages), [dialogueMessages]);
-  const shareableConversationBlocks = useMemo(
-    () =>
-      chatBlocks.filter(block => {
-        if (
-          block.kind === "text" &&
-          !(block.data as { content?: string }).content &&
-          !block.isStreaming
-        ) {
-          return false;
-        }
-        if (block.kind === "message") {
-          const hasChildren = block.children && block.children.length > 0;
-          if (!hasChildren && !block.isStreaming) {
-            return false;
-          }
-        }
-        return true;
-      }),
-    [chatBlocks],
-  );
-  const selectedConversationShareBlockIdList = useMemo(
-    () => Array.from(selectedConversationShareBlockIds),
-    [selectedConversationShareBlockIds],
-  );
-  const selectedConversationShareBlocks = useMemo(
-    () =>
-      shareableConversationBlocks.filter(block => selectedConversationShareBlockIds.has(block.id)),
-    [selectedConversationShareBlockIds, shareableConversationBlocks],
-  );
   const selectedSkillItems = useMemo(
     () => homeSkillItems.filter(item => selectedSkillIds.includes(item.id)),
     [homeSkillItems, selectedSkillIds],
@@ -1274,8 +1244,6 @@ export const DialoguePrototypeView = ({
     setPreferredArtifactId(undefined);
     setActiveResultId(null);
     setIsArtifactPreviewing(false);
-    setIsConversationShareSelecting(false);
-    setSelectedConversationShareBlockIds(new Set());
     setGeneratedShare(null);
   }, [activeDialogueSession?.id]);
 
@@ -1784,81 +1752,59 @@ export const DialoguePrototypeView = ({
     </div>
   );
 
-  const handleStartConversationShare = useCallback((): void => {
-    if (!shareableConversationBlocks.length) {
-      message.warning("当前会话暂无可分享消息");
-      return;
-    }
-
-    setGeneratedShare(null);
-    setIsConversationShareSelecting(true);
-    setSelectedConversationShareBlockIds(new Set());
-  }, [shareableConversationBlocks.length]);
-
-  const handleCancelConversationShare = useCallback((): void => {
-    setIsConversationShareSelecting(false);
-    setSelectedConversationShareBlockIds(new Set());
-  }, []);
-
-  const handleToggleConversationShareBlock = useCallback((blockId: string): void => {
-    setSelectedConversationShareBlockIds(current => {
-      const next = new Set(current);
-      if (next.has(blockId)) {
-        next.delete(blockId);
-        return next;
-      }
-
-      next.add(blockId);
-      return next;
-    });
-  }, []);
-
-  const handleToggleSelectAllConversationShare = useCallback((): void => {
-    setSelectedConversationShareBlockIds(current => {
-      if (current.size === shareableConversationBlocks.length) {
-        return new Set();
-      }
-
-      return new Set(shareableConversationBlocks.map(block => block.id));
-    });
-  }, [shareableConversationBlocks]);
-
-  const handleGenerateConversationShareLink = useCallback((): void => {
-    if (!selectedConversationShareBlocks.length) {
-      message.warning("请先选择要分享的消息");
-      return;
-    }
-
-    const title = activeDialogueSession?.title?.trim() || `${activeEmployee.name} 对话分享`;
-    const link = buildPrototypeShareLink(
-      "conversation",
-      `${activeDialogueSession?.id ?? activeEmployee.id}-${selectedConversationShareBlocks.length}`,
-    );
-
-    setGeneratedShare({
-      kind: "conversation",
-      title,
-      link,
-      description: `已选择 ${selectedConversationShareBlocks.length} 条消息`,
-    });
-    setIsConversationShareSelecting(false);
-  }, [
-    activeDialogueSession?.id,
-    activeDialogueSession?.title,
-    activeEmployee.id,
-    activeEmployee.name,
-    selectedConversationShareBlocks,
-  ]);
-
   const handleShareArtifactFile = useCallback((file: ArtifactItem): void => {
-    setGeneratedShare({
+    if (!isArtifactShareFileSupported(file)) {
+      message.warning("当前文件类型暂不支持分享");
+      return;
+    }
+
+    const artifactId = file.id || file.artifactId || file.fileName;
+    const existingShare = sharedArtifactStates[artifactId];
+    if (existingShare) {
+      setGeneratedShare(existingShare);
+      return;
+    }
+
+    const token = normalizeShareToken(artifactId);
+    const snapshot = createArtifactShareSnapshot(token, file);
+    saveSharePreviewSnapshot(snapshot);
+
+    const nextShareState: GeneratedShareState = {
       kind: "artifact",
       title: file.fileName,
-      link: buildPrototypeShareLink("artifact", file.id || file.artifactId || file.fileName),
-      description: `${file.producerName} · ${file.producedAt}`,
+      link: buildPrototypeShareLink("artifact", token),
+      description: snapshot.description,
+      token,
+      artifactId,
       artifact: file,
+    };
+
+    setSharedArtifactStates((currentStates) => ({
+      ...currentStates,
+      [artifactId]: nextShareState,
+    }));
+    setGeneratedShare(nextShareState);
+  }, [sharedArtifactStates]);
+
+  const handleCancelArtifactShare = useCallback((): void => {
+    if (
+      !generatedShare ||
+      generatedShare.kind !== "artifact" ||
+      !generatedShare.token ||
+      !generatedShare.artifactId
+    ) {
+      return;
+    }
+
+    revokeSharePreviewSnapshot("artifact", generatedShare.token);
+    setSharedArtifactStates((currentStates) => {
+      const nextStates = { ...currentStates };
+      delete nextStates[generatedShare.artifactId as string];
+      return nextStates;
     });
-  }, []);
+    setGeneratedShare(null);
+    message.success("已取消分享");
+  }, [generatedShare]);
 
   const handleCopyGeneratedShareLink = useCallback(async (): Promise<void> => {
     if (!generatedShare?.link) {
@@ -2415,47 +2361,6 @@ export const DialoguePrototypeView = ({
       />
     </div>
   );
-  const selectedConversationShareCount = selectedConversationShareBlockIds.size;
-  const isAllConversationShareSelected =
-    shareableConversationBlocks.length > 0 &&
-    selectedConversationShareCount === shareableConversationBlocks.length;
-  const conversationShareSelectionNode = isConversationShareSelecting ? (
-    <div className={styles.dialogueShareSelectionBar} aria-label="对话分享选择栏">
-      <button
-        type="button"
-        className={classNames(styles.dialogueShareSelectionButton, {
-          [styles.dialogueShareSelectionButtonActive]: isAllConversationShareSelected,
-        })}
-        onClick={handleToggleSelectAllConversationShare}
-      >
-        <span className={styles.dialogueShareSelectionCheck} aria-hidden={true}>
-          {isAllConversationShareSelected ? <CheckOutlined /> : null}
-        </span>
-        <span>全选</span>
-      </button>
-      <span className={styles.dialogueShareSelectionCount}>
-        {selectedConversationShareCount > 0
-          ? `已选择 ${selectedConversationShareCount} 条`
-          : "选择要分享的消息"}
-      </span>
-      <button
-        type="button"
-        className={styles.dialogueShareSelectionPrimary}
-        disabled={selectedConversationShareCount === 0}
-        onClick={handleGenerateConversationShareLink}
-      >
-        <LinkOutlined />
-        <span>生成分享链接</span>
-      </button>
-      <button
-        type="button"
-        className={styles.dialogueShareSelectionCancel}
-        onClick={handleCancelConversationShare}
-      >
-        取消
-      </button>
-    </div>
-  ) : null;
   const expertTeamMemberAvatars =
     shouldShowExpertTeamUi && activeExpertTeamMembers.length > 0 ? (
       <>
@@ -2941,20 +2846,13 @@ export const DialoguePrototypeView = ({
                   greeting="输入消息或上传文件，开始协作"
                   showMessageMeta={true}
                   collapseAssignedActorOutputs={isMetaAgentWorkspace}
-                  shareSelectionEnabled={isConversationShareSelecting}
-                  selectedShareBlockIds={selectedConversationShareBlockIdList}
-                  onToggleShareBlock={handleToggleConversationShareBlock}
-                  onStartShareSelection={
-                    isConversationShareSelecting ? undefined : handleStartConversationShare
-                  }
                   onOpenArtifact={handleOpenArtifact}
                   onOpenResult={handleOpenResult}
                   onQuickActionSend={onQuickPromptSend}
                 />
               </div>
             </div>
-            {conversationShareSelectionNode}
-            {isConversationShareSelecting ? null : composerNode}
+            {composerNode}
           </>
         )}
       </section>
@@ -3134,7 +3032,7 @@ export const DialoguePrototypeView = ({
         className={styles.dialogueShareModal}
         width={560}
         centered
-        title={generatedShare?.kind === "artifact" ? "成果分享" : "对话分享"}
+        title="成果分享"
         open={Boolean(generatedShare)}
         footer={null}
         onCancel={() => setGeneratedShare(null)}
@@ -3158,6 +3056,16 @@ export const DialoguePrototypeView = ({
                   <span>复制链接</span>
                 </button>
               </div>
+              {generatedShare.kind === "artifact" ? (
+                <button
+                  className={styles.dialogueShareCancelButton}
+                  type="button"
+                  onClick={handleCancelArtifactShare}
+                >
+                  <CloseOutlined />
+                  <span>取消分享</span>
+                </button>
+              ) : null}
             </section>
           </div>
         ) : null}

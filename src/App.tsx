@@ -14,6 +14,7 @@ const LoginPage = lazy(() => import("@/pages/login/LoginPage"));
 const UnifiedWorkbenchPage = lazy(() => import("@/pages/unifiedWorkbench/UnifiedWorkbenchPage"));
 const UserManualPage = lazy(() => import("@/pages/UserManualPage"));
 const OperationsPlatformPage = lazy(() => import("@/pages/operations/OperationsPlatformPage"));
+const SharePreviewPage = lazy(() => import("@/pages/share/SharePreviewPage"));
 
 const LegacyOperationsLoginRedirect = (): JSX.Element => {
   const location = useLocation();
@@ -53,6 +54,7 @@ const App = (): JSX.Element => {
           <Route path="/legal/:agreementSlug" element={<LegalAgreementPage />} />
           <Route path="/ops/login" element={<LegacyOperationsLoginRedirect />} />
           <Route path="/user-manual" element={<UserManualPage />} />
+          <Route path="/share/:kind/:token" element={<SharePreviewPage />} />
           <Route path="/select-tenant" element={<IdentitySelectionPage />} />
           <Route path="/select-identity" element={<Navigate replace to="/select-tenant" />} />
           <Route
