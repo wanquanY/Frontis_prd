@@ -45,6 +45,7 @@ import {
   createConversationShareSnapshot,
   isArtifactShareFileSupported,
   normalizeShareToken,
+  revokeSharePreviewSnapshot,
   saveSharePreviewSnapshot,
   type SharePreviewKind,
 } from "@/feature/share/sharePreviewStorage";
@@ -1854,7 +1855,7 @@ export const DialoguePrototypeView = ({
     selectedConversationShareBlocks,
   ]);
 
-  const handleShareArtifactFile = useCallback((file: ArtifactItem): void => {
+  const handleShareArtifactFile = useCallback((file: ArtifactItem): GeneratedShareState | void => {
     if (!isArtifactShareFileSupported(file)) {
       message.warning("当前文件类型暂不支持分享");
       return;
@@ -1879,8 +1880,28 @@ export const DialoguePrototypeView = ({
       ...currentStates,
       [artifactId]: nextShareState,
     }));
-    setGeneratedShare(nextShareState);
-  }, [sharedArtifactStates]);
+
+    return nextShareState;
+  }, []);
+
+  const handleShareArtifactEnabledChange = useCallback((
+    file: ArtifactItem,
+    enabled: boolean,
+  ): void => {
+    if (!isArtifactShareFileSupported(file)) {
+      return;
+    }
+
+    const artifactId = file.id || file.artifactId || file.fileName;
+    const token = normalizeShareToken(artifactId);
+
+    if (!enabled) {
+      revokeSharePreviewSnapshot("artifact", token);
+      return;
+    }
+
+    handleShareArtifactFile(file);
+  }, [handleShareArtifactFile]);
 
   const handleCopyGeneratedShareLink = useCallback(async (): Promise<void> => {
     if (!generatedShare?.link) {
@@ -3170,7 +3191,7 @@ export const DialoguePrototypeView = ({
                 </span>
                 <div>
                   <h3>分享链接已生成</h3>
-                  <p>{generatedShare.description} · 链接 90 天内有效</p>
+                  <p>互联网分享已开启</p>
                 </div>
               </div>
               <button
@@ -3222,6 +3243,7 @@ export const DialoguePrototypeView = ({
                 error=""
                 onDownloadFile={downloadArtifact}
                 onShareFile={handleShareArtifactFile}
+                onShareFileEnabledChange={handleShareArtifactEnabledChange}
                 resolveFileUrl={resolveArtifactUrl}
                 onPreviewStateChange={setIsArtifactPreviewing}
                 preferredFileId={preferredArtifactId}

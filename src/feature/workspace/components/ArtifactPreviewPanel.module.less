@@ -125,6 +125,205 @@
   }
 }
 
+.previewActionPopoverAnchor {
+  display: inline-flex;
+  flex: none;
+}
+
+.artifactSharePopover :global(.ant-popover-inner) {
+  padding: 0;
+  border-radius: 16px;
+  box-shadow: 0 18px 48px rgba(7, 22, 54, 0.14);
+}
+
+.artifactShareCard {
+  width: 360px;
+  padding: 22px 24px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.artifactShareTitle {
+  margin: 0;
+  font-family:
+    "PingFang SC",
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    Arial,
+    sans-serif;
+  font-weight: 700;
+  font-size: 20px;
+  line-height: 28px;
+  color: var(--text);
+}
+
+.artifactShareStatusRow {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.artifactShareStatusText {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+
+  strong {
+    font-family:
+      "PingFang SC",
+      system-ui,
+      -apple-system,
+      "Segoe UI",
+      Arial,
+      sans-serif;
+    font-weight: 700;
+    font-size: 17px;
+    line-height: 23px;
+    color: var(--text);
+  }
+
+  span {
+    font-family:
+      "PingFang SC",
+      system-ui,
+      -apple-system,
+      "Segoe UI",
+      Arial,
+      sans-serif;
+    font-weight: 400;
+    font-size: 15px;
+    line-height: 21px;
+    color: color-mix(in srgb, var(--text-muted) 86%, #777);
+  }
+}
+
+.artifactShareIcon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--text) 8%, transparent);
+  background: var(--surface);
+  color: #1264ff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  font-size: 24px;
+  line-height: 1;
+}
+
+.artifactShareSwitch {
+  width: 48px;
+  height: 28px;
+  padding: 2px;
+  border-radius: 999px;
+  background: #1264ff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex: none;
+  transition: background 0.18s ease;
+
+  span {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 2px 6px rgba(7, 22, 54, 0.16);
+  }
+
+  &:focus-visible {
+    outline: 2px solid color-mix(in srgb, #1264ff 35%, transparent);
+    outline-offset: 2px;
+  }
+}
+
+.artifactShareSwitchOff {
+  background: color-mix(in srgb, var(--text-muted) 32%, #e8ecf3);
+  justify-content: flex-start;
+}
+
+.artifactShareLinkRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 128px;
+  gap: 8px;
+}
+
+.artifactShareLinkBox {
+  height: 42px;
+  padding: 0 14px;
+  border-radius: 11px;
+  background: color-mix(in srgb, var(--text) 4%, #f7f8fa);
+  color: color-mix(in srgb, var(--text-muted) 72%, #999);
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-family:
+    "PingFang SC",
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    Arial,
+    sans-serif;
+  font-weight: 400;
+  font-size: 15px;
+  line-height: 21px;
+}
+
+.artifactShareLinkBoxDisabled {
+  opacity: 0.45;
+}
+
+.artifactShareCopyButton {
+  height: 42px;
+  border-radius: 11px;
+  background: #1264ff;
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-family:
+    "PingFang SC",
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    Arial,
+    sans-serif;
+  font-weight: 700;
+  font-size: 15px;
+  line-height: 20px;
+  transition:
+    background 0.18s ease,
+    opacity 0.18s ease,
+    transform 0.18s ease;
+
+  &:hover:not(:disabled) {
+    background: #0055ee;
+  }
+
+  &:active:not(:disabled) {
+    transform: translateY(1px);
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.45;
+  }
+}
+
+.artifactShareDivider {
+  height: 1px;
+  background: color-mix(in srgb, var(--text) 10%, transparent);
+}
+
 .previewHeaderIcon {
   width: 16px;
   height: 16px;

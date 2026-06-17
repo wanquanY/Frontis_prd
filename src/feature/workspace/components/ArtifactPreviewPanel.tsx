@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useMemo, useState, type ChangeEvent } from "react";
 import {
   ArrowLeftOutlined,
+  CopyOutlined,
   DownloadOutlined,
   ExportOutlined,
+  GlobalOutlined,
   ShareAltOutlined,
 } from "@ant-design/icons";
-import { Spin } from "antd";
+import { message, Popover, Spin } from "antd";
 import classNames from "classnames";
 
 import { MarkdownRenderer } from "@/components/MarkdownRenderer";
@@ -23,10 +25,19 @@ interface ArtifactPreviewPanelProps {
   loading?: boolean;
   error?: string;
   onDownloadFile?: (file: ArtifactItem) => void;
-  onShareFile?: (file: ArtifactItem) => void;
+  onShareFile?: (file: ArtifactItem) => ArtifactShareInfo | void;
+  onShareFileEnabledChange?: (
+    file: ArtifactItem,
+    enabled: boolean,
+    shareInfo: ArtifactShareInfo | null,
+  ) => void;
   resolveFileUrl?: (file: ArtifactItem) => Promise<string>;
   onPreviewStateChange?: (previewing: boolean) => void;
   preferredFileId?: string;
+}
+
+interface ArtifactShareInfo {
+  link: string;
 }
 
 type HtmlPreviewMode = "preview" | "source";
@@ -414,6 +425,7 @@ export const ArtifactPreviewPanel = ({
   error,
   onDownloadFile,
   onShareFile,
+  onShareFileEnabledChange,
   resolveFileUrl,
   onPreviewStateChange,
   preferredFileId,
@@ -424,6 +436,9 @@ export const ArtifactPreviewPanel = ({
   const [selectedSlideIndex, setSelectedSlideIndex] = useState(0);
   const [selectedSheetIndex, setSelectedSheetIndex] = useState(0);
   const [expandedGroupIds, setExpandedGroupIds] = useState<Set<string>>(() => new Set());
+  const [sharePopoverOpen, setSharePopoverOpen] = useState(false);
+  const [artifactShareInfo, setArtifactShareInfo] = useState<ArtifactShareInfo | null>(null);
+  const [artifactShareEnabled, setArtifactShareEnabled] = useState(true);
 
   const filteredFiles = useMemo(() => {
     const normalized = normalizeKeyword(keyword);
@@ -459,6 +474,11 @@ export const ArtifactPreviewPanel = ({
     [files, selectedFileId],
   );
   const previewState = useArtifactPreview(selectedFile, resolveFileUrl);
+
+  useEffect(() => {
+    setSharePopoverOpen(false);
+    setArtifactShareInfo(null);
+  }, [selectedFile?.id]);
 
   useEffect(() => {
     if (!preferredFileId) {
@@ -518,10 +538,71 @@ export const ArtifactPreviewPanel = ({
     onDownloadFile(selectedFile);
   }, [onDownloadFile, selectedFile]);
 
-  const handleShareFile = useCallback(() => {
-    if (!selectedFile || !onShareFile) return;
-    onShareFile(selectedFile);
+  const handleSharePopoverOpenChange = useCallback((open: boolean): void => {
+    if (!open) {
+      setSharePopoverOpen(false);
+      return;
+    }
+
+    if (!selectedFile || !onShareFile || selectedFile.isDeleted) {
+      setSharePopoverOpen(false);
+      return;
+    }
+
+    const nextShareInfo = onShareFile(selectedFile);
+    if (!nextShareInfo) {
+      setSharePopoverOpen(false);
+      return;
+    }
+
+    setArtifactShareInfo(nextShareInfo);
+    setArtifactShareEnabled(true);
+    setSharePopoverOpen(true);
   }, [onShareFile, selectedFile]);
+
+  const handleCopyArtifactShareLink = useCallback(async (): Promise<void> => {
+    if (!artifactShareInfo?.link || !artifactShareEnabled) {
+      return;
+    }
+
+    try {
+      if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(artifactShareInfo.link);
+        message.success("分享链接已复制");
+        return;
+      }
+
+      if (typeof document !== "undefined") {
+        const input = document.createElement("textarea");
+        input.value = artifactShareInfo.link;
+        input.setAttribute("readonly", "true");
+        input.style.position = "fixed";
+        input.style.left = "-9999px";
+        document.body.appendChild(input);
+        input.select();
+        document.execCommand("copy");
+        document.body.removeChild(input);
+        message.success("分享链接已复制");
+        return;
+      }
+    } catch {
+      // 复制失败时用统一提示，不暴露浏览器能力差异。
+    }
+
+    message.warning("复制失败，请重新点击复制链接");
+  }, [artifactShareEnabled, artifactShareInfo?.link]);
+
+  const handleToggleArtifactShare = useCallback((): void => {
+    if (!selectedFile) {
+      return;
+    }
+
+    setArtifactShareEnabled(current => {
+      const nextEnabled = !current;
+      onShareFileEnabledChange?.(selectedFile, nextEnabled, artifactShareInfo);
+      return nextEnabled;
+    });
+  }, [artifactShareInfo, onShareFileEnabledChange, selectedFile]);
 
   const handleSwitchHtmlPreviewMode = useCallback((mode: HtmlPreviewMode) => {
     setHtmlPreviewMode(mode);
@@ -1021,16 +1102,73 @@ export const ArtifactPreviewPanel = ({
                 <ExportOutlined className={styles.previewHeaderIcon} />
               </button>
             ) : null}
-            <button
-              type="button"
-              className={styles.previewIconButton}
-              onClick={handleShareFile}
-              disabled={!onShareFile || selectedFile.isDeleted}
-              aria-label={`分享 ${selectedFile.fileName}`}
-              title="分享"
+            <Popover
+              arrow={false}
+              trigger={["hover"]}
+              placement="bottomRight"
+              open={sharePopoverOpen}
+              onOpenChange={handleSharePopoverOpenChange}
+              overlayClassName={styles.artifactSharePopover}
+              content={
+                <section className={styles.artifactShareCard} aria-label="分享文档">
+                  <h3 className={styles.artifactShareTitle}>分享文档</h3>
+                  <div className={styles.artifactShareStatusRow}>
+                    <span className={styles.artifactShareIcon} aria-hidden={true}>
+                      <GlobalOutlined />
+                    </span>
+                    <div className={styles.artifactShareStatusText}>
+                      <strong>
+                        {artifactShareEnabled ? "互联网分享已开启" : "互联网分享已关闭"}
+                      </strong>
+                      <span>任何获得链接的人可阅读</span>
+                    </div>
+                    <button
+                      type="button"
+                      className={classNames(styles.artifactShareSwitch, {
+                        [styles.artifactShareSwitchOff]: !artifactShareEnabled,
+                      })}
+                      aria-pressed={artifactShareEnabled}
+                      aria-label={artifactShareEnabled ? "关闭互联网分享" : "开启互联网分享"}
+                      onClick={handleToggleArtifactShare}
+                    >
+                      <span />
+                    </button>
+                  </div>
+                  <div className={styles.artifactShareLinkRow}>
+                    <div
+                      className={classNames(styles.artifactShareLinkBox, {
+                        [styles.artifactShareLinkBoxDisabled]: !artifactShareEnabled,
+                      })}
+                      title={artifactShareInfo?.link}
+                    >
+                      {artifactShareInfo?.link || ""}
+                    </div>
+                    <button
+                      type="button"
+                      className={styles.artifactShareCopyButton}
+                      onClick={handleCopyArtifactShareLink}
+                      disabled={!artifactShareEnabled}
+                    >
+                      <CopyOutlined />
+                      <span>复制链接</span>
+                    </button>
+                  </div>
+                  <div className={styles.artifactShareDivider} />
+                </section>
+              }
             >
-              <ShareAltOutlined className={styles.previewHeaderIcon} />
-            </button>
+              <span className={styles.previewActionPopoverAnchor}>
+                <button
+                  type="button"
+                  className={styles.previewIconButton}
+                  disabled={!onShareFile || selectedFile.isDeleted}
+                  aria-label={`分享 ${selectedFile.fileName}`}
+                  title="分享"
+                >
+                  <ShareAltOutlined className={styles.previewHeaderIcon} />
+                </button>
+              </span>
+            </Popover>
             <button
               type="button"
               className={styles.previewIconButton}
