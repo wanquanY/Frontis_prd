@@ -45,7 +45,6 @@ import {
   createConversationShareSnapshot,
   isArtifactShareFileSupported,
   normalizeShareToken,
-  revokeSharePreviewSnapshot,
   saveSharePreviewSnapshot,
   type SharePreviewKind,
 } from "@/feature/share/sharePreviewStorage";
@@ -1862,12 +1861,6 @@ export const DialoguePrototypeView = ({
     }
 
     const artifactId = file.id || file.artifactId || file.fileName;
-    const existingShare = sharedArtifactStates[artifactId];
-    if (existingShare) {
-      setGeneratedShare(existingShare);
-      return;
-    }
-
     const token = normalizeShareToken(artifactId);
     const snapshot = createArtifactShareSnapshot(token, file);
     saveSharePreviewSnapshot(snapshot);
@@ -1888,26 +1881,6 @@ export const DialoguePrototypeView = ({
     }));
     setGeneratedShare(nextShareState);
   }, [sharedArtifactStates]);
-
-  const handleCancelArtifactShare = useCallback((): void => {
-    if (
-      !generatedShare ||
-      generatedShare.kind !== "artifact" ||
-      !generatedShare.token ||
-      !generatedShare.artifactId
-    ) {
-      return;
-    }
-
-    revokeSharePreviewSnapshot("artifact", generatedShare.token);
-    setSharedArtifactStates((currentStates) => {
-      const nextStates = { ...currentStates };
-      delete nextStates[generatedShare.artifactId as string];
-      return nextStates;
-    });
-    setGeneratedShare(null);
-    message.success("已取消分享");
-  }, [generatedShare]);
 
   const handleCopyGeneratedShareLink = useCallback(async (): Promise<void> => {
     if (!generatedShare?.link) {
@@ -1935,9 +1908,9 @@ export const DialoguePrototypeView = ({
         return;
       }
 
-      message.warning("请手动复制分享链接");
+      message.warning("复制失败，请重新点击复制链接");
     } catch {
-      message.warning("复制失败，请手动复制分享链接");
+      message.warning("复制失败，请重新点击复制链接");
     }
   }, [generatedShare?.link]);
 
@@ -3197,36 +3170,17 @@ export const DialoguePrototypeView = ({
                 </span>
                 <div>
                   <h3>分享链接已生成</h3>
-                  <p>{generatedShare.description}</p>
+                  <p>{generatedShare.description} · 链接 90 天内有效</p>
                 </div>
-              </div>
-              <div className={styles.dialogueShareLinkBox}>
-                <textarea
-                  aria-label="分享链接"
-                  readOnly
-                  rows={2}
-                  title={generatedShare.link}
-                  value={generatedShare.link}
-                />
               </div>
               <button
                 className={styles.dialogueShareCopyButton}
                 type="button"
                 onClick={handleCopyGeneratedShareLink}
               >
-                  <CopyOutlined />
-                  <span>复制链接</span>
+                <CopyOutlined />
+                <span>复制链接</span>
               </button>
-              {generatedShare.kind === "artifact" ? (
-                <button
-                  className={styles.dialogueShareCancelButton}
-                  type="button"
-                  onClick={handleCancelArtifactShare}
-                >
-                  <CloseOutlined />
-                  <span>取消分享</span>
-                </button>
-              ) : null}
             </section>
           </div>
         ) : null}
