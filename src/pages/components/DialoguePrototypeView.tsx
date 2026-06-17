@@ -3201,12 +3201,22 @@ export const DialoguePrototypeView = ({
                 </div>
               </div>
               <div className={styles.dialogueShareLinkBox}>
-                <span title={generatedShare.link}>{generatedShare.link}</span>
-                <button type="button" onClick={handleCopyGeneratedShareLink}>
+                <textarea
+                  aria-label="分享链接"
+                  readOnly
+                  rows={2}
+                  title={generatedShare.link}
+                  value={generatedShare.link}
+                />
+              </div>
+              <button
+                className={styles.dialogueShareCopyButton}
+                type="button"
+                onClick={handleCopyGeneratedShareLink}
+              >
                   <CopyOutlined />
                   <span>复制链接</span>
-                </button>
-              </div>
+              </button>
               {generatedShare.kind === "artifact" ? (
                 <button
                   className={styles.dialogueShareCancelButton}

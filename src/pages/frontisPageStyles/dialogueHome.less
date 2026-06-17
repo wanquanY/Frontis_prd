@@ -283,39 +283,42 @@
 
 .dialogueShareLinkBox {
   min-width: 0;
-  padding: 10px;
+  padding: 12px 14px;
   border: 1px solid var(--panelBorder);
   border-radius: 10px;
   background: color-mix(in srgb, var(--text) 3%, var(--surface));
-  display: flex;
-  align-items: center;
-  gap: 8px;
 }
 
-.dialogueShareLinkBox > span {
-  min-width: 0;
-  flex: 1;
+.dialogueShareLinkBox > textarea {
+  width: 100%;
+  min-height: 46px;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  resize: none;
+  background: transparent;
   color: var(--text-secondary);
   font-size: 12px;
-  line-height: 18px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  line-height: 20px;
+  word-break: break-all;
+  overflow-wrap: anywhere;
+  cursor: text;
+  user-select: text;
 }
 
-.dialogueShareLinkBox > button {
-  min-height: 32px;
-  padding: 0 10px;
+.dialogueShareCopyButton {
+  min-height: 38px;
+  padding: 0 14px;
   border: 0;
-  border-radius: 8px;
+  border-radius: 10px;
   background: #1677ff;
   color: #ffffff;
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
-  flex: none;
-  font-size: 13px;
-  font-weight: 600;
+  font-size: 14px;
+  font-weight: 700;
   cursor: pointer;
 }
 
