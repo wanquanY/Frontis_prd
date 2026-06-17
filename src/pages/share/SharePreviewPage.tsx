@@ -226,19 +226,37 @@ const renderArtifactPreview = (snapshot: SharePreviewSnapshot): JSX.Element => {
   );
 };
 
+const renderConversationPreview = (snapshot: SharePreviewSnapshot): JSX.Element => {
+  const items = snapshot.conversationItems ?? [];
+  if (!items.length) {
+    return <div className={styles.emptyState}>分享对话内容缺失。</div>;
+  }
+
+  return (
+    <div className={styles.conversationList}>
+      {items.map(item => (
+        <article key={item.id} className={styles.conversationItem}>
+          <div className={styles.conversationAvatar}>{item.title.slice(0, 1)}</div>
+          <div className={styles.conversationBubble}>
+            <div className={styles.conversationMeta}>{item.title}</div>
+            <MarkdownRenderer source={item.content} />
+          </div>
+        </article>
+      ))}
+    </div>
+  );
+};
+
 const SharePreviewPage = (): JSX.Element => {
   const params = useParams<{ kind: SharePreviewKind; token: string }>();
-  const kind = params.kind === "artifact" ? "artifact" : null;
+  const kind = params.kind === "conversation" ? "conversation" : "artifact";
   const token = params.token ?? "";
-  const isRevoked = useMemo(
-    () => (kind ? isSharePreviewRevoked(kind, token) : true),
-    [kind, token],
-  );
+  const isRevoked = useMemo(() => isSharePreviewRevoked(kind, token), [kind, token]);
   const snapshot = useMemo(
     () =>
-      isRevoked || !kind
+      isRevoked
         ? null
-        : loadSharePreviewSnapshot(kind, token) ?? createMockSharePreviewSnapshot(token),
+        : loadSharePreviewSnapshot(kind, token) ?? createMockSharePreviewSnapshot(kind, token),
     [isRevoked, kind, token],
   );
 
@@ -256,7 +274,11 @@ const SharePreviewPage = (): JSX.Element => {
 
       <section className={styles.previewShell}>
         {snapshot ? (
-          renderArtifactPreview(snapshot)
+          snapshot.kind === "artifact" ? (
+            renderArtifactPreview(snapshot)
+          ) : (
+            renderConversationPreview(snapshot)
+          )
         ) : (
           <div className={styles.notFoundCard}>
             <h1>分享已取消</h1>

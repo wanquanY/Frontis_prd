@@ -1,6 +1,7 @@
+import type { Block } from "@/types/block";
 import type { ArtifactItem } from "@/types/artifact";
 
-export type SharePreviewKind = "artifact";
+export type SharePreviewKind = "artifact" | "conversation";
 
 export interface SharePreviewArtifactSnapshot {
   artifactId: string;
@@ -15,6 +16,15 @@ export interface SharePreviewArtifactSnapshot {
   content?: string;
 }
 
+export interface SharePreviewConversationItem {
+  id: string;
+  content: string;
+  role: "user" | "assistant" | "system" | "unknown";
+  title: string;
+}
+
+type SharePreviewConversationRole = SharePreviewConversationItem["role"];
+
 export interface SharePreviewSnapshot {
   createdAt: string;
   description: string;
@@ -22,6 +32,7 @@ export interface SharePreviewSnapshot {
   title: string;
   token: string;
   artifact?: SharePreviewArtifactSnapshot;
+  conversationItems?: SharePreviewConversationItem[];
 }
 
 const SHARE_PREVIEW_STORAGE_PREFIX = "frontis_share_preview_snapshot:";
@@ -123,6 +134,50 @@ const decodeDataUrlContent = (url?: string): string => {
   }
 };
 
+const extractBlockContent = (block: Block): string => {
+  const directContent = block.data?.content;
+  if (typeof directContent === "string" && directContent.trim()) {
+    return directContent.trim();
+  }
+
+  const artifactTitle = block.data?.file_name ?? block.data?.fileName ?? block.data?.title;
+  if (typeof artifactTitle === "string" && artifactTitle.trim()) {
+    return `成果文件：${artifactTitle.trim()}`;
+  }
+
+  return (block.children ?? [])
+    .map(child => extractBlockContent(child))
+    .filter(Boolean)
+    .join("\n\n");
+};
+
+const normalizeConversationRole = (role?: string): SharePreviewConversationRole => {
+  if (role === "user" || role === "assistant" || role === "system") {
+    return role;
+  }
+
+  return "unknown";
+};
+
+export const createConversationShareItems = (
+  blocks: Block[],
+): SharePreviewConversationItem[] =>
+  blocks
+    .map(block => {
+      const role = normalizeConversationRole(block.actorRole);
+      const actorName = block.actorName?.trim();
+      const title =
+        actorName ||
+        (role === "user" ? "用户" : role === "assistant" ? "ME" : role === "system" ? "系统" : "消息");
+      return {
+        id: block.id,
+        content: extractBlockContent(block),
+        role,
+        title,
+      };
+    })
+    .filter(item => item.content.trim());
+
 export const createArtifactShareSnapshot = (
   token: string,
   artifact: ArtifactItem,
@@ -146,13 +201,54 @@ export const createArtifactShareSnapshot = (
   },
 });
 
+export const createConversationShareSnapshot = (
+  token: string,
+  title: string,
+  blocks: Block[],
+): SharePreviewSnapshot => {
+  const conversationItems = createConversationShareItems(blocks);
+  return {
+    kind: "conversation",
+    token,
+    title,
+    description: `已选择 ${conversationItems.length} 条消息`,
+    createdAt: new Date().toISOString(),
+    conversationItems,
+  };
+};
+
 export const createMockSharePreviewSnapshot = (
+  kind: SharePreviewKind,
   token: string,
 ): SharePreviewSnapshot => {
   const baseSnapshot = {
     token,
     createdAt: new Date().toISOString(),
   };
+
+  if (kind === "conversation") {
+    return {
+      ...baseSnapshot,
+      kind: "conversation",
+      title: "ME 会话分享",
+      description: "已选择 2 条消息",
+      conversationItems: [
+        {
+          id: "mock-user-question",
+          role: "user",
+          title: "杨万泉",
+          content: "帮我看一下 Leadeep 移动端对接这期 PRD，整理一下现在还缺哪些产品规则。",
+        },
+        {
+          id: "mock-me-answer",
+          role: "assistant",
+          title: "ME",
+          content:
+            "当前重点缺口有三块：移动端权限开通规则、绑定会话的同步边界、交叉用户的余额迁移口径。建议把它们放进同一版需求列表，避免研发拆成三套孤立逻辑。",
+        },
+      ],
+    };
+  }
 
   return {
     ...baseSnapshot,

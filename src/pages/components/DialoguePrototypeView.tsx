@@ -42,6 +42,7 @@ import { resolveFileLogo } from "@/utils/fileLogo";
 import type { AiCeoHomeSkillItem, AiCeoSkillIconKey } from "@/constants/aiCeoHome";
 import {
   createArtifactShareSnapshot,
+  createConversationShareSnapshot,
   isArtifactShareFileSupported,
   normalizeShareToken,
   revokeSharePreviewSnapshot,
@@ -162,7 +163,7 @@ const ADDABLE_EXPERT_PICKER_STATUSES: Array<{
 ];
 
 interface GeneratedShareState {
-  kind: "artifact";
+  kind: "artifact" | "conversation";
   title: string;
   link: string;
   description: string;
@@ -508,6 +509,10 @@ export const DialoguePrototypeView = ({
   const [addExpertPickerStatus, setAddExpertPickerStatus] =
     useState<AddableExpertPickerStatus>("unadded");
   const [addExpertSearchValue, setAddExpertSearchValue] = useState<string>("");
+  const [isConversationShareSelecting, setIsConversationShareSelecting] = useState<boolean>(false);
+  const [selectedConversationShareBlockIds, setSelectedConversationShareBlockIds] = useState<
+    Set<string>
+  >(() => new Set());
   const [generatedShare, setGeneratedShare] = useState<GeneratedShareState | null>(null);
   const [sharedArtifactStates, setSharedArtifactStates] = useState<Record<string, GeneratedShareState>>(
     {},
@@ -703,6 +708,35 @@ export const DialoguePrototypeView = ({
     [dialogueMessages],
   );
   const chatBlocks = useMemo(() => buildWorkspaceChatBlocks(dialogueMessages), [dialogueMessages]);
+  const shareableConversationBlocks = useMemo(
+    () =>
+      chatBlocks.filter(block => {
+        if (
+          block.kind === "text" &&
+          !(block.data as { content?: string }).content &&
+          !block.isStreaming
+        ) {
+          return false;
+        }
+        if (block.kind === "message") {
+          const hasChildren = block.children && block.children.length > 0;
+          if (!hasChildren && !block.isStreaming) {
+            return false;
+          }
+        }
+        return true;
+      }),
+    [chatBlocks],
+  );
+  const selectedConversationShareBlockIdList = useMemo(
+    () => Array.from(selectedConversationShareBlockIds),
+    [selectedConversationShareBlockIds],
+  );
+  const selectedConversationShareBlocks = useMemo(
+    () =>
+      shareableConversationBlocks.filter(block => selectedConversationShareBlockIds.has(block.id)),
+    [selectedConversationShareBlockIds, shareableConversationBlocks],
+  );
   const selectedSkillItems = useMemo(
     () => homeSkillItems.filter(item => selectedSkillIds.includes(item.id)),
     [homeSkillItems, selectedSkillIds],
@@ -1244,6 +1278,8 @@ export const DialoguePrototypeView = ({
     setPreferredArtifactId(undefined);
     setActiveResultId(null);
     setIsArtifactPreviewing(false);
+    setIsConversationShareSelecting(false);
+    setSelectedConversationShareBlockIds(new Set());
     setGeneratedShare(null);
   }, [activeDialogueSession?.id]);
 
@@ -1751,6 +1787,73 @@ export const DialoguePrototypeView = ({
       ))}
     </div>
   );
+
+  const handleStartConversationShare = useCallback((): void => {
+    if (!shareableConversationBlocks.length) {
+      message.warning("当前会话暂无可分享消息");
+      return;
+    }
+
+    setGeneratedShare(null);
+    setIsConversationShareSelecting(true);
+    setSelectedConversationShareBlockIds(new Set());
+  }, [shareableConversationBlocks.length]);
+
+  const handleCancelConversationShare = useCallback((): void => {
+    setIsConversationShareSelecting(false);
+    setSelectedConversationShareBlockIds(new Set());
+  }, []);
+
+  const handleToggleConversationShareBlock = useCallback((blockId: string): void => {
+    setSelectedConversationShareBlockIds(current => {
+      const next = new Set(current);
+      if (next.has(blockId)) {
+        next.delete(blockId);
+        return next;
+      }
+
+      next.add(blockId);
+      return next;
+    });
+  }, []);
+
+  const handleToggleSelectAllConversationShare = useCallback((): void => {
+    setSelectedConversationShareBlockIds(current => {
+      if (current.size === shareableConversationBlocks.length) {
+        return new Set();
+      }
+
+      return new Set(shareableConversationBlocks.map(block => block.id));
+    });
+  }, [shareableConversationBlocks]);
+
+  const handleGenerateConversationShareLink = useCallback((): void => {
+    if (!selectedConversationShareBlocks.length) {
+      message.warning("请先选择要分享的消息");
+      return;
+    }
+
+    const title = activeDialogueSession?.title?.trim() || `${activeEmployee.name} 对话分享`;
+    const token = normalizeShareToken(
+      `${activeDialogueSession?.id ?? activeEmployee.id}-${selectedConversationShareBlocks.length}`,
+    );
+    const snapshot = createConversationShareSnapshot(token, title, selectedConversationShareBlocks);
+    saveSharePreviewSnapshot(snapshot);
+
+    setGeneratedShare({
+      kind: "conversation",
+      title,
+      link: buildPrototypeShareLink("conversation", token),
+      description: snapshot.description,
+    });
+    setIsConversationShareSelecting(false);
+  }, [
+    activeDialogueSession?.id,
+    activeDialogueSession?.title,
+    activeEmployee.id,
+    activeEmployee.name,
+    selectedConversationShareBlocks,
+  ]);
 
   const handleShareArtifactFile = useCallback((file: ArtifactItem): void => {
     if (!isArtifactShareFileSupported(file)) {
@@ -2426,6 +2529,47 @@ export const DialoguePrototypeView = ({
       <div className={styles.dialogueExpertTeamAvatars}>{expertTeamMemberAvatars}</div>
     </div>
   ) : null;
+  const selectedConversationShareCount = selectedConversationShareBlockIds.size;
+  const isAllConversationShareSelected =
+    shareableConversationBlocks.length > 0 &&
+    selectedConversationShareCount === shareableConversationBlocks.length;
+  const conversationShareSelectionNode = isConversationShareSelecting ? (
+    <div className={styles.dialogueShareSelectionBar} aria-label="对话分享选择栏">
+      <button
+        type="button"
+        className={classNames(styles.dialogueShareSelectionButton, {
+          [styles.dialogueShareSelectionButtonActive]: isAllConversationShareSelected,
+        })}
+        onClick={handleToggleSelectAllConversationShare}
+      >
+        <span className={styles.dialogueShareSelectionCheck} aria-hidden={true}>
+          {isAllConversationShareSelected ? <CheckOutlined /> : null}
+        </span>
+        <span>全选</span>
+      </button>
+      <span className={styles.dialogueShareSelectionCount}>
+        {selectedConversationShareCount > 0
+          ? `已选择 ${selectedConversationShareCount} 条`
+          : "选择要分享的消息"}
+      </span>
+      <button
+        type="button"
+        className={styles.dialogueShareSelectionPrimary}
+        disabled={selectedConversationShareCount === 0}
+        onClick={handleGenerateConversationShareLink}
+      >
+        <LinkOutlined />
+        <span>生成分享链接</span>
+      </button>
+      <button
+        type="button"
+        className={styles.dialogueShareSelectionCancel}
+        onClick={handleCancelConversationShare}
+      >
+        取消
+      </button>
+    </div>
+  ) : null;
   const expertTeamScenarioLabel = useMemo(
     () =>
       shouldShowExpertTeamUi
@@ -2846,13 +2990,20 @@ export const DialoguePrototypeView = ({
                   greeting="输入消息或上传文件，开始协作"
                   showMessageMeta={true}
                   collapseAssignedActorOutputs={isMetaAgentWorkspace}
+                  shareSelectionEnabled={isConversationShareSelecting}
+                  selectedShareBlockIds={selectedConversationShareBlockIdList}
+                  onToggleShareBlock={handleToggleConversationShareBlock}
+                  onStartShareSelection={
+                    isConversationShareSelecting ? undefined : handleStartConversationShare
+                  }
                   onOpenArtifact={handleOpenArtifact}
                   onOpenResult={handleOpenResult}
                   onQuickActionSend={onQuickPromptSend}
                 />
               </div>
             </div>
-            {composerNode}
+            {conversationShareSelectionNode}
+            {isConversationShareSelecting ? null : composerNode}
           </>
         )}
       </section>
@@ -3032,7 +3183,7 @@ export const DialoguePrototypeView = ({
         className={styles.dialogueShareModal}
         width={560}
         centered
-        title="成果分享"
+        title={generatedShare?.kind === "artifact" ? "成果分享" : "对话分享"}
         open={Boolean(generatedShare)}
         footer={null}
         onCancel={() => setGeneratedShare(null)}
